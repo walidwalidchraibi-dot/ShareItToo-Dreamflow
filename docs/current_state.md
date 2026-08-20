@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G3B implementation head:
-  `7b1be00420b41941758678e77f2a8caa1dc3a659`.
-- The G3B implementation commit is contained in the local branch, remote
+- Current G3C implementation head:
+  `ff02c6afb1bcadedc05c746ec2ed990478506bbe`.
+- The G3C implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32409736722` is green: backend regression and
+- Exact GitHub Actions run `32413370914` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -19,7 +19,7 @@ Verified: 2026-08-20 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `028`, deterministic
+- Node/Express backend with PostgreSQL migrations through `029`, deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
@@ -118,18 +118,40 @@ Verified: 2026-08-20 on the Mac mini.
 - Listing, quote, allocation and optional booking references are verified per
   position. Existing booking IDs remain the bridge to item-specific evidence,
   damage, refund and ledger truth; historical V5.2 objects are untouched.
-- The feature has no route or public UI, defaults disabled in every checked
-  deployment surface and is explicitly rejected in production.
+- The G3B foundation has no route or public UI. G3C adds internal technical
+  routes, but every route fails closed while the flag is false. The flag
+  defaults false everywhere and production enabling is rejected.
 - Migration 028 has a tested additive forward path. Rollback removes only G3B
   objects when empty and refuses to destroy existing group evidence.
 - `docs/compliance/g3b-booking-group-foundation-2026-08-20.md` and ADR-028 are
-  the detailed G3B evidence. V2.4 auto-continues to G3C.
+  the detailed G3B evidence.
+
+## G3C quote and state orchestration
+
+- Fresh existing single-item server quotes are the only source for each group
+  item allocation. The immutable group quote is their exact cent-based sum.
+- The initial revision covers all positions. Owner accept-all and decline-all
+  bind the exact current quote. A changed item-set counter-offer creates a new
+  predecessor-linked immutable quote and requires the renter to accept its
+  exact ID and hash.
+- Append-only database events are the state source. Actor, group, revision,
+  quote hash, initial membership and transition guards fail closed, while
+  command records provide actor/request-hash-bound idempotent replay.
+- Same-owner compatibility hashes the internal exact location text and
+  coordinates, so city-level similarity cannot combine different handover
+  places silently.
+- Successful G3C transitions create no booking, rental request, availability
+  hold, contract, payment or refund. Public/live use remains disabled and
+  production enabling remains rejected.
+- `docs/compliance/g3c-group-quote-state-orchestration-2026-08-20.md` and
+  ADR-029 are the detailed G3C evidence. V2.4 auto-continues to G3D.
 
 ## Validation and rollback
 
-- Exact G3B CI is green with PostgreSQL migration, rollback, concurrency and
-  boundary coverage: 287 backend tests passed, 0 failed.
-- Local backend suite: 286 passed, 0 failed and one expected PostgreSQL skip
+- Exact G3C CI is green with PostgreSQL migration, rollback, all decision
+  branches, idempotency and boundary coverage: 292 backend tests passed,
+  0 failed and 0 skipped.
+- Local backend suite: 291 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
 - Complete Flutter suite: 307 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
@@ -154,10 +176,13 @@ Verified: 2026-08-20 on the Mac mini.
   with the exact Privacy-/Retention-Quellhashbindungen for `backend/src/app.js`.
 - G3B rollback removes only empty migration-028 objects and otherwise fails
   closed. It never rewrites or deletes historical V5.2 truth.
+- G3C rollback removes only empty migration-029 quote, command and event
+  objects and otherwise fails closed. Migration 028 and historical V5.2 truth
+  stay intact.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G3C under the V2.4
+`docs/current_work_package.md` records active G3D under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
