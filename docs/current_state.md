@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G3D implementation head:
-  `871fc3299f8b2520dfeba623532c792351eb757c`.
-- The G3D implementation commit is contained in the local branch, remote
+- Current G3E implementation head:
+  `04c5122274a2406898e5070232420fb3b0fb43f0`.
+- The G3E implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32416833455` is green: backend regression and
+- Exact GitHub Actions run `32419733240` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -164,14 +164,34 @@ Verified: 2026-08-20 on the Mac mini.
 - `docs/compliance/g3d-shared-handover-item-evidence-2026-08-20.md` and ADR-030
   are the detailed G3D evidence. V2.4 auto-continues to G3E.
 
+## G3E disabled multi-item UX and end-to-end integration
+
+- The existing `Mietkorb` gains a technical booking-group entry only for
+  explicitly enabled non-release builds. Both technical and public-release
+  controls default false; release-mode use and public activation fail closed.
+- Candidate presentation permits only the same owner, project, period and
+  currency and leaves the established single-item flow unchanged.
+- The technical group view displays exact group totals, rent/service
+  components and every item allocation. It compares predecessor and current
+  counter-offers, including added, removed and changed positions.
+- Renter consent starts unchecked and binds the exact current quote ID and
+  hash. No client price or silent partial acceptance is introduced.
+- Shared pickup and return are shown without an exact address. Required photos,
+  accessories, confirmations, chat, deadlines, return/damage state and
+  `needsReview` remain visible and independent per item.
+- `docs/compliance/g3e-disabled-multi-item-ux-2026-08-20.md` and ADR-031 are
+  the detailed G3E evidence. V2.4 auto-continues to G3L-DRAFT without granting
+  legal approval or public/live activation.
+
 ## Validation and rollback
 
-- Exact G3D CI `32416833455` is green with PostgreSQL forward/rollback,
-  real group-to-V5.2 bindings, idempotent appointment creation, system-risk
-  hold and independent item evidence/state coverage.
+- Exact G3E CI `32419733240` is green at
+  `04c5122274a2406898e5070232420fb3b0fb43f0`: 297 backend tests and 312
+  Flutter tests passed, with the one documented Flutter skip. PostgreSQL
+  migration/integration, web debug and Android debug builds also passed.
 - Local backend suite: 296 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
-- Complete Flutter suite: 307 passed with one documented skip; the extra
+- Complete local Flutter suite: 312 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
   debug APK passed.
 - Analyzer remains at the accepted 223-item baseline. Dependency audit has no
@@ -180,9 +200,12 @@ Verified: 2026-08-20 on the Mac mini.
 - Privacy remains draft with 17 data types and nine services. Retention remains
   draft with nine open decisions and 20 stable execution blockers.
 - The verified migration package and Git bundle remain rollback evidence.
-- C1I readiness result is HOLD: ADB currently sees no physical device; neither
-  the `2026081509` nor old `2026081510` private candidate archive is present on
-  this Mac mini; and all stored physical-device passes bind older commits.
+- The Pixel 7 Pro is currently reachable and authorized through ADB. A G3E
+  technical-flag debug APK built successfully, but a non-destructive update
+  install was rejected because the existing app uses a different signature.
+  The installed app and its data were left untouched; current-source physical
+  UI evidence therefore remains open for P0A or a separately authorized
+  candidate/device procedure.
 - The historical Google-only candidate manifest remains internally valid, but
   its build `2026081510` binds commit `4cb0046`, not the current implementation
   head. Phone-verification readiness also fails current-source binding and is
@@ -200,10 +223,12 @@ Verified: 2026-08-20 on the Mac mini.
 - G3D rollback removes only empty migration-030 binding, appointment and
   command objects and otherwise fails closed. Migrations 028/029 and all
   historical V5.2 item evidence stay intact.
+- G3E has no migration. Its rollback is a revert of `04c5122`; disabled entry
+  points and historical V5.2/G3B-G3D evidence remain unchanged.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G3E under the V2.4
+`docs/current_work_package.md` records active G3L-DRAFT under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the

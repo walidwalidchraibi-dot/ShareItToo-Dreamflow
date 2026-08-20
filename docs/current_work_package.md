@@ -1,54 +1,53 @@
-# Current Work Package: G3E - Disabled Multi-Item UX and End-to-End Integration
+# Current Work Package: G3L-DRAFT - Multi-Item Legal/Document Delta Preparation
 
 Status: **active under the V2.4 rolling-autonomy runway** on 20.08.2026.
 
 ## Authorization and boundary
 
 Walid selected `G3A_ENTSCHEIDUNG_A` and instructed Codex to follow
-`00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`. G3D is technically GREEN at commit
-`871fc3299f8b2520dfeba623532c792351eb757c`; exact GitHub Actions run
-`32416833455` passed. V2.4 therefore auto-continues to G3E.
+`00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`. G3E is technically GREEN at commit
+`04c5122274a2406898e5070232420fb3b0fb43f0`; exact GitHub Actions run
+`32419733240` passed with 297 backend and 312 Flutter tests. V2.4 therefore
+auto-continues to G3L-DRAFT.
+
+This package may prepare and test technical legal-document machinery, a draft
+delta matrix and a professional-review checklist. It must not claim legal or
+professional approval, activate booking groups, replace V5.2, or rewrite a
+historical snapshot.
 
 No production, public/live, VPS/OpenClaw, Maximus, SSH, DNS, cloud-console,
 real-payment, Store, signing, provider-account or destructive action is
-authorized. PR #7 remains Draft and unmerged. `BOOKING_GROUPS_ENABLED` remains
-false and production activation is rejected.
+authorized. PR #7 remains Draft and unmerged. All booking-group feature flags
+remain false by default and production activation remains rejected.
 
-## G3D handover
+## G3E handover
 
-- Migration 030 adds an append-only bridge from accepted group positions to
-  separately valid V5.2 item bookings and exactly one shared pickup plus one
-  shared return appointment.
-- Binding validates the final group quote, exact item allocation, actors,
-  period, currency, V5.2 contract, underlying quote and both declarations.
-- Photos, accessories, confirmations, chat, timers, return/damage state and
-  `needsReview` remain independently keyed by item booking. Only an explicit
-  active account-scope participant suspension holds the complete overlay.
-- G3D creates no booking, contract, payment, refund or damage charge. Exact
-  addresses remain inside the existing item-booking disclosure boundary.
-- Exact PostgreSQL, backend, Flutter, Web, Android debug, secret, dependency,
-  Compose and API-image checks passed in CI.
-- Detailed evidence is in
-  `docs/compliance/g3d-shared-handover-item-evidence-2026-08-20.md`; the
-  architecture decision is
-  `docs/decisions/ADR-030-g3d-shared-handover-item-evidence.md`.
+- The technical same-owner group entry is non-release-only and disabled by
+  default; the existing single-item cart and checkout remain unchanged.
+- Group total, component and item allocation are server-derived. Counter-offer
+  comparison retains the predecessor and exact quote identity.
+- Explicit renter consent binds the current quote ID/hash and begins unchecked.
+- Shared appointment presentation excludes exact addresses and retains every
+  item-specific evidence, accessory, chat, deadline, damage and review state.
+- G3E introduced no migration, contract, payment, booking or public state.
+- Pixel reachability passed; replacement install of the technical debug build
+  stopped safely at the existing-package signature boundary without deletion.
 
-## G3E required result
+## G3L-DRAFT required result
 
-- Present a same-owner multi-item request/cart with an unambiguous group total
-  and exact item-level breakdown.
-- Compare the owner's counter-offer with the preceding quote and require
-  explicit renter acceptance of the exact revision.
-- Present the shared pickup/return appointment while keeping the complete
-  evidence checklist and status visible independently for every item.
-- Exercise the bounded group path end-to-end without creating real money,
-  Store, cloud, production or public/live state.
-- Keep every entry point disabled by default and unavailable for public/live
-  use until G3L and the later professional legal gate permit activation.
+- Identify the multi-item impact on platform terms, private-rental terms,
+  privacy, export, retention, receipts and evidence without inventing law.
+- Define a new immutable draft legal/document version for multi-item flows and
+  bind its exact machine-readable topology and hashes.
+- Preserve every historical V5.2 asset and snapshot byte-for-byte.
+- Add fail-closed validation proving that the draft cannot be treated as an
+  approval or public/live release authorization.
+- Produce a professional-review checklist and an explicit legal release gate.
 
 ## Package gate
 
-Run focused checks, the full technical regression and exact commit-bound CI.
-Record UX consent boundaries, item isolation, activation controls and rollback.
-When G3E is GREEN, V2.4 auto-continues to G3L-DRAFT; stop only at a defined
-hard gate.
+Run focused validation and the full technical regression at the exact package
+head. Record changed files, behavior, tests, legal-review risks and rollback.
+When G3L-DRAFT is technically GREEN, V2.4 auto-continues to non-live,
+feature-flagged G4A even while professional legal sign-off remains pending.
+There is a hard stop before any public/live activation of G3.
