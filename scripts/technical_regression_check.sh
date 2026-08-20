@@ -50,6 +50,10 @@ node --check tool/validate_legal_readiness.mjs
 node --test test/tool/validate_legal_readiness.test.mjs
 node tool/validate_legal_readiness.mjs
 
+node --check tool/validate_founder_independence_guardrails.mjs
+node --test test/tool/validate_founder_independence_guardrails.test.mjs
+node tool/validate_founder_independence_guardrails.mjs
+
 node --check tool/validate_privacy_disclosures.mjs
 node --test test/tool/validate_privacy_disclosures.test.mjs
 node --test test/tool/validate_messaging_launch_scope.test.mjs

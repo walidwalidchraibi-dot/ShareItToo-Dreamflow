@@ -2,11 +2,15 @@
 set -euo pipefail
 
 task_commit="${1:-}"
-task_image_repository="${IMAGE_REPOSITORY:-ghcr.io/walidwalidchraibi-dot/shareittoo-api}"
+task_image_repository="${IMAGE_REPOSITORY:-}"
 task_postgres_image='postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777'
 
 if [[ ! "$task_commit" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "Usage: $0 <40-character-commit>" >&2
+  echo "Usage: IMAGE_REPOSITORY=ghcr.io/<approved-namespace>/<image> $0 <40-character-commit>" >&2
+  exit 1
+fi
+if [[ ! "$task_image_repository" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+$ ]]; then
+  echo "IMAGE_REPOSITORY must be an explicit role-approved GHCR repository." >&2
   exit 1
 fi
 for task_command in docker openssl sed grep mktemp; do

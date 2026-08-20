@@ -103,10 +103,12 @@ jobs:
         run: |
           APP_VERSION="0.1.0-${APP_COMMIT::12}"
           APP_BUILD_TIME="$(git show -s --format=%cI "$APP_COMMIT")"
+          APP_SOURCE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
           docker build \
             --build-arg "APP_VERSION=$APP_VERSION" \
             --build-arg "APP_COMMIT=$APP_COMMIT" \
             --build-arg "APP_BUILD_TIME=$APP_BUILD_TIME" \
+            --build-arg "APP_SOURCE_URL=$APP_SOURCE_URL" \
             --tag "shareittoo-api:$APP_COMMIT" \
             .
           test "$(docker image inspect "shareittoo-api:$APP_COMMIT" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$APP_COMMIT"
@@ -194,10 +196,11 @@ jobs:
         working-directory: backend
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REGISTRY_IMAGE: ghcr.io/walidwalidchraibi-dot/shareittoo-api
+          REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/shareittoo-api
         run: |
           APP_VERSION="0.1.0-${GITHUB_SHA::12}"
           APP_BUILD_TIME="$(git show -s --format=%cI "$GITHUB_SHA")"
+          APP_SOURCE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
           IMAGE_REF="$REGISTRY_IMAGE:$GITHUB_SHA"
 
           printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
@@ -205,6 +208,7 @@ jobs:
             --build-arg "APP_VERSION=$APP_VERSION" \
             --build-arg "APP_COMMIT=$GITHUB_SHA" \
             --build-arg "APP_BUILD_TIME=$APP_BUILD_TIME" \
+            --build-arg "APP_SOURCE_URL=$APP_SOURCE_URL" \
             --tag "$IMAGE_REF" \
             .
           test "$(docker image inspect "$IMAGE_REF" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$GITHUB_SHA"

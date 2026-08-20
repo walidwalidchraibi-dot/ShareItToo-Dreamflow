@@ -12,12 +12,13 @@ FROM ${NODE_IMAGE}
 ARG APP_VERSION=development
 ARG APP_COMMIT=unknown
 ARG APP_BUILD_TIME=unknown
+ARG APP_SOURCE_URL=unknown
 
 LABEL org.opencontainers.image.title="ShareItToo API" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.revision="${APP_COMMIT}" \
       org.opencontainers.image.created="${APP_BUILD_TIME}" \
-      org.opencontainers.image.source="https://github.com/walidwalidchraibi-dot/ShareItToo-Dreamflow"
+      org.opencontainers.image.source="${APP_SOURCE_URL}"
 
 ENV NODE_ENV=production
 ENV APP_VERSION="${APP_VERSION}"
