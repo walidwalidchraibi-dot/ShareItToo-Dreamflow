@@ -50,6 +50,15 @@ const plannerCoreEnabled = (process.env.PLANNER_CORE_ENABLED ?? 'false')
 if (plannerCoreEnabled && deploymentEnvironment === 'production') {
   throw new Error('planner core cannot be enabled in production before the release gate');
 }
+const plannerInventoryEnabled = (process.env.PLANNER_INVENTORY_ENABLED ?? 'false')
+  .trim()
+  .toLowerCase() === 'true';
+if (plannerInventoryEnabled && deploymentEnvironment === 'production') {
+  throw new Error('planner inventory cannot be enabled in production before the release gate');
+}
+if (plannerInventoryEnabled && !plannerCoreEnabled) {
+  throw new Error('planner inventory requires the planner core');
+}
 const privatePilotAllowedRegions = Object.freeze([
   ...new Set(
     csv(process.env.PRIVATE_PILOT_ALLOWED_REGIONS)
@@ -260,6 +269,7 @@ export const config = Object.freeze({
   }),
   planner: Object.freeze({
     enabled: plannerCoreEnabled,
+    inventoryResolutionEnabled: plannerInventoryEnabled,
     publicReleaseAllowed: false,
     externalGenerativeAiAllowed: false,
     inventoryResolutionAllowed: false,

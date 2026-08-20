@@ -18,6 +18,8 @@ const sourcePaths = [
   'backend/src/privacy_export.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
+  'backend/src/planner_core.js',
+  'backend/src/planner_inventory_workflow.js',
   'backend/src/private_pilot_domain.js',
   'backend/src/listing_catalog.js',
   'backend/src/moderation_domain.js',

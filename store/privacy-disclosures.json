@@ -56,7 +56,15 @@
     },
     {
       "path": "backend/src/rental_cart_workflow.js",
-      "sha256": "261fa1a6c58f8f71c818179ed8a1a95fa71ff37cf00987b64cdef8e7cec4ef8d"
+      "sha256": "4ec196e0064d95122cbafad68e6de8647a96b3f875e4b45107d275f8df24d7cf"
+    },
+    {
+      "path": "backend/src/planner_core.js",
+      "sha256": "887594db8e8f3f6663cad5873e7f18b304eda7f0f537ddddd67544bb513113b3"
+    },
+    {
+      "path": "backend/src/planner_inventory_workflow.js",
+      "sha256": "99cad617e07d47c20a223929b8acb37f640098288036e3ab73422c463b34666e"
     },
     {
       "path": "backend/src/private_pilot_domain.js",
@@ -192,7 +200,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "942c76317d994ebdc44c9e417fd4d093c703d280917e3f0b744a430d7433e0cf"
+      "sha256": "487cc3576d3af717624ead54edabbbcde12e411f423bd0120aca6174f3d603bc"
     },
     {
       "path": "backend/src/notifications.js",
@@ -388,7 +396,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "7fe3f41e6cc8b165ee842c8d53216ebc78be83b790682d1b78e5b1a96f424c9a"
+      "sha256": "cd619f45ac76886e1c57ced2907db7a6bf09fae78f7783a3177c380017c5bd44"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

@@ -259,6 +259,7 @@ export async function putRentalCartItem(client, {
   raw,
   privatePilot = false,
   privatePilotAllowedRegions = [],
+  quoteCandidate = quoteBooking,
 }) {
   const itemId = clientIdentifier(clientItemId, 'invalid_rental_cart_item_id');
   const candidate = object(raw);
@@ -286,7 +287,7 @@ export async function putRentalCartItem(client, {
   let quote = null;
   let quoteErrorCode = null;
   try {
-    quote = await quoteBooking(client, {
+    quote = await quoteCandidate(client, {
       actorId,
       raw: { listingId, startDate: dates.startDate, endDate: dates.endDate },
       privatePilot,

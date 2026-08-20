@@ -17,6 +17,7 @@ const sourcePaths = [
   'backend/src/retention_inventory.js',
   'backend/src/privacy_export.js',
   'backend/src/rental_cart_workflow.js',
+  'backend/src/planner_inventory_workflow.js',
   'backend/src/account_actions.js',
   'backend/src/config.js',
   'backend/src/notifications.js',
