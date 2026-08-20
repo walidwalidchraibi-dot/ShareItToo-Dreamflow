@@ -6,11 +6,11 @@ Verified: 2026-08-21 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G4A implementation head:
-  `c1350f30838e6584c53604312a11c1aea70b36a8`.
-- The G4A implementation commit is contained in the local branch, remote
-  branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32423242364` is green: backend regression and
+- Current G5A implementation head:
+  `2da5cc925619055f0f5decddb282af6ff694c641`.
+- The G5A implementation commit is contained in the local branch, remote
+  branch and draft PR #7 head; the PR remains open and unmerged.
+- Exact GitHub Actions run `32428183285` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -253,6 +253,32 @@ Verified: 2026-08-21 on the Mac mini.
   boundaries. `docs/compliance/g4b-real-inventory-project-cart-2026-08-21.md`
   and ADR-034 are the detailed evidence. V2.4 auto-continues to disabled G5A.
 
+## G5A disabled supply enrichment
+
+- `G5A-2026-08-21.1` deterministically derives at most three complementary
+  suggestions from the exact category/subcategory of a successfully created
+  listing. It does not inspect titles or photos, call external AI, or present
+  a heuristic suggestion as a detected fact.
+- The five bounded owner outcomes are included accessory, separate rental,
+  standalone listing, not part and wrong detection. Sessions and outcomes are
+  owner-scoped, active-listing-bound, revision-checked and server-owned.
+- Included accessories become owner-confirmed documentation and an accessory
+  handover slot. Separate/standalone outcomes return only safe prefill fields;
+  price, description and photos are never copied or invented. A later link
+  requires the same owner and exact target classification.
+- Generation runs only after the primary listing transaction has succeeded.
+  Its failure is caught independently and cannot roll back or block the main
+  listing publication.
+- Public listing shaping strips the private suggestion session and exposes
+  only confirmed accessory labels. Account export already includes the
+  server-owned listing payload; confirmed erasure drops the enrichment state.
+  The count-only retention dataset remains under user intent.
+- Backend and Flutter controls default off. Backend production enabling is
+  rejected, release-mode UI access is unavailable, and there is no external-AI
+  or public-release switch.
+- `docs/compliance/g5a-deterministic-supply-enrichment-2026-08-21.md` and
+  ADR-035 are the detailed evidence. V2.4 auto-continues to disabled G5B.
+
 ## Validation and rollback
 
 - Exact G4B CI `32425415877` is green at
@@ -304,10 +330,19 @@ Verified: 2026-08-21 on the Mac mini.
 - G4B has no migration or external provider state. Its rollback is a revert of
   `24f5f06` plus restoration of the exact Privacy/Retention source inventories;
   existing G2 project-cart data and all historical booking truth remain valid.
+- Exact G5A CI `32428183285` is green at
+  `2da5cc925619055f0f5decddb282af6ff694c641`: 323 backend tests passed,
+  including PostgreSQL 16 integration, and 317 Flutter tests passed with one
+  documented skip. The analyzer improved from 223 to 222 findings; web debug,
+  Android debug, secret scan, dependency audit and Compose checks passed. The
+  publication job remained skipped.
+- G5A has no migration or external provider state. Its rollback is a revert of
+  `2da5cc9` plus restoration of the exact Privacy/Retention source inventories;
+  primary listings and historical G2-G4/V5.2 truth remain valid.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G5A under the V2.4
+`docs/current_work_package.md` records active G5B under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
