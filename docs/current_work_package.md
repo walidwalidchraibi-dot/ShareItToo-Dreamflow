@@ -1,51 +1,54 @@
-# Current Work Package: G3D - Shared Handover/Return and Item Evidence
+# Current Work Package: G3E - Disabled Multi-Item UX and End-to-End Integration
 
 Status: **active under the V2.4 rolling-autonomy runway** on 20.08.2026.
 
 ## Authorization and boundary
 
 Walid selected `G3A_ENTSCHEIDUNG_A` and instructed Codex to follow
-`00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`. G3C is technically GREEN at commit
-`ff02c6afb1bcadedc05c746ec2ed990478506bbe`; exact GitHub Actions run
-`32413370914` passed. V2.4 therefore auto-continues to G3D.
+`00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`. G3D is technically GREEN at commit
+`871fc3299f8b2520dfeba623532c792351eb757c`; exact GitHub Actions run
+`32416833455` passed. V2.4 therefore auto-continues to G3E.
 
 No production, public/live, VPS/OpenClaw, Maximus, SSH, DNS, cloud-console,
 real-payment, Store, signing, provider-account or destructive action is
 authorized. PR #7 remains Draft and unmerged. `BOOKING_GROUPS_ENABLED` remains
 false and production activation is rejected.
 
-## G3C handover
+## G3D handover
 
-- Migration 029 adds immutable server-truth group quote revisions, normalized
-  item allocations, append-only state events and actor/request-hash-bound
-  idempotency records.
-- An initial quote covers every group position. The owner can accept all,
-  decline all or propose a freshly requoted changed item set. A counter-offer
-  becomes effective only after exact, explicit renter consent.
-- Database guards bind actors, predecessor chain, quote hashes, full initial
-  membership and allowed transitions. Silent partial acceptance fails closed.
-- G3C creates no booking, rental request, availability hold, contract, payment
-  or refund. The public route remains disabled.
+- Migration 030 adds an append-only bridge from accepted group positions to
+  separately valid V5.2 item bookings and exactly one shared pickup plus one
+  shared return appointment.
+- Binding validates the final group quote, exact item allocation, actors,
+  period, currency, V5.2 contract, underlying quote and both declarations.
+- Photos, accessories, confirmations, chat, timers, return/damage state and
+  `needsReview` remain independently keyed by item booking. Only an explicit
+  active account-scope participant suspension holds the complete overlay.
+- G3D creates no booking, contract, payment, refund or damage charge. Exact
+  addresses remain inside the existing item-booking disclosure boundary.
 - Exact PostgreSQL, backend, Flutter, Web, Android debug, secret, dependency,
   Compose and API-image checks passed in CI.
 - Detailed evidence is in
-  `docs/compliance/g3c-group-quote-state-orchestration-2026-08-20.md`; the
+  `docs/compliance/g3d-shared-handover-item-evidence-2026-08-20.md`; the
   architecture decision is
-  `docs/decisions/ADR-029-g3c-group-quote-state-orchestration.md`.
+  `docs/decisions/ADR-030-g3d-shared-handover-item-evidence.md`.
 
-## G3D required result
+## G3E required result
 
-- Bind one compatible handover and one compatible return appointment at group
-  level without replacing item-specific V5.2 evidence.
-- Preserve required photos, accessory state, evidence identifiers, damage and
-  `needsReview` independently per item.
-- A disputed item must not automatically poison unrelated positions unless an
-  explicit system-risk rule applies.
-- Preserve current V5.2 chat, timer, address, role and privacy boundaries.
-- Keep the complete path technical/test-only behind the disabled group flag.
+- Present a same-owner multi-item request/cart with an unambiguous group total
+  and exact item-level breakdown.
+- Compare the owner's counter-offer with the preceding quote and require
+  explicit renter acceptance of the exact revision.
+- Present the shared pickup/return appointment while keeping the complete
+  evidence checklist and status visible independently for every item.
+- Exercise the bounded group path end-to-end without creating real money,
+  Store, cloud, production or public/live state.
+- Keep every entry point disabled by default and unavailable for public/live
+  use until G3L and the later professional legal gate permit activation.
 
 ## Package gate
 
 Run focused checks, the full technical regression and exact commit-bound CI.
-Record decision, data isolation and rollback. When G3D is GREEN, V2.4
-auto-continues to G3E; stop only at a defined hard gate.
+Record UX consent boundaries, item isolation, activation controls and rollback.
+When G3E is GREEN, V2.4 auto-continues to G3L-DRAFT; stop only at a defined
+hard gate.

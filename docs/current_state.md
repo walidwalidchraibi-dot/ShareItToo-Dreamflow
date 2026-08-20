@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G3C implementation head:
-  `ff02c6afb1bcadedc05c746ec2ed990478506bbe`.
-- The G3C implementation commit is contained in the local branch, remote
+- Current G3D implementation head:
+  `871fc3299f8b2520dfeba623532c792351eb757c`.
+- The G3D implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32413370914` is green: backend regression and
+- Exact GitHub Actions run `32416833455` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -19,7 +19,7 @@ Verified: 2026-08-20 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `029`, deterministic
+- Node/Express backend with PostgreSQL migrations through `030`, deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
@@ -146,12 +146,30 @@ Verified: 2026-08-20 on the Mac mini.
 - `docs/compliance/g3c-group-quote-state-orchestration-2026-08-20.md` and
   ADR-029 are the detailed G3C evidence. V2.4 auto-continues to G3D.
 
+## G3D shared handover and item evidence
+
+- An append-only bridge binds each final accepted group allocation to an
+  already-valid V5.2 item booking, contract, underlying quote and both actor
+  declarations. Historical group positions and V5.2 records are not updated.
+- Exactly one pickup and one return appointment are derived from immutable
+  group period and location compatibility truth. The technical group response
+  exposes neither the internal location hash nor an exact address.
+- Four required evidence slots, accessories, evidence IDs, confirmations,
+  booking chat, return timers, damage cases and `needsReview` remain independent
+  for every item booking.
+- One disputed item does not poison other positions. Only an explicit active
+  account-scope suspension for a participant is a whole-group system-risk hold.
+- The binding seam is internal-only. Shared-appointment routes remain behind
+  the disabled group flag, and production enabling is rejected.
+- `docs/compliance/g3d-shared-handover-item-evidence-2026-08-20.md` and ADR-030
+  are the detailed G3D evidence. V2.4 auto-continues to G3E.
+
 ## Validation and rollback
 
-- Exact G3C CI is green with PostgreSQL migration, rollback, all decision
-  branches, idempotency and boundary coverage: 292 backend tests passed,
-  0 failed and 0 skipped.
-- Local backend suite: 291 passed, 0 failed and one expected PostgreSQL skip
+- Exact G3D CI `32416833455` is green with PostgreSQL forward/rollback,
+  real group-to-V5.2 bindings, idempotent appointment creation, system-risk
+  hold and independent item evidence/state coverage.
+- Local backend suite: 296 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
 - Complete Flutter suite: 307 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
@@ -179,10 +197,13 @@ Verified: 2026-08-20 on the Mac mini.
 - G3C rollback removes only empty migration-029 quote, command and event
   objects and otherwise fails closed. Migration 028 and historical V5.2 truth
   stay intact.
+- G3D rollback removes only empty migration-030 binding, appointment and
+  command objects and otherwise fails closed. Migrations 028/029 and all
+  historical V5.2 item evidence stay intact.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G3D under the V2.4
+`docs/current_work_package.md` records active G3E under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
