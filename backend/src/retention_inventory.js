@@ -66,6 +66,12 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'userIntent', 'rental_cart_items', count(*)::bigint, min(created_at), max(updated_at) FROM rental_cart_items
        UNION ALL SELECT 'transactions', 'bookings', count(*)::bigint, min(created_at), max(updated_at) FROM bookings
        UNION ALL SELECT 'transactions', 'booking_quotes', count(*)::bigint, min(issued_at), max(issued_at) FROM booking_quotes
+       UNION ALL SELECT 'transactions', 'booking_groups', count(*)::bigint, min(created_at), max(created_at) FROM booking_groups
+       UNION ALL SELECT 'transactions', 'booking_group_positions', count(*)::bigint, min(created_at), max(created_at) FROM booking_group_positions
+       UNION ALL SELECT 'transactions', 'booking_group_quotes', count(*)::bigint, min(issued_at), max(issued_at) FROM booking_group_quotes
+       UNION ALL SELECT 'transactions', 'booking_group_quote_positions', count(*)::bigint, min(created_at), max(created_at) FROM booking_group_quote_positions
+       UNION ALL SELECT 'transactions', 'booking_group_position_booking_bindings', count(*)::bigint, min(created_at), max(created_at) FROM booking_group_position_booking_bindings
+       UNION ALL SELECT 'transactions', 'booking_group_appointments', count(*)::bigint, min(created_at), max(created_at) FROM booking_group_appointments
        UNION ALL SELECT 'transactions', 'legal_document_snapshots', count(*)::bigint, min(created_at), max(created_at) FROM legal_document_snapshots
        UNION ALL SELECT 'transactions', 'platform_contracts', count(*)::bigint, min(created_at), max(created_at) FROM platform_contracts
        UNION ALL SELECT 'transactions', 'platform_contract_declarations', count(*)::bigint, min(created_at), max(created_at) FROM platform_contract_declarations
@@ -124,6 +130,9 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'moderation', 'v52_return_case_events', count(*)::bigint, min(occurred_at), max(created_at) FROM v52_return_case_events
        UNION ALL SELECT 'securityAudit', 'audit_log', count(*)::bigint, min(created_at), max(created_at) FROM audit_log
        UNION ALL SELECT 'securityAudit', 'booking_events', count(*)::bigint, min(created_at), max(created_at) FROM booking_events
+       UNION ALL SELECT 'securityAudit', 'booking_group_state_events', count(*)::bigint, min(created_at), max(created_at) FROM booking_group_state_events
+       UNION ALL SELECT 'securityAudit', 'booking_group_commands', count(*)::bigint, min(created_at), max(COALESCE(completed_at, created_at)) FROM booking_group_commands
+       UNION ALL SELECT 'securityAudit', 'booking_group_appointment_commands', count(*)::bigint, min(created_at), max(COALESCE(completed_at, created_at)) FROM booking_group_appointment_commands
        UNION ALL SELECT 'securityAudit', 'notification_delivery_attempts', count(*)::bigint, min(created_at), max(created_at)
          FROM notification_delivery_attempts
        UNION ALL SELECT 'securityAudit', 'auth_sessions', count(*)::bigint, min(created_at), max(last_seen_at) FROM auth_sessions

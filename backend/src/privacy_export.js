@@ -24,6 +24,15 @@ export async function buildAccountExport(client, userId) {
     listings,
     bookings,
     bookingQuotes,
+    bookingGroups,
+    bookingGroupPositions,
+    bookingGroupQuotes,
+    bookingGroupQuotePositions,
+    bookingGroupStateEvents,
+    bookingGroupCommands,
+    bookingGroupPositionBindings,
+    bookingGroupAppointments,
+    bookingGroupAppointmentCommands,
     rentalCarts,
     rentalCartProjects,
     rentalCartItems,
@@ -103,6 +112,114 @@ export async function buildAccountExport(client, userId) {
               quote_version, currency, total_minor, quote_payload,
               quote_hash, issued_at, expires_at
        FROM booking_quotes WHERE renter_id = $1 ORDER BY issued_at`, userId),
+    rows(client,
+      `SELECT id,
+              CASE WHEN owner_id = $1 THEN 'owner' ELSE 'renter' END AS my_role,
+              marketplace_context, country_code, currency,
+              rental_start_date, rental_end_date, rental_timezone,
+              starts_at, ends_at, handover_location_key,
+              handover_policy_version, legal_document_set_version,
+              cancellation_policy_version, payment_configuration_key,
+              compatibility_hash, created_at
+         FROM booking_groups
+        WHERE owner_id = $1 OR renter_id = $1
+        ORDER BY created_at`, userId),
+    rows(client,
+      `SELECT position.id, position.booking_group_id, position.listing_id,
+              position.booking_id, position.quote_id, position.quote_hash,
+              position.currency, position.rental_subtotal_minor,
+              position.platform_fee_minor, position.total_minor,
+              position.owner_payout_minor, position.security_deposit_minor,
+              position.sort_order, position.created_at
+         FROM booking_group_positions AS position
+         JOIN booking_groups AS booking_group
+           ON booking_group.id = position.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY position.booking_group_id, position.sort_order`, userId),
+    rows(client,
+      `SELECT quote.id, quote.booking_group_id, quote.quote_revision,
+              quote.predecessor_quote_id, quote.proposal_kind,
+              (quote.proposed_by_id = $1) AS proposed_by_me,
+              quote.proposed_by_role, quote.item_count, quote.currency,
+              quote.rental_subtotal_minor, quote.platform_fee_minor,
+              quote.total_minor, quote.owner_payout_minor,
+              quote.security_deposit_minor, quote.quote_hash,
+              quote.issued_at, quote.expires_at
+         FROM booking_group_quotes AS quote
+         JOIN booking_groups AS booking_group ON booking_group.id = quote.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY quote.booking_group_id, quote.quote_revision`, userId),
+    rows(client,
+      `SELECT position.id, position.group_quote_id,
+              position.booking_group_id, position.group_position_id,
+              position.listing_id, position.booking_quote_id,
+              position.booking_quote_hash, position.currency,
+              position.rental_subtotal_minor, position.platform_fee_minor,
+              position.total_minor, position.owner_payout_minor,
+              position.security_deposit_minor, position.sort_order,
+              position.created_at
+         FROM booking_group_quote_positions AS position
+         JOIN booking_groups AS booking_group
+           ON booking_group.id = position.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY position.booking_group_id, position.group_quote_id, position.sort_order`, userId),
+    rows(client,
+      `SELECT event.id, event.booking_group_id, event.event_sequence,
+              (event.actor_id = $1) AS acted_by_me,
+              event.actor_group_role, event.event_type,
+              event.from_state, event.to_state, event.group_quote_id,
+              event.group_quote_hash, event.metadata, event.created_at
+         FROM booking_group_state_events AS event
+         JOIN booking_groups AS booking_group
+           ON booking_group.id = event.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY event.booking_group_id, event.event_sequence`, userId),
+    rows(client,
+      `SELECT command.idempotency_key, command.booking_group_id,
+              (command.actor_id = $1) AS acted_by_me,
+              command.command_type, command.request_hash,
+              command.response_payload, command.created_at, command.completed_at
+         FROM booking_group_commands AS command
+         JOIN booking_groups AS booking_group
+           ON booking_group.id = command.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY command.created_at`, userId),
+    rows(client,
+      `SELECT binding.id, binding.booking_group_id, binding.group_quote_id,
+              binding.group_quote_hash, binding.group_quote_position_id,
+              binding.group_position_id, binding.listing_id, binding.booking_id,
+              binding.platform_contract_id, binding.booking_quote_id,
+              binding.booking_quote_hash,
+              (binding.bound_by_id = $1) AS bound_by_me, binding.created_at
+         FROM booking_group_position_booking_bindings AS binding
+         JOIN booking_groups AS booking_group
+           ON booking_group.id = binding.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY binding.created_at`, userId),
+    rows(client,
+      `SELECT appointment.id, appointment.booking_group_id,
+              appointment.group_quote_id, appointment.group_quote_hash,
+              appointment.appointment_type, appointment.scheduled_at,
+              appointment.rental_timezone, appointment.handover_location_key,
+              appointment.evidence_policy, appointment.chat_policy,
+              appointment.timer_policy, appointment.address_policy,
+              (appointment.created_by_id = $1) AS created_by_me,
+              appointment.created_at
+         FROM booking_group_appointments AS appointment
+         JOIN booking_groups AS booking_group
+           ON booking_group.id = appointment.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY appointment.booking_group_id, appointment.scheduled_at`, userId),
+    rows(client,
+      `SELECT command.idempotency_key, command.booking_group_id,
+              (command.actor_id = $1) AS acted_by_me,
+              command.command_type, command.request_hash,
+              command.response_payload, command.created_at, command.completed_at
+         FROM booking_group_appointment_commands AS command
+         JOIN booking_groups AS booking_group
+           ON booking_group.id = command.booking_group_id
+        WHERE booking_group.owner_id = $1 OR booking_group.renter_id = $1
+        ORDER BY command.created_at`, userId),
     rows(client,
       `SELECT id, schema_version, revision, created_at, updated_at
          FROM rental_carts WHERE user_id = $1 ORDER BY created_at`, userId),
@@ -538,6 +655,18 @@ export async function buildAccountExport(client, userId) {
       listings,
       bookings,
       bookingQuotes,
+      bookingGroups: {
+        groups: bookingGroups,
+        positions: bookingGroupPositions,
+        quotes: bookingGroupQuotes,
+        quotePositions: bookingGroupQuotePositions,
+        stateEvents: bookingGroupStateEvents,
+        commands: bookingGroupCommands,
+        itemBookingBindings: bookingGroupPositionBindings,
+        sharedAppointments: bookingGroupAppointments,
+        appointmentCommands: bookingGroupAppointmentCommands,
+        itemEvidenceRemainsInV52BookingRecords: true,
+      },
       rentalCart: {
         cart: rentalCarts[0] ?? null,
         projects: rentalCartProjects,

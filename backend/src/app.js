@@ -55,6 +55,10 @@ import {
   requestBookingGroup,
 } from './booking_group_workflow.js';
 import {
+  getBookingGroupHandoverReturn,
+  scheduleBookingGroupAppointments,
+} from './booking_group_handover_workflow.js';
+import {
   deleteRentalCartItem,
   deleteRentalCartProject,
   getRentalCart,
@@ -3051,6 +3055,26 @@ export function createApp({
     }), { deadlockRetries: 2 });
     publishToUsers([req.auth.userId], { type: 'changed', resource: 'booking_groups' });
     res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/booking-groups/:id/shared-appointments', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    assertBookingGroupsEnabled(config);
+    const result = await inTransaction((client) => scheduleBookingGroupAppointments(client, {
+      actor: req.actor,
+      bookingGroupId: safeText(req.params.id, 160),
+      idempotencyKey: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'booking_groups' });
+    res.status(result.replayed || result.alreadyScheduled ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/booking-groups/:id/handover-return', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    assertBookingGroupsEnabled(config);
+    const result = await inTransaction((client) => getBookingGroupHandoverReturn(client, {
+      actorId: req.auth.userId,
+      bookingGroupId: safeText(req.params.id, 160),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
   }));
 
   app.get('/v1/rental-cart', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {

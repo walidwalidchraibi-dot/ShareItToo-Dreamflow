@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "e93e4b93f59ff44c0f8c8df6c631e22b363d2e53eab2ea225de38a830878cce4"
+      "sha256": "1623d20924c23133fb0d509b82c99e44e0d1e28a23dc727cd36011a757b50581"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -168,7 +168,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "5137da5e8347bd4b90726e19535fea96ef6ca7eeda5c3ddac1dac65538baaa70"
+      "sha256": "9f4985b35fff46b63200dc561e644f6fef5bde8e395fb1512c39b0c87aad3f36"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -388,7 +388,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "9aac302b93e5de3be59d377ae810a8a4cb30e51bedaedb7bd55a45be3580527b"
+      "sha256": "7fe3f41e6cc8b165ee842c8d53216ebc78be83b790682d1b78e5b1a96f424c9a"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

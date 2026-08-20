@@ -91,6 +91,7 @@ if (!databaseUrl) {
         '027_g2_persistent_rental_cart.up.sql',
         '028_g3b_booking_group_foundation.up.sql',
         '029_g3c_booking_group_quote_state.up.sql',
+        '030_g3d_shared_handover_item_evidence.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -115,7 +116,10 @@ if (!databaseUrl) {
             AND table_name = ANY($1::text[])
           ORDER BY table_name`,
         [[
+          'booking_group_appointment_commands',
+          'booking_group_appointments',
           'booking_group_commands',
+          'booking_group_position_booking_bindings',
           'booking_group_positions',
           'booking_group_quote_positions',
           'booking_group_quotes',
@@ -124,7 +128,10 @@ if (!databaseUrl) {
         ]],
       );
       assert.deepEqual(bookingGroupTables.rows, [
+        { table_name: 'booking_group_appointment_commands' },
+        { table_name: 'booking_group_appointments' },
         { table_name: 'booking_group_commands' },
+        { table_name: 'booking_group_position_booking_bindings' },
         { table_name: 'booking_group_positions' },
         { table_name: 'booking_group_quote_positions' },
         { table_name: 'booking_group_quotes' },
@@ -1190,6 +1197,284 @@ if (!databaseUrl) {
            (SELECT count(*)::int FROM platform_contracts) AS contracts,
            (SELECT count(*)::int FROM payments) AS payments`,
       )).rows[0], boundaryCountsBeforeG3c);
+
+      const {
+        bindBookingGroupPositionToV52Booking,
+        getBookingGroupHandoverReturn,
+        scheduleBookingGroupAppointments,
+      } = await import('../src/booking_group_handover_workflow.js');
+      const g3dClient = await setupPool.connect();
+      try {
+        await g3dClient.query('BEGIN');
+        const contractVersion = 'V5.2-G3D-INTEGRATION';
+        const documentKeys = [
+          'platform_terms',
+          'private_rental_terms',
+          'cancellation_refund',
+          'handover_return_damage',
+          'payment_payout',
+          'community_safety',
+          'reporting_moderation_review',
+          'privacy',
+          'imprint_withdrawal_shorttexts',
+        ];
+        const documentIds = new Map();
+        const documentReferences = [];
+        for (const documentKey of documentKeys) {
+          const content = `Synthetic G3D integration document for ${documentKey}`;
+          const contentSha256 = crypto.createHash('sha256').update(content).digest('hex');
+          const inserted = await g3dClient.query(
+            `INSERT INTO legal_document_snapshots (
+               document_key, document_version, locale, content_type,
+               content_text, content_sha256, effective_at
+             ) VALUES ($1, $2, 'de', 'text/plain', $3, $4, now() - interval '1 minute')
+             RETURNING id`,
+            [documentKey, contractVersion, content, contentSha256],
+          );
+          documentIds.set(documentKey, inserted.rows[0].id);
+          documentReferences.push({
+            documentKey,
+            documentVersion: contractVersion,
+            contentSha256,
+          });
+        }
+        const itemBindings = [];
+        for (const [index, quoteItem] of acceptedInitial.quote.items.entries()) {
+          const bookingId = `g3d-item-booking-${index + 1}`;
+          const bookingPayload = {
+            id: bookingId,
+            itemId: quoteItem.listingId,
+            ownerId: 'owner',
+            renterId: 'renter-a',
+            status: 'accepted',
+            start: acceptedInitial.group.startsAt,
+            end: acceptedInitial.group.endsAt,
+          };
+          await g3dClient.query(
+            `INSERT INTO rental_requests (
+               id, item_id, owner_id, renter_id, status, payload
+             ) VALUES ($1, $2, 'owner', 'renter-a', 'accepted', $3::jsonb)`,
+            [bookingId, quoteItem.listingId, JSON.stringify(bookingPayload)],
+          );
+          await g3dClient.query(
+            `INSERT INTO bookings (
+               id, listing_id, owner_id, renter_id, status, starts_at, ends_at,
+               currency, rental_subtotal_minor, platform_fee_minor,
+               owner_payout_minor, quoted_total_minor, security_deposit_minor,
+               workflow_version, workflow_status
+             ) VALUES (
+               $1, $2, 'owner', 'renter-a', 'accepted', $3, $4,
+               $5, $6, $7, $8, $9, 0, 1, 'accepted'
+             )`,
+            [
+              bookingId, quoteItem.listingId,
+              acceptedInitial.group.startsAt, acceptedInitial.group.endsAt,
+              quoteItem.currency, quoteItem.rentalSubtotalMinor,
+              quoteItem.platformFeeMinor, quoteItem.ownerPayoutMinor,
+              quoteItem.totalMinor,
+            ],
+          );
+          const persistedSingleQuote = (await g3dClient.query(
+            `SELECT issued_at, expires_at FROM booking_quotes
+              WHERE id = $1 AND quote_hash = $2`,
+            [quoteItem.bookingQuoteId, quoteItem.bookingQuoteHash],
+          )).rows[0];
+          const acceptedAt = new Date(
+            Math.min(
+              Date.now(),
+              new Date(persistedSingleQuote.expires_at).getTime() - 1_000,
+            ),
+          );
+          assert.ok(acceptedAt >= new Date(persistedSingleQuote.issued_at));
+          const sitAcceptance = `Synthetic explicit SIT acceptance ${bookingId}`;
+          const contract = await g3dClient.query(
+            `INSERT INTO platform_contracts (
+               user_id, booking_id, quote_id, quote_hash, contract_version,
+               platform_terms_snapshot_id, private_rental_terms_snapshot_id,
+               cancellation_refund_snapshot_id,
+               handover_return_damage_snapshot_id, payment_payout_snapshot_id,
+               community_safety_snapshot_id,
+               reporting_moderation_review_snapshot_id, privacy_snapshot_id,
+               imprint_withdrawal_shorttexts_snapshot_id,
+               sit_acceptance_wording, sit_acceptance_sha256,
+               locale, client_build, accepted_at, idempotency_key
+             ) VALUES (
+               'renter-a', $1, $2, $3, $4,
+               $5, $6, $7, $8, $9, $10, $11, $12, $13,
+               $14, $15, 'de', 'g3d-integration', $16, $17
+             ) RETURNING id`,
+            [
+              bookingId, quoteItem.bookingQuoteId, quoteItem.bookingQuoteHash,
+              contractVersion,
+              documentIds.get('platform_terms'),
+              documentIds.get('private_rental_terms'),
+              documentIds.get('cancellation_refund'),
+              documentIds.get('handover_return_damage'),
+              documentIds.get('payment_payout'),
+              documentIds.get('community_safety'),
+              documentIds.get('reporting_moderation_review'),
+              documentIds.get('privacy'),
+              documentIds.get('imprint_withdrawal_shorttexts'),
+              sitAcceptance,
+              crypto.createHash('sha256').update(sitAcceptance).digest('hex'),
+              acceptedAt,
+              `g3d-platform-contract-${index + 1}`,
+            ],
+          );
+          for (const declarationType of [
+            'private_terms_and_platform_terms',
+            'early_performance_and_withdrawal',
+          ]) {
+            const wording = `Synthetic ${declarationType} for ${bookingId}`;
+            await g3dClient.query(
+              `INSERT INTO platform_contract_declarations (
+                 contract_id, declaration_type, exact_wording, wording_sha256,
+                 accepted_at, user_id, booking_id, document_version, locale,
+                 client_build, quote_id, quote_hash, document_references
+               ) VALUES (
+                 $1, $2, $3, $4, $5, 'renter-a', $6, $7, 'de',
+                 'g3d-integration', $8, $9, $10::jsonb
+               )`,
+              [
+                contract.rows[0].id, declarationType, wording,
+                crypto.createHash('sha256').update(wording).digest('hex'),
+                acceptedAt, bookingId, contractVersion,
+                quoteItem.bookingQuoteId, quoteItem.bookingQuoteHash,
+                JSON.stringify(documentReferences),
+              ],
+            );
+          }
+          await g3dClient.query(
+            `INSERT INTO message_threads (
+               id, request_id, booking_id, item_id, user1_id, user2_id,
+               payload, communication_version
+             ) VALUES ($1, $2, $2, $3, 'renter-a', 'owner', '{}'::jsonb, 1)`,
+            [`g3d-item-thread-${index + 1}`, bookingId, quoteItem.listingId],
+          );
+          itemBindings.push({
+            bookingId,
+            groupPositionId: quoteItem.groupPositionId,
+            platformContractId: contract.rows[0].id,
+          });
+        }
+
+        await assert.rejects(
+          bindBookingGroupPositionToV52Booking(g3dClient, {
+            actor: groupActors.outsider,
+            bookingGroupId: acceptedInitial.group.id,
+            groupPositionId: itemBindings[0].groupPositionId,
+            bookingId: itemBindings[0].bookingId,
+          }),
+          (error) => error?.code === 'booking_group_forbidden',
+        );
+        const firstBinding = await bindBookingGroupPositionToV52Booking(g3dClient, {
+          actor: groupActors.renter,
+          bookingGroupId: acceptedInitial.group.id,
+          groupPositionId: itemBindings[0].groupPositionId,
+          bookingId: itemBindings[0].bookingId,
+        });
+        assert.equal(firstBinding.replayed, false);
+        assert.equal((await bindBookingGroupPositionToV52Booking(g3dClient, {
+          actor: groupActors.renter,
+          bookingGroupId: acceptedInitial.group.id,
+          groupPositionId: itemBindings[0].groupPositionId,
+          bookingId: itemBindings[0].bookingId,
+        })).replayed, true);
+        await assert.rejects(
+          scheduleBookingGroupAppointments(g3dClient, {
+            actor: groupActors.renter,
+            bookingGroupId: acceptedInitial.group.id,
+            idempotencyKey: 'g3d-incomplete-binding-probe',
+          }),
+          (error) => error?.code === 'booking_group_item_bindings_incomplete',
+        );
+        await bindBookingGroupPositionToV52Booking(g3dClient, {
+          actor: groupActors.renter,
+          bookingGroupId: acceptedInitial.group.id,
+          groupPositionId: itemBindings[1].groupPositionId,
+          bookingId: itemBindings[1].bookingId,
+        });
+        const suspension = await g3dClient.query(
+          `INSERT INTO user_suspensions (
+             user_id, imposed_by, scope, reason_code, starts_at
+           ) VALUES ('renter-a', 'admin', 'account', 'g3d_system_risk_probe', now())
+           RETURNING id`,
+        );
+        await assert.rejects(
+          scheduleBookingGroupAppointments(g3dClient, {
+            actor: groupActors.owner,
+            bookingGroupId: acceptedInitial.group.id,
+            idempotencyKey: 'g3d-system-risk-hold-probe',
+          }),
+          (error) => error?.code === 'booking_group_system_risk_hold',
+        );
+        await g3dClient.query(
+          `UPDATE user_suspensions SET lifted_at = now(), lifted_by = 'admin'
+            WHERE id = $1`,
+          [suspension.rows[0].id],
+        );
+        const scheduled = await scheduleBookingGroupAppointments(g3dClient, {
+          actor: groupActors.owner,
+          bookingGroupId: acceptedInitial.group.id,
+          idempotencyKey: 'g3d-schedule-shared-appointments',
+        });
+        assert.equal(scheduled.operationalState, 'ready');
+        assert.deepEqual(scheduled.appointments.map((entry) => entry.type).sort(), [
+          'pickup', 'return',
+        ]);
+        assert.ok(scheduled.appointments.every((entry) => entry.exactAddressDisclosed === false));
+        assert.equal(
+          JSON.stringify(scheduled).includes(acceptedInitial.group.handoverLocationKey),
+          false,
+        );
+        assert.equal((await scheduleBookingGroupAppointments(g3dClient, {
+          actor: groupActors.owner,
+          bookingGroupId: acceptedInitial.group.id,
+          idempotencyKey: 'g3d-schedule-shared-appointments',
+        })).replayed, true);
+        await g3dClient.query(
+          `UPDATE bookings SET return_state = 'needsReview'
+            WHERE id = $1`,
+          [itemBindings[0].bookingId],
+        );
+        await g3dClient.query(
+          `UPDATE bookings SET return_state = 'payoutEligible'
+            WHERE id = $1`,
+          [itemBindings[1].bookingId],
+        );
+        const handover = await getBookingGroupHandoverReturn(g3dClient, {
+          actorId: 'renter-a',
+          bookingGroupId: acceptedInitial.group.id,
+        });
+        assert.equal(handover.operationalState, 'ready');
+        assert.equal(handover.groupNeedsReview, null);
+        assert.equal(handover.itemReviewIsolation, true);
+        assert.deepEqual(handover.items.map((item) => item.operationalState).sort(), [
+          'independent', 'needs_review',
+        ]);
+        assert.deepEqual(handover.items.map((item) => item.chat.threadId).sort(), [
+          'g3d-item-thread-1', 'g3d-item-thread-2',
+        ]);
+        assert.equal(JSON.stringify(handover).includes('Owner exact address'), false);
+        assert.equal(
+          JSON.stringify(handover).includes(acceptedInitial.group.handoverLocationKey),
+          false,
+        );
+        await assert.rejects(
+          g3dClient.query(
+            `UPDATE booking_group_appointments SET scheduled_at = now()
+              WHERE booking_group_id = $1`,
+            [acceptedInitial.group.id],
+          ),
+          (error) => error?.code === '55000',
+        );
+        await g3dClient.query('ROLLBACK');
+      } catch (error) {
+        await g3dClient.query('ROLLBACK');
+        throw error;
+      } finally {
+        g3dClient.release();
+      }
 
       const quoteCountBeforeCart = (await setupPool.query(
         'SELECT count(*)::int AS count FROM booking_quotes WHERE renter_id = $1',
@@ -2469,6 +2754,16 @@ if (!databaseUrl) {
       assert.equal(accountExport.data.account.email, 'owner@example.com');
       assert.ok(accountExport.data.marketplace.listings.some((entry) => entry.id === 'listing-1'));
       assert.ok(accountExport.data.marketplace.bookings.some((entry) => entry.id === 'b6-flow'));
+      assert.ok(accountExport.data.marketplace.bookingGroups.groups.some(
+        (entry) => entry.id === acceptedInitial.group.id && entry.my_role === 'owner',
+      ));
+      assert.ok(accountExport.data.marketplace.bookingGroups.stateEvents.some(
+        (entry) => entry.booking_group_id === acceptedInitial.group.id,
+      ));
+      assert.equal(
+        accountExport.data.marketplace.bookingGroups.itemEvidenceRemainsInV52BookingRecords,
+        true,
+      );
       assert.equal(
         accountExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId),
         false,
@@ -2488,6 +2783,9 @@ if (!databaseUrl) {
       assert.equal(renterExportResponse.status, 200);
       const renterExport = await renterExportResponse.json();
       assert.equal(renterExport.accountId, 'renter-a');
+      assert.ok(renterExport.data.marketplace.bookingGroups.groups.some(
+        (entry) => entry.id === acceptedInitial.group.id && entry.my_role === 'renter',
+      ));
       assert.ok(
         renterExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId),
       );
@@ -3088,6 +3386,25 @@ if (!databaseUrl) {
         path.resolve(currentDir, '../sql/migrations/029_g3c_booking_group_quote_state.up.sql'),
         'utf8',
       );
+      const g3dDown = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/030_g3d_shared_handover_item_evidence.down.sql'),
+        'utf8',
+      );
+      const g3dUp = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/030_g3d_shared_handover_item_evidence.up.sql'),
+        'utf8',
+      );
+      await setupPool.query(
+        `INSERT INTO booking_group_appointment_commands (
+           idempotency_key, actor_id, booking_group_id, request_hash
+         ) VALUES ('g3d-rollback-block-probe', 'owner', $1, $2)`,
+        [acceptedInitial.group.id, 'd'.repeat(64)],
+      );
+      await assert.rejects(
+        setupPool.query(g3dDown),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'G3D rollback blocked: booking group handover data exists',
+      );
       await assert.rejects(
         setupPool.query(g3cDown),
         (error) => error?.code === 'P0001'
@@ -3100,6 +3417,9 @@ if (!databaseUrl) {
       );
       await setupPool.query(
         `TRUNCATE
+           booking_group_appointments,
+           booking_group_appointment_commands,
+           booking_group_position_booking_bindings,
            booking_group_commands,
            booking_group_state_events,
            booking_group_quote_positions,
@@ -3107,6 +3427,7 @@ if (!databaseUrl) {
            booking_group_positions,
            booking_groups`,
       );
+      await setupPool.query(g3dDown);
       await setupPool.query(g3cDown);
       await setupPool.query(g3bDown);
       assert.equal((await setupPool.query(
@@ -3114,23 +3435,28 @@ if (!databaseUrl) {
            FROM information_schema.tables
           WHERE table_schema = 'public'
             AND table_name IN (
-              'booking_group_commands', 'booking_group_positions',
+              'booking_group_appointment_commands', 'booking_group_appointments',
+              'booking_group_commands', 'booking_group_position_booking_bindings',
+              'booking_group_positions',
               'booking_group_quote_positions', 'booking_group_quotes',
               'booking_group_state_events', 'booking_groups'
             )`,
       )).rows[0].count, 0);
       await setupPool.query(g3bUp);
       await setupPool.query(g3cUp);
+      await setupPool.query(g3dUp);
       assert.equal((await setupPool.query(
         `SELECT count(*)::int AS count
            FROM information_schema.tables
           WHERE table_schema = 'public'
             AND table_name IN (
-              'booking_group_commands', 'booking_group_positions',
+              'booking_group_appointment_commands', 'booking_group_appointments',
+              'booking_group_commands', 'booking_group_position_booking_bindings',
+              'booking_group_positions',
               'booking_group_quote_positions', 'booking_group_quotes',
               'booking_group_state_events', 'booking_groups'
             )`,
-      )).rows[0].count, 6);
+      )).rows[0].count, 9);
 
       const limitedAttempts = [];
       for (let attempt = 0; attempt < 9; attempt += 1) {
