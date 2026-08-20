@@ -6,12 +6,13 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G2A implementation head:
-  `335eb8999d79aa33159ca3c0498d515947040833`.
-- The G2A implementation commit is contained in the local branch, remote
+- Current G2L implementation head:
+  `b84787e630a96de632eee90e8c7e016a078fcaef`.
+- The G2L implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32380693921` is green: backend regression and
-  Flutter regression passed, while image publication was skipped.
+- Exact GitHub Actions run `32383235202` is green: backend regression and
+  Flutter regression passed, while the signed candidate and image publication
+  were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
 
@@ -51,6 +52,16 @@ Verified: 2026-08-20 on the Mac mini.
   data was introduced.
 - The old internal `WishlistsScreen` type remains a compatibility entry point;
   existing app/deep-link contracts are unchanged.
+- G2L includes all three existing local `Gemerkt` stores in account export and
+  removes exactly those stores after confirmed account deletion on the active
+  device. Unrelated local preferences remain untouched.
+- `store/g2-data-lifecycle.json` records the current local saved-item lifecycle
+  and keeps persistent rental/project cart data inactive and not collected.
+  Its validator fails closed if cart persistence appears before export,
+  deletion and retention coverage.
+- Current Privacy terminology now truthfully distinguishes local `Gemerkt`,
+  the empty G2A `Mietkorb` shell and the inactive persistent cart planned for
+  G2B. Historical legal/privacy snapshots are unchanged.
 
 ## Current safe operating state
 
@@ -77,7 +88,7 @@ Verified: 2026-08-20 on the Mac mini.
 - Exact CI backend suite: 273 passed, 0 failed, 0 skipped with PostgreSQL.
 - Local backend suite: 272 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
-- Complete Flutter suite: 301 passed with one documented skip; the extra
+- Complete Flutter suite: 303 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
   debug APK passed.
 - Analyzer remains at the accepted 223-item baseline. Dependency audit has no
@@ -99,8 +110,8 @@ Verified: 2026-08-20 on the Mac mini.
 
 ## Next source of truth
 
-The active bounded task is `docs/current_work_package.md`: G2L legal/privacy
-delta for G2 only. G2A is technically complete; FI0 external role/account
-assignments and all C1I release/device gates remain HOLD. Older reports and
-root `architecture.md` are evidence/history, not permission to reopen a closed
-launch boundary.
+The active bounded task is `docs/current_work_package.md`: G2B persistent
+rental cart only. G2A and G2L are technically complete; FI0 external
+role/account assignments and all C1I release/device gates remain HOLD. Older
+reports and root `architecture.md` are evidence/history, not permission to
+reopen a closed launch boundary.
