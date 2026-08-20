@@ -1,16 +1,16 @@
 # ShareItToo Current State
 
-Verified: 2026-08-20 on the Mac mini.
+Verified: 2026-08-21 on the Mac mini.
 
 ## Repository baseline
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G3E implementation head:
-  `04c5122274a2406898e5070232420fb3b0fb43f0`.
-- The G3E implementation commit is contained in the local branch, remote
+- Current G3L-DRAFT implementation head:
+  `5963ec5544b94fa1e62000a1299d2577133c0cf9`.
+- The G3L-DRAFT implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32419733240` is green: backend regression and
+- Exact GitHub Actions run `32421588353` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -183,13 +183,36 @@ Verified: 2026-08-20 on the Mac mini.
   the detailed G3E evidence. V2.4 auto-continues to G3L-DRAFT without granting
   legal approval or public/live activation.
 
+## G3L-DRAFT legal/document delta preparation
+
+- `G3L-DRAFT-2026-08-20.1` is an immutable internal technical identifier, not
+  an effective or professionally approved legal version.
+- The draft manifest binds the G3A/G3E source evidence, V5.2 Core/Rechtsmappe,
+  Growth source, exact V5.2 parent-manifest hash and all nine A-I asset hashes.
+  Any parent or draft byte drift fails validation.
+- Four hash-bound artifacts cover the affected-scope matrix, future snapshot
+  and receipt binding, a completely open professional-review checklist and a
+  hard public/live release gate.
+- Fourteen decisions remain open, including group contract structure,
+  counter-offer/partial-performance effects, payment/refund allocation,
+  receipts, evidence, privacy/export/retention and Business/global variants.
+- The backend technical group policy uses the exact draft identifier through a
+  fail-closed assertion. No G3 contract, declaration, receipt, payment, refund
+  or public document is provisioned.
+- Historical V5.2 assets, snapshots and records remain untouched. Backend and
+  Flutter activation controls remain default-off and production/release use is
+  rejected.
+- `docs/compliance/g3l-multi-item-legal-document-draft-2026-08-20.md` and
+  ADR-032 are the detailed evidence. V2.4 auto-continues to disabled G4A while
+  retaining a hard stop before public/live G3 activation.
+
 ## Validation and rollback
 
-- Exact G3E CI `32419733240` is green at
-  `04c5122274a2406898e5070232420fb3b0fb43f0`: 297 backend tests and 312
+- Exact G3L-DRAFT CI `32421588353` is green at
+  `5963ec5544b94fa1e62000a1299d2577133c0cf9`: 299 backend tests and 312
   Flutter tests passed, with the one documented Flutter skip. PostgreSQL
   migration/integration, web debug and Android debug builds also passed.
-- Local backend suite: 296 passed, 0 failed and one expected PostgreSQL skip
+- Local backend suite: 298 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
 - Complete local Flutter suite: 312 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
@@ -225,10 +248,12 @@ Verified: 2026-08-20 on the Mac mini.
   historical V5.2 item evidence stay intact.
 - G3E has no migration. Its rollback is a revert of `04c5122`; disabled entry
   points and historical V5.2/G3B-G3D evidence remain unchanged.
+- G3L-DRAFT has no migration or external state. Its rollback is a revert of
+  `5963ec5`; the V5.2 parent bytes and disabled G3 controls remain unchanged.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G3L-DRAFT under the V2.4
+`docs/current_work_package.md` records active G4A under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
