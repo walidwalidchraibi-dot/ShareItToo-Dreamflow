@@ -128,6 +128,7 @@ test('G3C workflow requotes on the server and requires explicit exact consent', 
   ]);
   assert.match(workflow, /await quoteBooking\(client, \{/u);
   assert.match(workflow, /privatePilot: true/u);
+  assert.match(workflow, /rental_start_date::text AS rental_start_date_text/u);
   assert.match(workflow, /booking_group_counteroffer_item_set_unchanged/u);
   assert.match(workflow, /silent_partial_booking_group_acceptance_forbidden/u);
   assert.match(workflow, /explicit_booking_group_counteroffer_consent_required/u);

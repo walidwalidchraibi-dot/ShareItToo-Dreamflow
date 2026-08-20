@@ -328,7 +328,12 @@ function publicQuote(quote, expiresAt) {
 
 async function lockedGroupState(client, groupId) {
   const groupResult = await client.query(
-    `SELECT * FROM booking_groups WHERE id = $1 FOR UPDATE`,
+    `SELECT booking_groups.*,
+            rental_start_date::text AS rental_start_date_text,
+            rental_end_date::text AS rental_end_date_text
+       FROM booking_groups
+      WHERE id = $1
+      FOR UPDATE`,
     [groupId],
   );
   if (!groupResult.rowCount) throw new BookingWorkflowError(404, 'booking_group_not_found');
@@ -598,8 +603,8 @@ export async function decideBookingGroup(client, {
       throw new BookingWorkflowError(409, 'booking_group_counteroffer_item_set_unchanged');
     }
     const group = {
-      startDate: String(current.group.rental_start_date).slice(0, 10),
-      endDate: String(current.group.rental_end_date).slice(0, 10),
+      startDate: current.group.rental_start_date_text,
+      endDate: current.group.rental_end_date_text,
     };
     const positions = positionsResult.rows.map((row) => ({
       id: row.id,
