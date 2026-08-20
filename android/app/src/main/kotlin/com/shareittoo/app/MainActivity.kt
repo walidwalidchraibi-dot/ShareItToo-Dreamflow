@@ -56,6 +56,11 @@ class MainActivity : FlutterActivity() {
 
     private fun safePushActionLink(intent: Intent?): String? {
         if (intent == null) return null
+        val contract = intent.getStringExtra("contract")?.trim().orEmpty()
+        val routeSignal = intent.getStringExtra("route")?.trim().orEmpty()
+        if (contract == "v52" && routeSignal == "notifications") {
+            return "shareittoo://notifications"
+        }
         val raw = intent.getStringExtra("actionUrl")?.trim().orEmpty()
         if (raw.isEmpty()) return null
         val uri = Uri.parse(raw)
@@ -90,6 +95,7 @@ class MainActivity : FlutterActivity() {
             }
             else -> return false
         }
+        if (route == "notifications") return id.isEmpty()
         return route in allowedPushRoutes && safeIdentifier.matches(id)
     }
 

@@ -230,12 +230,6 @@ export async function enqueueBookingNotifications(client, {
         eventLabel: eventLabel(row),
         actionUrl,
       },
-      push: {
-        title: definition.title,
-        body: notificationBody,
-        actionUrl,
-        data: { entityType: 'booking', entityId: bookingId, workflowStatus },
-      },
     };
     await enqueueForUser(client, {
       eventKey,
@@ -325,16 +319,6 @@ export async function enqueueV51WithdrawalNotifications(client, {
           returnRequired,
           manualReviewRequired,
         },
-        push: {
-          title: 'Vertragswiderruf eingegangen',
-          body,
-          actionUrl,
-          data: {
-            entityType: 'booking',
-            entityId: bookingId,
-            withdrawalId,
-          },
-        },
       },
     });
   }
@@ -404,12 +388,6 @@ export async function enqueueReturnLifecycleNotification(client, {
           eventLabel: deadlineLabel || eventLabel(row),
           actionUrl,
         },
-        push: {
-          title: definition.title,
-          body,
-          actionUrl,
-          data: { entityType: 'booking', entityId: bookingId, bookingId, kind },
-        },
       },
     });
     count += 1;
@@ -450,12 +428,6 @@ export async function enqueueMessageNotification(client, {
         actionUrl,
         ctaLabel: 'Chat öffnen',
         payload: {},
-      },
-      push: {
-        title: 'Neue Nachricht',
-        body,
-        actionUrl,
-        data: { entityType: 'thread', entityId: threadId, bookingId },
       },
     },
   });
@@ -544,12 +516,6 @@ export async function enqueueFinancialNotification(client, {
         currency,
         eventLabel: eventLabel(row),
         actionUrl,
-      },
-      push: {
-        title: definition.title,
-        body,
-        actionUrl,
-        data: { entityType: 'payment', entityId: bookingId, bookingId, kind },
       },
     },
   });
@@ -641,14 +607,10 @@ async function deliverClaim(row) {
       metadata: {},
     };
   }
-  const push = payload.push ?? {};
   const result = await sendPushToUser(pool, {
     userId: row.user_id,
     eventKey: row.event_key,
-    title: push.title,
-    body: push.body,
-    actionUrl: push.actionUrl,
-    data: push.data,
+    kind: row.kind,
   });
   return {
     outcome: result.outcome,
@@ -658,6 +620,8 @@ async function deliverClaim(row) {
       deviceCount: result.deviceCount ?? 0,
       invalidDeviceCount: result.invalidDeviceCount ?? 0,
       failedDeviceCount: result.failedDeviceCount ?? 0,
+      ttlSeconds: result.ttlSeconds,
+      contractVersion: result.contractVersion,
     },
   };
 }

@@ -139,6 +139,19 @@ class ForegroundPushMessage {
   });
 }
 
+const _v52PushContract = 'v52';
+const _v52PushRoute = 'notifications';
+
+@visibleForTesting
+Uri? pushActionUriForData(Map<String, dynamic> data) {
+  if (data.length != 2 ||
+      data['contract']?.toString() != _v52PushContract ||
+      data['route']?.toString() != _v52PushRoute) {
+    return null;
+  }
+  return Uri.parse('shareittoo://notifications');
+}
+
 @visibleForTesting
 Uri? parsePushActionUri(Object? rawValue) {
   final raw = rawValue?.toString().trim() ?? '';
@@ -162,7 +175,7 @@ ForegroundPushMessage? parseForegroundPushMessage({
   final safeBody = body?.trim() ?? '';
   if (safeTitle.isEmpty && safeBody.isEmpty) return null;
 
-  final actionUri = parsePushActionUri(data['actionUrl']);
+  final actionUri = pushActionUriForData(data);
   return ForegroundPushMessage(
     title: safeTitle.isEmpty ? 'ShareItToo' : safeTitle,
     body: safeBody,
@@ -174,11 +187,7 @@ ForegroundPushMessage? parseForegroundPushMessage({
 Set<String> sharedPersistenceKeysForForegroundPush(
   Map<String, dynamic> data,
 ) {
-  final entityType = data['entityType']?.toString().trim().toLowerCase();
-  if (entityType == 'thread') {
-    return {SharedPersistenceSync.messageThreadsKey};
-  }
-  if (entityType == 'booking') {
+  if (pushActionUriForData(data) != null) {
     return {
       SharedPersistenceSync.rentalRequestsKey,
       SharedPersistenceSync.messageThreadsKey,
@@ -267,6 +276,7 @@ class FirebaseRuntime {
       }
       _pushEnabled = preferences.pushEnabled;
       _crashDiagnosticsEnabled = preferences.crashDiagnosticsEnabled;
+      await FirebaseMessaging.instance.setDeliveryMetricsExportToBigQuery(false);
       await FirebaseMessaging.instance.setAutoInitEnabled(_pushEnabled);
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
         kReleaseMode && _crashDiagnosticsEnabled,
@@ -658,7 +668,9 @@ class FirebaseRuntime {
   }
 
   static void _captureActionLink(RemoteMessage? message) {
-    _captureRawActionLink(message?.data['actionUrl']);
+    final data = message?.data;
+    if (data == null) return;
+    _captureRawActionLink(pushActionUriForData(data));
   }
 
   static void _captureRawActionLink(Object? raw) {

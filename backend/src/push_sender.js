@@ -19,6 +19,55 @@ function safePushText(value, maxLength) {
   return normalized;
 }
 
+export const V52_PUSH_CONTRACT_VERSION = 'v52';
+export const V52_PUSH_TITLE = 'Neue Buchungsaktualisierung';
+export const V52_PUSH_BODY = 'In der App ansehen.';
+
+// TTLs are intentionally short and event-specific. No approved event may fall
+// back to FCM's four-week default. Detail is always loaded from the
+// authenticated SIT notification API after the app opens.
+const TRANSACTIONAL_PUSH_TTL_SECONDS = Object.freeze({
+  message_received: 15 * 60,
+  booking_requested: 60 * 60,
+  booking_accepted: 60 * 60,
+  booking_confirmed: 60 * 60,
+  booking_active: 60 * 60,
+  booking_returned: 60 * 60,
+  payment_failed: 60 * 60,
+  return_confirmation_reminder: 60 * 60,
+  return_case_response_due: 60 * 60,
+  platform_withdrawal_received: 6 * 60 * 60,
+  return_case_opened: 6 * 60 * 60,
+  booking_completed: 24 * 60 * 60,
+  booking_declined: 24 * 60 * 60,
+  booking_cancelled: 24 * 60 * 60,
+  booking_refunded: 24 * 60 * 60,
+  booking_disputed: 24 * 60 * 60,
+  payment_confirmed: 24 * 60 * 60,
+  payout_sent: 24 * 60 * 60,
+  return_confirmation_window_closed: 24 * 60 * 60,
+  return_report_window_closed: 24 * 60 * 60,
+  return_case_status_update: 24 * 60 * 60,
+});
+
+export function transactionalPushContractForTest(kind) {
+  const safeKind = safePushText(kind, 120);
+  const ttlSeconds = TRANSACTIONAL_PUSH_TTL_SECONDS[safeKind];
+  if (!Number.isSafeInteger(ttlSeconds) || ttlSeconds <= 0) {
+    throw pushError('push_kind_not_allowlisted');
+  }
+  return Object.freeze({
+    kind: safeKind,
+    title: V52_PUSH_TITLE,
+    body: V52_PUSH_BODY,
+    data: Object.freeze({
+      contract: V52_PUSH_CONTRACT_VERSION,
+      route: 'notifications',
+    }),
+    ttlSeconds,
+  });
+}
+
 let messagingClientPromise;
 
 async function fcmMessagingClient() {
@@ -48,33 +97,20 @@ async function fcmMessagingClient() {
   return messagingClientPromise;
 }
 
-function fcmData(payload) {
-  const values = {
-    eventKey: payload.eventKey,
-    actionUrl: payload.actionUrl,
-    ...payload.data,
-  };
-  return Object.fromEntries(Object.entries(values).flatMap(([key, value]) => {
-    const safeKey = String(key).trim();
-    const reservedKey = /^(?:google\.|gcm\.)/i.test(safeKey) ||
-      ['from', 'message_type', 'collapse_key'].includes(safeKey.toLowerCase());
-    if (!safeKey || safeKey.length > 120 || reservedKey || value == null) return [];
-    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-    if (!stringValue || stringValue.length > 2000) return [];
-    return [[safeKey, stringValue]];
-  }));
-}
-
-export function buildFcmMessageForTest(device, payload) {
+export function buildFcmMessageForTest(device, kind, { nowMs = Date.now() } = {}) {
+  const payload = transactionalPushContractForTest(kind);
+  if (!Number.isFinite(nowMs) || nowMs < 0) throw pushError('push_payload_invalid');
+  const expiration = Math.floor(nowMs / 1000) + payload.ttlSeconds;
   return {
     token: device.token,
     notification: {
       title: payload.title,
       body: payload.body,
     },
-    data: fcmData(payload),
+    data: payload.data,
     android: {
       priority: 'high',
+      ttl: payload.ttlSeconds * 1000,
       notification: {
         icon: 'ic_stat_shareittoo_v2',
         sound: 'default',
@@ -82,8 +118,16 @@ export function buildFcmMessageForTest(device, payload) {
       },
     },
     apns: {
-      headers: { 'apns-priority': '10' },
-      payload: { aps: { sound: 'default' } },
+      headers: {
+        'apns-priority': '10',
+        'apns-expiration': String(expiration),
+      },
+      payload: {
+        aps: {
+          sound: 'default',
+          category: 'SIT_TRANSACTIONAL_UPDATE',
+        },
+      },
     },
   };
 }
@@ -93,12 +137,13 @@ const invalidFcmTokenErrorCodes = new Set([
   'messaging/registration-token-not-registered',
 ]);
 
-function isInvalidFcmTokenError(error) {
+export function isInvalidFcmTokenErrorForTest(error) {
   return invalidFcmTokenErrorCodes.has(error?.code);
 }
 
-async function sendWithFcm(client, devices, payload, userId) {
+async function sendWithFcm(client, devices, kind, userId) {
   const messaging = await fcmMessagingClient();
+  const contract = transactionalPushContractForTest(kind);
   const invalidHashes = [];
   const messageIds = [];
   let transientFailureCount = 0;
@@ -107,7 +152,7 @@ async function sendWithFcm(client, devices, payload, userId) {
     let result;
     try {
       result = await messaging.sendEach(
-        batch.map((device) => buildFcmMessageForTest(device, payload)),
+        batch.map((device) => buildFcmMessageForTest(device, contract.kind)),
       );
     } catch (error) {
       throw pushError('push_fcm_unavailable', error);
@@ -117,7 +162,7 @@ async function sendWithFcm(client, devices, payload, userId) {
         if (response.messageId) messageIds.push(response.messageId);
         return;
       }
-      if (isInvalidFcmTokenError(response.error)) {
+      if (isInvalidFcmTokenErrorForTest(response.error)) {
         invalidHashes.push(batch[responseIndex].token_hash);
       } else {
         transientFailureCount += 1;
@@ -141,17 +186,17 @@ async function sendWithFcm(client, devices, payload, userId) {
     providerMessageId: messageIds[0] ?? null,
     invalidDeviceCount: invalidHashes.length,
     failedDeviceCount: transientFailureCount,
+    ttlSeconds: contract.ttlSeconds,
+    contractVersion: V52_PUSH_CONTRACT_VERSION,
   };
 }
 
 export async function sendPushToUser(client, {
   userId,
   eventKey,
-  title,
-  body,
-  actionUrl,
-  data = {},
+  kind,
 }) {
+  const payload = transactionalPushContractForTest(kind);
   const devices = await client.query(
     `SELECT id, platform, token, token_hash, locale
      FROM push_devices
@@ -160,31 +205,39 @@ export async function sendPushToUser(client, {
     [userId],
   );
   if (config.push.transport === 'disabled') {
-    return { outcome: 'suppressed', provider: 'disabled', deviceCount: devices.rowCount };
+    return {
+      outcome: 'suppressed',
+      provider: 'disabled',
+      deviceCount: devices.rowCount,
+      ttlSeconds: payload.ttlSeconds,
+      contractVersion: V52_PUSH_CONTRACT_VERSION,
+    };
   }
   if (!devices.rowCount) {
-    return { outcome: 'suppressed', provider: config.push.transport, deviceCount: 0 };
+    return {
+      outcome: 'suppressed',
+      provider: config.push.transport,
+      deviceCount: 0,
+      ttlSeconds: payload.ttlSeconds,
+      contractVersion: V52_PUSH_CONTRACT_VERSION,
+    };
   }
 
-  const payload = {
-    eventKey: safePushText(eventKey, 240),
-    title: safePushText(title, 240),
-    body: safePushText(body, 2000),
-    actionUrl: safePushText(actionUrl, 2000),
-    data: data && typeof data === 'object' && !Array.isArray(data) ? data : {},
-  };
+  const safeEventKey = safePushText(eventKey, 240);
 
   if (config.push.transport === 'memory') {
     return {
       outcome: 'sent',
       provider: 'memory',
       deviceCount: devices.rowCount,
-      providerMessageId: `memory:${crypto.createHash('sha256').update(eventKey).digest('hex').slice(0, 24)}`,
+      providerMessageId: `memory:${crypto.createHash('sha256').update(safeEventKey).digest('hex').slice(0, 24)}`,
+      ttlSeconds: payload.ttlSeconds,
+      contractVersion: V52_PUSH_CONTRACT_VERSION,
     };
   }
 
   if (config.push.transport === 'fcm') {
-    return sendWithFcm(client, devices.rows, payload, userId);
+    return sendWithFcm(client, devices.rows, payload.kind, userId);
   }
 
   let response;
@@ -198,7 +251,11 @@ export async function sendPushToUser(client, {
           : {}),
       },
       body: JSON.stringify({
-        ...payload,
+        title: payload.title,
+        body: payload.body,
+        data: payload.data,
+        ttlSeconds: payload.ttlSeconds,
+        contractVersion: V52_PUSH_CONTRACT_VERSION,
         devices: devices.rows.map((device) => ({
           platform: device.platform,
           token: device.token,
@@ -237,5 +294,7 @@ export async function sendPushToUser(client, {
       ? result.messageId.slice(0, 500)
       : null,
     invalidDeviceCount: invalidHashes.length,
+    ttlSeconds: payload.ttlSeconds,
+    contractVersion: V52_PUSH_CONTRACT_VERSION,
   };
 }

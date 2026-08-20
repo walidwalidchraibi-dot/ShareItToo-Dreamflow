@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { validateFirebaseServiceAccount } from './firebase_service_account.js';
+import { evaluateGoogleMapsActivation } from './google_maps_activation.js';
 
 function required(name) {
   const value = process.env[name]?.trim();
@@ -158,10 +159,7 @@ const financialDocumentsLiveIssuanceApproved =
 const financialDocumentsSitFeeTaxLabel =
   process.env.FINANCIAL_DOCUMENTS_SIT_FEE_TAX_LABEL?.trim() ?? '';
 
-const googleMapsServerApiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY?.trim() ?? '';
-if (googleMapsServerApiKey && !/^AIza[0-9A-Za-z_-]{20,}$/u.test(googleMapsServerApiKey)) {
-  throw new Error('GOOGLE_MAPS_SERVER_API_KEY must be a valid server-side Google API key');
-}
+const googleMapsActivation = evaluateGoogleMapsActivation(process.env);
 if (publicComplianceApproved) {
   const requiredComplianceFields = [
     ['PUBLIC_SUPPORT_EMAIL', publicCompliance.supportEmail],
@@ -245,8 +243,10 @@ export const config = Object.freeze({
     sitFeeTaxLabel: financialDocumentsSitFeeTaxLabel,
   }),
   maps: Object.freeze({
-    enabled: googleMapsServerApiKey !== '',
-    serverApiKey: googleMapsServerApiKey,
+    enabled: googleMapsActivation.enabled,
+    activationApproved: googleMapsActivation.activationApproved,
+    providerFactsComplete: googleMapsActivation.providerFactsComplete,
+    serverApiKey: googleMapsActivation.serverApiKey,
   }),
   mail: Object.freeze({
     transport: (process.env.MAIL_TRANSPORT ?? 'disabled').trim().toLowerCase(),

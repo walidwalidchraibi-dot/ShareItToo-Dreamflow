@@ -14,6 +14,7 @@ enum AppLinkKind {
   emailVerification,
   passwordReset,
   paymentReturn,
+  notifications,
   crashDiagnostic,
 }
 
@@ -160,6 +161,10 @@ class AppLinkParser {
                 id: id,
                 uri: uri,
               );
+      case 'notifications':
+        return segments.length == 1
+            ? AppLinkTarget(kind: AppLinkKind.notifications, uri: uri)
+            : null;
       case 'qa':
         if (!isCustom ||
             segments.length != 3 ||

@@ -179,50 +179,48 @@ void main() {
   });
 
   group('foreground push message', () {
-    test('normalizes visible copy and keeps a safe action URI', () {
+    test('normalizes visible copy and opens only the neutral V5.2 route', () {
       final message = parseForegroundPushMessage(
-        title: '  Neue Nachricht  ',
-        body: '  Deine Buchung wurde aktualisiert.  ',
-        data: {'actionUrl': 'shareittoo://booking/synthetic-booking'},
+        title: '  Neue Buchungsaktualisierung  ',
+        body: '  In der App ansehen.  ',
+        data: const {'contract': 'v52', 'route': 'notifications'},
       );
 
       expect(message, isNotNull);
-      expect(message!.title, 'Neue Nachricht');
-      expect(message.body, 'Deine Buchung wurde aktualisiert.');
+      expect(message!.title, 'Neue Buchungsaktualisierung');
+      expect(message.body, 'In der App ansehen.');
       expect(
         message.actionUri,
-        Uri.parse('shareittoo://booking/synthetic-booking'),
+        Uri.parse('shareittoo://notifications'),
       );
     });
 
-    test('drops empty notifications and invalid action URIs', () {
+    test('drops empty notifications and refuses legacy or expanded push data', () {
       expect(parseForegroundPushMessage(), isNull);
 
       final message = parseForegroundPushMessage(
         body: 'Hinweis',
-        data: {'actionUrl': 'https://user:password@example.com/private'},
+        data: const {'actionUrl': 'shareittoo://booking/private-id'},
       );
       expect(message, isNotNull);
       expect(message!.title, 'ShareItToo');
       expect(message.actionUri, isNull);
 
-      final unsupported = parseForegroundPushMessage(
+      final expanded = parseForegroundPushMessage(
         body: 'Hinweis',
-        data: {'actionUrl': 'javascript:alert(1)'},
+        data: const {
+          'contract': 'v52',
+          'route': 'notifications',
+          'bookingId': 'private-id',
+        },
       );
-      expect(unsupported!.actionUri, isNull);
+      expect(expanded!.actionUri, isNull);
     });
 
-    test('maps chat and booking pushes to the affected local caches', () {
+    test('refreshes generic local caches only for the exact V5.2 contract', () {
       expect(
         sharedPersistenceKeysForForegroundPush(
-          const {'entityType': 'thread'},
-        ),
-        {SharedPersistenceSync.messageThreadsKey},
-      );
-      expect(
-        sharedPersistenceKeysForForegroundPush(
-          const {'entityType': 'booking'},
+          const {'contract': 'v52', 'route': 'notifications'},
         ),
         {
           SharedPersistenceSync.rentalRequestsKey,
@@ -231,7 +229,7 @@ void main() {
       );
       expect(
         sharedPersistenceKeysForForegroundPush(
-          const {'entityType': 'unknown'},
+          const {'contract': 'v52', 'route': 'booking'},
         ),
         isEmpty,
       );

@@ -5,6 +5,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
+import 'package:lendify/screens/notifications_screen.dart';
 import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/screens/request_detail_screen.dart';
 import 'package:lendify/screens/payment_checkout_screen.dart';
@@ -242,6 +243,25 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
               );
             }
             return PaymentCheckoutScreen(bookingId: widget.target.id!);
+          },
+        );
+      case AppLinkKind.notifications:
+        return FutureBuilder<AuthSession?>(
+          future: AuthService.readSession(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const _LinkLoadingScreen();
+            }
+            if (snapshot.data == null) {
+              return _LinkErrorScreen(
+                title: 'Bitte zuerst anmelden',
+                message:
+                    'Nach der Anmeldung werden die Details sicher aus ShareItToo geladen.',
+                actionLabel: 'Anmelden',
+                onAction: _loginAndRetry,
+              );
+            }
+            return const NotificationsScreen();
           },
         );
       case AppLinkKind.crashDiagnostic:

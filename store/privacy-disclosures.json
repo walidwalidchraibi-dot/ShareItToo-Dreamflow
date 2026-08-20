@@ -223,12 +223,20 @@
       "sha256": "e3b3ec6db438488910e8638fe498f0d61652250d803e007a513f74eec8f6b8de"
     },
     {
+      "path": "backend/src/google_maps_activation.js",
+      "sha256": "c1e29bb5fc6e94461d3ad47be443b0c987c1d227ba978f9bfe47a478be7aa8e6"
+    },
+    {
       "path": "backend/src/config.js",
-      "sha256": "00f00dd0e0fae98f2dc7090da620ae41babdd865926633415175346b12015cdc"
+      "sha256": "d0a8f257afb54fdd7d5568441336ac0eeea03e41041308c12a356f61914ee200"
     },
     {
       "path": "backend/src/notifications.js",
-      "sha256": "7f62dab8453861d8ae7558bc46b271ff06e59a0452b7049049763f13122dda5d"
+      "sha256": "c86ebfbbef94ee3696da207a11d7be8df57aa7aebed7d82fd8d032f8bec247d1"
+    },
+    {
+      "path": "backend/src/push_sender.js",
+      "sha256": "456fa1ea54ec3f90f3cfa35c101443d01405b870aadcef3639427ac7750e5e11"
     },
     {
       "path": "backend/src/transactional_mail_templates.js",
@@ -272,11 +280,23 @@
     },
     {
       "path": "lib/services/firebase_runtime.dart",
-      "sha256": "7cbe8fd6e3b1d461f3a06a2ab02d2e13aa6ff2752f02a108773809c859c8156c"
+      "sha256": "f2d16d24a92017e318b04be80710c54e4c2c1f4608d9fab7887ddb545a32b5ac"
     },
     {
       "path": "lib/services/firebase_service_preferences.dart",
       "sha256": "b3841d4e36a30eddc5f3808fb6d939de34c0766491784be38089f3d8b204d97f"
+    },
+    {
+      "path": "lib/services/app_link_service.dart",
+      "sha256": "792b39a68f4c135b3d49fbf0b9452229274dfe9057ae58af2ddceeb5eb3e4f63"
+    },
+    {
+      "path": "lib/screens/app_link_destination_screen.dart",
+      "sha256": "3551ccd9715fe1aea6defd7a37a8d0d6d1b21c1fef7b27262bf59bded5493728"
+    },
+    {
+      "path": "android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt",
+      "sha256": "146ae316618bbd56eada1e4d0208038b8ac6f4ab9b1b45a4d1b98e0870443941"
     },
     {
       "path": "lib/widgets/app_image.dart",
@@ -356,6 +376,13 @@
       "candidateCollectionMode": "automatic-in-bound-candidate",
       "nextCandidateCollectionMode": "user-opt-in-default-off",
       "replacementCandidateRequired": true,
+      "payloadContractVersion": "v52",
+      "neutralLockscreenCopy": "Neue Buchungsaktualisierung – in der App ansehen.",
+      "authenticatedDetailRetrieval": true,
+      "eventSpecificTtlImplemented": true,
+      "bigQueryDeliveryMetricsExportEnabled": false,
+      "analyticsLinkEnabled": false,
+      "providerContractTransferAndStoreApproval": false,
       "dataTypes": [
         "deviceOrOtherIds"
       ]
@@ -369,6 +396,10 @@
       "serverDeletionQueueFoundationImplemented": true,
       "pseudonymousSubjectTransmissionImplemented": false,
       "providerDeletionExecutionEnabled": false,
+      "analyticsBreadcrumbsEnabled": false,
+      "crashInsightsSharingVerified": false,
+      "userIdentifierConfigured": false,
+      "providerContractTransferAndStoreApproval": false,
       "dataTypes": [
         "deviceOrOtherIds",
         "crashData",
@@ -396,7 +427,10 @@
       ],
       "clientCredentialEmbedded": false,
       "serverProxied": true,
-      "serverCredentialRestrictionVerified": false
+      "serverCredentialRestrictionVerified": false,
+      "nextCandidateActivationMode": "provider-gated-default-off",
+      "activationApproved": false,
+      "providerFactsComplete": false
     },
     "stripe": {
       "enabledInCandidate": false,

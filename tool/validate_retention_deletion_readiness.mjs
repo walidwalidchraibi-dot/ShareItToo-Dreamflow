@@ -15,6 +15,7 @@ const sourcePaths = [
   'backend/src/account_actions.js',
   'backend/src/config.js',
   'backend/src/notifications.js',
+  'backend/src/push_sender.js',
   'backend/src/transactional_mail_templates.js',
   'backend/src/return_lifecycle_workflow.js',
   'backend/src/v51_contract_workflow.js',
@@ -31,6 +32,7 @@ const sourcePaths = [
   'backend/src/firebase_identity_cleanup.js',
   'backend/src/crashlytics_cleanup.js',
   'backend/src/maps_proxy.js',
+  'backend/src/google_maps_activation.js',
   'backend/sql/schema.sql',
   'backend/sql/migrations/006_b7_communications.up.sql',
   'backend/sql/migrations/014_account_legal_holds.up.sql',
@@ -49,6 +51,9 @@ const sourcePaths = [
   'ios/Runner/Info.plist',
   'lib/services/firebase_runtime.dart',
   'lib/services/firebase_service_preferences.dart',
+  'lib/services/app_link_service.dart',
+  'lib/screens/app_link_destination_screen.dart',
+  'android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt',
   'lib/services/account_deletion_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
@@ -430,6 +435,7 @@ function assertSourceContracts(root, sourceTexts) {
     'FirebaseCrashlytics.instance.deleteUnsentReports()',
     'FirebaseInstallations.instance.delete()',
     'deleteCurrentSessionPushDevices()',
+    'setDeliveryMetricsExportToBigQuery(false)',
   ]) {
     if (!firebaseRuntime.includes(marker)) {
       fail(`Firebase service readiness is missing runtime control: ${marker}.`);
@@ -528,6 +534,31 @@ function assertSourceContracts(root, sourceTexts) {
   ]) {
     if (!mapsProxy.includes(marker)) {
       fail(`Google Maps readiness is missing server-proxy control: ${marker}.`);
+    }
+  }
+  const mapsActivation = text(
+    root,
+    sourceTexts,
+    'backend/src/google_maps_activation.js',
+  );
+  for (const marker of [
+    'GOOGLE_MAPS_ACTIVATION_APPROVED',
+    'GOOGLE_MAPS_TRANSFER_MECHANISM',
+    "serverApiKey: enabled ? serverApiKey : ''",
+  ]) {
+    if (!mapsActivation.includes(marker)) {
+      fail(`Google Maps readiness is missing provider activation gate: ${marker}.`);
+    }
+  }
+  const pushSender = text(root, sourceTexts, 'backend/src/push_sender.js');
+  for (const marker of [
+    "V52_PUSH_CONTRACT_VERSION = 'v52'",
+    "route: 'notifications'",
+    'ttl: payload.ttlSeconds * 1000',
+    "'apns-expiration': String(expiration)",
+  ]) {
+    if (!pushSender.includes(marker)) {
+      fail(`FCM readiness is missing the neutral TTL contract: ${marker}.`);
     }
   }
   for (const marker of [

@@ -44,6 +44,18 @@ void main() {
     expect(profile?.id, 'user_456');
   });
 
+  test('accepts only the identifier-free notifications route', () {
+    final notifications = AppLinkParser.parse(
+      Uri.parse('shareittoo://notifications'),
+    );
+    expect(notifications?.kind, AppLinkKind.notifications);
+    expect(notifications?.id, isNull);
+    expect(
+      AppLinkParser.parse(Uri.parse('shareittoo://notifications/private-id')),
+      isNull,
+    );
+  });
+
   test('refuses unsafe public link identifiers', () {
     expect(() => AppLinkBuilder.listing('not/safe'), throwsArgumentError);
     expect(() => AppLinkBuilder.profile(''), throwsArgumentError);

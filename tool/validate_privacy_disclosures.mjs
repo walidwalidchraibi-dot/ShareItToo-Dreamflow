@@ -41,8 +41,10 @@ const sourcePaths = [
   'backend/sql/migrations/020_v51_financial_documents.up.sql',
   'backend/src/security.js',
   'backend/src/maps_proxy.js',
+  'backend/src/google_maps_activation.js',
   'backend/src/config.js',
   'backend/src/notifications.js',
+  'backend/src/push_sender.js',
   'backend/src/transactional_mail_templates.js',
   'backend/src/return_lifecycle_workflow.js',
   'backend/src/firebase_phone_verification.js',
@@ -55,6 +57,9 @@ const sourcePaths = [
   'lib/services/backend_config.dart',
   'lib/services/firebase_runtime.dart',
   'lib/services/firebase_service_preferences.dart',
+  'lib/services/app_link_service.dart',
+  'lib/screens/app_link_destination_screen.dart',
+  'android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt',
   'lib/widgets/app_image.dart',
   'lib/services/data_service.dart',
   'lib/services/backend_repository.dart',
@@ -450,8 +455,16 @@ function assertSourceContracts({ root, sourceTexts }) {
 
   const maps = sourceText(root, sourceTexts, 'lib/services/maps_service.dart');
   const mapsProxy = sourceText(root, sourceTexts, 'backend/src/maps_proxy.js');
+  const mapsActivation = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/google_maps_activation.js',
+  );
   if (!maps.includes('BackendRepository.autocompleteAddresses')
-      || !mapsProxy.includes("const GOOGLE_PLACES_ORIGIN = 'https://maps.googleapis.com'")) {
+      || !mapsProxy.includes("const GOOGLE_PLACES_ORIGIN = 'https://maps.googleapis.com'")
+      || !mapsActivation.includes('GOOGLE_MAPS_ACTIVATION_APPROVED')
+      || !mapsActivation.includes('GOOGLE_MAPS_TRANSFER_MECHANISM')
+      || !mapsActivation.includes("serverApiKey: enabled ? serverApiKey : ''")) {
     fail('Google Maps must be inventoried through the authenticated backend proxy.');
   }
   for (const directClientMarker of ['maps.googleapis.com', 'GOOGLE_MAPS_API_KEY']) {
@@ -460,6 +473,56 @@ function assertSourceContracts({ root, sourceTexts }) {
 
   const ai = sourceText(root, sourceTexts, 'lib/openai/openai_config.dart');
   if (!/aiHelpersEnabled\s*=\s*false/.test(ai)) fail('OpenAI helpers must remain disabled in this candidate.');
+  const launchPubspec = sourceText(root, sourceTexts, 'pubspec.yaml');
+  for (const forbiddenDependency of [
+    'firebase_analytics:',
+    'firebase_performance:',
+    'google_mobile_ads:',
+    'google_fonts:',
+  ]) {
+    if (launchPubspec.includes(forbiddenDependency)) {
+      fail(`Launch dependency must remain disabled: ${forbiddenDependency}`);
+    }
+  }
+
+  const pushSender = sourceText(root, sourceTexts, 'backend/src/push_sender.js');
+  const notifications = sourceText(root, sourceTexts, 'backend/src/notifications.js');
+  for (const marker of [
+    "V52_PUSH_TITLE = 'Neue Buchungsaktualisierung'",
+    "V52_PUSH_BODY = 'In der App ansehen.'",
+    "route: 'notifications'",
+    'ttl: payload.ttlSeconds * 1000',
+    "'apns-expiration': String(expiration)",
+    "throw pushError('push_kind_not_allowlisted')",
+  ]) {
+    if (!pushSender.includes(marker)) fail(`V5.2 Push contract is missing ${marker}.`);
+  }
+  if (!notifications.includes('kind: row.kind')
+      || notifications.includes('const push = payload.push')) {
+    fail('Notification delivery must delegate only the allowlisted kind to the V5.2 Push contract.');
+  }
+  const firebaseRuntime = sourceText(root, sourceTexts, 'lib/services/firebase_runtime.dart');
+  const appLinks = sourceText(root, sourceTexts, 'lib/services/app_link_service.dart');
+  const appLinkDestination = sourceText(
+    root,
+    sourceTexts,
+    'lib/screens/app_link_destination_screen.dart',
+  );
+  const androidPushBridge = sourceText(
+    root,
+    sourceTexts,
+    'android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt',
+  );
+  if (!firebaseRuntime.includes("data.length != 2")
+      || !firebaseRuntime.includes("Uri.parse('shareittoo://notifications')")
+      || !firebaseRuntime.includes('setDeliveryMetricsExportToBigQuery(false)')
+      || firebaseRuntime.includes('setDeliveryMetricsExportToBigQuery(true)')
+      || firebaseRuntime.includes('FirebaseAnalytics')
+      || !appLinks.includes("case 'notifications':")
+      || !appLinkDestination.includes('return const NotificationsScreen();')
+      || !androidPushBridge.includes('contract == "v52" && routeSignal == "notifications"')) {
+    fail('V5.2 Push must open only the authenticated identifier-free notification center.');
+  }
 
   const backendApp = sourceText(root, sourceTexts, 'backend/src/app.js');
   for (const marker of [
@@ -660,13 +723,31 @@ export function validatePrivacyDisclosures({
       fail(`${serviceKey} must separate the automatic bound candidate from the opt-in replacement source.`);
     }
   }
+  const push = object(
+    services.firebaseCloudMessaging,
+    'externalServices.firebaseCloudMessaging',
+  );
+  if (push.payloadContractVersion !== 'v52'
+      || push.neutralLockscreenCopy !==
+        'Neue Buchungsaktualisierung – in der App ansehen.'
+      || push.authenticatedDetailRetrieval !== true
+      || push.eventSpecificTtlImplemented !== true
+      || push.bigQueryDeliveryMetricsExportEnabled !== false
+      || push.analyticsLinkEnabled !== false
+      || push.providerContractTransferAndStoreApproval !== false) {
+    fail('FCM disclosure must preserve the local V5.2 contract and the open provider/Store gate.');
+  }
   const crashlytics = object(
     services.firebaseCrashlytics,
     'externalServices.firebaseCrashlytics',
   );
   if (crashlytics.serverDeletionQueueFoundationImplemented !== true
       || crashlytics.pseudonymousSubjectTransmissionImplemented !== false
-      || crashlytics.providerDeletionExecutionEnabled !== false) {
+      || crashlytics.providerDeletionExecutionEnabled !== false
+      || crashlytics.analyticsBreadcrumbsEnabled !== false
+      || crashlytics.crashInsightsSharingVerified !== false
+      || crashlytics.userIdentifierConfigured !== false
+      || crashlytics.providerContractTransferAndStoreApproval !== false) {
     fail('Crashlytics deletion foundation must remain default-off until pseudonymous subject transfer is approved.');
   }
   const socialAuth = object(services.firebaseAuthentication, 'externalServices.firebaseAuthentication');
@@ -687,7 +768,10 @@ export function validatePrivacyDisclosures({
     fail('The candidate must disclose its Google Maps integration.');
   }
   if (maps.activeTransferProven !== false
-      || maps.role !== 'independent-controller-if-activated') {
+      || maps.role !== 'independent-controller-if-activated'
+      || maps.nextCandidateActivationMode !== 'provider-gated-default-off'
+      || maps.activationApproved !== false
+      || maps.providerFactsComplete !== false) {
     fail('Google Maps must remain an unproven independent-controller transfer until activation.');
   }
   if (!superseded && (maps.clientCredentialEmbedded !== false || maps.serverProxied !== true)) {
