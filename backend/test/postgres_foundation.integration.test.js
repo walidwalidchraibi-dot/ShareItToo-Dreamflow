@@ -1711,6 +1711,12 @@ if (!databaseUrl) {
         body: JSON.stringify({
           status: 'hidden', reportId: b9Report.id,
           reasonCode: 'documented_policy_violation', note: 'Temporary reversible measure',
+          decision: {
+            facts: 'Controlled listing evidence confirms the documented policy violation.',
+            basis: 'Controlled marketplace listing policy fixture.',
+            reasoning: 'The verified fixture requires a temporary, reversible visibility restriction.',
+            detectionMethod: 'human',
+          },
         }),
       });
       assert.equal(hideListing.status, 200);
@@ -1726,6 +1732,12 @@ if (!databaseUrl) {
         body: JSON.stringify({
           status: 'active', reportId: b9Report.id,
           reasonCode: 'verification_completed', note: 'Restriction reversed',
+          decision: {
+            facts: 'Controlled follow-up verification confirms the temporary restriction can end.',
+            basis: 'Controlled marketplace verification-completion fixture.',
+            reasoning: 'The follow-up fixture supports restoring the listing to its prior active state.',
+            detectionMethod: 'human',
+          },
         }),
       });
       assert.equal(restoreListing.status, 200);
@@ -1745,6 +1757,12 @@ if (!databaseUrl) {
         body: JSON.stringify({
           scope: 'booking', reportId: outsiderReportId,
           reasonCode: 'controlled_scope_probe', note: 'Temporary integration restriction',
+          decision: {
+            facts: 'Controlled account evidence confirms the booking-scope integration condition.',
+            basis: 'Controlled booking-scope moderation fixture.',
+            reasoning: 'The fixture requires a temporary booking-only restriction for the test subject.',
+            detectionMethod: 'human',
+          },
         }),
       });
       assert.equal(suspendBooking.status, 201);
@@ -1762,7 +1780,15 @@ if (!databaseUrl) {
       const liftBooking = await fetch(`${baseUrl}/v1/admin/suspensions/${suspension.id}/lift`, {
         method: 'POST',
         headers: { ...adminHeaders, 'Idempotency-Key': 'b9-lift-outsider-booking' },
-        body: JSON.stringify({ reasonCode: 'controlled_probe_complete' }),
+        body: JSON.stringify({
+          reasonCode: 'controlled_probe_complete',
+          decision: {
+            facts: 'Controlled follow-up evidence confirms the booking-scope probe is complete.',
+            basis: 'Controlled moderation-reversal fixture.',
+            reasoning: 'The completed probe no longer supports keeping the temporary restriction.',
+            detectionMethod: 'human',
+          },
+        }),
       });
       assert.equal(liftBooking.status, 200);
       assert.equal((await fetch(`${baseUrl}/v1/bookings/quote`, {
