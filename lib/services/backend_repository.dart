@@ -325,6 +325,75 @@ class BackendRepository {
     return _authorized(method: 'POST', path: '/bookings/quote', body: booking);
   }
 
+  static Future<Map<String, dynamic>> getRentalCart() async {
+    final response = await _authorized(method: 'GET', path: '/rental-cart');
+    return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> putRentalCartProject({
+    required String id,
+    required String title,
+    Map<String, dynamic> answers = const <String, dynamic>{},
+    int sortOrder = 0,
+  }) async {
+    final response = await _authorized(
+      method: 'PUT',
+      path: '/rental-cart/projects/${Uri.encodeComponent(id)}',
+      body: <String, dynamic>{
+        'title': title,
+        'answers': answers,
+        'sortOrder': sortOrder,
+      },
+    );
+    return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> deleteRentalCartProject(String id) async {
+    final response = await _authorized(
+      method: 'DELETE',
+      path: '/rental-cart/projects/${Uri.encodeComponent(id)}',
+    );
+    return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> putRentalCartItem({
+    required String id,
+    required String listingId,
+    required String startDate,
+    required String endDate,
+    String? projectId,
+    int sortOrder = 0,
+  }) async {
+    final response = await _authorized(
+      method: 'PUT',
+      path: '/rental-cart/items/${Uri.encodeComponent(id)}',
+      body: <String, dynamic>{
+        'listingId': listingId,
+        'startDate': startDate,
+        'endDate': endDate,
+        'projectId': projectId,
+        'sortOrder': sortOrder,
+      },
+    );
+    return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> deleteRentalCartItem(String id) async {
+    final response = await _authorized(
+      method: 'DELETE',
+      path: '/rental-cart/items/${Uri.encodeComponent(id)}',
+    );
+    return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> recheckRentalCart() async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/rental-cart/recheck',
+    );
+    return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
   static Future<Map<String, dynamic>> createBooking(
     Map<String, dynamic> booking, {
     required String idempotencyKey,

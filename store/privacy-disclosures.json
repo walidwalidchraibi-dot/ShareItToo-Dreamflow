@@ -28,7 +28,7 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "c06ca405fd2f819b72abf6ba363053610fd2256cdfa238c9a36328a69235bf4e"
+      "sha256": "54d00bc3988330165f53c2c9f430460b074534308c94f41db6fe7db50d117bde"
     },
     {
       "path": "assets/legal/de/privacy_v5.html",
@@ -40,7 +40,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "e2b75deb970182c360b01a11a322dcc2eb2875c08b6b69f881db4f0efafd25fb"
+      "sha256": "60323e13c1c740f5700c29d9d812041899f245fded46e007eff14d4e65db3b6b"
     },
     {
       "path": "backend/src/account_actions.js",
@@ -48,11 +48,15 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "0a43576ed70a8006be00d565572b1479d4ee61c929a1f837736c42bd57c35df5"
+      "sha256": "e93e4b93f59ff44c0f8c8df6c631e22b363d2e53eab2ea225de38a830878cce4"
     },
     {
       "path": "backend/src/booking_workflow.js",
-      "sha256": "6170b2f93a12767da918c36647c503192b9d0fd93b8df49d5afc3c912c9ada6c"
+      "sha256": "fb9c8b68c06d26638c4a85388d75e729a17f699569a552590c2f533d2e4993be"
+    },
+    {
+      "path": "backend/src/rental_cart_workflow.js",
+      "sha256": "261fa1a6c58f8f71c818179ed8a1a95fa71ff37cf00987b64cdef8e7cec4ef8d"
     },
     {
       "path": "backend/src/private_pilot_domain.js",
@@ -107,10 +111,6 @@
       "sha256": "11721edd53f0c4e195289cce133663a5c822253d2b2216c519fe4b2651e62596"
     },
     {
-      "path": "backend/src/v52_handover_return_workflow.js",
-      "sha256": "e87bae45625e4f51138ac66b03f68aab7630d01aecb375230f760ebf99cbf76a"
-    },
-    {
       "path": "backend/sql/migrations/015_v51_contract_persistence.up.sql",
       "sha256": "c2ccc1d20248672cfe164f4cf5bf093dca855aa4794f71a6f9dfe3a8c8253657"
     },
@@ -147,6 +147,10 @@
       "sha256": "005bc08898c46fe42952aafd4599672b3c6e769e40d805f7de25091555dac2a4"
     },
     {
+      "path": "backend/sql/migrations/027_g2_persistent_rental_cart.up.sql",
+      "sha256": "9ed17578c11eedaf30fb73648d4c4d9c228549f9f954e768929cd32d1bff1e57"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -159,8 +163,12 @@
       "sha256": "060b224ffe28f243614e26c66a07ae7e1bae4541dd825507433271017d519d4f"
     },
     {
+      "path": "backend/src/v52_handover_return_workflow.js",
+      "sha256": "e87bae45625e4f51138ac66b03f68aab7630d01aecb375230f760ebf99cbf76a"
+    },
+    {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "c4ae7ea1f8b854334ed09eff2eea7425caceef3b5a44c31b5ea89f7037dcb61b"
+      "sha256": "5137da5e8347bd4b90726e19535fea96ef6ca7eeda5c3ddac1dac65538baaa70"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -169,78 +177,6 @@
     {
       "path": "backend/sql/migrations/020_v51_financial_documents.up.sql",
       "sha256": "0ed5451601e962c0b3632008db0e3437a1ee9d837d14a1a0512eb6e190567201"
-    },
-    {
-      "path": "lib/services/backend_repository.dart",
-      "sha256": "dcc0cbe1a31d18bcfd53752d4b7ef69164fcf8ea7013cb051ad307a11d309338"
-    },
-    {
-      "path": "lib/config/private_pilot_config.dart",
-      "sha256": "b81dfb764d4767b02f9114b4828650a15b0d980b5bc4138aa5ec2fc7c33ff1d4"
-    },
-    {
-      "path": "lib/models/rental_request.dart",
-      "sha256": "215db2c0864e0b20b4e7bfa3af6b178b86f245d1ab59ad7e86af691983b40b0b"
-    },
-    {
-      "path": "lib/screens/private_pilot_checkout_screen.dart",
-      "sha256": "1a5a56bbb421767f559b477ea6860a47d4ff69b58ceb7ce5e64aa85c310e644a"
-    },
-    {
-      "path": "lib/screens/v52_legal_document_screen.dart",
-      "sha256": "924918e28fe0a8b284e91193b671a0502b3f22c63d4fa4ce0f7f1586203aa15a"
-    },
-    {
-      "path": "lib/screens/bookings_screen.dart",
-      "sha256": "94aca4516978f26727d7ff04447806d070427f17a7a2b70b3177f85fc6dae3bf"
-    },
-    {
-      "path": "lib/screens/payment_methods_screen.dart",
-      "sha256": "47591d15c4ae31869be0d6483a99cf173bd581efa0cd70deda5091160d4b21ff"
-    },
-    {
-      "path": "lib/screens/stripe_payout_account_screen.dart",
-      "sha256": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08"
-    },
-    {
-      "path": "lib/screens/payment_checkout_screen.dart",
-      "sha256": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc"
-    },
-    {
-      "path": "lib/models/invoice.dart",
-      "sha256": "88a76b48770de56737b6e9a2330101ffaa34261b050ef728befe64043105574c"
-    },
-    {
-      "path": "lib/services/invoices_service.dart",
-      "sha256": "00df3ef3c2f31b00e1bd50889ec67d6af25a9d2285a2e2c3bfb1ab299eb7ad4a"
-    },
-    {
-      "path": "lib/services/invoice_pdf_service.dart",
-      "sha256": "f76a8e85a7b969f385c36a2853ae27a3644f89d6b9379809cd47c3bc3b942a3a"
-    },
-    {
-      "path": "lib/screens/invoices_screen.dart",
-      "sha256": "2313df95285340683deadb31ed9141f393fd1ec4ac56a7ec358ce38a775497ac"
-    },
-    {
-      "path": "lib/screens/invoice_detail_screen.dart",
-      "sha256": "18270de113da5210087f4c105ce609d10a7e3d7b60ac458dbc3f639e5ce671eb"
-    },
-    {
-      "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "92a52681b627c92b6b28f26c16e876cc6ff58e5390320ded588a7224fc94fa70"
-    },
-    {
-      "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "17d7d78447c0eed2fb216380c8d07638ecb7f7713d85a1a2a0addc49c5b9456f"
-    },
-    {
-      "path": "lib/services/data_service.dart",
-      "sha256": "50db6ea9dee0874b8a29acc2527ea8eec1c522eddad16746c4c7b115505bcb97"
-    },
-    {
-      "path": "lib/screens/platform_withdrawal_screen.dart",
-      "sha256": "b3664e160885647afbde0607ea83b1173f201c38f3f7bdcb238ab66ed29804be"
     },
     {
       "path": "backend/src/security.js",
@@ -331,6 +267,102 @@
       "sha256": "8cfa1d5d5f4478a79169880d0413c099b595e55599bb17bb9eb1fe6983196152"
     },
     {
+      "path": "lib/services/data_service.dart",
+      "sha256": "c3eb912d1744e82a2126b764b8122aaa59f6bb99a8af8660c22bf5363e394e20"
+    },
+    {
+      "path": "lib/services/backend_repository.dart",
+      "sha256": "64602f1bafb412c92206807f17053d1f369b82477b0db4b4c7083eba2c16b6dd"
+    },
+    {
+      "path": "lib/models/rental_cart.dart",
+      "sha256": "f21c5b5a0055063ca15712cf444805603a25e0ca642085f1335f91c0fa46fbc7"
+    },
+    {
+      "path": "lib/navigation/main_navigation.dart",
+      "sha256": "ce46b1d8d1ce52ca87f0caf1912ecd2c9fab73f12c458369680dc1e8917102cf"
+    },
+    {
+      "path": "lib/screens/login_screen.dart",
+      "sha256": "ec7fe7e4f76e26b492583c3cca7848e15dafb3909a0400ea063fc6c152cf56dd"
+    },
+    {
+      "path": "lib/screens/register_screen.dart",
+      "sha256": "20b39c1fe1ed941879808ae74a18d37abeb7f4dbcfbafef7c1d09fe4bc46509e"
+    },
+    {
+      "path": "lib/screens/wishlists_screen.dart",
+      "sha256": "0ba44c3252ef47e1864e6e6aaae15e96a5c84be72e612e6ecced3fd32e8ecad8"
+    },
+    {
+      "path": "lib/widgets/item_details_overlay.dart",
+      "sha256": "aac4c18c58c99b452bcf00004617b0271f35f98627447e80204d6657d5ec1511"
+    },
+    {
+      "path": "lib/config/private_pilot_config.dart",
+      "sha256": "b81dfb764d4767b02f9114b4828650a15b0d980b5bc4138aa5ec2fc7c33ff1d4"
+    },
+    {
+      "path": "lib/models/rental_request.dart",
+      "sha256": "215db2c0864e0b20b4e7bfa3af6b178b86f245d1ab59ad7e86af691983b40b0b"
+    },
+    {
+      "path": "lib/screens/private_pilot_checkout_screen.dart",
+      "sha256": "1a5a56bbb421767f559b477ea6860a47d4ff69b58ceb7ce5e64aa85c310e644a"
+    },
+    {
+      "path": "lib/screens/v52_legal_document_screen.dart",
+      "sha256": "924918e28fe0a8b284e91193b671a0502b3f22c63d4fa4ce0f7f1586203aa15a"
+    },
+    {
+      "path": "lib/screens/bookings_screen.dart",
+      "sha256": "94aca4516978f26727d7ff04447806d070427f17a7a2b70b3177f85fc6dae3bf"
+    },
+    {
+      "path": "lib/screens/payment_methods_screen.dart",
+      "sha256": "47591d15c4ae31869be0d6483a99cf173bd581efa0cd70deda5091160d4b21ff"
+    },
+    {
+      "path": "lib/screens/stripe_payout_account_screen.dart",
+      "sha256": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08"
+    },
+    {
+      "path": "lib/screens/payment_checkout_screen.dart",
+      "sha256": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc"
+    },
+    {
+      "path": "lib/models/invoice.dart",
+      "sha256": "88a76b48770de56737b6e9a2330101ffaa34261b050ef728befe64043105574c"
+    },
+    {
+      "path": "lib/services/invoices_service.dart",
+      "sha256": "00df3ef3c2f31b00e1bd50889ec67d6af25a9d2285a2e2c3bfb1ab299eb7ad4a"
+    },
+    {
+      "path": "lib/services/invoice_pdf_service.dart",
+      "sha256": "f76a8e85a7b969f385c36a2853ae27a3644f89d6b9379809cd47c3bc3b942a3a"
+    },
+    {
+      "path": "lib/screens/invoices_screen.dart",
+      "sha256": "2313df95285340683deadb31ed9141f393fd1ec4ac56a7ec358ce38a775497ac"
+    },
+    {
+      "path": "lib/screens/invoice_detail_screen.dart",
+      "sha256": "18270de113da5210087f4c105ce609d10a7e3d7b60ac458dbc3f639e5ce671eb"
+    },
+    {
+      "path": "lib/screens/booking_detail_screen.dart",
+      "sha256": "92a52681b627c92b6b28f26c16e876cc6ff58e5390320ded588a7224fc94fa70"
+    },
+    {
+      "path": "lib/screens/ongoing_owner_detail_screen.dart",
+      "sha256": "17d7d78447c0eed2fb216380c8d07638ecb7f7713d85a1a2a0addc49c5b9456f"
+    },
+    {
+      "path": "lib/screens/platform_withdrawal_screen.dart",
+      "sha256": "b3664e160885647afbde0607ea83b1173f201c38f3f7bdcb238ab66ed29804be"
+    },
+    {
       "path": "lib/services/account_deletion_service.dart",
       "sha256": "971771f9dadb05feb40830f4358811cd71da18ef128bf1f0decc6c1463e67f99"
     },
@@ -356,7 +388,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "3e18d43afa2a6a032fe65608a8c052902bc0d7b1bebd0738fb6dc98f8664d5cc"
+      "sha256": "77c247359d5ba97acd3901946ffb9b4bff5867bc904970a3cd1ff8e58be8626c"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -388,7 +420,7 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "ae30471e6db6d380045a5152ba635b527d6f9691f086c647b85efa3cc2de9616"
+      "sha256": "a66d0fc8b1b014e41ee348e95f9ac1cd6a6f1592942058a6ce8acb144497caa5"
     }
   ],
   "binaryEvidence": {
@@ -443,10 +475,20 @@
       "enabled": true,
       "enabledInBoundEnvironment": true,
       "role": "processor-for-firebase-authentication-phone-active-social-provider-review-if-enabled",
-      "providers": ["google", "apple", "facebook", "phone"],
+      "providers": [
+        "google",
+        "apple",
+        "facebook",
+        "phone"
+      ],
       "socialProvidersActivated": false,
       "persistentIdentityDeletionImplemented": true,
-      "dataTypes": ["name", "emailAddress", "phoneNumber", "userId"]
+      "dataTypes": [
+        "name",
+        "emailAddress",
+        "phoneNumber",
+        "userId"
+      ]
     },
     "googleMapsPlatform": {
       "enabled": true,
@@ -497,7 +539,10 @@
       "optional": false,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["accountManagement", "appFunctionality"]
+      "purposes": [
+        "accountManagement",
+        "appFunctionality"
+      ]
     },
     {
       "id": "emailAddress",
@@ -507,7 +552,11 @@
       "optional": false,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["accountManagement", "developerCommunications", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "accountManagement",
+        "developerCommunications",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "phoneNumber",
@@ -517,7 +566,10 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["accountManagement", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "accountManagement",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "physicalAddress",
@@ -527,7 +579,9 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality"]
+      "purposes": [
+        "appFunctionality"
+      ]
     },
     {
       "id": "userId",
@@ -537,7 +591,11 @@
       "optional": false,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["accountManagement", "appFunctionality", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "accountManagement",
+        "appFunctionality",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "approximateLocation",
@@ -547,7 +605,10 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality", "personalization"]
+      "purposes": [
+        "appFunctionality",
+        "personalization"
+      ]
     },
     {
       "id": "preciseLocation",
@@ -557,7 +618,9 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality"]
+      "purposes": [
+        "appFunctionality"
+      ]
     },
     {
       "id": "photos",
@@ -567,7 +630,10 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "appFunctionality",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "inAppMessages",
@@ -577,7 +643,10 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "appFunctionality",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "otherUserContent",
@@ -587,7 +656,10 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "appFunctionality",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "purchaseHistory",
@@ -597,7 +669,10 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "appFunctionality",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "paymentInfo",
@@ -607,7 +682,9 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality"]
+      "purposes": [
+        "appFunctionality"
+      ]
     },
     {
       "id": "otherFinancialInfo",
@@ -617,7 +694,10 @@
       "optional": true,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+      "purposes": [
+        "appFunctionality",
+        "fraudPreventionSecurityCompliance"
+      ]
     },
     {
       "id": "deviceOrOtherIds",
@@ -627,7 +707,9 @@
       "optional": false,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality"]
+      "purposes": [
+        "appFunctionality"
+      ]
     },
     {
       "id": "crashData",
@@ -637,7 +719,9 @@
       "optional": false,
       "linkedToUser": false,
       "tracking": false,
-      "purposes": ["analytics"]
+      "purposes": [
+        "analytics"
+      ]
     },
     {
       "id": "otherDiagnostics",
@@ -647,7 +731,9 @@
       "optional": false,
       "linkedToUser": false,
       "tracking": false,
-      "purposes": ["analytics"]
+      "purposes": [
+        "analytics"
+      ]
     },
     {
       "id": "appInteractions",
@@ -657,20 +743,46 @@
       "optional": false,
       "linkedToUser": false,
       "tracking": false,
-      "purposes": ["analytics"]
+      "purposes": [
+        "analytics"
+      ]
     }
   ],
   "requiredDecisions": {
-    "googlePlayDataSafetyQuestionnaire": {"status": "open", "evidenceRef": null},
-    "appleAppPrivacyQuestionnaire": {"status": "open", "evidenceRef": null},
-    "processorSharingClassification": {"status": "open", "evidenceRef": null},
-    "googleMapsCredentialRestrictions": {"status": "open", "evidenceRef": null},
-    "retentionAndDeletionSchedule": {"status": "open", "evidenceRef": null},
-    "stripeFinalDataFlow": {"status": "open", "evidenceRef": null}
+    "googlePlayDataSafetyQuestionnaire": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "appleAppPrivacyQuestionnaire": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "processorSharingClassification": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "googleMapsCredentialRestrictions": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "retentionAndDeletionSchedule": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "stripeFinalDataFlow": {
+      "status": "open",
+      "evidenceRef": null
+    }
   },
   "platformForms": {
-    "googlePlay": {"status": "draft", "evidenceRef": null},
-    "apple": {"status": "draft", "evidenceRef": null}
+    "googlePlay": {
+      "status": "draft",
+      "evidenceRef": null
+    },
+    "apple": {
+      "status": "draft",
+      "evidenceRef": null
+    }
   },
   "storeGate": {
     "field": "blockingGates.finalBinaryPrivacyScan",

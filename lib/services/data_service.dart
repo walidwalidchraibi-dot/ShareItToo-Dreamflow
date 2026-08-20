@@ -22,6 +22,7 @@ import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/rental_request.dart';
+import 'package:lendify/models/rental_cart.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/services/review_metrics_service.dart';
@@ -76,6 +77,9 @@ class DataService {
   // Wishlists
   static const String _wishlistsMetaKey = 'wishlists_meta_v1';
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
+  static const String _rentalCartKey = 'rental_cart_v1';
+  static const String _projectCartKey = 'project_cart_v1';
+  static const String _rentalCartSyncOwnerKey = 'rental_cart_sync_owner_v1';
   static const String _messageThreadsKey = 'message_threads_v1';
   static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
@@ -2798,9 +2802,446 @@ class DataService {
         .toList();
   }
 
+  static Future<RentalCart> _readLocalRentalCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    final itemsRaw = prefs.getString(_rentalCartKey);
+    final projectsRaw = prefs.getString(_projectCartKey);
+    final itemDocument = itemsRaw == null || itemsRaw.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(itemsRaw);
+    final projectDocument = projectsRaw == null || projectsRaw.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(projectsRaw);
+    if (itemDocument is! Map || projectDocument is! Map) {
+      throw const FormatException('Invalid local rental cart document');
+    }
+    final items = itemDocument['items'];
+    final projects = projectDocument['projects'];
+    if (items != null && items is! List) {
+      throw const FormatException('Invalid local rental cart items');
+    }
+    if (projects != null && projects is! List) {
+      throw const FormatException('Invalid local rental cart projects');
+    }
+    return RentalCart.fromJson(<String, dynamic>{
+      'schemaVersion': 1,
+      'revision': max(
+        (itemDocument['revision'] as num?)?.toInt() ?? 0,
+        (projectDocument['revision'] as num?)?.toInt() ?? 0,
+      ),
+      'reservationCreated': false,
+      'projects': projects ?? const <dynamic>[],
+      'items': items ?? const <dynamic>[],
+    }, localDeviceOnly: true);
+  }
+
+  static Future<void> _writeLocalRentalCart(RentalCart cart) async {
+    final prefs = await SharedPreferences.getInstance();
+    final revision = max(1, cart.revision);
+    await prefs.setString(
+      _rentalCartKey,
+      jsonEncode(<String, dynamic>{
+        'schemaVersion': 1,
+        'revision': revision,
+        'reservationCreated': false,
+        'items': cart.items.map((item) => item.toJson()).toList(),
+      }),
+    );
+    if (cart.items.isEmpty && cart.projects.isEmpty) {
+      await prefs.remove(_rentalCartSyncOwnerKey);
+    }
+    await prefs.setString(
+      _projectCartKey,
+      jsonEncode(<String, dynamic>{
+        'schemaVersion': 1,
+        'revision': revision,
+        'projects': cart.projects.map((project) => project.toJson()).toList(),
+      }),
+    );
+  }
+
+  static String _rentalCartClientId(String prefix) {
+    final micros = DateTime.now().microsecondsSinceEpoch;
+    final entropy = Random.secure().nextInt(0x7fffffff).toRadixString(16);
+    return '${prefix}_${micros}_$entropy';
+  }
+
+  static Future<bool> _hasBackendSession() async {
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return false;
+    return await AuthService.readSession() != null;
+  }
+
+  @visibleForTesting
+  static bool canSyncGuestCartToAccount({
+    required String? pendingAccountId,
+    required String currentAccountId,
+  }) {
+    final pending = pendingAccountId?.trim() ?? '';
+    final current = currentAccountId.trim();
+    return current.isNotEmpty && (pending.isEmpty || pending == current);
+  }
+
+  @visibleForTesting
+  static bool canReadLocalRentalCart({
+    required String? pendingAccountId,
+    required String? currentAccountId,
+  }) {
+    final pending = pendingAccountId?.trim() ?? '';
+    final current = currentAccountId?.trim() ?? '';
+    return pending.isEmpty || (current.isNotEmpty && pending == current);
+  }
+
+  static Future<void> _syncCompatibleGuestCartForCurrentSession() async {
+    final session = await AuthService.readSession();
+    if (session == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (!canSyncGuestCartToAccount(
+      pendingAccountId: prefs.getString(_rentalCartSyncOwnerKey),
+      currentAccountId: session.userId ?? '',
+    )) {
+      return;
+    }
+    await syncGuestRentalCartAfterAuthentication();
+  }
+
+  static Future<void> _assertUnboundLocalRentalCart() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!canReadLocalRentalCart(
+      pendingAccountId: prefs.getString(_rentalCartSyncOwnerKey),
+      currentAccountId: null,
+    )) {
+      throw StateError(
+        'Ein ausstehender Kontosync muss zuerst mit dem zugeordneten Konto abgeschlossen werden.',
+      );
+    }
+  }
+
+  /// Copies guest intent into the authenticated account. Local guest data is
+  /// removed only after every idempotent server upsert has completed.
+  static Future<bool> syncGuestRentalCartAfterAuthentication() async {
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return false;
+    final session = await AuthService.readSession();
+    if (session == null) return false;
+    final local = await _readLocalRentalCart();
+    final prefs = await SharedPreferences.getInstance();
+    if (local.projects.isEmpty && local.items.isEmpty) {
+      await prefs.remove(_rentalCartSyncOwnerKey);
+      return true;
+    }
+    final currentAccountId = (session.userId ?? '').trim();
+    final pendingAccountId = prefs.getString(_rentalCartSyncOwnerKey);
+    if (!canSyncGuestCartToAccount(
+      pendingAccountId: pendingAccountId,
+      currentAccountId: currentAccountId,
+    )) {
+      throw StateError(
+        'Der lokale Mietkorb ist bereits einem anderen Kontosync zugeordnet.',
+      );
+    }
+    await prefs.setString(_rentalCartSyncOwnerKey, currentAccountId);
+    for (final project in [...local.projects]
+      ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder))) {
+      await BackendRepository.putRentalCartProject(
+        id: project.id,
+        title: project.title,
+        answers: project.answers,
+        sortOrder: project.sortOrder,
+      );
+    }
+    for (final item in [...local.items]
+      ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder))) {
+      await BackendRepository.putRentalCartItem(
+        id: item.id,
+        listingId: item.listingId,
+        startDate: _rentalDate(item.startDate),
+        endDate: _rentalDate(item.endDate),
+        projectId: item.projectId,
+        sortOrder: item.sortOrder,
+      );
+    }
+    await prefs.remove(_rentalCartKey);
+    await prefs.remove(_projectCartKey);
+    await prefs.remove(_rentalCartSyncOwnerKey);
+    return true;
+  }
+
+  static Future<RentalCart> getRentalCart() async {
+    if (!await _hasBackendSession()) {
+      final prefs = await SharedPreferences.getInstance();
+      if (!canReadLocalRentalCart(
+        pendingAccountId: prefs.getString(_rentalCartSyncOwnerKey),
+        currentAccountId: null,
+      )) {
+        return const RentalCart(
+          reservationCreated: false,
+          localDeviceOnly: true,
+          syncPending: true,
+        );
+      }
+      return _readLocalRentalCart();
+    }
+    final local = await _readLocalRentalCart();
+    final session = await AuthService.readSession();
+    final prefs = await SharedPreferences.getInstance();
+    if (!canReadLocalRentalCart(
+      pendingAccountId: prefs.getString(_rentalCartSyncOwnerKey),
+      currentAccountId: session?.userId,
+    )) {
+      return RentalCart.fromJson(await BackendRepository.getRentalCart());
+    }
+    if (local.projects.isNotEmpty || local.items.isNotEmpty) {
+      try {
+        await syncGuestRentalCartAfterAuthentication();
+      } catch (error) {
+        debugPrint('[DataService] guest rental cart sync pending: $error');
+        return RentalCart(
+          schemaVersion: local.schemaVersion,
+          revision: local.revision,
+          reservationCreated: false,
+          localDeviceOnly: true,
+          syncPending: true,
+          projects: local.projects,
+          items: local.items,
+        );
+      }
+    }
+    return RentalCart.fromJson(await BackendRepository.getRentalCart());
+  }
+
+  static Future<RentalCart> addRentalCartItem({
+    required Item item,
+    required DateTimeRange range,
+    String? projectId,
+  }) async {
+    final id = _rentalCartClientId('cartitem');
+    if (await _hasBackendSession()) {
+      await _syncCompatibleGuestCartForCurrentSession();
+      return RentalCart.fromJson(await BackendRepository.putRentalCartItem(
+        id: id,
+        listingId: item.id,
+        startDate: _rentalDate(range.start),
+        endDate: _rentalDate(range.end),
+        projectId: projectId,
+      ));
+    }
+    await _assertUnboundLocalRentalCart();
+    final cart = await _readLocalRentalCart();
+    if (cart.items.length >= 100) {
+      throw StateError('Der Mietkorb kann höchstens 100 Artikel enthalten.');
+    }
+    final next = RentalCart(
+      revision: cart.revision + 1,
+      reservationCreated: false,
+      localDeviceOnly: true,
+      projects: cart.projects,
+      items: <RentalCartItem>[
+        ...cart.items,
+        RentalCartItem(
+          id: id,
+          listingId: item.id,
+          projectId: projectId,
+          startDate: range.start,
+          endDate: range.end,
+          sortOrder: cart.items.length,
+          quoteStatus: 'needs_recheck',
+          listing: item.toJson(),
+        ),
+      ],
+    );
+    await _writeLocalRentalCart(next);
+    return next;
+  }
+
+  static Future<RentalCart> removeRentalCartItem(String id) async {
+    if (await _hasBackendSession()) {
+      return RentalCart.fromJson(
+        await BackendRepository.deleteRentalCartItem(id),
+      );
+    }
+    await _assertUnboundLocalRentalCart();
+    final cart = await _readLocalRentalCart();
+    final next = RentalCart(
+      revision: cart.revision + 1,
+      reservationCreated: false,
+      localDeviceOnly: true,
+      projects: cart.projects,
+      items: cart.items.where((item) => item.id != id).toList(),
+    );
+    await _writeLocalRentalCart(next);
+    return next;
+  }
+
+  static Future<RentalCart> assignRentalCartItemToProject({
+    required String itemId,
+    String? projectId,
+  }) async {
+    final cart = await getRentalCart();
+    final item = cart.items.firstWhere(
+      (entry) => entry.id == itemId,
+      orElse: () => throw StateError('Mietkorb-Artikel nicht gefunden.'),
+    );
+    if (projectId != null &&
+        !cart.projects.any((project) => project.id == projectId)) {
+      throw StateError('Mietkorb-Projekt nicht gefunden.');
+    }
+    if (await _hasBackendSession()) {
+      return RentalCart.fromJson(await BackendRepository.putRentalCartItem(
+        id: item.id,
+        listingId: item.listingId,
+        startDate: _rentalDate(item.startDate),
+        endDate: _rentalDate(item.endDate),
+        projectId: projectId,
+        sortOrder: item.sortOrder,
+      ));
+    }
+    await _assertUnboundLocalRentalCart();
+    final next = RentalCart(
+      revision: cart.revision + 1,
+      reservationCreated: false,
+      localDeviceOnly: true,
+      projects: cart.projects,
+      items: cart.items
+          .map((entry) => entry.id == itemId
+              ? RentalCartItem(
+                  id: entry.id,
+                  listingId: entry.listingId,
+                  projectId: projectId,
+                  startDate: entry.startDate,
+                  endDate: entry.endDate,
+                  sortOrder: entry.sortOrder,
+                  quoteStatus: entry.quoteStatus,
+                  quoteErrorCode: entry.quoteErrorCode,
+                  quoteRecheckedAt: entry.quoteRecheckedAt,
+                  quote: entry.quote,
+                  listing: entry.listing,
+                )
+              : entry)
+          .toList(),
+    );
+    await _writeLocalRentalCart(next);
+    return next;
+  }
+
+  static Future<RentalCartProject> addRentalCartProject({
+    required String title,
+    Map<String, dynamic> answers = const <String, dynamic>{},
+  }) async {
+    final normalized = title.trim();
+    if (normalized.isEmpty || normalized.length > 120) {
+      throw ArgumentError.value(title, 'title', 'Ungültiger Projektname');
+    }
+    final project = RentalCartProject(
+      id: _rentalCartClientId('project'),
+      title: normalized,
+      answers: answers,
+    );
+    if (await _hasBackendSession()) {
+      await _syncCompatibleGuestCartForCurrentSession();
+      final cart = RentalCart.fromJson(
+        await BackendRepository.putRentalCartProject(
+          id: project.id,
+          title: project.title,
+          answers: project.answers,
+        ),
+      );
+      return cart.projects.firstWhere((entry) => entry.id == project.id);
+    }
+    await _assertUnboundLocalRentalCart();
+    final cart = await _readLocalRentalCart();
+    if (cart.projects.length >= 20) {
+      throw StateError('Der Mietkorb kann höchstens 20 Projekte enthalten.');
+    }
+    final nextProject = RentalCartProject(
+      id: project.id,
+      title: project.title,
+      answers: project.answers,
+      sortOrder: cart.projects.length,
+    );
+    await _writeLocalRentalCart(RentalCart(
+      revision: cart.revision + 1,
+      reservationCreated: false,
+      localDeviceOnly: true,
+      projects: <RentalCartProject>[...cart.projects, nextProject],
+      items: cart.items,
+    ));
+    return nextProject;
+  }
+
+  static Future<RentalCart> removeRentalCartProject(String id) async {
+    if (await _hasBackendSession()) {
+      return RentalCart.fromJson(
+        await BackendRepository.deleteRentalCartProject(id),
+      );
+    }
+    await _assertUnboundLocalRentalCart();
+    final cart = await _readLocalRentalCart();
+    final next = RentalCart(
+      revision: cart.revision + 1,
+      reservationCreated: false,
+      localDeviceOnly: true,
+      projects: cart.projects.where((project) => project.id != id).toList(),
+      items: cart.items
+          .map((item) => item.projectId == id
+              ? RentalCartItem(
+                  id: item.id,
+                  listingId: item.listingId,
+                  startDate: item.startDate,
+                  endDate: item.endDate,
+                  sortOrder: item.sortOrder,
+                  quoteStatus: item.quoteStatus,
+                  quoteErrorCode: item.quoteErrorCode,
+                  quoteRecheckedAt: item.quoteRecheckedAt,
+                  quote: item.quote,
+                  listing: item.listing,
+                )
+              : item)
+          .toList(),
+    );
+    await _writeLocalRentalCart(next);
+    return next;
+  }
+
+  static Future<RentalCart> recheckRentalCart() async {
+    if (await _hasBackendSession()) {
+      await _syncCompatibleGuestCartForCurrentSession();
+      return RentalCart.fromJson(await BackendRepository.recheckRentalCart());
+    }
+    await _assertUnboundLocalRentalCart();
+    final cart = await _readLocalRentalCart();
+    final checked = <RentalCartItem>[];
+    for (final item in cart.items) {
+      final available = await checkAvailability(
+        itemId: item.listingId,
+        start: item.startDate,
+        end: item.endDate,
+      );
+      checked.add(RentalCartItem(
+        id: item.id,
+        listingId: item.listingId,
+        projectId: item.projectId,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        sortOrder: item.sortOrder,
+        quoteStatus: available ? 'needs_recheck' : 'unavailable',
+        quoteErrorCode: available ? null : 'booking_period_unavailable',
+        quoteRecheckedAt: DateTime.now(),
+        listing: item.listing,
+      ));
+    }
+    final next = RentalCart(
+      revision: cart.revision + 1,
+      reservationCreated: false,
+      localDeviceOnly: true,
+      projects: cart.projects,
+      items: checked,
+    );
+    await _writeLocalRentalCart(next);
+    return next;
+  }
+
   /// Returns only the local saved-item state that belongs in a user-requested
-  /// privacy export. The current G2A Mietkorb contains Gemerkt only; it has no
-  /// persistent rental or project cart.
+  /// privacy export. Server-side cart data is part of the backend account
+  /// export; this section also covers any not-yet-synced guest cart.
   static Future<Map<String, dynamic>> exportSavedItemsForPrivacy() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -2831,9 +3272,16 @@ class DataService {
       }
     }
 
-    final legacySavedItemIds =
-        List<String>.from(prefs.getStringList(_savedItemsKey) ?? const <String>[])
-          ..sort();
+    final legacySavedItemIds = List<String>.from(
+        prefs.getStringList(_savedItemsKey) ?? const <String>[])
+      ..sort();
+    final localRentalCart = await _readLocalRentalCart();
+    final session = await AuthService.readSession();
+    final pendingAccountId = prefs.getString(_rentalCartSyncOwnerKey);
+    final localCartVisible = canReadLocalRentalCart(
+      pendingAccountId: pendingAccountId,
+      currentAccountId: session?.userId,
+    );
     return <String, dynamic>{
       'schemaVersion': 1,
       'scope': 'local-device',
@@ -2843,12 +3291,23 @@ class DataService {
         _savedItemsKey,
         _wishlistsMetaKey,
         _wishlistAssignKey,
+        _rentalCartKey,
+        _projectCartKey,
+        _rentalCartSyncOwnerKey,
       ],
       'legacySavedItemIds': legacySavedItemIds,
       'lists': savedLists,
       'itemAssignments': assignments,
-      'persistentRentalCart': false,
-      'persistentProjectCart': false,
+      'persistentRentalCart': true,
+      'persistentProjectCart': true,
+      'rentalCart': localCartVisible
+          ? localRentalCart.toJson()
+          : const RentalCart(
+              reservationCreated: false,
+              localDeviceOnly: true,
+              syncPending: true,
+            ).toJson(),
+      'syncPending': pendingAccountId != null,
     };
   }
 
@@ -2859,6 +3318,9 @@ class DataService {
     await prefs.remove(_savedItemsKey);
     await prefs.remove(_wishlistsMetaKey);
     await prefs.remove(_wishlistAssignKey);
+    await prefs.remove(_rentalCartKey);
+    await prefs.remove(_projectCartKey);
+    await prefs.remove(_rentalCartSyncOwnerKey);
   }
 
   static Future<Set<String>> getSavedItemIds() async {

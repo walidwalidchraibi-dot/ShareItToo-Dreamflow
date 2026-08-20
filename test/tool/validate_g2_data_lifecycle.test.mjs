@@ -12,56 +12,80 @@ const baseLifecycle = JSON.parse(
 );
 const clone = (value) => structuredClone(value);
 
-function validate({ lifecycleManifest = clone(baseLifecycle), sourceTexts = {}, runtimePersistenceText } = {}) {
-  return validateG2DataLifecycle({
-    root,
-    lifecycleManifest,
-    sourceTexts,
-    runtimePersistenceText,
-  });
+function validate({ lifecycleManifest = clone(baseLifecycle), sourceTexts = {} } = {}) {
+  return validateG2DataLifecycle({ root, lifecycleManifest, sourceTexts });
 }
 
-test('accepts current local Gemerkt and keeps both persistent cart classes inactive', () => {
+test('accepts active local and account-bound persistent G2B data', () => {
   assert.deepEqual(validate(), {
-    state: 'g2a-current-g2b-inactive',
+    state: 'g2b-persistent-cart-active',
     currentSavedItemKeyCount: 3,
-    persistentCartEnabled: false,
-    projectCartEnabled: false,
+    persistentCartEnabled: true,
+    projectCartEnabled: true,
+    reservationCreatedByCart: false,
   });
 });
 
-test('rejects a cart activation before export deletion and retention coverage', () => {
+test('rejects a cart reservation or hold claim', () => {
+  for (const key of [
+    'reservationCreatedByCart',
+    'availabilityHoldCreatedByCart',
+  ]) {
+    const lifecycleManifest = clone(baseLifecycle);
+    lifecycleManifest.boundaries[key] = true;
+    assert.throws(
+      () => validate({ lifecycleManifest }),
+      new RegExp(`boundaries\\.${key} must remain false`, 'u'),
+    );
+  }
+});
+
+test('rejects activation without account export and deletion coverage', () => {
   const lifecycleManifest = clone(baseLifecycle);
-  lifecycleManifest.plannedPersistentData.rentalCart.runtimeStatus = 'active';
+  lifecycleManifest.persistentData.rentalCart.exportStatus =
+    'required-before-activation';
   assert.throws(
     () => validate({ lifecycleManifest }),
-    /remain inactive and fail closed before G2B/,
+    /Persistent rental-cart lifecycle is incomplete/u,
   );
-});
-
-test('rejects persistent runtime keys while the G2B lifecycle is inactive', () => {
+  lifecycleManifest.persistentData.rentalCart.exportStatus =
+    'implemented-local-and-account-export';
+  lifecycleManifest.persistentData.rentalCart.accountDeletionStatus =
+    'required-before-activation';
   assert.throws(
-    () => validate({ runtimePersistenceText: "const key = 'rental_cart_v1';" }),
-    /Persistent rental\/project cart code exists/,
+    () => validate({ lifecycleManifest }),
+    /Persistent rental-cart lifecycle is incomplete/u,
   );
 });
 
-test('rejects account deletion that leaves local Gemerkt behind', () => {
-  const path = 'lib/services/account_deletion_service.dart';
-  const changed = readFileSync(resolve(root, path), 'utf8')
-    .replaceAll('await DataService.clearSavedItemsForAccountDeletion();', '');
-  assert.throws(
-    () => validate({ sourceTexts: { [path]: changed } }),
-    /confirmed account deletion paths must purge Gemerkt/,
+test('rejects guest cart purge before the complete server merge', () => {
+  const path = 'lib/services/data_service.dart';
+  const original = readFileSync(resolve(root, path), 'utf8');
+  const changed = original.replace(
+    'for (final item in [...local.items]',
+    'await prefs.remove(_rentalCartKey);\n    for (final item in [...local.items]',
   );
-});
-
-test('rejects a privacy export that omits the local-device section', () => {
-  const path = 'lib/screens/privacy_info_screen.dart';
-  const changed = readFileSync(resolve(root, path), 'utf8')
-    .replace("export['localDevice']", "export['omittedLocalDevice']");
   assert.throws(
     () => validate({ sourceTexts: { [path]: changed } }),
-    /Privacy export is missing G2 marker/,
+    /Guest cart must be purged only after all server upserts complete/u,
+  );
+});
+
+test('rejects a backend workflow that creates a booking', () => {
+  const path = 'backend/src/rental_cart_workflow.js';
+  const changed = `${readFileSync(resolve(root, path), 'utf8')}\ncreateBooking();\n`;
+  assert.throws(
+    () => validate({ sourceTexts: { [path]: changed } }),
+    /must never create a booking or reservation/u,
+  );
+});
+
+test('rejects account deletion that leaves local G2 data behind', () => {
+  const path = 'lib/screens/legal_privacy_screen.dart';
+  const changed = readFileSync(resolve(root, path), 'utf8')
+    .replace('Im Mietkorb – noch nicht reserviert', 'Mietkorb');
+  assert.throws(
+    () => validate({ sourceTexts: { [path]: changed } }),
+    /Legal privacy copy is missing/u,
   );
 });

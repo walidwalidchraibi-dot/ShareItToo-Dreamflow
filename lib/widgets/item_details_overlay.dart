@@ -1227,6 +1227,18 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
               ),
               if (_selectedRange != null) ...[
                 const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: isPreview
+                      ? () => _showOwnerPreviewBlockPopup(context)
+                      : () => _storeRentalCartIntent(
+                            context,
+                            item: item,
+                            range: _selectedRange!,
+                          ),
+                  icon: const Icon(Icons.add_shopping_cart_outlined),
+                  label: const Text('In den Mietkorb'),
+                ),
+                const SizedBox(height: 8),
                 FilledButton.icon(
                   onPressed: _sendRequest,
                   icon: const Icon(Icons.event_available),
@@ -3054,6 +3066,21 @@ class _BottomActionBarState extends State<_BottomActionBar> {
 
                 // Reservieren button with disabled state + tap guard popup for address (optional)
                 if (widget.showReserveButton) ...[
+                  if (range != null && !widget.isEditing) ...[
+                    OutlinedButton.icon(
+                      onPressed: _isAvailable == false
+                          ? null
+                          : () => _storeRentalCartIntent(
+                                context,
+                                item: widget.item,
+                                range: range,
+                                ownerPreview: widget.ownerPreview,
+                              ),
+                      icon: const Icon(Icons.add_shopping_cart_outlined),
+                      label: const Text('In den Mietkorb'),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Builder(builder: (context) {
                     context.watch<LocalizationController>();
                     final canReserve = range != null && (_isAvailable != false);
@@ -3198,6 +3225,41 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     await _showReservationSentPopup(rootNav.context,
         requestId: stored.id, item: widget.item);
+  }
+}
+
+Future<void> _storeRentalCartIntent(
+  BuildContext context, {
+  required Item item,
+  required DateTimeRange range,
+  bool ownerPreview = false,
+}) async {
+  if (ownerPreview) {
+    await _showOwnerPreviewBlockPopup(context);
+    return;
+  }
+  try {
+    final cart = await DataService.addRentalCartItem(item: item, range: range);
+    if (!context.mounted) return;
+    final saved = cart.items.isNotEmpty;
+    await AppPopup.toast(
+      context,
+      icon: saved ? Icons.shopping_bag_outlined : Icons.error_outline,
+      title: saved
+          ? 'Im Mietkorb – noch nicht reserviert'
+          : 'Mietkorb konnte nicht aktualisiert werden',
+      message: saved
+          ? 'Preis und Verfügbarkeit werden vor der Anfrage erneut geprüft.'
+          : null,
+    );
+  } catch (error) {
+    if (!context.mounted) return;
+    await AppPopup.toast(
+      context,
+      icon: Icons.error_outline,
+      title: 'Mietkorb konnte nicht aktualisiert werden',
+      message: 'Es wurde keine Reservierung erstellt.',
+    );
   }
 }
 

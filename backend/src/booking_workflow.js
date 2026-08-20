@@ -623,6 +623,7 @@ export async function quoteBooking(client, {
   raw,
   privatePilot = false,
   privatePilotAllowedRegions = [],
+  persist = true,
 }) {
   await expireBookingHolds(client);
   const candidate = object(raw);
@@ -661,29 +662,32 @@ export async function quoteBooking(client, {
   const quoteHash = hashCommand(binding);
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + (10 * 60 * 1000));
-  await client.query(
-    `INSERT INTO booking_quotes (
-       id, renter_id, listing_id, rental_start_date, rental_end_date,
-       rental_timezone, starts_at, ends_at, catalog_revision,
-       availability_revision, quote_version, currency, total_minor,
-       quote_payload, quote_hash, issued_at, expires_at
-     ) VALUES (
-       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-       $14::jsonb, $15, $16, $17
-     )`,
-    [
-      quoteId, actorId, listing.id, dates.startDate, dates.endDate,
-      listing.availability_timezone, period.starts_at, period.ends_at,
-      listing.catalog_revision, listing.availability_revision,
-      quote.quoteVersion, quote.currency, quote.totalMinor,
-      JSON.stringify(quote), quoteHash, issuedAt, expiresAt,
-    ],
-  );
+  if (persist) {
+    await client.query(
+      `INSERT INTO booking_quotes (
+         id, renter_id, listing_id, rental_start_date, rental_end_date,
+         rental_timezone, starts_at, ends_at, catalog_revision,
+         availability_revision, quote_version, currency, total_minor,
+         quote_payload, quote_hash, issued_at, expires_at
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+         $14::jsonb, $15, $16, $17
+       )`,
+      [
+        quoteId, actorId, listing.id, dates.startDate, dates.endDate,
+        listing.availability_timezone, period.starts_at, period.ends_at,
+        listing.catalog_revision, listing.availability_revision,
+        quote.quoteVersion, quote.currency, quote.totalMinor,
+        JSON.stringify(quote), quoteHash, issuedAt, expiresAt,
+      ],
+    );
+  }
   return {
-    quoteId,
+    quoteId: persist ? quoteId : null,
     quoteHash,
     quotedAt: issuedAt.toISOString(),
-    expiresAt: expiresAt.toISOString(),
+    expiresAt: persist ? expiresAt.toISOString() : null,
+    preview: !persist,
     listingId,
     startDate: dates.startDate,
     endDate: dates.endDate,

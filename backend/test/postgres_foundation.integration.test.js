@@ -88,10 +88,24 @@ if (!databaseUrl) {
         '024_v52_actual_loss_resolution.up.sql',
         '025_v52_handover_return_evidence.up.sql',
         '026_v52_categories_moderation_operator.up.sql',
+        '027_g2_persistent_rental_cart.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows.at(-1).checksum, /^[0-9a-f]{64}$/);
+      const rentalCartTables = await setupPool.query(
+        `SELECT table_name
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name = ANY($1::text[])
+          ORDER BY table_name`,
+        [['rental_cart_items', 'rental_cart_projects', 'rental_carts']],
+      );
+      assert.deepEqual(rentalCartTables.rows, [
+        { table_name: 'rental_cart_items' },
+        { table_name: 'rental_cart_projects' },
+        { table_name: 'rental_carts' },
+      ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name
            FROM information_schema.tables
@@ -746,6 +760,66 @@ if (!databaseUrl) {
       assert.equal(persistedQuote.rows[0].listing_id, 'listing-1');
       assert.equal(persistedQuote.rows[0].quote_hash, quoted.quoteHash);
       assert.equal(persistedQuote.rows[0].quote_payload.totalMinor, 3300);
+
+      const quoteCountBeforeCart = (await setupPool.query(
+        'SELECT count(*)::int AS count FROM booking_quotes WHERE renter_id = $1',
+        ['renter-a'],
+      )).rows[0].count;
+      const projectResponse = await fetch(
+        `${baseUrl}/v1/rental-cart/projects/project_move_1`,
+        {
+          method: 'PUT',
+          headers: renterAHeaders,
+          body: JSON.stringify({
+            title: 'Umzug',
+            answers: { roomCount: 3 },
+            sortOrder: 0,
+          }),
+        },
+      );
+      assert.equal(projectResponse.status, 200);
+      assert.equal((await projectResponse.json()).cart.reservationCreated, false);
+      const cartItemRequest = () => fetch(
+        `${baseUrl}/v1/rental-cart/items/cartitem_move_1`,
+        {
+          method: 'PUT',
+          headers: renterAHeaders,
+          body: JSON.stringify({
+            listingId: 'listing-1',
+            projectId: 'project_move_1',
+            startDate: '2026-11-10',
+            endDate: '2026-11-12',
+            sortOrder: 0,
+          }),
+        },
+      );
+      const cartItemResponse = await cartItemRequest();
+      assert.equal(cartItemResponse.status, 200);
+      const rentalCart = (await cartItemResponse.json()).cart;
+      assert.equal(rentalCart.reservationCreated, false);
+      assert.equal(rentalCart.projects[0].id, 'project_move_1');
+      assert.equal(rentalCart.items[0].id, 'cartitem_move_1');
+      assert.equal(rentalCart.items[0].quoteStatus, 'current');
+      assert.equal(rentalCart.items[0].quote.preview, true);
+      assert.equal(rentalCart.items[0].quote.quoteId, null);
+      assert.equal((await cartItemRequest()).status, 200);
+      const persistedCartItems = await setupPool.query(
+        `SELECT count(*)::int AS count FROM rental_cart_items AS item
+          JOIN rental_carts AS cart ON cart.id = item.cart_id
+         WHERE cart.user_id = 'renter-a'`,
+      );
+      assert.equal(persistedCartItems.rows[0].count, 1);
+      const quoteCountAfterCart = (await setupPool.query(
+        'SELECT count(*)::int AS count FROM booking_quotes WHERE renter_id = $1',
+        ['renter-a'],
+      )).rows[0].count;
+      assert.equal(quoteCountAfterCart, quoteCountBeforeCart);
+      const cartRecheck = await fetch(`${baseUrl}/v1/rental-cart/recheck`, {
+        method: 'POST',
+        headers: renterAHeaders,
+      });
+      assert.equal(cartRecheck.status, 200);
+      assert.equal((await cartRecheck.json()).cart.reservationCreated, false);
 
       const createHeaders = {
         ...renterAHeaders,
@@ -1931,6 +2005,11 @@ if (!databaseUrl) {
       assert.ok(
         renterExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId),
       );
+      assert.equal(renterExport.data.marketplace.rentalCart.reservationCreated, false);
+      assert.equal(
+        renterExport.data.marketplace.rentalCart.items[0].client_item_id,
+        'cartitem_move_1',
+      );
       const serializedExport = JSON.stringify(accountExport);
       for (const forbiddenField of [
         'password_hash', 'token_hash', 'provider_payment_id',
@@ -2226,6 +2305,22 @@ if (!databaseUrl) {
         Authorization: `Bearer ${deletionSession.accessToken}`,
         'Content-Type': 'application/json',
       };
+      const deletionCart = await fetch(
+        `${baseUrl}/v1/rental-cart/items/cartitem_delete_1`,
+        {
+          method: 'PUT',
+          headers: deletionHeaders,
+          body: JSON.stringify({
+            listingId: 'listing-1',
+            startDate: '2026-11-20',
+            endDate: '2026-11-22',
+          }),
+        },
+      );
+      assert.equal(deletionCart.status, 200);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count FROM rental_carts WHERE user_id = 'auth-user'`,
+      )).rows[0].count, 1);
       const deletionPreflight = await fetch(`${baseUrl}/v1/account/deletion-preflight`, {
         headers: deletionHeaders,
       });
@@ -2261,6 +2356,9 @@ if (!databaseUrl) {
       )).rows[0].count, 0);
       assert.equal((await setupPool.query(
         `SELECT count(*)::int AS count FROM uploads WHERE owner_id = 'auth-user'`,
+      )).rows[0].count, 0);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count FROM rental_carts WHERE user_id = 'auth-user'`,
       )).rows[0].count, 0);
       for (const table of ['notification_preferences', 'notifications', 'message_reads']) {
         assert.equal((await setupPool.query(

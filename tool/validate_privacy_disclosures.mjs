@@ -17,6 +17,7 @@ const sourcePaths = [
   'backend/src/account_actions.js',
   'backend/src/privacy_export.js',
   'backend/src/booking_workflow.js',
+  'backend/src/rental_cart_workflow.js',
   'backend/src/private_pilot_domain.js',
   'backend/src/listing_catalog.js',
   'backend/src/moderation_domain.js',
@@ -39,6 +40,7 @@ const sourcePaths = [
   'backend/sql/migrations/024_v52_actual_loss_resolution.up.sql',
   'backend/sql/migrations/025_v52_handover_return_evidence.up.sql',
   'backend/sql/migrations/026_v52_categories_moderation_operator.up.sql',
+  'backend/sql/migrations/027_g2_persistent_rental_cart.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -70,6 +72,12 @@ const sourcePaths = [
   'lib/widgets/app_image.dart',
   'lib/services/data_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/models/rental_cart.dart',
+  'lib/navigation/main_navigation.dart',
+  'lib/screens/login_screen.dart',
+  'lib/screens/register_screen.dart',
+  'lib/screens/wishlists_screen.dart',
+  'lib/widgets/item_details_overlay.dart',
   'lib/config/private_pilot_config.dart',
   'lib/models/rental_request.dart',
   'lib/screens/private_pilot_checkout_screen.dart',
@@ -315,9 +323,53 @@ function assertSourceContracts({ root, sourceTexts }) {
   for (const marker of [
     'pushDevices', 'listings', 'bookings', 'messages', 'uploads',
     'payments', 'refunds', 'payouts', 'financialDocuments',
-    'financialDocumentEvents', 'disputes',
+    'financialDocumentEvents', 'disputes', 'rentalCartProjects',
+    'rentalCartItems', 'reservationCreated: false',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
+  }
+  const rentalCartWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/rental_cart_workflow.js',
+  );
+  const rentalCartMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/027_g2_persistent_rental_cart.up.sql',
+  );
+  const dataService = sourceText(root, sourceTexts, 'lib/services/data_service.dart');
+  const rentalCartApp = sourceText(root, sourceTexts, 'backend/src/app.js');
+  for (const marker of [
+    'reservationCreated: false',
+    'persist: false',
+    'recheckRentalCart',
+  ]) {
+    if (!rentalCartWorkflow.includes(marker)) {
+      fail(`Rental-cart privacy boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'rental_carts',
+    'rental_cart_projects',
+    'rental_cart_items',
+    'ON DELETE CASCADE',
+  ]) {
+    if (!rentalCartMigration.includes(marker)) {
+      fail(`Rental-cart persistence inventory is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    "'rental_cart_v1'",
+    "'project_cart_v1'",
+    "'rental_cart_sync_owner_v1'",
+    "'persistentRentalCart': true",
+    "'persistentProjectCart': true",
+  ]) {
+    if (!dataService.includes(marker)) fail(`Local cart privacy coverage is missing ${marker}.`);
+  }
+  if (!rentalCartApp.includes('DELETE FROM rental_carts WHERE user_id = $1')) {
+    fail('Account erasure must delete the account-bound rental cart.');
   }
 
   const financialDocuments = sourceText(root, sourceTexts, 'backend/src/financial_documents.js');

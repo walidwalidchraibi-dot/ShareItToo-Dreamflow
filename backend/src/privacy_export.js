@@ -24,6 +24,9 @@ export async function buildAccountExport(client, userId) {
     listings,
     bookings,
     bookingQuotes,
+    rentalCarts,
+    rentalCartProjects,
+    rentalCartItems,
     platformContracts,
     platformContractDeclarations,
     platformContractReceipts,
@@ -100,6 +103,30 @@ export async function buildAccountExport(client, userId) {
               quote_version, currency, total_minor, quote_payload,
               quote_hash, issued_at, expires_at
        FROM booking_quotes WHERE renter_id = $1 ORDER BY issued_at`, userId),
+    rows(client,
+      `SELECT id, schema_version, revision, created_at, updated_at
+         FROM rental_carts WHERE user_id = $1 ORDER BY created_at`, userId),
+    rows(client,
+      `SELECT project.id, project.client_project_id, project.title,
+              project.answers, project.sort_order,
+              project.created_at, project.updated_at
+         FROM rental_cart_projects AS project
+         JOIN rental_carts AS cart ON cart.id = project.cart_id
+        WHERE cart.user_id = $1
+        ORDER BY project.sort_order, project.created_at`, userId),
+    rows(client,
+      `SELECT item.id, item.client_item_id, item.listing_id,
+              project.client_project_id,
+              item.rental_start_date, item.rental_end_date,
+              item.quote_id, item.quote_hash, item.quote_payload,
+              item.quote_status, item.quote_error_code,
+              item.quote_rechecked_at, item.sort_order,
+              item.created_at, item.updated_at
+         FROM rental_cart_items AS item
+         JOIN rental_carts AS cart ON cart.id = item.cart_id
+         LEFT JOIN rental_cart_projects AS project ON project.id = item.project_id
+        WHERE cart.user_id = $1
+        ORDER BY item.sort_order, item.created_at`, userId),
     rows(client,
       `SELECT contract.id, contract.booking_id, contract.quote_id,
               contract.quote_hash, contract.contract_version, contract.locale,
@@ -511,6 +538,12 @@ export async function buildAccountExport(client, userId) {
       listings,
       bookings,
       bookingQuotes,
+      rentalCart: {
+        cart: rentalCarts[0] ?? null,
+        projects: rentalCartProjects,
+        items: rentalCartItems,
+        reservationCreated: false,
+      },
       platformContracts,
       platformContractDeclarations,
       platformContractReceipts,

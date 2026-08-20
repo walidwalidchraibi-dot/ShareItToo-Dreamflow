@@ -45,7 +45,9 @@ test('keeps legacy saved data under a truthful Mietkorb and Gemerkt surface', ()
   assert.match(localization, /Unverbindlich gespeichert – keine Reservierung\./u);
   assert.match(dataService, /_wishlistsMetaKey\s*=\s*'wishlists_meta_v1'/u);
   assert.match(dataService, /_wishlistAssignKey\s*=\s*'wishlist_assign_v1'/u);
-  assert.doesNotMatch(dataService, /rental_cart_v1|project_cart_v1/u);
+  assert.match(dataService, /_rentalCartKey\s*=\s*'rental_cart_v1'/u);
+  assert.match(dataService, /_projectCartKey\s*=\s*'project_cart_v1'/u);
+  assert.match(savedScreen, /Im Mietkorb – noch nicht reserviert/u);
   assert.match(itemCard, /l10n\.t\('Unter Gemerkt gespeichert'\)/u);
   assert.doesNotMatch(itemCard, /Zur Wunschliste hinzugefügt/u);
   assert.match(imageGallery, /Aus Gemerkt entfernen/u);

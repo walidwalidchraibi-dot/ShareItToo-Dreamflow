@@ -41,6 +41,7 @@ class LegalPrivacyScreen extends StatelessWidget {
               'Buchungsbeträge, berechnete Gebühren und Buchungsstatus; keine Karten- oder Bankdaten',
               'Nachrichten zwischen Nutzern (zur Abwicklung der Buchung)',
               'lokal auf dem Gerät gespeicherte Merklisten und Artikelzuordnungen unter „Gemerkt“',
+              'vorbereitete Mietzeiträume, Projektbezeichnungen und freiwillige Projektantworten im Mietkorb; bei Gästen lokal auf dem Gerät, nach Anmeldung kontogebunden auf dem ShareItToo-Server',
               'Standortdaten: Stadt/Region sowie genaue Adressen und genaue Standortkoordinaten, soweit sie für persönliche Übergabe und Rückgabe erforderlich sind',
               'Rechtserklärungen mit genauem Wortlaut, Dokumentversion, Sprache, Buchungsbezug sowie Datum und Uhrzeit',
               'Übergabe-, Rückgabe- und fallbezogene Fotos mit Buchungszuordnung und Zeitstempel',
@@ -55,7 +56,7 @@ class LegalPrivacyScreen extends StatelessWidget {
             ),
             SizedBox(height: 10),
             LegalParagraph(
-              '„Gemerkt“ ist unverbindlich und keine Reservierung. Der aktuelle Bereich „Mietkorb“ speichert noch keinen persistenten Miet- oder Projektkorb. Merklisten und Artikelzuordnungen werden derzeit nur lokal auf diesem Gerät gespeichert.',
+              '„Gemerkt“ bleibt unverbindlich und ist keine Reservierung. Auch der Status „Im Mietkorb – noch nicht reserviert“ dokumentiert nur eine Mietabsicht: Er blockiert keinen Zeitraum und erstellt weder Reservierung noch Buchungsanfrage. Preis und Verfügbarkeit werden vor einer Anfrage erneut vom Server geprüft.',
             ),
           ],
         ),
@@ -112,7 +113,7 @@ class LegalPrivacyScreen extends StatelessWidget {
             ),
             SizedBox(height: 10),
             LegalParagraph(
-              'Lokal unter „Gemerkt“ gespeicherte Daten bleiben bis zur Entfernung durch den Nutzer, einer bestätigten Kontolöschung auf diesem Gerät oder dem Löschen der App-Daten erhalten. Für einen späteren persistenten Miet- oder Projektkorb ist vor Aktivierung eine eigene Export-, Lösch- und Aufbewahrungsabdeckung erforderlich.',
+              'Lokal unter „Gemerkt“ oder im Gast-Mietkorb gespeicherte Daten bleiben bis zur Entfernung durch den Nutzer, einer bestätigten Kontolöschung auf diesem Gerät oder dem Löschen der App-Daten erhalten. Nach der Anmeldung werden Mietkorb und Projektcontainer kontogebunden gespeichert und bleiben bis zur Entfernung durch den Nutzer oder zur bestätigten Kontolöschung erhalten. Diese Daten sind im Datenexport enthalten; bei Kontolöschung werden die Mietkorb-Datensätze gelöscht. Eine zusätzliche feste Aufbewahrungsfrist wird dafür nicht behauptet.',
             ),
           ],
         ),

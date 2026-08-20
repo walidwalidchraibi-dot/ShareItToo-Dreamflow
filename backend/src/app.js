@@ -48,6 +48,15 @@ import {
   transitionBooking,
 } from './booking_workflow.js';
 import {
+  deleteRentalCartItem,
+  deleteRentalCartProject,
+  getRentalCart,
+  putRentalCartItem,
+  putRentalCartProject,
+  recheckRentalCart,
+  RentalCartError,
+} from './rental_cart_workflow.js';
+import {
   BookingFlowTimeError,
   getBookingFlowTime,
   updateBookingFlowTime,
@@ -1151,6 +1160,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
   );
   await client.query('DELETE FROM notification_preferences WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM notifications WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM rental_carts WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM message_reads WHERE user_id = $1', [user.id]);
   await client.query(
     'DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1',
@@ -2978,6 +2988,61 @@ export function createApp({
     });
   }));
 
+  app.get('/v1/rental-cart', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const cart = await inTransaction((client) => getRentalCart(client, req.auth.userId));
+    res.set('Cache-Control', 'private, no-store').json({ cart });
+  }));
+
+  app.put('/v1/rental-cart/projects/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const cart = await inTransaction((client) => putRentalCartProject(client, {
+      actorId: req.auth.userId,
+      clientProjectId: safeText(req.params.id, 120),
+      raw: req.body,
+    }));
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'rental_cart' });
+    res.set('Cache-Control', 'private, no-store').json({ cart });
+  }));
+
+  app.delete('/v1/rental-cart/projects/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const cart = await inTransaction((client) => deleteRentalCartProject(client, {
+      actorId: req.auth.userId,
+      clientProjectId: safeText(req.params.id, 120),
+    }));
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'rental_cart' });
+    res.set('Cache-Control', 'private, no-store').json({ cart });
+  }));
+
+  app.put('/v1/rental-cart/items/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const cart = await inTransaction((client) => putRentalCartItem(client, {
+      actorId: req.auth.userId,
+      clientItemId: safeText(req.params.id, 120),
+      raw: req.body,
+      privatePilot: config.privatePilotV4Enabled,
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
+    }));
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'rental_cart' });
+    res.set('Cache-Control', 'private, no-store').json({ cart });
+  }));
+
+  app.delete('/v1/rental-cart/items/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const cart = await inTransaction((client) => deleteRentalCartItem(client, {
+      actorId: req.auth.userId,
+      clientItemId: safeText(req.params.id, 120),
+    }));
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'rental_cart' });
+    res.set('Cache-Control', 'private, no-store').json({ cart });
+  }));
+
+  app.post('/v1/rental-cart/recheck', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const cart = await inTransaction((client) => recheckRentalCart(client, {
+      actorId: req.auth.userId,
+      privatePilot: config.privatePilotV4Enabled,
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
+    }));
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'rental_cart' });
+    res.set('Cache-Control', 'private, no-store').json({ cart });
+  }));
+
   app.post('/v1/bookings', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const result = await inTransaction((client) => createBooking(client, {
@@ -4229,6 +4294,7 @@ export function createApp({
     const invalidProcessedImage = error instanceof ImageProcessingError;
     const bookingConflict = error?.code === '23P01';
     const workflowError = error instanceof BookingWorkflowError;
+    const rentalCartError = error instanceof RentalCartError;
     const flowTimeError = error instanceof BookingFlowTimeError;
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
@@ -4243,14 +4309,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || rentalCartError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

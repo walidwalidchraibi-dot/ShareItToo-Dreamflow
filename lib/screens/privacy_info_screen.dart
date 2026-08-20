@@ -175,6 +175,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Buchungen abzuwickeln',
           'Kommunikation zwischen Nutzern zu ermöglichen',
           'deine lokal unter „Gemerkt“ gespeicherten Artikel und Merklisten bereitzustellen',
+          'deine vorbereiteten Mietzeiträume und Projektcontainer im Mietkorb lokal oder nach Anmeldung kontogebunden bereitzustellen',
           'Buchungsbeträge und Gebühren transparent darzustellen',
           'die Sicherheit der Plattform zu gewährleisten',
           'die Nutzung der Plattform zu verbessern',
@@ -205,6 +206,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Kontodaten und Zustimmungen',
           'eigene Angebote, Buchungen und Kommunikation',
           'lokal auf diesem Gerät gespeicherte Merklisten und Artikelzuordnungen',
+          'kontogebundene sowie noch nicht synchronisierte lokale Mietkorb- und Projektdaten',
           'Benachrichtigungen, Bewertungen und Zahlungsstatus',
         ],
         note:
@@ -221,6 +223,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         extraBullets: [
           'persönliche Daten entfernt oder anonymisiert',
           'lokal auf diesem Gerät gespeicherte Daten unter „Gemerkt“ entfernt',
+          'lokale und kontogebundene Mietkorb- und Projektcontainer entfernt',
           'verknüpfte Firebase-Anmeldeidentitäten zur Anbieterlöschung vorgemerkt und bei vorübergehenden Fehlern erneut angefragt',
           'Buchungsdaten gemäß gesetzlichen Anforderungen gespeichert',
         ],

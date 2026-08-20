@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:lendify/models/item.dart';
+import 'package:lendify/models/rental_cart.dart';
+import 'package:lendify/screens/login_screen.dart';
+import 'package:lendify/screens/private_pilot_checkout_screen.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
@@ -27,6 +31,8 @@ class WishlistsScreen extends RentalCartScreen {
 
 class _RentalCartScreenState extends State<RentalCartScreen> {
   bool _loading = true;
+  RentalCart _rentalCart = const RentalCart(localDeviceOnly: true);
+  String? _busyCartItemId;
   List<Map<String, dynamic>> _lists = [];
   Map<String, List<Item>> _itemsByList = {};
 
@@ -38,14 +44,208 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
 
   Future<void> _reload() async {
     setState(() => _loading = true);
-    final lists = await DataService.getWishlists();
-    final by = await DataService.getItemsByWishlist();
+    try {
+      final results = await Future.wait<Object>(<Future<Object>>[
+        DataService.getWishlists(),
+        DataService.getItemsByWishlist(),
+        DataService.getRentalCart(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _lists = results[0] as List<Map<String, dynamic>>;
+        _itemsByList = results[1] as Map<String, List<Item>>;
+        _rentalCart = results[2] as RentalCart;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Mietkorb konnte nicht geladen werden',
+        message: 'Bitte versuche es erneut.',
+      );
+    }
+  }
+
+  Future<void> _addProject() async {
+    final controller = TextEditingController();
+    final title = await AppPopup.showCustom<String>(
+      context,
+      icon: Icons.create_new_folder_outlined,
+      title: 'Neues Projekt',
+      showCloseIcon: false,
+      showLeading: false,
+      showAccentLine: false,
+      body: _CreateWishlistPopupBody(controller: controller),
+    );
+    controller.dispose();
+    if (title == null || title.trim().isEmpty) return;
+    try {
+      await DataService.addRentalCartProject(title: title);
+      await _reload();
+    } catch (error) {
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Projekt konnte nicht gespeichert werden',
+      );
+    }
+  }
+
+  Future<void> _recheckCart() async {
+    try {
+      final cart = await DataService.recheckRentalCart();
+      if (mounted) setState(() => _rentalCart = cart);
+    } catch (error) {
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.cloud_off_outlined,
+        title: 'Prüfung gerade nicht möglich',
+        message: 'Dein Mietkorb bleibt gespeichert.',
+      );
+    }
+  }
+
+  Future<void> _removeCartItem(String id) async {
+    try {
+      final cart = await DataService.removeRentalCartItem(id);
+      if (mounted) setState(() => _rentalCart = cart);
+    } catch (error) {
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Artikel konnte nicht entfernt werden',
+      );
+    }
+  }
+
+  Future<void> _removeProject(String id) async {
+    try {
+      final cart = await DataService.removeRentalCartProject(id);
+      if (mounted) setState(() => _rentalCart = cart);
+    } catch (error) {
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Projekt konnte nicht entfernt werden',
+      );
+    }
+  }
+
+  Future<void> _assignCartItem(RentalCartItem item) async {
+    const unassigned = '__unassigned__';
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text('Projekt zuordnen'),
+              subtitle: Text('Die Zuordnung ändert keine Reservierung.'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_off_outlined),
+              title: const Text('Ohne Projekt'),
+              trailing: item.projectId == null ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(context).pop(unassigned),
+            ),
+            for (final project in _rentalCart.projects)
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: Text(project.title),
+                trailing: item.projectId == project.id
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => Navigator.of(context).pop(project.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null) return;
+    try {
+      final cart = await DataService.assignRentalCartItemToProject(
+        itemId: item.id,
+        projectId: selected == unassigned ? null : selected,
+      );
+      if (mounted) setState(() => _rentalCart = cart);
+    } catch (error) {
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Projektzuordnung konnte nicht gespeichert werden',
+      );
+    }
+  }
+
+  Future<void> _openCartItem(RentalCartItem cartItem) async {
+    if (_busyCartItemId != null) return;
+    final session = await AuthService.readSession();
     if (!mounted) return;
-    setState(() {
-      _lists = lists;
-      _itemsByList = by;
-      _loading = false;
-    });
+    if (session == null) {
+      Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => const LoginScreen(returnTabIndex: 1),
+      ));
+      return;
+    }
+    setState(() => _busyCartItemId = cartItem.id);
+    try {
+      final checked = await DataService.recheckRentalCart();
+      final current = checked.items.firstWhere(
+        (item) => item.id == cartItem.id,
+        orElse: () => cartItem,
+      );
+      if (current.quoteStatus == 'unavailable') {
+        if (!mounted) return;
+        setState(() => _rentalCart = checked);
+        await AppPopup.toast(
+          context,
+          icon: Icons.event_busy_outlined,
+          title: 'Zeitraum derzeit nicht verfügbar',
+          message: 'Der Artikel bleibt in deinem Mietkorb.',
+        );
+        return;
+      }
+      final item = await DataService.getItemById(current.listingId);
+      if (!mounted) return;
+      if (item == null) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.inventory_2_outlined,
+          title: 'Artikel derzeit nicht verfügbar',
+        );
+        return;
+      }
+      setState(() => _rentalCart = checked);
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => PrivatePilotCheckoutScreen(
+          item: item,
+          range: DateTimeRange(
+            start: current.startDate,
+            end: current.endDate,
+          ),
+        ),
+      ));
+      if (mounted) await _reload();
+    } catch (error) {
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.cloud_off_outlined,
+        title: 'Serverprüfung fehlgeschlagen',
+        message: 'Es wurde keine Reservierung erstellt.',
+      );
+    } finally {
+      if (mounted) setState(() => _busyCartItemId = null);
+    }
   }
 
   Future<void> _addCustomList() async {
@@ -93,8 +293,9 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildRentalCartSection(context),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 420),
@@ -147,6 +348,207 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
 }
 
 extension on _RentalCartScreenState {
+  Widget _buildRentalCartSection(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final cart = _rentalCart;
+    final itemHeight =
+        cart.items.isEmpty ? 72.0 : math.min(300.0, 96.0 * cart.items.length);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.shopping_bag_outlined, color: cs.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Im Mietkorb – noch nicht reserviert',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        'Verfügbarkeit und Preis werden vor jeder Anfrage neu geprüft.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: cs.onSurface.withValues(alpha: 0.62),
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Verfügbarkeit und Preis neu prüfen',
+                  onPressed: cart.items.isEmpty ? null : _recheckCart,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            if (cart.syncPending)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Kontosynchronisierung ausstehend – die lokale Kopie bleibt erhalten.',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: cs.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            if (cart.projects.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final project in cart.projects)
+                    Chip(
+                      avatar: const Icon(Icons.folder_outlined, size: 16),
+                      label: Text(project.title),
+                      onDeleted: () => _removeProject(project.id),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 8),
+            SizedBox(
+              height: itemHeight,
+              child: cart.items.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Noch keine Mietzeiträume vorbereitet.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: cs.onSurface.withValues(alpha: 0.58),
+                            ),
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: cart.items.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final item = cart.items[index];
+                        final title =
+                            (item.listing['title'] ?? 'Mietartikel').toString();
+                        RentalCartProject? project;
+                        for (final entry in cart.projects) {
+                          if (entry.id == item.projectId) {
+                            project = entry;
+                            break;
+                          }
+                        }
+                        final status = switch (item.quoteStatus) {
+                          'current' => 'Aktuell geprüft',
+                          'changed' => 'Preis oder Verfügbarkeit geändert',
+                          'unavailable' => 'Derzeit nicht verfügbar',
+                          _ => cart.localDeviceOnly
+                              ? 'Lokal vorbereitet – Serverprüfung nach Anmeldung'
+                              : 'Serverprüfung erforderlich',
+                        };
+                        final quoteLabel = _informativeQuoteLabel(item);
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(
+                            item.quoteStatus == 'unavailable'
+                                ? Icons.event_busy_outlined
+                                : Icons.event_available_outlined,
+                            color: item.quoteStatus == 'unavailable'
+                                ? cs.error
+                                : cs.primary,
+                          ),
+                          title: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            '${_cartDate(item.startDate)} – ${_cartDate(item.endDate)}'
+                            '${project == null ? '' : ' · ${project.title}'}'
+                            '${quoteLabel == null ? '' : '\n$quoteLabel'}\n$status',
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          isThreeLine: true,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: 'Projekt zuordnen',
+                                onPressed: () => _assignCartItem(item),
+                                icon: const Icon(Icons.drive_file_move_outline),
+                              ),
+                              IconButton(
+                                tooltip: 'Einzelmiete prüfen',
+                                onPressed: _busyCartItemId == null
+                                    ? () => _openCartItem(item)
+                                    : null,
+                                icon: _busyCartItemId == item.id
+                                    ? const SizedBox.square(
+                                        dimension: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.arrow_forward),
+                              ),
+                              IconButton(
+                                tooltip: 'Aus Mietkorb entfernen',
+                                onPressed: () => _removeCartItem(item.id),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: _addProject,
+                  icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+                  label: const Text('Projekt anlegen'),
+                ),
+                const Spacer(),
+                if (cart.localDeviceOnly && cart.items.isNotEmpty)
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const LoginScreen(returnTabIndex: 1),
+                      ),
+                    ),
+                    child: const Text('Anmelden & synchronisieren'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _cartDate(DateTime date) =>
+      '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+
+  String? _informativeQuoteLabel(RentalCartItem item) {
+    if (item.quoteStatus == 'unavailable') return null;
+    final quoteEnvelope = item.quote;
+    final quote = quoteEnvelope?['quote'];
+    if (quote is! Map) return null;
+    final totalMinor = (quote['totalMinor'] as num?)?.toInt();
+    if (totalMinor == null || totalMinor < 0) return null;
+    final currency = (quote['currency'] ?? 'EUR').toString();
+    final amount = (totalMinor / 100).toStringAsFixed(2).replaceAll('.', ',');
+    return 'Informative Preisangabe: $amount $currency';
+  }
+
   Widget _buildFolderGrid(BuildContext context) {
     if (_lists.isEmpty) {
       return Center(

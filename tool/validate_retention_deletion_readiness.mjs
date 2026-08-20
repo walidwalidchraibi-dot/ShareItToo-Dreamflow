@@ -16,6 +16,7 @@ const sourcePaths = [
   'backend/src/operator_readiness.js',
   'backend/src/retention_inventory.js',
   'backend/src/privacy_export.js',
+  'backend/src/rental_cart_workflow.js',
   'backend/src/account_actions.js',
   'backend/src/config.js',
   'backend/src/notifications.js',
@@ -51,6 +52,7 @@ const sourcePaths = [
   'backend/sql/migrations/024_v52_actual_loss_resolution.up.sql',
   'backend/sql/migrations/025_v52_handover_return_evidence.up.sql',
   'backend/sql/migrations/026_v52_categories_moderation_operator.up.sql',
+  'backend/sql/migrations/027_g2_persistent_rental_cart.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -63,6 +65,7 @@ const sourcePaths = [
   'lib/services/data_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/models/rental_cart.dart',
   'lib/screens/payment_methods_screen.dart',
   'lib/screens/stripe_payout_account_screen.dart',
   'lib/screens/payment_checkout_screen.dart',
@@ -332,12 +335,28 @@ function assertSourceContracts(root, sourceTexts) {
     'DELETE FROM notification_preferences WHERE user_id = $1',
     'DELETE FROM notifications WHERE user_id = $1',
     'DELETE FROM message_reads WHERE user_id = $1',
+    'DELETE FROM rental_carts WHERE user_id = $1',
     'DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1',
     "payload = '{}'::jsonb",
     "'account_deleted'",
     'pseudonymous_notification_delivery_audit',
   ]) {
     if (!app.includes(marker)) fail(`Account erasure is missing the residual-data control: ${marker}.`);
+  }
+  const rentalCartRetention = text(root, sourceTexts, 'backend/src/retention_inventory.js');
+  for (const dataset of [
+    'rental_carts',
+    'rental_cart_projects',
+    'rental_cart_items',
+  ]) {
+    if (!rentalCartRetention.includes(`'userIntent', '${dataset}'`)) {
+      fail(`Retention inventory is missing the rental-cart dataset: ${dataset}.`);
+    }
+  }
+  const rentalCartWorkflow = text(root, sourceTexts, 'backend/src/rental_cart_workflow.js');
+  if (!rentalCartWorkflow.includes('persist: false')
+      || !rentalCartWorkflow.includes('reservationCreated: false')) {
+    fail('Rental-cart quote previews must remain non-transactional and non-reserving.');
   }
   const communications = text(root, sourceTexts, 'backend/sql/migrations/006_b7_communications.up.sql');
   if (!communications.includes('notification_delivery_attempts_append_only')) {

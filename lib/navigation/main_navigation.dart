@@ -153,11 +153,10 @@ class _MainNavigationState extends State<MainNavigation> {
                 previewGuest: preview.isGuest,
               );
               // Soft logged-out experience:
-              // - Guests can open the Profile tab to explore.
-              // - Other tabs remain locked in guest mode.
-              if (isGuest && index != 0 && index != 4) {
+              // - Guests can prepare a local Mietkorb and explore Profile.
+              // - Booking and communication tabs remain account-bound.
+              if (isGuest && index != 0 && index != 1 && index != 4) {
                 final gateContext = switch (index) {
-                  1 => GuestGateContext.favorites,
                   2 => GuestGateContext.booking,
                   3 => GuestGateContext.messages,
                   _ => GuestGateContext.generic,

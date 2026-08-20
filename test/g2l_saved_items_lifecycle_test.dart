@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('privacy export includes every local Gemerkt store without a cart claim',
+  test('privacy export includes Gemerkt and the active local G2B cart stores',
       () async {
     final lists = jsonEncode(<Map<String, Object>>[
       <String, Object>{
@@ -41,15 +41,27 @@ void main() {
     expect(exported['itemAssignments'], <String, String>{
       'item-existing-2': 'wl_existing_custom',
     });
-    expect(exported['persistentRentalCart'], isFalse);
-    expect(exported['persistentProjectCart'], isFalse);
+    expect(exported['persistentRentalCart'], isTrue);
+    expect(exported['persistentProjectCart'], isTrue);
+    expect(
+        exported['storageKeys'],
+        containsAll(<String>[
+          'rental_cart_v1',
+          'project_cart_v1',
+          'rental_cart_sync_owner_v1',
+        ]));
+    expect(exported['rentalCart'], isA<Map<String, dynamic>>());
   });
 
-  test('confirmed account deletion removes only local Gemerkt stores', () async {
+  test('confirmed account deletion removes only local Gemerkt stores',
+      () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'saved_item_ids': <String>['item-existing-1'],
       'wishlists_meta_v1': '[]',
       'wishlist_assign_v1': '{}',
+      'rental_cart_v1': '{"schemaVersion":1,"revision":1,"items":[]}',
+      'project_cart_v1': '{"schemaVersion":1,"revision":1,"projects":[]}',
+      'rental_cart_sync_owner_v1': 'account-a',
       'app_language_code': 'de',
     });
 
@@ -59,6 +71,9 @@ void main() {
     expect(prefs.containsKey('saved_item_ids'), isFalse);
     expect(prefs.containsKey('wishlists_meta_v1'), isFalse);
     expect(prefs.containsKey('wishlist_assign_v1'), isFalse);
+    expect(prefs.containsKey('rental_cart_v1'), isFalse);
+    expect(prefs.containsKey('project_cart_v1'), isFalse);
+    expect(prefs.containsKey('rental_cart_sync_owner_v1'), isFalse);
     expect(prefs.getString('app_language_code'), 'de');
   });
 }

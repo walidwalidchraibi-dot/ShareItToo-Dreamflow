@@ -33,6 +33,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
+
+  Future<void> _syncRentalCartAfterAuthentication() async {
+    try {
+      await DataService.syncGuestRentalCartAfterAuthentication();
+    } catch (error) {
+      // Preserve the guest copy. RentalCartScreen retries after navigation.
+      debugPrint('[RegisterScreen] rental cart sync pending: $error');
+    }
+  }
+
   final _pw2Ctrl = TextEditingController();
 
   final _nameFocus = FocusNode();
@@ -210,6 +220,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await DataService.syncCurrentUserForSessionEmail(
         _emailCtrl.text.trim(),
       );
+      await _syncRentalCartAfterAuthentication();
       final registeredUser = await DataService.getCurrentUser();
       final displayName = _nameCtrl.text.trim();
       if (registeredUser != null && displayName.isNotEmpty) {
@@ -326,6 +337,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
       final email = result.session?.email ?? '';
       await DataService.syncCurrentUserForSessionEmail(email);
+      await _syncRentalCartAfterAuthentication();
       await FirebaseRuntime.syncPushRegistration();
       if (!mounted) return;
       await context

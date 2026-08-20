@@ -157,6 +157,16 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+  Future<void> _syncRentalCartAfterAuthentication() async {
+    try {
+      await DataService.syncGuestRentalCartAfterAuthentication();
+    } catch (error) {
+      // Keep the local guest copy intact. RentalCartScreen retries and visibly
+      // reports a pending sync instead of losing prepared rental intent.
+      debugPrint('[LoginScreen] rental cart sync pending: $error');
+    }
+  }
+
   Future<void> _submit() async {
     if (_busy) return;
     FocusScope.of(context).unfocus();
@@ -191,6 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       await DataService.syncCurrentUserForSessionEmail(_emailCtrl.text.trim());
+      await _syncRentalCartAfterAuthentication();
       unawaited(FirebaseRuntime.syncPushRegistration());
       if (!mounted) return;
       await context
@@ -296,6 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       final email = result.session?.email ?? '';
       await DataService.syncCurrentUserForSessionEmail(email);
+      await _syncRentalCartAfterAuthentication();
       unawaited(FirebaseRuntime.syncPushRegistration());
       if (!mounted) return;
       await context

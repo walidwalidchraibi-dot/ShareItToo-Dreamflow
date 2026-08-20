@@ -1,5 +1,6 @@
 const CATEGORY_DECISIONS = Object.freeze({
   accounts: 'inactiveAccountPeriod',
+  userIntent: 'inactiveAccountPeriod',
   transactions: 'transactionalRecordPeriod',
   communications: 'communicationPeriod',
   handoverEvidence: 'transactionalRecordPeriod',
@@ -60,6 +61,9 @@ export async function inspectRetentionInventory(client, { actor }) {
   const result = await client.query(
     `WITH inventory(category, dataset, row_count, oldest_at, newest_at) AS (
        SELECT 'accounts', 'user_accounts', count(*)::bigint, min(created_at), max(updated_at) FROM users
+       UNION ALL SELECT 'userIntent', 'rental_carts', count(*)::bigint, min(created_at), max(updated_at) FROM rental_carts
+       UNION ALL SELECT 'userIntent', 'rental_cart_projects', count(*)::bigint, min(created_at), max(updated_at) FROM rental_cart_projects
+       UNION ALL SELECT 'userIntent', 'rental_cart_items', count(*)::bigint, min(created_at), max(updated_at) FROM rental_cart_items
        UNION ALL SELECT 'transactions', 'bookings', count(*)::bigint, min(created_at), max(updated_at) FROM bookings
        UNION ALL SELECT 'transactions', 'booking_quotes', count(*)::bigint, min(issued_at), max(issued_at) FROM booking_quotes
        UNION ALL SELECT 'transactions', 'legal_document_snapshots', count(*)::bigint, min(created_at), max(created_at) FROM legal_document_snapshots

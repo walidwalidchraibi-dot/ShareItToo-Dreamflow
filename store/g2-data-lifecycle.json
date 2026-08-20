@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "state": "g2a-current-g2b-inactive",
+  "state": "g2b-persistent-cart-active",
   "terminology": {
     "savedItems": "Gemerkt",
     "cartArea": "Mietkorb",
@@ -19,28 +19,45 @@
     "accountDeletionStatus": "implemented-local-purge",
     "retentionRule": "user-controlled-until-removal-account-deletion-or-app-data-clear"
   },
-  "plannedPersistentData": {
+  "persistentData": {
     "rentalCart": {
-      "runtimeStatus": "inactive-not-collected",
-      "storageKeys": [],
-      "serverDatasets": [],
-      "exportStatus": "required-before-activation",
-      "accountDeletionStatus": "required-before-activation",
-      "retentionStatus": "open-before-activation"
+      "runtimeStatus": "active-guest-local-account-server",
+      "binding": "non-binding-no-reservation-no-hold",
+      "storageKeys": [
+        "rental_cart_v1",
+        "rental_cart_sync_owner_v1"
+      ],
+      "serverDatasets": [
+        "rental_carts",
+        "rental_cart_items"
+      ],
+      "exportStatus": "implemented-local-and-account-export",
+      "accountDeletionStatus": "implemented-explicit-server-delete-and-local-purge",
+      "retentionRule": "user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear",
+      "serverAuthoritativeRecheck": true
     },
     "projectCart": {
-      "runtimeStatus": "inactive-not-collected",
-      "storageKeys": [],
-      "serverDatasets": [],
-      "exportStatus": "required-before-activation",
-      "accountDeletionStatus": "required-before-activation",
-      "retentionStatus": "open-before-activation"
+      "runtimeStatus": "active-guest-local-account-server",
+      "binding": "organizational-container-no-group-request",
+      "storageKeys": [
+        "project_cart_v1"
+      ],
+      "serverDatasets": [
+        "rental_cart_projects"
+      ],
+      "exportStatus": "implemented-local-and-account-export",
+      "accountDeletionStatus": "implemented-cascade-and-local-purge",
+      "retentionRule": "user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear"
     }
   },
   "boundaries": {
-    "persistentCartEnabled": false,
-    "projectCartEnabled": false,
-    "newDataCollectionEnabled": false,
+    "persistentCartEnabled": true,
+    "projectCartEnabled": true,
+    "newDataCollectionEnabled": true,
+    "reservationCreatedByCart": false,
+    "availabilityHoldCreatedByCart": false,
+    "groupRequestEnabled": false,
+    "paymentChanged": false,
     "retentionPeriodInvented": false,
     "legalApprovalChanged": false,
     "historicalSnapshotsChanged": false,

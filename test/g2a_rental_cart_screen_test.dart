@@ -61,4 +61,48 @@ void main() {
     expect(find.textContaining('Projektkorb'), findsNothing);
     semantics.dispose();
   });
+
+  testWidgets(
+      'guest Mietkorb shows persisted intent without a reservation claim',
+      (tester) async {
+    final item = buildTestItem(id: 'item-2', ownerId: 'owner-1');
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'items': jsonEncode(<Object>[item.toJson()]),
+      'wishlists_meta_v1': '[]',
+      'wishlist_assign_v1': '{}',
+      'rental_cart_v1': jsonEncode(<String, dynamic>{
+        'schemaVersion': 1,
+        'revision': 1,
+        'reservationCreated': false,
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'cartitem_test_1',
+            'listingId': item.id,
+            'startDate': '2026-09-01',
+            'endDate': '2026-09-04',
+            'quoteStatus': 'needs_recheck',
+            'listing': item.toJson(),
+          },
+        ],
+      }),
+      'project_cart_v1': jsonEncode(<String, dynamic>{
+        'schemaVersion': 1,
+        'revision': 1,
+        'projects': <dynamic>[],
+      }),
+    });
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<LocalizationController>(
+        create: (_) => LocalizationController(),
+        child: const MaterialApp(home: RentalCartScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Im Mietkorb – noch nicht reserviert'), findsOneWidget);
+    expect(find.text(item.title), findsOneWidget);
+    expect(find.text('Anmelden & synchronisieren'), findsOneWidget);
+    expect(find.textContaining('Reservierung erstellt'), findsNothing);
+  });
 }
