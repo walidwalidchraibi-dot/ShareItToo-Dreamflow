@@ -92,6 +92,7 @@ if (!databaseUrl) {
         '028_g3b_booking_group_foundation.up.sql',
         '029_g3c_booking_group_quote_state.up.sql',
         '030_g3d_shared_handover_item_evidence.up.sql',
+        '031_g5b_listing_sets.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -137,6 +138,19 @@ if (!databaseUrl) {
         { table_name: 'booking_group_quotes' },
         { table_name: 'booking_group_state_events' },
         { table_name: 'booking_groups' },
+      ]);
+      const listingSetTables = await setupPool.query(
+        `SELECT table_name
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name = ANY($1::text[])
+          ORDER BY table_name`,
+        [['listing_set_version_members', 'listing_set_versions', 'listing_sets']],
+      );
+      assert.deepEqual(listingSetTables.rows, [
+        { table_name: 'listing_set_version_members' },
+        { table_name: 'listing_set_versions' },
+        { table_name: 'listing_sets' },
       ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name
@@ -3403,6 +3417,14 @@ if (!databaseUrl) {
         path.resolve(currentDir, '../sql/migrations/030_g3d_shared_handover_item_evidence.up.sql'),
         'utf8',
       );
+      const g5bDown = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/031_g5b_listing_sets.down.sql'),
+        'utf8',
+      );
+      const g5bUp = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/031_g5b_listing_sets.up.sql'),
+        'utf8',
+      );
       await setupPool.query(
         `INSERT INTO booking_group_appointment_commands (
            idempotency_key, actor_id, booking_group_id, request_hash
@@ -3439,6 +3461,7 @@ if (!databaseUrl) {
       await setupPool.query(g3dDown);
       await setupPool.query(g3cDown);
       await setupPool.query(g3bDown);
+      await setupPool.query(g5bDown);
       assert.equal((await setupPool.query(
         `SELECT count(*)::int AS count
            FROM information_schema.tables
@@ -3454,6 +3477,7 @@ if (!databaseUrl) {
       await setupPool.query(g3bUp);
       await setupPool.query(g3cUp);
       await setupPool.query(g3dUp);
+      await setupPool.query(g5bUp);
       assert.equal((await setupPool.query(
         `SELECT count(*)::int AS count
            FROM information_schema.tables
@@ -3466,6 +3490,14 @@ if (!databaseUrl) {
               'booking_group_state_events', 'booking_groups'
             )`,
       )).rows[0].count, 9);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name IN (
+              'listing_set_version_members', 'listing_set_versions', 'listing_sets'
+            )`,
+      )).rows[0].count, 3);
 
       const limitedAttempts = [];
       for (let attempt = 0; attempt < 9; attempt += 1) {

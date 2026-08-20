@@ -23,6 +23,7 @@ const sourcePaths = [
   'backend/src/private_pilot_domain.js',
   'backend/src/listing_catalog.js',
   'backend/src/listing_supply_enrichment.js',
+  'backend/src/listing_set_workflow.js',
   'backend/src/moderation_domain.js',
   'backend/src/moderation_workflow.js',
   'backend/src/moderation_decision_workflow.js',
@@ -44,6 +45,7 @@ const sourcePaths = [
   'backend/sql/migrations/025_v52_handover_return_evidence.up.sql',
   'backend/sql/migrations/026_v52_categories_moderation_operator.up.sql',
   'backend/sql/migrations/027_g2_persistent_rental_cart.up.sql',
+  'backend/sql/migrations/031_g5b_listing_sets.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -84,6 +86,8 @@ const sourcePaths = [
   'lib/config/private_pilot_config.dart',
   'lib/config/supply_enrichment_technical_config.dart',
   'lib/models/supply_enrichment.dart',
+  'lib/config/listing_sets_technical_config.dart',
+  'lib/models/listing_set.dart',
   'lib/models/rental_request.dart',
   'lib/screens/private_pilot_checkout_screen.dart',
   'lib/screens/v52_legal_document_screen.dart',
@@ -331,7 +335,8 @@ function assertSourceContracts({ root, sourceTexts }) {
     'pushDevices', 'listings', 'bookings', 'messages', 'uploads',
     'payments', 'refunds', 'payouts', 'financialDocuments',
     'financialDocumentEvents', 'disputes', 'rentalCartProjects',
-    'rentalCartItems', 'reservationCreated: false',
+    'rentalCartItems', 'listingSetVersions', 'listingSetVersionMembers',
+    'individualBookabilityPreserved: true', 'reservationCreated: false',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
   }
@@ -377,6 +382,42 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
   if (!rentalCartApp.includes('DELETE FROM rental_carts WHERE user_id = $1')) {
     fail('Account erasure must delete the account-bound rental cart.');
+  }
+  const listingSetWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/listing_set_workflow.js',
+  );
+  for (const marker of [
+    'maximumListingSetMembers = 12',
+    'allRequiredItemsAvailable: true',
+    'individualBookabilityPreserved: true',
+    'businessStatusUsed: false',
+    'hiddenPriceManipulationUsed: false',
+    "handoverReturnEvidence: 'v52_item_booking_evidence'",
+    'persist: false',
+  ]) {
+    if (!listingSetWorkflow.includes(marker)) {
+      fail(`Listing-set privacy boundary is missing ${marker}.`);
+    }
+  }
+  const listingSetMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/031_g5b_listing_sets.up.sql',
+  );
+  for (const marker of [
+    'listing_sets',
+    'listing_set_versions',
+    'listing_set_version_members',
+    'target_listing.owner_id <> target_set.owner_id',
+  ]) {
+    if (!listingSetMigration.includes(marker)) {
+      fail(`Listing-set persistence boundary is missing ${marker}.`);
+    }
+  }
+  if (!rentalCartApp.includes('DELETE FROM listing_sets WHERE owner_id = $1')) {
+    fail('Account erasure must delete owner listing-set user intent.');
   }
   const supplyEnrichment = sourceText(
     root,

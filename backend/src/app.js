@@ -249,6 +249,15 @@ import {
   ListingSupplyEnrichmentError,
   recordListingSupplyEnrichmentOutcome,
 } from './listing_supply_enrichment.js';
+import {
+  assertListingSetsTechnicalAccess,
+  createListingSet,
+  discoverListingSets,
+  getOwnerListingSets,
+  ListingSetError,
+  resolveListingSet,
+  reviseListingSet,
+} from './listing_set_workflow.js';
 import { ImageProcessingError, sanitizeImage } from './media_pipeline.js';
 import {
   bearerToken,
@@ -1198,6 +1207,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
   await client.query('DELETE FROM notification_preferences WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM notifications WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM rental_carts WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM listing_sets WHERE owner_id = $1', [user.id]);
   await client.query('DELETE FROM message_reads WHERE user_id = $1', [user.id]);
   await client.query(
     'DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1',
@@ -2897,6 +2907,90 @@ export function createApp({
     res.json({ result });
   }));
 
+  app.get('/v1/listing-sets/mine', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    assertListingSetsTechnicalAccess(config);
+    const sets = await inTransaction((client) => getOwnerListingSets(
+      client,
+      req.auth.userId,
+    ));
+    res.set('Cache-Control', 'private, no-store').json({ sets });
+  }));
+
+  app.post('/v1/listing-sets', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+    assertListingSetsTechnicalAccess(config);
+    const listingSet = await inTransaction(async (client) => {
+      const created = await createListingSet(client, {
+        actorId: req.auth.userId,
+        raw: req.body,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'listing_set.created',
+        resourceType: 'listing_set',
+        resourceId: created.id,
+        requestId: req.requestId,
+        metadata: {
+          revision: created.revision,
+          setKind: created.setKind,
+          memberCount: created.members.length,
+          individualBookabilityPreserved: true,
+        },
+      });
+      return created;
+    }, { deadlockRetries: 2 });
+    res.set('Cache-Control', 'private, no-store').status(201).json({ listingSet });
+  }));
+
+  app.put('/v1/listing-sets/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+    assertListingSetsTechnicalAccess(config);
+    const listingSet = await inTransaction(async (client) => {
+      const revised = await reviseListingSet(client, {
+        actorId: req.auth.userId,
+        listingSetId: safeText(req.params.id, 120),
+        raw: req.body,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: `listing_set.${revised.status === 'ended' ? 'ended' : 'revised'}`,
+        resourceType: 'listing_set',
+        resourceId: revised.id,
+        requestId: req.requestId,
+        metadata: {
+          revision: revised.revision,
+          setKind: revised.setKind,
+          status: revised.status,
+          memberCount: revised.members.length,
+          individualBookabilityPreserved: true,
+        },
+      });
+      return revised;
+    }, { deadlockRetries: 2 });
+    res.set('Cache-Control', 'private, no-store').json({ listingSet });
+  }));
+
+  app.post('/v1/listing-sets/discover', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    assertListingSetsTechnicalAccess(config);
+    const discovery = await inTransaction((client) => discoverListingSets(client, {
+      actorId: req.auth.userId,
+      raw: req.body,
+      privatePilot: config.privatePilotV4Enabled,
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
+    }));
+    res.set('Cache-Control', 'private, no-store').json({ discovery });
+  }));
+
+  app.post('/v1/listing-sets/:id/resolve', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    assertListingSetsTechnicalAccess(config);
+    const resolution = await inTransaction((client) => resolveListingSet(client, {
+      actorId: req.auth.userId,
+      listingSetId: safeText(req.params.id, 120),
+      raw: req.body,
+      privatePilot: config.privatePilotV4Enabled,
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
+    }));
+    res.set('Cache-Control', 'private, no-store').json({ resolution });
+  }));
+
   app.put('/v1/listings/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     const id = safeText(req.params.id, 120);
     const existing = await pool.query('SELECT * FROM listings WHERE id = $1', [id]);
@@ -4525,6 +4619,7 @@ export function createApp({
     const rentalCartError = error instanceof RentalCartError;
     const plannerInventoryError = error instanceof PlannerInventoryError;
     const listingSupplyEnrichmentError = error instanceof ListingSupplyEnrichmentError;
+    const listingSetError = error instanceof ListingSetError;
     const flowTimeError = error instanceof BookingFlowTimeError;
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
@@ -4540,14 +4635,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

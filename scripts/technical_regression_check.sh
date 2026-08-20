@@ -332,6 +332,7 @@ node tool/validate_v52_legal_assets.mjs
 node --check tool/validate_g3l_legal_draft.mjs
 node --test test/tool/validate_g3l_legal_draft.test.mjs
 node tool/validate_g3l_legal_draft.mjs
+node --test test/tool/g5b_listing_sets_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
 
 analyze_log="$(mktemp)"

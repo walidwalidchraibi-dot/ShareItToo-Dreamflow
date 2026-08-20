@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "dbb2d5d275534d868021918ba28f70e8856301f8700b915af10aadf49836485a"
+      "sha256": "6019a00e118d1f4e86f11a6175dcd104f3838b70726641d4449f09cd33a09564"
     },
     {
       "path": "backend/src/server.js",
@@ -37,11 +37,11 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "efafab1ffa72a79628a767480dc717922fa5c6f403b2c5cd8cce8bfbcc6846dd"
+      "sha256": "310a2d5c5dd9dcabd0ae98f2c9526c4e61b03e6fb36a1b394ed3d5c938f38e0a"
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "1623d20924c23133fb0d509b82c99e44e0d1e28a23dc727cd36011a757b50581"
+      "sha256": "7b27ad67e46807449d15ef4834f69c5f9b61b36e0e4eed140d37fbb5f0ff7a7e"
     },
     {
       "path": "backend/src/rental_cart_workflow.js",
@@ -61,7 +61,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "7c16ae9bd26b127c80f9b56c7bf513824a4901d5b0f7133f78295bb5d8298b61"
+      "sha256": "cc851dbc0b19ac810ff5c277c983d82b83bde13ecb4e444be944577cc4ea557d"
     },
     {
       "path": "backend/src/notifications.js",
@@ -245,7 +245,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "e035fcef2c7cecec218d5f3f994e8285220da17201868f23bb805f7a6c3781ad"
+      "sha256": "7b9712a6f075484fa910e738cb18007b3cf39fe056156e54815357794095619e"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
@@ -294,6 +294,22 @@
     {
       "path": "store/g2-data-lifecycle.json",
       "sha256": "a66d0fc8b1b014e41ee348e95f9ac1cd6a6f1592942058a6ce8acb144497caa5"
+    },
+    {
+      "path": "backend/src/listing_set_workflow.js",
+      "sha256": "c9ec0eb3625dbfc70892aa04f91e702c6c2c36f56e777073175b2f13870abe83"
+    },
+    {
+      "path": "backend/sql/migrations/031_g5b_listing_sets.up.sql",
+      "sha256": "7afaa2d39ad4b8adb178e5e3ed25454163cf48762f8e993c83935ab3ef5a0bff"
+    },
+    {
+      "path": "lib/config/listing_sets_technical_config.dart",
+      "sha256": "6e54c0a40c8bcc5be08d1679f078a172fbabfb695029b4935a254dd60c506d40"
+    },
+    {
+      "path": "lib/models/listing_set.dart",
+      "sha256": "97d57dac5d6dbaf1f93a65b1dfa1498d5bdb7d7ef40478754807359c69c193c6"
     }
   ],
   "implementedControls": {

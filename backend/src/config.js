@@ -65,6 +65,12 @@ const listingSupplyEnrichmentEnabled = (
 if (listingSupplyEnrichmentEnabled && deploymentEnvironment === 'production') {
   throw new Error('listing supply enrichment cannot be enabled in production before the release gate');
 }
+const listingSetsEnabled = (process.env.LISTING_SETS_ENABLED ?? 'false')
+  .trim()
+  .toLowerCase() === 'true';
+if (listingSetsEnabled && deploymentEnvironment === 'production') {
+  throw new Error('listing sets cannot be enabled in production before the release gate');
+}
 const privatePilotAllowedRegions = Object.freeze([
   ...new Set(
     csv(process.env.PRIVATE_PILOT_ALLOWED_REGIONS)
@@ -284,6 +290,13 @@ export const config = Object.freeze({
     enabled: listingSupplyEnrichmentEnabled,
     publicReleaseAllowed: false,
     externalGenerativeAiAllowed: false,
+  }),
+  listingSets: Object.freeze({
+    enabled: listingSetsEnabled,
+    publicReleaseAllowed: false,
+    fewerHandoversRankingAllowed: true,
+    businessStatusRankingAllowed: false,
+    hiddenPriceManipulationAllowed: false,
   }),
   privatePilot: Object.freeze({
     allowedRegions: privatePilotAllowedRegions,

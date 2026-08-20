@@ -283,6 +283,65 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['result'] as Map);
   }
 
+  static Future<List<Map<String, dynamic>>> getMyListingSets() async {
+    final response =
+        await _authorized(method: 'GET', path: '/listing-sets/mine');
+    return _maps(response['sets']);
+  }
+
+  static Future<Map<String, dynamic>> createListingSet(
+    Map<String, dynamic> listingSet,
+  ) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/listing-sets',
+      body: listingSet,
+    );
+    return Map<String, dynamic>.from(response['listingSet'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> reviseListingSet({
+    required String listingSetId,
+    required Map<String, dynamic> revision,
+  }) async {
+    final response = await _authorized(
+      method: 'PUT',
+      path: '/listing-sets/${Uri.encodeComponent(listingSetId)}',
+      body: revision,
+    );
+    return Map<String, dynamic>.from(response['listingSet'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> resolveListingSet({
+    required String listingSetId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/listing-sets/${Uri.encodeComponent(listingSetId)}/resolve',
+      body: <String, dynamic>{'startDate': startDate, 'endDate': endDate},
+    );
+    return Map<String, dynamic>.from(response['resolution'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> discoverListingSets({
+    required String listingId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/listing-sets/discover',
+      body: <String, dynamic>{
+        'listingId': listingId,
+        'startDate': startDate,
+        'endDate': endDate,
+      },
+    );
+    return Map<String, dynamic>.from(response['discovery'] as Map);
+  }
+
   static Future<Map<String, dynamic>> updateListing(
     Map<String, dynamic> listing,
   ) async {

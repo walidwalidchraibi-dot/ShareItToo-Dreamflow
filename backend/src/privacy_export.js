@@ -22,6 +22,9 @@ export async function buildAccountExport(client, userId) {
     identities,
     pushDevices,
     listings,
+    listingSets,
+    listingSetVersions,
+    listingSetVersionMembers,
     bookings,
     bookingQuotes,
     bookingGroups,
@@ -99,6 +102,30 @@ export async function buildAccountExport(client, userId) {
               moderation_reason_code, private_status_confirmed_at,
               private_pilot_region_code, created_at, updated_at
        FROM listings WHERE owner_id = $1 ORDER BY created_at`, userId),
+    rows(client,
+      `SELECT id, schema_version, created_at
+         FROM listing_sets WHERE owner_id = $1 ORDER BY created_at`, userId),
+    rows(client,
+      `SELECT version.id, version.listing_set_id, version.revision,
+              version.set_kind, version.title, version.status,
+              version.currency, version.country_code, version.member_count,
+              version.required_member_count, version.membership_hash,
+              version.created_at
+         FROM listing_set_versions AS version
+         JOIN listing_sets AS listing_set ON listing_set.id = version.listing_set_id
+        WHERE listing_set.owner_id = $1
+        ORDER BY version.listing_set_id, version.revision`, userId),
+    rows(client,
+      `SELECT member.id, member.listing_set_id,
+              member.listing_set_version_id, member.listing_id,
+              member.member_role, member.sort_order, member.category_id,
+              member.subcategory, member.currency, member.country_code,
+              member.handover_location_key, member.created_at
+         FROM listing_set_version_members AS member
+         JOIN listing_sets AS listing_set ON listing_set.id = member.listing_set_id
+        WHERE listing_set.owner_id = $1
+        ORDER BY member.listing_set_id, member.listing_set_version_id,
+                 member.sort_order`, userId),
     rows(client,
       `SELECT id, listing_id,
               CASE WHEN owner_id = $1 THEN 'owner' ELSE 'renter' END AS my_role,
@@ -653,6 +680,13 @@ export async function buildAccountExport(client, userId) {
     authentication: { sessions, identities, pushDevices },
     marketplace: {
       listings,
+      listingSets: {
+        sets: listingSets,
+        versions: listingSetVersions,
+        versionMembers: listingSetVersionMembers,
+        individualBookabilityPreserved: true,
+        transactionalEvidenceStoredOnItemBookings: true,
+      },
       bookings,
       bookingQuotes,
       bookingGroups: {

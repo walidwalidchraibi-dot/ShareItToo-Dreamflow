@@ -19,6 +19,7 @@ const sourcePaths = [
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
+  'backend/src/listing_set_workflow.js',
   'backend/src/account_actions.js',
   'backend/src/config.js',
   'backend/src/notifications.js',
@@ -55,6 +56,7 @@ const sourcePaths = [
   'backend/sql/migrations/025_v52_handover_return_evidence.up.sql',
   'backend/sql/migrations/026_v52_categories_moderation_operator.up.sql',
   'backend/sql/migrations/027_g2_persistent_rental_cart.up.sql',
+  'backend/sql/migrations/031_g5b_listing_sets.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -72,6 +74,8 @@ const sourcePaths = [
   'lib/screens/create_listing_screen.dart',
   'lib/screens/explore_screen.dart',
   'lib/widgets/supply_enrichment_dialog.dart',
+  'lib/config/listing_sets_technical_config.dart',
+  'lib/models/listing_set.dart',
   'lib/models/rental_cart.dart',
   'lib/screens/payment_methods_screen.dart',
   'lib/screens/stripe_payout_account_screen.dart',
@@ -343,6 +347,7 @@ function assertSourceContracts(root, sourceTexts) {
     'DELETE FROM notifications WHERE user_id = $1',
     'DELETE FROM message_reads WHERE user_id = $1',
     'DELETE FROM rental_carts WHERE user_id = $1',
+    'DELETE FROM listing_sets WHERE owner_id = $1',
     'DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1',
     "payload = '{}'::jsonb",
     "'account_deleted'",
@@ -356,6 +361,9 @@ function assertSourceContracts(root, sourceTexts) {
     'rental_cart_projects',
     'rental_cart_items',
     'listing_supply_enrichment',
+    'listing_sets',
+    'listing_set_versions',
+    'listing_set_version_members',
   ]) {
     if (!rentalCartRetention.includes(`'userIntent', '${dataset}'`)) {
       fail(`Retention inventory is missing the rental-cart dataset: ${dataset}.`);
