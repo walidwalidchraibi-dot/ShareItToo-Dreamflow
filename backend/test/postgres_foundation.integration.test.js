@@ -89,6 +89,7 @@ if (!databaseUrl) {
         '025_v52_handover_return_evidence.up.sql',
         '026_v52_categories_moderation_operator.up.sql',
         '027_g2_persistent_rental_cart.up.sql',
+        '028_g3b_booking_group_foundation.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -105,6 +106,18 @@ if (!databaseUrl) {
         { table_name: 'rental_cart_items' },
         { table_name: 'rental_cart_projects' },
         { table_name: 'rental_carts' },
+      ]);
+      const bookingGroupTables = await setupPool.query(
+        `SELECT table_name
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name = ANY($1::text[])
+          ORDER BY table_name`,
+        [['booking_group_positions', 'booking_groups']],
+      );
+      assert.deepEqual(bookingGroupTables.rows, [
+        { table_name: 'booking_group_positions' },
+        { table_name: 'booking_groups' },
       ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name
@@ -760,6 +773,127 @@ if (!databaseUrl) {
       assert.equal(persistedQuote.rows[0].listing_id, 'listing-1');
       assert.equal(persistedQuote.rows[0].quote_hash, quoted.quoteHash);
       assert.equal(persistedQuote.rows[0].quote_payload.totalMinor, 3300);
+
+      const bookingCountBeforeGroup = (await setupPool.query(
+        'SELECT count(*)::int AS count FROM bookings',
+      )).rows[0].count;
+      await setupPool.query(
+        `INSERT INTO listings (
+           id, owner_id, payload, is_active, currency, price_per_day_minor, country
+         ) VALUES
+           ('g3b-listing-2', 'owner',
+            '{"id":"g3b-listing-2","ownerId":"owner","title":"Lens","currency":"EUR","country":"Deutschland"}'::jsonb,
+            true, 'EUR', 1200, 'Deutschland'),
+           ('g3b-foreign-listing', 'outsider',
+            '{"id":"g3b-foreign-listing","ownerId":"outsider","title":"Foreign","currency":"EUR","country":"Deutschland"}'::jsonb,
+            true, 'EUR', 1200, 'Deutschland')`,
+      );
+      const bookingGroupId = 'booking_group_11111111-1111-4111-8111-111111111111';
+      await setupPool.query(
+        `INSERT INTO booking_groups (
+           id, owner_id, renter_id, currency,
+           rental_start_date, rental_end_date, rental_timezone, starts_at, ends_at,
+           handover_location_key, handover_policy_version,
+           legal_document_set_version, cancellation_policy_version,
+           payment_configuration_key, compatibility_hash
+         ) VALUES (
+           $1, 'owner', 'renter-a', 'EUR',
+           '2026-10-01', '2026-10-03', $2, $3, $4,
+           $5, 'private_owner_pickup_v1',
+           'g3_multi_item_draft_v1', 'v52_private_cancellation',
+           'disabled_test_only', $6
+         )`,
+        [bookingGroupId, quoted.timezone, quoted.start, quoted.end, 'a'.repeat(64), 'b'.repeat(64)],
+      );
+      await setupPool.query(
+        `INSERT INTO booking_group_positions (
+           id, booking_group_id, listing_id, quote_id, quote_hash, currency,
+           rental_subtotal_minor, platform_fee_minor, total_minor,
+           owner_payout_minor, security_deposit_minor, sort_order
+         ) VALUES (
+           'booking_group_position_22222222-2222-4222-8222-222222222222',
+           $1, 'listing-1', $2, $3, 'EUR', 3000, 300, 3300, 3000, 0, 0
+         )`,
+        [bookingGroupId, quoted.quoteId, quoted.quoteHash],
+      );
+      const concurrentPositions = await Promise.allSettled([
+        setupPool.query(
+          `INSERT INTO booking_group_positions (
+             id, booking_group_id, listing_id, sort_order
+           ) VALUES (
+             'booking_group_position_33333333-3333-4333-8333-333333333333',
+             $1, 'g3b-listing-2', 1
+           )`,
+          [bookingGroupId],
+        ),
+        setupPool.query(
+          `INSERT INTO booking_group_positions (
+             id, booking_group_id, listing_id, sort_order
+           ) VALUES (
+             'booking_group_position_44444444-4444-4444-8444-444444444444',
+             $1, 'g3b-listing-2', 1
+           )`,
+          [bookingGroupId],
+        ),
+      ]);
+      assert.deepEqual(
+        concurrentPositions.map((result) => result.status).sort(),
+        ['fulfilled', 'rejected'],
+      );
+      assert.equal(
+        concurrentPositions.find((result) => result.status === 'rejected').reason.code,
+        '23505',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO booking_group_positions (
+             id, booking_group_id, listing_id, sort_order
+           ) VALUES (
+             'booking_group_position_55555555-5555-4555-8555-555555555555',
+             $1, 'g3b-foreign-listing', 2
+           )`,
+          [bookingGroupId],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'booking_group_position_owner_mismatch',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO booking_group_positions (
+             id, booking_group_id, listing_id, quote_id, quote_hash, currency,
+             rental_subtotal_minor, platform_fee_minor, total_minor,
+             owner_payout_minor, security_deposit_minor, sort_order
+           ) VALUES (
+             'booking_group_position_66666666-6666-4666-8666-666666666666',
+             $1, 'g3b-listing-2', $2, $3, 'EUR', 3000, 300, 3300, 3000, 0, 2
+           )`,
+          [bookingGroupId, quoted.quoteId, quoted.quoteHash],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'booking_group_position_quote_mismatch',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE booking_groups SET currency = 'USD' WHERE id = $1`,
+          [bookingGroupId],
+        ),
+        (error) => error?.code === '55000',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE booking_group_positions SET sort_order = 5
+            WHERE booking_group_id = $1 AND sort_order = 1`,
+          [bookingGroupId],
+        ),
+        (error) => error?.code === '55000',
+      );
+      assert.equal((await setupPool.query(
+        'SELECT count(*)::int AS count FROM booking_group_positions WHERE booking_group_id = $1',
+        [bookingGroupId],
+      )).rows[0].count, 2);
+      assert.equal((await setupPool.query(
+        'SELECT count(*)::int AS count FROM bookings',
+      )).rows[0].count, bookingCountBeforeGroup);
 
       const quoteCountBeforeCart = (await setupPool.query(
         'SELECT count(*)::int AS count FROM booking_quotes WHERE renter_id = $1',
@@ -2641,6 +2775,35 @@ if (!databaseUrl) {
         (await verifiedFacebookLogin.json()).user.id,
         facebookAccount.rows[0].id,
       );
+
+      const g3bDown = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/028_g3b_booking_group_foundation.down.sql'),
+        'utf8',
+      );
+      const g3bUp = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/028_g3b_booking_group_foundation.up.sql'),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(g3bDown),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'G3B rollback blocked: booking group data exists',
+      );
+      await setupPool.query('TRUNCATE booking_group_positions, booking_groups');
+      await setupPool.query(g3bDown);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name IN ('booking_groups', 'booking_group_positions')`,
+      )).rows[0].count, 0);
+      await setupPool.query(g3bUp);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name IN ('booking_groups', 'booking_group_positions')`,
+      )).rows[0].count, 2);
 
       const limitedAttempts = [];
       for (let attempt = 0; attempt < 9; attempt += 1) {

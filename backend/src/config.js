@@ -38,6 +38,12 @@ if (!['off', 'pilot', 'on'].includes(bookingPilotMode)) {
 const privatePilotV4Enabled = (process.env.PRIVATE_PILOT_V4_ENABLED ?? 'false')
   .trim()
   .toLowerCase() === 'true';
+const bookingGroupsEnabled = (process.env.BOOKING_GROUPS_ENABLED ?? 'false')
+  .trim()
+  .toLowerCase() === 'true';
+if (bookingGroupsEnabled && deploymentEnvironment === 'production') {
+  throw new Error('booking groups cannot be enabled in production before the release gate');
+}
 const privatePilotAllowedRegions = Object.freeze([
   ...new Set(
     csv(process.env.PRIVATE_PILOT_ALLOWED_REGIONS)
@@ -242,6 +248,10 @@ export const config = Object.freeze({
   bookingPilotEnabled: bookingPilotMode !== 'off',
   bookingPilotWithoutPayment: bookingPilotMode === 'pilot',
   privatePilotV4Enabled,
+  bookingGroups: Object.freeze({
+    enabled: bookingGroupsEnabled,
+    publicReleaseAllowed: false,
+  }),
   privatePilot: Object.freeze({
     allowedRegions: privatePilotAllowedRegions,
     regionsConfigured: privatePilotAllowedRegions.length > 0,
