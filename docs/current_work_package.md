@@ -1,112 +1,115 @@
-# Current Work Package: G2B - Persistent Rental Cart
+# Current Work Package: U0 - Pilot Cockpit and Unit Economics
 
-Status: active after green G2L implementation and exact GitHub CI.
+Status: active after green G2B implementation and exact GitHub CI.
 
 ## Objective
 
-Implement the bounded persistent `Mietkorb` foundation: account-bound rental
-cart and project containers, local guest preparation with return after
-login/registration, and server-side availability plus quote recheck. A cart is
-always an unverbindliche Absicht and never a reservation. Direct single-item
-rental and every existing V5.2 price, contract, checkout, booking and Payment
-gate remain authoritative.
+Build the bounded, internal and read-only pilot-cockpit foundation that makes
+SIT economics and founder dependence measurable without inventing live data.
+The cockpit must keep cash reality separate from normalized economics and must
+label every value by evidence class: `actual`, `configured`, `estimated` or
+`unavailable`.
 
-G2B is an orchestration layer. It may prepare or revalidate selections, but it
-must not invent inventory, price, availability, acceptance, booking,
-reservation or payment state.
+U0 is an evidence and reporting package. It may derive aggregates from
+existing repository/database facts and explicit input assumptions, but it
+must not activate payments, KYC, fraud providers, analytics, cloud services,
+marketing, production access or invasive time tracking.
 
 ## Baseline and inputs
 
 - Branch: `codex/master-workflow-20260808`; draft PR #7.
-- G2L implementation head:
-  `b84787e630a96de632eee90e8c7e016a078fcaef`; exact GitHub Actions run
-  `32383235202` is green and created no signed or published artifact.
+- G2B implementation head:
+  `c14dacb8a99669724839d07c41c2dbf6b0b497b5`; exact GitHub Actions run
+  `32388755772` is green and created no signed or published artifact.
 - Drive controls: `01_CONTROL_V2.3_AUTONOMOUS.md` and
   `02_CODEX_WORK_PACKAGES_SIT_V2.3.md`.
-- Product source:
-  `02_SIT_GROWTH_PRODUCT_PROJEKTKORB_UND_PLANER.pdf`, version 2.0,
-  18.08.2026.
-- V5.2 Core/Legal Map, deterministic server quote, booking state machine,
-  privacy/retention contracts and Store/release gates retain higher
-  subject-specific authority.
-- G2L lifecycle contract: `store/g2-data-lifecycle.json`.
-- G2L implementation report:
-  `docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md`.
+- Drive Founder-Independence source:
+  `03_SIT_FOUNDER_INDEPENDENCE_UND_DELEGATION.pdf`, version 18.08.2026.
+- FI0 contracts under `ops/founder-independence/` remain authoritative for
+  roles, critical-process ownership, aggregate founder-hours categories and
+  escalation routing.
+- Existing booking quote, payment ledger, payout, refund, financial-document,
+  project-cart, audit and retention schemas are the only runtime facts U0 may
+  treat as actual.
 
 ## Required behavior
 
-- `Mietkorb` contains individual rental selections, project containers and
-  the existing separate `Gemerkt` view.
-- Authenticated carts are account-bound and can be restored on another device.
-- A guest can prepare a bounded cart locally. Login or registration returns to
-  the cart and reconciles the guest selection without silently discarding an
-  existing account cart.
-- Project container identity, selected listings, date/time inputs and
-  project-linked selection state survive app/device changes where applicable.
-- Cart status is visibly `Im Mietkorb - noch nicht reserviert`; other users may
-  still book an item.
-- Stored price information is labelled informative. Before a cart can enter an
-  existing request/checkout path, the backend rechecks the current listing,
-  category, time range, conflicts and deterministic server quote.
-- An unavailable or changed line is surfaced explicitly. A changed quote must
-  be actively accepted through the existing V5.2 declarations/checkout rules;
-  no silent price or content acceptance.
-- Existing direct single-item rental remains available and behaviorally
-  unchanged.
+- Provide an internal, role-protected read-only cockpit snapshot with an
+  explicit period and generation timestamp.
+- Show cash and normalized P&L separately. Cash must not include unpaid,
+  failed, merely authorized or hypothetical amounts.
+- Show GMV, platform revenue, the VAT component, captured/refunded/provider
+  fee flows and contribution margin per booking and per completed handover
+  where the source facts exist.
+- Represent KYC, fraud, cloud, AI and marketing cost classes even when their
+  current state is zero, disabled, estimated or unavailable. Do not silently
+  collapse `unavailable` into zero.
+- Show the bounded project funnel from existing non-reserving cart/project
+  intent through quote/recheck and existing booking lifecycle milestones.
+- Show aggregate founder hours by strategy, operations, support, technical and
+  emergency categories, plus aggregate escalations and their routing quality.
+  No automatic screen, keyboard, app, message or activity monitoring.
+- Expose the normalized founder-labor replacement cost as an explicit
+  assumption, never as an actual cash expense unless supported by a real
+  ledger record.
+- Never label SIT profitable when normalized contribution after the configured
+  founder replacement cost is negative or unavailable.
 
-## Data and lifecycle requirements
+## Metric and provenance requirements
 
-- Use an explicit versioned cart/project schema with deterministic ownership,
-  ordering and idempotent mutations.
-- Preserve all G2A legacy `Gemerkt` keys and values; do not reinterpret them as
-  cart reservations or migrate them destructively.
-- Extend account export, confirmed deletion, retention inventory and their
-  exact source hashes for every newly active cart/project dataset before
-  activation.
-- Guest data remains local and data-minimal until authentication; authenticated
-  sync is server-authoritative and scoped to the current account.
-- Do not store raw secrets, payment credentials, legal acceptance substitutes,
-  chat text, exact analytics free text or unrelated personal data in carts.
-- Database migrations must be forward-only, narrowly scoped and reversible by
-  a documented non-destructive follow-up; no destructive cleanup or history
-  rewrite.
+- Every monetary value uses integer minor units plus an ISO currency. Mixed
+  currencies are not summed without an explicit, separately authorized FX
+  source; U0 may instead return per-currency buckets.
+- Every metric carries source/provenance, evidence class and completeness.
+- Revenue, VAT and provider-fee calculations must be tied to existing
+  immutable quote/payment/financial-document truth; no tax rate or provider
+  price may be invented.
+- Estimates and configured assumptions must be separately listed so changing
+  one cannot rewrite actual historical results.
+- Missing live/provider facts must remain visible as `unavailable` and keep
+  normalized profitability `undetermined` where material.
+- The cockpit must not expose user identity, chat text, precise locations,
+  payment credentials, secrets, raw evidence photos or unrelated personal
+  data. Counts and financial aggregates are sufficient.
+- Queries must be bounded, read-only and suitable for later management
+  handover. No purge, reconciliation, payout, refund or booking mutation is
+  permitted.
 
-## Not allowed in G2B
+## Not allowed in U0
 
-- No reservation merely by adding to cart and no client-authoritative price,
-  availability, category or conflict decision.
-- No new contract state, legal declaration, consent, retention period,
-  discount, fee, refund, cancellation, no-show or damage rule.
-- No real money, Payment activation, deposit, protection/insurance or grouped
-  multi-recipient checkout.
-- No automatic multi-owner request, grouped booking lifecycle, partial-offer
-  workflow, payout aggregation, SIT Planer, external AI or new analytics
-  provider; those require later bounded packages.
-- No rewrite of historical legal, quote, consent, contract, device or release
-  evidence.
-- No production, VPS/OpenClaw, Maximus, SSH, DNS, cloud-console, provider,
-  account, Store, signed candidate, public rollout, PR merge or destructive Git
-  action.
+- No production/VPS/OpenClaw/Maximus/SSH/DNS/cloud-console access or mutation.
+- No real payment, payout, refund, KYC, fraud, email, SMS, push, provider or
+  analytics traffic.
+- No new legal/tax conclusion, VAT rate, cost estimate, founder wage,
+  profitability claim or business-model decision without an explicit source.
+- No automated founder surveillance, detailed personal activity log or
+  employee-style monitoring.
+- No public/admin production UI, Store action, signed candidate, deployment,
+  PR merge or public rollout.
+- No G3A/grouped booking, G4, G5, P0, A0, AI, SIT Business or global work.
 
 ## Acceptance criteria
 
-- Persistent account cart/project containers restore exactly and remain
-  explicitly non-reserving.
-- Guest preparation returns through login/registration and reconciles without
-  silent loss or cross-account leakage.
-- Server recheck returns explicit current/unavailable/changed outcomes and an
-  exact deterministic quote binding before existing request/checkout work.
-- Concurrent availability changes cannot create a false reservation or bypass
-  the existing booking-conflict guard.
-- Export, confirmed deletion and retention cover every active new dataset;
-  Privacy/Legal/Store states remain honest draft/open where unresolved.
-- Legacy `Gemerkt`, direct single-item rental, deep links, navigation and
-  existing V5.2 booking/checkout behavior stay regression-covered.
-- Focused backend, migration, Flutter, lifecycle, negative and concurrency
-  tests pass; complete local regression and exact GitHub CI are green.
+- A deterministic snapshot schema distinguishes actual/configured/estimated/
+  unavailable values and cash/normalized views.
+- Focused fixtures prove correct cent arithmetic, refunds, VAT components,
+  provider costs, per-booking/per-handover contribution and per-currency
+  separation without double counting.
+- Disabled or missing KYC/fraud/cloud/AI/marketing sources remain explicit and
+  cannot generate a false zero-cost or profitability claim.
+- Project-funnel and founder-independence aggregates are bounded,
+  privacy-minimal and fail closed on invalid inputs.
+- Role/access tests prove the cockpit is read-only and limited to the existing
+  appropriate internal role set.
+- Documentation defines formulas, provenance, current unavailable inputs,
+  rollback and the future path to actual pilot evidence.
+- Focused backend/tool tests, complete local regression and exact GitHub CI are
+  green. No live system is required.
 
-## Expected next transition
+## Required final gate
 
-GREEN: U0 - pilot cockpit and unit economics. YELLOW/RED: stop at the exact
-data-loss, account-isolation, availability, quote, legal/privacy/retention or
-existing-booking ambiguity. No live system is needed to complete G2B.
+U0 is the end of the current autonomous runway. After a green U0 report and
+exact CI, do not start G3A or any later package. Preserve the clean branch and
+send the concise Maximus/Telegram completion gate requesting Walid's decision
+on G3A timing and scope. Do not modify Maximus or treat the alert route as a
+SIT runtime dependency.

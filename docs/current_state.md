@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G2L implementation head:
-  `b84787e630a96de632eee90e8c7e016a078fcaef`.
-- The G2L implementation commit is contained in the local branch, remote
+- Current G2B implementation head:
+  `c14dacb8a99669724839d07c41c2dbf6b0b497b5`.
+- The G2B implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32383235202` is green: backend regression and
+- Exact GitHub Actions run `32388755772` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -19,7 +19,7 @@ Verified: 2026-08-20 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `026`, deterministic
+- Node/Express backend with PostgreSQL migrations through `027`, deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
@@ -48,20 +48,30 @@ Verified: 2026-08-20 on the Mac mini.
   Bookings asset icon and profile-image affordance.
 - Existing Wishlist data stays on `wishlists_meta_v1` and
   `wishlist_assign_v1` and is presented as `Mietkorb` > `Gemerkt` with an
-  explicit non-binding/no-reservation notice. No persistent cart or project
-  data was introduced.
+  explicit non-binding/no-reservation notice. G2B does not reinterpret or
+  destructively migrate these values.
 - The old internal `WishlistsScreen` type remains a compatibility entry point;
   existing app/deep-link contracts are unchanged.
 - G2L includes all three existing local `Gemerkt` stores in account export and
   removes exactly those stores after confirmed account deletion on the active
   device. Unrelated local preferences remain untouched.
-- `store/g2-data-lifecycle.json` records the current local saved-item lifecycle
-  and keeps persistent rental/project cart data inactive and not collected.
-  Its validator fails closed if cart persistence appears before export,
-  deletion and retention coverage.
-- Current Privacy terminology now truthfully distinguishes local `Gemerkt`,
-  the empty G2A `Mietkorb` shell and the inactive persistent cart planned for
-  G2B. Historical legal/privacy snapshots are unchanged.
+- G2B adds a versioned account cart, project containers and idempotent cart
+  lines in migration `027`. Cart quote previews reuse deterministic server
+  pricing without persisting a booking quote and never create a booking,
+  request, reservation, availability hold or payment.
+- Guests can prepare bounded local cart/project state. Login and registration
+  reconcile it project-first and remove the local copy only after every
+  server upsert succeeds. A pending partial sync is bound to its account and
+  hidden from other accounts and logged-out users.
+- Server recheck exposes current, changed and unavailable lines before the
+  existing single-item V5.2 checkout. Stored prices remain informative and
+  direct single-item rental remains available.
+- `store/g2-data-lifecycle.json` now records the active local/account lifecycle.
+  Account and local exports, confirmed deletion and retention inventory cover
+  all three new datasets before activation.
+- Current Privacy terminology truthfully distinguishes `Gemerkt`, local guest
+  intent and the account-bound non-reserving cart. Historical legal/privacy
+  snapshots are unchanged.
 
 ## Current safe operating state
 
@@ -85,10 +95,10 @@ Verified: 2026-08-20 on the Mac mini.
 
 ## Validation and rollback
 
-- Exact CI backend suite: 273 passed, 0 failed, 0 skipped with PostgreSQL.
-- Local backend suite: 272 passed, 0 failed and one expected PostgreSQL skip
+- Exact G2B CI is green with PostgreSQL migration/integration coverage.
+- Local backend suite: 276 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
-- Complete Flutter suite: 303 passed with one documented skip; the extra
+- Complete Flutter suite: 307 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
   debug APK passed.
 - Analyzer remains at the accepted 223-item baseline. Dependency audit has no
@@ -110,8 +120,8 @@ Verified: 2026-08-20 on the Mac mini.
 
 ## Next source of truth
 
-The active bounded task is `docs/current_work_package.md`: G2B persistent
-rental cart only. G2A and G2L are technically complete; FI0 external
+The active bounded task is `docs/current_work_package.md`: U0 pilot cockpit and
+unit economics only. G2A, G2L and G2B are technically complete; FI0 external
 role/account assignments and all C1I release/device gates remain HOLD. Older
 reports and root `architecture.md` are evidence/history, not permission to
 reopen a closed launch boundary.
