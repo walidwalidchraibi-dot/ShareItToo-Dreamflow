@@ -19,6 +19,7 @@ if (!databaseUrl) {
 } else {
   test('migrations, concurrency guard, and private-resource boundaries work together', async () => {
     process.env.DATABASE_URL = databaseUrl;
+    process.env.DEPLOYMENT_ENVIRONMENT = 'test';
     process.env.JWT_SECRET ??= crypto.randomBytes(48).toString('base64url');
     process.env.MAIL_TRANSPORT = 'memory';
     process.env.PAYMENT_TRANSPORT = 'memory';
