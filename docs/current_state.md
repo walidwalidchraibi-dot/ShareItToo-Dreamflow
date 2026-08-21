@@ -148,6 +148,18 @@ Verified: 2026-08-21 on the Mac mini.
   complete 346-test Flutter suite with one documented skip, Web smoke/build
   and Android debug build passed. No automatic split/link, external delivery,
   production, payment, Store, signed candidate or live path was used.
+- S3L is technically verified at exact commit
+  `57ca7b016cae3447edaea352cb919dab99c390ae` and successful GitHub Actions run
+  `32532443847`. It addresses Drive scenario `SUP-028` by exposing a dedicated
+  `Datenschutz & Daten` route inside the normal support intake. All seven
+  canonical Privacy subtypes create a separate `privacy_security` case with
+  `privacy_owner`, red decision boundary and a server-derived operational
+  next-update checkpoint. The receipt rejects a server response whose case
+  type or subtype does not match the selected route and explicitly confirms
+  the separate Privacy path. All 436 Backend tests and the complete 348-test
+  Flutter suite with one documented skip, Web smoke/build and Android debug
+  build passed. This adds no text inference, statutory deadline claim,
+  external delivery, production, payment, Store, signed candidate or live path.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

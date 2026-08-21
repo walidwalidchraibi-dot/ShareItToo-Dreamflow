@@ -163,6 +163,22 @@ skip, Web smoke/build and Android debug build passed. No linked case is invented
 and no external delivery, production, payment, Store, signed candidate or live
 operation is enabled.
 
+`S3L_SUPPORT_PRIVACY_INTAKE_ROUTE` is technically verified at exact
+implementation/evidence commit
+`57ca7b016cae3447edaea352cb919dab99c390ae` and successful GitHub Actions run
+`32532443847`. It addresses Drive scenario `SUP-028`: after safety and
+single-issue triage, the normal support flow exposes all seven canonical
+Privacy request types under `Datenschutz & Daten`. Submission creates a
+separate `privacy_security` case; the server deterministically assigns
+`privacy_owner`, a red decision boundary and a bounded operational update
+checkpoint. The user receipt is accepted only when server-confirmed case type
+and subtype equal the selected route, then identifies the separate Privacy
+path and the exact next-update display. All 436 Backend tests and the complete
+348-test Flutter suite with one documented skip, Web smoke/build and Android
+debug build passed. No semantic text classifier, statutory deadline, external
+delivery, production, payment, Store, signed candidate or live operation is
+enabled.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress
