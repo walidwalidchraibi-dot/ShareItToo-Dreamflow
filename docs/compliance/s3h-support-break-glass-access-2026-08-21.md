@@ -1,7 +1,8 @@
 # S3H support break-glass access - technical compliance record
 
-Status: implementation complete locally; exact-commit GitHub CI verification
-pending.
+Status: technically verified at exact implementation/evidence commit
+`cfb9a3377c432efb2d3c76620c35cb24623dd5e6` and successful GitHub Actions run
+`32520795019` on 21.08.2026.
 
 ## Implemented controls
 
@@ -14,6 +15,9 @@ pending.
   SHA-256 digest is persisted.
 - Support detail access remains assigned-owner-only unless the exact bounded
   grant validates. Queue access is not widened.
+- Grant creation and review use separate five-attempt/15-minute HTTP limits,
+  preserving the exact idempotent P0 replay without consuming the generic
+  account-action budget. The exact token header is CORS-allowlisted.
 - Creation, denial and successful use are audited without token or internal
   justification disclosure.
 - Automatic review is due at grant expiry. Completion requires a different
@@ -41,12 +45,27 @@ pending.
 ## Verification state
 
 - Focused domain, workflow, support access, retention and wiring tests pass
-  locally.
+  locally. The complete local technical regression also passed.
 - Privacy and retention validators and their negative-test suites pass while
   both manifests remain draft and fail closed.
-- PostgreSQL 16 execution, complete Backend/Flutter/Web/Android regression,
-  secret scan and dependency audit remain delegated to exact-commit GitHub CI
-  because the Mac mini has no local Docker runtime.
+- Exact-commit GitHub CI run `32520795019` passed all 415 Backend tests,
+  including PostgreSQL 16 migration and HTTP integration, with no skip or
+  failure. Dependency/high-severity audit, tracked-history secret scan,
+  production/staging Compose validation and commit-labelled API image build
+  passed.
+- The same run reported 220 analyzer findings against the accepted baseline of
+  223, passed 343 Flutter tests with one documented skip, passed the separate
+  Google-only profile test, built Web, passed the loopback Web smoke and built
+  the Android debug APK.
+- The pull request remains draft and unmerged. The signed-candidate and
+  publication paths remained skipped; no release artifact was authorized.
+
+The first remote pass exposed three integration-only defects which were fixed
+before the successful exact run: a shared generic rate-limit budget blocked an
+idempotent replay, the reserved PostgreSQL keyword `grant` was used as an SQL
+alias, and the cross-case negative test targeted a normally assigned case.
+Dedicated limits, safe SQL aliases and a genuinely unassigned existing target
+now have permanent regression coverage.
 
 ## Persistent exclusions
 

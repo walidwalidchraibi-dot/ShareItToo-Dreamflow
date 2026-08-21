@@ -106,11 +106,16 @@ Verified: 2026-08-21 on the Mac mini.
   implemented and communicated user-facing decision fields; S3G adds one
   reporter submission per explicitly configured closed-case appeal deadline.
   Neither package sends an external message or executes a live measure.
-- S3H is the current non-live implementation candidate. It adds P0-only,
+- S3H is technically verified at exact commit
+  `cfb9a3377c432efb2d3c76620c35cb24623dd5e6` and successful GitHub Actions run
+  `32520795019`. It adds P0-only,
   case-bound five-minute break-glass access for active support staff behind the
   exact current session and Staff-Step-up. Every grant queues an independent
   elevated Admin review, while privacy export omits internal reasons and staff
-  identifiers. Incident-wide access remains absent rather than inferred.
+  identifiers. Dedicated bounded HTTP limits preserve exact idempotent replay,
+  and the browser token header is CORS-allowlisted. Incident-wide access remains
+  absent rather than inferred. PR #7 remains draft and unmerged; no live or
+  signed-candidate path was used.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

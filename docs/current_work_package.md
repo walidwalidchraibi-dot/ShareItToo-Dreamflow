@@ -102,15 +102,20 @@ publication jobs remained skipped. S3G does not adjudicate the appeal, reopen a
 case automatically, render or send a template, or execute any external or live
 measure. Missing policy dates remain missing and are never invented.
 
-`S3H_SUPPORT_BREAK_GLASS_ACCESS` is the active non-live implementation
-candidate. It addresses Drive matrix scenarios `SUP-024` and `SUP-025` with a
+`S3H_SUPPORT_BREAK_GLASS_ACCESS` is technically verified at exact
+implementation/evidence commit
+`cfb9a3377c432efb2d3c76620c35cb24623dd5e6` and successful GitHub Actions run
+`32520795019`. It addresses Drive matrix scenarios `SUP-024` and `SUP-025` with a
 P0-only, case/actor/session/step-up-bound grant of at most five minutes,
 digest-only token storage, complete sanitized audit and an automatic independent
 Admin review due at expiry. The exact reviewer session and Staff-Step-up are
 persisted. User export receives only a safe transparency projection; the full
 truth is inventoried as `securityAudit`. No incident-wide authority is inferred,
-because no canonical incident binding exists. Exact-commit GitHub CI remains
-pending.
+because no canonical incident binding exists. All 415 Backend tests including
+PostgreSQL 16 passed; dependency/secret/Compose/API-image checks passed. The
+same run passed the 343-test Flutter suite with one documented skip, the
+separate Google-only test, Web build and loopback smoke, and Android debug
+build. Signed-candidate, publication, merge and live paths remained skipped.
 
 ## Prior ordered post-P0B gate close
 
