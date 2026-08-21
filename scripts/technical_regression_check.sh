@@ -58,6 +58,10 @@ node --check tool/validate_operational_delegation.mjs
 node --test test/tool/validate_operational_delegation.test.mjs
 node tool/validate_operational_delegation.mjs
 
+node --check tool/validate_p0a_closed_pilot_readiness.mjs
+node --test test/tool/validate_p0a_closed_pilot_readiness.test.mjs
+node tool/validate_p0a_closed_pilot_readiness.mjs
+
 node --check tool/validate_privacy_disclosures.mjs
 node --test test/tool/validate_privacy_disclosures.test.mjs
 node --test test/tool/validate_messaging_launch_scope.test.mjs
@@ -396,5 +400,6 @@ flutter test --reporter expanded \
   test/social_auth_google_only_profile_test.dart
 
 flutter build web --debug
+bash scripts/p0a_web_smoke.sh
 
 flutter build apk --debug
