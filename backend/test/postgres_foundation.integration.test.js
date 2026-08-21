@@ -100,6 +100,7 @@ if (!databaseUrl) {
         '036_support_closed_case_appeal_submission.up.sql',
         '037_support_break_glass_access.up.sql',
         '038_support_message_template_guard.up.sql',
+        '039_support_deadline_watchdog.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -171,6 +172,7 @@ if (!databaseUrl) {
           'support_case_events',
           'support_cases',
           'support_decisions',
+          'support_deadline_watchdog_state',
           'support_evidence',
           'support_messages',
           'support_policy_snapshots',
@@ -182,6 +184,7 @@ if (!databaseUrl) {
         { table_name: 'support_case_events' },
         { table_name: 'support_cases' },
         { table_name: 'support_decisions' },
+        { table_name: 'support_deadline_watchdog_state' },
         { table_name: 'support_evidence' },
         { table_name: 'support_messages' },
         { table_name: 'support_policy_snapshots' },
@@ -1101,6 +1104,9 @@ if (!databaseUrl) {
 
       const { createApp } = await import('../src/app.js');
       const { pool, } = await import('../src/db.js');
+      const { reconcileSupportDeadlinesWithClient } = await import(
+        '../src/support_deadline_watchdog.js'
+      );
       const { drainNotificationOutbox } = await import('../src/notifications.js');
       const { applyProviderEvent } = await import('../src/payment_workflow.js');
       const { hashActionToken, hashPassword, signAccessToken } = await import('../src/security.js');
@@ -3372,6 +3378,37 @@ if (!databaseUrl) {
           WHERE id = $1`,
         [supportIntake.supportCase.id],
       );
+      await setupPool.query(
+        `UPDATE support_cases
+            SET created_at = now() - interval '2 hours',
+                next_update_at = now() - interval '1 hour'
+          WHERE id = $1`,
+        [p0BreakGlassCase.rows[0].id],
+      );
+      const watchdogFirst = await reconcileSupportDeadlinesWithClient(setupPool, {
+        now: new Date(),
+      });
+      assert.equal(watchdogFirst.p0WithoutOwner, 1);
+      assert.equal(watchdogFirst.nextUpdateOverdue, 1);
+      assert.equal(watchdogFirst.alertsCreated, 2);
+      const watchdogReplay = await reconcileSupportDeadlinesWithClient(setupPool, {
+        now: new Date(),
+      });
+      assert.equal(watchdogReplay.alertsCreated, 0);
+      const operationalAlertsResponse = await fetch(
+        `${baseUrl}/v1/admin/support/operational-alerts`,
+        { headers: adminHeaders },
+      );
+      assert.equal(operationalAlertsResponse.status, 200);
+      assert.match(operationalAlertsResponse.headers.get('cache-control'), /no-store/u);
+      const operationalAlerts = await operationalAlertsResponse.json();
+      assert.equal(operationalAlerts.externalNotificationsSent, 0);
+      assert.equal(operationalAlerts.alerts.length, 2);
+      assert.ok(operationalAlerts.alerts.every((alert) => (
+        alert.caseId === p0BreakGlassCase.rows[0].id
+        && alert.externalNotificationSent === false
+        && !Object.hasOwn(alert, 'structuredPayload')
+      )));
       const unassignedP0WithoutGrant = await fetch(
         `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}`,
         { headers: supportHeaders },

@@ -91,6 +91,29 @@ test('missing, unexpected and mismatched placeholders fail closed', () => {
   );
 });
 
+test('templates with a next-update promise reject an already overdue case deadline', () => {
+  assert.throws(
+    () => normalizeSupportMessageDraft({
+      templateId: 'T-001',
+      variables: intakeVariables(),
+      publishNow: true,
+    }, {
+      supportCase,
+      now: new Date('2026-08-22T10:00:00.000Z'),
+    }),
+    /support_message_next_update_overdue/u,
+  );
+  const noPromise = normalizeSupportMessageDraft({
+    templateId: 'T-034',
+    variables: { first_name: 'Walid', case_id: caseNumber },
+    publishNow: true,
+  }, {
+    supportCase,
+    now: new Date('2026-08-23T10:00:00.000Z'),
+  });
+  assert.equal(noPromise.sendStatus, 'sent');
+});
+
 test('sensitive data and unsafe decision claims are blocked in variables', () => {
   for (const confirmed_fact of [
     'API-Key: sk_live_1234567890',

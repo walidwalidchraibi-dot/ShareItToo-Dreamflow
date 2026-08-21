@@ -191,6 +191,10 @@ import {
   reviewSupportMessage,
 } from './support_message_workflow.js';
 import {
+  listSupportOperationalAlerts,
+  supportDeadlineHealth,
+} from './support_deadline_watchdog.js';
+import {
   getPilotCockpitSnapshot,
   PilotCockpitError,
 } from './pilot_cockpit.js';
@@ -1499,11 +1503,17 @@ export function createApp({
   app.get('/health', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
     const mail = getMailerStatus();
-    const [notifications, payments] = await Promise.all([notificationHealth(), paymentHealth()]);
+    const [notifications, payments, supportDeadlines] = await Promise.all([
+      notificationHealth(),
+      paymentHealth(),
+      supportDeadlineHealth(),
+    ]);
     res.json({
-      status: mail === 'ok' && notifications.dead === 0 && payments.failedEvents === 0 && payments.unbalanced === 0 ? 'ok' : 'degraded',
+      status: mail === 'ok' && notifications.dead === 0
+        && payments.failedEvents === 0 && payments.unbalanced === 0
+        && supportDeadlines.status === 'ok' ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail, notifications, payments },
+      checks: { database: 'ok', mail, notifications, payments, supportDeadlines },
       release: releaseMetadata,
       time: new Date().toISOString(),
     });
@@ -1516,13 +1526,18 @@ export function createApp({
   app.get('/health/ready', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
     const mail = getMailerStatus();
-    const [notifications, payments] = await Promise.all([notificationHealth(), paymentHealth()]);
+    const [notifications, payments, supportDeadlines] = await Promise.all([
+      notificationHealth(),
+      paymentHealth(),
+      supportDeadlineHealth(),
+    ]);
     const ready = mail !== 'error' && mail !== 'unverified' && notifications.dead === 0
-      && payments.failedEvents === 0 && payments.unbalanced === 0;
+      && payments.failedEvents === 0 && payments.unbalanced === 0
+      && supportDeadlines.status === 'ok';
     res.status(ready ? 200 : 503).json({
       status: ready ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail, notifications, payments },
+      checks: { database: 'ok', mail, notifications, payments, supportDeadlines },
       release: releaseMetadata,
     });
   }));
@@ -4335,6 +4350,17 @@ export function createApp({
       limit: req.query.limit ?? 100,
     });
     res.set('Cache-Control', 'private, no-store').json({ supportCases });
+  }));
+
+  app.get('/v1/admin/support/operational-alerts', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const alerts = await listSupportOperationalAlerts(pool, {
+      actor: req.actor,
+      limit: req.query.limit ?? 100,
+    });
+    res.set('Cache-Control', 'private, no-store').json({
+      alerts,
+      externalNotificationsSent: 0,
+    });
   }));
 
   app.get('/v1/admin/support/cases/:id', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {

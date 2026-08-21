@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 
 import { SupportCaseError } from './support_case_domain.js';
 import {
+  assertSupportMessageDeadlineCurrent,
   normalizeSupportMessageDraft,
   normalizeSupportMessagePublication,
   normalizeSupportMessageReview,
@@ -158,6 +159,7 @@ export async function createSupportMessage(client, {
   }
   const draft = normalizeSupportMessageDraft(raw, {
     supportCase,
+    now,
   });
   if (draft.correctsMessageId) {
     const correctionTarget = await client.query(
@@ -400,7 +402,8 @@ export async function publishSupportMessage(client, {
   const publication = normalizeSupportMessagePublication(raw);
   const locked = await client.query(
     `SELECT message.*, support_case.current_owner_id AS case_current_owner_id,
-            support_case.operating_mode AS case_operating_mode
+            support_case.operating_mode AS case_operating_mode,
+            support_case.next_update_at AS case_next_update_at
        FROM support_messages AS message
        JOIN support_cases AS support_case ON support_case.id = message.case_id
       WHERE message.id::text = $1 AND support_case.id::text = $2
@@ -425,6 +428,11 @@ export async function publishSupportMessage(client, {
   if (row.rendered_content_sha256 !== publication.expectedPayloadSha256) {
     throw new SupportCaseError(409, 'support_message_payload_changed');
   }
+  assertSupportMessageDeadlineCurrent(
+    row,
+    { next_update_at: row.case_next_update_at },
+    now,
+  );
   const greenDraft = row.approval_level === 'green_automatic' && row.send_status === 'draft';
   const reviewedYellow = row.approval_level === 'yellow_human_review'
     && row.send_status === 'approved'

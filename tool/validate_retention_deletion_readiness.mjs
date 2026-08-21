@@ -27,6 +27,7 @@ const sourcePaths = [
   'backend/src/support_message_domain.js',
   'backend/src/support_message_workflow.js',
   'backend/src/support_message_templates_v1.json',
+  'backend/src/support_deadline_watchdog.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -75,6 +76,7 @@ const sourcePaths = [
   'backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql',
   'backend/sql/migrations/037_support_break_glass_access.up.sql',
   'backend/sql/migrations/038_support_message_template_guard.up.sql',
+  'backend/sql/migrations/039_support_deadline_watchdog.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -463,6 +465,9 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!inventory.includes("'securityAudit', 'support_break_glass_grants'")) {
     fail('Retention inventory is missing immutable dataset support_break_glass_grants.');
+  }
+  if (!inventory.includes("'securityAudit', 'support_deadline_watchdog_state'")) {
+    fail('Retention inventory is missing operational dataset support_deadline_watchdog_state.');
   }
   if (!inventory.includes("'communications', 'support_messages'")) {
     fail('Retention inventory is missing immutable dataset support_messages.');

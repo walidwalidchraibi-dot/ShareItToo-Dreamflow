@@ -27,6 +27,7 @@ const sourcePaths = [
   'backend/src/support_message_domain.js',
   'backend/src/support_message_workflow.js',
   'backend/src/support_message_templates_v1.json',
+  'backend/src/support_deadline_watchdog.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -64,6 +65,7 @@ const sourcePaths = [
   'backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql',
   'backend/sql/migrations/037_support_break_glass_access.up.sql',
   'backend/sql/migrations/038_support_message_template_guard.up.sql',
+  'backend/sql/migrations/039_support_deadline_watchdog.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -437,6 +439,21 @@ function assertSourceContracts({ root, sourceTexts }) {
   ]) {
     if (!supportMessageMigration.includes(marker)) {
       fail(`Support-message database privacy boundary is missing ${marker}.`);
+    }
+  }
+  const supportDeadlineWatchdog = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_deadline_watchdog.js',
+  );
+  for (const marker of [
+    "operating_mode IN ('simulation', 'internal_testing')",
+    "true, 'internal'",
+    'externalNotificationSent: false',
+    'support_operational_alerts_forbidden',
+  ]) {
+    if (!supportDeadlineWatchdog.includes(marker)) {
+      fail(`Support-deadline privacy boundary is missing ${marker}.`);
     }
   }
   const rentalCartWorkflow = sourceText(

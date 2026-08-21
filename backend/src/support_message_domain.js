@@ -9,6 +9,7 @@ const hashes = /^[0-9a-f]{64}$/u;
 const uuids = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const placeholderPattern = /\{\{([a-z0-9_]+)\}\}/gu;
 const moneyPlaceholderPattern = /(?:amount|payout|refund|fee|payment_total|cancellation_breakdown)/u;
+const nextUpdatePlaceholderPattern = /^next_update_(?:date|time|datetime)$/u;
 const serverBoundPlaceholders = new Set([
   'case_id',
   'booking_reference',
@@ -258,7 +259,18 @@ export function supportMessageIdempotencyKey(value, suffix = 'support.message') 
   return `${suffix}:${key}`;
 }
 
-export function normalizeSupportMessageDraft(raw, { supportCase }) {
+export function assertSupportMessageDeadlineCurrent(templateOrMessage, supportCase, now = new Date()) {
+  const placeholders = Array.isArray(templateOrMessage?.requiredPlaceholders)
+    ? templateOrMessage.requiredPlaceholders
+    : Object.keys(templateOrMessage?.structured_variables ?? {});
+  if (!placeholders.some((key) => nextUpdatePlaceholderPattern.test(key))) return;
+  const deadline = supportCase?.next_update_at ? new Date(supportCase.next_update_at) : null;
+  if (!deadline || !Number.isFinite(deadline.getTime()) || deadline <= now) {
+    throw new SupportCaseError(409, 'support_message_next_update_overdue');
+  }
+}
+
+export function normalizeSupportMessageDraft(raw, { supportCase, now = new Date() }) {
   requiredObject(raw, 'support_message_invalid');
   requiredObject(supportCase, 'support_message_case_context_required');
   const templateId = requiredText(raw.templateId, 20, 'support_message_template_required').toUpperCase();
@@ -284,6 +296,7 @@ export function normalizeSupportMessageDraft(raw, { supportCase }) {
       throw new SupportCaseError(409, 'support_message_automatic_template_not_enabled');
     }
   }
+  assertSupportMessageDeadlineCurrent(template, supportCase, now);
   const { variables, rendered } = renderTemplate(
     template,
     raw.variables,

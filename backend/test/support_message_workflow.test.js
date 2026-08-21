@@ -303,3 +303,45 @@ test('reviewed yellow message publishes only into the authenticated in-app recor
   assert.equal(result.message.externalMessageSent, false);
   client.done();
 });
+
+test('publication rechecks a promised next-update deadline after approval', async () => {
+  const approved = messageRow({
+    approved_by: 'admin-1',
+    approved_at: now,
+    approval_payload_sha256: 'a'.repeat(64),
+    reviewed_by: 'admin-1',
+    reviewed_at: now,
+    review_outcome: 'approved',
+    send_status: 'approved',
+    lock_version: 2,
+    structured_variables: { next_update_date: '21.08.2026' },
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/u, result: noRows },
+    {
+      match: /case_next_update_at/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          ...approved,
+          case_current_owner_id: 'support-1',
+          case_operating_mode: 'simulation',
+          case_next_update_at: now,
+        }],
+      },
+    },
+    { match: /SELECT 1 FROM support_case_events/u, result: noRows },
+  ]);
+  await assert.rejects(
+    publishSupportMessage(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      messageId,
+      raw: { expectedVersion: 2, expectedPayloadSha256: 'a'.repeat(64) },
+      idempotencyKey: 'message-publish-overdue',
+      now,
+    }),
+    /support_message_next_update_overdue/u,
+  );
+  client.done();
+});

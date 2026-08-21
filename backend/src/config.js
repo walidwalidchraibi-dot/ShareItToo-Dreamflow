@@ -255,6 +255,14 @@ if (paymentTransport === 'stripe' && stripeLivemode
   );
 }
 
+const supportDeadlineWorkerIntervalMs = Math.min(
+  15 * 60 * 1000,
+  Math.max(
+    30_000,
+    Number.parseInt(process.env.SUPPORT_DEADLINE_WORKER_INTERVAL_MS ?? '60000', 10),
+  ),
+);
+
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
   databaseUrl: required('DATABASE_URL'),
@@ -340,6 +348,13 @@ export const config = Object.freeze({
         30_000,
         Number.parseInt(process.env.RETURN_LIFECYCLE_WORKER_INTERVAL_MS ?? '60000', 10),
       ),
+    ),
+  }),
+  supportDeadlines: Object.freeze({
+    workerIntervalMs: supportDeadlineWorkerIntervalMs,
+    maxStalenessMs: Math.max(
+      supportDeadlineWorkerIntervalMs * 3,
+      Number.parseInt(process.env.SUPPORT_DEADLINE_MAX_STALENESS_MS ?? '180000', 10),
     ),
   }),
   push: Object.freeze({
