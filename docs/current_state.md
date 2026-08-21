@@ -122,6 +122,21 @@ Verified: 2026-08-21 on the Mac mini.
   external dependency is not bypassed; independent non-live operations work
   continues next.
 
+## P0B operations role/delegate/absence gate
+
+- The executable gate binds all six FI0 roles, all four FI1 processes and the
+  current Drive Founder Independence/Support test sources.
+- Four synthetic role/fallback configuration rehearsals pass. This proves the
+  deterministic role design only; no real person participated.
+- Zero role assignees, zero delegates, no company IAM/RBAC/MFA evidence and
+  zero human 72-hour absence tests are available. Operations readiness and bus
+  factor therefore remain false.
+- The cockpit reports technical rehearsal and human readiness separately.
+  Names, emails, credentials and personal device identifiers are neither
+  stored nor exposed.
+- No account, production, payment, provider, Store or public state changed.
+  Independent work continues to current signed-device evidence.
+
 ## G3B booking-group foundation
 
 - Walid selected G3A Variant A and authorized the V2.4 rolling-autonomy runway.

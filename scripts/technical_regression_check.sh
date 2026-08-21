@@ -347,6 +347,11 @@ node tool/validate_g3l_legal_draft.mjs
 node --check tool/validate_p0b_legal_review_intake.mjs
 node --test test/tool/validate_p0b_legal_review_intake.test.mjs
 node tool/validate_p0b_legal_review_intake.mjs
+node --check backend/src/operational_readiness_gate.js
+node --test backend/test/operational_readiness_gate.test.js
+node --check tool/validate_p0b_ops_readiness.mjs
+node --test test/tool/validate_p0b_ops_readiness.test.mjs
+node tool/validate_p0b_ops_readiness.mjs
 node --test test/tool/g5b_listing_sets_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
 

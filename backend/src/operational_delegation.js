@@ -33,6 +33,21 @@ export function buildOperationalDelegationCockpit() {
     namedPersonDependencyAllowed: false,
     assignmentEvidenceAvailable: false,
     absenceTestsPassed: false,
+    technicalRehearsal: {
+      state: 'passed-synthetic-configuration-only',
+      processesPassed: 4,
+      realPeopleUsed: false,
+      realUserDataUsed: false,
+      productionMutationUsed: false,
+    },
+    humanGate: {
+      state: 'not-started',
+      assignedRoles: 0,
+      requiredRoles: 6,
+      absenceTestsPassed: 0,
+      requiredAbsenceTests: 4,
+      operationsReady: false,
+    },
     processes: PROCESS_SUMMARIES.map((process) => ({ ...process })),
     reportingSeparation: {
       normalOperationsPath: 'projectFunnel',

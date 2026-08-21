@@ -9,6 +9,21 @@ test('FI1 cockpit summary is role-based, fail-closed and separates founder repor
   assert.equal(summary.namedPersonDependencyAllowed, false);
   assert.equal(summary.assignmentEvidenceAvailable, false);
   assert.equal(summary.absenceTestsPassed, false);
+  assert.deepEqual(summary.technicalRehearsal, {
+    state: 'passed-synthetic-configuration-only',
+    processesPassed: 4,
+    realPeopleUsed: false,
+    realUserDataUsed: false,
+    productionMutationUsed: false,
+  });
+  assert.deepEqual(summary.humanGate, {
+    state: 'not-started',
+    assignedRoles: 0,
+    requiredRoles: 6,
+    absenceTestsPassed: 0,
+    requiredAbsenceTests: 4,
+    operationsReady: false,
+  });
   assert.deepEqual(
     summary.processes.map((process) => process.processId),
     [
