@@ -67,7 +67,7 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `038`,
+- Node/Express backend with verified PostgreSQL migrations through `039`,
   deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -126,6 +126,17 @@ Verified: 2026-08-21 on the Mac mini.
   delivery. All 426 Backend tests including PostgreSQL 16 and the complete
   Flutter/Web/Android debug regression passed. PR #7 remains draft and
   unmerged; no live, signed-candidate or publication path was used.
+- S3J is technically verified at exact commit
+  `7a8d7bb92f0c095a0561f0bb4e23500aa65f5866` and successful GitHub Actions run
+  `32528304577`. It adds a non-live recurring watchdog for active P0 cases
+  without an owner and overdue `next_update_at` commitments. Exact-condition
+  idempotency records only internal append-only alerts; health/readiness fails
+  closed on stale worker state or unresolved conditions. An authenticated
+  elevated admin receives a minimized `private, no-store` queue, while S3I
+  publication refuses an already-expired next-update promise. All 433 Backend
+  tests including PostgreSQL 16 and the complete Flutter/Web/Android debug
+  regression passed. No external notification, case mutation, signed
+  candidate, publication or live path was used.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

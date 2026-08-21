@@ -132,6 +132,22 @@ one documented skip, Web, Android debug, dependency/secret/Compose and API-image
 checks passed. RED, money and unavailable-server-binding templates remain on
 HOLD for their dedicated workflows.
 
+`S3J_SUPPORT_DEADLINE_WATCHDOG` is technically verified at exact
+implementation/evidence commit
+`7a8d7bb92f0c095a0561f0bb4e23500aa65f5866` and successful GitHub Actions run
+`32528304577`. It addresses the internal technical core of Drive scenarios
+`SUP-041`, `SUP-142`, `SUP-158`, `SUP-159` and `SUP-160`: one condition-bound
+append-only alert for an unassigned active P0 case, one for an overdue next
+update, duplicate-safe recurring evaluation, persisted worker health and
+fail-closed message publication when a promised checkpoint has expired.
+Migration `039` stores only aggregate worker state and indexes the two internal
+event types. The active queue requires admin role plus Staff-Step-up, is
+PII-minimized and sends zero external notifications. All 433 Backend tests,
+including PostgreSQL 16, and the complete 345-test Flutter suite with one
+documented skip, Web smoke/build and Android debug build passed. No owner,
+deadline or case state is changed automatically; no external delivery,
+production, payment, Store, signed candidate or live operation is enabled.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress
