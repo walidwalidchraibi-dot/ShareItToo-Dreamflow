@@ -75,6 +75,7 @@ const sourcePaths = [
   'lib/services/data_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/screens/support_cases_screen.dart',
   'lib/config/supply_enrichment_technical_config.dart',
   'lib/models/supply_enrichment.dart',
   'lib/screens/create_listing_screen.dart',

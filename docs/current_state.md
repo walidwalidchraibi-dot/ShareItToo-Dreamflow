@@ -38,6 +38,11 @@ Verified: 2026-08-21 on the Mac mini.
   `32503031376` passed Backend including PostgreSQL 16 and the full
   Flutter/Web/Android debug regression. Publication and signed-candidate
   construction stayed skipped, and draft PR #7 remained open and unmerged.
+- The S3C canonical Help Center entry is verified at exact commit
+  `044c5e04522e0d1b5946b732a8090c3f3b2242b9`; exact GitHub Actions run
+  `32504712378` passed Backend including PostgreSQL 16 and the full
+  Flutter/Web/Android debug regression. Publication and signed-candidate
+  construction stayed skipped, and draft PR #7 remained open and unmerged.
 
 ## Post-P0B ordered continuation close
 
@@ -82,6 +87,10 @@ Verified: 2026-08-21 on the Mac mini.
 - S3C removes the Help Center's legacy local-only support success claim. The
   real Help Center now opens from `Mein SIT`, preserves the entered description
   and requires the same safety-first category flow and canonical receipt.
+- S3D connects the authenticated support-case list and user-safe detail routes
+  to the Help Center. It maps lifecycle data to simple German text, never
+  reflects unknown internal codes, labels the simulation boundary and remains
+  read-only.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

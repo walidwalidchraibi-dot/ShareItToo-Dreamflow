@@ -1,7 +1,9 @@
 # S3C canonical Help Center entry - technical compliance record
 
-Status: locally verified non-live candidate, fail-closed. Exact GitHub CI is
-required before closeout.
+Status: verified non-live implementation, fail-closed.
+
+Exact commit: `044c5e04522e0d1b5946b732a8090c3f3b2242b9`.
+Exact successful GitHub Actions run: `32504712378`.
 
 ## Bound source and scope
 
@@ -46,7 +48,9 @@ adapter, live operation or provider action.
   one moderate vulnerability. The repository secret scan found no
   high-confidence secret; its historical findings matched the reviewed
   baseline.
-- Exact-commit GitHub CI remains required before closeout.
+- Exact GitHub run `32504712378` passed Backend including PostgreSQL 16 and the
+  full Flutter/Web/Android debug regression. Signed-candidate construction and
+  API-image publication stayed skipped behind their closed gates.
 
 ## Persistent boundaries
 

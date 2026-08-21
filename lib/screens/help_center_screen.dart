@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/screens/support_cases_screen.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -9,11 +10,15 @@ typedef HelpCenterSessionCheck = Future<bool> Function();
 class HelpCenterScreen extends StatefulWidget {
   final SupportCaseSubmitter? submitter;
   final HelpCenterSessionCheck? sessionCheck;
+  final SupportCaseListLoader? caseListLoader;
+  final SupportCaseDetailLoader? caseDetailLoader;
 
   const HelpCenterScreen({
     super.key,
     this.submitter,
     this.sessionCheck,
+    this.caseListLoader,
+    this.caseDetailLoader,
   });
 
   @override
@@ -118,6 +123,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             sending: _sendingSupport,
             onChanged: (_) => setState(() {}),
             onSend: _sendingSupport ? null : _sendSupportMessage,
+            onOpenCases: _openSupportCases,
           ),
         ]),
       ),
@@ -837,6 +843,35 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       if (mounted) setState(() => _sendingSupport = false);
     }
   }
+
+  Future<void> _openSupportCases() async {
+    final hasSession = await (widget.sessionCheck?.call() ??
+        AuthService.readSession().then((session) => session != null));
+    if (!mounted) return;
+    if (!hasSession) {
+      await showGuestRestrictionSheet(
+        context,
+        overrideContent: const GuestGateContent(
+          icon: Icons.folder_shared_outlined,
+          title: 'Support-Fälle ansehen',
+          description:
+              'Melde dich an oder registriere dich kostenlos, damit nur du deine zugeordneten Support-Fälle sehen kannst.',
+          benefits: [
+            'Serverbestätigte Case-IDs wiederfinden',
+            'Status und nächsten Schritt sicher ansehen',
+            'Keine Falldaten ohne Kontozuordnung anzeigen',
+          ],
+        ),
+      );
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => SupportCasesScreen(
+        listLoader: widget.caseListLoader,
+        detailLoader: widget.caseDetailLoader,
+      ),
+    ));
+  }
 }
 
 @immutable
@@ -1394,11 +1429,13 @@ class _SupportCard extends StatelessWidget {
   final bool sending;
   final ValueChanged<String> onChanged;
   final VoidCallback? onSend;
+  final VoidCallback onOpenCases;
   const _SupportCard(
       {required this.controller,
       required this.sending,
       required this.onChanged,
-      required this.onSend});
+      required this.onSend,
+      required this.onOpenCases});
 
   @override
   Widget build(BuildContext context) {
@@ -1473,6 +1510,16 @@ class _SupportCard extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.support_agent_outlined),
             label: Text(sending ? 'Support wird geöffnet…' : 'Support-Fall sicher melden'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            key: const ValueKey('support_cases_open'),
+            onPressed: onOpenCases,
+            icon: const Icon(Icons.folder_shared_outlined),
+            label: const Text('Meine Support-Fälle'),
           ),
         ),
       ]),

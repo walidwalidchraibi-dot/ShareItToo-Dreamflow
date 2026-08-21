@@ -60,11 +60,18 @@ run `32503031376`. It addresses `SUP-016` by connecting the Flutter intake to
 the authenticated canonical support-case route. Invalid or unavailable
 receipts remain fail-closed; no external message or live case action occurs.
 
-The active package is `S3C_CANONICAL_HELP_CENTER_ENTRY`. It removes the Help
-Center's legacy local-only support success claim, opens the real Help Center
-from `Mein SIT`, and carries its bounded free text through the same safety-first
-category flow. The description is cleared only after a valid canonical receipt
-returns; cancellation or failure preserves it for retry.
+`S3C_CANONICAL_HELP_CENTER_ENTRY` is verified at exact commit
+`044c5e04522e0d1b5946b732a8090c3f3b2242b9` and exact successful GitHub Actions
+run `32504712378`. It removes the Help Center's legacy local-only support
+success claim and routes bounded free text through the safety-first canonical
+intake. No external message or live case action occurs.
+
+The active package is `S3D_USER_SUPPORT_CASE_LIST_DETAIL`. It connects the
+existing authenticated user case-list and detail endpoints to a read-only
+Flutter surface under the Help Center. Raw lifecycle/type/event codes are never
+shown; unknown states fail closed. It addresses `SUP-143` and the accessibility
+foundation for `SUP-146` through `SUP-148`. `SUP-144` and `SUP-145` remain open
+until real user-deadline and approved decision/redress data exist server-side.
 
 ## Prior ordered post-P0B gate close
 

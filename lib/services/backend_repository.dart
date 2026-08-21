@@ -1031,6 +1031,29 @@ class BackendRepository {
     return Map<String, dynamic>.from(supportCase);
   }
 
+  static Future<List<Map<String, dynamic>>> getMySupportCases() async {
+    final response = await _authorized(method: 'GET', path: '/support/cases');
+    return _maps(response['supportCases']);
+  }
+
+  static Future<Map<String, dynamic>> getSupportCase(String caseId) async {
+    final response = await _authorized(
+      method: 'GET',
+      path: '/support/cases/${Uri.encodeComponent(caseId)}',
+    );
+    final supportCase = response['supportCase'];
+    final events = response['events'];
+    if (supportCase is! Map ||
+        events is! List ||
+        events.any((event) => event is! Map)) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return {
+      'supportCase': Map<String, dynamic>.from(supportCase),
+      'events': _maps(events),
+    };
+  }
+
   static Future<Map<String, dynamic>> createBookingReview({
     required String bookingId,
     required String direction,

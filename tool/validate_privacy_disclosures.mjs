@@ -83,6 +83,7 @@ const sourcePaths = [
   'lib/widgets/app_image.dart',
   'lib/services/data_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/screens/support_cases_screen.dart',
   'lib/models/rental_cart.dart',
   'lib/navigation/main_navigation.dart',
   'lib/screens/login_screen.dart',

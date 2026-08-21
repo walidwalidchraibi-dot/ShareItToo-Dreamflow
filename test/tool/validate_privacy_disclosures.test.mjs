@@ -71,6 +71,15 @@ test('rejects source drift after the inventory was reviewed', () => {
   );
 });
 
+test('rejects drift in the user support case display', () => {
+  const path = 'lib/screens/support_cases_screen.dart';
+  const changed = `${readFileSync(resolve(repositoryRoot, path), 'utf8')}\n// drift\n`;
+  assert.throws(
+    () => validate({ sourceTexts: { [path]: changed } }),
+    /sourceInventory hash is stale: lib\/screens\/support_cases_screen.dart/,
+  );
+});
+
 test('rejects omitting precise location while fine-location flows exist', () => {
   const privacyManifest = clone(basePrivacyManifest);
   privacyManifest.dataTypes.find((item) => item.id === 'preciseLocation').collected = false;

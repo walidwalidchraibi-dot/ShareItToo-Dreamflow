@@ -1,0 +1,770 @@
+import 'package:flutter/material.dart';
+import 'package:lendify/services/backend_repository.dart';
+
+typedef SupportCaseListLoader = Future<List<Map<String, dynamic>>> Function();
+typedef SupportCaseDetailLoader = Future<Map<String, dynamic>> Function(
+  String caseId,
+);
+
+const _supportStatusLabels = <String, String>{
+  'received': 'Eingang bestätigt',
+  'acknowledged': 'Bearbeitung bestätigt',
+  'waiting_for_user': 'Antwort von dir nötig',
+  'waiting_for_other_party': 'Rückmeldung der anderen Partei ausstehend',
+  'under_review': 'Wird geprüft',
+  'escalated': 'An das zuständige Team weitergegeben',
+  'decision_pending_approval': 'Entscheidung wird geprüft',
+  'decided': 'Entscheidung getroffen',
+  'implementation_pending': 'Umsetzung läuft',
+  'resolved': 'Gelöst',
+  'closed': 'Abgeschlossen',
+  'reopened': 'Wieder geöffnet',
+};
+
+const _supportTypeLabels = <String, String>{
+  'general_help': 'Allgemeine Hilfe',
+  'booking_pre_start': 'Buchung vor dem Start',
+  'active_handover': 'Übergabe',
+  'active_rental': 'Aktive Miete',
+  'active_return': 'Rückgabe',
+  'post_return_dispute': 'Prüfung nach der Rückgabe',
+  'cancellation_no_show': 'Storno oder Nichterscheinen',
+  'money_case': 'Zahlung oder Erstattung',
+  'trust_safety': 'Sicherheit',
+  'moderation_content': 'Inhalt melden',
+  'privacy_security': 'Datenschutz oder Kontosicherheit',
+  'legal_authority': 'Rechtliche Anfrage',
+  'listing_quality': 'Anzeige oder Artikel',
+};
+
+const _closureReasonLabels = <String, String>{
+  'resolved_action_completed': 'Die vereinbarte Lösung wurde umgesetzt.',
+  'information_provided': 'Die benötigte Information wurde bereitgestellt.',
+  'user_withdrew': 'Der Fall wurde auf deinen Wunsch beendet.',
+  'duplicate_merged': 'Der Fall wurde mit einem anderen Fall zusammengeführt.',
+  'no_response_after_clear_deadline':
+      'Der Fall wurde nach einer klar mitgeteilten Frist ohne Antwort geschlossen.',
+  'outside_scope_with_route':
+      'Das Anliegen wurde an den passenden Kontaktweg verwiesen.',
+};
+
+String _requiredText(Map<String, dynamic> value, String key) {
+  final result = value[key]?.toString().trim() ?? '';
+  if (result.isEmpty) throw FormatException('missing_$key');
+  return result;
+}
+
+String? _optionalText(Map<String, dynamic> value, String key) {
+  final result = value[key]?.toString().trim() ?? '';
+  return result.isEmpty ? null : result;
+}
+
+class SupportCaseViewData {
+  final String id;
+  final String caseNumber;
+  final String caseType;
+  final String status;
+  final String operatingMode;
+  final String userFacingSummary;
+  final String? nextAction;
+  final String? nextUpdateDisplay;
+  final bool appealAvailable;
+  final String? closureReason;
+
+  const SupportCaseViewData({
+    required this.id,
+    required this.caseNumber,
+    required this.caseType,
+    required this.status,
+    required this.operatingMode,
+    required this.userFacingSummary,
+    required this.nextAction,
+    required this.nextUpdateDisplay,
+    required this.appealAvailable,
+    required this.closureReason,
+  });
+
+  factory SupportCaseViewData.fromMap(Map<String, dynamic> value) {
+    final id = _requiredText(value, 'id');
+    final caseNumber = _requiredText(value, 'caseNumber');
+    final caseType = _requiredText(value, 'caseType');
+    final status = _requiredText(value, 'status');
+    final operatingMode = _requiredText(value, 'operatingMode');
+    final userFacingSummary = _requiredText(value, 'userFacingSummary');
+    final nextAction = _optionalText(value, 'nextAction');
+    final nextUpdateDisplay = _optionalText(value, 'nextUpdateDisplay');
+    final closureReason = _optionalText(value, 'closureReason');
+    final isFinal = status == 'resolved' || status == 'closed';
+    if (!RegExp(
+          r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+        ).hasMatch(id) ||
+        !RegExp(r'^SIT-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$')
+            .hasMatch(caseNumber) ||
+        !_supportStatusLabels.containsKey(status) ||
+        !const {'simulation', 'internal_testing'}.contains(operatingMode) ||
+        caseType.length > 80 ||
+        userFacingSummary.length > 2000 ||
+        (nextAction?.length ?? 0) > 2000 ||
+        (nextUpdateDisplay?.length ?? 0) > 80 ||
+        (closureReason?.length ?? 0) > 80 ||
+        (!isFinal && (nextAction == null || nextUpdateDisplay == null)) ||
+        (isFinal && (nextAction != null || nextUpdateDisplay != null))) {
+      throw const FormatException('invalid_support_case');
+    }
+    return SupportCaseViewData(
+      id: id,
+      caseNumber: caseNumber,
+      caseType: caseType,
+      status: status,
+      operatingMode: operatingMode,
+      userFacingSummary: userFacingSummary,
+      nextAction: nextAction,
+      nextUpdateDisplay: nextUpdateDisplay,
+      appealAvailable: value['appealAvailable'] == true,
+      closureReason: closureReason,
+    );
+  }
+
+  String get statusLabel => _supportStatusLabels[status]!;
+  String get typeLabel => _supportTypeLabels[caseType] ?? 'Support-Anliegen';
+  bool get waitsForUser => status == 'waiting_for_user';
+  bool get isFinal => status == 'resolved' || status == 'closed';
+}
+
+class SupportCaseEventViewData {
+  final String? fromStatus;
+  final String? toStatus;
+
+  const SupportCaseEventViewData({
+    required this.fromStatus,
+    required this.toStatus,
+  });
+
+  factory SupportCaseEventViewData.fromMap(Map<String, dynamic> value) {
+    final fromStatus = _optionalText(value, 'fromStatus');
+    final toStatus = _optionalText(value, 'toStatus');
+    return SupportCaseEventViewData(
+      fromStatus:
+          _supportStatusLabels.containsKey(fromStatus) ? fromStatus : null,
+      toStatus: _supportStatusLabels.containsKey(toStatus) ? toStatus : null,
+    );
+  }
+
+  String get label {
+    if (fromStatus == null && toStatus == 'received') {
+      return 'Fall eingegangen';
+    }
+    if (toStatus != null) return _supportStatusLabels[toStatus]!;
+    return 'Fall aktualisiert';
+  }
+}
+
+class SupportCaseDetailViewData {
+  final SupportCaseViewData supportCase;
+  final List<SupportCaseEventViewData> events;
+
+  const SupportCaseDetailViewData({
+    required this.supportCase,
+    required this.events,
+  });
+
+  factory SupportCaseDetailViewData.fromMap(Map<String, dynamic> value) {
+    final rawCase = value['supportCase'];
+    final rawEvents = value['events'];
+    if (rawCase is! Map ||
+        rawEvents is! List ||
+        rawEvents.any((event) => event is! Map)) {
+      throw const FormatException('invalid_support_case_detail');
+    }
+    return SupportCaseDetailViewData(
+      supportCase: SupportCaseViewData.fromMap(
+        Map<String, dynamic>.from(rawCase),
+      ),
+      events: rawEvents
+          .cast<Map>()
+          .map((event) => SupportCaseEventViewData.fromMap(
+                Map<String, dynamic>.from(event),
+              ))
+          .toList(growable: false),
+    );
+  }
+}
+
+class SupportCasesScreen extends StatefulWidget {
+  final SupportCaseListLoader? listLoader;
+  final SupportCaseDetailLoader? detailLoader;
+
+  const SupportCasesScreen({
+    super.key,
+    this.listLoader,
+    this.detailLoader,
+  });
+
+  @override
+  State<SupportCasesScreen> createState() => _SupportCasesScreenState();
+}
+
+class _SupportCasesScreenState extends State<SupportCasesScreen> {
+  late Future<List<SupportCaseViewData>> _cases;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    final loader = widget.listLoader ?? BackendRepository.getMySupportCases;
+    _cases = loader().then(
+      (items) => items.map(SupportCaseViewData.fromMap).toList(growable: false),
+    );
+  }
+
+  Future<void> _refresh() async {
+    setState(_reload);
+    await _cases;
+  }
+
+  void _open(SupportCaseViewData supportCase) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => SupportCaseDetailScreen(
+        initialCase: supportCase,
+        detailLoader: widget.detailLoader,
+      ),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF101820),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Meine Support-Fälle'),
+      ),
+      body: FutureBuilder<List<SupportCaseViewData>>(
+        future: _cases,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _SupportLoadError(onRetry: () => setState(_reload));
+          }
+          final cases = snapshot.data ?? const <SupportCaseViewData>[];
+          if (cases.isEmpty) {
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: const [
+                  SizedBox(height: 80),
+                  Icon(Icons.inbox_outlined, size: 48, color: Colors.white54),
+                  SizedBox(height: 16),
+                  Text(
+                    'Noch keine Support-Fälle',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Neue Fälle erscheinen hier erst nach einer serverbestätigten Case-ID.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, height: 1.45),
+                  ),
+                ],
+              ),
+            );
+          }
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              itemCount: cases.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) => _SupportCaseListCard(
+                supportCase: cases[index],
+                onTap: () => _open(cases[index]),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SupportCaseDetailScreen extends StatefulWidget {
+  final SupportCaseViewData initialCase;
+  final SupportCaseDetailLoader? detailLoader;
+
+  const SupportCaseDetailScreen({
+    super.key,
+    required this.initialCase,
+    this.detailLoader,
+  });
+
+  @override
+  State<SupportCaseDetailScreen> createState() =>
+      _SupportCaseDetailScreenState();
+}
+
+class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
+  late Future<SupportCaseDetailViewData> _detail;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    final loader = widget.detailLoader ?? BackendRepository.getSupportCase;
+    _detail = loader(widget.initialCase.id).then((value) {
+      final detail = SupportCaseDetailViewData.fromMap(value);
+      if (detail.supportCase.id != widget.initialCase.id ||
+          detail.supportCase.caseNumber != widget.initialCase.caseNumber) {
+        throw const FormatException('support_case_identity_mismatch');
+      }
+      return detail;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF101820),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        title: Text(widget.initialCase.caseNumber),
+      ),
+      body: FutureBuilder<SupportCaseDetailViewData>(
+        future: _detail,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _SupportLoadError(onRetry: () => setState(_reload));
+          }
+          return _SupportCaseDetailBody(detail: snapshot.data!);
+        },
+      ),
+    );
+  }
+}
+
+class _SupportCaseListCard extends StatelessWidget {
+  final SupportCaseViewData supportCase;
+  final VoidCallback onTap;
+
+  const _SupportCaseListCard({
+    required this.supportCase,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label:
+          'Support-Fall ${supportCase.caseNumber}, Status ${supportCase.statusLabel}',
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        supportCase.caseNumber,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ExcludeSemantics(
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _SupportStatusChip(supportCase: supportCase),
+                const SizedBox(height: 12),
+                Text(
+                  supportCase.typeLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  supportCase.userFacingSummary,
+                  style: const TextStyle(color: Colors.white70, height: 1.45),
+                ),
+                if (supportCase.nextUpdateDisplay != null) ...[
+                  const SizedBox(height: 12),
+                  _SupportMetaLine(
+                    icon: Icons.schedule_outlined,
+                    text: 'Nächstes Update: ${supportCase.nextUpdateDisplay}',
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportCaseDetailBody extends StatelessWidget {
+  final SupportCaseDetailViewData detail;
+
+  const _SupportCaseDetailBody({required this.detail});
+
+  @override
+  Widget build(BuildContext context) {
+    final supportCase = detail.supportCase;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            supportCase.typeLabel,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _SupportStatusChip(supportCase: supportCase),
+        const SizedBox(height: 14),
+        _SupportInfoCard(
+          title: 'Aktueller Stand',
+          icon: Icons.info_outline,
+          child: Text(
+            supportCase.userFacingSummary,
+            style: const TextStyle(color: Colors.white70, height: 1.5),
+          ),
+        ),
+        if (supportCase.waitsForUser) ...[
+          const SizedBox(height: 12),
+          _SupportInfoCard(
+            key: const ValueKey('support_user_action'),
+            title: 'Deine Antwort ist nötig',
+            icon: Icons.reply_outlined,
+            accent: const Color(0xFFFFB277),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (supportCase.nextAction != null)
+                  Text(
+                    supportCase.nextAction!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      height: 1.45,
+                    ),
+                  ),
+                if (supportCase.nextUpdateDisplay != null) ...[
+                  const SizedBox(height: 10),
+                  _SupportMetaLine(
+                    icon: Icons.schedule_outlined,
+                    text: 'Nächstes Update: ${supportCase.nextUpdateDisplay}',
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ] else if (!supportCase.isFinal &&
+            (supportCase.nextAction != null ||
+                supportCase.nextUpdateDisplay != null)) ...[
+          const SizedBox(height: 12),
+          _SupportInfoCard(
+            title: 'Wie es weitergeht',
+            icon: Icons.arrow_forward_outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (supportCase.nextAction != null)
+                  Text(
+                    supportCase.nextAction!,
+                    style: const TextStyle(color: Colors.white70, height: 1.5),
+                  ),
+                if (supportCase.nextUpdateDisplay != null) ...[
+                  const SizedBox(height: 10),
+                  _SupportMetaLine(
+                    icon: Icons.schedule_outlined,
+                    text: 'Nächstes Update: ${supportCase.nextUpdateDisplay}',
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+        if (supportCase.closureReason != null) ...[
+          const SizedBox(height: 12),
+          _SupportInfoCard(
+            title: 'Abschluss',
+            icon: Icons.task_alt_outlined,
+            child: Text(
+              _closureReasonLabels[supportCase.closureReason] ??
+                  'Der Fall wurde abgeschlossen.',
+              style: const TextStyle(color: Colors.white70, height: 1.5),
+            ),
+          ),
+        ],
+        if (supportCase.appealAvailable) ...[
+          const SizedBox(height: 12),
+          const _SupportInfoCard(
+            title: 'Überprüfung möglich',
+            icon: Icons.rate_review_outlined,
+            child: Text(
+              'Der Fallstatus erlaubt eine Überprüfung. Ein separater elektronischer Einspruchsschritt ist in dieser Testansicht noch nicht verfügbar.',
+              style: TextStyle(color: Colors.white70, height: 1.5),
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        const _SupportInfoCard(
+          title: 'Testmodus',
+          icon: Icons.science_outlined,
+          child: Text(
+            'Dieser Fall läuft intern im Testmodus. Es wird dadurch keine externe Nachricht, Zahlung oder Anbieteraktion ausgelöst.',
+            style: TextStyle(color: Colors.white70, height: 1.5),
+          ),
+        ),
+        if (detail.events.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Semantics(
+            header: true,
+            child: const Text(
+              'Verlauf',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final event in detail.events)
+            _SupportTimelineEntry(label: event.label),
+        ],
+      ],
+    );
+  }
+}
+
+class _SupportStatusChip extends StatelessWidget {
+  final SupportCaseViewData supportCase;
+
+  const _SupportStatusChip({required this.supportCase});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = supportCase.waitsForUser
+        ? const Color(0xFFFFB277)
+        : (supportCase.isFinal
+            ? const Color(0xFF8BE0B2)
+            : const Color(0xFF8FCBFF));
+    final icon = supportCase.waitsForUser
+        ? Icons.reply_outlined
+        : (supportCase.isFinal
+            ? Icons.task_alt_outlined
+            : Icons.pending_actions_outlined);
+    return Semantics(
+      label: 'Status: ${supportCase.statusLabel}',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: color.withValues(alpha: 0.45)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 17, color: color),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                supportCase.statusLabel,
+                style: TextStyle(color: color, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportInfoCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Widget child;
+  final Color accent;
+
+  const _SupportInfoCard({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.child,
+    this.accent = const Color(0xFF8FCBFF),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: accent),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _SupportMetaLine extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _SupportMetaLine({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: Colors.white60),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.white70, height: 1.4),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SupportTimelineEntry extends StatelessWidget {
+  final String label;
+
+  const _SupportTimelineEntry({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Icon(Icons.circle, size: 10, color: Color(0xFF8FCBFF)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: Colors.white70, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SupportLoadError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _SupportLoadError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 44, color: Colors.white70),
+            const SizedBox(height: 14),
+            const Text(
+              'Support-Fälle konnten nicht sicher geladen werden.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Es werden keine unvollständigen oder lokal erfundenen Falldaten angezeigt.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, height: 1.45),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Erneut versuchen'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

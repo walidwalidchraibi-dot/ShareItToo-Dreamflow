@@ -24,6 +24,15 @@ test('accepts the honest fail-closed retention draft', () => {
   assert.deepEqual(validate(), {state: 'draft', approvalAllowed: false, openDecisionCount: 9, storeGate: 'open'});
 });
 
+test('rejects drift in the retained user support case display', () => {
+  const path = 'lib/screens/support_cases_screen.dart';
+  const changed = `${readFileSync(resolve(root, path), 'utf8')}\n// drift\n`;
+  assert.throws(
+    () => validate({ sourceTexts: { [path]: changed } }),
+    /sourceInventory hash is stale: lib\/screens\/support_cases_screen.dart/,
+  );
+});
+
 test('execution preflight reports only stable blocker codes and exposes no destructive route', () => {
   const result = assessRetentionExecutionReadiness({
     retentionManifest: clone(baseRetention),
