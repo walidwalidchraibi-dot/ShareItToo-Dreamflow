@@ -3211,7 +3211,7 @@ if (!databaseUrl) {
         p0BreakGlassCase.rows[0].id,
       );
       const crossCaseBreakGlass = await fetch(
-        `${baseUrl}/v1/admin/support/cases/${supportCase.rows[0].id}`,
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}`,
         { headers: { ...supportHeaders, 'X-Support-Break-Glass': breakGlass.token } },
       );
       assert.equal(crossCaseBreakGlass.status, 404);
