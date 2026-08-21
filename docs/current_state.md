@@ -137,6 +137,25 @@ Verified: 2026-08-21 on the Mac mini.
 - No account, production, payment, provider, Store or public state changed.
   Independent work continues to current signed-device evidence.
 
+## P0B current-source signed-device evidence
+
+- A canonical signed internal-staging Android AAB/APK and binary privacy report
+  are bound to commit `e8cd4a99d95f74c279afa86a24a9a61df6ee98c8` and stored
+  in a verified owner-only private archive outside Git.
+- The signed APK updated the authorized Pixel 7 Pro without uninstall, reset or
+  downgrade. Installed bytes match the candidate, version is
+  `1.0.0+2026081510`, and cold launch resumed successfully.
+- Existing installed app data was preserved. No screenshot, account content or
+  raw device identifier was recorded. This is direct internal-install evidence,
+  not Play/Store-install evidence.
+- Android and iOS protected Firebase configurations validate together and
+  Analytics remains off. Full Xcode, `xcodebuild` and CocoaPods are absent, and
+  no physical iOS evidence is verified; no iOS archive/signing was attempted.
+- Exact GitHub Actions run `32459509278` is green for candidate source commit
+  `e8cd4a99d95f74c279afa86a24a9a61df6ee98c8`.
+- The combined device gate remains partial. No artifact upload, Store,
+  production, Cloud, payment, provider or public mutation occurred.
+
 ## G3B booking-group foundation
 
 - Walid selected G3A Variant A and authorized the V2.4 rolling-autonomy runway.

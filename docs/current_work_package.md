@@ -17,9 +17,13 @@ Store, Cloud or real-money gate.
 2. `P0B_NEXT_OPS_ROLES_BACKUP_ABSENCE_ONLY`: technical gate complete; four of
    four synthetic configuration rehearsals pass, but zero of six real role
    assignments and zero of four human 72-hour absence tests are evidenced.
-3. `P0B_NEXT_SIGNED_DEVICE_EVIDENCE_ONLY`: active next package.
-4. `P0B_NEXT_PSP_SANDBOX_E2E_ONLY`: pending and only executable against a
-   verified contracted provider sandbox.
+3. `P0B_NEXT_SIGNED_DEVICE_EVIDENCE_ONLY`: Android current-source candidate,
+   private archive, non-destructive Pixel update, installed-byte match and cold
+   launch passed; exact source CI `32459509278` is green. iOS is blocked by
+   missing full Xcode/CocoaPods and unverified physical iOS device; combined
+   gate remains partial.
+4. `P0B_NEXT_PSP_SANDBOX_E2E_ONLY`: active next package and executable only
+   against a verified contracted provider sandbox.
 5. `P0B_NEXT_INVITED_SYNTHETIC_PILOT_SPIEGELBERG_CAT8_30`: pending and may not
    activate unless gates one through four are actually green.
 
