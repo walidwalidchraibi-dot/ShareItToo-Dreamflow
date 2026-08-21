@@ -119,6 +119,16 @@ AS $$
 BEGIN
   IF NEW.status = 'resolved'
     AND NEW.decision_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM support_decisions
+       WHERE id = NEW.decision_id
+         AND case_id = NEW.id
+         AND approval_status = 'approved'
+         AND approval_payload_sha256 = payload_sha256
+         AND implementation_status = 'succeeded'
+         AND implementation_verified_by IS NOT NULL
+         AND implementation_verified_at IS NOT NULL
+    )
     AND NOT EXISTS (
       SELECT 1 FROM support_decisions
        WHERE id = NEW.decision_id
