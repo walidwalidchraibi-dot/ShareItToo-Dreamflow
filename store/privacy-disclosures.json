@@ -48,7 +48,15 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "7b27ad67e46807449d15ef4834f69c5f9b61b36e0e4eed140d37fbb5f0ff7a7e"
+      "sha256": "47da03b0efbde5d7eeaeff9f0ca53b1d7acb380b5e81507d7f3643ca5f10099b"
+    },
+    {
+      "path": "backend/src/support_case_domain.js",
+      "sha256": "662d8e867940f180d01d7c2f7678ad1f0fc24fbf0062b911af7f8d0b54f2feba"
+    },
+    {
+      "path": "backend/src/support_case_workflow.js",
+      "sha256": "a76dc85387cb36839b7d5e7fce2dede2c8f3bde8e82c1cff161636a39635ec6b"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -180,7 +188,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "310a2d5c5dd9dcabd0ae98f2c9526c4e61b03e6fb36a1b394ed3d5c938f38e0a"
+      "sha256": "09f9f5ce8243bfe270141240c1ec02f00a175893a91f819ebd9cf90726ea693b"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -408,7 +416,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "6019a00e118d1f4e86f11a6175dcd104f3838b70726641d4449f09cd33a09564"
+      "sha256": "084e15e5a1852ae2769167eab50f5e449aac4b7c9c7c1e4dff2a626cc2a0d7b3"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -457,6 +465,10 @@
     {
       "path": "backend/sql/migrations/031_g5b_listing_sets.up.sql",
       "sha256": "7afaa2d39ad4b8adb178e5e3ed25454163cf48762f8e993c83935ab3ef5a0bff"
+    },
+    {
+      "path": "backend/sql/migrations/032_support_case_foundation.up.sql",
+      "sha256": "c0c9809479792fd308ce577aa05a987e1934884a0b9932d94e4445c980aa9c27"
     },
     {
       "path": "lib/config/listing_sets_technical_config.dart",

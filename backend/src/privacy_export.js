@@ -67,6 +67,12 @@ export async function buildAccountExport(client, userId) {
     v52ReturnCases,
     v52ReturnCaseEvidence,
     v52ReturnCaseEvents,
+    supportCases,
+    supportCaseEvents,
+    supportMessages,
+    supportDecisions,
+    supportAppeals,
+    supportEvidence,
     notificationPreferences,
     notifications,
     reviews,
@@ -574,6 +580,80 @@ export async function buildAccountExport(client, userId) {
        WHERE booking.owner_id = $1 OR booking.renter_id = $1
        ORDER BY event.occurred_at`, userId),
     rows(client,
+      `SELECT support_case.id, support_case.human_readable_case_number,
+              support_case.case_type, support_case.case_subtype,
+              support_case.status, support_case.priority,
+              support_case.source_channel, support_case.operating_mode,
+              support_case.locale, support_case.linked_booking_id,
+              support_case.linked_listing_id, support_case.waiting_on,
+              support_case.next_action, support_case.next_update_at,
+              support_case.user_facing_summary,
+              support_case.appeal_available, support_case.appeal_deadline,
+              support_case.closure_reason, support_case.created_at,
+              support_case.updated_at, support_case.resolved_at,
+              support_case.closed_at
+         FROM support_cases AS support_case
+        WHERE support_case.reporter_user_id = $1
+           OR $1 = ANY(support_case.affected_user_ids)
+        ORDER BY support_case.created_at`, userId),
+    rows(client,
+      `SELECT event.id, event.case_id, event.event_type,
+              event.from_status, event.to_status, event.transition_reason,
+              event.created_at
+         FROM support_case_events AS event
+         JOIN support_cases AS support_case ON support_case.id = event.case_id
+        WHERE (support_case.reporter_user_id = $1
+           OR $1 = ANY(support_case.affected_user_ids))
+          AND event.visibility = 'user_visible'
+        ORDER BY event.created_at, event.id`, userId),
+    rows(client,
+      `SELECT message.id, message.case_id, message.sender_type,
+              (message.sender_id = $1) AS sent_by_me,
+              (message.recipient_user_id = $1) AS addressed_to_me,
+              message.message_type, message.locale,
+              message.rendered_content, message.send_status,
+              message.sent_at, message.delivery_status,
+              message.ai_disclosure_included,
+              message.human_handoff_available, message.created_at
+         FROM support_messages AS message
+        WHERE message.sender_id = $1
+           OR (message.recipient_user_id = $1 AND message.send_status = 'sent')
+        ORDER BY message.created_at, message.id`, userId),
+    rows(client,
+      `SELECT decision.id, decision.case_id, decision.decision_code,
+              decision.decision_scope, decision.measure_type,
+              decision.amount_minor, decision.currency, decision.duration,
+              decision.unaffected_areas, decision.user_facing_reason,
+              decision.redress_route, decision.implementation_status,
+              decision.decided_at, decision.implemented_at,
+              decision.communicated_at
+         FROM support_decisions AS decision
+         JOIN support_cases AS support_case ON support_case.id = decision.case_id
+        WHERE (support_case.reporter_user_id = $1
+           OR $1 = ANY(support_case.affected_user_ids))
+          AND decision.communicated_at IS NOT NULL
+        ORDER BY decision.decided_at, decision.id`, userId),
+    rows(client,
+      `SELECT appeal.id, appeal.original_decision_id, appeal.case_id,
+              appeal.grounds, appeal.submitted_at, appeal.status,
+              appeal.outcome, appeal.outcome_reason,
+              appeal.communicated_at
+         FROM support_appeals AS appeal
+        WHERE appeal.submitted_by = $1
+        ORDER BY appeal.submitted_at, appeal.id`, userId),
+    rows(client,
+      `SELECT evidence.id, evidence.case_id, evidence.evidence_class,
+              evidence.description, evidence.purpose,
+              evidence.claimed_event_time, evidence.received_at,
+              evidence.linked_booking_id, evidence.linked_listing_id,
+              evidence.third_party_data_flag, evidence.access_level,
+              evidence.retention_category, evidence.legal_hold_flag,
+              evidence.review_result, evidence.limitations
+         FROM support_evidence AS evidence
+        WHERE evidence.submitter_id = $1
+          AND evidence.access_level = 'user_visible'
+        ORDER BY evidence.received_at, evidence.id`, userId),
+    rows(client,
       `SELECT in_app_enabled, email_enabled, push_enabled,
               message_push_enabled, booking_push_enabled, locale, updated_at
        FROM notification_preferences WHERE user_id = $1`, userId),
@@ -732,6 +812,16 @@ export async function buildAccountExport(client, userId) {
       v52ReturnCases,
       v52ReturnCaseEvidence,
       v52ReturnCaseEvents,
+      support: {
+        cases: supportCases,
+        events: supportCaseEvents,
+        messages: supportMessages,
+        decisions: supportDecisions,
+        appeals: supportAppeals,
+        submittedEvidence: supportEvidence,
+        internalNotesExcluded: true,
+        restrictedEvidenceExcluded: true,
+      },
     },
     uploadedFiles: uploads,
     notifications: {

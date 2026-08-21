@@ -1,13 +1,36 @@
-# Current Work Package: ordered post-P0B gate continuation
+# Current Work Package: autonomous non-live launch-readiness continuation
 
-Status: **closed at the authorized end of runway; HOLD for Walid's next
-decision, non-live and fail-closed** on 21.08.2026.
+Status: **active under Walid's exceptional no-artificial-stop instruction;
+non-live and fail-closed** on 21.08.2026.
 
-Walid explicitly authorized the five P0B-recommended gates in their recorded
-order and instructed Codex to continue without intermediate pauses until he
-stops the task in chat. This authorization does not make missing external
-facts true and does not relax any security, legal, provider, production,
-Store, Cloud or real-money gate.
+Walid instructed Codex to make SIT as launch-ready as safely possible inside
+the established working frame, to continue across independent work lanes when
+one lane is blocked, and to stop only when he explicitly says so. Code,
+reversible migrations, local/free tooling, internal simulation, documentation,
+tests, commits, pushes to draft PR #7 and CI verification are authorized.
+
+The instruction still does not authorize new paid subscriptions, real money,
+public registration or pilot activity, production, DNS, irreversible user
+changes, Store submission, PR merge, or invented legal/operator/provider
+approval. A missing external fact remains false and blocks only its dependent
+lane.
+
+## Active package
+
+`S1_SUPPORT_CASE_FOUNDATION` implements the canonical non-live case model from
+the updated Drive Support Packet and Aurelius-supported material:
+
+- migration `032` for cases, events, decisions, evidence, messages, appeals and
+  immutable policy snapshots;
+- deterministic server taxonomy/routing and guarded lifecycle;
+- authenticated user intake/read plus Staff-Step-up queue and transition APIs;
+- account export, retention inventory and account-erasure preflight coverage;
+- Privacy/Retention source-hash bindings remain draft and fail-closed.
+
+No external message, evidence upload, decision execution, payment/refund,
+account measure, deployment or public/live activation is part of S1.
+
+## Prior ordered post-P0B gate close
 
 ## Gate progress
 

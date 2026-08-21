@@ -164,6 +164,14 @@ import {
   RetentionInventoryError,
 } from './retention_inventory.js';
 import {
+  createSupportCase,
+  getSupportCase,
+  listMySupportCases,
+  listStaffSupportCases,
+  SupportCaseError,
+  transitionSupportCase,
+} from './support_case_workflow.js';
+import {
   getPilotCockpitSnapshot,
   PilotCockpitError,
 } from './pilot_cockpit.js';
@@ -1106,6 +1114,9 @@ async function accountDeletionPreflight(client, userId) {
               SELECT 1 FROM bookings WHERE id = report.target_id AND (owner_id = $1 OR renter_id = $1)
             ))
           )) AS open_reports,
+       (SELECT count(*)::int FROM support_cases AS support_case
+        WHERE support_case.reporter_user_id = $1
+           OR $1 = ANY(support_case.affected_user_ids)) AS support_case_records,
        (SELECT count(*)::int FROM account_legal_holds
         WHERE user_id = $1 AND released_at IS NULL) AS active_legal_holds`,
     [userId],
@@ -1117,6 +1128,7 @@ async function accountDeletionPreflight(client, userId) {
     ['active_payments', 'Laufende Zahlungsabwicklung'],
     ['open_disputes', 'Offene Streitfälle'],
     ['open_reports', 'Offene Moderationsfälle'],
+    ['support_case_records', 'Supportfall mit offener Aufbewahrungsentscheidung'],
     ['active_legal_holds', 'Rechtliche Aufbewahrungssperre'],
   ];
   const blockers = definitions
@@ -3933,6 +3945,30 @@ export function createApp({
     res.json({ reports: await listMyReports(pool, req.auth.userId) });
   }));
 
+  app.post('/v1/support/cases', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createSupportCase(client, {
+      actor: req.actor,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+      operatingMode: 'simulation',
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/support/cases', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const supportCases = await listMySupportCases(pool, req.auth.userId);
+    res.set('Cache-Control', 'private, no-store').json({ supportCases });
+  }));
+
+  app.get('/v1/support/cases/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await getSupportCase(pool, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
   app.get('/v1/moderation/decisions', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     res.json({ decisions: await listMyModerationDecisions(pool, req.auth.userId) });
   }));
@@ -4246,6 +4282,35 @@ export function createApp({
 
   app.get('/v1/admin/reports/:id', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     res.json({ report: await getStaffReport(pool, safeText(req.params.id, 80)) });
+  }));
+
+  app.get('/v1/admin/support/cases', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const supportCases = await listStaffSupportCases(pool, {
+      actor: req.actor,
+      status: req.query.status || null,
+      priority: req.query.priority || null,
+      ownerRole: req.query.ownerRole || null,
+      limit: req.query.limit ?? 100,
+    });
+    res.set('Cache-Control', 'private, no-store').json({ supportCases });
+  }));
+
+  app.get('/v1/admin/support/cases/:id', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await getSupportCase(pool, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.patch('/v1/admin/support/cases/:id/status', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => transitionSupportCase(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
   }));
 
   app.patch('/v1/admin/reports/:id', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
@@ -4625,6 +4690,7 @@ export function createApp({
     const paymentWorkflowError = error instanceof PaymentDomainError;
     const moderationWorkflowError = error instanceof ModerationDomainError;
     const retentionInventoryError = error instanceof RetentionInventoryError;
+    const supportCaseError = error instanceof SupportCaseError;
     const pilotCockpitError = error instanceof PilotCockpitError;
     const mapsProxyError = error instanceof MapsProxyError;
     const bookingConfirmationError = error instanceof BookingConfirmationError;
@@ -4635,14 +4701,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

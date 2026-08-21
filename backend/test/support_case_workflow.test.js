@@ -1,0 +1,585 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import {
+  createSupportCase,
+  getSupportCase,
+  listStaffSupportCases,
+  transitionSupportCase,
+} from '../src/support_case_workflow.js';
+import { supportCaseFamilies } from '../src/support_case_domain.js';
+
+const now = new Date('2026-08-21T10:00:00.000Z');
+const nextUpdateAt = new Date('2026-08-21T12:00:00.000Z');
+
+function caseRow(overrides = {}) {
+  return {
+    id: 'case-1',
+    human_readable_case_number: 'SIT-ABCDEFGHJKLM',
+    case_type: 'general_help',
+    case_subtype: 'general_how_to',
+    status: 'received',
+    priority: 'p3',
+    severity: 'low',
+    source_channel: 'app',
+    operating_mode: 'simulation',
+    locale: 'de-DE',
+    reporter_user_id: 'user-1',
+    reporter_role: 'user',
+    affected_user_ids: [],
+    linked_booking_id: null,
+    linked_listing_id: null,
+    linked_payment_id: null,
+    linked_refund_id: null,
+    linked_payout_id: null,
+    current_owner_id: null,
+    current_owner_role: 'general_support_owner',
+    escalation_target_role: null,
+    approval_level: 'green_automatic',
+    waiting_on: 'support_owner',
+    waiting_reason: 'Der Eingang wartet auf die fachliche Übernahme.',
+    next_action: 'Eingang fachlich prüfen und einem verantwortlichen Owner zuweisen.',
+    response_due_at: null,
+    evidence_due_at: null,
+    next_update_at: nextUpdateAt,
+    user_facing_summary: 'Allgemeine Hilfe im Testmodus.',
+    internal_summary: null,
+    safety_flag: false,
+    privacy_flag: false,
+    dsa_flag: false,
+    authority_flag: false,
+    money_flag: false,
+    account_takeover_flag: false,
+    policy_snapshot_id: null,
+    decision_id: null,
+    implementation_pending_action: null,
+    resolution_reference: null,
+    appeal_available: false,
+    appeal_deadline: null,
+    closure_reason: null,
+    reopen_reason: null,
+    idempotency_key: 'support.case.create:key-1',
+    lock_version: 1,
+    created_at: now,
+    updated_at: now,
+    resolved_at: null,
+    closed_at: null,
+    ...overrides,
+  };
+}
+
+class ScriptedClient {
+  constructor(steps) {
+    this.steps = [...steps];
+    this.calls = [];
+  }
+
+  async query(sql, params = []) {
+    this.calls.push({ sql, params });
+    const step = this.steps.shift();
+    assert.ok(step, `unexpected query: ${sql}`);
+    if (step.match) assert.match(sql, step.match);
+    if (step.check) step.check({ sql, params });
+    return typeof step.result === 'function'
+      ? step.result({ sql, params })
+      : step.result;
+  }
+
+  done() {
+    assert.equal(this.steps.length, 0, 'not all scripted database calls were used');
+  }
+}
+
+const noRows = { rowCount: 0, rows: [] };
+
+test('create replays before validating a changed request body', async () => {
+  const client = new ScriptedClient([{
+    match: /FROM support_cases/,
+    result: { rowCount: 1, rows: [caseRow()] },
+  }]);
+  const result = await createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: null,
+    idempotencyKey: 'key-1',
+    nextUpdateAt,
+    now,
+  });
+  assert.equal(result.replayed, true);
+  assert.equal(result.supportCase.caseNumber, 'SIT-ABCDEFGHJKLM');
+  assert.equal('approvalLevel' in result.supportCase, false);
+  assert.equal('flags' in result.supportCase, false);
+  client.done();
+});
+
+test('create validates linked-entity access and records case, event and audit', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /AS booking_allowed/,
+      check: ({ params }) => assert.deepEqual(params.slice(0, 3), [
+        'user-1',
+        'booking-1',
+        'listing-1',
+      ]),
+      result: {
+        rowCount: 1,
+        rows: [{
+          booking_allowed: true,
+          listing_exists: true,
+          payment_allowed: true,
+          refund_allowed: true,
+          payout_allowed: true,
+        }],
+      },
+    },
+    {
+      match: /INSERT INTO support_cases/,
+      check: ({ params }) => {
+        assert.match(params[1], /^SIT-[A-HJ-NP-Z2-9]{12}$/);
+        assert.equal(params[2], 'active_handover');
+        assert.equal(params[4], 'p1');
+        assert.equal(params[7], 'internal_testing');
+        assert.equal(params[24], 'booking-1');
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          id: params[0],
+          human_readable_case_number: params[1],
+          case_type: params[2],
+          case_subtype: params[3],
+          priority: params[4],
+          severity: params[5],
+          source_channel: params[6],
+          operating_mode: params[7],
+          reporter_user_id: params[9],
+          reporter_role: params[10],
+          current_owner_role: params[11],
+          approval_level: params[12],
+          waiting_on: params[13],
+          waiting_reason: params[14],
+          next_action: params[15],
+          next_update_at: params[16],
+          user_facing_summary: params[17],
+          linked_booking_id: params[24],
+          linked_listing_id: params[25],
+          idempotency_key: params[29],
+          created_at: params[30],
+          updated_at: params[30],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        assert.equal(params[1], 'user');
+        assert.equal(params[2], 'user-1');
+        assert.equal(JSON.parse(params[3]).operatingMode, 'internal_testing');
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.equal(params[2], 'support.case_created');
+        assert.equal(JSON.parse(params[4]).priority, 'p1');
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+
+  const result = await createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: {
+      caseType: 'active_handover',
+      caseSubType: 'qr_or_code_failure',
+      summary: 'QR-Code funktioniert beim internen Test nicht.',
+      linkedBookingId: 'booking-1',
+      linkedListingId: 'listing-1',
+    },
+    idempotencyKey: 'key-2',
+    nextUpdateAt,
+    operatingMode: 'internal_testing',
+    now,
+  });
+  assert.equal(result.replayed, false);
+  assert.equal(result.supportCase.priority, 'p1');
+  assert.equal(result.supportCase.operatingMode, 'internal_testing');
+  assert.equal('severity' in result.supportCase, false);
+  client.done();
+});
+
+test('create rejects an inaccessible linked booking before any write', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /AS booking_allowed/,
+      result: {
+        rowCount: 1,
+        rows: [{
+          booking_allowed: false,
+          listing_exists: true,
+          payment_allowed: true,
+          refund_allowed: true,
+          payout_allowed: true,
+        }],
+      },
+    },
+  ]);
+  await assert.rejects(
+    createSupportCase(client, {
+      actor: { id: 'user-1', role: 'user' },
+      raw: {
+        caseType: 'booking_pre_start',
+        caseSubType: 'date_or_time_confirmation',
+        summary: 'Fremde Buchung darf nicht verknüpft werden.',
+        linkedBookingId: 'booking-other',
+      },
+      idempotencyKey: 'key-3',
+      nextUpdateAt,
+      now,
+    }),
+    /support_linked_booking_forbidden/,
+  );
+  client.done();
+});
+
+test('create turns a concurrent unique-key winner into an idempotent replay', async () => {
+  const allowedLinks = {
+    booking_allowed: true,
+    listing_exists: true,
+    payment_allowed: true,
+    refund_allowed: true,
+    payout_allowed: true,
+  };
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    { match: /AS booking_allowed/, result: { rowCount: 1, rows: [allowedLinks] } },
+    {
+      match: /ON CONFLICT \(reporter_user_id, idempotency_key\) DO NOTHING/,
+      result: noRows,
+    },
+    {
+      match: /WHERE reporter_user_id = \$1 AND idempotency_key = \$2/,
+      result: { rowCount: 1, rows: [caseRow()] },
+    },
+  ]);
+  const result = await createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: {
+      caseType: 'general_help',
+      caseSubType: 'general_how_to',
+      summary: 'Gleicher paralleler Eingang wird nur einmal gespeichert.',
+    },
+    idempotencyKey: 'key-concurrent',
+    now,
+  });
+  assert.equal(result.replayed, true);
+  assert.equal(result.supportCase.id, 'case-1');
+  client.done();
+});
+
+test('transition replays idempotently before locking the case', async () => {
+  const client = new ScriptedClient([{
+    match: /FROM support_case_events AS event/,
+    check: ({ params }) => assert.deepEqual(params, [
+      'support.case.transition:transition-1',
+      'case-1',
+    ]),
+    result: {
+      rowCount: 1,
+      rows: [caseRow({ status: 'under_review', lock_version: 2 })],
+    },
+  }]);
+  const result = await transitionSupportCase(client, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId: 'case-1',
+    raw: null,
+    idempotencyKey: 'transition-1',
+    now,
+  });
+  assert.equal(result.replayed, true);
+  assert.equal(result.supportCase.status, 'under_review');
+  assert.equal(result.supportCase.version, 2);
+  client.done();
+});
+
+test('transition rechecks idempotency after a concurrent row-lock wait', async () => {
+  const updated = caseRow({ status: 'under_review', lock_version: 2 });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [updated] } },
+    { match: /SELECT 1 FROM support_case_events/, result: { rowCount: 1, rows: [{ '?column?': 1 }] } },
+  ]);
+  const result = await transitionSupportCase(client, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId: 'case-1',
+    raw: null,
+    idempotencyKey: 'transition-concurrent',
+    now,
+  });
+  assert.equal(result.replayed, true);
+  assert.equal(result.supportCase.status, 'under_review');
+  assert.equal(result.supportCase.version, 2);
+  client.done();
+});
+
+test('transition uses optimistic versioning and appends event plus audit', async () => {
+  const current = caseRow({
+    status: 'acknowledged',
+    priority: 'p1',
+    severity: 'high',
+    approval_level: 'yellow_human_review',
+    current_owner_role: 'booking_operations_owner',
+    lock_version: 4,
+  });
+  const transitionAt = new Date('2026-08-21T10:05:00.000Z');
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
+    { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    {
+      match: /UPDATE support_cases/,
+      check: ({ params }) => {
+        assert.equal(params[1], 'under_review');
+        assert.equal(params[15], 4);
+        assert.equal(params[14], transitionAt);
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          ...current,
+          status: params[1],
+          waiting_on: params[2],
+          waiting_reason: params[3],
+          next_action: params[4],
+          next_update_at: params[5],
+          lock_version: 5,
+          updated_at: params[14],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        assert.equal(params[3], 'acknowledged');
+        assert.equal(params[4], 'under_review');
+        assert.equal(JSON.parse(params[6]).expectedVersion, 4);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.equal(params[2], 'support.case_transitioned');
+        assert.deepEqual(JSON.parse(params[4]), {
+          fromStatus: 'acknowledged',
+          toStatus: 'under_review',
+          expectedVersion: 4,
+        });
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+  const result = await transitionSupportCase(client, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId: 'case-1',
+    raw: {
+      status: 'under_review',
+      expectedVersion: 4,
+      reason: 'Prüfung wurde übernommen.',
+      nextAction: 'Interne Evidenz im Testmodus prüfen.',
+      nextUpdateAt,
+    },
+    idempotencyKey: 'transition-2',
+    now: transitionAt,
+  });
+  assert.equal(result.replayed, false);
+  assert.equal(result.supportCase.status, 'under_review');
+  assert.equal(result.supportCase.version, 5);
+  assert.equal(result.supportCase.approvalLevel, 'yellow_human_review');
+  client.done();
+});
+
+test('get keeps user access and event visibility fail closed', async () => {
+  const client = new ScriptedClient([{
+    match: /FROM support_cases/,
+    check: ({ params }) => assert.deepEqual(params, ['case-other', false, 'user-1']),
+    result: noRows,
+  }]);
+  await assert.rejects(
+    getSupportCase(client, {
+      actor: { id: 'user-1', role: 'user' },
+      caseId: 'case-other',
+    }),
+    /support_case_not_found/,
+  );
+  client.done();
+});
+
+test('get omits staff transition reasons from the user-safe event projection', async () => {
+  const client = new ScriptedClient([
+    {
+      match: /FROM support_cases/,
+      result: { rowCount: 1, rows: [caseRow()] },
+    },
+    {
+      match: /FROM support_case_events/,
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: 'event-1',
+          event_type: 'case.transitioned',
+          actor_type: 'support',
+          actor_id: 'support-1',
+          from_status: 'received',
+          to_status: 'acknowledged',
+          transition_reason: 'Nur für die interne Fallakte.',
+          created_at: now,
+          visibility: 'user_visible',
+        }],
+      },
+    },
+  ]);
+  const result = await getSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    caseId: 'case-1',
+  });
+  assert.equal(result.events.length, 1);
+  assert.equal(result.events[0].toStatus, 'acknowledged');
+  assert.equal('transitionReason' in result.events[0], false);
+  assert.equal('actorId' in result.events[0], false);
+  client.done();
+});
+
+test('staff queue is role-gated, filter-bounded and keeps internal fields', async () => {
+  const denied = new ScriptedClient([]);
+  await assert.rejects(
+    listStaffSupportCases(denied, { actor: { id: 'user-1', role: 'user' } }),
+    /support_staff_list_forbidden/,
+  );
+  const invalid = new ScriptedClient([]);
+  await assert.rejects(
+    listStaffSupportCases(invalid, {
+      actor: { id: 'support-1', role: 'support' },
+      limit: 201,
+    }),
+    /support_limit_invalid/,
+  );
+  const client = new ScriptedClient([{
+    match: /ORDER BY priority, next_update_at NULLS LAST/,
+    check: ({ params }) => assert.deepEqual(params, [
+      'received',
+      'p0',
+      'trust_safety_owner',
+      25,
+    ]),
+    result: { rowCount: 1, rows: [caseRow({
+      priority: 'p0',
+      severity: 'critical',
+      current_owner_role: 'trust_safety_owner',
+      approval_level: 'red_explicit_decision',
+      safety_flag: true,
+    })] },
+  }]);
+  const queue = await listStaffSupportCases(client, {
+    actor: { id: 'support-1', role: 'support' },
+    status: 'received',
+    priority: 'p0',
+    ownerRole: 'trust_safety_owner',
+    limit: 25,
+  });
+  assert.equal(queue.length, 1);
+  assert.equal(queue[0].severity, 'critical');
+  assert.equal(queue[0].flags.safety, true);
+  client.done();
+});
+
+test('support migration defines fail-closed lifecycle, append-only truth and guarded rollback', async () => {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const up = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/032_support_case_foundation.up.sql'),
+    'utf8',
+  );
+  const down = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/032_support_case_foundation.down.sql'),
+    'utf8',
+  );
+  for (const table of [
+    'support_policy_snapshots',
+    'support_cases',
+    'support_decisions',
+    'support_case_events',
+    'support_evidence',
+    'support_messages',
+    'support_appeals',
+  ]) assert.match(up, new RegExp(`CREATE TABLE ${table}\\b`));
+  for (const [family, subtypes] of Object.entries(supportCaseFamilies)) {
+    assert.match(up, new RegExp(`case_type = '${family}'`));
+    for (const subtype of subtypes) assert.ok(up.includes(`'${subtype}'`), `${family}/${subtype}`);
+  }
+  assert.doesNotMatch(up, /'paused'/);
+  assert.match(up, /support_case_events_append_only/);
+  assert.match(up, /support_policy_snapshots_append_only/);
+  assert.match(up, /support_case_lock_version_invalid/);
+  assert.match(up, /approval_level <> 'green_automatic'/);
+  assert.match(up, /next_action IS NULL AND next_update_at IS NULL AND waiting_on = 'none'/);
+  assert.match(up, /OLD\.status = 'closed' AND NEW\.status = 'reopened'/);
+  assert.match(up, /operating_mode IN \('simulation', 'internal_testing'\)/);
+  assert.match(down, /Support rollback blocked: support data exists/);
+  assert.ok(
+    down.indexOf('ALTER TABLE support_cases DROP CONSTRAINT support_cases_appeal_fk')
+      < down.indexOf('DROP TABLE support_appeals'),
+  );
+});
+
+test('support routes and personal-data lifecycle stay authenticated, non-live and fail closed', async () => {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const [app, privacyExport, retentionInventory] = await Promise.all([
+    fs.readFile(path.resolve(currentDir, '../src/app.js'), 'utf8'),
+    fs.readFile(path.resolve(currentDir, '../src/privacy_export.js'), 'utf8'),
+    fs.readFile(path.resolve(currentDir, '../src/retention_inventory.js'), 'utf8'),
+  ]);
+  for (const route of [
+    "app.post('/v1/support/cases', requireAuth, requireActiveAccount, actionLimiter",
+    "app.get('/v1/support/cases', requireAuth, requireActiveAccount",
+    "app.get('/v1/support/cases/:id', requireAuth, requireActiveAccount",
+  ]) assert.ok(app.includes(route), route);
+  for (const route of [
+    "app.get('/v1/admin/support/cases', requireAuth, requireActiveAccount, requireStaffElevation",
+    "app.get('/v1/admin/support/cases/:id', requireAuth, requireActiveAccount, requireStaffElevation",
+    "app.patch('/v1/admin/support/cases/:id/status', requireAuth, requireActiveAccount, requireStaffElevation",
+  ]) assert.ok(app.includes(route), route);
+  assert.match(app, /operatingMode: 'simulation'/);
+  assert.match(app, /support_case_records[\s\S]*Supportfall mit offener Aufbewahrungsentscheidung/);
+  assert.match(app, /const supportCaseError = error instanceof SupportCaseError/);
+
+  for (const table of [
+    'support_cases',
+    'support_case_events',
+    'support_messages',
+    'support_decisions',
+    'support_appeals',
+    'support_evidence',
+  ]) assert.match(privacyExport, new RegExp(`FROM ${table}(?: AS)?\\b`));
+  assert.doesNotMatch(privacyExport, /support_case\.internal_summary/);
+  assert.doesNotMatch(privacyExport, /decision\.internal_reason/);
+  assert.match(privacyExport, /event\.visibility = 'user_visible'/);
+  assert.match(privacyExport, /message\.recipient_user_id = \$1 AND message\.send_status = 'sent'/);
+  assert.match(privacyExport, /decision\.communicated_at IS NOT NULL/);
+  assert.match(privacyExport, /evidence\.access_level = 'user_visible'/);
+  assert.match(privacyExport, /internalNotesExcluded: true/);
+
+  for (const marker of [
+    "'communications', 'support_cases'",
+    "'communications', 'support_messages'",
+    "'moderation', 'support_decisions'",
+    "'moderation', 'support_evidence'",
+    "'moderation', 'support_appeals'",
+    "'securityAudit', 'support_case_events'",
+    "'securityAudit', 'support_policy_snapshots'",
+  ]) assert.ok(retentionInventory.includes(marker), marker);
+});

@@ -93,6 +93,7 @@ if (!databaseUrl) {
         '029_g3c_booking_group_quote_state.up.sql',
         '030_g3d_shared_handover_item_evidence.up.sql',
         '031_g5b_listing_sets.up.sql',
+        '032_support_case_foundation.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -151,6 +152,31 @@ if (!databaseUrl) {
         { table_name: 'listing_set_version_members' },
         { table_name: 'listing_set_versions' },
         { table_name: 'listing_sets' },
+      ]);
+      const supportCaseTables = await setupPool.query(
+        `SELECT table_name
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name = ANY($1::text[])
+          ORDER BY table_name`,
+        [[
+          'support_appeals',
+          'support_case_events',
+          'support_cases',
+          'support_decisions',
+          'support_evidence',
+          'support_messages',
+          'support_policy_snapshots',
+        ]],
+      );
+      assert.deepEqual(supportCaseTables.rows, [
+        { table_name: 'support_appeals' },
+        { table_name: 'support_case_events' },
+        { table_name: 'support_cases' },
+        { table_name: 'support_decisions' },
+        { table_name: 'support_evidence' },
+        { table_name: 'support_messages' },
+        { table_name: 'support_policy_snapshots' },
       ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name

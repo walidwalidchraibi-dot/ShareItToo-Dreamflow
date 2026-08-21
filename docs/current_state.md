@@ -34,10 +34,15 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `031`, deterministic
+- Node/Express backend with PostgreSQL migrations through `032`, deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
+- S1 adds a simulation-only central support-case foundation from the current
+  Drive Support Packet: exact taxonomy, guarded lifecycle, append-only events,
+  red approval boundaries, authenticated user intake/read, Staff-Step-up queue
+  and transitions, plus export/retention/erasure-preflight coverage. It sends
+  no external message and executes no decision or measure.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and
@@ -601,13 +606,16 @@ Verified: 2026-08-21 on the Mac mini.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records P0B-READINESS as closed and the V2.4
-rolling-autonomy runway as ended. G3B, G2A, G2L, G2B and U0 remain technically
+`docs/current_work_package.md` records Walid's later exceptional, bounded
+non-live continuation instruction. Codex continues safe launch-readiness lanes
+without artificial pauses until Walid explicitly stops; missing external facts
+block only their dependent lane. G3B, G2A, G2L, G2B and U0 remain technically
 complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
 later legal/release gate. The planner and supply-enrichment runway remain
-disabled and non-public; listing sets also remain disabled and non-public. No
-next package starts until Walid gives a new explicit bounded authorization.
-Older reports and root `architecture.md` are
+disabled and non-public; listing sets also remain disabled and non-public.
+S1 support foundations remain simulation-only and do not authorize live
+support, automated messages or decision execution. Older reports and root
+`architecture.md` are
 evidence/history, not permission to reopen a closed launch boundary.
