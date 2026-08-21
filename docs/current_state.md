@@ -6,13 +6,13 @@ Verified: 2026-08-21 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G5B implementation head:
-  `21106645639c2c09334468817ca3e7b206ae411c`.
-- The G5B implementation commit is contained in the local branch, remote
+- Current FI1 implementation head:
+  `a732ebaa257462fe2292232c779906d4331b0321`.
+- The FI1 implementation commit is contained in the local branch, remote
   branch and draft PR #7 head; the PR remains open and unmerged.
-- GitHub Actions run `32430660117`, associated with that exact PR head, is
+- GitHub Actions run `32431950081`, associated with that exact PR head, is
   green. The workflow verified GitHub's synthetic PR merge result
-  `c9b41f6549bccc77008a631013cbfb8f75b27eee`; backend and Flutter regression
+  `daae51624ab305bddee4d704fed37bc0271cfd08`; backend and Flutter regression
   passed, while the signed candidate and image publication were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
@@ -308,6 +308,32 @@ Verified: 2026-08-21 on the Mac mini.
 - `docs/compliance/g5b-versioned-listing-sets-2026-08-21.md` and ADR-036 are
   the detailed evidence. V2.4 auto-continues to FI1.
 
+## FI1 operational delegation layer
+
+- A machine-validated contract assigns role-level owners, delegate roles,
+  audit sources, two bounded thresholds and a runbook to four process areas:
+  booking groups/sets, project planner/cart, item evidence/`needsReview` and
+  normal support escalation.
+- Every process remains `hold`. Real assignees, delegates, company-account
+  RBAC and absence tests are explicitly absent and were not inferred from local
+  users, email addresses, devices or chat history.
+- Normal failures route to FI0 functional roles and never automatically to a
+  named founder. Strategy, existential risk and explicit owner authorization
+  remain separate gates; missing routing is an operations defect.
+- Four executable runbooks preserve server quote/inventory truth, item-level
+  evidence, staff step-up, append-only audit, safe fallback and the existing
+  disabled/public-release boundaries.
+- The read-only admin cockpit exposes a role-only delegation summary. It maps
+  normal operations to `projectFunnel`, founder hours to
+  `founderIndependence.hoursByCategory` and founder escalations to
+  `founderIndependence.escalations`, with blending explicitly false.
+- Missing or invalid monthly founder aggregates remain unavailable and do not
+  become silent zeroes. No invasive activity tracking, automatic founder
+  monitoring, private evidence content or new telemetry was added.
+- FI1 has no migration, provider, payment, production, Store, account or public
+  activation change. `docs/compliance/fi1-operational-delegation-2026-08-21.md`
+  and ADR-037 are the detailed evidence. V2.4 auto-continues to P0A.
+
 ## Validation and rollback
 
 - Exact G4B CI `32425415877` is green at
@@ -380,10 +406,22 @@ Verified: 2026-08-21 on the Mac mini.
   fails closed. The normal source rollback is a revert of `2110664` plus exact
   restoration of Privacy/Retention source hashes; all underlying listings and
   historical G2-G5A/V5.2 truth remain valid.
+- FI1 GitHub Actions run `32431950081` is green and associated with exact PR
+  head `a732ebaa257462fe2292232c779906d4331b0321`. GitHub checked synthetic PR
+  merge result `daae51624ab305bddee4d704fed37bc0271cfd08`: 333 backend
+  tests passed with PostgreSQL 16, and 321 Flutter tests passed with one
+  documented skip. The FI1 validator reported four hold processes, eight
+  thresholds, no assignment readiness and no reporting blend. Analyzer stayed
+  at 222 findings; web debug, Android debug APK, secret scan, dependency audit,
+  Compose validation and API image build passed. Signed-candidate build and
+  publication remained skipped.
+- FI1 has no migration or external state. Its rollback is a revert of
+  `a732eba`; FI0/U0, historical audit/evidence and disabled G3-G5 state remain
+  intact.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active FI1 under the V2.4
+`docs/current_work_package.md` records active P0A under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the

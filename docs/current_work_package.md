@@ -1,60 +1,61 @@
-# Current Work Package: FI1 - Operational Delegation Layer
+# Current Work Package: P0A - Closed-Pilot Technical Readiness
 
 Status: **active under the V2.4 rolling-autonomy runway** on 21.08.2026.
 
 ## Authorization and boundary
 
 Walid instructed Codex to follow `00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`.
-G5B is technically GREEN at commit
-`21106645639c2c09334468817ca3e7b206ae411c`; GitHub Actions run
-`32430660117` associated with that exact PR head passed with 331 backend and
+FI1 is technically GREEN at commit
+`a732ebaa257462fe2292232c779906d4331b0321`; GitHub Actions run
+`32431950081` associated with that exact PR head passed with 333 backend and
 321 Flutter tests, plus one documented Flutter skip. V2.4 therefore
-auto-continues to FI1 while all public/live and real-payment gates stay closed.
+auto-continues to P0A.
 
-No production, public/live, VPS/OpenClaw, Maximus, SSH, DNS, cloud-console,
-real-payment, Store, signing, provider-account, account-permission or
+P0A is technical readiness evidence only. No public rollout and no real money
+are authorized. No production, VPS/OpenClaw, Maximus, SSH, DNS, cloud-console,
+Store, signing, provider-account, account-permission, live external-provider or
 destructive action is authorized. PR #7 remains Draft and unmerged. Booking
 groups, planner, supply enrichment and listing sets remain disabled by default
-and unavailable in release mode. FI1 must not invent real role assignments,
-delegates, account permissions, staffing evidence or absence-test results.
+and unavailable in release mode.
 
-## G5B handover
+## FI1 handover
 
-- Server-owned versioned sets link only existing same-owner listings and retain
-  individual bookability. Required members must all be current and available
-  for the selected period; stale truth fails closed.
-- Resolution uses existing quote preview truth and preserves exact item price,
-  evidence, damage, `needsReview`, refund and audit boundaries.
-- 1-Stop eligibility uses the exact internal handover-location hash. Ranking
-  may use fewer handovers only; Business status, price and hidden manipulation
-  are excluded.
-- Migration 031 is additive and has a fail-closed non-empty rollback. Export,
-  erasure, retention and privacy inventories cover all three set tables.
+- Four role-owned operational processes have explicit delegates, runbooks,
+  audit sources and bounded escalation thresholds, but all remain `hold` until
+  real company-system assignments and absence tests exist.
+- Normal operations never route automatically to a named founder. The cockpit
+  keeps operational funnel, founder hours and founder escalations separate.
+- No runtime permission, account, provider, production, payment, Store or public
+  activation changed. FI1 adds no migration or user-data category.
 
-## FI1 required result
+## P0A required result
 
-- Extend the FI0 role model with explicit owner roles, delegate roles and
-  executable runbooks for booking groups/listing sets, project planner/cart,
-  item evidence/`needsReview` and normal support escalation.
-- Bind existing authoritative audit sources and clear, bounded escalation
-  thresholds. Normal failures must route to functional roles rather than a
-  named person; strategy, existential and explicit owner-authorization gates
-  remain distinct.
-- Do not create personal account dependencies or claim company-system RBAC,
-  staffing, delegate assignment or absence readiness without external evidence.
-- Keep the admin pilot cockpit aggregate-only and read-only. Its normal
-  operational funnel, founder-hours aggregates and founder-escalation
-  aggregates must remain explicitly separate and must never be blended into a
-  silent zero or synthetic profitability result.
-- Preserve existing staff step-up, least privilege, append-only audit, privacy,
-  no-store and sensitive-metadata restrictions. Do not add invasive activity
-  tracking, private evidence content or automatic founder monitoring.
+- Produce an end-to-end technical matrix for the existing single-item path,
+  disabled same-owner multi-item path and disabled project-cart/planner path.
+- Prove payment remains synthetic/test-provider only, with Stripe livemode and
+  real payment execution off and no live external-provider traffic.
+- Cover account lifecycle, cancellation, withdrawal, handover/return,
+  `needsReview`, export/deletion and recovery with focused regression plus the
+  complete technical gate.
+- Record current Pixel 7 Pro reachability and current-source device binding
+  honestly. Do not overwrite or uninstall the installed app merely to force a
+  green device cell. Historical device evidence must not be presented as proof
+  for the current source head.
+- Run current-source web smoke and Android/Web builds where relevant. Do not
+  create a signed candidate or submit/upload any binary.
+- Classify every matrix cell as passed, blocked, not applicable or historical;
+  missing evidence must never become a pass.
 
 ## Package gate
 
-Run focused role/delegate/runbook, audit-source, threshold, named-person,
-cockpit-separation and fail-closed readiness tests plus the complete backend and
-technical regression at the exact package head. Record external staffing/RBAC,
-absence-test and founder-replacement gates honestly. When FI1 is technically
-GREEN, V2.4 auto-continues to P0A without activating any feature or changing
-production, payment, provider, Store or account state.
+Run focused single-item, multi-item, planner/cart, account, cancellation,
+withdrawal, evidence/return, `needsReview`, export/deletion, recovery and
+payment-boundary tests plus the complete backend and technical regression at
+the exact package head. Validate the matrix mechanically and record current
+device/web evidence without identifiers or secrets.
+
+If a current-source physical-device cell remains blocked by the existing
+signature-preservation boundary, close P0A as an honest technical-readiness
+HOLD rather than changing device data or signing a release. The independent,
+non-activating P0B-READINESS dossier may still proceed under V2.4 and must carry
+that blocker forward. No pilot activation is authorized.
