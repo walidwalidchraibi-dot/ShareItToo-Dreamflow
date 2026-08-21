@@ -28,6 +28,11 @@ Verified: 2026-08-21 on the Mac mini.
   `32497715939` passed Backend and Flutter regression including PostgreSQL 16.
   Publication and signed-candidate construction stayed skipped, and draft PR
   #7 remained open and unmerged.
+- The S3A safety-first intake is verified at exact commit
+  `613adc06c9504b4778adf81b5ba5b892d3435825`; exact GitHub Actions run
+  `32500301293` passed Backend including PostgreSQL 16 and the full
+  Flutter/Web/Android debug regression. Publication and signed-candidate
+  construction stayed skipped, and draft PR #7 remained open and unmerged.
 
 ## Post-P0B ordered continuation close
 
@@ -65,6 +70,10 @@ Verified: 2026-08-21 on the Mac mini.
   source-bound T-003 emergency guidance, versioned immutable intake evidence
   and fail-closed Trust & Safety routing for immediate danger. It places no
   call, sends no external message and activates no live support operation.
+- S3B connects that intake to the authenticated canonical simulation-case
+  route. The app accepts only a confirmed received-state receipt with opaque
+  Case ID and server-computed next update before it opens the local support
+  presentation; retries are idempotent and malformed/live receipts fail closed.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

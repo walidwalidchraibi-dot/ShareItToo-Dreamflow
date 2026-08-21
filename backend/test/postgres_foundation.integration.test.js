@@ -869,6 +869,67 @@ if (!databaseUrl) {
         Authorization: `Bearer ${tokenFor('renter-b')}`,
         'Content-Type': 'application/json',
       };
+      const createSupportIntake = () => fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 's3b-support-intake-integration',
+        },
+        body: JSON.stringify({
+          caseType: 'general_help',
+          caseSubType: 'app_error_or_display',
+          summary: 'Technischer Supportfall im kontrollierten Simulationsmodus.',
+          linkedBookingId: 'booking-a',
+          linkedListingId: 'listing-1',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+        }),
+      });
+      const supportIntakeResponse = await createSupportIntake();
+      assert.equal(supportIntakeResponse.status, 201);
+      assert.match(supportIntakeResponse.headers.get('cache-control'), /no-store/u);
+      const supportIntake = await supportIntakeResponse.json();
+      assert.equal(supportIntake.replayed, false);
+      assert.match(supportIntake.supportCase.caseNumber, /^SIT-[A-Z0-9]+$/u);
+      assert.equal(supportIntake.supportCase.status, 'received');
+      assert.equal(supportIntake.supportCase.operatingMode, 'simulation');
+      assert.equal(supportIntake.supportCase.timezone, 'Europe/Berlin');
+      assert.ok(supportIntake.supportCase.nextUpdateAt);
+      assert.ok(supportIntake.supportCase.nextUpdateDisplay);
+      assert.equal('approvalLevel' in supportIntake.supportCase, false);
+      const supportIntakeReplay = await createSupportIntake();
+      assert.equal(supportIntakeReplay.status, 200);
+      assert.equal((await supportIntakeReplay.json()).replayed, true);
+      const mySupportCasesResponse = await fetch(`${baseUrl}/v1/support/cases`, {
+        headers: renterAHeaders,
+      });
+      assert.equal(mySupportCasesResponse.status, 200);
+      const mySupportCases = (await mySupportCasesResponse.json()).supportCases;
+      assert.ok(mySupportCases.some((entry) => (
+        entry.caseNumber === supportIntake.supportCase.caseNumber
+        && entry.nextUpdateDisplay
+        && entry.timezone === 'Europe/Berlin'
+      )));
+      const supportIntakeAudit = await setupPool.query(
+        `SELECT metadata FROM audit_log
+          WHERE action = 'support.case_created' AND resource_id = $1`,
+        [supportIntake.supportCase.id],
+      );
+      assert.equal(supportIntakeAudit.rowCount, 1);
+      assert.deepEqual(supportIntakeAudit.rows[0].metadata, {
+        caseType: 'general_help',
+        caseSubType: 'app_error_or_display',
+        priority: 'p3',
+        operatingMode: 'simulation',
+        safetyTriageVersion: 'sit_support_safety_triage_v1',
+        safetyGuidanceShown: false,
+      });
       const disabledGroupRequest = await fetch(`${baseUrl}/v1/booking-groups`, {
         method: 'POST',
         headers: {

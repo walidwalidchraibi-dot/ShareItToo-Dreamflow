@@ -523,11 +523,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final supportThread = await DataService.createSupportThread(
       userId: current.id,
     );
+    if (!mounted) return;
     if (supportThread == null) {
       AppPopup.toast(
         context,
-        icon: Icons.error_outline,
-        title: 'Support nicht verfügbar',
+        icon: Icons.check_circle_outline,
+        title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
       );
       return;
     }
@@ -537,7 +538,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     await DataService.addSystemMessageToThread(
       threadId: supportThread.id,
       text:
-          "Support-Fall eröffnet: ${result.mainCategoryLabel} · ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\n📋 Support-Anfrage zu: ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\nBuchung: $requestId\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
+          "${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu: ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\nBuchung: $requestId\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
     );
     if (!mounted) return;
     Navigator.of(context).push(

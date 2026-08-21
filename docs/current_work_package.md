@@ -46,13 +46,20 @@ decision list outside its explicit assignment. The response stays fail-closed
 and does not disclose whether an unassigned case exists. Break-glass remains
 unimplemented and blocked.
 
-The active package is `S3A_SAFETY_FIRST_SUPPORT_INTAKE`. It implements Drive
-Support Packet scenarios `SUP-017` and `SUP-093`: the app asks about immediate
-danger before normal categorization, shows source-bound T-003 safety guidance
-for `yes` or `unsure`, and carries immutable version evidence into the backend
-intake. Backend contradictions fail closed and immediate danger routes to the
-Trust & Safety owner. No emergency call, external message or live case action
-is performed.
+`S3A_SAFETY_FIRST_SUPPORT_INTAKE` is verified at exact commit
+`613adc06c9504b4778adf81b5ba5b892d3435825` and exact successful GitHub Actions
+run `32500301293`. It implements Drive Support Packet scenarios `SUP-017` and
+`SUP-093`: the app asks about immediate danger before normal categorization,
+shows source-bound T-003 safety guidance for `yes` or `unsure`, and carries
+immutable version evidence into the backend intake. Backend contradictions
+fail closed and immediate danger routes to the Trust & Safety owner.
+
+The active package is `S3B_CANONICAL_SUPPORT_INTAKE_RECEIPT`. It addresses
+`SUP-016` by connecting the Flutter intake to the authenticated canonical
+support-case route before any local support-thread presentation is opened. A
+valid receipt must prove the Case ID, `received` state, `simulation` mode and
+server-computed next update in `Europe/Berlin`; invalid or unavailable receipts
+remain fail-closed. No external message or live case action is performed.
 
 ## Prior ordered post-P0B gate close
 

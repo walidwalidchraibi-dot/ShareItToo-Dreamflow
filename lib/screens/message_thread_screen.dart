@@ -3877,28 +3877,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     if (result == null || !mounted) return;
 
-    final mainCategory = result.mainCategory;
     final subCategory = result.subCategory;
     final userDescription = result.userDescription;
-
-    final supportContext = <String, dynamic>{
-      'mainCategory': mainCategory,
-      'subCategory': subCategory,
-      'userDescription': userDescription,
-      'itemTitle': _itemTitle(),
-      'itemId': _item?.id ?? '',
-      'requestId': _request?.id ?? '',
-      'threadId': _thread?.id ?? '',
-      'bookingStatus': _request?.status ?? _thread?.bookingStatus ?? '',
-      'otherUserName': _displayName(),
-      'currentUserRole': _viewerIsOwner() ? 'owner' : 'renter',
-      'source': 'booking_chat',
-      'createdAt': DateTime.now().toIso8601String(),
-    };
-
-    debugPrint(
-      '[MessageThreadScreen] Support context prepared: $supportContext',
-    );
 
     try {
       final me = _currentUser;
@@ -3927,21 +3907,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         if (mounted) {
           AppPopup.info(
             context,
-            title: 'Support-Fall vorbereitet',
-            message: 'Die Support-Route ist noch nicht verfügbar.',
+            title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
+            message: 'Der lokale Support-Chat konnte nicht geöffnet werden.',
           );
         }
         return;
       }
 
-      final mainLabel = _supportMainCategoryLabel(mainCategory);
       final descText = userDescription.isNotEmpty
           ? '\n\nBeschreibung:\n$userDescription'
           : '';
       final contextMessage =
-          '''Support-Fall eröffnet: $mainLabel · ${_itemTitle().isNotEmpty ? _itemTitle() : 'Buchung'}\n📋 Support-Anfrage zu: ${_itemTitle().isNotEmpty ? _itemTitle() : 'Buchung'}
+          '''${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu: ${_itemTitle().isNotEmpty ? _itemTitle() : 'Buchung'}
 Buchung: ${_request?.id ?? 'N/A'}
-Kategorie: $mainLabel
+Kategorie: ${result.mainCategoryLabel}
 Unterkategorie: $subCategory$descText''';
 
       await DataService.addSystemMessageToThread(
@@ -3965,31 +3944,10 @@ Unterkategorie: $subCategory$descText''';
       if (mounted) {
         AppPopup.toast(
           context,
-          icon: Icons.error_outline,
-          title: 'Support nicht verfügbar',
+          icon: Icons.check_circle_outline,
+          title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
         );
       }
-    }
-  }
-
-  String _supportMainCategoryLabel(String category) {
-    switch (category) {
-      case 'handover':
-        return 'Problem mit Übergabe';
-      case 'return':
-        return 'Problem mit Rückgabe';
-      case 'item_condition':
-        return 'Problem mit Artikel/Zustand';
-      case 'payment':
-        return 'Problem mit Zahlung';
-      case 'person':
-        return 'Problem mit anderer Person';
-      case 'technical':
-        return 'Technisches Problem';
-      case 'other':
-        return 'Sonstiges';
-      default:
-        return category;
     }
   }
 }

@@ -1014,6 +1014,23 @@ class BackendRepository {
     return _maps(response['reports']);
   }
 
+  static Future<Map<String, dynamic>> createSupportCase({
+    required Map<String, dynamic> intake,
+    required String idempotencyKey,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/support/cases',
+      body: intake,
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    final supportCase = response['supportCase'];
+    if (supportCase is! Map) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return Map<String, dynamic>.from(supportCase);
+  }
+
   static Future<Map<String, dynamic>> createBookingReview({
     required String bookingId,
     required String direction,

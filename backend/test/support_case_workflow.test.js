@@ -124,6 +124,9 @@ test('create replays before validating a changed request body', async () => {
   });
   assert.equal(result.replayed, true);
   assert.equal(result.supportCase.caseNumber, 'SIT-ABCDEFGHJKLM');
+  assert.equal(result.supportCase.timezone, 'Europe/Berlin');
+  assert.match(result.supportCase.nextUpdateDisplay, /21\.08\.2026/u);
+  assert.match(result.supportCase.nextUpdateDisplay, /14:00/u);
   assert.equal('approvalLevel' in result.supportCase, false);
   assert.equal('flags' in result.supportCase, false);
   client.done();

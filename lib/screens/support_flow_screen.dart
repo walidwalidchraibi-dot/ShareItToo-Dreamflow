@@ -1,8 +1,11 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_image.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 /// Quelle, aus der der Support-Flow gestartet wurde
 enum SupportFlowSource {
@@ -155,6 +158,13 @@ class SupportSafetyTriage {
   };
 }
 
+class SupportCaseRoute {
+  final String caseType;
+  final String caseSubType;
+
+  const SupportCaseRoute(this.caseType, this.caseSubType);
+}
+
 /// Ergebnis des Support-Flows
 class SupportFlowResult {
   final String mainCategory;
@@ -162,6 +172,7 @@ class SupportFlowResult {
   final String userDescription;
   final SupportFlowContext context;
   final SupportSafetyTriage safetyTriage;
+  final Map<String, dynamic>? canonicalCase;
 
   const SupportFlowResult({
     required this.mainCategory,
@@ -169,7 +180,174 @@ class SupportFlowResult {
     required this.userDescription,
     required this.context,
     required this.safetyTriage,
+    this.canonicalCase,
   });
+
+  static const _backendRoutes = <String, Map<String, SupportCaseRoute>>{
+    'handover': {
+      'Mieter ist nicht erschienen': SupportCaseRoute('active_handover', 'party_not_present'),
+      'Vermieter ist nicht erschienen': SupportCaseRoute('active_handover', 'party_not_present'),
+      'Gegenpartei öffnet nicht / reagiert nicht': SupportCaseRoute('active_handover', 'party_not_present'),
+      'Übergabeort ist unklar': SupportCaseRoute('booking_pre_start', 'address_reveal'),
+      'Falsche Person ist erschienen': SupportCaseRoute('active_handover', 'identity_or_person_mismatch'),
+      'Artikel ist nicht wie beschrieben': SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Vermieter verweigert Übergabe': SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
+      'Mieter verweigert Bestätigung': SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
+      'QR-Code funktioniert nicht': SupportCaseRoute('active_handover', 'qr_or_code_failure'),
+      '6-stelliger Code funktioniert nicht': SupportCaseRoute('active_handover', 'qr_or_code_failure'),
+      'Kamera/Fotos funktionieren nicht': SupportCaseRoute('active_handover', 'handover_photo_missing'),
+      'Ich fühle mich unsicher vor Ort': SupportCaseRoute('active_handover', 'unsafe_handover'),
+      'Sonstiges Übergabeproblem': SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
+    },
+    'return': {
+      'Mieter ist nicht zur Rückgabe erschienen': SupportCaseRoute('cancellation_no_show', 'return_no_show'),
+      'Vermieter ist nicht zur Rückgabe erschienen': SupportCaseRoute('cancellation_no_show', 'return_no_show'),
+      'Gegenpartei reagiert nicht': SupportCaseRoute('active_return', 'party_not_present'),
+      'Rückgabeort ist unklar': SupportCaseRoute('active_return', 'return_location_or_time'),
+      'Artikel wurde beschädigt zurückgegeben': SupportCaseRoute('post_return_dispute', 'damage_report'),
+      'Artikel fehlt / wurde nicht zurückgegeben': SupportCaseRoute('post_return_dispute', 'missing_item_report'),
+      'Rückgabe wird verweigert': SupportCaseRoute('active_return', 'return_confirmation_conflict'),
+      'QR-Code funktioniert nicht': SupportCaseRoute('active_return', 'qr_or_code_failure'),
+      '6-stelliger Rückgabecode funktioniert nicht': SupportCaseRoute('active_return', 'qr_or_code_failure'),
+      'Rückgabefotos funktionieren nicht': SupportCaseRoute('active_return', 'return_photo_missing'),
+      'Ich fühle mich unsicher vor Ort': SupportCaseRoute('active_return', 'unsafe_return'),
+      'Sonstiges Rückgabeproblem': SupportCaseRoute('active_return', 'return_confirmation_conflict'),
+    },
+    'item_condition': {
+      'Artikel funktioniert nicht': SupportCaseRoute('active_rental', 'item_failure_or_defect'),
+      'Artikel ist beschädigt': SupportCaseRoute('active_rental', 'item_failure_or_defect'),
+      'Zubehör fehlt': SupportCaseRoute('active_rental', 'usage_or_accessory_issue'),
+      'Artikel entspricht nicht der Beschreibung': SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Artikel war schmutzig': SupportCaseRoute('post_return_dispute', 'cleaning_or_condition_dispute'),
+      'Falscher Artikel übergeben': SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Schaden wurde schon vor Übergabe bemerkt': SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Schaden wurde nach Rückgabe gemeldet': SupportCaseRoute('post_return_dispute', 'damage_report'),
+      'Sonstiges Artikelproblem': SupportCaseRoute('listing_quality', 'unclear_condition_or_accessories'),
+    },
+    'payment': {
+      'Preis stimmt nicht': SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
+      'Gesamtbetrag unklar': SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
+      'Zahlung wurde doppelt angezeigt': SupportCaseRoute('money_case', 'duplicate_or_unrecognized_charge'),
+      'Rückerstattung unklar': SupportCaseRoute('money_case', 'refund_processing_or_failure'),
+      'Auszahlung unklar': SupportCaseRoute('money_case', 'payout_processing_or_failure'),
+      'Stornierung und Zahlung unklar': SupportCaseRoute('money_case', 'refund_request_or_review'),
+      'Gebühren unklar': SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
+      'Sonstiges Zahlungsproblem': SupportCaseRoute('money_case', 'payment_failed_or_requires_action'),
+    },
+    'person': {
+      'Unangemessenes Verhalten': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
+      'Drohung / Druck': SupportCaseRoute('trust_safety', 'threat_or_violence'),
+      'Beleidigung': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
+      'Verdächtiges Verhalten': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Profil wirkt falsch': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Andere Person will außerhalb von SIT abwickeln': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Sicherheitsgefühl vor Ort schlecht': SupportCaseRoute('trust_safety', 'threat_or_violence'),
+      'Sonstiges Personenproblem': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
+    },
+    'technical': {
+      'Chat funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Kamera funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Datei hochladen funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Standort senden funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'QR-Code Scanner funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'App lädt nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Button reagiert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Sonstiges technisches Problem': SupportCaseRoute('general_help', 'app_error_or_display'),
+    },
+    'other': {
+      'Ich bin unsicher, was ich tun soll': SupportCaseRoute('general_help', 'general_how_to'),
+      'Allgemeine Frage zur Buchung': SupportCaseRoute('booking_pre_start', 'booking_request_or_acceptance'),
+      'Ich brauche Hilfe vom Support': SupportCaseRoute('general_help', 'general_how_to'),
+      'Anderes Problem': SupportCaseRoute('general_help', 'general_how_to'),
+    },
+    'profile_report': {
+      'Falsche Identität': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Unangemessenes Verhalten': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
+      'Betrugsverdacht': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Beleidigende/gefährliche Inhalte': SupportCaseRoute('moderation_content', 'image_or_text_violation'),
+      'Spam': SupportCaseRoute('moderation_content', 'image_or_text_violation'),
+      'Sonstiges': SupportCaseRoute('moderation_content', 'account_or_service_restriction'),
+    },
+  };
+
+  SupportCaseRoute get backendRoute {
+    if (safetyTriage.immediateDanger) {
+      return const SupportCaseRoute('trust_safety', 'immediate_physical_danger');
+    }
+    final route = _backendRoutes[mainCategory]?[subCategory];
+    if (route == null) throw StateError('support_case_route_unmapped');
+    return route;
+  }
+
+  Map<String, dynamic> toBackendInput() {
+    final route = backendRoute;
+    final description = userDescription.trim();
+    final summary = '$mainCategoryLabel: $subCategory.'
+        '${description.isEmpty ? '' : ' $description'}';
+    final requestId = context.requestId.trim();
+    final itemId = context.itemId.trim();
+    final profileContext = requestId.startsWith('profile:') || itemId.startsWith('profile:');
+    final listingContext = requestId.startsWith('listing:');
+    return <String, dynamic>{
+      'caseType': route.caseType,
+      'caseSubType': route.caseSubType,
+      'summary': summary,
+      'immediateDanger': safetyTriage.immediateDanger,
+      'safetyTriage': safetyTriage.toMap(),
+      if (!profileContext && !listingContext && requestId.isNotEmpty)
+        'linkedBookingId': requestId,
+      if (!profileContext && itemId.isNotEmpty && !itemId.contains(':'))
+        'linkedListingId': itemId,
+    };
+  }
+
+  SupportFlowResult withCanonicalCase(Map<String, dynamic> value) {
+    final requiredTextFields = <String>[
+      'id',
+      'caseNumber',
+      'status',
+      'nextUpdateAt',
+      'nextUpdateDisplay',
+      'timezone',
+      'operatingMode',
+    ];
+    if (requiredTextFields.any((field) => (value[field]?.toString().trim() ?? '').isEmpty)
+        || value['status'] != 'received'
+        || value['timezone'] != 'Europe/Berlin'
+        || value['operatingMode'] != 'simulation'
+        || !RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
+            .hasMatch(value['caseNumber'].toString())
+        || DateTime.tryParse(value['nextUpdateAt'].toString()) == null) {
+      throw const FormatException('invalid_support_case_receipt');
+    }
+    return SupportFlowResult(
+      mainCategory: mainCategory,
+      subCategory: subCategory,
+      userDescription: userDescription,
+      context: context,
+      safetyTriage: safetyTriage,
+      canonicalCase: Map<String, dynamic>.unmodifiable(value),
+    );
+  }
+
+  String get canonicalReceiptMessage {
+    final supportCase = canonicalCase;
+    if (supportCase == null) throw StateError('canonical_support_case_missing');
+    final safetyLine = safetyTriage.immediateDanger
+        ? 'Sicherheit geht vor: Bleib an einem sicheren Ort und nutze bei unmittelbarer Gefahr 110 oder 112. SIT ist kein Notfalldienst.'
+        : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist noch nicht entschieden.';
+    return 'Support-Fall ${supportCase['caseNumber']}\n'
+        'Status: Eingegangen\n'
+        'Nächstes Update spätestens: ${supportCase['nextUpdateDisplay']} Uhr (${supportCase['timezone']})\n'
+        '$safetyLine\n'
+        'Interner Testmodus: keine externe Nachricht und keine echte Zahlung, Erstattung oder Auszahlung.';
+  }
+
+  String get canonicalCaseNumber {
+    final value = canonicalCase?['caseNumber']?.toString().trim() ?? '';
+    if (value.isEmpty) throw StateError('canonical_support_case_missing');
+    return value;
+  }
   
   /// Konvertiert zu einer Map
   Map<String, dynamic> toMap() {
@@ -179,6 +357,7 @@ class SupportFlowResult {
       'userDescription': userDescription,
       'immediateDanger': safetyTriage.immediateDanger,
       'safetyTriage': safetyTriage.toMap(),
+      if (canonicalCase != null) 'supportCase': canonicalCase,
       ...context.toSupportContext(),
     };
   }
@@ -199,14 +378,21 @@ class SupportFlowResult {
   }
 }
 
+typedef SupportCaseSubmitter = Future<Map<String, dynamic>> Function(
+  Map<String, dynamic> intake,
+  String idempotencyKey,
+);
+
 /// Fullscreen Support-Kategorie-Auswahl-Seite
 /// Wiederverwendbar aus Chat-Menü und Buchungsdetails
 class SupportFlowScreen extends StatefulWidget {
   final SupportFlowContext context;
+  final SupportCaseSubmitter? submitter;
 
   const SupportFlowScreen({
     super.key,
     required this.context,
+    this.submitter,
   });
   
   /// Legacy-Konstruktor für Kompatibilität mit bestehendem Code
@@ -233,6 +419,7 @@ class SupportFlowScreen extends StatefulWidget {
 }
 
 class _SupportFlowScreenState extends State<SupportFlowScreen> {
+  late final String _submissionIdempotencyKey;
   bool? _immediateDanger;
   bool _safetyGuidanceAcknowledged = false;
   String? _selectedMainCategory;
@@ -244,6 +431,14 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
 
   bool get _showSafetyQuestion => _immediateDanger == null;
   bool get _showSafetyGuidance => _immediateDanger == true && !_safetyGuidanceAcknowledged;
+
+  @override
+  void initState() {
+    super.initState();
+    final nonce = Random.secure().nextInt(0x7fffffff).toRadixString(16);
+    _submissionIdempotencyKey =
+        'support_intake_${DateTime.now().microsecondsSinceEpoch}_$nonce';
+  }
 
   @override
   void dispose() {
@@ -925,6 +1120,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                   ),
                   child: TextField(
                     controller: _descriptionController,
+                    maxLength: 1400,
                     maxLines: null,
                     expands: true,
                     textAlignVertical: TextAlignVertical.top,
@@ -1004,8 +1200,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     setState(() => _sendingSupport = true);
 
     try {
-      // Return SupportFlowResult mit allen Daten
-      final result = SupportFlowResult(
+      final draft = SupportFlowResult(
         mainCategory: (_needsProfileReasonStep || _selectedDetailSubCategory != null) ? 'profile_report' : (_selectedMainCategory ?? ''),
         subCategory: _selectedDetailSubCategory ?? _selectedSubCategory ?? '',
         userDescription: _descriptionController.text.trim(),
@@ -1015,7 +1210,44 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
           guidanceShown: _immediateDanger == true,
         ),
       );
+      final submitter = widget.submitter ?? (intake, idempotencyKey) =>
+          BackendRepository.createSupportCase(
+            intake: intake,
+            idempotencyKey: idempotencyKey,
+          );
+      final supportCase = await submitter(
+        draft.toBackendInput(),
+        _submissionIdempotencyKey,
+      );
+      final result = draft.withCanonicalCase(supportCase);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          key: const ValueKey('support_case_receipt'),
+          title: Text('Fall ${supportCase['caseNumber']} eingegangen'),
+          content: Text(result.canonicalReceiptMessage),
+          actions: [
+            TextButton(
+              key: const ValueKey('support_case_receipt_continue'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Zum Support'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
       Navigator.of(context).pop(result);
+    } catch (_) {
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline_rounded,
+        title: 'Support-Fall wurde nicht bestätigt',
+        message:
+            'Bitte versuche es erneut; es wird kein lokaler Ersatzfall vorgetäuscht.',
+      );
     } finally {
       if (mounted) setState(() => _sendingSupport = false);
     }

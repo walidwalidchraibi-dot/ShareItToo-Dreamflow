@@ -1,7 +1,9 @@
 # S3A safety-first support intake - technical compliance record
 
-Status: locally verified non-live candidate, fail-closed. Exact GitHub CI is
-required before closeout.
+Status: verified non-live implementation, fail-closed.
+
+Exact commit: `613adc06c9504b4778adf81b5ba5b892d3435825`.
+Exact successful GitHub Actions run: `32500301293`.
 
 ## Bound source and scope
 
@@ -57,7 +59,9 @@ official Federal Office of Civil Protection and Disaster Assistance guidance:
 - Full technical regression: 324 Flutter tests passed with one existing skip;
   the separate Google-only social-auth test passed; Web release build and smoke
   check passed; Android debug APK built successfully with OpenJDK 17.
-- Exact GitHub CI for the resulting commit remains required before closeout.
+- Exact GitHub run `32500301293` passed Backend including PostgreSQL 16 and the
+  full Flutter/Web/Android debug regression. Signed-candidate construction and
+  API-image publication stayed skipped behind their closed gates.
 
 ## Persistent boundaries
 

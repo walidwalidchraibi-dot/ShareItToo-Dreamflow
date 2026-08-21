@@ -18,6 +18,21 @@ function iso(value) {
   return new Date(value).toISOString();
 }
 
+const supportCaseTimeZone = 'Europe/Berlin';
+
+function supportCaseDateTimeDisplay(value) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat('de-DE', {
+    timeZone: supportCaseTimeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(value));
+}
+
 function shapeSupportCase(row, { staff = false } = {}) {
   const base = {
     id: row.id,
@@ -34,6 +49,8 @@ function shapeSupportCase(row, { staff = false } = {}) {
     waitingOn: row.waiting_on,
     nextAction: row.next_action ?? null,
     nextUpdateAt: iso(row.next_update_at),
+    nextUpdateDisplay: supportCaseDateTimeDisplay(row.next_update_at),
+    timezone: supportCaseTimeZone,
     userFacingSummary: row.user_facing_summary,
     appealAvailable: row.appeal_available === true,
     appealDeadline: iso(row.appeal_deadline),

@@ -973,14 +973,22 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                   if (result == null || !mounted) break;
                   final supportThread =
                       await DataService.createSupportThread(userId: current.id);
-                  if (supportThread == null) break;
+                  if (!context.mounted) break;
+                  if (supportThread == null) {
+                    AppPopup.toast(
+                        context,
+                        icon: Icons.check_circle_outline,
+                        title:
+                            'Fall ${result.canonicalCaseNumber} ist eingegangen');
+                    break;
+                  }
                   final descText = result.userDescription.isNotEmpty
                       ? '\n\nBeschreibung:\n${result.userDescription}'
                       : '';
                   await DataService.addSystemMessageToThread(
                       threadId: supportThread.id,
                       text:
-                          "Support-Fall eröffnet: ${result.mainCategoryLabel} · ${item.title}\n📋 Support-Anfrage zu Anzeige: ${item.title}\nReferenz: listing:${item.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText");
+                          "${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu Anzeige: ${item.title}\nReferenz: listing:${item.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText");
                   if (!mounted) break;
                   await Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => MessageThreadScreen(

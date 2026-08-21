@@ -529,14 +529,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     if (result == null || !mounted) return;
     final supportThread =
         await DataService.createSupportThread(userId: current.id);
-    if (supportThread == null) return;
+    if (!mounted) return;
+    if (supportThread == null) {
+      AppPopup.toast(
+        context,
+        icon: Icons.check_circle_outline,
+        title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
+      );
+      return;
+    }
     final descText = result.userDescription.isNotEmpty
         ? '\n\nBeschreibung:\n${result.userDescription}'
         : '';
     await DataService.addSystemMessageToThread(
       threadId: supportThread.id,
       text:
-          'Support-Fall eröffnet: ${result.mainCategoryLabel} · Profil ${u.displayName}\n📋 Support-Anfrage zu Profil: ${u.displayName}\nReferenz: profile:${u.id}\nTyp: $issueType\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText',
+          '${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu Profil: ${u.displayName}\nReferenz: profile:${u.id}\nTyp: $issueType\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText',
     );
     if (!mounted) return;
     Navigator.of(context).push(MaterialPageRoute(

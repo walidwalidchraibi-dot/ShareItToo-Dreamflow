@@ -192,11 +192,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final supportThread = await DataService.createSupportThread(
       userId: current.id,
     );
+    if (!mounted) return;
     if (supportThread == null) {
       AppPopup.toast(
         context,
-        icon: Icons.error_outline,
-        title: 'Support nicht verfügbar',
+        icon: Icons.check_circle_outline,
+        title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
       );
       return;
     }
@@ -206,7 +207,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     await DataService.addSystemMessageToThread(
       threadId: supportThread.id,
       text:
-          "Support-Fall eröffnet: ${result.mainCategoryLabel} · ${item.title}\n📋 Support-Anfrage zu: ${item.title}\nBuchung: ${req.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
+          "${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu: ${item.title}\nBuchung: ${req.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
     );
     if (!mounted) return;
     Navigator.of(context).push(

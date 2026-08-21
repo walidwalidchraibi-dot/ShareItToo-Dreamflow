@@ -9001,9 +9001,7 @@ class DataService {
       );
 
       await _persistMessageThreads(prefs, [thread.toJson()]);
-      debugPrint(
-        '[DataService] Seeded minimal support thread for user=$userId',
-      );
+      debugPrint('[DataService] Seeded minimal local QA support thread');
       return true;
     } catch (e) {
       debugPrint('[DataService] ensureSeededMessageThreadsForUser failed: $e');
@@ -9375,7 +9373,7 @@ class DataService {
             (thread.user1Id == userId && thread.user2Id == 'support') ||
                 (thread.user2Id == userId && thread.user1Id == 'support');
         if (isSupport && belongsToUser) {
-          debugPrint('[DataService] createSupportThread: reusing ${thread.id}');
+          debugPrint('[DataService] createSupportThread: reusing local thread');
           return thread;
         }
       }
@@ -9413,7 +9411,7 @@ class DataService {
       list.add(supportThread.toJson());
       await _persistMessageThreads(prefs, list);
 
-      debugPrint('[DataService] createSupportThread: created $threadId');
+      debugPrint('[DataService] createSupportThread: created local thread');
       return supportThread;
     } catch (e) {
       debugPrint('[DataService] createSupportThread error: $e');

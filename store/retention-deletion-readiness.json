@@ -49,7 +49,7 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "d9f5fe828ddeecc1bdc7cb47678a07fd03fd73c4928e7fbde96dbf44e3f96c7c"
+      "sha256": "68d79bf043ff9d1c4154dba39a13c0b307d1431701af26e32f27987636392243"
     },
     {
       "path": "backend/src/support_decision_domain.js",
@@ -253,7 +253,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "6160142ac3d161665facc773dbba24fb050274152506e289cddafe8ba5e68899"
+      "sha256": "8e29d77bf63c7eb175e2eddf0bea2cb4422b1b5e381862a01b218fcb3d63a894"
     },
     {
       "path": "lib/services/maps_service.dart",
@@ -261,7 +261,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "7b9712a6f075484fa910e738cb18007b3cf39fe056156e54815357794095619e"
+      "sha256": "bdd181e984cb4ed10c2224dcd4e6ea324841d5cef95f7c69226cbe5a59eeb385"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
