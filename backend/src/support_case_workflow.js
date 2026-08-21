@@ -11,6 +11,7 @@ import {
   supportPriorities,
 } from './support_case_domain.js';
 import { getSupportAppealForCase } from './support_appeal_workflow.js';
+import { verifySupportBreakGlassGrant } from './support_break_glass_workflow.js';
 
 export { SupportCaseError };
 
@@ -671,10 +672,17 @@ export async function listStaffSupportCases(client, {
   return result.rows.map((row) => shapeSupportCase(row, { staff: true }));
 }
 
-export async function getSupportCase(client, { actor, caseId, staffAccess = false }) {
+export async function getSupportCase(client, {
+  actor,
+  caseId,
+  staffAccess = false,
+  breakGlassToken = null,
+  sessionId = null,
+  staffElevationId = null,
+}) {
   const staff = staffAccess && ['support', 'admin'].includes(actor?.role);
   if (staffAccess && !staff) throw new SupportCaseError(403, 'support_staff_detail_forbidden');
-  const result = await client.query(
+  let result = await client.query(
     `SELECT * FROM support_cases
       WHERE id::text = $1
         AND (
@@ -684,6 +692,22 @@ export async function getSupportCase(client, { actor, caseId, staffAccess = fals
         )`,
     [caseId, staffAccess, actor?.role === 'admin', actor?.id ?? null],
   );
+  let breakGlassGrant = null;
+  if (!result.rowCount && staffAccess && actor?.role === 'support' && breakGlassToken) {
+    breakGlassGrant = await verifySupportBreakGlassGrant(client, {
+      actor,
+      sessionId,
+      staffElevationId,
+      caseId,
+      token: breakGlassToken,
+    });
+    if (breakGlassGrant) {
+      result = await client.query(
+        'SELECT * FROM support_cases WHERE id::text = $1',
+        [caseId],
+      );
+    }
+  }
   if (!result.rowCount) {
     if (staffAccess && actor?.role === 'support') {
       await writeAudit(client, {
@@ -697,6 +721,19 @@ export async function getSupportCase(client, { actor, caseId, staffAccess = fals
       });
     }
     throw new SupportCaseError(404, 'support_case_not_found');
+  }
+  if (breakGlassGrant) {
+    await writeAudit(client, {
+      actor,
+      action: 'support.break_glass_case_accessed',
+      resourceId: result.rows[0].id,
+      metadata: {
+        accessPath: 'staff_detail_break_glass',
+        grantId: breakGlassGrant.id,
+        reasonCode: breakGlassGrant.reasonCode,
+        reviewDueAt: breakGlassGrant.reviewDueAt,
+      },
+    });
   }
   const events = await client.query(
     `SELECT * FROM support_case_events

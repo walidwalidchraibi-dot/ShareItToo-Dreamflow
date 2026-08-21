@@ -141,6 +141,7 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'securityAudit', 'audit_log', count(*)::bigint, min(created_at), max(created_at) FROM audit_log
        UNION ALL SELECT 'securityAudit', 'support_case_events', count(*)::bigint, min(created_at), max(created_at) FROM support_case_events
        UNION ALL SELECT 'securityAudit', 'support_policy_snapshots', count(*)::bigint, min(created_at), max(created_at) FROM support_policy_snapshots
+       UNION ALL SELECT 'securityAudit', 'support_break_glass_grants', count(*)::bigint, min(created_at), max(COALESCE(reviewed_at, last_used_at, created_at)) FROM support_break_glass_grants
        UNION ALL SELECT 'securityAudit', 'booking_events', count(*)::bigint, min(created_at), max(created_at) FROM booking_events
        UNION ALL SELECT 'securityAudit', 'booking_group_state_events', count(*)::bigint, min(created_at), max(created_at) FROM booking_group_state_events
        UNION ALL SELECT 'securityAudit', 'booking_group_commands', count(*)::bigint, min(created_at), max(COALESCE(completed_at, created_at)) FROM booking_group_commands

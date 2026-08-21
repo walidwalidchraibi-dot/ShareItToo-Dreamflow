@@ -22,6 +22,8 @@ const sourcePaths = [
   'backend/src/support_appeal_workflow.js',
   'backend/src/support_decision_domain.js',
   'backend/src/support_decision_workflow.js',
+  'backend/src/support_break_glass_domain.js',
+  'backend/src/support_break_glass_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -68,6 +70,7 @@ const sourcePaths = [
   'backend/sql/migrations/034_support_user_action_deadline.up.sql',
   'backend/sql/migrations/035_support_final_decision_publication.up.sql',
   'backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql',
+  'backend/sql/migrations/037_support_break_glass_access.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -453,6 +456,9 @@ function assertSourceContracts(root, sourceTexts) {
     if (!inventory.includes(`'transactions', '${dataset}'`)) {
       fail(`Retention inventory is missing immutable dataset ${dataset}.`);
     }
+  }
+  if (!inventory.includes("'securityAudit', 'support_break_glass_grants'")) {
+    fail('Retention inventory is missing immutable dataset support_break_glass_grants.');
   }
   if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
     fail('Retention inventory must remain read-only.');

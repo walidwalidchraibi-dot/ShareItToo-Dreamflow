@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "c3f57925980b9de9a935cced155960bdbe88517bfc5a46c1178e99eb81b4ced6"
+      "sha256": "d6198c917bfdcf39f9ef1f42f3378e377f3f2eecaf76f0b13facda924da55d18"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -56,7 +56,7 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "9fb6a65f571624891c51d224291434f167503d59b0b1049842199d3fa62c165f"
+      "sha256": "3c1a569a256f6f24e02697db527ea933cc7f27dd7cd45a6ff58ba427c3de9a33"
     },
     {
       "path": "backend/src/support_appeal_domain.js",
@@ -73,6 +73,14 @@
     {
       "path": "backend/src/support_decision_workflow.js",
       "sha256": "b03178bb51da2381d1c4457ae437f38dcf5b4ce8b594fd092c6487e8277acd28"
+    },
+    {
+      "path": "backend/src/support_break_glass_domain.js",
+      "sha256": "906f4009787e75aecbd64d215f43f9f31029c436f126d86e4f083aac1c19f354"
+    },
+    {
+      "path": "backend/src/support_break_glass_workflow.js",
+      "sha256": "4337fcb610a80dd074d985a7b618fd9fffafc7fd2471882d3b0baa5a146ef74f"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -204,7 +212,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "09f9f5ce8243bfe270141240c1ec02f00a175893a91f819ebd9cf90726ea693b"
+      "sha256": "4a0bb6013920962ccdb7574b90248cf0206064d999459e83a31a8b9cdd326d44"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -436,7 +444,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "565caf1ed97c366ef6ae8a68baf65bb12b3f7301e1a8a5cb92e695e969dd5213"
+      "sha256": "bf6af834b5ed4b34537c279272133b13d0ca51a58f8628c85ec723143d67789e"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -505,6 +513,10 @@
     {
       "path": "backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql",
       "sha256": "17753eca5e4677b51e6cd73537b5e993000b408cdb963475c53cd79ee224d913"
+    },
+    {
+      "path": "backend/sql/migrations/037_support_break_glass_access.up.sql",
+      "sha256": "f19d78cb7a48ecb4d8ce6da141037e7b872ac97f5f927ec87692aa51e494e14c"
     },
     {
       "path": "lib/config/listing_sets_technical_config.dart",

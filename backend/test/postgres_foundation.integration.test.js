@@ -98,6 +98,7 @@ if (!databaseUrl) {
         '034_support_user_action_deadline.up.sql',
         '035_support_final_decision_publication.up.sql',
         '036_support_closed_case_appeal_submission.up.sql',
+        '037_support_break_glass_access.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -165,6 +166,7 @@ if (!databaseUrl) {
           ORDER BY table_name`,
         [[
           'support_appeals',
+          'support_break_glass_grants',
           'support_case_events',
           'support_cases',
           'support_decisions',
@@ -175,6 +177,7 @@ if (!databaseUrl) {
       );
       assert.deepEqual(supportCaseTables.rows, [
         { table_name: 'support_appeals' },
+        { table_name: 'support_break_glass_grants' },
         { table_name: 'support_case_events' },
         { table_name: 'support_cases' },
         { table_name: 'support_decisions' },
@@ -363,6 +366,26 @@ if (!databaseUrl) {
            'Refund review in the internal test environment.',
            'No provider call or real money action is authorized.',
            $1, 'support-case-ledger-integration'
+         ) RETURNING id`,
+        [supportPolicy.rows[0].id],
+      );
+      const p0BreakGlassCase = await setupPool.query(
+        `INSERT INTO support_cases (
+           human_readable_case_number, case_type, case_subtype, status,
+           priority, severity, source_channel, operating_mode,
+           reporter_user_id, reporter_role, affected_user_ids,
+           current_owner_id, current_owner_role, approval_level, waiting_on,
+           next_action, next_update_at, user_facing_summary, internal_summary,
+           policy_snapshot_id, idempotency_key
+         ) VALUES (
+           'SIT-QRSTVWXYZ234', 'trust_safety', 'immediate_physical_danger',
+           'under_review', 'p0', 'critical', 'internal', 'simulation',
+           'owner', 'user', ARRAY['renter-a'], NULL, 'trust_safety_owner',
+           'red_explicit_decision', 'trust_safety_owner',
+           'Perform the bounded P0 simulation review.', now() + interval '15 minutes',
+           'A critical internal test case is under review.',
+           'Synthetic P0 case for break-glass integration only.',
+           $1, 'support-break-glass-p0-integration'
          ) RETURNING id`,
         [supportPolicy.rows[0].id],
       );
@@ -782,6 +805,99 @@ if (!databaseUrl) {
            ($6, 'admin', 'Admin test'),
            ($7, 'support', 'Support test')`,
         Object.values(sessionIds),
+      );
+      const databaseSupportElevation = await setupPool.query(
+        `INSERT INTO staff_elevations (
+           user_id, session_id, token_hash, role, expires_at
+         ) VALUES (
+           'support', $1, $2, 'support', now() + interval '10 minutes'
+         ) RETURNING id`,
+        [sessionIds.support, '8'.repeat(64)],
+      );
+      const breakGlassInsertSql = `INSERT INTO support_break_glass_grants (
+         case_id, actor_id, session_id, staff_elevation_id, token_hash,
+         reason_code, justification, idempotency_key,
+         created_at, expires_at, review_due_at
+       ) VALUES (
+         $1, 'support', $2, $3, $4,
+         'p0_immediate_safety_response',
+         'Immediate synthetic P0 access is required for the integration test.',
+         $5, now(), now() + interval '5 minutes', now() + interval '5 minutes'
+       ) RETURNING id, review_status, review_due_at`;
+      await assert.rejects(
+        setupPool.query(breakGlassInsertSql, [
+          supportCase.rows[0].id,
+          sessionIds.support,
+          databaseSupportElevation.rows[0].id,
+          '9'.repeat(64),
+          'database-p1-break-glass-denied',
+        ]),
+        (error) => error?.message
+          === 'Break-glass requires an active non-live P0 support case',
+      );
+      await assert.rejects(
+        setupPool.query(breakGlassInsertSql, [
+          p0BreakGlassCase.rows[0].id,
+          sessionIds.admin,
+          databaseSupportElevation.rows[0].id,
+          'a'.repeat(64),
+          'database-session-mismatch-denied',
+        ]),
+        (error) => error?.message
+          === 'Break-glass requires the actor current active session',
+      );
+      const databaseBreakGlassGrant = await setupPool.query(
+        breakGlassInsertSql,
+        [
+          p0BreakGlassCase.rows[0].id,
+          sessionIds.support,
+          databaseSupportElevation.rows[0].id,
+          'b'.repeat(64),
+          'database-valid-break-glass',
+        ],
+      );
+      assert.equal(databaseBreakGlassGrant.rows[0].review_status, 'pending');
+      assert.ok(databaseBreakGlassGrant.rows[0].review_due_at);
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_break_glass_grants
+              SET justification = 'Rewritten justification is forbidden.'
+            WHERE id = $1`,
+          [databaseBreakGlassGrant.rows[0].id],
+        ),
+        (error) => error?.message === 'Break-glass grant core is immutable',
+      );
+      await setupPool.query(
+        `UPDATE support_break_glass_grants SET last_used_at = now() WHERE id = $1`,
+        [databaseBreakGlassGrant.rows[0].id],
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_break_glass_grants
+              SET last_used_at = now() + interval '2 minutes'
+            WHERE id = $1`,
+          [databaseBreakGlassGrant.rows[0].id],
+        ),
+        (error) => error?.message === 'Break-glass use must occur inside the grant window',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_break_glass_grants
+              SET review_status = 'completed', reviewed_by = 'admin',
+                  reviewed_at = now(), review_outcome = 'appropriate',
+                  review_notes = 'Independent review attempted before expiry.',
+                  review_idempotency_key = 'database-early-review'
+            WHERE id = $1`,
+          [databaseBreakGlassGrant.rows[0].id],
+        ),
+        (error) => error?.message === 'Break-glass review completion is incomplete',
+      );
+      await assert.rejects(
+        setupPool.query(
+          'DELETE FROM support_break_glass_grants WHERE id = $1',
+          [databaseBreakGlassGrant.rows[0].id],
+        ),
+        (error) => error?.code === '55000',
       );
       await setupPool.query(
          `INSERT INTO listings (
@@ -3012,6 +3128,147 @@ if (!databaseUrl) {
       });
       assert.equal(supportElevation.status, 200);
       supportHeaders['X-Admin-Step-Up'] = (await supportElevation.json()).elevation.token;
+      const unassignedP0WithoutGrant = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}`,
+        { headers: supportHeaders },
+      );
+      assert.equal(unassignedP0WithoutGrant.status, 404);
+      assert.equal(
+        (await unassignedP0WithoutGrant.json()).error,
+        'support_case_not_found',
+      );
+      const breakGlassWithoutReason = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}/break-glass`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-break-glass-missing-reason',
+          },
+          body: '{}',
+        },
+      );
+      assert.equal(breakGlassWithoutReason.status, 400);
+      assert.equal(
+        (await breakGlassWithoutReason.json()).error,
+        'support_break_glass_reason_required',
+      );
+      const nonP0BreakGlass = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportCase.rows[0].id}/break-glass`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-break-glass-non-p0',
+          },
+          body: JSON.stringify({
+            reasonCode: 'p0_incident_containment',
+            justification: 'This closed non-P0 case must remain unavailable.',
+          }),
+        },
+      );
+      assert.equal(nonP0BreakGlass.status, 404);
+      assert.equal(
+        (await nonP0BreakGlass.json()).error,
+        'support_break_glass_unavailable',
+      );
+      const breakGlassHeaders = {
+        ...supportHeaders,
+        'Idempotency-Key': 'http-break-glass-valid',
+      };
+      const createBreakGlass = () => fetch(
+        `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}/break-glass`,
+        {
+          method: 'POST',
+          headers: breakGlassHeaders,
+          body: JSON.stringify({
+            reasonCode: 'p0_immediate_safety_response',
+            justification: 'Immediate synthetic P0 case access is required for this integration test.',
+          }),
+        },
+      );
+      const breakGlassResponse = await createBreakGlass();
+      assert.equal(breakGlassResponse.status, 201);
+      assert.match(breakGlassResponse.headers.get('cache-control'), /no-store/u);
+      const breakGlass = await breakGlassResponse.json();
+      assert.equal(breakGlass.replayed, false);
+      assert.equal(breakGlass.grant.caseId, p0BreakGlassCase.rows[0].id);
+      assert.equal(breakGlass.grant.reviewStatus, 'pending');
+      assert.equal(typeof breakGlass.token, 'string');
+      assert.equal(breakGlass.token.length, 43);
+      const breakGlassReplayResponse = await createBreakGlass();
+      assert.equal(breakGlassReplayResponse.status, 200);
+      const breakGlassReplay = await breakGlassReplayResponse.json();
+      assert.equal(breakGlassReplay.replayed, true);
+      assert.equal(breakGlassReplay.token, breakGlass.token);
+      const p0WithGrant = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}`,
+        { headers: { ...supportHeaders, 'X-Support-Break-Glass': breakGlass.token } },
+      );
+      assert.equal(p0WithGrant.status, 200);
+      assert.equal(
+        (await p0WithGrant.json()).supportCase.id,
+        p0BreakGlassCase.rows[0].id,
+      );
+      const crossCaseBreakGlass = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportCase.rows[0].id}`,
+        { headers: { ...supportHeaders, 'X-Support-Break-Glass': breakGlass.token } },
+      );
+      assert.equal(crossCaseBreakGlass.status, 404);
+      const supportCannotReviewBreakGlass = await fetch(
+        `${baseUrl}/v1/admin/support/break-glass/reviews`,
+        { headers: supportHeaders },
+      );
+      assert.equal(supportCannotReviewBreakGlass.status, 403);
+      assert.equal(
+        (await supportCannotReviewBreakGlass.json()).error,
+        'admin_role_required',
+      );
+      const pendingBreakGlassReviews = await fetch(
+        `${baseUrl}/v1/admin/support/break-glass/reviews?status=pending`,
+        { headers: adminHeaders },
+      );
+      assert.equal(pendingBreakGlassReviews.status, 200);
+      const pendingBreakGlass = (await pendingBreakGlassReviews.json()).reviews;
+      assert.ok(pendingBreakGlass.some((entry) => entry.id === breakGlass.grant.id));
+      const earlyBreakGlassReview = await fetch(
+        `${baseUrl}/v1/admin/support/break-glass/grants/${breakGlass.grant.id}/review`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 'http-break-glass-review-too-early',
+          },
+          body: JSON.stringify({
+            outcome: 'appropriate',
+            notes: 'The independent review cannot complete before the access window expires.',
+          }),
+        },
+      );
+      assert.equal(earlyBreakGlassReview.status, 409);
+      assert.equal(
+        (await earlyBreakGlassReview.json()).error,
+        'support_break_glass_review_not_due',
+      );
+      const breakGlassAudit = await setupPool.query(
+        `SELECT action FROM audit_log
+          WHERE resource_id = $1
+            AND action IN (
+              'support.break_glass_grant_denied',
+              'support.break_glass_grant_created',
+              'support.break_glass_case_accessed'
+            )
+          ORDER BY action`,
+        [p0BreakGlassCase.rows[0].id],
+      );
+      assert.deepEqual(
+        [...new Set(breakGlassAudit.rows.map((row) => row.action))],
+        [
+          'support.break_glass_case_accessed',
+          'support.break_glass_grant_created',
+          'support.break_glass_grant_denied',
+        ],
+      );
       const supportPilotCockpit = await fetch(
         `${baseUrl}/v1/admin/pilot-cockpit?from=2026-01-01&to=2027-01-01`,
         { headers: supportHeaders },

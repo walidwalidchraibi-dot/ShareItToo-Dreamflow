@@ -102,6 +102,16 @@ publication jobs remained skipped. S3G does not adjudicate the appeal, reopen a
 case automatically, render or send a template, or execute any external or live
 measure. Missing policy dates remain missing and are never invented.
 
+`S3H_SUPPORT_BREAK_GLASS_ACCESS` is the active non-live implementation
+candidate. It addresses Drive matrix scenarios `SUP-024` and `SUP-025` with a
+P0-only, case/actor/session/step-up-bound grant of at most five minutes,
+digest-only token storage, complete sanitized audit and an automatic independent
+Admin review due at expiry. The exact reviewer session and Staff-Step-up are
+persisted. User export receives only a safe transparency projection; the full
+truth is inventoried as `securityAudit`. No incident-wide authority is inferred,
+because no canonical incident binding exists. Exact-commit GitHub CI remains
+pending.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress

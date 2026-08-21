@@ -69,6 +69,7 @@ export async function buildAccountExport(client, userId) {
     v52ReturnCaseEvents,
     supportCases,
     supportCaseEvents,
+    supportBreakGlassAccess,
     supportMessages,
     supportDecisions,
     supportAppeals,
@@ -608,6 +609,19 @@ export async function buildAccountExport(client, userId) {
           AND event.visibility = 'user_visible'
         ORDER BY event.created_at, event.id`, userId),
     rows(client,
+      `SELECT grant.case_id,
+              'p0_emergency_case_access'::text AS access_purpose,
+              grant.created_at, grant.expires_at,
+              (grant.last_used_at IS NOT NULL) AS access_used,
+              grant.last_used_at, grant.revoked_at,
+              grant.review_status, grant.review_outcome,
+              grant.reviewed_at
+         FROM support_break_glass_grants AS grant
+         JOIN support_cases AS support_case ON support_case.id = grant.case_id
+        WHERE support_case.reporter_user_id = $1
+           OR $1 = ANY(support_case.affected_user_ids)
+        ORDER BY grant.created_at, grant.id`, userId),
+    rows(client,
       `SELECT message.id, message.case_id, message.sender_type,
               (message.sender_id = $1) AS sent_by_me,
               (message.recipient_user_id = $1) AS addressed_to_me,
@@ -819,12 +833,15 @@ export async function buildAccountExport(client, userId) {
       support: {
         cases: supportCases,
         events: supportCaseEvents,
+        emergencyAccess: supportBreakGlassAccess,
         messages: supportMessages,
         decisions: supportDecisions,
         appeals: supportAppeals,
         submittedEvidence: supportEvidence,
         internalNotesExcluded: true,
         restrictedEvidenceExcluded: true,
+        internalEmergencyAccessReasonsExcluded: true,
+        staffIdentifiersExcluded: true,
       },
     },
     uploadedFiles: uploads,

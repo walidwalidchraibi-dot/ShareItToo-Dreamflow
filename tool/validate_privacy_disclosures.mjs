@@ -22,6 +22,8 @@ const sourcePaths = [
   'backend/src/support_appeal_workflow.js',
   'backend/src/support_decision_domain.js',
   'backend/src/support_decision_workflow.js',
+  'backend/src/support_break_glass_domain.js',
+  'backend/src/support_break_glass_workflow.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -57,6 +59,7 @@ const sourcePaths = [
   'backend/sql/migrations/034_support_user_action_deadline.up.sql',
   'backend/sql/migrations/035_support_final_decision_publication.up.sql',
   'backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql',
+  'backend/sql/migrations/037_support_break_glass_access.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -349,8 +352,27 @@ function assertSourceContracts({ root, sourceTexts }) {
     'financialDocumentEvents', 'disputes', 'rentalCartProjects',
     'rentalCartItems', 'listingSetVersions', 'listingSetVersionMembers',
     'individualBookabilityPreserved: true', 'reservationCreated: false',
+    'supportBreakGlassAccess', "'p0_emergency_case_access'::text",
+    'internalEmergencyAccessReasonsExcluded: true',
+    'staffIdentifiersExcluded: true',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
+  }
+  const breakGlassMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/037_support_break_glass_access.up.sql',
+  );
+  for (const marker of [
+    'support_break_glass_grants',
+    "target_case.priority <> 'p0'",
+    "target_case.operating_mode NOT IN ('simulation', 'internal_testing')",
+    "expires_at <= created_at + interval '5 minutes'",
+    'support_break_glass_delete_guard',
+  ]) {
+    if (!breakGlassMigration.includes(marker)) {
+      fail(`Support break-glass privacy boundary is missing ${marker}.`);
+    }
   }
   const rentalCartWorkflow = sourceText(
     root,

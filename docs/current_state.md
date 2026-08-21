@@ -97,11 +97,20 @@ Verified: 2026-08-21 on the Mac mini.
   to the Help Center. It maps lifecycle data to simple German text, never
   reflects unknown internal codes, labels the simulation boundary and remains
   read-only.
-- S3E is the current non-live implementation candidate. It requires a distinct
+- S3E requires a distinct
   server-confirmed user response deadline for `waiting_for_user`, persists it
   in the existing support evidence deadline field, and displays `Antwort bis`
   separately from the support team's `Nächstes Update`. It adds no automatic
   closure, reminder or external action.
+- S3F and S3G are technically verified. S3F publishes only exact approved,
+  implemented and communicated user-facing decision fields; S3G adds one
+  reporter submission per explicitly configured closed-case appeal deadline.
+  Neither package sends an external message or executes a live measure.
+- S3H is the current non-live implementation candidate. It adds P0-only,
+  case-bound five-minute break-glass access for active support staff behind the
+  exact current session and Staff-Step-up. Every grant queues an independent
+  elevated Admin review, while privacy export omits internal reasons and staff
+  identifiers. Incident-wide access remains absent rather than inferred.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

@@ -838,6 +838,84 @@ test('staff detail is separate and denied support access is audited without reve
   assigned.done();
 });
 
+test('valid break-glass token opens only its P0 case and writes a use audit', async () => {
+  const reviewDueAt = new Date('2099-08-21T10:05:00.000Z');
+  const client = new ScriptedClient([
+    { match: /FROM support_cases[\s\S]*current_owner_id = \$4/u, result: noRows },
+    {
+      match: /UPDATE support_break_glass_grants AS grant/u,
+      check: ({ params }) => {
+        assert.deepEqual(params.slice(0, 4), [
+          'case-p0',
+          'support-1',
+          '33333333-3333-4333-8333-333333333333',
+          '44444444-4444-4444-8444-444444444444',
+        ]);
+        assert.equal(params[4].length, 64);
+      },
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: '22222222-2222-4222-8222-222222222222',
+          case_id: 'case-p0',
+          actor_id: 'support-1',
+          session_id: '33333333-3333-4333-8333-333333333333',
+          staff_elevation_id: '44444444-4444-4444-8444-444444444444',
+          reason_code: 'p0_immediate_safety_response',
+          created_at: now,
+          expires_at: reviewDueAt,
+          last_used_at: now,
+          revoked_at: null,
+          review_due_at: reviewDueAt,
+          review_status: 'pending',
+          reviewed_by: null,
+          reviewed_at: null,
+          review_outcome: null,
+        }],
+      },
+    },
+    {
+      match: /SELECT \* FROM support_cases WHERE id::text = \$1/u,
+      result: {
+        rowCount: 1,
+        rows: [caseRow({
+          id: 'case-p0',
+          priority: 'p0',
+          severity: 'critical',
+          current_owner_id: 'support-2',
+          current_owner_role: 'trust_safety_owner',
+        })],
+      },
+    },
+    {
+      match: /INSERT INTO audit_log/u,
+      check: ({ params }) => {
+        assert.equal(params[2], 'support.break_glass_case_accessed');
+        assert.equal(params[3], 'case-p0');
+        assert.deepEqual(JSON.parse(params[4]), {
+          accessPath: 'staff_detail_break_glass',
+          grantId: '22222222-2222-4222-8222-222222222222',
+          reasonCode: 'p0_immediate_safety_response',
+          reviewDueAt: reviewDueAt.toISOString(),
+        });
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    { match: /FROM support_case_events/u, result: noRows },
+  ]);
+  const result = await getSupportCase(client, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId: 'case-p0',
+    staffAccess: true,
+    breakGlassToken: 'x'.repeat(43),
+    sessionId: '33333333-3333-4333-8333-333333333333',
+    staffElevationId: '44444444-4444-4444-8444-444444444444',
+  });
+  assert.equal(result.supportCase.id, 'case-p0');
+  assert.equal(result.supportCase.priority, 'p0');
+  client.done();
+});
+
 test('staff queue is role-gated, filter-bounded and keeps internal fields', async () => {
   const denied = new ScriptedClient([]);
   await assert.rejects(
@@ -1018,6 +1096,7 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
   for (const table of [
     'support_cases',
     'support_case_events',
+    'support_break_glass_grants',
     'support_messages',
     'support_decisions',
     'support_appeals',
@@ -1033,6 +1112,10 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
   assert.match(privacyExport, /decision\.user_facing_implementation_result/);
   assert.match(privacyExport, /evidence\.access_level = 'user_visible'/);
   assert.match(privacyExport, /internalNotesExcluded: true/);
+  assert.match(privacyExport, /'p0_emergency_case_access'::text AS access_purpose/);
+  assert.match(privacyExport, /internalEmergencyAccessReasonsExcluded: true/);
+  assert.match(privacyExport, /staffIdentifiersExcluded: true/);
+  assert.doesNotMatch(privacyExport, /grant\.justification|grant\.actor_id|grant\.session_id/);
 
   for (const marker of [
     "'communications', 'support_cases'",
@@ -1042,5 +1125,6 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
     "'moderation', 'support_appeals'",
     "'securityAudit', 'support_case_events'",
     "'securityAudit', 'support_policy_snapshots'",
+    "'securityAudit', 'support_break_glass_grants'",
   ]) assert.ok(retentionInventory.includes(marker), marker);
 });

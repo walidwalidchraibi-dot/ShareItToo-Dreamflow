@@ -173,6 +173,11 @@ import {
 } from './support_case_workflow.js';
 import { submitSupportAppeal } from './support_appeal_workflow.js';
 import {
+  createSupportBreakGlassGrant,
+  listSupportBreakGlassReviews,
+  reviewSupportBreakGlassGrant,
+} from './support_break_glass_workflow.js';
+import {
   createSupportDecisionDraft,
   listSupportDecisions,
   recordSupportDecisionCommunication,
@@ -4319,7 +4324,58 @@ export function createApp({
       actor: req.actor,
       caseId: safeText(req.params.id, 80),
       staffAccess: true,
+      breakGlassToken: req.get('X-Support-Break-Glass'),
+      sessionId: req.auth.sessionId,
+      staffElevationId: req.staffElevation.id,
     });
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/break-glass', requireAuth, requireActiveAccount, requireStaffElevation, actionLimiter, asyncRoute(async (req, res) => {
+    const caseId = safeText(req.params.id, 80);
+    try {
+      const result = await inTransaction((client) => createSupportBreakGlassGrant(client, {
+        actor: req.actor,
+        sessionId: req.auth.sessionId,
+        staffElevationId: req.staffElevation.id,
+        caseId,
+        raw: req.body,
+        idempotencyKey: req.get('Idempotency-Key'),
+      }));
+      res.set('Cache-Control', 'private, no-store').status(result.replayed ? 200 : 201).json(result);
+    } catch (error) {
+      if (error instanceof SupportCaseError) {
+        await writeAudit(pool, {
+          actor: req.actor,
+          action: 'support.break_glass_grant_denied',
+          resourceType: 'support_case',
+          resourceId: caseId || 'invalid',
+          requestId: req.requestId ?? null,
+          metadata: { reason: error.code },
+        });
+      }
+      throw error;
+    }
+  }));
+
+  app.get('/v1/admin/support/break-glass/reviews', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const reviews = await listSupportBreakGlassReviews(pool, {
+      actor: req.actor,
+      status: req.query.status || 'pending',
+      limit: req.query.limit ?? 100,
+    });
+    res.set('Cache-Control', 'private, no-store').json({ reviews });
+  }));
+
+  app.post('/v1/admin/support/break-glass/grants/:id/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, actionLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => reviewSupportBreakGlassGrant(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      staffElevationId: req.staffElevation.id,
+      grantId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
     res.set('Cache-Control', 'private, no-store').json(result);
   }));
 

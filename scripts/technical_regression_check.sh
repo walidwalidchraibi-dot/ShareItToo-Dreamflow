@@ -71,6 +71,7 @@ node --test test/tool/validate_privacy_disclosures.test.mjs
 node --test test/tool/validate_messaging_launch_scope.test.mjs
 node --test test/tool/support_final_decision_wiring.test.mjs
 node --test test/tool/support_appeal_wiring.test.mjs
+node --test test/tool/support_break_glass_wiring.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
 
