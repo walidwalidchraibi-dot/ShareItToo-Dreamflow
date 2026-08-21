@@ -22,10 +22,13 @@ Store, Cloud or real-money gate.
    launch passed; exact source CI `32459509278` is green. iOS is blocked by
    missing full Xcode/CocoaPods and unverified physical iOS device; combined
    gate remains partial.
-4. `P0B_NEXT_PSP_SANDBOX_E2E_ONLY`: active next package and executable only
-   against a verified contracted provider sandbox.
-5. `P0B_NEXT_INVITED_SYNTHETIC_PILOT_SPIEGELBERG_CAT8_30`: pending and may not
-   activate unless gates one through four are actually green.
+4. `P0B_NEXT_PSP_SANDBOX_E2E_ONLY`: fail-closed preflight and executable gate
+   complete. No executed provider contract, approved marketplace product,
+   provider sandbox acceptance, credentials or legal/privacy facts were found;
+   therefore zero provider calls and zero of eight provider E2E scenarios ran.
+5. `P0B_NEXT_INVITED_SYNTHETIC_PILOT_SPIEGELBERG_CAT8_30`: non-activating
+   preparation is next. It may not add users, configure the region or activate
+   a pilot because gates one through four are not actually green.
 
 Independent safe work continues when an external dependency is missing. No
 blocked gate is bypassed or silently marked complete.

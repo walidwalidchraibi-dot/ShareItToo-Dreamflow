@@ -156,6 +156,25 @@ Verified: 2026-08-21 on the Mac mini.
 - The combined device gate remains partial. No artifact upload, Store,
   production, Cloud, payment, provider or public mutation occurred.
 
+## P0B marketplace-PSP sandbox E2E gate
+
+- Live Drive searches bind V5.2, the current Rechtsmappe and the current money
+  and Support Packet sources. They found governing/reference material but no
+  standalone executed PSP contract or provider-sandbox acceptance artifact.
+- The repository contains a Stripe-Connect-shaped server adapter and broad
+  synthetic payment tests. Neither code naming nor a unit-test credential is
+  treated as proof of provider selection, contract, licensed product, operator
+  account, DPA, processing region or approved transfer model.
+- The presence-only local check found only example environment files, no
+  configured process payment transport, no test/webhook secret, no legal PSP
+  facts and no provider CLI or equivalent. No values or secrets were recorded.
+- Thirty-five focused tests passed. The executable gate still reports provider
+  facts false, sandbox environment false, zero of eight provider scenarios
+  passed, sandbox E2E false and real-money readiness false.
+- No provider request, provider object, dashboard, production, Cloud, Store,
+  public or real-money state changed. The exact gate state is
+  `hold-provider-contract-credentials-and-sandbox-e2e`.
+
 ## G3B booking-group foundation
 
 - Walid selected G3A Variant A and authorized the V2.4 rolling-autonomy runway.
