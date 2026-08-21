@@ -132,18 +132,43 @@ class SupportFlowContext {
   }
 }
 
+/// Versionierter Nachweis der Sicherheitsfrage vor der normalen Support-Aufnahme.
+class SupportSafetyTriage {
+  static const version = 'sit_support_safety_triage_v1';
+  static const packetVersion = 'SIT_SUPPORT_PACKET_V1_2026-08-20';
+  static const guidanceVersion = 'T-003@1.0.0';
+
+  final bool immediateDanger;
+  final bool guidanceShown;
+
+  const SupportSafetyTriage({
+    required this.immediateDanger,
+    required this.guidanceShown,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'version': version,
+    'packetVersion': packetVersion,
+    'guidanceVersion': guidanceVersion,
+    'immediateDanger': immediateDanger,
+    'guidanceShown': guidanceShown,
+  };
+}
+
 /// Ergebnis des Support-Flows
 class SupportFlowResult {
   final String mainCategory;
   final String subCategory;
   final String userDescription;
   final SupportFlowContext context;
+  final SupportSafetyTriage safetyTriage;
 
   const SupportFlowResult({
     required this.mainCategory,
     required this.subCategory,
     required this.userDescription,
     required this.context,
+    required this.safetyTriage,
   });
   
   /// Konvertiert zu einer Map
@@ -152,6 +177,8 @@ class SupportFlowResult {
       'mainCategory': mainCategory,
       'subCategory': subCategory,
       'userDescription': userDescription,
+      'immediateDanger': safetyTriage.immediateDanger,
+      'safetyTriage': safetyTriage.toMap(),
       ...context.toSupportContext(),
     };
   }
@@ -206,12 +233,17 @@ class SupportFlowScreen extends StatefulWidget {
 }
 
 class _SupportFlowScreenState extends State<SupportFlowScreen> {
+  bool? _immediateDanger;
+  bool _safetyGuidanceAcknowledged = false;
   String? _selectedMainCategory;
   String? _selectedSubCategory;
   String? _selectedDetailSubCategory;
   final _descriptionController = TextEditingController();
   bool _sendingSupport = false;
   bool _cardsHidden = false;
+
+  bool get _showSafetyQuestion => _immediateDanger == null;
+  bool get _showSafetyGuidance => _immediateDanger == true && !_safetyGuidanceAcknowledged;
 
   @override
   void dispose() {
@@ -379,12 +411,19 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       setState(() => _selectedSubCategory = null);
     } else if (_selectedMainCategory != null) {
       setState(() => _selectedMainCategory = null);
+    } else if (_immediateDanger != null) {
+      setState(() {
+        _immediateDanger = null;
+        _safetyGuidanceAcknowledged = false;
+      });
     } else {
       Navigator.of(context).pop();
     }
   }
 
   String _currentTitle() {
+    if (_showSafetyQuestion) return 'Bist du gerade in unmittelbarer Gefahr?';
+    if (_showSafetyGuidance) return 'Sicherheit geht jetzt vor';
     if (_selectedDetailSubCategory != null) return 'Beschreibe kurz, was passiert ist';
     if (_needsProfileReasonStep) return 'Warum möchtest du dieses Profil melden?';
     if (_selectedSubCategory != null) return 'Beschreibe kurz, was passiert ist';
@@ -395,6 +434,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   }
 
   String _currentSubline() {
+    if (_showSafetyQuestion) return 'Beantworte diese Frage zuerst. Danach kannst du dein Anliegen melden.';
+    if (_showSafetyGuidance) return 'Beende zuerst die gefährliche Situation. SIT ist kein Notfalldienst.';
     if (_selectedDetailSubCategory != null) return 'Prüfe die Auswahl kurz und beschreibe danach den Fall für den Support.';
     if (_needsProfileReasonStep) return 'Wähle den genauesten Grund, damit der Support den Fall richtig einordnen kann.';
     if (_selectedSubCategory != null) return 'Je genauer du es beschreibst, desto schneller kann dir der Support helfen.';
@@ -420,9 +461,10 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     final primary = theme.colorScheme.primary;
     final dark = theme.colorScheme.secondary;
     final isDark = theme.brightness == Brightness.dark;
-    final isMainCategoryPage = _selectedMainCategory == null && _selectedSubCategory == null;
+    final isSafetyPage = _showSafetyQuestion || _showSafetyGuidance;
+    final isMainCategoryPage = !isSafetyPage && _selectedMainCategory == null && _selectedSubCategory == null;
     final isSubcategoryPage = _selectedMainCategory != null && _selectedSubCategory == null;
-    final shouldCenterTitle = isMainCategoryPage || isSubcategoryPage;
+    final shouldCenterTitle = isSafetyPage || isMainCategoryPage || isSubcategoryPage;
 
     return Scaffold(
       backgroundColor: isDark ? Colors.transparent : AppTheme.surfaceMuted(context),
@@ -430,7 +472,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         // Tap außerhalb der Cards = Hintergrund-Preview
         onTap: () {
           // Nur im Dark Theme und nur auf Hauptkategorie/Subkategorie-Seite aktivieren
-          if (isDark && _selectedSubCategory == null) _toggleCardsVisibility();
+          if (isDark && !isSafetyPage && _selectedSubCategory == null) _toggleCardsVisibility();
         },
         behavior: HitTestBehavior.translucent,
         child: Stack(
@@ -644,7 +686,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                   ),
                   const SizedBox(height: 20),
                   // Buchungs-Kontextkarte - immer sichtbar für Kontext
-                  if (widget.context.requestId.isNotEmpty || widget.context.itemTitle.isNotEmpty)
+                  if (!isSafetyPage && (widget.context.requestId.isNotEmpty || widget.context.itemTitle.isNotEmpty))
                     AnimatedOpacity(
                       opacity: _cardsHidden ? 0.15 : 1.0,
                       duration: const Duration(milliseconds: 250),
@@ -669,15 +711,19 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                       duration: const Duration(milliseconds: 250),
                       child: IgnorePointer(
                         ignoring: _cardsHidden,
-                        child: _selectedDetailSubCategory != null
-                            ? _buildDescriptionStep()
-                            : _needsProfileReasonStep
-                                ? _buildProfileReportReasons()
-                                : _selectedSubCategory != null
+                        child: _showSafetyQuestion
+                            ? _buildSafetyQuestion()
+                            : _showSafetyGuidance
+                                ? _buildSafetyGuidance()
+                                : _selectedDetailSubCategory != null
                                     ? _buildDescriptionStep()
-                                    : _selectedMainCategory == null
-                                        ? _buildMainCategories()
-                                        : _buildSubcategories(_selectedMainCategory!),
+                                    : _needsProfileReasonStep
+                                        ? _buildProfileReportReasons()
+                                        : _selectedSubCategory != null
+                                            ? _buildDescriptionStep()
+                                            : _selectedMainCategory == null
+                                                ? _buildMainCategories()
+                                                : _buildSubcategories(_selectedMainCategory!),
                       ),
                     ),
                   ),
@@ -716,6 +762,67 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSafetyQuestion() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ListView(
+      key: const ValueKey('support_safety_question'),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      children: [
+        _SupportSafetyPanel(
+          icon: Icons.health_and_safety_outlined,
+          title: 'Akute Sicherheit vor dem normalen Ablauf',
+          body: 'Wenn du in Gefahr bist oder unsicher bist, zeigen wir dir zuerst die wichtigsten Sicherheitshinweise.',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 20),
+        _GlassySubcategoryCard(
+          key: const ValueKey('support_safety_answer_danger'),
+          label: 'Ja – oder ich bin unsicher',
+          onTap: () => setState(() => _immediateDanger = true),
+        ),
+        const SizedBox(height: 12),
+        _GlassySubcategoryCard(
+          key: const ValueKey('support_safety_answer_no_danger'),
+          label: 'Nein, aktuell nicht',
+          onTap: () => setState(() => _immediateDanger = false),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSafetyGuidance() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ListView(
+      key: const ValueKey('support_safety_guidance'),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      children: [
+        _SupportSafetyPanel(
+          icon: Icons.warning_amber_rounded,
+          title: 'Beende die Begegnung und geh an einen sicheren Ort.',
+          body: 'Übergib oder übernimm den Gegenstand vorerst nicht. Bei unmittelbarer Gefahr: Polizei 110 oder Rettungsdienst/Feuerwehr 112. SIT ist kein Notfalldienst.',
+          isDark: isDark,
+          urgent: true,
+        ),
+        const SizedBox(height: 14),
+        _SupportSafetyPanel(
+          icon: Icons.privacy_tip_outlined,
+          title: 'Dokumentiere nur, wenn es gefahrlos möglich ist.',
+          body: 'Teile im Support keine Live-Standorte, Passwörter, PINs oder Zahlungsdaten.',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 52,
+          child: FilledButton(
+            key: const ValueKey('support_safety_continue'),
+            onPressed: () => setState(() => _safetyGuidanceAcknowledged = true),
+            child: const Text('Hinweise verstanden – Bericht fortsetzen'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -903,11 +1010,80 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         subCategory: _selectedDetailSubCategory ?? _selectedSubCategory ?? '',
         userDescription: _descriptionController.text.trim(),
         context: widget.context,
+        safetyTriage: SupportSafetyTriage(
+          immediateDanger: _immediateDanger!,
+          guidanceShown: _immediateDanger == true,
+        ),
       );
       Navigator.of(context).pop(result);
     } finally {
       if (mounted) setState(() => _sendingSupport = false);
     }
+  }
+}
+
+class _SupportSafetyPanel extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  final bool isDark;
+  final bool urgent;
+
+  const _SupportSafetyPanel({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.isDark,
+    this.urgent = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = urgent ? const Color(0xFFEF4444) : BrandColors.primary;
+    return Semantics(
+      container: true,
+      label: '$title $body',
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.black.withValues(alpha: 0.36) : AppTheme.surfacePrimary(context),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: accent.withValues(alpha: 0.55)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: accent, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppTheme.textPrimary(context),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    body,
+                    style: TextStyle(
+                      color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textBody(context),
+                      fontSize: 14,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1312,6 +1488,7 @@ class _GlassySubcategoryCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _GlassySubcategoryCard({
+    super.key,
     required this.label,
     required this.onTap,
   });

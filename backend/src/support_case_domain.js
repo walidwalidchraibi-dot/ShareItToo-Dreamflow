@@ -161,6 +161,10 @@ export const supportOwnerRoles = Object.freeze([
   'founder_approval',
 ]);
 
+export const supportSafetyTriageVersion = 'sit_support_safety_triage_v1';
+export const supportPacketVersion = 'SIT_SUPPORT_PACKET_V1_2026-08-20';
+export const supportSafetyGuidanceVersion = 'T-003@1.0.0';
+
 const severityValues = new Set(['low', 'moderate', 'high', 'critical']);
 const sourceChannels = new Set(['app', 'web', 'email', 'phone', 'internal', 'api']);
 const operatingModes = new Set(['simulation', 'internal_testing']);
@@ -288,7 +292,7 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
   else if (p1Families.has(caseType)) priority = 'p1';
   else if (p2Families.has(caseType)) priority = 'p2';
 
-  const ownerRole = {
+  const baseOwnerRole = {
     general_help: 'general_support_owner',
     booking_pre_start: 'booking_operations_owner',
     active_handover: 'booking_operations_owner',
@@ -303,6 +307,9 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     legal_authority: 'legal_authority_owner',
     listing_quality: 'general_support_owner',
   }[caseType];
+  const ownerRole = signals.immediateDanger === true
+    ? 'trust_safety_owner'
+    : baseOwnerRole;
   const redDecisionBoundary = priority === 'p0'
     || ['money_case', 'privacy_security', 'legal_authority'].includes(caseType)
     || caseSubType === 'account_takeover';
@@ -333,6 +340,50 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
   });
 }
 
+function normalizeSupportSafetyTriage(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new SupportCaseError(400, 'support_safety_triage_required');
+  }
+  const version = requiredText(
+    raw.version,
+    80,
+    'support_safety_triage_version_invalid',
+  );
+  if (version !== supportSafetyTriageVersion) {
+    throw new SupportCaseError(400, 'support_safety_triage_version_invalid');
+  }
+  const packetVersion = requiredText(
+    raw.packetVersion,
+    80,
+    'support_packet_version_invalid',
+  );
+  if (packetVersion !== supportPacketVersion) {
+    throw new SupportCaseError(400, 'support_packet_version_invalid');
+  }
+  const guidanceVersion = requiredText(
+    raw.guidanceVersion,
+    80,
+    'support_safety_guidance_version_invalid',
+  );
+  if (guidanceVersion !== supportSafetyGuidanceVersion) {
+    throw new SupportCaseError(400, 'support_safety_guidance_version_invalid');
+  }
+  if (typeof raw.immediateDanger !== 'boolean'
+      || typeof raw.guidanceShown !== 'boolean') {
+    throw new SupportCaseError(400, 'support_safety_triage_answer_invalid');
+  }
+  if (raw.guidanceShown !== raw.immediateDanger) {
+    throw new SupportCaseError(400, 'support_safety_guidance_evidence_invalid');
+  }
+  return Object.freeze({
+    version,
+    packetVersion,
+    guidanceVersion,
+    immediateDanger: raw.immediateDanger,
+    guidanceShown: raw.guidanceShown,
+  });
+}
+
 export function normalizeSupportCaseInput(raw, {
   sourceChannel = 'app',
   operatingMode = 'simulation',
@@ -350,8 +401,13 @@ export function normalizeSupportCaseInput(raw, {
   }
   const caseType = requiredText(raw.caseType, 60, 'support_case_type_invalid').toLowerCase();
   const caseSubType = requiredText(raw.caseSubType, 100, 'support_case_subtype_invalid').toLowerCase();
+  const safetyTriage = normalizeSupportSafetyTriage(raw.safetyTriage);
+  if (raw.immediateDanger !== undefined
+      && raw.immediateDanger !== safetyTriage.immediateDanger) {
+    throw new SupportCaseError(400, 'support_safety_triage_conflict');
+  }
   const route = supportRouteFor(caseType, caseSubType, {
-    immediateDanger: raw.immediateDanger,
+    immediateDanger: safetyTriage.immediateDanger,
     accountTakeover: raw.accountTakeover,
     possibleHighRiskDataExposure: raw.possibleHighRiskDataExposure,
     imminentAuthorityDeadline: raw.imminentAuthorityDeadline,
@@ -379,6 +435,7 @@ export function normalizeSupportCaseInput(raw, {
     linkedPaymentId: optionalUuid(raw.linkedPaymentId, 'support_linked_payment_invalid'),
     linkedRefundId: optionalUuid(raw.linkedRefundId, 'support_linked_refund_invalid'),
     linkedPayoutId: optionalUuid(raw.linkedPayoutId, 'support_linked_payout_invalid'),
+    safetyTriage,
     waitingReason: 'Der Eingang wartet auf die fachliche Übernahme.',
     nextAction: route.priority === 'p0'
       ? 'Sicherheitsroute unverzüglich prüfen und einem verantwortlichen Owner zuweisen.'

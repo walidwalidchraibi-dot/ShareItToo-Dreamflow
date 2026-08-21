@@ -23,6 +23,11 @@ Verified: 2026-08-21 on the Mac mini.
   `32496163016` passed Backend and Flutter regression including PostgreSQL 16
   migration `033`. Signed-candidate construction and image publication stayed
   skipped, and draft PR #7 remained open and unmerged.
+- The S2A denied-access audit is verified at exact commit
+  `3742f00b11366205abb79c10295e775d301325e8`; exact GitHub Actions run
+  `32497715939` passed Backend and Flutter regression including PostgreSQL 16.
+  Publication and signed-candidate construction stayed skipped, and draft PR
+  #7 remained open and unmerged.
 
 ## Post-P0B ordered continuation close
 
@@ -56,6 +61,10 @@ Verified: 2026-08-21 on the Mac mini.
   verified implementation evidence. Staff access is assignment-bound, review
   is administrator-only, and the implementation endpoint records only
   simulation/internal-testing evidence without calling an external adapter.
+- S3A adds a mandatory safety-first question before normal support intake,
+  source-bound T-003 emergency guidance, versioned immutable intake evidence
+  and fail-closed Trust & Safety routing for immediate danger. It places no
+  call, sends no external message and activates no live support operation.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

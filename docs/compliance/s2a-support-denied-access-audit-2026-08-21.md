@@ -1,7 +1,9 @@
 # S2A support denied-access audit - technical compliance record
 
-Status: locally verified non-live candidate, fail-closed. Exact GitHub CI is
-required before closeout.
+Status: verified non-live implementation, fail-closed.
+
+Exact commit: `3742f00b11366205abb79c10295e775d301325e8`.
+Exact successful GitHub Actions run: `32497715939`.
 
 ## Bound scope
 
@@ -45,5 +47,6 @@ and blocked rather than being inferred from the audit capability.
 - No production, Cloud, VPS, Store, DNS, payment or public pilot state changed.
 - No privileged access path or break-glass grant was created.
 - No professional legal, operator, provider or retention approval is claimed.
-- PostgreSQL 16 and exact-commit GitHub CI remain required for final S2A
-  evidence.
+- PostgreSQL 16, Backend, Flutter, Web and Android debug paths passed in exact
+  run `32497715939`. Signed-candidate construction and API publication stayed
+  skipped behind their closed gates.

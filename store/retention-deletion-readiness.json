@@ -45,11 +45,11 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "ab9208d8a418ffad94c817cbdc46f357ba803337ba2457c5cc536853bb4b9b02"
+      "sha256": "162304911cb6c21e1468785b73f85124087c9eade9d41a2324f11da3568775d9"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "c56e2042e0aff495154f8cac633e2b0fdf6f7b694e3483a9a6935b019bcdc5ec"
+      "sha256": "d9f5fe828ddeecc1bdc7cb47678a07fd03fd73c4928e7fbde96dbf44e3f96c7c"
     },
     {
       "path": "backend/src/support_decision_domain.js",

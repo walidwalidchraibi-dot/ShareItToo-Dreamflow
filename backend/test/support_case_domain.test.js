@@ -9,13 +9,26 @@ import {
   supportApprovalLevels,
   supportCaseFamilies,
   supportCaseStatuses,
+  supportPacketVersion,
   supportPriorities,
   supportRouteFor,
+  supportSafetyGuidanceVersion,
+  supportSafetyTriageVersion,
 } from '../src/support_case_domain.js';
 
 const now = new Date('2026-08-21T10:00:00.000Z');
 const nextUpdateAt = new Date('2026-08-21T12:00:00.000Z');
 const decisionId = '11111111-1111-4111-8111-111111111111';
+
+function safetyTriage(immediateDanger = false) {
+  return {
+    version: supportSafetyTriageVersion,
+    packetVersion: supportPacketVersion,
+    guidanceVersion: supportSafetyGuidanceVersion,
+    immediateDanger,
+    guidanceShown: immediateDanger,
+  };
+}
 
 function caseRecord(overrides = {}) {
   return {
@@ -105,6 +118,12 @@ test('routing is deterministic and fails closed at money, privacy, authority and
   assert.equal(danger.severity, 'critical');
   assert.equal(danger.approvalLevel, 'red_explicit_decision');
   assert.equal(danger.safetyFlag, true);
+  const dangerSignal = supportRouteFor('active_handover', 'unsafe_handover', {
+    immediateDanger: true,
+  });
+  assert.equal(dangerSignal.ownerRole, 'trust_safety_owner');
+  assert.equal(dangerSignal.waitingOn, 'trust_safety_owner');
+  assert.equal(dangerSignal.priority, 'p0');
 });
 
 test('routing rejects unknown or mismatched taxonomy values', () => {
@@ -132,6 +151,7 @@ test('intake derives authoritative route and retains non-live operating truth', 
     summary: 'Erstattung im Testmodus nachvollziehbar prüfen.',
     linkedBookingId: 'booking-123',
     linkedPaymentId: decisionId,
+    safetyTriage: safetyTriage(),
   }, {
     sourceChannel: 'app',
     operatingMode: 'internal_testing',
@@ -153,6 +173,7 @@ test('intake rejects live modes, malformed references and unsafe deadlines', () 
     caseType: 'general_help',
     caseSubType: 'general_how_to',
     summary: 'Eine zulässige Zusammenfassung.',
+    safetyTriage: safetyTriage(),
   };
   assert.throws(
     () => normalizeSupportCaseInput(raw, {
@@ -183,7 +204,10 @@ test('intake rejects live modes, malformed references and unsafe deadlines', () 
 });
 
 test('intake derives bounded internal checkpoints when no client deadline is supplied', () => {
-  const base = { summary: 'Interner Checkpoint wird vom Server bestimmt.' };
+  const base = {
+    summary: 'Interner Checkpoint wird vom Server bestimmt.',
+    safetyTriage: safetyTriage(),
+  };
   const p0 = normalizeSupportCaseInput({
     ...base,
     caseType: 'trust_safety',
@@ -196,6 +220,41 @@ test('intake derives bounded internal checkpoints when no client deadline is sup
   }, { now });
   assert.equal(p0.nextUpdateAt.toISOString(), '2026-08-21T10:15:00.000Z');
   assert.equal(p3.nextUpdateAt.toISOString(), '2026-08-22T10:00:00.000Z');
+});
+
+test('intake requires versioned safety-first evidence and rejects contradictions', () => {
+  const base = {
+    caseType: 'active_handover',
+    caseSubType: 'unsafe_handover',
+    summary: 'Unsichere Übergabe wird zuerst sicherheitsbezogen eingeordnet.',
+  };
+  assert.throws(
+    () => normalizeSupportCaseInput(base, { now }),
+    /support_safety_triage_required/,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      safetyTriage: { ...safetyTriage(true), guidanceShown: false },
+    }, { now }),
+    /support_safety_guidance_evidence_invalid/,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      immediateDanger: false,
+      safetyTriage: safetyTriage(true),
+    }, { now }),
+    /support_safety_triage_conflict/,
+  );
+
+  const danger = normalizeSupportCaseInput({
+    ...base,
+    safetyTriage: safetyTriage(true),
+  }, { now });
+  assert.equal(danger.priority, 'p0');
+  assert.equal(danger.ownerRole, 'trust_safety_owner');
+  assert.equal(danger.safetyTriage.guidanceShown, true);
 });
 
 test('transition graph is explicit and rejects skips, paused and stale versions', () => {

@@ -296,6 +296,7 @@ export async function createSupportCase(client, {
         caseSubType: normalized.caseSubType,
         priority: normalized.priority,
         operatingMode: normalized.operatingMode,
+        safetyTriage: normalized.safetyTriage,
       }),
       `${key}:event`,
       now,
@@ -310,6 +311,8 @@ export async function createSupportCase(client, {
       caseSubType: normalized.caseSubType,
       priority: normalized.priority,
       operatingMode: normalized.operatingMode,
+      safetyTriageVersion: normalized.safetyTriage.version,
+      safetyGuidanceShown: normalized.safetyTriage.guidanceShown,
     },
   });
   return {

@@ -38,11 +38,21 @@ Actions run `32496163016`. It adds:
 No external message, evidence upload, real refund/payout, account measure,
 deployment or public/live activation is part of S2.
 
-The active narrow follow-up is `S2A_SUPPORT_DENIED_ACCESS_AUDIT`. It closes the
-`SUP-020` matrix requirement by recording sanitized audit evidence when a
-support account attempts to read a case or decision list outside its explicit
-assignment. The response stays fail-closed and does not disclose whether an
-unassigned case exists. Break-glass remains unimplemented and blocked.
+`S2A_SUPPORT_DENIED_ACCESS_AUDIT` is verified at exact commit
+`3742f00b11366205abb79c10295e775d301325e8` and exact successful GitHub Actions
+run `32497715939`. It closes the `SUP-020` matrix requirement by recording
+sanitized audit evidence when a support account attempts to read a case or
+decision list outside its explicit assignment. The response stays fail-closed
+and does not disclose whether an unassigned case exists. Break-glass remains
+unimplemented and blocked.
+
+The active package is `S3A_SAFETY_FIRST_SUPPORT_INTAKE`. It implements Drive
+Support Packet scenarios `SUP-017` and `SUP-093`: the app asks about immediate
+danger before normal categorization, shows source-bound T-003 safety guidance
+for `yes` or `unsure`, and carries immutable version evidence into the backend
+intake. Backend contradictions fail closed and immediate danger routes to the
+Trust & Safety owner. No emergency call, external message or live case action
+is performed.
 
 ## Prior ordered post-P0B gate close
 
