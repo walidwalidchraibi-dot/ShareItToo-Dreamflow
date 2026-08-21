@@ -7,6 +7,8 @@ import 'package:lendify/screens/help_center_screen.dart';
 Map<String, dynamic> _canonicalCase() => {
       'id': 'case-help-center',
       'caseNumber': 'SIT-ABCDEFGHJKLM',
+      'caseType': 'general_help',
+      'caseSubType': 'app_error_or_display',
       'status': 'received',
       'nextUpdateAt': '2026-08-21T16:00:00.000Z',
       'nextUpdateDisplay': '21.08.2026, 18:00',

@@ -179,6 +179,24 @@ test('intake derives authoritative route and retains non-live operating truth', 
   assert.equal(result.linkedBookingId, 'booking-123');
 });
 
+test('privacy intake gets its own owner and bounded operational checkpoint', () => {
+  const result = normalizeSupportCaseInput({
+    caseType: 'privacy_security',
+    caseSubType: 'access_or_copy_request',
+    summary: 'Datenauskunft als eigenständigen Privacy-Fall prüfen.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+  }, { now });
+
+  assert.equal(result.priority, 'p2');
+  assert.equal(result.ownerRole, 'privacy_owner');
+  assert.equal(result.waitingOn, 'privacy_owner');
+  assert.equal(result.approvalLevel, 'red_explicit_decision');
+  assert.equal(result.privacyFlag, true);
+  assert.equal(result.nextUpdateAt.toISOString(), '2026-08-21T14:00:00.000Z');
+  assert.equal(result.operatingMode, 'simulation');
+});
+
 test('intake rejects live modes, malformed references and unsafe deadlines', () => {
   const raw = {
     caseType: 'general_help',

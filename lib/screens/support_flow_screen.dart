@@ -276,6 +276,24 @@ class SupportFlowResult {
       'Button reagiert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
       'Sonstiges technisches Problem': SupportCaseRoute('general_help', 'app_error_or_display'),
     },
+    'privacy': {
+      'Auskunft oder Kopie meiner Daten':
+          SupportCaseRoute('privacy_security', 'access_or_copy_request'),
+      'Daten berichtigen oder löschen':
+          SupportCaseRoute('privacy_security', 'correction_or_deletion_request'),
+      'Verarbeitung widersprechen oder einschränken':
+          SupportCaseRoute('privacy_security', 'objection_or_restriction_request'),
+      'Meine Daten wurden unbefugt offengelegt':
+          SupportCaseRoute('privacy_security', 'unauthorized_data_exposure'),
+      'Mögliche Datenschutzverletzung melden':
+          SupportCaseRoute('privacy_security', 'suspected_personal_data_breach'),
+      'Daten gingen an falsches Konto oder falsche Person':
+          SupportCaseRoute('privacy_security', 'wrong_recipient_or_wrong_account'),
+      'Identität für Datenschutzanfrage bestätigen': SupportCaseRoute(
+        'privacy_security',
+        'identity_verification_for_rights_request',
+      ),
+    },
     'other': {
       'Ich bin unsicher, was ich tun soll': SupportCaseRoute('general_help', 'general_how_to'),
       'Allgemeine Frage zur Buchung': SupportCaseRoute('booking_pre_start', 'booking_request_or_acceptance'),
@@ -325,6 +343,7 @@ class SupportFlowResult {
   }
 
   SupportFlowResult withCanonicalCase(Map<String, dynamic> value) {
+    final route = backendRoute;
     final requiredTextFields = <String>[
       'id',
       'caseNumber',
@@ -338,6 +357,8 @@ class SupportFlowResult {
         || value['status'] != 'received'
         || value['timezone'] != 'Europe/Berlin'
         || value['operatingMode'] != 'simulation'
+        || value['caseType'] != route.caseType
+        || value['caseSubType'] != route.caseSubType
         || !RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
             .hasMatch(value['caseNumber'].toString())
         || DateTime.tryParse(value['nextUpdateAt'].toString()) == null) {
@@ -357,9 +378,14 @@ class SupportFlowResult {
   String get canonicalReceiptMessage {
     final supportCase = canonicalCase;
     if (supportCase == null) throw StateError('canonical_support_case_missing');
+    final routingLine = backendRoute.caseType == 'privacy_security'
+        ? 'Deine Anfrage ist als eigener Datenschutz-Fall im '
+            'Datenschutz-Prüfweg erfasst.'
+        : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
+            'noch nicht entschieden.';
     final safetyLine = safetyTriage.immediateDanger
         ? 'Sicherheit geht vor: Bleib an einem sicheren Ort und nutze bei unmittelbarer Gefahr 110 oder 112. SIT ist kein Notfalldienst.'
-        : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist noch nicht entschieden.';
+        : routingLine;
     return 'Support-Fall ${supportCase['caseNumber']}\n'
         'Status: Eingegangen\n'
         'Nächstes Update spätestens: ${supportCase['nextUpdateDisplay']} Uhr (${supportCase['timezone']})\n'
@@ -395,6 +421,7 @@ class SupportFlowResult {
       case 'payment': return 'Problem mit Zahlung';
       case 'person': return 'Problem mit anderer Person';
       case 'technical': return 'Technisches Problem';
+      case 'privacy': return 'Datenschutz & Daten';
       case 'other': return 'Sonstiges';
       case 'profile_report': return 'Profil melden';
       default: return mainCategory;
@@ -504,6 +531,11 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       'title': 'Gibt es ein technisches Problem?',
       'subline': 'Wähle, was nicht funktioniert. So können wir den Fehler schneller finden.',
     },
+    'privacy': {
+      'title': 'Geht es um Datenschutz oder deine Daten?',
+      'subline': 'Wähle den genauen Anlass. Die Anfrage wird als eigener '
+          'Datenschutz-Fall geprüft.',
+    },
     'other': {
       'title': 'Wobei brauchst du Hilfe?',
       'subline': 'Wähle den passendsten Grund oder beschreibe dein Anliegen im nächsten Schritt.',
@@ -603,6 +635,19 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         'App lädt nicht',
         'Button reagiert nicht',
         'Sonstiges technisches Problem',
+      ],
+    ),
+    'privacy': _SupportCategory(
+      icon: Icons.privacy_tip_outlined,
+      label: 'Datenschutz & Daten',
+      subcategories: [
+        'Auskunft oder Kopie meiner Daten',
+        'Daten berichtigen oder löschen',
+        'Verarbeitung widersprechen oder einschränken',
+        'Meine Daten wurden unbefugt offengelegt',
+        'Mögliche Datenschutzverletzung melden',
+        'Daten gingen an falsches Konto oder falsche Person',
+        'Identität für Datenschutzanfrage bestätigen',
       ],
     ),
     'other': _SupportCategory(

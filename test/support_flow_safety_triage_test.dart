@@ -11,9 +11,14 @@ const _context = SupportFlowContext(
   role: SupportFlowRole.renter,
 );
 
-Map<String, dynamic> _canonicalCase() => {
+Map<String, dynamic> _canonicalCase({
+  String caseType = 'general_help',
+  String caseSubType = 'app_error_or_display',
+}) => {
       'id': 'case-1',
       'caseNumber': 'SIT-ABCDEFGHJKLM',
+      'caseType': caseType,
+      'caseSubType': caseSubType,
       'status': 'received',
       'nextUpdateAt': '2026-08-21T16:00:00.000Z',
       'nextUpdateDisplay': '21.08.2026, 18:00',
@@ -196,6 +201,39 @@ void main() {
     expect(intake['caseSubType'], 'immediate_physical_danger');
   });
 
+  test('privacy category maps to the dedicated privacy owner route', () {
+    const result = SupportFlowResult(
+      mainCategory: 'privacy',
+      subCategory: 'Auskunft oder Kopie meiner Daten',
+      userDescription: 'Ich möchte eine Kopie meiner gespeicherten Daten.',
+      context: _context,
+      safetyTriage: SupportSafetyTriage(
+        immediateDanger: false,
+        guidanceShown: false,
+      ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
+      ),
+    );
+
+    final intake = result.toBackendInput();
+    expect(intake['caseType'], 'privacy_security');
+    expect(intake['caseSubType'], 'access_or_copy_request');
+    final confirmed = result.withCanonicalCase(_canonicalCase(
+      caseType: 'privacy_security',
+      caseSubType: 'access_or_copy_request',
+    ));
+    expect(
+      confirmed.canonicalReceiptMessage,
+      contains('eigener Datenschutz-Fall'),
+    );
+    expect(
+      confirmed.canonicalReceiptMessage,
+      contains('Nächstes Update spätestens'),
+    );
+  });
+
   test('canonical receipt rejects unconfirmed or non-simulation responses', () {
     const result = SupportFlowResult(
       mainCategory: 'technical',
@@ -216,6 +254,14 @@ void main() {
       () => result.withCanonicalCase({
         ..._canonicalCase(),
         'operatingMode': 'live',
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => result.withCanonicalCase({
+        ..._canonicalCase(),
+        'caseType': 'privacy_security',
+        'caseSubType': 'access_or_copy_request',
       }),
       throwsFormatException,
     );
@@ -285,6 +331,51 @@ void main() {
         .tap(find.byKey(const ValueKey('support_case_receipt_continue')));
     await tester.pumpAndSettle();
     expect(captured?.canonicalCaseNumber, 'SIT-ABCDEFGHJKLM');
+  });
+
+  testWidgets('normal support intake creates a separate privacy case',
+      (tester) async {
+    Map<String, dynamic>? capturedIntake;
+    await tester.pumpWidget(MaterialApp(
+      home: SupportFlowScreen(
+        context: _context,
+        submitter: (intake, idempotencyKey) async {
+          capturedIntake = intake;
+          return _canonicalCase(
+            caseType: 'privacy_security',
+            caseSubType: 'correction_or_deletion_request',
+          );
+        },
+      ),
+    ));
+    tester.view.physicalSize = const Size(900, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester
+        .tap(find.byKey(const ValueKey('support_safety_answer_no_danger')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Datenschutz & Daten'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Daten berichtigen oder löschen'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'Bitte prüft die Berichtigung meiner Profildaten.',
+    );
+    await tester.tap(find.text('An Support schicken'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(capturedIntake?['caseType'], 'privacy_security');
+    expect(
+      capturedIntake?['caseSubType'],
+      'correction_or_deletion_request',
+    );
+    expect(find.byKey(const ValueKey('support_case_receipt')), findsOneWidget);
+    expect(find.textContaining('eigener Datenschutz-Fall'), findsOneWidget);
   });
 
   testWidgets('failed submission stays open and retry reuses the same key',
