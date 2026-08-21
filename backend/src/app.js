@@ -1151,13 +1151,20 @@ async function accountDeletionPreflight(client, userId) {
     ['active_payments', 'Laufende Zahlungsabwicklung'],
     ['open_disputes', 'Offene Streitfälle'],
     ['open_reports', 'Offene Moderationsfälle'],
-    ['support_case_records', 'Supportfall mit offener Aufbewahrungsentscheidung'],
     ['active_legal_holds', 'Rechtliche Aufbewahrungssperre'],
   ];
   const blockers = definitions
     .map(([id, label]) => ({ id, label, count: Number(counts[id] ?? 0) }))
     .filter((blocker) => blocker.count > 0);
-  return { canDelete: blockers.length === 0, blockers };
+  const retainedRecords = [
+    [
+      'support_case_records',
+      'Supportfall und zugehörige Fallnachweise bleiben kontrolliert gespeichert',
+    ],
+  ]
+    .map(([id, label]) => ({ id, label, count: Number(counts[id] ?? 0) }))
+    .filter((record) => record.count > 0);
+  return { canDelete: blockers.length === 0, blockers, retainedRecords };
 }
 
 async function reconcileExpiredAccountSuspension(email) {
@@ -1304,6 +1311,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
         'legally_required_financial_records',
         'pseudonymous_notification_delivery_audit',
         'pseudonymous_booking_condition_evidence',
+        'pseudonymous_support_case_records',
         'audit_log',
       ],
       erasedUploadCount: erasedUploads.rowCount,

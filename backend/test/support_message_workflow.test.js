@@ -58,6 +58,8 @@ function messageRow(overrides = {}) {
     corrects_message_id: null,
     lock_version: 1,
     created_at: now,
+    recipient_account_status: 'active',
+    recipient_deactivated_at: null,
     ...overrides,
   };
 }
@@ -94,6 +96,7 @@ test('green template publication records an in-app message without external deli
   const client = new ScriptedClient([
     { match: /message\.idempotency_key = \$1/u, result: noRows },
     { match: /FROM support_cases WHERE id::text = \$1 FOR UPDATE/u, result: { rowCount: 1, rows: [caseRow()] } },
+    { match: /FROM users[\s\S]*FOR KEY SHARE/u, result: { rowCount: 1, rows: [{ id: 'user-1' }] } },
     { match: /SELECT \* FROM support_messages WHERE idempotency_key/u, result: noRows },
     {
       match: /INSERT INTO support_messages/u,
@@ -162,6 +165,30 @@ test('green template publication records an in-app message without external deli
   assert.equal(result.replayed, false);
   assert.equal(result.message.sendStatus, 'sent');
   assert.equal(result.message.externalMessageSent, false);
+  client.done();
+});
+
+test('message creation rejects a recipient whose account is closed', async () => {
+  const client = new ScriptedClient([
+    { match: /message\.idempotency_key = \$1/u, result: noRows },
+    { match: /FROM support_cases WHERE id::text = \$1 FOR UPDATE/u, result: { rowCount: 1, rows: [caseRow()] } },
+    { match: /FROM users[\s\S]*FOR KEY SHARE/u, result: noRows },
+  ]);
+  await assert.rejects(
+    createSupportMessage(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      raw: {
+        templateId: 'T-001',
+        recipientUserId: 'user-1',
+        variables: intakeVariables(),
+        publishNow: true,
+      },
+      idempotencyKey: 'closed-recipient',
+      now,
+    }),
+    /support_message_recipient_account_closed/u,
+  );
   client.done();
 });
 
@@ -342,6 +369,48 @@ test('publication rechecks a promised next-update deadline after approval', asyn
       now,
     }),
     /support_message_next_update_overdue/u,
+  );
+  client.done();
+});
+
+test('publication rejects a message whose recipient account was closed after drafting', async () => {
+  const approved = messageRow({
+    approved_by: 'admin-1',
+    approved_at: now,
+    approval_payload_sha256: 'a'.repeat(64),
+    reviewed_by: 'admin-1',
+    reviewed_at: now,
+    review_outcome: 'approved',
+    send_status: 'approved',
+    lock_version: 2,
+    recipient_account_status: 'closed',
+    recipient_deactivated_at: now,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/u, result: noRows },
+    {
+      match: /JOIN users AS recipient[\s\S]*FOR UPDATE OF message, recipient/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          ...approved,
+          case_current_owner_id: 'support-1',
+          case_operating_mode: 'simulation',
+          case_next_update_at: new Date('2026-08-22T10:00:00.000Z'),
+        }],
+      },
+    },
+  ]);
+  await assert.rejects(
+    publishSupportMessage(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      messageId,
+      raw: { expectedVersion: 2, expectedPayloadSha256: 'a'.repeat(64) },
+      idempotencyKey: 'closed-recipient-publication',
+      now,
+    }),
+    /support_message_recipient_account_closed/u,
   );
   client.done();
 });

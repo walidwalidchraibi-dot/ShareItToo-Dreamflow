@@ -1151,7 +1151,12 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
     "app.patch('/v1/admin/support/cases/:id/status', requireAuth, requireActiveAccount, requireStaffElevation",
   ]) assert.ok(app.includes(route), route);
   assert.match(app, /operatingMode: 'simulation'/);
-  assert.match(app, /support_case_records[\s\S]*Supportfall mit offener Aufbewahrungsentscheidung/);
+  assert.match(app, /const retainedRecords = \[[\s\S]*support_case_records/);
+  assert.doesNotMatch(
+    app,
+    /const definitions = \[[\s\S]*support_case_records[\s\S]*const blockers/u,
+  );
+  assert.match(app, /pseudonymous_support_case_records/);
   assert.match(app, /const supportCaseError = error instanceof SupportCaseError/);
 
   for (const table of [

@@ -157,6 +157,15 @@ export async function createSupportMessage(client, {
   if (!recipientUserId || !recipientBelongsToCase(supportCase, recipientUserId)) {
     throw new SupportCaseError(403, 'support_message_recipient_forbidden');
   }
+  const activeRecipient = await client.query(
+    `SELECT id FROM users
+      WHERE id = $1 AND account_status = 'active' AND deactivated_at IS NULL
+      FOR KEY SHARE`,
+    [recipientUserId],
+  );
+  if (!activeRecipient.rowCount) {
+    throw new SupportCaseError(409, 'support_message_recipient_account_closed');
+  }
   const draft = normalizeSupportMessageDraft(raw, {
     supportCase,
     now,
@@ -403,17 +412,23 @@ export async function publishSupportMessage(client, {
   const locked = await client.query(
     `SELECT message.*, support_case.current_owner_id AS case_current_owner_id,
             support_case.operating_mode AS case_operating_mode,
-            support_case.next_update_at AS case_next_update_at
+            support_case.next_update_at AS case_next_update_at,
+            recipient.account_status AS recipient_account_status,
+            recipient.deactivated_at AS recipient_deactivated_at
        FROM support_messages AS message
        JOIN support_cases AS support_case ON support_case.id = message.case_id
+       JOIN users AS recipient ON recipient.id = message.recipient_user_id
       WHERE message.id::text = $1 AND support_case.id::text = $2
-      FOR UPDATE OF message`,
+      FOR UPDATE OF message, recipient`,
     [messageId, caseId],
   );
   if (!locked.rowCount) throw new SupportCaseError(404, 'support_message_not_found');
   const row = locked.rows[0];
   assertAssignment(actor, { current_owner_id: row.case_current_owner_id });
   assertNonLive({ operating_mode: row.case_operating_mode });
+  if (row.recipient_account_status !== 'active' || row.recipient_deactivated_at) {
+    throw new SupportCaseError(409, 'support_message_recipient_account_closed');
+  }
   const concurrentReplay = await client.query(
     `SELECT 1 FROM support_case_events
       WHERE case_id = $1 AND entity_id = $2 AND idempotency_key = $3`,

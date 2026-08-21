@@ -67,6 +67,7 @@ const sourcePaths = [
   'backend/sql/migrations/038_support_message_template_guard.up.sql',
   'backend/sql/migrations/039_support_deadline_watchdog.up.sql',
   'backend/sql/migrations/040_support_single_issue_intake.up.sql',
+  'backend/sql/migrations/041_support_closed_account_access_guard.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',

@@ -102,6 +102,7 @@ if (!databaseUrl) {
         '038_support_message_template_guard.up.sql',
         '039_support_deadline_watchdog.up.sql',
         '040_support_single_issue_intake.up.sql',
+        '041_support_closed_account_access_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -4247,6 +4248,28 @@ if (!databaseUrl) {
         `INSERT INTO user_blocks (blocker_id, blocked_id)
          VALUES ('auth-user', 'email-user')`,
       );
+      const deletionSupportCase = await setupPool.query(
+        `INSERT INTO support_cases (
+           human_readable_case_number, case_type, case_subtype, status,
+           priority, severity, source_channel, operating_mode,
+           reporter_user_id, reporter_role, current_owner_id,
+           current_owner_role, approval_level, waiting_on, next_action,
+           next_update_at, user_facing_summary, internal_summary,
+           policy_snapshot_id, idempotency_key, intake_scope_evidence
+         ) VALUES (
+           'SIT-23456789BCDF', 'general_help', 'app_error_or_display',
+           'under_review', 'p3', 'low', 'internal', 'simulation',
+           'auth-user', 'user', 'support', 'general_support_owner',
+           'green_automatic', 'support_owner',
+           'Continue the controlled internal support review.',
+           now() + interval '1 day',
+           'The internal support case remains under review.',
+           'Synthetic account-deletion retention test only.',
+           $1, 'support-account-deletion-retention-integration',
+           '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
+         ) RETURNING id`,
+        [supportPolicy.rows[0].id],
+      );
       const deletionHeaders = {
         Authorization: `Bearer ${deletionSession.accessToken}`,
         'Content-Type': 'application/json',
@@ -4271,7 +4294,15 @@ if (!databaseUrl) {
         headers: deletionHeaders,
       });
       assert.equal(deletionPreflight.status, 200);
-      assert.deepEqual(await deletionPreflight.json(), { canDelete: true, blockers: [] });
+      assert.deepEqual(await deletionPreflight.json(), {
+        canDelete: true,
+        blockers: [],
+        retainedRecords: [{
+          id: 'support_case_records',
+          label: 'Supportfall und zugehörige Fallnachweise bleiben kontrolliert gespeichert',
+          count: 1,
+        }],
+      });
 
       const wrongDeletion = await fetch(`${baseUrl}/v1/account/deletion`, {
         method: 'POST',
@@ -4315,6 +4346,48 @@ if (!databaseUrl) {
         `SELECT count(*)::int AS count FROM user_blocks
          WHERE blocker_id = 'auth-user' OR blocked_id = 'auth-user'`,
       )).rows[0].count, 0);
+      const retainedSupportCase = await setupPool.query(
+        `SELECT reporter_user_id, status
+           FROM support_cases WHERE id = $1`,
+        [deletionSupportCase.rows[0].id],
+      );
+      assert.deepEqual(retainedSupportCase.rows, [{
+        reporter_user_id: 'auth-user',
+        status: 'under_review',
+      }]);
+      const deletedSupportAccess = await fetch(`${baseUrl}/v1/support/cases`, {
+        headers: { Authorization: `Bearer ${deletionSession.accessToken}` },
+      });
+      assert.equal(deletedSupportAccess.status, 401);
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO support_messages (
+             case_id, sender_type, sender_id, recipient_user_id,
+             message_type, message_title, template_id, template_version,
+             rendered_content, rendered_content_sha256, structured_variables,
+             approval_level, send_status, idempotency_key
+           ) VALUES (
+             $1, 'support', 'support', 'auth-user',
+             'support_template', 'Closed account test', 'T-001', '1.0.0',
+             'This message must not be recorded for a closed account.',
+             encode(digest('This message must not be recorded for a closed account.', 'sha256'), 'hex'),
+             '{}'::jsonb, 'green_automatic', 'draft',
+             'support-closed-account-integration'
+           )`,
+          [deletionSupportCase.rows[0].id],
+        ),
+        /Support message recipient account must be active/u,
+      );
+      const deletionAudit = await setupPool.query(
+        `SELECT metadata FROM audit_log
+          WHERE action = 'account.deleted' AND resource_id = 'auth-user'
+          ORDER BY id DESC LIMIT 1`,
+      );
+      assert.ok(
+        deletionAudit.rows[0].metadata.retained.includes(
+          'pseudonymous_support_case_records',
+        ),
+      );
       const scrubbedOutbox = await setupPool.query(
         `SELECT status, payload, provider_message_id, locked_at, locked_by, last_error_code
          FROM notification_outbox WHERE id = $1`,

@@ -733,7 +733,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             short: 'Wie Löschung und Anonymisierung funktionieren.',
             body: _HelpBody(
               intro:
-                  'Konto-Löschung ist endgültig und wird nur durchgeführt, wenn nichts offen ist.',
+                'Konto-Löschung ist endgültig und wird nur durchgeführt, wenn keine blockierenden Aktivitäten offen sind. Eine offene Supportakte allein blockiert die Löschung nicht; sie kann kontrolliert erhalten bleiben, während dein Zugang endet.',
               steps: [
                 'Kontoeinstellungen → Konto löschen.',
                 'Bedingungen prüfen und bestätigen.',

@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "ef391813c6ffcaf25711730ba73a76c17bb22d60b5287ef7990446739d8165cc"
+      "sha256": "e3d2f3df68dfbb047e21d7a7a24eeeb6be270191ce45a54a541ef334c2d7882b"
     },
     {
       "path": "backend/src/server.js",
@@ -81,7 +81,7 @@
     },
     {
       "path": "backend/src/support_message_workflow.js",
-      "sha256": "3cfc9371cde7b63048296e85a4994fbed07f9e245119c43a2842de35464da339"
+      "sha256": "34bb836105756ba79b44a39782f0c5c6574544180143ce5835d465a2ef19f788"
     },
     {
       "path": "backend/src/support_message_templates_v1.json",
@@ -292,6 +292,10 @@
       "sha256": "0b2b36b6e0b30a6ddf195bdf2be7a9793c7bd23932ea5a09b17444c27e0d8b87"
     },
     {
+      "path": "backend/sql/migrations/041_support_closed_account_access_guard.up.sql",
+      "sha256": "3d293850e7ea37f84e51e057156e418e309e1bb2a66ebb1d7ed5492c0eb83235"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -325,7 +329,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "971771f9dadb05feb40830f4358811cd71da18ef128bf1f0decc6c1463e67f99"
+      "sha256": "375eeec6dd03484c349129c39e86c95914bb431046977ecae0da99e0d4a59531"
     },
     {
       "path": "lib/services/data_service.dart",

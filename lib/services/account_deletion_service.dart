@@ -15,12 +15,25 @@ class AccountDeletionBlocker {
       {required this.id, required this.label, required this.count});
 }
 
+class AccountDeletionRetainedRecord {
+  final String id;
+  final String label;
+  final int count;
+
+  const AccountDeletionRetainedRecord(
+      {required this.id, required this.label, required this.count});
+}
+
 class AccountDeletionPreflightResult {
   final bool canDelete;
   final List<AccountDeletionBlocker> blockers;
+  final List<AccountDeletionRetainedRecord> retainedRecords;
 
-  const AccountDeletionPreflightResult(
-      {required this.canDelete, required this.blockers});
+  const AccountDeletionPreflightResult({
+    required this.canDelete,
+    required this.blockers,
+    required this.retainedRecords,
+  });
 }
 
 /// Local-only MVP account deletion flow.
@@ -46,9 +59,23 @@ class AccountDeletionService {
                     ))
                 .toList()
             : <AccountDeletionBlocker>[];
+        final rawRetainedRecords = remote['retainedRecords'];
+        final retainedRecords = rawRetainedRecords is List
+            ? rawRetainedRecords
+                .whereType<Map>()
+                .map((value) => Map<String, dynamic>.from(value))
+                .map((value) => AccountDeletionRetainedRecord(
+                      id: value['id']?.toString() ?? 'unknown',
+                      label: value['label']?.toString() ??
+                          'Kontrolliert aufbewahrter Datensatz',
+                      count: (value['count'] as num?)?.toInt() ?? 1,
+                    ))
+                .toList()
+            : <AccountDeletionRetainedRecord>[];
         return AccountDeletionPreflightResult(
           canDelete: remote['canDelete'] == true && blockers.isEmpty,
           blockers: blockers,
+          retainedRecords: retainedRecords,
         );
       }
       final now = DateTime.now();
@@ -138,7 +165,10 @@ class AccountDeletionService {
       ];
 
       return AccountDeletionPreflightResult(
-          canDelete: blockers.isEmpty, blockers: blockers);
+        canDelete: blockers.isEmpty,
+        blockers: blockers,
+        retainedRecords: const [],
+      );
     } catch (e) {
       debugPrint('[AccountDeletionService] preflightCheck failed: $e');
       // Fail closed (block deletion) to be safe.
@@ -150,6 +180,7 @@ class AccountDeletionService {
               label: 'Systemprüfung konnte nicht abgeschlossen werden',
               count: 1),
         ],
+        retainedRecords: [],
       );
     }
   }

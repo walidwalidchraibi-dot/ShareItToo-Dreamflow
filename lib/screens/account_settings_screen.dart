@@ -332,6 +332,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         return;
       }
 
+      if (result.retainedRecords.isNotEmpty) {
+        final confirmed =
+            await _showRetainedRecordsConfirmation(result.retainedRecords);
+        if (!confirmed || !mounted) return;
+      }
+
       await AccountDeletionService.deleteAccount(
         user: user,
         currentPassword: currentPassword,
@@ -413,6 +419,46 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       },
     );
   }
+
+  Future<bool> _showRetainedRecordsConfirmation(
+      List<AccountDeletionRetainedRecord> retainedRecords) async {
+    if (!mounted) return false;
+    return await showGeneralDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          barrierLabel: 'Kontrollierte Aufbewahrung bestätigen',
+          barrierColor: Colors.transparent,
+          transitionDuration: const Duration(milliseconds: 220),
+          pageBuilder: (ctx, a1, a2) {
+            return AccountDeletionDialog(
+              icon: Icons.inventory_2_outlined,
+              title: 'Supportakte bleibt gespeichert',
+              body: _DeleteRetainedRecordsBody(
+                  retainedRecords: retainedRecords),
+              leftAction: AccountDeletionDialogAction(
+                label: 'Abbrechen',
+                onPressed: () =>
+                    Navigator.of(ctx, rootNavigator: true).pop(false),
+              ),
+              rightAction: AccountDeletionDialogAction(
+                label: 'Verstanden, Konto löschen',
+                isDestructive: true,
+                onPressed: () =>
+                    Navigator.of(ctx, rootNavigator: true).pop(true),
+              ),
+            );
+          },
+          transitionBuilder: (ctx, anim, secondary, child) {
+            final t = Curves.easeOutCubic.transform(anim.value);
+            return Opacity(
+              opacity: anim.value,
+              child:
+                  Transform.scale(scale: 0.96 + (0.04 * t), child: child),
+            );
+          },
+        ) ??
+        false;
+  }
 }
 
 class _DeleteAccountStep1Body extends StatelessWidget {
@@ -446,7 +492,7 @@ class _DeleteAccountStep1Body extends StatelessWidget {
               style: bulletStyle),
           const SizedBox(height: 12),
           Text(
-            'Nach der Löschung wird dein Konto dauerhaft deaktiviert. Deine personenbezogenen Daten werden gemäß unseren Datenschutzrichtlinien gelöscht oder anonymisiert, sofern keine gesetzlichen Aufbewahrungspflichten bestehen.\n\nDiese Aktion kann nicht rückgängig gemacht werden.',
+            'Nach der Löschung wird dein Konto dauerhaft deaktiviert. Deine personenbezogenen Daten werden gemäß unseren Datenschutzrichtlinien gelöscht oder anonymisiert, sofern keine Pflichten oder berechtigten Fallzwecke entgegenstehen. Offene Supportakten können kontrolliert erhalten bleiben; dein Nutzerzugang endet.\n\nDiese Aktion kann nicht rückgängig gemacht werden.',
             style: style,
           ),
         ]);
@@ -578,6 +624,38 @@ class _DeleteBlockedBody extends StatelessWidget {
           const SizedBox(height: 12),
           Text('Bitte schließe diese zuerst ab.', style: style),
         ]);
+  }
+}
+
+class _DeleteRetainedRecordsBody extends StatelessWidget {
+  final List<AccountDeletionRetainedRecord> retainedRecords;
+  const _DeleteRetainedRecordsBody({required this.retainedRecords});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final style =
+        t.textTheme.bodyMedium?.copyWith(color: Colors.white70, height: 1.5);
+    final bulletStyle = t.textTheme.bodyMedium?.copyWith(
+        color: Colors.white, height: 1.5, fontWeight: FontWeight.w700);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Die Kontolöschung ist möglich. Folgende Daten bleiben soweit nötig für die Fallbearbeitung oder Aufbewahrung kontrolliert gespeichert:',
+          style: style,
+        ),
+        const SizedBox(height: 10),
+        for (final record in retainedRecords.take(6))
+          _Bullet(text: record.label, style: bulletStyle),
+        const SizedBox(height: 12),
+        Text(
+          'Dein Konto wird trotzdem geschlossen. Du kannst dich danach nicht mehr anmelden und erhältst keine neuen In-App-Supportnachrichten.',
+          style: style,
+        ),
+      ],
+    );
   }
 }
 
