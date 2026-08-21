@@ -148,6 +148,21 @@ documented skip, Web smoke/build and Android debug build passed. No owner,
 deadline or case state is changed automatically; no external delivery,
 production, payment, Store, signed candidate or live operation is enabled.
 
+`S3K_SUPPORT_SINGLE_ISSUE_INTAKE` is technically verified at exact
+implementation/evidence commit
+`ca3f952b2621441028e560b4b76f17ba43d2f2ba` and successful GitHub Actions run
+`32530748881`. It addresses Drive scenario `SUP-026`: safety triage stays first,
+then a versioned confirmation blocks categories and submission until the
+current case contains exactly one independently reviewable problem. A
+multiple-problem answer requires separation guidance before the user may choose
+one problem for this case. Migration `040` leaves legacy rows explicit, requires
+the exact evidence on every new case and rejects later mutation. The server
+uses no text classifier or inferred split. All 435 Backend tests, including
+PostgreSQL 16, and the complete 346-test Flutter suite with one documented
+skip, Web smoke/build and Android debug build passed. No linked case is invented
+and no external delivery, production, payment, Store, signed candidate or live
+operation is enabled.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress

@@ -67,7 +67,7 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `039`,
+- Node/Express backend with verified PostgreSQL migrations through `040`,
   deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -137,6 +137,17 @@ Verified: 2026-08-21 on the Mac mini.
   tests including PostgreSQL 16 and the complete Flutter/Web/Android debug
   regression passed. No external notification, case mutation, signed
   candidate, publication or live path was used.
+- S3K is technically verified at exact commit
+  `ca3f952b2621441028e560b4b76f17ba43d2f2ba` and successful GitHub Actions run
+  `32530748881`. It addresses Drive scenario `SUP-026` with a mandatory
+  single-issue confirmation after safety triage and before categories. A
+  multiple-problem answer requires separation guidance before one problem may
+  continue. The server rejects missing, stale or false confirmation without
+  text inference; migration `040` requires exact evidence for new cases and
+  makes it immutable. All 435 Backend tests including PostgreSQL 16 and the
+  complete 346-test Flutter suite with one documented skip, Web smoke/build
+  and Android debug build passed. No automatic split/link, external delivery,
+  production, payment, Store, signed candidate or live path was used.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and
