@@ -38,7 +38,7 @@ async function insertAlert(client, { row, eventType, now }) {
        structured_payload, automation_used, visibility, idempotency_key,
        source_system, created_at, template_version
      ) VALUES (
-       $1, $2, 'service', NULL, 'support_case', $1::text,
+       $1::uuid, $2, 'service', NULL, 'support_case', $1::uuid::text,
        $3::jsonb, true, 'internal', $4,
        'sit-support-deadline-watchdog', $5, $6
      ) ON CONFLICT (case_id, idempotency_key) DO NOTHING

@@ -96,7 +96,7 @@
     },
     {
       "path": "backend/src/support_deadline_watchdog.js",
-      "sha256": "6d5aa42f7e7c64a24c863b50b3ef3a1c49546c52134218e219a8b99d022c3671"
+      "sha256": "b67db430a2c1782e81afafe0ca46ecbf3b39a62f2fd5bd0b0c57dd133e741175"
     },
     {
       "path": "backend/src/booking_workflow.js",
