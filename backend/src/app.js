@@ -184,6 +184,12 @@ import {
   recordSupportDecisionImplementation,
   reviewSupportDecision,
 } from './support_decision_workflow.js';
+import { listSupportMessageTemplates } from './support_message_domain.js';
+import {
+  createSupportMessage,
+  publishSupportMessage,
+  reviewSupportMessage,
+} from './support_message_workflow.js';
 import {
   getPilotCockpitSnapshot,
   PilotCockpitError,
@@ -1468,6 +1474,9 @@ export function createApp({
   const staffElevationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const supportBreakGlassGrantLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportBreakGlassReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportMessageDraftLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportMessageReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportMessagePublishLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   app.use(generalLimiter);
 
   app.get('/v1/maps/places/autocomplete', requireAuth, requireActiveAccount, mapsLimiter, asyncRoute(async (req, res) => {
@@ -4392,6 +4401,45 @@ export function createApp({
     const result = await inTransaction((client) => transitionSupportCase(client, {
       actor: req.actor,
       caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.get('/v1/admin/support/message-templates', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (_req, res) => {
+    res.set('Cache-Control', 'private, no-store').json({
+      templates: listSupportMessageTemplates(),
+    });
+  }));
+
+  app.post('/v1/admin/support/cases/:id/messages', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createSupportMessage(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/messages/:messageId/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportMessageReviewLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => reviewSupportMessage(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      messageId: safeText(req.params.messageId, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/messages/:messageId/publication', requireAuth, requireActiveAccount, requireStaffElevation, supportMessagePublishLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => publishSupportMessage(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      messageId: safeText(req.params.messageId, 80),
       raw: req.body,
       idempotencyKey: req.get('Idempotency-Key'),
     }));

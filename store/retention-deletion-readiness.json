@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "b725193d84177d467537c949d175f3e8648c8c35221794856f5f4e8b1f79b84e"
+      "sha256": "7c152bdcf97b08545fb0f976ed6a8fd663495249477fb855940ecbd1db5ebbf0"
     },
     {
       "path": "backend/src/server.js",
@@ -41,7 +41,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "3a6bb7ee0bfabe683b4a6adaf1171e0bc8515a9b44a4f11cb12e4a20383be044"
+      "sha256": "13e7a8c0c0c693b531b490aea9cdadeec561fd8ca99e3d7e3cbd526667ceafc4"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -49,7 +49,7 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "3c1a569a256f6f24e02697db527ea933cc7f27dd7cd45a6ff58ba427c3de9a33"
+      "sha256": "33d0d64667425c286299cc70dbb9713ab0a36e7b91e3ce2b7f07ef33ba3c4195"
     },
     {
       "path": "backend/src/support_appeal_domain.js",
@@ -74,6 +74,18 @@
     {
       "path": "backend/src/support_break_glass_workflow.js",
       "sha256": "97f03825f02ba2ceb287b61a6a473250f9b3fd460e77eadd7bd9f0a2f33cd74a"
+    },
+    {
+      "path": "backend/src/support_message_domain.js",
+      "sha256": "e1e50d09b83b4a729ea429962dccbd85f45e59c74dad93c21f0891274d0a8170"
+    },
+    {
+      "path": "backend/src/support_message_workflow.js",
+      "sha256": "ff53806186620aa06cfebf7c20ab0ad6e072ccfad7d9046ba7b83aa25297c9bf"
+    },
+    {
+      "path": "backend/src/support_message_templates_v1.json",
+      "sha256": "0ce1501e12753c98b41c9fa3da9743df7891ad34eb5fd7a2dff77cb01db986b8"
     },
     {
       "path": "backend/src/rental_cart_workflow.js",
@@ -281,7 +293,7 @@
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "4c1dfff25ba57146cc2dc0b5251b4ec463cafae4a7405f54a16eaa671b410bc3"
+      "sha256": "6d0b3af64f6daceeff7a36cf20db31af1333e52d1109c3df9de1476975adf286"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
@@ -362,6 +374,10 @@
     {
       "path": "backend/sql/migrations/037_support_break_glass_access.up.sql",
       "sha256": "f19d78cb7a48ecb4d8ce6da141037e7b872ac97f5f927ec87692aa51e494e14c"
+    },
+    {
+      "path": "backend/sql/migrations/038_support_message_template_guard.up.sql",
+      "sha256": "a4c88194d6818ddb048510a28260f0b1bfb3d8d48011275779b334d094b71247"
     },
     {
       "path": "lib/config/listing_sets_technical_config.dart",

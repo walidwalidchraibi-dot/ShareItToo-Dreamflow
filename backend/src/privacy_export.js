@@ -625,9 +625,11 @@ export async function buildAccountExport(client, userId) {
       `SELECT message.id, message.case_id, message.sender_type,
               (message.sender_id = $1) AS sent_by_me,
               (message.recipient_user_id = $1) AS addressed_to_me,
-              message.message_type, message.locale,
+              message.message_type, message.message_title,
+              message.template_id, message.template_version, message.locale,
               message.rendered_content, message.send_status,
               message.sent_at, message.delivery_status,
+              message.corrects_message_id,
               message.ai_disclosure_included,
               message.human_handoff_available, message.created_at
          FROM support_messages AS message

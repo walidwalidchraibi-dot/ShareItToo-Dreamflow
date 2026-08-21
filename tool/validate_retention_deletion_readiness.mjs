@@ -24,6 +24,9 @@ const sourcePaths = [
   'backend/src/support_decision_workflow.js',
   'backend/src/support_break_glass_domain.js',
   'backend/src/support_break_glass_workflow.js',
+  'backend/src/support_message_domain.js',
+  'backend/src/support_message_workflow.js',
+  'backend/src/support_message_templates_v1.json',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -71,6 +74,7 @@ const sourcePaths = [
   'backend/sql/migrations/035_support_final_decision_publication.up.sql',
   'backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql',
   'backend/sql/migrations/037_support_break_glass_access.up.sql',
+  'backend/sql/migrations/038_support_message_template_guard.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -459,6 +463,25 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!inventory.includes("'securityAudit', 'support_break_glass_grants'")) {
     fail('Retention inventory is missing immutable dataset support_break_glass_grants.');
+  }
+  if (!inventory.includes("'communications', 'support_messages'")) {
+    fail('Retention inventory is missing immutable dataset support_messages.');
+  }
+  const supportMessageMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/038_support_message_template_guard.up.sql',
+  );
+  for (const marker of [
+    'support_message_delete_guard',
+    'Support message history is append-only',
+    'Support message payload is immutable',
+    'rendered_content_sha256',
+    'corrects_message_id',
+  ]) {
+    if (!supportMessageMigration.includes(marker)) {
+      fail(`Support-message retention boundary is missing ${marker}.`);
+    }
   }
   if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
     fail('Retention inventory must remain read-only.');

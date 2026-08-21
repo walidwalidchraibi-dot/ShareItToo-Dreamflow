@@ -12,6 +12,7 @@ import {
 } from './support_case_domain.js';
 import { getSupportAppealForCase } from './support_appeal_workflow.js';
 import { verifySupportBreakGlassGrant } from './support_break_glass_workflow.js';
+import { shapeSupportMessage } from './support_message_workflow.js';
 
 export { SupportCaseError };
 
@@ -742,6 +743,13 @@ export async function getSupportCase(client, {
       ORDER BY created_at, id`,
     [result.rows[0].id, staff],
   );
+  const messages = await client.query(
+    `SELECT * FROM support_messages
+      WHERE case_id = $1
+        AND ($2::boolean OR (recipient_user_id = $3 AND send_status = 'sent'))
+      ORDER BY created_at, id`,
+    [result.rows[0].id, staff, actor.id],
+  );
   const caseRow = result.rows[0];
   let finalDecision = null;
   if (['resolved', 'closed', 'reopened'].includes(caseRow.status) && caseRow.decision_id) {
@@ -775,6 +783,7 @@ export async function getSupportCase(client, {
     supportCase: shapeSupportCase(caseRow, { staff, actorId: actor.id }),
     finalDecision,
     appeal,
+    messages: messages.rows.map((row) => shapeSupportMessage(row, { staff })),
     events: events.rows.map((row) => shapeSupportEvent(row, { staff })),
   });
 }

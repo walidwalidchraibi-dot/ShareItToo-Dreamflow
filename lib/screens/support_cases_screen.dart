@@ -370,16 +370,69 @@ class SupportAppealViewData {
   }
 }
 
+class SupportMessageViewData {
+  final String id;
+  final String title;
+  final String content;
+  final String sentAt;
+  final String createdAt;
+  final String? correctedMessageId;
+
+  const SupportMessageViewData({
+    required this.id,
+    required this.title,
+    required this.content,
+    required this.sentAt,
+    required this.createdAt,
+    required this.correctedMessageId,
+  });
+
+  factory SupportMessageViewData.fromMap(Map<String, dynamic> value) {
+    final id = _requiredText(value, 'id');
+    final title = _requiredText(value, 'title');
+    final content = _requiredText(value, 'content');
+    final sentAt = _requiredText(value, 'sentAt');
+    final createdAt = _requiredText(value, 'createdAt');
+    final correctedMessageId = _optionalText(value, 'correctedMessageId');
+    final uuid = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+    );
+    final sent = DateTime.tryParse(sentAt);
+    final created = DateTime.tryParse(createdAt);
+    if (!uuid.hasMatch(id) ||
+        (correctedMessageId != null && !uuid.hasMatch(correctedMessageId)) ||
+        title.length > 200 ||
+        content.length > 8000 ||
+        content.contains(RegExp(r'\{\{[a-z0-9_]+\}\}')) ||
+        sent == null ||
+        created == null ||
+        sent.isBefore(created) ||
+        value['externalMessageSent'] != false) {
+      throw const FormatException('invalid_support_message');
+    }
+    return SupportMessageViewData(
+      id: id,
+      title: title,
+      content: content,
+      sentAt: sentAt,
+      createdAt: createdAt,
+      correctedMessageId: correctedMessageId,
+    );
+  }
+}
+
 class SupportCaseDetailViewData {
   final SupportCaseViewData supportCase;
   final SupportFinalDecisionViewData? finalDecision;
   final SupportAppealViewData? appeal;
+  final List<SupportMessageViewData> messages;
   final List<SupportCaseEventViewData> events;
 
   const SupportCaseDetailViewData({
     required this.supportCase,
     required this.finalDecision,
     required this.appeal,
+    required this.messages,
     required this.events,
   });
 
@@ -387,8 +440,11 @@ class SupportCaseDetailViewData {
     final rawCase = value['supportCase'];
     final rawFinalDecision = value['finalDecision'];
     final rawAppeal = value['appeal'];
+    final rawMessages = value['messages'];
     final rawEvents = value['events'];
     if (rawCase is! Map ||
+        rawMessages is! List ||
+        rawMessages.any((message) => message is! Map) ||
         rawEvents is! List ||
         rawEvents.any((event) => event is! Map)) {
       throw const FormatException('invalid_support_case_detail');
@@ -422,6 +478,12 @@ class SupportCaseDetailViewData {
       supportCase: supportCase,
       finalDecision: finalDecision,
       appeal: appeal,
+      messages: rawMessages
+          .cast<Map>()
+          .map((message) => SupportMessageViewData.fromMap(
+                Map<String, dynamic>.from(message),
+              ))
+          .toList(growable: false),
       events: rawEvents
           .cast<Map>()
           .map((event) => SupportCaseEventViewData.fromMap(
@@ -829,6 +891,37 @@ class _SupportCaseDetailBody extends StatelessWidget {
             submitter: appealSubmitter,
             onSubmitted: onAppealSubmitted,
           ),
+        ],
+        if (detail.messages.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Semantics(
+            header: true,
+            child: const Text(
+              'Nachrichten',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (final message in detail.messages) ...[
+            _SupportInfoCard(
+              key: ValueKey('support_message_${message.id}'),
+              title: message.correctedMessageId == null
+                  ? message.title
+                  : 'Korrektur: ${message.title}',
+              icon: message.correctedMessageId == null
+                  ? Icons.mark_email_read_outlined
+                  : Icons.edit_note_outlined,
+              child: Text(
+                message.content,
+                style: const TextStyle(color: Colors.white70, height: 1.5),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
         ],
         const SizedBox(height: 12),
         const _SupportInfoCard(

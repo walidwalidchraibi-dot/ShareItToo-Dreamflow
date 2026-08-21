@@ -99,6 +99,7 @@ if (!databaseUrl) {
         '035_support_final_decision_publication.up.sql',
         '036_support_closed_case_appeal_submission.up.sql',
         '037_support_break_glass_access.up.sql',
+        '038_support_message_template_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -239,6 +240,32 @@ if (!databaseUrl) {
         { table_name: 'support_appeals', column_name: 'next_update_at', is_nullable: 'YES' },
         { table_name: 'support_cases', column_name: 'appeal_configured_at', is_nullable: 'YES' },
         { table_name: 'support_cases', column_name: 'appeal_configured_by', is_nullable: 'YES' },
+      ]);
+      const supportMessageColumns = await setupPool.query(
+        `SELECT column_name, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'support_messages'
+            AND column_name = ANY($1::text[])
+          ORDER BY column_name`,
+        [[
+          'approval_payload_sha256',
+          'corrects_message_id',
+          'lock_version',
+          'message_title',
+          'rendered_content_sha256',
+          'review_outcome',
+          'reviewed_by',
+        ]],
+      );
+      assert.deepEqual(supportMessageColumns.rows, [
+        { column_name: 'approval_payload_sha256', is_nullable: 'YES' },
+        { column_name: 'corrects_message_id', is_nullable: 'YES' },
+        { column_name: 'lock_version', is_nullable: 'NO' },
+        { column_name: 'message_title', is_nullable: 'NO' },
+        { column_name: 'rendered_content_sha256', is_nullable: 'NO' },
+        { column_name: 'review_outcome', is_nullable: 'YES' },
+        { column_name: 'reviewed_by', is_nullable: 'YES' },
       ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name
@@ -3128,6 +3155,215 @@ if (!databaseUrl) {
       });
       assert.equal(supportElevation.status, 200);
       supportHeaders['X-Admin-Step-Up'] = (await supportElevation.json()).elevation.token;
+      await setupPool.query(
+        `UPDATE support_cases
+            SET current_owner_id = 'support',
+                current_owner_role = 'general_support_owner',
+                lock_version = lock_version + 1,
+                updated_at = now()
+          WHERE id = $1`,
+        [supportIntake.supportCase.id],
+      );
+      const supportTemplateCatalog = await fetch(
+        `${baseUrl}/v1/admin/support/message-templates`,
+        { headers: supportHeaders },
+      );
+      assert.equal(supportTemplateCatalog.status, 200);
+      const supportTemplates = (await supportTemplateCatalog.json()).templates;
+      assert.equal(supportTemplates.length, 55);
+      assert.equal(supportTemplates.find((entry) => entry.id === 'T-001').genericDraftAvailable, true);
+      assert.equal(supportTemplates.find((entry) => entry.id === 'T-043').genericDraftAvailable, false);
+      assert.ok(supportTemplates.every((entry) => !Object.hasOwn(entry, 'body')));
+
+      const greenMessageRequest = () => fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-green-message',
+          },
+          body: JSON.stringify({
+            templateId: 'T-007',
+            recipientUserId: 'renter-a',
+            publishNow: true,
+            variables: {
+              first_name: 'Walid',
+              evidence_request_list: 'Bitte ergänze die genaue App-Version.',
+            },
+          }),
+        },
+      );
+      const greenMessageResponse = await greenMessageRequest();
+      assert.equal(greenMessageResponse.status, 201);
+      assert.match(greenMessageResponse.headers.get('cache-control'), /no-store/u);
+      const greenMessage = await greenMessageResponse.json();
+      assert.equal(greenMessage.message.sendStatus, 'sent');
+      assert.equal(greenMessage.message.approvalLevel, 'green_automatic');
+      assert.equal(greenMessage.message.externalMessageSent, false);
+      assert.doesNotMatch(greenMessage.message.content, /\{\{|\}\}/u);
+      assert.equal((await greenMessageRequest()).status, 200);
+
+      const sensitiveMessage = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-sensitive-message',
+          },
+          body: JSON.stringify({
+            templateId: 'T-007',
+            recipientUserId: 'renter-a',
+            variables: {
+              first_name: 'Walid',
+              evidence_request_list: 'API-Key: sk_live_1234567890',
+            },
+          }),
+        },
+      );
+      assert.equal(sensitiveMessage.status, 400);
+      assert.equal(
+        (await sensitiveMessage.json()).error,
+        'support_message_sensitive_content_blocked',
+      );
+
+      const redMessage = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-red-message',
+          },
+          body: JSON.stringify({
+            templateId: 'T-043',
+            recipientUserId: 'renter-a',
+            variables: {},
+          }),
+        },
+      );
+      assert.equal(redMessage.status, 409);
+      assert.equal(
+        (await redMessage.json()).error,
+        'support_message_red_template_requires_decision_workflow',
+      );
+
+      const yellowDraftResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-yellow-message',
+          },
+          body: JSON.stringify({
+            templateId: 'T-008',
+            recipientUserId: 'renter-a',
+            variables: {
+              first_name: 'Walid',
+              progress_since_last_update: 'Die technischen Eingangsdaten wurden geprüft.',
+              open_check: 'Die genaue Ursache der Anzeige.',
+              user_action_or_no_action: 'Du musst aktuell nichts weiter tun.',
+            },
+          }),
+        },
+      );
+      assert.equal(yellowDraftResponse.status, 201);
+      const yellowDraft = await yellowDraftResponse.json();
+      assert.equal(yellowDraft.message.sendStatus, 'pending_approval');
+      assert.equal(yellowDraft.message.approvalLevel, 'yellow_human_review');
+
+      const yellowReviewResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages/${yellowDraft.message.id}/review`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 'http-support-yellow-review',
+          },
+          body: JSON.stringify({
+            outcome: 'approved',
+            expectedVersion: yellowDraft.message.version,
+            expectedPayloadSha256: yellowDraft.message.renderedContentSha256,
+            reviewNotes: 'Wortlaut und bestätigte Falldaten wurden unabhängig geprüft.',
+          }),
+        },
+      );
+      assert.equal(yellowReviewResponse.status, 200);
+      const yellowReview = await yellowReviewResponse.json();
+      assert.equal(yellowReview.message.sendStatus, 'approved');
+      assert.equal(yellowReview.message.reviewOutcome, 'approved');
+
+      const yellowPublishRequest = () => fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages/${yellowDraft.message.id}/publication`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-yellow-publication',
+          },
+          body: JSON.stringify({
+            expectedVersion: yellowReview.message.version,
+            expectedPayloadSha256: yellowReview.message.renderedContentSha256,
+          }),
+        },
+      );
+      const yellowPublishResponse = await yellowPublishRequest();
+      assert.equal(yellowPublishResponse.status, 200);
+      const yellowPublish = await yellowPublishResponse.json();
+      assert.equal(yellowPublish.message.sendStatus, 'sent');
+      assert.equal(yellowPublish.message.externalMessageSent, false);
+      const yellowPublishReplay = await yellowPublishRequest();
+      assert.equal(yellowPublishReplay.status, 200);
+      assert.equal((await yellowPublishReplay.json()).replayed, true);
+
+      const correctionResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-green-correction',
+          },
+          body: JSON.stringify({
+            templateId: 'T-007',
+            recipientUserId: 'renter-a',
+            correctsMessageId: greenMessage.message.id,
+            publishNow: true,
+            variables: {
+              first_name: 'Walid',
+              evidence_request_list: 'Korrektur: Bitte ergänze App- und Betriebssystemversion.',
+            },
+          }),
+        },
+      );
+      assert.equal(correctionResponse.status, 201);
+      const correction = await correctionResponse.json();
+      assert.equal(correction.message.correctedMessageId, greenMessage.message.id);
+      await assert.rejects(
+        setupPool.query(
+          'UPDATE support_messages SET rendered_content = $2 WHERE id = $1',
+          [greenMessage.message.id, 'Unzulässige nachträgliche Änderung'],
+        ),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'Support message payload is immutable',
+      );
+      const userMessageDetailResponse = await fetch(
+        `${baseUrl}/v1/support/cases/${supportIntake.supportCase.id}`,
+        { headers: renterAHeaders },
+      );
+      assert.equal(userMessageDetailResponse.status, 200);
+      const userMessageDetail = await userMessageDetailResponse.json();
+      assert.equal(userMessageDetail.messages.length, 3);
+      assert.ok(userMessageDetail.messages.every((message) => (
+        message.externalMessageSent === false
+        && !Object.hasOwn(message, 'renderedContentSha256')
+        && !Object.hasOwn(message, 'structuredVariables')
+      )));
+      assert.ok(userMessageDetail.messages.some((message) => (
+        message.correctedMessageId === greenMessage.message.id
+      )));
       const unassignedP0WithoutGrant = await fetch(
         `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}`,
         { headers: supportHeaders },

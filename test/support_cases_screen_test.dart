@@ -42,6 +42,7 @@ Map<String, dynamic> _supportCase({
 Map<String, dynamic> _detail() => {
       'supportCase': _supportCase(),
       'finalDecision': null,
+      'messages': const [],
       'events': [
         {
           'id': 'event-created',
@@ -110,6 +111,70 @@ void main() {
     expect(find.text('waiting_for_user'), findsNothing);
   });
 
+  testWidgets('sent in-app support message is visible without internal metadata',
+      (tester) async {
+    final detail = {
+      ..._detail(),
+      'messages': [
+        {
+          'id': '22222222-2222-4222-8222-222222222222',
+          'caseId': '11111111-1111-4111-8111-111111111111',
+          'title': 'Fall eingegangen',
+          'content':
+              'Hallo Walid, wir haben deinen Fall erhalten. Deine Case ID lautet SIT-ABCDEFGHJKLM.',
+          'sentAt': '2026-08-21T10:01:00.000Z',
+          'createdAt': '2026-08-21T10:00:00.000Z',
+          'correctedMessageId': null,
+          'externalMessageSent': false,
+        },
+      ],
+    };
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(
+        listLoader: () async => [_supportCase()],
+        detailLoader: (_) async => detail,
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('SIT-ABCDEFGHJKLM'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Nachrichten'),
+      400,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(find.text('Nachrichten'), findsOneWidget);
+    expect(find.text('Fall eingegangen'), findsWidgets);
+    expect(
+      find.text(
+          'Hallo Walid, wir haben deinen Fall erhalten. Deine Case ID lautet SIT-ABCDEFGHJKLM.'),
+      findsOneWidget,
+    );
+    expect(find.text('renderedContentSha256'), findsNothing);
+  });
+
+  test('support message projection fails closed on unresolved placeholders', () {
+    final detail = {
+      ..._detail(),
+      'messages': [
+        {
+          'id': '22222222-2222-4222-8222-222222222222',
+          'title': 'Fall eingegangen',
+          'content': 'Hallo {{first_name}}',
+          'sentAt': '2026-08-21T10:01:00.000Z',
+          'createdAt': '2026-08-21T10:00:00.000Z',
+          'correctedMessageId': null,
+          'externalMessageSent': false,
+        },
+      ],
+    };
+    expect(
+      () => SupportCaseDetailViewData.fromMap(detail),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   testWidgets(
       'published final decision shows the five approved user fields only',
       (tester) async {
@@ -133,6 +198,7 @@ void main() {
         detailLoader: (_) async => {
           'supportCase': resolved,
           'finalDecision': finalDecision,
+          'messages': const [],
           'events': const [],
         },
       ),
@@ -186,6 +252,7 @@ void main() {
             'communicatedAt': '2026-08-21T14:35:00.000Z',
             'timezone': 'Europe/Berlin',
           },
+          'messages': const [],
           'events': const [],
         },
       ),
@@ -246,6 +313,7 @@ void main() {
                   'timezone': 'Europe/Berlin',
                 }
               : null,
+          'messages': const [],
           'events': const [],
         };
     await tester.pumpWidget(MaterialApp(

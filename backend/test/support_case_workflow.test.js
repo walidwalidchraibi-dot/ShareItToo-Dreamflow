@@ -713,6 +713,24 @@ test('get omits staff transition reasons from the user-safe event projection', a
         }],
       },
     },
+    {
+      match: /FROM support_messages/u,
+      check: ({ params }) => assert.deepEqual(params, ['case-1', false, 'user-1']),
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: '22222222-2222-4222-8222-222222222222',
+          case_id: 'case-1',
+          message_title: 'Fall eingegangen',
+          rendered_content: 'Dein Fall ist eingegangen.',
+          sent_at: now,
+          created_at: now,
+          corrects_message_id: null,
+          template_id: 'T-001',
+          rendered_content_sha256: 'a'.repeat(64),
+        }],
+      },
+    },
   ]);
   const result = await getSupportCase(client, {
     actor: { id: 'user-1', role: 'user' },
@@ -724,6 +742,11 @@ test('get omits staff transition reasons from the user-safe event projection', a
   assert.equal('actorId' in result.events[0], false);
   assert.equal(result.supportCase.finalDecisionAvailable, false);
   assert.equal(result.finalDecision, null);
+  assert.equal(result.messages.length, 1);
+  assert.equal(result.messages[0].content, 'Dein Fall ist eingegangen.');
+  assert.equal(result.messages[0].externalMessageSent, false);
+  assert.equal('templateId' in result.messages[0], false);
+  assert.equal('renderedContentSha256' in result.messages[0], false);
   client.done();
 });
 
@@ -748,6 +771,7 @@ test('final user detail exposes only the approved publication fields', async () 
       },
     },
     { match: /FROM support_case_events/, result: noRows },
+    { match: /FROM support_messages/u, result: noRows },
     {
       match: /FROM support_decisions/,
       check: ({ params }) => assert.deepEqual(params, [decisionId, 'case-1']),
@@ -828,6 +852,7 @@ test('staff detail is separate and denied support access is audited without reve
       result: { rowCount: 1, rows: [caseRow({ current_owner_id: 'support-1' })] },
     },
     { match: /FROM support_case_events/, result: { rowCount: 0, rows: [] } },
+    { match: /FROM support_messages/u, result: noRows },
   ]);
   const result = await getSupportCase(assigned, {
     actor: { id: 'support-1', role: 'support' },
@@ -902,6 +927,7 @@ test('valid break-glass token opens only its P0 case and writes a use audit', as
       result: { rowCount: 1, rows: [] },
     },
     { match: /FROM support_case_events/u, result: noRows },
+    { match: /FROM support_messages/u, result: noRows },
   ]);
   const result = await getSupportCase(client, {
     actor: { id: 'support-1', role: 'support' },
@@ -1004,6 +1030,14 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     path.resolve(currentDir, '../sql/migrations/036_support_closed_case_appeal_submission.down.sql'),
     'utf8',
   );
+  const messageGuardUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/038_support_message_template_guard.up.sql'),
+    'utf8',
+  );
+  const messageGuardDown = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/038_support_message_template_guard.down.sql'),
+    'utf8',
+  );
   for (const table of [
     'support_policy_snapshots',
     'support_cases',
@@ -1062,6 +1096,13 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
   assert.match(appealUp, /support_appeal_submission_immutable/);
   assert.match(appealUp, /support_reopen_assignment_incomplete/);
   assert.match(appealDown, /Support appeal rollback blocked: appeal configuration or submissions exist/);
+  assert.match(messageGuardUp, /rendered_content_sha256 <> encode\(digest\(NEW\.rendered_content/);
+  assert.match(messageGuardUp, /Support message payload is immutable/);
+  assert.match(messageGuardUp, /Support message review requires independent active admin/);
+  assert.match(messageGuardUp, /approval_payload_sha256 = rendered_content_sha256/);
+  assert.match(messageGuardUp, /notification_ids = '\{\}'/);
+  assert.match(messageGuardUp, /operating_mode NOT IN \('simulation', 'internal_testing'\)/);
+  assert.match(messageGuardDown, /Support message template-guard rollback blocked: message truth exists/);
 });
 
 test('support routes and personal-data lifecycle stay authenticated, non-live and fail closed', async () => {
@@ -1076,6 +1117,12 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
     "app.get('/v1/support/cases', requireAuth, requireActiveAccount",
     "app.get('/v1/support/cases/:id', requireAuth, requireActiveAccount",
     "app.post('/v1/support/cases/:id/appeals', requireAuth, requireActiveAccount, actionLimiter",
+  ]) assert.ok(app.includes(route), route);
+  for (const route of [
+    "app.get('/v1/admin/support/message-templates', requireAuth, requireActiveAccount, requireStaffElevation",
+    "app.post('/v1/admin/support/cases/:id/messages', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter",
+    "app.post('/v1/admin/support/cases/:id/messages/:messageId/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportMessageReviewLimiter",
+    "app.post('/v1/admin/support/cases/:id/messages/:messageId/publication', requireAuth, requireActiveAccount, requireStaffElevation, supportMessagePublishLimiter",
   ]) assert.ok(app.includes(route), route);
   for (const route of [
     "app.get('/v1/admin/support/cases/:id/decisions', requireAuth, requireActiveAccount, requireStaffElevation",
@@ -1106,6 +1153,8 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
   assert.doesNotMatch(privacyExport, /decision\.internal_reason/);
   assert.match(privacyExport, /event\.visibility = 'user_visible'/);
   assert.match(privacyExport, /message\.recipient_user_id = \$1 AND message\.send_status = 'sent'/);
+  assert.match(privacyExport, /message\.message_title/);
+  assert.match(privacyExport, /message\.corrects_message_id/);
   assert.match(privacyExport, /decision\.communicated_at IS NOT NULL/);
   assert.match(privacyExport, /decision\.user_facing_decision/);
   assert.match(privacyExport, /decision\.user_facing_effect/);

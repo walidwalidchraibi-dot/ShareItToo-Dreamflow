@@ -24,6 +24,9 @@ const sourcePaths = [
   'backend/src/support_decision_workflow.js',
   'backend/src/support_break_glass_domain.js',
   'backend/src/support_break_glass_workflow.js',
+  'backend/src/support_message_domain.js',
+  'backend/src/support_message_workflow.js',
+  'backend/src/support_message_templates_v1.json',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -60,6 +63,7 @@ const sourcePaths = [
   'backend/sql/migrations/035_support_final_decision_publication.up.sql',
   'backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql',
   'backend/sql/migrations/037_support_break_glass_access.up.sql',
+  'backend/sql/migrations/038_support_message_template_guard.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -353,7 +357,8 @@ function assertSourceContracts({ root, sourceTexts }) {
     'rentalCartItems', 'listingSetVersions', 'listingSetVersionMembers',
     'individualBookabilityPreserved: true', 'reservationCreated: false',
     'supportBreakGlassAccess', "'p0_emergency_case_access'::text",
-    'internalEmergencyAccessReasonsExcluded: true',
+    'internalEmergencyAccessReasonsExcluded: true', 'message.message_title',
+    'message.corrects_message_id',
     'staffIdentifiersExcluded: true',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
@@ -372,6 +377,66 @@ function assertSourceContracts({ root, sourceTexts }) {
   ]) {
     if (!breakGlassMigration.includes(marker)) {
       fail(`Support break-glass privacy boundary is missing ${marker}.`);
+    }
+  }
+  const supportMessageDomain = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_message_domain.js',
+  );
+  for (const marker of [
+    '947f307e7919eed543c28e36af4d2b364d87dcde52025649d0d4620d64baaaa5',
+    'support_message_sensitive_content_blocked',
+    'support_message_red_template_requires_decision_workflow',
+    'support_message_money_template_requires_snapshot_workflow',
+    'support_message_server_binding_mismatch',
+    "timeZone: 'Europe/Berlin'",
+  ]) {
+    if (!supportMessageDomain.includes(marker)) {
+      fail(`Support-message domain privacy boundary is missing ${marker}.`);
+    }
+  }
+  const supportMessageWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_message_workflow.js',
+  );
+  for (const marker of [
+    'support_message_live_delivery_forbidden',
+    'support_message_recipient_forbidden',
+    'externalMessageSent: false',
+    "visibility: 'user_visible'",
+  ]) {
+    if (!supportMessageWorkflow.includes(marker)) {
+      fail(`Support-message workflow privacy boundary is missing ${marker}.`);
+    }
+  }
+  const supportMessageTemplates = JSON.parse(sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_message_templates_v1.json',
+  ));
+  if (supportMessageTemplates.packet_version !== 'SIT_SUPPORT_PACKET_V1_2026-08-20'
+      || supportMessageTemplates.rules?.unresolved_placeholders_block_send !== true
+      || supportMessageTemplates.rules?.no_sensitive_content_in_push !== true
+      || supportMessageTemplates.rules?.red_templates_never_auto_send !== true
+      || supportMessageTemplates.templates?.length !== 55) {
+    fail('Support-message template catalog is not the complete fail-closed Drive snapshot.');
+  }
+  const supportMessageMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/038_support_message_template_guard.up.sql',
+  );
+  for (const marker of [
+    'Support message payload is immutable',
+    'Support message recipient is outside the case',
+    'Support message review requires independent active admin',
+    "target_case.operating_mode NOT IN ('simulation', 'internal_testing')",
+    "CHECK (notification_ids = '{}')",
+  ]) {
+    if (!supportMessageMigration.includes(marker)) {
+      fail(`Support-message database privacy boundary is missing ${marker}.`);
     }
   }
   const rentalCartWorkflow = sourceText(
