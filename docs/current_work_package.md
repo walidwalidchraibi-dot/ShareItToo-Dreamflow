@@ -26,12 +26,17 @@ Store, Cloud or real-money gate.
    complete. No executed provider contract, approved marketplace product,
    provider sandbox acceptance, credentials or legal/privacy facts were found;
    therefore zero provider calls and zero of eight provider E2E scenarios ran.
-5. `P0B_NEXT_INVITED_SYNTHETIC_PILOT_SPIEGELBERG_CAT8_30`: non-activating
-   preparation is next. It may not add users, configure the region or activate
-   a pilot because gates one through four are not actually green.
+5. `P0B_NEXT_INVITED_SYNTHETIC_PILOT_SPIEGELBERG_CAT8_30`: exact non-live
+   envelope and runbook prepared. All four prerequisite gates remain false, so
+   `spiegelberg` stays unconfigured; no roster, personal data, accounts,
+   invites, listings or participant flow was created.
 
 Independent safe work continues when an external dependency is missing. No
 blocked gate is bypassed or silently marked complete.
+
+All five ordered packages have now been processed to the maximum safe local
+state. External legal, human-operations, iOS/device and contracted-provider
+facts remain explicit HOLD conditions rather than inferred successes.
 
 ## Prior P0B close evidence
 

@@ -175,6 +175,25 @@ Verified: 2026-08-21 on the Mac mini.
   public or real-money state changed. The exact gate state is
   `hold-provider-contract-credentials-and-sandbox-e2e`.
 
+## P0B invited synthetic pilot envelope
+
+- The conditional token is recorded as authorized, but its effect remains
+  gated by the four prior machine results. Professional legal approval,
+  operations readiness, complete Android+iOS device evidence and contracted
+  provider-sandbox E2E are all false, so pilot prerequisites are zero of four.
+- The future scope is frozen to 30 invited private adults, 30-50 synthetic
+  flows, `Spiegelberg, Rems-Murr-Kreis`, code `spiegelberg`, and only Cat8
+  Elektrowerkzeuge, Bohrmaschinen and Schleifer.
+- Enabled product scope is V5.2 single-item plus G2 navigation, non-reserving
+  Mietkorb and Gemerkt. G3-G5 expansion, SIT Business, external AI, public
+  registration, live provider traffic and real money remain excluded.
+- Growth values EUR 45-55 AOV, greater than 95 percent successful handover,
+  less than 2 percent severe disputes and at least 25 percent 90-day repeat are
+  stored as unobserved targets, never results.
+- The region was not configured. No roster, personal data, account, invite,
+  listing or participant flow was created; production, Cloud, provider, Store,
+  public and real-money state remained unchanged.
+
 ## G3B booking-group foundation
 
 - Walid selected G3A Variant A and authorized the V2.4 rolling-autonomy runway.
