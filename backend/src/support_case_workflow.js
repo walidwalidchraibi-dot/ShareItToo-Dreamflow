@@ -50,6 +50,10 @@ function shapeSupportCase(row, { staff = false } = {}) {
     nextAction: row.next_action ?? null,
     nextUpdateAt: iso(row.next_update_at),
     nextUpdateDisplay: supportCaseDateTimeDisplay(row.next_update_at),
+    userActionDueAt: row.status === 'waiting_for_user' ? iso(row.evidence_due_at) : null,
+    userActionDueDisplay: row.status === 'waiting_for_user'
+      ? supportCaseDateTimeDisplay(row.evidence_due_at)
+      : null,
     timezone: supportCaseTimeZone,
     userFacingSummary: row.user_facing_summary,
     appealAvailable: row.appeal_available === true,
@@ -447,27 +451,28 @@ export async function transitionSupportCase(client, {
             waiting_reason = $4,
             next_action = $5,
             next_update_at = $6,
-            current_owner_role = $7,
-            current_owner_id = $8,
-            escalation_target_role = $9,
-            decision_id = $10,
-            implementation_pending_action = $11,
-            resolution_reference = COALESCE($12, resolution_reference),
-            closure_reason = $13,
-            reopen_reason = $14,
+            evidence_due_at = $7,
+            current_owner_role = $8,
+            current_owner_id = $9,
+            escalation_target_role = $10,
+            decision_id = $11,
+            implementation_pending_action = $12,
+            resolution_reference = COALESCE($13, resolution_reference),
+            closure_reason = $14,
+            reopen_reason = $15,
             resolved_at = CASE
-              WHEN $2 = 'resolved' THEN $15
+              WHEN $2 = 'resolved' THEN $16
               WHEN $2 = 'reopened' THEN NULL
               ELSE resolved_at
             END,
             closed_at = CASE
-              WHEN $2 = 'closed' THEN $15
+              WHEN $2 = 'closed' THEN $16
               WHEN $2 = 'reopened' THEN NULL
               ELSE closed_at
             END,
             lock_version = lock_version + 1,
-            updated_at = $15
-      WHERE id = $1 AND lock_version = $16
+            updated_at = $16
+      WHERE id = $1 AND lock_version = $17
       RETURNING *`,
     [
       row.id,
@@ -476,6 +481,7 @@ export async function transitionSupportCase(client, {
       transition.waitingReason,
       transition.nextAction,
       transition.nextUpdateAt,
+      transition.userActionDueAt,
       transition.currentOwnerRole,
       transition.currentOwnerId,
       transition.escalationTargetRole,
@@ -510,6 +516,9 @@ export async function transitionSupportCase(client, {
         waitingOn: transition.waitingOn,
         currentOwnerRole: transition.currentOwnerRole,
         escalationTargetRole: transition.escalationTargetRole,
+        userActionDueAt: transition.userActionDueAt
+          ? transition.userActionDueAt.toISOString()
+          : null,
         expectedVersion: Number(row.lock_version),
       }),
       actor.role === 'system',
@@ -525,6 +534,9 @@ export async function transitionSupportCase(client, {
     metadata: {
       fromStatus: row.status,
       toStatus: transition.status,
+      userActionDueAt: transition.userActionDueAt
+        ? transition.userActionDueAt.toISOString()
+        : null,
       expectedVersion: Number(row.lock_version),
     },
   });

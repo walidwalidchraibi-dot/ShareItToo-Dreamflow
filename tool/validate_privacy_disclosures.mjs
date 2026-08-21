@@ -52,6 +52,7 @@ const sourcePaths = [
   'backend/sql/migrations/031_g5b_listing_sets.up.sql',
   'backend/sql/migrations/032_support_case_foundation.up.sql',
   'backend/sql/migrations/033_support_decision_approval_guard.up.sql',
+  'backend/sql/migrations/034_support_user_action_deadline.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',

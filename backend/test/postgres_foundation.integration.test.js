@@ -95,6 +95,7 @@ if (!databaseUrl) {
         '031_g5b_listing_sets.up.sql',
         '032_support_case_foundation.up.sql',
         '033_support_decision_approval_guard.up.sql',
+        '034_support_user_action_deadline.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -930,6 +931,53 @@ if (!databaseUrl) {
         safetyTriageVersion: 'sit_support_safety_triage_v1',
         safetyGuidanceShown: false,
       });
+      await setupPool.query(
+        `UPDATE support_cases
+            SET status = 'acknowledged',
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1`,
+        [supportIntake.supportCase.id],
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET status = 'waiting_for_user',
+                  waiting_on = 'reporter',
+                  waiting_reason = 'Eine konkrete Angabe fehlt.',
+                  next_action = 'Bitte ergänze die konkrete Angabe.',
+                  next_update_at = now() + interval '2 hours',
+                  evidence_due_at = NULL,
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportIntake.supportCase.id],
+        ),
+        (error) => error?.constraint === 'support_cases_user_action_deadline_state',
+      );
+      await setupPool.query(
+        `UPDATE support_cases
+            SET status = 'waiting_for_user',
+                waiting_on = 'reporter',
+                waiting_reason = 'Eine konkrete Angabe fehlt.',
+                next_action = 'Bitte ergänze die konkrete Angabe.',
+                next_update_at = now() + interval '2 hours',
+                evidence_due_at = now() + interval '3 days',
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1`,
+        [supportIntake.supportCase.id],
+      );
+      const waitingSupportResponse = await fetch(
+        `${baseUrl}/v1/support/cases/${supportIntake.supportCase.id}`,
+        { headers: renterAHeaders },
+      );
+      assert.equal(waitingSupportResponse.status, 200);
+      const waitingSupportCase = (await waitingSupportResponse.json()).supportCase;
+      assert.equal(waitingSupportCase.status, 'waiting_for_user');
+      assert.ok(Date.parse(waitingSupportCase.userActionDueAt));
+      assert.ok(waitingSupportCase.userActionDueDisplay);
+      assert.ok(waitingSupportCase.nextUpdateDisplay);
       const disabledGroupRequest = await fetch(`${baseUrl}/v1/booking-groups`, {
         method: 'POST',
         headers: {

@@ -19,6 +19,7 @@ import {
 
 const now = new Date('2026-08-21T10:00:00.000Z');
 const nextUpdateAt = new Date('2026-08-21T12:00:00.000Z');
+const userActionDueAt = new Date('2026-08-23T18:00:00.000Z');
 
 function safetyTriage(immediateDanger = false) {
   return {
@@ -127,6 +128,8 @@ test('create replays before validating a changed request body', async () => {
   assert.equal(result.supportCase.timezone, 'Europe/Berlin');
   assert.match(result.supportCase.nextUpdateDisplay, /21\.08\.2026/u);
   assert.match(result.supportCase.nextUpdateDisplay, /14:00/u);
+  assert.equal(result.supportCase.userActionDueAt, null);
+  assert.equal(result.supportCase.userActionDueDisplay, null);
   assert.equal('approvalLevel' in result.supportCase, false);
   assert.equal('flags' in result.supportCase, false);
   client.done();
@@ -426,8 +429,9 @@ test('transition uses optimistic versioning and appends event plus audit', async
       match: /UPDATE support_cases/,
       check: ({ params }) => {
         assert.equal(params[1], 'under_review');
-        assert.equal(params[15], 4);
-        assert.equal(params[14], transitionAt);
+        assert.equal(params[6], null);
+        assert.equal(params[16], 4);
+        assert.equal(params[15], transitionAt);
       },
       result: ({ params }) => ({
         rowCount: 1,
@@ -438,8 +442,9 @@ test('transition uses optimistic versioning and appends event plus audit', async
           waiting_reason: params[3],
           next_action: params[4],
           next_update_at: params[5],
+          evidence_due_at: params[6],
           lock_version: 5,
-          updated_at: params[14],
+          updated_at: params[15],
         })],
       }),
     },
@@ -459,6 +464,7 @@ test('transition uses optimistic versioning and appends event plus audit', async
         assert.deepEqual(JSON.parse(params[4]), {
           fromStatus: 'acknowledged',
           toStatus: 'under_review',
+          userActionDueAt: null,
           expectedVersion: 4,
         });
       },
@@ -482,6 +488,75 @@ test('transition uses optimistic versioning and appends event plus audit', async
   assert.equal(result.supportCase.status, 'under_review');
   assert.equal(result.supportCase.version, 5);
   assert.equal(result.supportCase.approvalLevel, 'yellow_human_review');
+  client.done();
+});
+
+test('waiting-for-user transition persists and safely projects the confirmed response deadline', async () => {
+  const current = caseRow({
+    status: 'acknowledged',
+    priority: 'p1',
+    severity: 'high',
+    approval_level: 'yellow_human_review',
+    current_owner_role: 'booking_operations_owner',
+    current_owner_id: 'support-1',
+    lock_version: 4,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
+    { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    { match: /SELECT id FROM users/, result: { rowCount: 1, rows: [{ id: 'support-1' }] } },
+    {
+      match: /evidence_due_at = \$7/,
+      check: ({ params }) => assert.deepEqual(params[6], userActionDueAt),
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          ...current,
+          status: params[1],
+          waiting_on: params[2],
+          waiting_reason: params[3],
+          next_action: params[4],
+          next_update_at: params[5],
+          evidence_due_at: params[6],
+          lock_version: 5,
+          updated_at: params[15],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        assert.equal(JSON.parse(params[6]).userActionDueAt, userActionDueAt.toISOString());
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.equal(JSON.parse(params[4]).userActionDueAt, userActionDueAt.toISOString());
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+  const result = await transitionSupportCase(client, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId: 'case-1',
+    raw: {
+      status: 'waiting_for_user',
+      expectedVersion: 4,
+      reason: 'Eine konkrete Angabe der meldenden Person fehlt.',
+      waitingReason: 'App-Version und letzter Schritt fehlen.',
+      nextAction: 'Bitte ergänze die App-Version und den letzten Schritt.',
+      nextUpdateAt,
+      userActionDueAt,
+    },
+    idempotencyKey: 'transition-user-deadline',
+    now,
+  });
+  assert.equal(result.supportCase.userActionDueAt, userActionDueAt.toISOString());
+  assert.match(result.supportCase.userActionDueDisplay, /23\.08\.2026/u);
+  assert.match(result.supportCase.userActionDueDisplay, /20:00/u);
   client.done();
 });
 
@@ -761,6 +836,14 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     path.resolve(currentDir, '../sql/migrations/033_support_decision_approval_guard.down.sql'),
     'utf8',
   );
+  const userDeadlineUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/034_support_user_action_deadline.up.sql'),
+    'utf8',
+  );
+  const userDeadlineDown = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/034_support_user_action_deadline.down.sql'),
+    'utf8',
+  );
   for (const table of [
     'support_policy_snapshots',
     'support_cases',
@@ -802,6 +885,10 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
   assert.match(approvalUp, /implementation_status = 'succeeded'/);
   assert.match(approvalUp, /OLD\.approval_level = 'green_automatic'/);
   assert.match(approvalDown, /Support decision approval rollback blocked: decision data exists/);
+  assert.match(userDeadlineUp, /support_cases_user_action_deadline_state/);
+  assert.match(userDeadlineUp, /status = 'waiting_for_user' AND evidence_due_at IS NOT NULL/);
+  assert.match(userDeadlineUp, /status <> 'waiting_for_user' AND evidence_due_at IS NULL/);
+  assert.match(userDeadlineDown, /DROP CONSTRAINT IF EXISTS support_cases_user_action_deadline_state/);
 });
 
 test('support routes and personal-data lifecycle stay authenticated, non-live and fail closed', async () => {

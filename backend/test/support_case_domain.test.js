@@ -18,6 +18,7 @@ import {
 
 const now = new Date('2026-08-21T10:00:00.000Z');
 const nextUpdateAt = new Date('2026-08-21T12:00:00.000Z');
+const userActionDueAt = new Date('2026-08-23T18:00:00.000Z');
 const decisionId = '11111111-1111-4111-8111-111111111111';
 
 function safetyTriage(immediateDanger = false) {
@@ -292,12 +293,35 @@ test('waiting and escalation transitions require explicit operational context', 
     () => transition(caseRecord(), { status: 'waiting_for_user', waitingReason: '' }),
     /support_waiting_reason_required/,
   );
+  assert.throws(
+    () => transition(caseRecord(), {
+      status: 'waiting_for_user',
+      waitingReason: 'Beleg wurde konkret angefordert.',
+    }),
+    /support_user_action_due_at_required/,
+  );
+  assert.throws(
+    () => transition(caseRecord(), {
+      status: 'waiting_for_user',
+      waitingReason: 'Beleg wurde konkret angefordert.',
+      userActionDueAt: now,
+    }),
+    /support_user_action_due_at_required/,
+  );
   const waiting = transition(caseRecord(), {
     status: 'waiting_for_user',
     waitingReason: 'Beleg wurde konkret angefordert.',
+    userActionDueAt,
   });
   assert.equal(waiting.waitingOn, 'reporter');
   assert.equal(waiting.waitingReason, 'Beleg wurde konkret angefordert.');
+  assert.deepEqual(waiting.userActionDueAt, userActionDueAt);
+
+  const otherParty = transition(caseRecord(), {
+    status: 'waiting_for_other_party',
+    waitingReason: 'Bestätigung der anderen Partei steht noch aus.',
+  });
+  assert.equal(otherParty.userActionDueAt, null);
 
   const underReview = caseRecord({ status: 'under_review' });
   assert.throws(

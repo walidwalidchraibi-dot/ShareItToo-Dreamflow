@@ -482,6 +482,7 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
     waitingReason: null,
     nextAction: null,
     nextUpdateAt: null,
+    userActionDueAt: null,
     currentOwnerRole: caseRecord.current_owner_role,
     currentOwnerId: caseRecord.current_owner_id ?? null,
     escalationTargetRole: null,
@@ -505,6 +506,13 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
     activeNext();
     updates.waitingOn = toStatus === 'waiting_for_user' ? 'reporter' : 'other_party';
     updates.waitingReason = requiredText(raw.waitingReason, 2000, 'support_waiting_reason_required', 3);
+    if (toStatus === 'waiting_for_user') {
+      updates.userActionDueAt = requiredFutureDate(
+        raw.userActionDueAt,
+        now,
+        'support_user_action_due_at_required',
+      );
+    }
   }
   if (toStatus === 'escalated') {
     activeNext();

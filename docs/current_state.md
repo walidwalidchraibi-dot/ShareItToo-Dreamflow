@@ -43,6 +43,11 @@ Verified: 2026-08-21 on the Mac mini.
   `32504712378` passed Backend including PostgreSQL 16 and the full
   Flutter/Web/Android debug regression. Publication and signed-candidate
   construction stayed skipped, and draft PR #7 remained open and unmerged.
+- The S3D user support-case list and detail surface is verified at exact commit
+  `61cd3ad8ef6ab178eee5305d1654c291d8c5a40f`; exact GitHub Actions run
+  `32506977131` passed Backend including PostgreSQL 16 and the full
+  Flutter/Web/Android debug regression. Signed-candidate construction and image
+  publication stayed skipped, and draft PR #7 remained open and unmerged.
 
 ## Post-P0B ordered continuation close
 
@@ -62,7 +67,8 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `033`,
+- Node/Express backend with verified PostgreSQL migrations through `033` and
+  non-live migration candidate `034`,
   deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -91,6 +97,11 @@ Verified: 2026-08-21 on the Mac mini.
   to the Help Center. It maps lifecycle data to simple German text, never
   reflects unknown internal codes, labels the simulation boundary and remains
   read-only.
+- S3E is the current non-live implementation candidate. It requires a distinct
+  server-confirmed user response deadline for `waiting_for_user`, persists it
+  in the existing support evidence deadline field, and displays `Antwort bis`
+  separately from the support team's `Nächstes Update`. It adds no automatic
+  closure, reminder or external action.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

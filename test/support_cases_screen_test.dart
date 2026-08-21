@@ -21,6 +21,10 @@ Map<String, dynamic> _supportCase({
           'Bitte ergänze die genaue App-Version und den letzten Schritt.',
       'nextUpdateAt': '2026-08-22T10:00:00.000Z',
       'nextUpdateDisplay': '22.08.2026, 12:00',
+      'userActionDueAt':
+          status == 'waiting_for_user' ? '2026-08-23T18:00:00.000Z' : null,
+      'userActionDueDisplay':
+          status == 'waiting_for_user' ? '23.08.2026, 20:00' : null,
       'timezone': 'Europe/Berlin',
       'userFacingSummary': 'Wir benötigen noch eine konkrete Angabe von dir.',
       'appealAvailable': false,
@@ -69,10 +73,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('support_user_action')), findsOneWidget);
+    expect(find.text('Antwort bis: 23.08.2026, 20:00'), findsOneWidget);
+    expect(find.text('Nächstes Update: 22.08.2026, 12:00'), findsOneWidget);
     expect(
       find.text(
           'Bitte ergänze die genaue App-Version und den letzten Schritt.'),
       findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Fall eingegangen'),
+      400,
+      scrollable: find.byType(Scrollable).last,
     );
     expect(find.text('Fall eingegangen'), findsOneWidget);
     expect(find.text('Testmodus'), findsOneWidget);
@@ -132,6 +143,23 @@ void main() {
       find.text('Support-Fälle konnten nicht sicher geladen werden.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('waiting case without a confirmed user deadline fails closed',
+      (tester) async {
+    final incomplete = _supportCase()..remove('userActionDueDisplay');
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(
+        listLoader: () async => [incomplete],
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Support-Fälle konnten nicht sicher geladen werden.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Antwort bis:'), findsNothing);
   });
 
   testWidgets('support cases remain usable at 200 percent text size',

@@ -1,7 +1,7 @@
 # S3D user support case list and detail - technical compliance record
 
-Status: implementation candidate under local verification, non-live and
-fail-closed. Exact GitHub CI is required before closeout.
+Status: verified at exact commit
+`61cd3ad8ef6ab178eee5305d1654c291d8c5a40f`, non-live and fail-closed.
 
 ## Bound source and scope
 
@@ -55,7 +55,9 @@ the current endpoint. Neither value is invented in the client.
   one moderate vulnerability. The repository secret scan found no
   high-confidence secret; its twelve historical findings matched the reviewed
   baseline.
-- Exact-commit GitHub CI remains required before closeout.
+- Exact-commit GitHub Actions run `32506977131` passed Backend regression with
+  PostgreSQL 16 and the full Flutter/Web/Android debug regression. Signed
+  candidate construction and image publication stayed skipped.
 
 ## Persistent boundaries
 

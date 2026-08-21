@@ -66,12 +66,21 @@ run `32504712378`. It removes the Help Center's legacy local-only support
 success claim and routes bounded free text through the safety-first canonical
 intake. No external message or live case action occurs.
 
-The active package is `S3D_USER_SUPPORT_CASE_LIST_DETAIL`. It connects the
+`S3D_USER_SUPPORT_CASE_LIST_DETAIL` is verified at exact commit
+`61cd3ad8ef6ab178eee5305d1654c291d8c5a40f` and exact successful GitHub
+Actions run `32506977131`. It connects the
 existing authenticated user case-list and detail endpoints to a read-only
 Flutter surface under the Help Center. Raw lifecycle/type/event codes are never
 shown; unknown states fail closed. It addresses `SUP-143` and the accessibility
-foundation for `SUP-146` through `SUP-148`. `SUP-144` and `SUP-145` remain open
-until real user-deadline and approved decision/redress data exist server-side.
+foundation for `SUP-146` through `SUP-148`.
+
+The active package is `S3E_USER_ACTION_DEADLINE`. It addresses `SUP-144` with
+a distinct server-authoritative deadline required exactly while a case is
+`waiting_for_user`. Reversible migration `034`, append-only audit evidence and
+the user-safe Flutter projection preserve the difference between `Antwort bis`
+and `Nächstes Update`. Automatic reminders, timeout closure and external action
+remain excluded. `SUP-145` remains open until approved decision/redress data
+exists server-side.
 
 ## Prior ordered post-P0B gate close
 

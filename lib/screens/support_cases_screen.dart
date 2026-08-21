@@ -68,6 +68,8 @@ class SupportCaseViewData {
   final String userFacingSummary;
   final String? nextAction;
   final String? nextUpdateDisplay;
+  final String? userActionDueAt;
+  final String? userActionDueDisplay;
   final bool appealAvailable;
   final String? closureReason;
 
@@ -80,6 +82,8 @@ class SupportCaseViewData {
     required this.userFacingSummary,
     required this.nextAction,
     required this.nextUpdateDisplay,
+    required this.userActionDueAt,
+    required this.userActionDueDisplay,
     required this.appealAvailable,
     required this.closureReason,
   });
@@ -93,6 +97,8 @@ class SupportCaseViewData {
     final userFacingSummary = _requiredText(value, 'userFacingSummary');
     final nextAction = _optionalText(value, 'nextAction');
     final nextUpdateDisplay = _optionalText(value, 'nextUpdateDisplay');
+    final userActionDueAt = _optionalText(value, 'userActionDueAt');
+    final userActionDueDisplay = _optionalText(value, 'userActionDueDisplay');
     final closureReason = _optionalText(value, 'closureReason');
     final isFinal = status == 'resolved' || status == 'closed';
     if (!RegExp(
@@ -106,9 +112,16 @@ class SupportCaseViewData {
         userFacingSummary.length > 2000 ||
         (nextAction?.length ?? 0) > 2000 ||
         (nextUpdateDisplay?.length ?? 0) > 80 ||
+        (userActionDueAt != null &&
+            DateTime.tryParse(userActionDueAt) == null) ||
+        (userActionDueDisplay?.length ?? 0) > 80 ||
         (closureReason?.length ?? 0) > 80 ||
         (!isFinal && (nextAction == null || nextUpdateDisplay == null)) ||
-        (isFinal && (nextAction != null || nextUpdateDisplay != null))) {
+        (isFinal && (nextAction != null || nextUpdateDisplay != null)) ||
+        (status == 'waiting_for_user' &&
+            (userActionDueAt == null || userActionDueDisplay == null)) ||
+        (status != 'waiting_for_user' &&
+            (userActionDueAt != null || userActionDueDisplay != null))) {
       throw const FormatException('invalid_support_case');
     }
     return SupportCaseViewData(
@@ -120,6 +133,8 @@ class SupportCaseViewData {
       userFacingSummary: userFacingSummary,
       nextAction: nextAction,
       nextUpdateDisplay: nextUpdateDisplay,
+      userActionDueAt: userActionDueAt,
+      userActionDueDisplay: userActionDueDisplay,
       appealAvailable: value['appealAvailable'] == true,
       closureReason: closureReason,
     );
@@ -424,8 +439,15 @@ class _SupportCaseListCard extends StatelessWidget {
                   supportCase.userFacingSummary,
                   style: const TextStyle(color: Colors.white70, height: 1.45),
                 ),
-                if (supportCase.nextUpdateDisplay != null) ...[
+                if (supportCase.userActionDueDisplay != null) ...[
                   const SizedBox(height: 12),
+                  _SupportMetaLine(
+                    icon: Icons.event_busy_outlined,
+                    text: 'Antwort bis: ${supportCase.userActionDueDisplay}',
+                  ),
+                ],
+                if (supportCase.nextUpdateDisplay != null) ...[
+                  const SizedBox(height: 8),
                   _SupportMetaLine(
                     icon: Icons.schedule_outlined,
                     text: 'Nächstes Update: ${supportCase.nextUpdateDisplay}',
@@ -491,6 +513,13 @@ class _SupportCaseDetailBody extends StatelessWidget {
                       height: 1.45,
                     ),
                   ),
+                if (supportCase.userActionDueDisplay != null) ...[
+                  const SizedBox(height: 10),
+                  _SupportMetaLine(
+                    icon: Icons.event_busy_outlined,
+                    text: 'Antwort bis: ${supportCase.userActionDueDisplay}',
+                  ),
+                ],
                 if (supportCase.nextUpdateDisplay != null) ...[
                   const SizedBox(height: 10),
                   _SupportMetaLine(

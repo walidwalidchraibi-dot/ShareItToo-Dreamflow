@@ -52,11 +52,11 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "162304911cb6c21e1468785b73f85124087c9eade9d41a2324f11da3568775d9"
+      "sha256": "17d3517203fb6e57162aa44c03d224974e64893a8088898d773fe5d009bd1ba8"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "68d79bf043ff9d1c4154dba39a13c0b307d1431701af26e32f27987636392243"
+      "sha256": "ae46e405868c8ca1f4dcaebaa198179c799553c06a6251d448acde947a5bf0ef"
     },
     {
       "path": "backend/src/support_decision_domain.js",
@@ -304,7 +304,7 @@
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "3b23b466bd1cac0ae77ff39634dc4452d6c08620d5b448e8a8d70361c41c2aa2"
+      "sha256": "52b7847c3faa425efe55822151f11968b7189545fa24d5ad450c2635a23b1ba3"
     },
     {
       "path": "lib/models/rental_cart.dart",
@@ -485,6 +485,10 @@
     {
       "path": "backend/sql/migrations/033_support_decision_approval_guard.up.sql",
       "sha256": "ceeb18ac55c64f43b19e7704ddd64eeaae6ac9215ce856181a43acb62f62c8db"
+    },
+    {
+      "path": "backend/sql/migrations/034_support_user_action_deadline.up.sql",
+      "sha256": "9b9497df34807e71527baa9a2afdda3efb76fd26625d85e31b5892ee86a6fb8f"
     },
     {
       "path": "lib/config/listing_sets_technical_config.dart",
