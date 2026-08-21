@@ -52,11 +52,11 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "64418347548b7565028f0738df4304564574e6c9625db41740bb794ba4f10101"
+      "sha256": "85efa82f0a91bda27c9190958004fd985bb63a9d1957e0a7ff3c61df4b087cb4"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "33d0d64667425c286299cc70dbb9713ab0a36e7b91e3ce2b7f07ef33ba3c4195"
+      "sha256": "7a47419eb4601edac41d21730b481f1d497466d866fda7a6b14054884cceadc9"
     },
     {
       "path": "backend/src/support_appeal_domain.js",
@@ -249,6 +249,10 @@
     {
       "path": "backend/sql/migrations/039_support_deadline_watchdog.up.sql",
       "sha256": "030979892255a1c746e952cae3495a3d335e613f6cd9d4101822b49cb9e8d4e4"
+    },
+    {
+      "path": "backend/sql/migrations/040_support_single_issue_intake.up.sql",
+      "sha256": "0b2b36b6e0b30a6ddf195bdf2be7a9793c7bd23932ea5a09b17444c27e0d8b87"
     },
     {
       "path": "backend/src/booking_condition_evidence_workflow.js",

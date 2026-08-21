@@ -278,6 +278,7 @@ export async function createSupportCase(client, {
        authority_flag, money_flag, account_takeover_flag,
        linked_booking_id, linked_listing_id, linked_payment_id,
        linked_refund_id, linked_payout_id, idempotency_key,
+       intake_scope_evidence,
        created_at, updated_at
      ) VALUES (
        $1, $2, $3, $4, 'received',
@@ -288,7 +289,8 @@ export async function createSupportCase(client, {
        $22, $23, $24,
        $25, $26, $27,
        $28, $29, $30,
-       $31, $31
+       $31::jsonb,
+       $32, $32
      ) ON CONFLICT (reporter_user_id, idempotency_key) DO NOTHING
      RETURNING *`,
     [
@@ -322,6 +324,7 @@ export async function createSupportCase(client, {
       normalized.linkedRefundId,
       normalized.linkedPayoutId,
       key,
+      JSON.stringify(normalized.issueScope),
       now,
     ],
   );
@@ -363,6 +366,7 @@ export async function createSupportCase(client, {
         priority: normalized.priority,
         operatingMode: normalized.operatingMode,
         safetyTriage: normalized.safetyTriage,
+        issueScope: normalized.issueScope,
       }),
       `${key}:event`,
       now,
@@ -379,6 +383,8 @@ export async function createSupportCase(client, {
       operatingMode: normalized.operatingMode,
       safetyTriageVersion: normalized.safetyTriage.version,
       safetyGuidanceShown: normalized.safetyTriage.guidanceShown,
+      issueScopeVersion: normalized.issueScope.version,
+      separationGuidanceShown: normalized.issueScope.separationGuidanceShown,
     },
   });
   return {

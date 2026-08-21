@@ -36,6 +36,8 @@ Future<void> _selectTechnicalSubmission(WidgetTester tester) async {
   await tester
       .tap(find.byKey(const ValueKey('support_safety_answer_no_danger')));
   await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Technisches Problem'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('App lädt nicht'));
@@ -68,6 +70,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('support_safety_continue')));
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const ValueKey('support_issue_scope_question')),
+        findsOneWidget);
+    expect(find.text('Problem mit Übergabe'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
     expect(find.text('Problem mit Übergabe'), findsOneWidget);
   });
 
@@ -81,6 +88,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('support_safety_guidance')), findsNothing);
+    expect(find.byKey(const ValueKey('support_issue_scope_question')),
+        findsOneWidget);
+    expect(find.text('Problem mit Übergabe'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
+    expect(find.text('Problem mit Übergabe'), findsOneWidget);
+  });
+
+  testWidgets('multiple independent problems require separation first',
+      (tester) async {
+    await _pumpFlow(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('support_safety_answer_no_danger')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('support_issue_scope_multiple')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('support_issue_separation_guidance')),
+        findsOneWidget);
+    expect(find.text('Problem mit Übergabe'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('support_issue_separation_continue')),
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Problem mit Übergabe'), findsOneWidget);
   });
 
@@ -110,6 +145,10 @@ void main() {
         immediateDanger: false,
         guidanceShown: false,
       ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
+      ),
     );
 
     expect(result.toBackendInput(), {
@@ -124,6 +163,11 @@ void main() {
         'guidanceVersion': 'T-003@1.0.0',
         'immediateDanger': false,
         'guidanceShown': false,
+      },
+      'issueScope': {
+        'version': 'sit_support_single_issue_scope_v1',
+        'singleIssueConfirmed': true,
+        'separationGuidanceShown': false,
       },
       'linkedBookingId': 'booking-1',
       'linkedListingId': 'listing-1',
@@ -141,6 +185,10 @@ void main() {
         immediateDanger: true,
         guidanceShown: true,
       ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: true,
+      ),
     );
 
     final intake = result.toBackendInput();
@@ -157,6 +205,10 @@ void main() {
       safetyTriage: SupportSafetyTriage(
         immediateDanger: false,
         guidanceShown: false,
+      ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
       ),
     );
 

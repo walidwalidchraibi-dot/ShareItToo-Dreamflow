@@ -77,6 +77,7 @@ const sourcePaths = [
   'backend/sql/migrations/037_support_break_glass_access.up.sql',
   'backend/sql/migrations/038_support_message_template_guard.up.sql',
   'backend/sql/migrations/039_support_deadline_watchdog.up.sql',
+  'backend/sql/migrations/040_support_single_issue_intake.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',

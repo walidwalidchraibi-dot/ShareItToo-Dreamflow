@@ -101,6 +101,7 @@ if (!databaseUrl) {
         '037_support_break_glass_access.up.sql',
         '038_support_message_template_guard.up.sql',
         '039_support_deadline_watchdog.up.sql',
+        '040_support_single_issue_intake.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -189,6 +190,18 @@ if (!databaseUrl) {
         { table_name: 'support_messages' },
         { table_name: 'support_policy_snapshots' },
       ]);
+      const supportIntakeScopeColumn = await setupPool.query(
+        `SELECT column_name, data_type, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'support_cases'
+            AND column_name = 'intake_scope_evidence'`,
+      );
+      assert.deepEqual(supportIntakeScopeColumn.rows, [{
+        column_name: 'intake_scope_evidence',
+        data_type: 'jsonb',
+        is_nullable: 'YES',
+      }]);
       const supportDecisionColumns = await setupPool.query(
         `SELECT column_name, is_nullable
            FROM information_schema.columns
@@ -386,7 +399,7 @@ if (!databaseUrl) {
            reporter_user_id, reporter_role, current_owner_id,
            current_owner_role, approval_level, waiting_on, next_action,
            next_update_at, user_facing_summary, internal_summary,
-           policy_snapshot_id, idempotency_key
+           policy_snapshot_id, idempotency_key, intake_scope_evidence
          ) VALUES (
            'SIT-BCDFGHJKLMNP', 'money_case', 'refund_request_or_review',
            'under_review', 'p1', 'high', 'internal', 'simulation',
@@ -395,7 +408,8 @@ if (!databaseUrl) {
            'Verify the exact simulation-only proposal.', now() + interval '1 day',
            'Refund review in the internal test environment.',
            'No provider call or real money action is authorized.',
-           $1, 'support-case-ledger-integration'
+           $1, 'support-case-ledger-integration',
+           '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
          ) RETURNING id`,
         [supportPolicy.rows[0].id],
       );
@@ -406,7 +420,7 @@ if (!databaseUrl) {
            reporter_user_id, reporter_role, affected_user_ids,
            current_owner_id, current_owner_role, approval_level, waiting_on,
            next_action, next_update_at, user_facing_summary, internal_summary,
-           policy_snapshot_id, idempotency_key
+           policy_snapshot_id, idempotency_key, intake_scope_evidence
          ) VALUES (
            'SIT-QRSTVWXYZ234', 'trust_safety', 'immediate_physical_danger',
            'under_review', 'p0', 'critical', 'internal', 'simulation',
@@ -415,7 +429,8 @@ if (!databaseUrl) {
            'Perform the bounded P0 simulation review.', now() + interval '15 minutes',
            'A critical internal test case is under review.',
            'Synthetic P0 case for break-glass integration only.',
-           $1, 'support-break-glass-p0-integration'
+           $1, 'support-break-glass-p0-integration',
+           '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
          ) RETURNING id`,
         [supportPolicy.rows[0].id],
       );
@@ -1207,6 +1222,11 @@ if (!databaseUrl) {
             immediateDanger: false,
             guidanceShown: false,
           },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: true,
+          },
         }),
       });
       const supportIntakeResponse = await createSupportIntake();
@@ -1247,7 +1267,25 @@ if (!databaseUrl) {
         operatingMode: 'simulation',
         safetyTriageVersion: 'sit_support_safety_triage_v1',
         safetyGuidanceShown: false,
+        issueScopeVersion: 'sit_support_single_issue_scope_v1',
+        separationGuidanceShown: true,
       });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET intake_scope_evidence = jsonb_set(
+                    intake_scope_evidence,
+                    '{separationGuidanceShown}',
+                    'false'::jsonb
+                  ),
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportIntake.supportCase.id],
+        ),
+        (error) => error?.code === '55000'
+          && error?.message === 'support_issue_scope_immutable',
+      );
       await setupPool.query(
         `UPDATE support_cases
             SET status = 'acknowledged',

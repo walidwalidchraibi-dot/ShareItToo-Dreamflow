@@ -12,6 +12,7 @@ import {
 } from '../src/support_case_workflow.js';
 import {
   supportCaseFamilies,
+  supportIntakeScopeVersion,
   supportPacketVersion,
   supportSafetyGuidanceVersion,
   supportSafetyTriageVersion,
@@ -28,6 +29,14 @@ function safetyTriage(immediateDanger = false) {
     guidanceVersion: supportSafetyGuidanceVersion,
     immediateDanger,
     guidanceShown: immediateDanger,
+  };
+}
+
+function issueScope(separationGuidanceShown = false) {
+  return {
+    version: supportIntakeScopeVersion,
+    singleIssueConfirmed: true,
+    separationGuidanceShown,
   };
 }
 
@@ -191,8 +200,9 @@ test('create validates linked-entity access and records case, event and audit', 
           linked_booking_id: params[24],
           linked_listing_id: params[25],
           idempotency_key: params[29],
-          created_at: params[30],
-          updated_at: params[30],
+          intake_scope_evidence: JSON.parse(params[30]),
+          created_at: params[31],
+          updated_at: params[31],
         })],
       }),
     },
@@ -204,6 +214,7 @@ test('create validates linked-entity access and records case, event and audit', 
         const payload = JSON.parse(params[3]);
         assert.equal(payload.operatingMode, 'internal_testing');
         assert.deepEqual(payload.safetyTriage, safetyTriage());
+        assert.deepEqual(payload.issueScope, issueScope(true));
       },
       result: { rowCount: 1, rows: [] },
     },
@@ -226,6 +237,7 @@ test('create validates linked-entity access and records case, event and audit', 
       linkedBookingId: 'booking-1',
       linkedListingId: 'listing-1',
       safetyTriage: safetyTriage(),
+      issueScope: issueScope(true),
     },
     idempotencyKey: 'key-2',
     nextUpdateAt,
@@ -265,6 +277,7 @@ test('create rejects an inaccessible linked booking before any write', async () 
         summary: 'Fremde Buchung darf nicht verknüpft werden.',
         linkedBookingId: 'booking-other',
         safetyTriage: safetyTriage(),
+        issueScope: issueScope(),
       },
       idempotencyKey: 'key-3',
       nextUpdateAt,
@@ -302,6 +315,7 @@ test('create turns a concurrent unique-key winner into an idempotent replay', as
       caseSubType: 'general_how_to',
       summary: 'Gleicher paralleler Eingang wird nur einmal gespeichert.',
       safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
     },
     idempotencyKey: 'key-concurrent',
     now,

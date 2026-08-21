@@ -9,6 +9,7 @@ import {
   supportApprovalLevels,
   supportCaseFamilies,
   supportCaseStatuses,
+  supportIntakeScopeVersion,
   supportPacketVersion,
   supportPriorities,
   supportRouteFor,
@@ -28,6 +29,14 @@ function safetyTriage(immediateDanger = false) {
     guidanceVersion: supportSafetyGuidanceVersion,
     immediateDanger,
     guidanceShown: immediateDanger,
+  };
+}
+
+function issueScope(separationGuidanceShown = false) {
+  return {
+    version: supportIntakeScopeVersion,
+    singleIssueConfirmed: true,
+    separationGuidanceShown,
   };
 }
 
@@ -153,6 +162,7 @@ test('intake derives authoritative route and retains non-live operating truth', 
     linkedBookingId: 'booking-123',
     linkedPaymentId: decisionId,
     safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
   }, {
     sourceChannel: 'app',
     operatingMode: 'internal_testing',
@@ -175,6 +185,7 @@ test('intake rejects live modes, malformed references and unsafe deadlines', () 
     caseSubType: 'general_how_to',
     summary: 'Eine zulässige Zusammenfassung.',
     safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
   };
   assert.throws(
     () => normalizeSupportCaseInput(raw, {
@@ -208,6 +219,7 @@ test('intake derives bounded internal checkpoints when no client deadline is sup
   const base = {
     summary: 'Interner Checkpoint wird vom Server bestimmt.',
     safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
   };
   const p0 = normalizeSupportCaseInput({
     ...base,
@@ -228,6 +240,7 @@ test('intake requires versioned safety-first evidence and rejects contradictions
     caseType: 'active_handover',
     caseSubType: 'unsafe_handover',
     summary: 'Unsichere Übergabe wird zuerst sicherheitsbezogen eingeordnet.',
+    issueScope: issueScope(),
   };
   assert.throws(
     () => normalizeSupportCaseInput(base, { now }),
@@ -256,6 +269,39 @@ test('intake requires versioned safety-first evidence and rejects contradictions
   assert.equal(danger.priority, 'p0');
   assert.equal(danger.ownerRole, 'trust_safety_owner');
   assert.equal(danger.safetyTriage.guidanceShown, true);
+});
+
+test('intake requires versioned single-issue evidence and rejects multiple issues', () => {
+  const base = {
+    caseType: 'general_help',
+    caseSubType: 'general_how_to',
+    summary: 'Ein abgegrenztes Problem wird als eigener Fall eingereicht.',
+    safetyTriage: safetyTriage(),
+  };
+  assert.throws(
+    () => normalizeSupportCaseInput(base, { now }),
+    /support_issue_scope_required/,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      issueScope: { ...issueScope(), version: 'stale' },
+    }, { now }),
+    /support_issue_scope_version_invalid/,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      issueScope: { ...issueScope(true), singleIssueConfirmed: false },
+    }, { now }),
+    /support_single_issue_confirmation_required/,
+  );
+
+  const separated = normalizeSupportCaseInput({
+    ...base,
+    issueScope: issueScope(true),
+  }, { now });
+  assert.deepEqual(separated.issueScope, issueScope(true));
 });
 
 test('transition graph is explicit and rejects skips, paused and stale versions', () => {

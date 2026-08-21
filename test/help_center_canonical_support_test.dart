@@ -59,6 +59,8 @@ void main() {
     await tester
         .tap(find.byKey(const ValueKey('support_safety_answer_no_danger')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Technisches Problem'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('App lädt nicht'));

@@ -7,7 +7,7 @@ set -euo pipefail
 # safe mechanical cleanup, the targeted correctness/startup-safety batch, and
 # removal of all unused local variables, private state remnants, and
 # unreferenced legacy UI components without changing reachable UI paths.
-ANALYZER_BASELINE=223
+ANALYZER_BASELINE=220
 FORBIDDEN_ANALYZER_CODES=(
   dead_code
   empty_catches
@@ -74,6 +74,7 @@ node --test test/tool/support_appeal_wiring.test.mjs
 node --test test/tool/support_break_glass_wiring.test.mjs
 node --test test/tool/support_message_template_wiring.test.mjs
 node --test test/tool/support_deadline_watchdog_wiring.test.mjs
+node --test test/tool/support_single_issue_intake_wiring.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
 

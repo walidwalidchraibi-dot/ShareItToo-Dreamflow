@@ -159,6 +159,25 @@ class SupportSafetyTriage {
   };
 }
 
+/// Versionierter Nachweis, dass ein Support-Fall genau ein Problem enthält.
+class SupportIssueScope {
+  static const version = 'sit_support_single_issue_scope_v1';
+
+  final bool singleIssueConfirmed;
+  final bool separationGuidanceShown;
+
+  const SupportIssueScope({
+    required this.singleIssueConfirmed,
+    required this.separationGuidanceShown,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'version': version,
+    'singleIssueConfirmed': singleIssueConfirmed,
+    'separationGuidanceShown': separationGuidanceShown,
+  };
+}
+
 class SupportCaseRoute {
   final String caseType;
   final String caseSubType;
@@ -173,6 +192,7 @@ class SupportFlowResult {
   final String userDescription;
   final SupportFlowContext context;
   final SupportSafetyTriage safetyTriage;
+  final SupportIssueScope issueScope;
   final Map<String, dynamic>? canonicalCase;
 
   const SupportFlowResult({
@@ -181,6 +201,7 @@ class SupportFlowResult {
     required this.userDescription,
     required this.context,
     required this.safetyTriage,
+    required this.issueScope,
     this.canonicalCase,
   });
 
@@ -295,6 +316,7 @@ class SupportFlowResult {
       'summary': summary,
       'immediateDanger': safetyTriage.immediateDanger,
       'safetyTriage': safetyTriage.toMap(),
+      'issueScope': issueScope.toMap(),
       if (!profileContext && !listingContext && requestId.isNotEmpty)
         'linkedBookingId': requestId,
       if (!profileContext && itemId.isNotEmpty && !itemId.contains(':'))
@@ -327,6 +349,7 @@ class SupportFlowResult {
       userDescription: userDescription,
       context: context,
       safetyTriage: safetyTriage,
+      issueScope: issueScope,
       canonicalCase: Map<String, dynamic>.unmodifiable(value),
     );
   }
@@ -425,6 +448,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   late final String _submissionIdempotencyKey;
   bool? _immediateDanger;
   bool _safetyGuidanceAcknowledged = false;
+  bool? _singleIssueConfirmed;
+  bool _separationGuidanceShown = false;
   String? _selectedMainCategory;
   String? _selectedSubCategory;
   String? _selectedDetailSubCategory;
@@ -434,6 +459,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
 
   bool get _showSafetyQuestion => _immediateDanger == null;
   bool get _showSafetyGuidance => _immediateDanger == true && !_safetyGuidanceAcknowledged;
+  bool get _showIssueScopeQuestion =>
+      !_showSafetyQuestion && !_showSafetyGuidance && _singleIssueConfirmed == null;
+  bool get _showIssueSeparationGuidance => _singleIssueConfirmed == false;
 
   @override
   void initState() {
@@ -610,6 +638,11 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       setState(() => _selectedSubCategory = null);
     } else if (_selectedMainCategory != null) {
       setState(() => _selectedMainCategory = null);
+    } else if (_singleIssueConfirmed != null) {
+      setState(() {
+        _singleIssueConfirmed = null;
+        _separationGuidanceShown = false;
+      });
     } else if (_immediateDanger != null) {
       setState(() {
         _immediateDanger = null;
@@ -623,6 +656,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   String _currentTitle() {
     if (_showSafetyQuestion) return 'Bist du gerade in unmittelbarer Gefahr?';
     if (_showSafetyGuidance) return 'Sicherheit geht jetzt vor';
+    if (_showIssueScopeQuestion) return 'Geht es um genau ein Problem?';
+    if (_showIssueSeparationGuidance) return 'Trenne die Probleme zuerst';
     if (_selectedDetailSubCategory != null) return 'Beschreibe kurz, was passiert ist';
     if (_needsProfileReasonStep) return 'Warum möchtest du dieses Profil melden?';
     if (_selectedSubCategory != null) return 'Beschreibe kurz, was passiert ist';
@@ -635,6 +670,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   String _currentSubline() {
     if (_showSafetyQuestion) return 'Beantworte diese Frage zuerst. Danach kannst du dein Anliegen melden.';
     if (_showSafetyGuidance) return 'Beende zuerst die gefährliche Situation. SIT ist kein Notfalldienst.';
+    if (_showIssueScopeQuestion) return 'Unabhängige Probleme brauchen getrennte Support-Fälle.';
+    if (_showIssueSeparationGuidance) return 'Wähle für diesen Fall nur eines der Probleme aus.';
     if (_selectedDetailSubCategory != null) return 'Prüfe die Auswahl kurz und beschreibe danach den Fall für den Support.';
     if (_needsProfileReasonStep) return 'Wähle den genauesten Grund, damit der Support den Fall richtig einordnen kann.';
     if (_selectedSubCategory != null) return 'Je genauer du es beschreibst, desto schneller kann dir der Support helfen.';
@@ -661,9 +698,12 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     final dark = theme.colorScheme.secondary;
     final isDark = theme.brightness == Brightness.dark;
     final isSafetyPage = _showSafetyQuestion || _showSafetyGuidance;
-    final isMainCategoryPage = !isSafetyPage && _selectedMainCategory == null && _selectedSubCategory == null;
+    final isIssueScopePage = _showIssueScopeQuestion || _showIssueSeparationGuidance;
+    final isMainCategoryPage = !isSafetyPage && !isIssueScopePage
+        && _selectedMainCategory == null && _selectedSubCategory == null;
     final isSubcategoryPage = _selectedMainCategory != null && _selectedSubCategory == null;
-    final shouldCenterTitle = isSafetyPage || isMainCategoryPage || isSubcategoryPage;
+    final shouldCenterTitle = isSafetyPage || isIssueScopePage
+        || isMainCategoryPage || isSubcategoryPage;
 
     return Scaffold(
       backgroundColor: isDark ? Colors.transparent : AppTheme.surfaceMuted(context),
@@ -671,7 +711,10 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         // Tap außerhalb der Cards = Hintergrund-Preview
         onTap: () {
           // Nur im Dark Theme und nur auf Hauptkategorie/Subkategorie-Seite aktivieren
-          if (isDark && !isSafetyPage && _selectedSubCategory == null) _toggleCardsVisibility();
+          if (isDark && !isSafetyPage && !isIssueScopePage
+              && _selectedSubCategory == null) {
+            _toggleCardsVisibility();
+          }
         },
         behavior: HitTestBehavior.translucent,
         child: Stack(
@@ -914,15 +957,19 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                             ? _buildSafetyQuestion()
                             : _showSafetyGuidance
                                 ? _buildSafetyGuidance()
-                                : _selectedDetailSubCategory != null
-                                    ? _buildDescriptionStep()
-                                    : _needsProfileReasonStep
-                                        ? _buildProfileReportReasons()
-                                        : _selectedSubCategory != null
+                                : _showIssueScopeQuestion
+                                    ? _buildIssueScopeQuestion()
+                                    : _showIssueSeparationGuidance
+                                        ? _buildIssueSeparationGuidance()
+                                        : _selectedDetailSubCategory != null
                                             ? _buildDescriptionStep()
-                                            : _selectedMainCategory == null
-                                                ? _buildMainCategories()
-                                                : _buildSubcategories(_selectedMainCategory!),
+                                            : _needsProfileReasonStep
+                                                ? _buildProfileReportReasons()
+                                                : _selectedSubCategory != null
+                                                    ? _buildDescriptionStep()
+                                                    : _selectedMainCategory == null
+                                                        ? _buildMainCategories()
+                                                        : _buildSubcategories(_selectedMainCategory!),
                       ),
                     ),
                   ),
@@ -1019,6 +1066,65 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
             key: const ValueKey('support_safety_continue'),
             onPressed: () => setState(() => _safetyGuidanceAcknowledged = true),
             child: const Text('Hinweise verstanden – Bericht fortsetzen'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIssueScopeQuestion() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ListView(
+      key: const ValueKey('support_issue_scope_question'),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      children: [
+        _SupportSafetyPanel(
+          icon: Icons.call_split_outlined,
+          title: 'Ein Problem pro Support-Fall',
+          body: 'So bleiben Zuständigkeit, Fristen, Entscheidungen und der Prüfverlauf für jedes Problem eindeutig.',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 20),
+        _GlassySubcategoryCard(
+          key: const ValueKey('support_issue_scope_single'),
+          label: 'Ja, genau ein Problem',
+          onTap: () => setState(() {
+            _singleIssueConfirmed = true;
+            _separationGuidanceShown = false;
+          }),
+        ),
+        const SizedBox(height: 12),
+        _GlassySubcategoryCard(
+          key: const ValueKey('support_issue_scope_multiple'),
+          label: 'Nein, es sind mehrere Probleme',
+          onTap: () => setState(() {
+            _singleIssueConfirmed = false;
+            _separationGuidanceShown = true;
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIssueSeparationGuidance() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return ListView(
+      key: const ValueKey('support_issue_separation_guidance'),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      children: [
+        _SupportSafetyPanel(
+          icon: Icons.account_tree_outlined,
+          title: 'Erstelle für jedes unabhängige Problem einen eigenen Fall.',
+          body: 'Wähle jetzt das erste Problem aus. Nach dem Absenden kannst du für das nächste Problem einen weiteren Support-Fall erstellen.',
+          isDark: isDark,
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 52,
+          child: FilledButton(
+            key: const ValueKey('support_issue_separation_continue'),
+            onPressed: () => setState(() => _singleIssueConfirmed = true),
+            child: const Text('Ein Problem für diesen Fall auswählen'),
           ),
         ),
       ],
@@ -1200,7 +1306,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   }
 
   Future<void> _submitSupportCase() async {
-    if (_sendingSupport) return;
+    if (_sendingSupport || _singleIssueConfirmed != true) return;
     setState(() => _sendingSupport = true);
 
     try {
@@ -1212,6 +1318,10 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         safetyTriage: SupportSafetyTriage(
           immediateDanger: _immediateDanger!,
           guidanceShown: _immediateDanger == true,
+        ),
+        issueScope: SupportIssueScope(
+          singleIssueConfirmed: true,
+          separationGuidanceShown: _separationGuidanceShown,
         ),
       );
       final submitter = widget.submitter ?? (intake, idempotencyKey) =>

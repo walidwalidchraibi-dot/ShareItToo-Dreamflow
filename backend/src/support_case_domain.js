@@ -162,6 +162,7 @@ export const supportOwnerRoles = Object.freeze([
 ]);
 
 export const supportSafetyTriageVersion = 'sit_support_safety_triage_v1';
+export const supportIntakeScopeVersion = 'sit_support_single_issue_scope_v1';
 export const supportPacketVersion = 'SIT_SUPPORT_PACKET_V1_2026-08-20';
 export const supportSafetyGuidanceVersion = 'T-003@1.0.0';
 
@@ -384,6 +385,32 @@ function normalizeSupportSafetyTriage(raw) {
   });
 }
 
+function normalizeSupportIssueScope(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new SupportCaseError(400, 'support_issue_scope_required');
+  }
+  const version = requiredText(
+    raw.version,
+    80,
+    'support_issue_scope_version_invalid',
+  );
+  if (version !== supportIntakeScopeVersion) {
+    throw new SupportCaseError(400, 'support_issue_scope_version_invalid');
+  }
+  if (typeof raw.singleIssueConfirmed !== 'boolean'
+      || typeof raw.separationGuidanceShown !== 'boolean') {
+    throw new SupportCaseError(400, 'support_issue_scope_answer_invalid');
+  }
+  if (raw.singleIssueConfirmed !== true) {
+    throw new SupportCaseError(400, 'support_single_issue_confirmation_required');
+  }
+  return Object.freeze({
+    version,
+    singleIssueConfirmed: true,
+    separationGuidanceShown: raw.separationGuidanceShown,
+  });
+}
+
 export function normalizeSupportCaseInput(raw, {
   sourceChannel = 'app',
   operatingMode = 'simulation',
@@ -402,6 +429,7 @@ export function normalizeSupportCaseInput(raw, {
   const caseType = requiredText(raw.caseType, 60, 'support_case_type_invalid').toLowerCase();
   const caseSubType = requiredText(raw.caseSubType, 100, 'support_case_subtype_invalid').toLowerCase();
   const safetyTriage = normalizeSupportSafetyTriage(raw.safetyTriage);
+  const issueScope = normalizeSupportIssueScope(raw.issueScope);
   if (raw.immediateDanger !== undefined
       && raw.immediateDanger !== safetyTriage.immediateDanger) {
     throw new SupportCaseError(400, 'support_safety_triage_conflict');
@@ -436,6 +464,7 @@ export function normalizeSupportCaseInput(raw, {
     linkedRefundId: optionalUuid(raw.linkedRefundId, 'support_linked_refund_invalid'),
     linkedPayoutId: optionalUuid(raw.linkedPayoutId, 'support_linked_payout_invalid'),
     safetyTriage,
+    issueScope,
     waitingReason: 'Der Eingang wartet auf die fachliche Übernahme.',
     nextAction: route.priority === 'p0'
       ? 'Sicherheitsroute unverzüglich prüfen und einem verantwortlichen Owner zuweisen.'
