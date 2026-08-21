@@ -218,39 +218,39 @@ export async function verifySupportBreakGlassGrant(client, {
   if (actor?.role !== 'support' || typeof token !== 'string'
       || token.length < 32 || token.length > 500) return null;
   const result = await client.query(
-    `UPDATE support_break_glass_grants AS grant
+    `UPDATE support_break_glass_grants AS access_grant
         SET last_used_at = $6
-      WHERE grant.case_id::text = $1
-        AND grant.actor_id = $2
-        AND grant.session_id = $3
-        AND grant.staff_elevation_id = $4
-        AND grant.token_hash = $5
-        AND grant.revoked_at IS NULL
-        AND grant.expires_at > $6
+      WHERE access_grant.case_id::text = $1
+        AND access_grant.actor_id = $2
+        AND access_grant.session_id = $3
+        AND access_grant.staff_elevation_id = $4
+        AND access_grant.token_hash = $5
+        AND access_grant.revoked_at IS NULL
+        AND access_grant.expires_at > $6
         AND EXISTS (
           SELECT 1 FROM staff_elevations AS elevation
-           WHERE elevation.id = grant.staff_elevation_id
-             AND elevation.user_id = grant.actor_id
-             AND elevation.session_id = grant.session_id
+           WHERE elevation.id = access_grant.staff_elevation_id
+             AND elevation.user_id = access_grant.actor_id
+             AND elevation.session_id = access_grant.session_id
              AND elevation.role = 'support'
              AND elevation.revoked_at IS NULL
              AND elevation.expires_at > $6
         )
         AND EXISTS (
           SELECT 1 FROM users AS actor_user
-           WHERE actor_user.id = grant.actor_id
+           WHERE actor_user.id = access_grant.actor_id
              AND actor_user.role = 'support'
              AND actor_user.account_status = 'active'
              AND actor_user.deactivated_at IS NULL
         )
         AND EXISTS (
           SELECT 1 FROM support_cases AS support_case
-           WHERE support_case.id = grant.case_id
+           WHERE support_case.id = access_grant.case_id
              AND support_case.priority = 'p0'
              AND support_case.status NOT IN ('resolved', 'closed')
              AND support_case.operating_mode IN ('simulation', 'internal_testing')
         )
-      RETURNING grant.*`,
+      RETURNING access_grant.*`,
     [caseId, actor.id, sessionId, staffElevationId, hashToken(token), now],
   );
   return result.rowCount ? shapeGrant(result.rows[0]) : null;

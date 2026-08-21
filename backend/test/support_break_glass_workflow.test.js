@@ -254,7 +254,7 @@ test('concurrent create returns the exact unique-key winner as an idempotent rep
 test('grant use stays bound to case, actor, session, elevation and active P0 state', async () => {
   const used = grantRow({ last_used_at: new Date('2026-08-21T10:01:00.000Z') });
   const client = new ScriptedClient([{
-    match: /UPDATE support_break_glass_grants AS grant/u,
+    match: /UPDATE support_break_glass_grants AS access_grant/u,
     check: ({ sql, params }) => {
       assert.deepEqual(params.slice(0, 4), [caseId, 'support-1', sessionId, elevationId]);
       assert.equal(params[4].length, 64);

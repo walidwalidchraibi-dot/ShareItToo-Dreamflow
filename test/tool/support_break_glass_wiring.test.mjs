@@ -5,6 +5,7 @@ import test from 'node:test';
 const app = readFileSync('backend/src/app.js', 'utf8');
 const workflow = readFileSync('backend/src/support_break_glass_workflow.js', 'utf8');
 const supportCaseWorkflow = readFileSync('backend/src/support_case_workflow.js', 'utf8');
+const privacyExport = readFileSync('backend/src/privacy_export.js', 'utf8');
 const migration = readFileSync(
   'backend/sql/migrations/037_support_break_glass_access.up.sql',
   'utf8',
@@ -42,6 +43,8 @@ test('break-glass stays P0-only, case-bound, short-lived and non-live', () => {
   assert.match(workflow, /support_case\.operating_mode IN \('simulation', 'internal_testing'\)/u);
   assert.match(workflow, /staff_elevation_id = \$4/u);
   assert.match(supportCaseWorkflow, /support\.break_glass_case_accessed/u);
+  assert.doesNotMatch(workflow, /support_break_glass_grants AS grant\b/u);
+  assert.doesNotMatch(privacyExport, /support_break_glass_grants AS grant\b/u);
   assert.doesNotMatch(
     workflow,
     /publishTo|sendEmail|sendPush|refundPayment|releasePayout|paymentProvider|fetch\(/u,

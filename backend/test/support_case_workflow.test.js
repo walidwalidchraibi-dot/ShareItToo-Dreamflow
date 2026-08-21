@@ -843,7 +843,7 @@ test('valid break-glass token opens only its P0 case and writes a use audit', as
   const client = new ScriptedClient([
     { match: /FROM support_cases[\s\S]*current_owner_id = \$4/u, result: noRows },
     {
-      match: /UPDATE support_break_glass_grants AS grant/u,
+      match: /UPDATE support_break_glass_grants AS access_grant/u,
       check: ({ params }) => {
         assert.deepEqual(params.slice(0, 4), [
           'case-p0',
