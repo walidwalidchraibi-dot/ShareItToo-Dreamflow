@@ -1,7 +1,8 @@
 # S3F final support-decision publication - technical compliance record
 
-Status: implementation candidate under local verification, non-live and
-fail-closed. Exact GitHub CI is required before closeout.
+Status: technically verified, non-live and fail-closed at exact commit
+`1cff1763b316c1c0a3008219f7c88a0dc0028dac` and successful GitHub Actions
+run `32512521575`.
 
 ## Bound source and scope
 
@@ -47,14 +48,18 @@ review route. RED templates remain human-approved and never auto-send.
   skip; the backend JavaScript and operations-shell syntax checks passed.
 - Complete CI-equivalent technical regression passed, including 341 Flutter
   tests, one expected Flutter skip, the Web build and the Android debug build.
+- The repository-to-screen bridge is covered separately: the authenticated
+  client preserves the complete `finalDecision` object instead of discarding
+  it before Flutter validation.
 - Focused support domain/workflow: 51 passed, zero failed.
 - Flutter support cases: 9 passed, zero failed.
 - Privacy and retention validator suites: 58 passed, zero failed.
 - P0B PSP and invited-pilot validators: 11 passed; provider contract,
   sandbox E2E, real money and pilot eligibility remain false.
 - JavaScript syntax checks passed for the changed application and workflows.
-- PostgreSQL 16 execution of migration `035` remains delegated to exact-commit
-  GitHub CI because the Mac mini has no local Docker runtime.
+- Exact-commit GitHub CI executed migration `035` twice against PostgreSQL 16
+  and passed the complete Backend and Flutter jobs. The signed-candidate step
+  was skipped and no image-publication job was eligible on the draft PR.
 
 ## Persistent boundaries
 

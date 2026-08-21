@@ -83,13 +83,20 @@ the user-safe Flutter projection preserve the difference between `Antwort bis`
 and `Nächstes Update`. Automatic reminders, timeout closure and external action
 remain excluded.
 
-The active package is `S3F_FINAL_SUPPORT_DECISION_PUBLICATION`. It addresses
-`SUP-145` by binding decision, effect, reason, implementation result and
-redress route to the immutable four-eyes-approved proposal. Reversible
-migration `035`, an explicit administrator publication action, a resolution
-guard and the authenticated Flutter detail keep the path simulation-only and
-fail closed. No template, external message, appeal execution or live measure
-is part of S3F.
+`S3F_FINAL_SUPPORT_DECISION_PUBLICATION` is technically verified at exact
+commit `1cff1763b316c1c0a3008219f7c88a0dc0028dac` and successful GitHub Actions
+run `32512521575`. Migration `035`, Backend/PostgreSQL, Flutter, Web and Android
+debug checks passed; the signed-candidate step and publication remained
+skipped.
+
+The active package is `S3G_CLOSED_CASE_APPEAL_SUBMISSION`. It addresses the
+bounded technical path behind `SUP-151` and the submission portion of
+`SUP-014`/template `T-042`: an explicitly configured, exact server deadline;
+one authenticated reporter submission per published decision; a separate
+review reference and next-update checkpoint; append-only receipt/audit truth;
+and a fail-closed Flutter surface. It does not adjudicate the appeal, reopen a
+case automatically, render or send a template, or execute any external or live
+measure. Missing policy dates remain missing and are never invented.
 
 ## Prior ordered post-P0B gate close
 

@@ -686,7 +686,9 @@ evidence/history, not permission to reopen a closed launch boundary.
   run `32508816204`. PostgreSQL migration `034`, Backend, Flutter, analyzer,
   Web and Android debug checks passed; signed-candidate and publication jobs
   remained skipped.
-- The current S3F candidate binds Drive scenario `SUP-145` to five explicit
+- S3F is verified at exact commit
+  `1cff1763b316c1c0a3008219f7c88a0dc0028dac` and successful GitHub Actions
+  run `32512521575`. It binds Drive scenario `SUP-145` to five explicit
   user-facing statements inside the immutable decision payload. It requires
   exact four-eyes approval, verified simulation implementation and an explicit
   administrator publication before a decision-backed case can resolve.
