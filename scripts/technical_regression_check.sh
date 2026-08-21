@@ -344,6 +344,9 @@ node tool/validate_v52_legal_assets.mjs
 node --check tool/validate_g3l_legal_draft.mjs
 node --test test/tool/validate_g3l_legal_draft.test.mjs
 node tool/validate_g3l_legal_draft.mjs
+node --check tool/validate_p0b_legal_review_intake.mjs
+node --test test/tool/validate_p0b_legal_review_intake.test.mjs
+node tool/validate_p0b_legal_review_intake.mjs
 node --test test/tool/g5b_listing_sets_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
 

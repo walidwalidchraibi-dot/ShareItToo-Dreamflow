@@ -6,14 +6,13 @@ Verified: 2026-08-21 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current P0B implementation head:
-  `84ab2b587565baaf56b10791ea9b6bf3beb8591e`.
-- The P0B implementation commit is contained in the local branch, remote
-  branch and draft PR #7 head; the PR remains open and unmerged.
-- GitHub Actions run `32434902386`, associated with that exact PR head, is
-  green. The workflow verified GitHub's synthetic PR merge result
-  `65235f901c8fbc092394f2ca7da42562589a1c6c`; backend and Flutter regression
-  passed, while the signed candidate and image publication were skipped.
+- Last verified formal P0B close head:
+  `0c475e004218964681e4060b012432a6d8770c08`.
+- That commit is contained in the local branch, remote branch and draft PR #7
+  head at the recorded close; the PR remained open and unmerged.
+- GitHub Actions run `32435774839`, associated with that exact close head, is
+  green. Backend, Flutter, PostgreSQL integration, analyzer, web and Android
+  debug gates passed; signed candidate and image publication were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
 
@@ -108,6 +107,20 @@ Verified: 2026-08-21 on the Mac mini.
   full device-matrix and final-binary gates must not be silently closed.
 - No production, VPS/OpenClaw, SSH, DNS, cloud-console, payment, Store or
   live-provider mutation was made. The MacBook is not required.
+
+## P0B-L1 professional legal review intake
+
+- Walid authorized ordered post-P0B continuation. The first token prepared
+  `P0B-L1-LEGAL-REVIEW-2026-08-21.1` from exact V5.2, G3A/G3L, P0B and live
+  Drive sources.
+- Five hash-bound intake artifacts define the professional scope, eighteen
+  open decisions, a 21.08.2026 official-primary-source baseline, an external
+  approval-evidence schema and a hard release gate.
+- This is counsel-ready preparation only. No professional reviewer, opinion,
+  final legal text or authenticated approval evidence is present.
+- Public, production, Store and real-money gates remain false. The unresolved
+  external dependency is not bypassed; independent non-live operations work
+  continues next.
 
 ## G3B booking-group foundation
 
