@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
@@ -78,4 +79,21 @@ test('rejects private paths or raw device identifiers in repository evidence', (
     () => validateP0BSignedDeviceEvidence({ root, evidence: changed, checkGitCommit: false }),
     /private path, identifier or credential/u,
   );
+});
+
+test('permits metadata-only validation only inside an explicit CI environment', () => {
+  const cli = resolve(root, 'tool/validate_p0b_signed_device_evidence.mjs');
+  const ci = spawnSync(process.execPath, [cli, '--ci-metadata-only'], {
+    cwd: root,
+    env: { ...process.env, CI: 'true' },
+    encoding: 'utf8',
+  });
+  assert.equal(ci.status, 0, ci.stderr);
+  const local = spawnSync(process.execPath, [cli, '--ci-metadata-only'], {
+    cwd: root,
+    env: { ...process.env, CI: 'false' },
+    encoding: 'utf8',
+  });
+  assert.notEqual(local.status, 0);
+  assert.match(local.stderr, /restricted to CI/u);
 });

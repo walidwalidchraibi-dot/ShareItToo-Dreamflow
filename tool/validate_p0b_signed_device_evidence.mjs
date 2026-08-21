@@ -285,7 +285,13 @@ const isMain = process.argv[1]
 
 if (isMain) {
   try {
-    const result = validateP0BSignedDeviceEvidence();
+    const ciMetadataOnly = process.argv.includes('--ci-metadata-only');
+    if (ciMetadataOnly && process.env.CI !== 'true') {
+      fail('P0B CI metadata-only mode is restricted to CI.');
+    }
+    const result = validateP0BSignedDeviceEvidence({
+      checkGitCommit: !ciMetadataOnly,
+    });
     const archive = process.argv.includes('--require-private-archive')
       ? await verifyP0BPrivateAndroidArchive()
       : null;

@@ -61,6 +61,11 @@ candidate hashes, sanitized Pixel facts, data-preserving actions, explicit iOS
 blockers and all non-live boundaries. A local-only mode additionally rereads
 and hashes the private archive without printing its path.
 
+The deliberately shallow GitHub checkout validates the exact recorded CI run
+metadata without claiming that the earlier candidate commit object is present
+in that checkout. Normal Mac-mini validation still requires that commit object;
+the optional private-archive mode additionally rehashes the candidate bytes.
+
 GitHub Actions run `32459509278` completed successfully for the exact candidate
 source commit. Backend and Flutter regression jobs passed; the CI candidate
 build correctly remained skipped because CI does not hold signing material.
