@@ -1428,7 +1428,14 @@ export function createApp({
       return callback(new HttpError(403, 'origin_not_allowed'));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Admin-Step-Up', 'X-Request-ID'],
+    allowedHeaders: [
+      'Authorization',
+      'Content-Type',
+      'Idempotency-Key',
+      'X-Admin-Step-Up',
+      'X-Request-ID',
+      'X-Support-Break-Glass',
+    ],
     exposedHeaders: ['X-Request-ID', 'Content-Disposition', 'X-SIT-Artifact-SHA256'],
   }));
   const webhookLimiter = rateLimit({
@@ -1459,6 +1466,8 @@ export function createApp({
   const mapsLimiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const confirmationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const staffElevationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
+  const supportBreakGlassGrantLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportBreakGlassReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   app.use(generalLimiter);
 
   app.get('/v1/maps/places/autocomplete', requireAuth, requireActiveAccount, mapsLimiter, asyncRoute(async (req, res) => {
@@ -4331,7 +4340,7 @@ export function createApp({
     res.set('Cache-Control', 'private, no-store').json(result);
   }));
 
-  app.post('/v1/admin/support/cases/:id/break-glass', requireAuth, requireActiveAccount, requireStaffElevation, actionLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/admin/support/cases/:id/break-glass', requireAuth, requireActiveAccount, requireStaffElevation, supportBreakGlassGrantLimiter, asyncRoute(async (req, res) => {
     const caseId = safeText(req.params.id, 80);
     try {
       const result = await inTransaction((client) => createSupportBreakGlassGrant(client, {
@@ -4367,7 +4376,7 @@ export function createApp({
     res.set('Cache-Control', 'private, no-store').json({ reviews });
   }));
 
-  app.post('/v1/admin/support/break-glass/grants/:id/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, actionLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/admin/support/break-glass/grants/:id/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportBreakGlassReviewLimiter, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => reviewSupportBreakGlassGrant(client, {
       actor: req.actor,
       sessionId: req.auth.sessionId,

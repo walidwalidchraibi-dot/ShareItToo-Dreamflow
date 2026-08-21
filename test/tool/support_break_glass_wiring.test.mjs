@@ -17,8 +17,9 @@ const rollback = readFileSync(
 test('break-glass routes require active auth, strong step-up and independent admin review', () => {
   assert.match(
     app,
-    /app\.post\('\/v1\/admin\/support\/cases\/:id\/break-glass', requireAuth, requireActiveAccount, requireStaffElevation, actionLimiter/u,
+    /app\.post\('\/v1\/admin\/support\/cases\/:id\/break-glass', requireAuth, requireActiveAccount, requireStaffElevation, supportBreakGlassGrantLimiter/u,
   );
+  assert.match(app, /'X-Support-Break-Glass'/u);
   assert.match(app, /req\.staffElevation\.id/u);
   assert.match(app, /req\.get\('X-Support-Break-Glass'\)/u);
   assert.match(
@@ -27,8 +28,10 @@ test('break-glass routes require active auth, strong step-up and independent adm
   );
   assert.match(
     app,
-    /app\.post\('\/v1\/admin\/support\/break-glass\/grants\/:id\/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, actionLimiter/u,
+    /app\.post\('\/v1\/admin\/support\/break-glass\/grants\/:id\/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportBreakGlassReviewLimiter/u,
   );
+  assert.match(app, /const supportBreakGlassGrantLimiter = rateLimit\([^;]+limit: 5/u);
+  assert.match(app, /const supportBreakGlassReviewLimiter = rateLimit\([^;]+limit: 5/u);
 });
 
 test('break-glass stays P0-only, case-bound, short-lived and non-live', () => {

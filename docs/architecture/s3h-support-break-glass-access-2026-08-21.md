@@ -45,6 +45,11 @@ record, eligibility rules, privacy/retention classification and review evidence.
 5. Grant creation, denial and successful case access write sanitized audit
    events. Justification and token material are never copied into denial or
    access event metadata.
+6. Grant creation and independent review each have a separate strict
+   five-attempts-per-15-minutes HTTP limit. They do not share the generic
+   account-action budget, so an exact idempotent replay remains available
+   during a P0 response. The case-bound token header is explicitly allowed by
+   CORS for the approved staff client.
 
 ## Independent review
 
