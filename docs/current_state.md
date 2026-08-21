@@ -6,13 +6,13 @@ Verified: 2026-08-21 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current P0A implementation head:
-  `540583829361a402066f85c81716ba60d7d475cc`.
-- The P0A implementation commit is contained in the local branch, remote
+- Current P0B implementation head:
+  `84ab2b587565baaf56b10791ea9b6bf3beb8591e`.
+- The P0B implementation commit is contained in the local branch, remote
   branch and draft PR #7 head; the PR remains open and unmerged.
-- GitHub Actions run `32433274526`, associated with that exact PR head, is
+- GitHub Actions run `32434902386`, associated with that exact PR head, is
   green. The workflow verified GitHub's synthetic PR merge result
-  `6bff2509868afd3be4f5ac8ad3829d589e7f186d`; backend and Flutter regression
+  `65235f901c8fbc092394f2ca7da42562589a1c6c`; backend and Flutter regression
   passed, while the signed candidate and image publication were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
@@ -357,6 +357,34 @@ Verified: 2026-08-21 on the Mac mini.
   open external gates. P0A closes as an honest technical-readiness HOLD and
   V2.4 continues only to the non-activating P0B-READINESS dossier.
 
+## P0B final pilot decision dossier
+
+- P0B closes the V2.4 rolling-autonomy runway with **NO-GO now** and
+  `hold-for-walid-decision`. It is a decision dossier, not pilot activation.
+- The source-bound matrix covers 13 feature areas. V5.2 single item and the
+  non-reserving G2 navigation/cart/Gemerkt surfaces are the only product scope
+  recommended for a later bounded pilot. G3-G5, Business, multi-provider,
+  external-AI, public-registration and real-money scope remain excluded.
+- Ten blockers remain open: professional V5.2/G3 legal review; complete
+  operator/provider facts; licensed marketplace PSP contract and sandbox E2E;
+  explicit region configuration; current-source physical Pixel evidence;
+  current signed Android/iOS evidence; operational assignments/delegates/
+  absence tests; normalized unit economics; privacy/retention/Store approvals;
+  and an explicit future activation decision.
+- Operations remain blocked with six unassigned functional roles, no delegates
+  and no passed absence test. Provider fees, VAT, cloud costs, founder hours
+  and founder replacement rate remain unavailable, so profitability is
+  `undetermined` rather than silently positive or zero-cost.
+- The single recommended future candidate is 30 invited private adults, 30-50
+  synthetic-payment flows, exactly Spiegelberg in Rems-Murr-Kreis and only
+  `cat8/Elektrowerkzeuge`, `cat8/Bohrmaschinen` and `cat8/Schleifer`.
+  This scope is not configured or activated.
+- Five ordered next-authorization tokens are recorded as recommendations with
+  `autoExecute=false`. The runway ends without starting any of them.
+- Production, public registration, payment/provider, real money, Store,
+  signing, Cloud/VPS, account permissions and all disabled feature flags remain
+  unchanged. Draft PR #7 remains open, Draft and unmerged.
+
 ## Validation and rollback
 
 - Exact G4B CI `32425415877` is green at
@@ -455,14 +483,31 @@ Verified: 2026-08-21 on the Mac mini.
 - P0A has no migration or external state. Its rollback is a revert of
   `5405838`; device data, provider/payment state, production and historical
   legal/device evidence remain untouched.
+- P0B GitHub Actions run `32434902386` is green and associated with exact PR
+  head `84ab2b587565baaf56b10791ea9b6bf3beb8591e`. GitHub checked synthetic PR
+  merge result `65235f901c8fbc092394f2ca7da42562589a1c6c`: all 333 backend
+  tests passed with PostgreSQL 16, and 321 Flutter tests passed with one
+  documented skip plus the separate Google-only profile test. The P0B
+  validator passed eight protection tests and reported 13 features, ten
+  blockers, two residual risks, five recommended tokens, real money false and
+  automatic continuation false. Analyzer stayed at 222 findings; loopback web
+  smoke, web debug, Android debug APK, secret scan, dependency audit, Compose
+  validation and API image build passed. One transitive moderate advisory
+  remains; there are no high/critical advisories. Signed-candidate build and
+  publication were skipped.
+- P0B has no migration, runtime route or external state. Its rollback is a
+  revert of `84ab2b5`; device data, provider/payment state, production and all
+  historical evidence remain untouched.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active P0B-READINESS under the V2.4
-rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
+`docs/current_work_package.md` records P0B-READINESS as closed and the V2.4
+rolling-autonomy runway as ended. G3B, G2A, G2L, G2B and U0 remain technically
+complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
 later legal/release gate. The planner and supply-enrichment runway remain
-disabled and non-public; listing sets also remain disabled and non-public.
+disabled and non-public; listing sets also remain disabled and non-public. No
+next package starts until Walid gives a new explicit bounded authorization.
 Older reports and root `architecture.md` are
 evidence/history, not permission to reopen a closed launch boundary.

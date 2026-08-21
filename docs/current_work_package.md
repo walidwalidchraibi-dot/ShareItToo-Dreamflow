@@ -1,60 +1,48 @@
-# Current Work Package: P0B-READINESS - Pilot Decision Dossier
+# Current Work Package: V2.4 runway closed at P0B-READINESS
 
-Status: **active under the V2.4 rolling-autonomy runway** on 21.08.2026.
+Status: **closed with NO-GO now; HOLD for Walid's decision** on 21.08.2026.
 
-## Authorization and boundary
+## Exact close evidence
 
-Walid instructed Codex to follow `00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`.
-P0A is formally closed as an honest technical HOLD at implementation commit
-`540583829361a402066f85c81716ba60d7d475cc`; GitHub Actions run `32433274526`
-associated with that exact PR head is green.
+- P0B implementation commit:
+  `84ab2b587565baaf56b10791ea9b6bf3beb8591e`.
+- Green GitHub Actions run: `32434902386`.
+- GitHub synthetic PR merge:
+  `65235f901c8fbc092394f2ca7da42562589a1c6c`.
+- Draft PR #7 remains open, Draft and unmerged.
+- Machine result: `decision=no_go_now`, 13 feature entries, ten blockers, two
+  residual risks, five recommended tokens, `realMoney=false` and
+  `autoContinue=false`.
 
-P0B-READINESS is an independent decision dossier only. It must not activate a
-pilot or change production, VPS/OpenClaw, Maximus, SSH, DNS, cloud-console,
-Store, signing, payment/provider, real-money, account-permission or public
-state. PR #7 remains Draft and unmerged. Disabled booking-group, planner,
-supply-enrichment and listing-set features remain disabled and unavailable in
-release mode.
-
-## P0A handover
-
-- Thirteen current-source technical cells passed.
-- Current-source physical Pixel evidence remains blocked by signature and
-  installed-data preservation; historical Pixel evidence is not current proof.
-- No signed current candidate exists under this authorization.
-- Legal approval, real payment/provider evidence, role assignments,
-  backup/absence tests and public activation remain open.
-- One transitive moderate dependency advisory remains; no high or critical
-  advisory is present.
-
-## Required dossier
-
-- Give a feature-by-feature readiness matrix for the existing single-item
-  product and every disabled G3-G5 extension.
-- Keep professional legal review an explicit hard gate and identify the exact
-  contract, quote/acceptance, cancellation/withdrawal, payment/refund,
-  handover/return, damage/`needsReview`, privacy, retention and Business/global
-  review scope.
-- Keep real-money, payment-provider, payout/refund and live-provider gates open
-  until separately authorized and evidenced.
-- Assess operational staffing, functional-role ownership, delegate/backup and
-  absence-test readiness without inventing assignments.
-- Assess unit economics and founder independence from evidence-classed inputs;
-  unavailable costs, VAT, provider fees, founder hours or replacement rates
-  must remain unavailable and cannot become zero.
-- List defects, residual risks and the exact blocked evidence carried from
-  P0A.
-- Recommend one bounded future pilot cohort, region and category based only on
-  current verified scope. The recommendation is not activation.
-- Provide exact recommended next authorization tokens. Do not execute them.
-
-## Package gate and runway end
-
-The dossier must be machine-validated, source-bound and internally consistent.
-It must distinguish `ready`, `hold`, `blocked`, `not authorized` and
-`unavailable`; no missing evidence may become readiness. Close P0B with a clear
-GO/NO-GO recommendation for a later decision, but do not activate anything.
+## Final boundary
 
 P0B-READINESS is the end of the V2.4 rolling-autonomy runway. There is no
-automatic continuation after it. Stop for Walid's decision with all production,
-payment/provider, Store, signing, Cloud/VPS and public gates unchanged.
+automatic continuation after it. Nothing in the dossier activates a pilot or
+authorizes production, VPS/OpenClaw, Maximus, SSH, DNS, Cloud, Store, signing,
+payment/provider, real-money, account-permission or public changes.
+
+G3 booking groups, G4 planner/inventory, G5 supply enrichment and listing sets
+remain disabled and production-rejected. The recommended future Spiegelberg
+cohort and its region code remain unconfigured. No signed candidate was built,
+no artifact was published and installed Pixel data remains preserved.
+
+## Decision result
+
+**NO-GO now.** Green technical CI does not satisfy the open professional legal,
+operator/provider, payment sandbox, signed-device, staffing/absence, unit
+economics, Privacy/Retention/Store and explicit activation gates.
+
+The detailed dossier is
+`docs/operations/P0B_PILOT_GO_NO_GO_DOSSIER.md`; the machine-readable source is
+`docs/evidence/p0b/pilot-go-no-go-dossier.json`.
+
+## Unexecuted recommended tokens
+
+1. `P0B_NEXT_LEGAL_V52_REVIEW_ONLY`
+2. `P0B_NEXT_OPS_ROLES_BACKUP_ABSENCE_ONLY`
+3. `P0B_NEXT_SIGNED_DEVICE_EVIDENCE_ONLY`
+4. `P0B_NEXT_PSP_SANDBOX_E2E_ONLY`
+5. `P0B_NEXT_INVITED_SYNTHETIC_PILOT_SPIEGELBERG_CAT8_30`
+
+These tokens are recommendations only. None was executed. Stop for Walid's new
+explicit bounded decision; do not infer authorization from their presence.

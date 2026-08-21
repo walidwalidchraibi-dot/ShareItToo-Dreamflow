@@ -53,8 +53,27 @@ The focused validator suite contains eight tests. It rejects GO/auto-continue,
 real money/public activation, legal approval inferred from tests, invented
 staffing/economics, an activated future region and missing evidence paths.
 
-Exact implementation-commit and GitHub Actions evidence will be recorded here
-after the matching draft-PR head completes CI. Until then, P0B remains NO-GO.
+Implementation commit `84ab2b587565baaf56b10791ea9b6bf3beb8591e`
+is the exact draft-PR head validated by GitHub Actions run `32434902386`.
+GitHub also validated synthetic PR merge result
+`65235f901c8fbc092394f2ca7da42562589a1c6c`.
+
+Exact CI evidence passed:
+
+- 333 of 333 backend tests, including PostgreSQL 16 integration;
+- 321 Flutter tests plus one documented skip and the separate Google-only
+  profile test;
+- all eight P0B validator tests and the final P0B result with 13 features, ten
+  blockers, two residual risks, five unexecuted tokens, no real money and no
+  automatic continuation;
+- analyzer at the improved bounded 222 findings;
+- current-source web debug, loopback smoke and Android debug APK;
+- production/staging Compose validation, secret scan and commit-labelled API
+  image build.
+
+The dependency audit retains one transitive moderate advisory and no high or
+critical advisory. The signed candidate and image publication were skipped.
+P0B remains NO-GO despite green technical CI.
 
 ## Rollback
 
