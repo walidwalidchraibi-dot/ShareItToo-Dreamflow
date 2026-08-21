@@ -698,8 +698,16 @@ evidence/history, not permission to reopen a closed launch boundary.
 - S3F sends no message and performs no external action. Appeal submission,
   reopen execution, live staffing and all production/payment/provider gates
   remain open separate work.
-- The current S3G candidate adds a reporter-only electronic review request for
-  an explicitly configured, still-open server deadline on a published closed
-  decision. It creates a separate `SIT-R-*` receipt and priority-bound next
-  update without reopening the case, accepting evidence IDs, sending a message
-  or executing an outcome. Reopen remains staff-only with an explicit owner.
+- S3G is verified at exact commit
+  `966e374fe44af13bbbbfb92202e58b328e80a905` and successful GitHub Actions
+  run `32515722756`. All 404 Backend tests passed, including PostgreSQL 16
+  migration/integration coverage; all 343 Flutter tests passed with one
+  documented skip plus the separate Google-only profile test. Web, loopback
+  smoke, Android debug, secret scan, dependency audit, Compose and the
+  commit-labelled API image build passed. The signed-candidate step and
+  publication job remained skipped.
+- S3G adds a reporter-only electronic review request for an explicitly
+  configured, still-open server deadline on a published closed decision. It
+  creates a separate `SIT-R-*` receipt and priority-bound next update without
+  reopening the case, accepting evidence IDs, sending a message or executing
+  an outcome. Reopen remains staff-only with an explicit owner.

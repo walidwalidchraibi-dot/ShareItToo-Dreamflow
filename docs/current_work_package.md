@@ -89,12 +89,16 @@ run `32512521575`. Migration `035`, Backend/PostgreSQL, Flutter, Web and Android
 debug checks passed; the signed-candidate step and publication remained
 skipped.
 
-The active package is `S3G_CLOSED_CASE_APPEAL_SUBMISSION`. It addresses the
-bounded technical path behind `SUP-151` and the submission portion of
-`SUP-014`/template `T-042`: an explicitly configured, exact server deadline;
-one authenticated reporter submission per published decision; a separate
-review reference and next-update checkpoint; append-only receipt/audit truth;
-and a fail-closed Flutter surface. It does not adjudicate the appeal, reopen a
+`S3G_CLOSED_CASE_APPEAL_SUBMISSION` is technically verified at exact commit
+`966e374fe44af13bbbbfb92202e58b328e80a905` and exact successful GitHub Actions
+run `32515722756`. It addresses the bounded technical path behind `SUP-151` and
+the submission portion of `SUP-014`/template `T-042`: an explicitly configured,
+exact server deadline; one authenticated reporter submission per published
+decision; a separate review reference and next-update checkpoint; append-only
+receipt/audit truth; and a fail-closed Flutter surface. All 404 Backend tests,
+including PostgreSQL 16, and 343 Flutter tests passed with the documented
+Flutter skip; Web and Android debug builds passed. The signed-candidate and
+publication jobs remained skipped. S3G does not adjudicate the appeal, reopen a
 case automatically, render or send a template, or execute any external or live
 measure. Missing policy dates remain missing and are never invented.
 

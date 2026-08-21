@@ -1,7 +1,8 @@
 # S3G closed-case appeal submission - technical compliance record
 
-Status: implementation candidate under local verification, non-live and
-fail-closed. Exact PostgreSQL 16 GitHub CI is required before closeout.
+Status: technically verified, non-live and fail-closed. Exact GitHub Actions
+run `32515722756` passed for commit
+`966e374fe44af13bbbbfb92202e58b328e80a905`.
 
 ## Bound source and scope
 
@@ -47,7 +48,7 @@ explicit staff-configured exact deadline and never derives a legal deadline.
 - Appeal configuration and receipt data join the personal-data export. Privacy
   and retention source inventories remain honest drafts and bind exact sources.
 
-## Local verification so far
+## Verification
 
 - Complete Backend suite: 403 passed, zero failed and one expected PostgreSQL
   skip; JavaScript and operations-shell syntax checks passed.
@@ -60,6 +61,14 @@ explicit staff-configured exact deadline and never derives a legal deadline.
 - Focused Flutter analyzer passed with no findings.
 - PostgreSQL 16 execution of migration `036` remains delegated to exact-commit
   GitHub CI because the Mac mini has no local Docker runtime.
+- Exact GitHub Actions run `32515722756` passed at
+  `966e374fe44af13bbbbfb92202e58b328e80a905`: all 404 Backend tests passed,
+  including PostgreSQL 16 migration/integration coverage; all 343 Flutter tests
+  passed with one documented skip plus the separate Google-only profile test;
+  Web build, loopback smoke, Android debug build, secret scan, dependency
+  audit, Compose validation and the commit-labelled API image build passed.
+- The signed-candidate step and `publish-api-image` job remained skipped. Draft
+  PR #7 remained open and unmerged.
 
 ## Persistent boundaries
 
