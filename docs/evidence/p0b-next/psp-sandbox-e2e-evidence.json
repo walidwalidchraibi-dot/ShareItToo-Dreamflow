@@ -25,7 +25,7 @@
       },
       {
         "path": "backend/test/postgres_foundation.integration.test.js",
-        "sha256": "87f57171188359bedd0668accaeb2546b36195c826402c408606c14f770151a0"
+        "sha256": "a92e3951860545fe044b997221bcc8ff2e6c14965a8ee82c8e1b40efef731951"
       },
       {
         "path": "backend/src/psp_sandbox_readiness_gate.js",

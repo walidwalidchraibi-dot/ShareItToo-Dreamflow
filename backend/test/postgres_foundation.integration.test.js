@@ -3364,6 +3364,14 @@ if (!databaseUrl) {
       assert.ok(userMessageDetail.messages.some((message) => (
         message.correctedMessageId === greenMessage.message.id
       )));
+      await setupPool.query(
+        `UPDATE support_cases
+            SET current_owner_id = NULL,
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1`,
+        [supportIntake.supportCase.id],
+      );
       const unassignedP0WithoutGrant = await fetch(
         `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}`,
         { headers: supportHeaders },
