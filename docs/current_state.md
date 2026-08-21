@@ -67,8 +67,7 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `033` and
-  non-live migration candidate `034`,
+- Node/Express backend with verified PostgreSQL migrations through `038`,
   deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -116,6 +115,17 @@ Verified: 2026-08-21 on the Mac mini.
   and the browser token header is CORS-allowlisted. Incident-wide access remains
   absent rather than inferred. PR #7 remains draft and unmerged; no live or
   signed-candidate path was used.
+- S3I is technically verified at exact commit
+  `f8c596f2c555b1431720d8240f23dffe8770e936` and successful GitHub Actions run
+  `32525140426`. The exact 55-template Drive catalog is source-hash-bound;
+  server-bound values and Berlin times cannot be replaced by client claims.
+  GREEN publication is allowlisted, YELLOW requires independent exact-hash
+  Admin review, and RED or money-bearing templates stay rejected from the
+  generic path. Sent messages appear only as authenticated in-app records for
+  their case recipient, with immutable correction history and no external
+  delivery. All 426 Backend tests including PostgreSQL 16 and the complete
+  Flutter/Web/Android debug regression passed. PR #7 remains draft and
+  unmerged; no live, signed-candidate or publication path was used.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

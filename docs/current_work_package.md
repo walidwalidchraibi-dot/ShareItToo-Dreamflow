@@ -117,6 +117,21 @@ same run passed the 343-test Flutter suite with one documented skip, the
 separate Google-only test, Web build and loopback smoke, and Android debug
 build. Signed-candidate, publication, merge and live paths remained skipped.
 
+`S3I_GUARDED_SUPPORT_TEMPLATE_PUBLICATION` is technically verified at exact
+implementation/evidence commit
+`f8c596f2c555b1431720d8240f23dffe8770e936` and successful GitHub Actions run
+`32525140426`. It imports and hash-binds the exact 55-template Drive catalog,
+renders available case facts server-side in `Europe/Berlin`, blocks unresolved
+placeholders and recognizable sensitive or unsafe claims, limits immediate
+GREEN publication to an explicit case-state allowlist, and requires independent
+exact-hash Admin review for YELLOW content. Migration `038` makes rendered,
+approval and correction truth immutable and append-only. Publication is an
+authenticated in-app record only; no email, push, provider or live action is
+called. All 426 Backend tests including PostgreSQL 16, 345 Flutter tests with
+one documented skip, Web, Android debug, dependency/secret/Compose and API-image
+checks passed. RED, money and unavailable-server-binding templates remain on
+HOLD for their dedicated workflows.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress
