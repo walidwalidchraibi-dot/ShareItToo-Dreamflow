@@ -1,3 +1,5 @@
+import { buildOperationalDelegationCockpit } from './operational_delegation.js';
+
 const EVIDENCE_CLASSES = new Set(['actual', 'configured', 'estimated', 'unavailable']);
 const COST_CATEGORIES = Object.freeze(['kyc', 'fraud', 'cloud', 'ai', 'marketing']);
 const FOUNDER_HOUR_CATEGORIES = Object.freeze([
@@ -850,6 +852,7 @@ export function buildPilotCockpitSnapshot({
         || currencyBuckets.length === 0
       ? 'undetermined'
       : 'non_positive');
+  const projectFunnel = buildFunnel(funnelRow);
   return {
     schemaVersion: 1,
     kind: 'sit-pilot-cockpit',
@@ -869,8 +872,9 @@ export function buildPilotCockpitSnapshot({
     currencyAggregation: 'separate-no-fx',
     profitability,
     currencyBuckets,
-    projectFunnel: buildFunnel(funnelRow),
+    projectFunnel,
     founderIndependence,
+    operationalDelegation: buildOperationalDelegationCockpit(),
     privacy: {
       aggregateOnly: true,
       containsUserIdentity: false,

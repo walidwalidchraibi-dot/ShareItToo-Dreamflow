@@ -168,6 +168,21 @@ test('snapshot keeps cash and normalized P&L separate with exact cent arithmetic
   assert.equal(snapshot.profitability, 'non_positive');
   assert.equal(snapshot.projectFunnel.cartToBookingAttribution.value, null);
   assert.equal(snapshot.projectFunnel.reservationOrHoldCreatedByCart, false);
+  assert.equal(snapshot.operationalDelegation.state, 'hold-external-role-assignments');
+  assert.equal(snapshot.operationalDelegation.processes.length, 4);
+  assert.equal(snapshot.operationalDelegation.reportingSeparation.blended, false);
+  assert.equal(
+    snapshot.operationalDelegation.reportingSeparation.normalOperationsPath,
+    'projectFunnel',
+  );
+  assert.equal(
+    snapshot.operationalDelegation.reportingSeparation.founderHoursPath,
+    'founderIndependence.hoursByCategory',
+  );
+  assert.equal(
+    snapshot.operationalDelegation.reportingSeparation.founderEscalationsPath,
+    'founderIndependence.escalations',
+  );
   assert.doesNotMatch(JSON.stringify(snapshot), /admin-id|email|message|latitude|longitude/iu);
 });
 

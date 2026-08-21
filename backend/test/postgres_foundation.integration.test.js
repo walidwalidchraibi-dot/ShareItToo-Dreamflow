@@ -2482,6 +2482,15 @@ if (!databaseUrl) {
       assert.equal(pilotCockpit.privacy.containsUserIdentity, false);
       assert.equal(pilotCockpit.projectFunnel.reservationOrHoldCreatedByCart, false);
       assert.equal(pilotCockpit.founderIndependence.totalMinutes.value, null);
+      assert.equal(
+        pilotCockpit.operationalDelegation.state,
+        'hold-external-role-assignments',
+      );
+      assert.equal(pilotCockpit.operationalDelegation.processes.length, 4);
+      assert.equal(
+        pilotCockpit.operationalDelegation.reportingSeparation.blended,
+        false,
+      );
       assert.doesNotMatch(
         JSON.stringify(pilotCockpit),
         /owner@example\.com|renter-a@example\.com|admin@example\.com/u,
