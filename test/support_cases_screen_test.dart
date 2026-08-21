@@ -28,7 +28,11 @@ Map<String, dynamic> _supportCase({
       'timezone': 'Europe/Berlin',
       'userFacingSummary': 'Wir benötigen noch eine konkrete Angabe von dir.',
       'finalDecisionAvailable': false,
+      'appealConfigurationRecorded': false,
+      'appealState': 'not_applicable',
       'appealAvailable': false,
+      'appealDeadline': null,
+      'appealDeadlineDisplay': null,
       'closureReason': null,
       'createdAt': '2026-08-21T10:00:00.000Z',
       'updatedAt': '2026-08-21T11:00:00.000Z',
@@ -54,6 +58,19 @@ Map<String, dynamic> _detail() => {
           'createdAt': '2026-08-21T11:00:00.000Z',
         },
       ],
+    };
+
+Map<String, dynamic> _publishedDecision() => {
+      'decision': 'Die interne Prüfung ist abgeschlossen.',
+      'effect': 'Dein Konto und deine Zahlung bleiben unverändert.',
+      'reason': 'Der bestätigte technische Stand wurde geprüft.',
+      'implementationResult':
+          'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
+      'redressRoute': 'Eine menschliche Überprüfung kann angefordert werden.',
+      'implementedAt': '2026-08-21T14:30:00.000Z',
+      'implementedDisplay': '21.08.2026, 16:30',
+      'communicatedAt': '2026-08-21T14:35:00.000Z',
+      'timezone': 'Europe/Berlin',
     };
 
 void main() {
@@ -106,16 +123,7 @@ void main() {
       'userFacingSummary': 'Die interne Prüfung wurde abgeschlossen.',
     };
     final finalDecision = {
-      'decision': 'Die interne Prüfung ist abgeschlossen.',
-      'effect': 'Dein Konto und deine Zahlung bleiben unverändert.',
-      'reason': 'Der bestätigte technische Stand wurde geprüft.',
-      'implementationResult':
-          'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
-      'redressRoute': 'Eine menschliche Überprüfung kann angefordert werden.',
-      'implementedAt': '2026-08-21T14:30:00.000Z',
-      'implementedDisplay': '21.08.2026, 16:30',
-      'communicatedAt': '2026-08-21T14:35:00.000Z',
-      'timezone': 'Europe/Berlin',
+      ..._publishedDecision(),
       'decisionCode': 'support.internal_code_must_not_render',
       'implementationReference': 'internal-ledger-reference',
     };
@@ -190,6 +198,137 @@ void main() {
       find.text('Support-Fälle konnten nicht sicher geladen werden.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'closed reporter can submit one bounded appeal and sees confirmed receipt',
+      (tester) async {
+    var submitted = false;
+    final closed = {
+      ..._supportCase(status: 'closed'),
+      'waitingOn': 'none',
+      'nextAction': null,
+      'nextUpdateAt': null,
+      'nextUpdateDisplay': null,
+      'finalDecisionAvailable': true,
+      'appealConfigurationRecorded': true,
+      'appealState': 'available',
+      'appealAvailable': true,
+      'appealDeadline': '2026-09-15T18:00:00.000Z',
+      'appealDeadlineDisplay': '15.09.2026, 20:00',
+      'closureReason': 'resolved_action_completed',
+    };
+    Map<String, dynamic> detail() => {
+          'supportCase': submitted
+              ? {
+                  ...closed,
+                  'appealState': 'submitted',
+                  'appealAvailable': false,
+                  'version': 3,
+                }
+              : closed,
+          'finalDecision': _publishedDecision(),
+          'appeal': submitted
+              ? {
+                  'id': '33333333-3333-4333-8333-333333333333',
+                  'reviewNumber': 'SIT-R-ABCDEFGHJKLM',
+                  'originalCaseNumber': 'SIT-ABCDEFGHJKLM',
+                  'status': 'submitted',
+                  'submittedAt': '2026-08-21T15:00:00.000Z',
+                  'submittedDisplay': '21.08.2026, 17:00',
+                  'nextUpdateAt': '2026-08-21T16:00:00.000Z',
+                  'nextUpdateDisplay': '21.08.2026, 18:00',
+                  'materialSummary':
+                      'Deine Begründung wurde vollständig und sicher aufgenommen.',
+                  'interimEffect':
+                      'Der Antrag selbst löst keine automatische Änderung oder externe Maßnahme aus.',
+                  'externalMessageSent': false,
+                  'timezone': 'Europe/Berlin',
+                }
+              : null,
+          'events': const [],
+        };
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(
+        listLoader: () async => [closed],
+        detailLoader: (_) async => detail(),
+        appealSubmitter: (caseId, grounds, version, key) async {
+          expect(caseId, '11111111-1111-4111-8111-111111111111');
+          expect(grounds, 'Bitte die bestätigten Tatsachen erneut prüfen.');
+          expect(version, 2);
+          expect(key, startsWith('support_appeal_'));
+          submitted = true;
+          return {
+            'id': '33333333-3333-4333-8333-333333333333',
+          };
+        },
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('SIT-ABCDEFGHJKLM'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('support_appeal_grounds')),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('support_appeal_grounds')),
+      'Bitte die bestätigten Tatsachen erneut prüfen.',
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('support_appeal_submit')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('support_appeal_submit')));
+    await tester.pumpAndSettle();
+
+    expect(submitted, true);
+    expect(
+      () => SupportCaseDetailViewData.fromMap(detail()),
+      returnsNormally,
+    );
+    expect(find.byKey(const ValueKey('support_appeal_form')), findsNothing);
+    await tester.drag(
+      find.byType(Scrollable).last,
+      const Offset(0, -1200),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Support-Fälle konnten nicht sicher geladen werden.'),
+      findsNothing,
+    );
+    expect(
+        find.byKey(const ValueKey('support_appeal_receipt')), findsOneWidget);
+    expect(find.text('Eingegangen: SIT-R-ABCDEFGHJKLM'), findsOneWidget);
+    expect(find.text('Nächstes Update: 21.08.2026, 18:00'), findsOneWidget);
+    expect(find.textContaining('automatische Änderung'), findsOneWidget);
+  });
+
+  testWidgets('closed case without explicit appeal configuration fails closed',
+      (tester) async {
+    final unsafeClosed = {
+      ..._supportCase(status: 'closed'),
+      'waitingOn': 'none',
+      'nextAction': null,
+      'nextUpdateAt': null,
+      'nextUpdateDisplay': null,
+      'appealState': 'unconfigured',
+      'closureReason': 'information_provided',
+    };
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(listLoader: () async => [unsafeClosed]),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Support-Fälle konnten nicht sicher geladen werden.'),
+      findsOneWidget,
+    );
+    expect(find.text('unconfigured'), findsNothing);
   });
 
   testWidgets('unknown server status fails closed without exposing its code',

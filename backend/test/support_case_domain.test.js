@@ -431,8 +431,37 @@ test('implementation, resolution, closure and reopen guards fail closed', () => 
     () => transition(caseRecord({ status: 'resolved' }), {
       status: 'closed',
       closureReason: 'anything',
+      appealAvailable: false,
     }),
     /support_closure_reason_invalid/,
+  );
+  assert.throws(
+    () => transition(caseRecord({ status: 'resolved' }), {
+      status: 'closed',
+      closureReason: 'information_provided',
+    }),
+    /support_appeal_configuration_required/,
+  );
+  const closedWithoutAppeal = transition(caseRecord({ status: 'resolved' }), {
+    status: 'closed',
+    closureReason: 'information_provided',
+    appealAvailable: false,
+  });
+  assert.equal(closedWithoutAppeal.appealAvailable, false);
+  assert.equal(closedWithoutAppeal.appealDeadline, null);
+  const closedWithAppeal = transition(caseRecord({
+    status: 'resolved',
+    decision_id: decisionId,
+  }), {
+    status: 'closed',
+    closureReason: 'resolved_action_completed',
+    appealAvailable: true,
+    appealDeadline: '2026-09-15T18:00:00.000Z',
+  });
+  assert.equal(closedWithAppeal.appealAvailable, true);
+  assert.equal(
+    closedWithAppeal.appealDeadline.toISOString(),
+    '2026-09-15T18:00:00.000Z',
   );
   assert.throws(
     () => transition(caseRecord({ status: 'closed' }), {
@@ -441,10 +470,20 @@ test('implementation, resolution, closure and reopen guards fail closed', () => 
     }),
     /support_reopen_reason_required/,
   );
+  assert.throws(
+    () => transition(caseRecord({ status: 'closed' }), {
+      status: 'reopened',
+      reopenReason: 'Neue erhebliche Information wurde eingereicht.',
+    }),
+    /support_reopen_owner_required/,
+  );
   const reopened = transition(caseRecord({ status: 'closed' }), {
     status: 'reopened',
     reopenReason: 'Neue erhebliche Information wurde eingereicht.',
+    currentOwnerId: 'support-1',
   });
   assert.equal(reopened.status, 'reopened');
   assert.equal(reopened.waitingOn, 'support_owner');
+  assert.equal(reopened.currentOwnerId, 'support-1');
+  assert.equal(reopened.appealAvailable, false);
 });

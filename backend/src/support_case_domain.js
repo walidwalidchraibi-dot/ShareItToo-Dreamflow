@@ -250,9 +250,9 @@ function optionalUuid(value, code) {
   return result;
 }
 
-function requiredFutureDate(value, now, code) {
+function requiredFutureDate(value, now, code, maximumDays = 31) {
   const date = value instanceof Date ? new Date(value) : new Date(value);
-  const upperBound = new Date(now.getTime() + (31 * 24 * 60 * 60 * 1000));
+  const upperBound = new Date(now.getTime() + (maximumDays * 24 * 60 * 60 * 1000));
   if (!Number.isFinite(date.getTime()) || date <= now || date > upperBound) {
     throw new SupportCaseError(400, code);
   }
@@ -491,6 +491,10 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
     resolutionReference: null,
     closureReason: null,
     reopenReason: null,
+    appealAvailable: caseRecord.appeal_available === true,
+    appealDeadline: caseRecord.appeal_deadline
+      ? new Date(caseRecord.appeal_deadline)
+      : null,
   };
 
   const activeNext = () => {
@@ -581,12 +585,37 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
     if (!closureReasons.has(updates.closureReason)) {
       throw new SupportCaseError(400, 'support_closure_reason_invalid');
     }
+    if (typeof raw.appealAvailable !== 'boolean') {
+      throw new SupportCaseError(400, 'support_appeal_configuration_required');
+    }
+    updates.appealAvailable = raw.appealAvailable;
+    if (updates.appealAvailable) {
+      if (!caseRecord.decision_id) {
+        throw new SupportCaseError(409, 'support_appeal_requires_published_decision');
+      }
+      updates.appealDeadline = requiredFutureDate(
+        raw.appealDeadline,
+        now,
+        'support_appeal_deadline_required',
+        366,
+      );
+    } else {
+      if (raw.appealDeadline !== undefined && raw.appealDeadline !== null) {
+        throw new SupportCaseError(400, 'support_appeal_deadline_without_availability');
+      }
+      updates.appealDeadline = null;
+    }
     if (caseRecord.priority === 'p0' && actorRole !== 'admin') {
       throw new SupportCaseError(403, 'support_p0_closure_requires_admin');
     }
   }
   if (toStatus === 'reopened') {
     updates.reopenReason = requiredText(raw.reopenReason, 2000, 'support_reopen_reason_required', 3);
+    updates.currentOwnerId = optionalIdentifier(raw.currentOwnerId, 'support_owner_invalid');
+    if (!updates.currentOwnerId) {
+      throw new SupportCaseError(400, 'support_reopen_owner_required');
+    }
+    updates.appealAvailable = false;
   }
   if (toStatus === 'under_review' && caseRecord.status === 'decision_pending_approval') {
     updates.decisionId = null;

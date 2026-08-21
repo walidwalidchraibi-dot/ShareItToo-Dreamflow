@@ -97,6 +97,7 @@ if (!databaseUrl) {
         '033_support_decision_approval_guard.up.sql',
         '034_support_user_action_deadline.up.sql',
         '035_support_final_decision_publication.up.sql',
+        '036_support_closed_case_appeal_submission.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -212,6 +213,29 @@ if (!databaseUrl) {
         { column_name: 'user_facing_decision', is_nullable: 'YES' },
         { column_name: 'user_facing_effect', is_nullable: 'YES' },
         { column_name: 'user_facing_implementation_result', is_nullable: 'YES' },
+      ]);
+      const supportAppealColumns = await setupPool.query(
+        `SELECT table_name, column_name, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND (
+              (table_name = 'support_cases' AND column_name = ANY($1::text[]))
+              OR (table_name = 'support_appeals' AND column_name = ANY($2::text[]))
+            )
+          ORDER BY table_name, column_name`,
+        [[
+          'appeal_configured_at',
+          'appeal_configured_by',
+        ], [
+          'human_readable_appeal_number',
+          'next_update_at',
+        ]],
+      );
+      assert.deepEqual(supportAppealColumns.rows, [
+        { table_name: 'support_appeals', column_name: 'human_readable_appeal_number', is_nullable: 'YES' },
+        { table_name: 'support_appeals', column_name: 'next_update_at', is_nullable: 'YES' },
+        { table_name: 'support_cases', column_name: 'appeal_configured_at', is_nullable: 'YES' },
+        { table_name: 'support_cases', column_name: 'appeal_configured_by', is_nullable: 'YES' },
       ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name
@@ -583,6 +607,92 @@ if (!databaseUrl) {
         ),
         (error) => error?.code === '23514'
           && error?.message === 'support_decision_implementation_evidence_immutable',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET status = 'closed', closure_reason = 'resolved_action_completed',
+                  closed_at = now(), appeal_available = true,
+                  appeal_deadline = now() + interval '21 days',
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportCase.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_appeal_configuration_required',
+      );
+      const closedSupportCase = await setupPool.query(
+        `UPDATE support_cases
+            SET status = 'closed', closure_reason = 'resolved_action_completed',
+                closed_at = now(), appeal_available = true,
+                appeal_deadline = now() + interval '21 days',
+                appeal_configured_at = now(), appeal_configured_by = 'admin',
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1
+          RETURNING status, appeal_available, appeal_configured_by, lock_version`,
+        [supportCase.rows[0].id],
+      );
+      assert.deepEqual(closedSupportCase.rows[0], {
+        status: 'closed',
+        appeal_available: true,
+        appeal_configured_by: 'admin',
+        lock_version: 5,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO support_appeals (
+             original_decision_id, case_id, grounds, new_evidence_ids,
+             submitted_by, idempotency_key, human_readable_appeal_number,
+             next_update_at
+           ) VALUES (
+             $1, $2, 'Review with unsafe unbound evidence.',
+             ARRAY[gen_random_uuid()], 'owner', 'support-appeal-invalid-evidence',
+             'SIT-R-BCDFGHJKLMNP', now() + interval '1 hour'
+           )`,
+          [supportDecision.rows[0].id, supportCase.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_appeal_evidence_not_enabled',
+      );
+      const supportAppeal = await setupPool.query(
+        `INSERT INTO support_appeals (
+           original_decision_id, case_id, grounds, new_evidence_ids,
+           submitted_by, idempotency_key, human_readable_appeal_number,
+           next_update_at
+         ) VALUES (
+           $1, $2, 'Please perform the separate human review.', '{}',
+           'owner', 'support-appeal-integration', 'SIT-R-CDFGHJKLMNPQ',
+           now() + interval '1 hour'
+         ) RETURNING id, status, human_readable_appeal_number`,
+        [supportDecision.rows[0].id, supportCase.rows[0].id],
+      );
+      assert.equal(supportAppeal.rows[0].status, 'submitted');
+      const appealBoundCase = await setupPool.query(
+        `UPDATE support_cases
+            SET appeal_available = false, appeal_id = $2,
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1
+          RETURNING appeal_available, appeal_id, status, lock_version`,
+        [supportCase.rows[0].id, supportAppeal.rows[0].id],
+      );
+      assert.deepEqual(appealBoundCase.rows[0], {
+        appeal_available: false,
+        appeal_id: supportAppeal.rows[0].id,
+        status: 'closed',
+        lock_version: 6,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_appeals
+              SET grounds = 'Rewritten appeal grounds.'
+            WHERE id = $1`,
+          [supportAppeal.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_appeal_submission_immutable',
       );
       for (const statement of [
         `INSERT INTO deposit_mandates (

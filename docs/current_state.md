@@ -698,3 +698,8 @@ evidence/history, not permission to reopen a closed launch boundary.
 - S3F sends no message and performs no external action. Appeal submission,
   reopen execution, live staffing and all production/payment/provider gates
   remain open separate work.
+- The current S3G candidate adds a reporter-only electronic review request for
+  an explicitly configured, still-open server deadline on a published closed
+  decision. It creates a separate `SIT-R-*` receipt and priority-bound next
+  update without reopening the case, accepting evidence IDs, sending a message
+  or executing an outcome. Reopen remains staff-only with an explicit owner.

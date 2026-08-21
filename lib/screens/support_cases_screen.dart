@@ -5,6 +5,29 @@ typedef SupportCaseListLoader = Future<List<Map<String, dynamic>>> Function();
 typedef SupportCaseDetailLoader = Future<Map<String, dynamic>> Function(
   String caseId,
 );
+typedef SupportAppealSubmitter = Future<Map<String, dynamic>> Function(
+  String caseId,
+  String grounds,
+  int expectedVersion,
+  String idempotencyKey,
+);
+
+const _supportAppealStates = <String>{
+  'not_applicable',
+  'unavailable',
+  'available',
+  'expired',
+  'submitted',
+};
+
+const _supportAppealStatuses = <String>{
+  'submitted',
+  'under_review',
+  'upheld',
+  'modified',
+  'reversed',
+  'closed',
+};
 
 const _supportStatusLabels = <String, String>{
   'received': 'Eingang bestätigt',
@@ -71,8 +94,13 @@ class SupportCaseViewData {
   final String? userActionDueAt;
   final String? userActionDueDisplay;
   final bool finalDecisionAvailable;
+  final bool appealConfigurationRecorded;
+  final String appealState;
   final bool appealAvailable;
+  final String? appealDeadline;
+  final String? appealDeadlineDisplay;
   final String? closureReason;
+  final int version;
 
   const SupportCaseViewData({
     required this.id,
@@ -86,8 +114,13 @@ class SupportCaseViewData {
     required this.userActionDueAt,
     required this.userActionDueDisplay,
     required this.finalDecisionAvailable,
+    required this.appealConfigurationRecorded,
+    required this.appealState,
     required this.appealAvailable,
+    required this.appealDeadline,
+    required this.appealDeadlineDisplay,
     required this.closureReason,
+    required this.version,
   });
 
   factory SupportCaseViewData.fromMap(Map<String, dynamic> value) {
@@ -102,7 +135,12 @@ class SupportCaseViewData {
     final userActionDueAt = _optionalText(value, 'userActionDueAt');
     final userActionDueDisplay = _optionalText(value, 'userActionDueDisplay');
     final closureReason = _optionalText(value, 'closureReason');
+    final appealState = _requiredText(value, 'appealState');
+    final appealDeadline = _optionalText(value, 'appealDeadline');
+    final appealDeadlineDisplay = _optionalText(value, 'appealDeadlineDisplay');
     final isFinal = status == 'resolved' || status == 'closed';
+    final decisionMayBeVisible = isFinal || status == 'reopened';
+    final appealConfigured = value['appealConfigurationRecorded'] == true;
     if (!RegExp(
           r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
         ).hasMatch(id) ||
@@ -110,6 +148,7 @@ class SupportCaseViewData {
             .hasMatch(caseNumber) ||
         !_supportStatusLabels.containsKey(status) ||
         !const {'simulation', 'internal_testing'}.contains(operatingMode) ||
+        value['timezone'] != 'Europe/Berlin' ||
         caseType.length > 80 ||
         userFacingSummary.length > 2000 ||
         (nextAction?.length ?? 0) > 2000 ||
@@ -125,7 +164,27 @@ class SupportCaseViewData {
         (status != 'waiting_for_user' &&
             (userActionDueAt != null || userActionDueDisplay != null)) ||
         value['finalDecisionAvailable'] is! bool ||
-        (value['finalDecisionAvailable'] == true && !isFinal)) {
+        (value['finalDecisionAvailable'] == true && !decisionMayBeVisible) ||
+        value['appealConfigurationRecorded'] is! bool ||
+        !_supportAppealStates.contains(appealState) ||
+        value['appealAvailable'] is! bool ||
+        (appealDeadline != null && DateTime.tryParse(appealDeadline) == null) ||
+        (appealDeadlineDisplay?.length ?? 0) > 80 ||
+        (status == 'closed' && !appealConfigured) ||
+        (appealState == 'not_applicable' && status == 'closed') ||
+        (appealState == 'unavailable' &&
+            (status != 'closed' || appealDeadline != null)) ||
+        (const {'available', 'expired'}.contains(appealState) &&
+            (status != 'closed' ||
+                appealDeadline == null ||
+                appealDeadlineDisplay == null)) ||
+        (appealState == 'submitted' &&
+            (!appealConfigured ||
+                appealDeadline == null ||
+                appealDeadlineDisplay == null)) ||
+        (value['appealAvailable'] == true && appealState != 'available') ||
+        value['version'] is! int ||
+        (value['version'] as int) < 1) {
       throw const FormatException('invalid_support_case');
     }
     return SupportCaseViewData(
@@ -140,8 +199,13 @@ class SupportCaseViewData {
       userActionDueAt: userActionDueAt,
       userActionDueDisplay: userActionDueDisplay,
       finalDecisionAvailable: value['finalDecisionAvailable'] == true,
+      appealConfigurationRecorded: appealConfigured,
+      appealState: appealState,
       appealAvailable: value['appealAvailable'] == true,
+      appealDeadline: appealDeadline,
+      appealDeadlineDisplay: appealDeadlineDisplay,
       closureReason: closureReason,
+      version: value['version'] as int,
     );
   }
 
@@ -236,20 +300,93 @@ class SupportCaseEventViewData {
   }
 }
 
+class SupportAppealViewData {
+  final String id;
+  final String reviewNumber;
+  final String originalCaseNumber;
+  final String status;
+  final String submittedAt;
+  final String submittedDisplay;
+  final String nextUpdateAt;
+  final String nextUpdateDisplay;
+  final String materialSummary;
+  final String interimEffect;
+
+  const SupportAppealViewData({
+    required this.id,
+    required this.reviewNumber,
+    required this.originalCaseNumber,
+    required this.status,
+    required this.submittedAt,
+    required this.submittedDisplay,
+    required this.nextUpdateAt,
+    required this.nextUpdateDisplay,
+    required this.materialSummary,
+    required this.interimEffect,
+  });
+
+  factory SupportAppealViewData.fromMap(Map<String, dynamic> value) {
+    final id = _requiredText(value, 'id');
+    final reviewNumber = _requiredText(value, 'reviewNumber');
+    final originalCaseNumber = _requiredText(value, 'originalCaseNumber');
+    final status = _requiredText(value, 'status');
+    final submittedAt = _requiredText(value, 'submittedAt');
+    final submittedDisplay = _requiredText(value, 'submittedDisplay');
+    final nextUpdateAt = _requiredText(value, 'nextUpdateAt');
+    final nextUpdateDisplay = _requiredText(value, 'nextUpdateDisplay');
+    final materialSummary = _requiredText(value, 'materialSummary');
+    final interimEffect = _requiredText(value, 'interimEffect');
+    if (!RegExp(
+          r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+        ).hasMatch(id) ||
+        !RegExp(r'^SIT-R-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$')
+            .hasMatch(reviewNumber) ||
+        !RegExp(r'^SIT-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{12}$')
+            .hasMatch(originalCaseNumber) ||
+        !_supportAppealStatuses.contains(status) ||
+        DateTime.tryParse(submittedAt) == null ||
+        DateTime.tryParse(nextUpdateAt) == null ||
+        !DateTime.parse(nextUpdateAt).isAfter(DateTime.parse(submittedAt)) ||
+        submittedDisplay.length > 80 ||
+        nextUpdateDisplay.length > 80 ||
+        materialSummary.length > 500 ||
+        interimEffect.length > 500 ||
+        value['externalMessageSent'] != false ||
+        value['timezone'] != 'Europe/Berlin') {
+      throw const FormatException('invalid_support_appeal');
+    }
+    return SupportAppealViewData(
+      id: id,
+      reviewNumber: reviewNumber,
+      originalCaseNumber: originalCaseNumber,
+      status: status,
+      submittedAt: submittedAt,
+      submittedDisplay: submittedDisplay,
+      nextUpdateAt: nextUpdateAt,
+      nextUpdateDisplay: nextUpdateDisplay,
+      materialSummary: materialSummary,
+      interimEffect: interimEffect,
+    );
+  }
+}
+
 class SupportCaseDetailViewData {
   final SupportCaseViewData supportCase;
   final SupportFinalDecisionViewData? finalDecision;
+  final SupportAppealViewData? appeal;
   final List<SupportCaseEventViewData> events;
 
   const SupportCaseDetailViewData({
     required this.supportCase,
     required this.finalDecision,
+    required this.appeal,
     required this.events,
   });
 
   factory SupportCaseDetailViewData.fromMap(Map<String, dynamic> value) {
     final rawCase = value['supportCase'];
     final rawFinalDecision = value['finalDecision'];
+    final rawAppeal = value['appeal'];
     final rawEvents = value['events'];
     if (rawCase is! Map ||
         rawEvents is! List ||
@@ -262,6 +399,9 @@ class SupportCaseDetailViewData {
     if (rawFinalDecision != null && rawFinalDecision is! Map) {
       throw const FormatException('invalid_support_case_detail');
     }
+    if (rawAppeal != null && rawAppeal is! Map) {
+      throw const FormatException('invalid_support_case_detail');
+    }
     final finalDecision = rawFinalDecision is Map
         ? SupportFinalDecisionViewData.fromMap(
             Map<String, dynamic>.from(rawFinalDecision),
@@ -270,9 +410,18 @@ class SupportCaseDetailViewData {
     if (supportCase.finalDecisionAvailable != (finalDecision != null)) {
       throw const FormatException('invalid_support_case_detail');
     }
+    final appeal = rawAppeal is Map
+        ? SupportAppealViewData.fromMap(Map<String, dynamic>.from(rawAppeal))
+        : null;
+    if ((supportCase.appealState == 'submitted') != (appeal != null) ||
+        (appeal != null &&
+            appeal.originalCaseNumber != supportCase.caseNumber)) {
+      throw const FormatException('invalid_support_case_detail');
+    }
     return SupportCaseDetailViewData(
       supportCase: supportCase,
       finalDecision: finalDecision,
+      appeal: appeal,
       events: rawEvents
           .cast<Map>()
           .map((event) => SupportCaseEventViewData.fromMap(
@@ -286,11 +435,13 @@ class SupportCaseDetailViewData {
 class SupportCasesScreen extends StatefulWidget {
   final SupportCaseListLoader? listLoader;
   final SupportCaseDetailLoader? detailLoader;
+  final SupportAppealSubmitter? appealSubmitter;
 
   const SupportCasesScreen({
     super.key,
     this.listLoader,
     this.detailLoader,
+    this.appealSubmitter,
   });
 
   @override
@@ -323,6 +474,7 @@ class _SupportCasesScreenState extends State<SupportCasesScreen> {
       builder: (_) => SupportCaseDetailScreen(
         initialCase: supportCase,
         detailLoader: widget.detailLoader,
+        appealSubmitter: widget.appealSubmitter,
       ),
     ));
   }
@@ -397,11 +549,13 @@ class _SupportCasesScreenState extends State<SupportCasesScreen> {
 class SupportCaseDetailScreen extends StatefulWidget {
   final SupportCaseViewData initialCase;
   final SupportCaseDetailLoader? detailLoader;
+  final SupportAppealSubmitter? appealSubmitter;
 
   const SupportCaseDetailScreen({
     super.key,
     required this.initialCase,
     this.detailLoader,
+    this.appealSubmitter,
   });
 
   @override
@@ -448,7 +602,11 @@ class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
           if (snapshot.hasError) {
             return _SupportLoadError(onRetry: () => setState(_reload));
           }
-          return _SupportCaseDetailBody(detail: snapshot.data!);
+          return _SupportCaseDetailBody(
+            detail: snapshot.data!,
+            appealSubmitter: widget.appealSubmitter,
+            onAppealSubmitted: () => setState(_reload),
+          );
         },
       ),
     );
@@ -542,8 +700,14 @@ class _SupportCaseListCard extends StatelessWidget {
 
 class _SupportCaseDetailBody extends StatelessWidget {
   final SupportCaseDetailViewData detail;
+  final SupportAppealSubmitter? appealSubmitter;
+  final VoidCallback onAppealSubmitted;
 
-  const _SupportCaseDetailBody({required this.detail});
+  const _SupportCaseDetailBody({
+    required this.detail,
+    required this.appealSubmitter,
+    required this.onAppealSubmitted,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -657,15 +821,13 @@ class _SupportCaseDetailBody extends StatelessWidget {
             ),
           ),
         ],
-        if (supportCase.appealAvailable) ...[
+        if (supportCase.appealState != 'not_applicable') ...[
           const SizedBox(height: 12),
-          const _SupportInfoCard(
-            title: 'Überprüfung möglich',
-            icon: Icons.rate_review_outlined,
-            child: Text(
-              'Der Fallstatus erlaubt eine Überprüfung. Ein separater elektronischer Einspruchsschritt ist in dieser Testansicht noch nicht verfügbar.',
-              style: TextStyle(color: Colors.white70, height: 1.5),
-            ),
+          _SupportAppealCard(
+            supportCase: supportCase,
+            appeal: detail.appeal,
+            submitter: appealSubmitter,
+            onSubmitted: onAppealSubmitted,
           ),
         ],
         const SizedBox(height: 12),
@@ -695,6 +857,213 @@ class _SupportCaseDetailBody extends StatelessWidget {
             _SupportTimelineEntry(label: event.label),
         ],
       ],
+    );
+  }
+}
+
+class _SupportAppealCard extends StatefulWidget {
+  final SupportCaseViewData supportCase;
+  final SupportAppealViewData? appeal;
+  final SupportAppealSubmitter? submitter;
+  final VoidCallback onSubmitted;
+
+  const _SupportAppealCard({
+    required this.supportCase,
+    required this.appeal,
+    required this.submitter,
+    required this.onSubmitted,
+  });
+
+  @override
+  State<_SupportAppealCard> createState() => _SupportAppealCardState();
+}
+
+class _SupportAppealCardState extends State<_SupportAppealCard> {
+  final TextEditingController _grounds = TextEditingController();
+  late final String _idempotencyKey;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _idempotencyKey =
+        'support_appeal_${widget.supportCase.id}_${widget.supportCase.version}_${DateTime.now().microsecondsSinceEpoch}';
+  }
+
+  @override
+  void dispose() {
+    _grounds.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final grounds = _grounds.text.trim();
+    if (_submitting || grounds.length < 3 || grounds.length > 8000) return;
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final submitter = widget.submitter ??
+        (caseId, reason, version, key) => BackendRepository.submitSupportAppeal(
+              caseId: caseId,
+              grounds: reason,
+              expectedVersion: version,
+              idempotencyKey: key,
+            );
+    try {
+      await submitter(
+        widget.supportCase.id,
+        grounds,
+        widget.supportCase.version,
+        _idempotencyKey,
+      );
+      if (!mounted) return;
+      widget.onSubmitted();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error =
+            'Der Antrag konnte nicht sicher bestätigt werden. Bitte erneut versuchen.';
+        _submitting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final supportCase = widget.supportCase;
+    final appeal = widget.appeal;
+    if (supportCase.appealState == 'submitted') {
+      return _SupportInfoCard(
+        key: const ValueKey('support_appeal_receipt'),
+        title: 'Überprüfungsantrag',
+        icon: Icons.fact_check_outlined,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Eingegangen: ${appeal!.reviewNumber}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Zum ursprünglichen Fall: ${appeal.originalCaseNumber}',
+              style: const TextStyle(color: Colors.white70, height: 1.45),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              appeal.materialSummary,
+              style: const TextStyle(color: Colors.white70, height: 1.45),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              appeal.interimEffect,
+              style: const TextStyle(color: Colors.white70, height: 1.45),
+            ),
+            const SizedBox(height: 10),
+            _SupportMetaLine(
+              icon: Icons.schedule_outlined,
+              text: 'Nächstes Update: ${appeal.nextUpdateDisplay}',
+            ),
+          ],
+        ),
+      );
+    }
+    if (supportCase.appealState == 'expired') {
+      return _SupportInfoCard(
+        title: 'Elektronische Überprüfung',
+        icon: Icons.event_busy_outlined,
+        child: Text(
+          'Die bestätigte Einreichungsfrist (${supportCase.appealDeadlineDisplay}) ist abgelaufen. Maßgeblich bleibt die in der finalen Entscheidung genannte Überprüfungsroute.',
+          style: const TextStyle(color: Colors.white70, height: 1.5),
+        ),
+      );
+    }
+    if (supportCase.appealState == 'unavailable') {
+      return const _SupportInfoCard(
+        title: 'Elektronische Überprüfung',
+        icon: Icons.info_outline,
+        child: Text(
+          'Für diesen Fall ist kein elektronischer Antrag in der App freigegeben. Maßgeblich bleibt die in der finalen Entscheidung genannte Überprüfungsroute.',
+          style: TextStyle(color: Colors.white70, height: 1.5),
+        ),
+      );
+    }
+    if (!supportCase.appealAvailable) {
+      return _SupportInfoCard(
+        title: 'Überprüfung möglich',
+        icon: Icons.rate_review_outlined,
+        child: Text(
+          'Die Einreichung ist bis ${supportCase.appealDeadlineDisplay} für die Person möglich, die diesen Support-Fall eröffnet hat.',
+          style: const TextStyle(color: Colors.white70, height: 1.5),
+        ),
+      );
+    }
+    return _SupportInfoCard(
+      key: const ValueKey('support_appeal_form'),
+      title: 'Überprüfung beantragen',
+      icon: Icons.rate_review_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Einreichung möglich bis: ${supportCase.appealDeadlineDisplay}',
+            style: const TextStyle(color: Colors.white70, height: 1.5),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('support_appeal_grounds'),
+            controller: _grounds,
+            enabled: !_submitting,
+            minLines: 4,
+            maxLines: 8,
+            maxLength: 8000,
+            onChanged: (_) => setState(() {}),
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Warum soll die Entscheidung überprüft werden?',
+              labelStyle: const TextStyle(color: Colors.white70),
+              helperText:
+                  'Noch keine Datei anhängen; dieser Schritt speichert nur deine Begründung.',
+              helperStyle: const TextStyle(color: Colors.white60),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: const TextStyle(color: Color(0xFFFFB4AB), height: 1.4),
+            ),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const ValueKey('support_appeal_submit'),
+              onPressed: !_submitting && _grounds.text.trim().length >= 3
+                  ? _submit
+                  : null,
+              icon: _submitting
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_outlined),
+              label: Text(
+                _submitting ? 'Wird sicher bestätigt …' : 'Antrag einreichen',
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

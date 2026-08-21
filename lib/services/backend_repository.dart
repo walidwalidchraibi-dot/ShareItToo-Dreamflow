@@ -1043,9 +1043,11 @@ class BackendRepository {
     );
     final supportCase = response['supportCase'];
     final finalDecision = response['finalDecision'];
+    final appeal = response['appeal'];
     final events = response['events'];
     if (supportCase is! Map ||
         (finalDecision != null && finalDecision is! Map) ||
+        (appeal != null && appeal is! Map) ||
         events is! List ||
         events.any((event) => event is! Map)) {
       throw const BackendException(502, 'invalid_server_response');
@@ -1055,8 +1057,31 @@ class BackendRepository {
       'finalDecision': finalDecision == null
           ? null
           : Map<String, dynamic>.from(finalDecision),
+      'appeal': appeal == null ? null : Map<String, dynamic>.from(appeal),
       'events': _maps(events),
     };
+  }
+
+  static Future<Map<String, dynamic>> submitSupportAppeal({
+    required String caseId,
+    required String grounds,
+    required int expectedVersion,
+    required String idempotencyKey,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/support/cases/${Uri.encodeComponent(caseId)}/appeals',
+      body: {
+        'grounds': grounds.trim(),
+        'expectedVersion': expectedVersion,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    final appeal = response['appeal'];
+    if (appeal is! Map) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return Map<String, dynamic>.from(appeal);
   }
 
   static Future<Map<String, dynamic>> createBookingReview({

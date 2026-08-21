@@ -171,6 +171,7 @@ import {
   SupportCaseError,
   transitionSupportCase,
 } from './support_case_workflow.js';
+import { submitSupportAppeal } from './support_appeal_workflow.js';
 import {
   createSupportDecisionDraft,
   listSupportDecisions,
@@ -3974,6 +3975,17 @@ export function createApp({
       caseId: safeText(req.params.id, 80),
     });
     res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.post('/v1/support/cases/:id/appeals', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => submitSupportAppeal(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
   }));
 
   app.get('/v1/moderation/decisions', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {

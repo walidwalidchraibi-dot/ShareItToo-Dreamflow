@@ -10,6 +10,7 @@ import {
   supportOwnerRoles,
   supportPriorities,
 } from './support_case_domain.js';
+import { getSupportAppealForCase } from './support_appeal_workflow.js';
 
 export { SupportCaseError };
 
@@ -47,7 +48,19 @@ function shapeFinalDecision(row) {
   });
 }
 
-function shapeSupportCase(row, { staff = false } = {}) {
+function shapeSupportCase(row, { staff = false, actorId = null, now = new Date() } = {}) {
+  const appealConfigured = row.appeal_configured_at != null
+    && row.appeal_configured_by != null;
+  const deadline = row.appeal_deadline ? new Date(row.appeal_deadline) : null;
+  let appealState = 'not_applicable';
+  if (row.appeal_id) appealState = 'submitted';
+  else if (row.status === 'closed' && !appealConfigured) appealState = 'unconfigured';
+  else if (row.status === 'closed' && row.appeal_available !== true) appealState = 'unavailable';
+  else if (row.status === 'closed' && (!deadline || deadline <= now)) appealState = 'expired';
+  else if (row.status === 'closed') appealState = 'available';
+  const actorMaySubmitAppeal = appealState === 'available'
+    && actorId != null
+    && row.reporter_user_id === actorId;
   const base = {
     id: row.id,
     caseNumber: row.human_readable_case_number,
@@ -70,10 +83,13 @@ function shapeSupportCase(row, { staff = false } = {}) {
       : null,
     timezone: supportCaseTimeZone,
     userFacingSummary: row.user_facing_summary,
-    finalDecisionAvailable: ['resolved', 'closed'].includes(row.status)
+    finalDecisionAvailable: ['resolved', 'closed', 'reopened'].includes(row.status)
       && row.decision_id != null,
-    appealAvailable: row.appeal_available === true,
+    appealConfigurationRecorded: appealConfigured,
+    appealState,
+    appealAvailable: actorMaySubmitAppeal,
     appealDeadline: iso(row.appeal_deadline),
+    appealDeadlineDisplay: supportCaseDateTimeDisplay(row.appeal_deadline),
     closureReason: row.closure_reason ?? null,
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
@@ -231,7 +247,14 @@ export async function createSupportCase(client, {
     [actor.id, key],
   );
   if (existing.rowCount) {
-    return { supportCase: shapeSupportCase(existing.rows[0], { staff: actor.role !== 'user' }), replayed: true };
+    return {
+      supportCase: shapeSupportCase(existing.rows[0], {
+        staff: actor.role !== 'user',
+        actorId: actor.id,
+        now,
+      }),
+      replayed: true,
+    };
   }
   const normalized = normalizeSupportCaseInput(raw, {
     sourceChannel,
@@ -310,7 +333,11 @@ export async function createSupportCase(client, {
       throw new SupportCaseError(409, 'support_case_concurrent_replay_unavailable');
     }
     return {
-      supportCase: shapeSupportCase(concurrentReplay.rows[0], { staff: actor.role !== 'user' }),
+      supportCase: shapeSupportCase(concurrentReplay.rows[0], {
+        staff: actor.role !== 'user',
+        actorId: actor.id,
+        now,
+      }),
       replayed: true,
     };
   }
@@ -353,7 +380,11 @@ export async function createSupportCase(client, {
     },
   });
   return {
-    supportCase: shapeSupportCase(inserted.rows[0], { staff: actor.role !== 'user' }),
+    supportCase: shapeSupportCase(inserted.rows[0], {
+      staff: actor.role !== 'user',
+      actorId: actor.id,
+      now,
+    }),
     replayed: false,
   };
 }
@@ -462,6 +493,24 @@ export async function transitionSupportCase(client, {
       throw new SupportCaseError(409, 'support_resolution_requires_approved_decision');
     }
   }
+  if (transition.status === 'closed' && transition.appealAvailable) {
+    const published = await client.query(
+      `SELECT id FROM support_decisions
+        WHERE id = $1 AND case_id = $2
+          AND approval_status = 'approved'
+          AND approval_payload_sha256 = payload_sha256
+          AND implementation_status = 'succeeded'
+          AND implementation_verified_by IS NOT NULL
+          AND implementation_verified_at IS NOT NULL
+          AND communicated_at IS NOT NULL
+          AND communicated_by IS NOT NULL
+          AND communication_payload_sha256 = payload_sha256`,
+      [row.decision_id, row.id],
+    );
+    if (!published.rowCount) {
+      throw new SupportCaseError(409, 'support_appeal_requires_published_decision');
+    }
+  }
 
   const updated = await client.query(
     `UPDATE support_cases
@@ -479,19 +528,29 @@ export async function transitionSupportCase(client, {
             resolution_reference = COALESCE($13, resolution_reference),
             closure_reason = $14,
             reopen_reason = $15,
+            appeal_available = $16,
+            appeal_deadline = $17,
+            appeal_configured_at = CASE
+              WHEN $2 = 'closed' THEN $18
+              ELSE appeal_configured_at
+            END,
+            appeal_configured_by = CASE
+              WHEN $2 = 'closed' THEN $19
+              ELSE appeal_configured_by
+            END,
             resolved_at = CASE
-              WHEN $2 = 'resolved' THEN $16
+              WHEN $2 = 'resolved' THEN $18
               WHEN $2 = 'reopened' THEN NULL
               ELSE resolved_at
             END,
             closed_at = CASE
-              WHEN $2 = 'closed' THEN $16
+              WHEN $2 = 'closed' THEN $18
               WHEN $2 = 'reopened' THEN NULL
               ELSE closed_at
             END,
             lock_version = lock_version + 1,
-            updated_at = $16
-      WHERE id = $1 AND lock_version = $17
+            updated_at = $18
+      WHERE id = $1 AND lock_version = $20
       RETURNING *`,
     [
       row.id,
@@ -509,7 +568,10 @@ export async function transitionSupportCase(client, {
       transition.resolutionReference,
       transition.closureReason,
       transition.reopenReason,
+      transition.appealAvailable,
+      transition.appealDeadline,
       now,
+      actor.id,
       Number(row.lock_version),
     ],
   );
@@ -570,7 +632,7 @@ export async function listMySupportCases(client, actorId) {
       LIMIT 200`,
     [actorId],
   );
-  return result.rows.map((row) => shapeSupportCase(row));
+  return result.rows.map((row) => shapeSupportCase(row, { actorId }));
 }
 
 export async function listStaffSupportCases(client, {
@@ -645,7 +707,7 @@ export async function getSupportCase(client, { actor, caseId, staffAccess = fals
   );
   const caseRow = result.rows[0];
   let finalDecision = null;
-  if (['resolved', 'closed'].includes(caseRow.status) && caseRow.decision_id) {
+  if (['resolved', 'closed', 'reopened'].includes(caseRow.status) && caseRow.decision_id) {
     const published = await client.query(
       `SELECT user_facing_decision, user_facing_effect, user_facing_reason,
               user_facing_implementation_result, redress_route,
@@ -667,9 +729,15 @@ export async function getSupportCase(client, { actor, caseId, staffAccess = fals
     }
     finalDecision = shapeFinalDecision(published.rows[0]);
   }
+  const appeal = await getSupportAppealForCase(client, {
+    actor,
+    supportCase: caseRow,
+    staff,
+  });
   return Object.freeze({
-    supportCase: shapeSupportCase(caseRow, { staff }),
+    supportCase: shapeSupportCase(caseRow, { staff, actorId: actor.id }),
     finalDecision,
+    appeal,
     events: events.rows.map((row) => shapeSupportEvent(row, { staff })),
   });
 }

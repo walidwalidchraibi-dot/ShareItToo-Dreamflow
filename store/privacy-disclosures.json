@@ -48,15 +48,23 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "a6629ddf4385adcc196741677a4aa45086912f8a3cc841890a9e90098a87b554"
+      "sha256": "c3f57925980b9de9a935cced155960bdbe88517bfc5a46c1178e99eb81b4ced6"
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "17d3517203fb6e57162aa44c03d224974e64893a8088898d773fe5d009bd1ba8"
+      "sha256": "64418347548b7565028f0738df4304564574e6c9625db41740bb794ba4f10101"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "983fd97dd57d67484a760aa67d4e1e11aea7a5129d090bd8bbf44ebab5c5c3fb"
+      "sha256": "9fb6a65f571624891c51d224291434f167503d59b0b1049842199d3fa62c165f"
+    },
+    {
+      "path": "backend/src/support_appeal_domain.js",
+      "sha256": "7b3c059d5e14c71866338510dee75dfdfac52d19215355ccde25a3a5714ba57c"
+    },
+    {
+      "path": "backend/src/support_appeal_workflow.js",
+      "sha256": "f58da062139d90f6c342d68fce957d7996384d97275a0dd128eeb153ab7d7dc4"
     },
     {
       "path": "backend/src/support_decision_domain.js",
@@ -300,11 +308,11 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "ee15858f555d16c6e7d2c8e43aeee679e1bd964410732c1b30930eac993e7d79"
+      "sha256": "cbb861bbd862f40a372c80320fea25096f854dd198b070b7b576f1acf52fb85d"
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "9d61d0bc1eb39623bae6dab56dd851498273b205b0cc9ec4f10b84aed2b88ec9"
+      "sha256": "4c1dfff25ba57146cc2dc0b5251b4ec463cafae4a7405f54a16eaa671b410bc3"
     },
     {
       "path": "lib/models/rental_cart.dart",
@@ -428,7 +436,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "ea57ba31b8a7caebd3138c4810333302b0f21bfb7dab024aa2ca85970eaa275a"
+      "sha256": "565caf1ed97c366ef6ae8a68baf65bb12b3f7301e1a8a5cb92e695e969dd5213"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -493,6 +501,10 @@
     {
       "path": "backend/sql/migrations/035_support_final_decision_publication.up.sql",
       "sha256": "4946a5a3a358f54e9ade361ad3e365c6c489961b9089bb09e84759feb23198ca"
+    },
+    {
+      "path": "backend/sql/migrations/036_support_closed_case_appeal_submission.up.sql",
+      "sha256": "17753eca5e4677b51e6cd73537b5e993000b408cdb963475c53cd79ee224d913"
     },
     {
       "path": "lib/config/listing_sets_technical_config.dart",

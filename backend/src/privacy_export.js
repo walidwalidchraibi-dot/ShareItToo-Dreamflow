@@ -589,6 +589,7 @@ export async function buildAccountExport(client, userId) {
               support_case.next_action, support_case.next_update_at,
               support_case.user_facing_summary,
               support_case.appeal_available, support_case.appeal_deadline,
+              support_case.appeal_configured_at,
               support_case.closure_reason, support_case.created_at,
               support_case.updated_at, support_case.resolved_at,
               support_case.closed_at
@@ -637,7 +638,8 @@ export async function buildAccountExport(client, userId) {
         ORDER BY decision.decided_at, decision.id`, userId),
     rows(client,
       `SELECT appeal.id, appeal.original_decision_id, appeal.case_id,
-              appeal.grounds, appeal.submitted_at, appeal.status,
+              appeal.human_readable_appeal_number, appeal.grounds,
+              appeal.submitted_at, appeal.next_update_at, appeal.status,
               appeal.outcome, appeal.outcome_reason,
               appeal.communicated_at
          FROM support_appeals AS appeal

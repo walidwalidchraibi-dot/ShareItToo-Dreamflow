@@ -75,6 +75,9 @@ function caseRow(overrides = {}) {
     resolution_reference: null,
     appeal_available: false,
     appeal_deadline: null,
+    appeal_id: null,
+    appeal_configured_at: null,
+    appeal_configured_by: null,
     closure_reason: null,
     reopen_reason: null,
     idempotency_key: 'support.case.create:key-1',
@@ -430,8 +433,8 @@ test('transition uses optimistic versioning and appends event plus audit', async
       check: ({ params }) => {
         assert.equal(params[1], 'under_review');
         assert.equal(params[6], null);
-        assert.equal(params[16], 4);
-        assert.equal(params[15], transitionAt);
+        assert.equal(params[19], 4);
+        assert.equal(params[17], transitionAt);
       },
       result: ({ params }) => ({
         rowCount: 1,
@@ -444,7 +447,7 @@ test('transition uses optimistic versioning and appends event plus audit', async
           next_update_at: params[5],
           evidence_due_at: params[6],
           lock_version: 5,
-          updated_at: params[15],
+          updated_at: params[17],
         })],
       }),
     },
@@ -915,6 +918,14 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     path.resolve(currentDir, '../sql/migrations/035_support_final_decision_publication.down.sql'),
     'utf8',
   );
+  const appealUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/036_support_closed_case_appeal_submission.up.sql'),
+    'utf8',
+  );
+  const appealDown = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/036_support_closed_case_appeal_submission.down.sql'),
+    'utf8',
+  );
   for (const table of [
     'support_policy_snapshots',
     'support_cases',
@@ -967,6 +978,12 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
   assert.match(publicationUp, /support_case_decision_not_communicated/);
   assert.match(publicationUp, /operating_mode IN \('simulation', 'internal_testing'\)/);
   assert.match(publicationDown, /Support final-decision rollback blocked: publication data exists/);
+  assert.match(appealUp, /support_appeals_decision_submitter_unique/);
+  assert.match(appealUp, /support_appeal_evidence_not_enabled/);
+  assert.match(appealUp, /support_appeal_decision_not_published/);
+  assert.match(appealUp, /support_appeal_submission_immutable/);
+  assert.match(appealUp, /support_reopen_assignment_incomplete/);
+  assert.match(appealDown, /Support appeal rollback blocked: appeal configuration or submissions exist/);
 });
 
 test('support routes and personal-data lifecycle stay authenticated, non-live and fail closed', async () => {
@@ -980,6 +997,7 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
     "app.post('/v1/support/cases', requireAuth, requireActiveAccount, actionLimiter",
     "app.get('/v1/support/cases', requireAuth, requireActiveAccount",
     "app.get('/v1/support/cases/:id', requireAuth, requireActiveAccount",
+    "app.post('/v1/support/cases/:id/appeals', requireAuth, requireActiveAccount, actionLimiter",
   ]) assert.ok(app.includes(route), route);
   for (const route of [
     "app.get('/v1/admin/support/cases/:id/decisions', requireAuth, requireActiveAccount, requireStaffElevation",
