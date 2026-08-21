@@ -1,7 +1,9 @@
 # S3B canonical support intake receipt - technical compliance record
 
-Status: implementation candidate under local verification, non-live and
-fail-closed. Exact GitHub CI is required before closeout.
+Status: verified non-live implementation, fail-closed.
+
+Exact commit: `0185b2a0f05f6181f8975a48a4f96d0811681e8b`.
+Exact successful GitHub Actions run: `32503031376`.
 
 ## Bound source and scope
 
@@ -55,7 +57,9 @@ payment, refund, payout or account action.
   one moderate vulnerability. The repository secret scan found no
   high-confidence secret in Git history or the working tree; its twelve exact
   historical findings matched the reviewed baseline.
-- Exact-commit GitHub CI remains required before closeout.
+- Exact GitHub run `32503031376` passed Backend including PostgreSQL 16 and the
+  full Flutter/Web/Android debug regression. Signed-candidate construction and
+  API-image publication stayed skipped behind their closed gates.
 
 ## Persistent boundaries
 

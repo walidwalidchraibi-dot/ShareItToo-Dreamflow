@@ -12,6 +12,7 @@ enum SupportFlowSource {
   bookingChat,
   bookingDetail,
   ownerRequestDetail,
+  helpCenter,
 }
 
 /// Rolle des aktuellen Nutzers
@@ -388,11 +389,13 @@ typedef SupportCaseSubmitter = Future<Map<String, dynamic>> Function(
 class SupportFlowScreen extends StatefulWidget {
   final SupportFlowContext context;
   final SupportCaseSubmitter? submitter;
+  final String initialDescription;
 
   const SupportFlowScreen({
     super.key,
     required this.context,
     this.submitter,
+    this.initialDescription = '',
   });
   
   /// Legacy-Konstruktor für Kompatibilität mit bestehendem Code
@@ -435,6 +438,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   @override
   void initState() {
     super.initState();
+    _descriptionController.text = widget.initialDescription.trim();
     final nonce = Random.secure().nextInt(0x7fffffff).toRadixString(16);
     _submissionIdempotencyKey =
         'support_intake_${DateTime.now().microsecondsSinceEpoch}_$nonce';

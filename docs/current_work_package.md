@@ -54,12 +54,17 @@ shows source-bound T-003 safety guidance for `yes` or `unsure`, and carries
 immutable version evidence into the backend intake. Backend contradictions
 fail closed and immediate danger routes to the Trust & Safety owner.
 
-The active package is `S3B_CANONICAL_SUPPORT_INTAKE_RECEIPT`. It addresses
-`SUP-016` by connecting the Flutter intake to the authenticated canonical
-support-case route before any local support-thread presentation is opened. A
-valid receipt must prove the Case ID, `received` state, `simulation` mode and
-server-computed next update in `Europe/Berlin`; invalid or unavailable receipts
-remain fail-closed. No external message or live case action is performed.
+`S3B_CANONICAL_SUPPORT_INTAKE_RECEIPT` is verified at exact commit
+`0185b2a0f05f6181f8975a48a4f96d0811681e8b` and exact successful GitHub Actions
+run `32503031376`. It addresses `SUP-016` by connecting the Flutter intake to
+the authenticated canonical support-case route. Invalid or unavailable
+receipts remain fail-closed; no external message or live case action occurs.
+
+The active package is `S3C_CANONICAL_HELP_CENTER_ENTRY`. It removes the Help
+Center's legacy local-only support success claim, opens the real Help Center
+from `Mein SIT`, and carries its bounded free text through the same safety-first
+category flow. The description is cleared only after a valid canonical receipt
+returns; cancellation or failure preserves it for retry.
 
 ## Prior ordered post-P0B gate close
 

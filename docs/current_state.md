@@ -33,6 +33,11 @@ Verified: 2026-08-21 on the Mac mini.
   `32500301293` passed Backend including PostgreSQL 16 and the full
   Flutter/Web/Android debug regression. Publication and signed-candidate
   construction stayed skipped, and draft PR #7 remained open and unmerged.
+- The S3B canonical support intake is verified at exact commit
+  `0185b2a0f05f6181f8975a48a4f96d0811681e8b`; exact GitHub Actions run
+  `32503031376` passed Backend including PostgreSQL 16 and the full
+  Flutter/Web/Android debug regression. Publication and signed-candidate
+  construction stayed skipped, and draft PR #7 remained open and unmerged.
 
 ## Post-P0B ordered continuation close
 
@@ -74,6 +79,9 @@ Verified: 2026-08-21 on the Mac mini.
   route. The app accepts only a confirmed received-state receipt with opaque
   Case ID and server-computed next update before it opens the local support
   presentation; retries are idempotent and malformed/live receipts fail closed.
+- S3C removes the Help Center's legacy local-only support success claim. The
+  real Help Center now opens from `Mein SIT`, preserves the entered description
+  and requires the same safety-first category flow and canonical receipt.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

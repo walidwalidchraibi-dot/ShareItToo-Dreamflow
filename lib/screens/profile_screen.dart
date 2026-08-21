@@ -804,7 +804,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             break;
           case 'Hilfe-Center':
           case 'Help Center':
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Hilfe-Center'), description: 'FAQ und Support.')));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
             break;
           case 'Rechtliches':
           case 'Legal':

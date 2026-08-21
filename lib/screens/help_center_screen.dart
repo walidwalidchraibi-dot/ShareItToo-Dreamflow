@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:lendify/services/data_service.dart';
+import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/login_nudge_sheet.dart';
+
+typedef HelpCenterSessionCheck = Future<bool> Function();
 
 class HelpCenterScreen extends StatefulWidget {
-  const HelpCenterScreen({super.key});
+  final SupportCaseSubmitter? submitter;
+  final HelpCenterSessionCheck? sessionCheck;
+
+  const HelpCenterScreen({
+    super.key,
+    this.submitter,
+    this.sessionCheck,
+  });
 
   @override
   State<HelpCenterScreen> createState() => _HelpCenterScreenState();
@@ -773,36 +784,54 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       return;
     }
 
+    final hasSession = await (widget.sessionCheck?.call() ??
+        AuthService.readSession().then((session) => session != null));
+    if (!mounted) return;
+    if (!hasSession) {
+      await showGuestRestrictionSheet(
+        context,
+        overrideContent: const GuestGateContent(
+          icon: Icons.support_agent_outlined,
+          title: 'Support-Fall melden',
+          description:
+              'Melde dich an oder registriere dich kostenlos, damit dein Fall sicher deinem Konto zugeordnet und später wieder angezeigt werden kann.',
+          benefits: [
+            'Serverbestätigte Case-ID erhalten',
+            'Sichere Rückfragen und Updates bekommen',
+            'Deinen Fall eindeutig deinem Konto zuordnen',
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() => _sendingSupport = true);
     try {
-      // MVP: persist as feedback entry locally.
-      await DataService.addFeedback(userId: 'support', text: '[Support] $msg');
-      if (!mounted) return;
-      _supportCtrl.clear();
-      await AppPopup.show(
-        context,
-        icon: Icons.mark_email_read_outlined,
-        title: 'Nachricht gesendet',
-        message:
-            'Danke! Wir melden uns so schnell wie möglich bei dir. (MVP: lokal gespeichert)',
-        showCloseIcon: false,
-        useExploreBackground: true,
-        actions: [
-          SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                  onPressed: () =>
-                      Navigator.of(context, rootNavigator: true).maybePop(),
-                  child: const Text('Schließen'))),
-        ],
+      final result = await Navigator.of(context).push<SupportFlowResult?>(
+        MaterialPageRoute(
+          builder: (_) => SupportFlowScreen(
+            context: const SupportFlowContext(
+              itemTitle: '',
+              itemId: '',
+              requestId: '',
+              bookingStatus: 'general',
+              source: SupportFlowSource.helpCenter,
+              role: SupportFlowRole.renter,
+            ),
+            initialDescription: msg,
+            submitter: widget.submitter,
+          ),
+        ),
       );
+      if (result == null || !mounted) return;
+      _supportCtrl.clear();
     } catch (e, st) {
       debugPrint('[HelpCenter] sendSupportMessage failed: $e');
       debugPrint(st.toString());
       if (!mounted) return;
       AppPopup.toast(context,
           icon: Icons.error_outline,
-          title: 'Senden fehlgeschlagen',
+          title: 'Support konnte nicht geöffnet werden',
           message: 'Bitte versuche es erneut.');
     } finally {
       if (mounted) setState(() => _sendingSupport = false);
@@ -1387,7 +1416,7 @@ class _SupportCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(
-          'Schreibe uns kurz, wobei du Hilfe brauchst. Bitte nenne bei Problemen möglichst Artikel oder Buchung und das Datum.',
+          'Beschreibe kurz dein Anliegen. Danach folgen zuerst die Sicherheitsfrage und eine passende Kategorie. Ein Fall gilt erst mit serverbestätigter Case-ID als eingegangen.',
           style: t.textTheme.bodySmall
               ?.copyWith(color: Colors.white70, height: 1.5),
         ),
@@ -1398,6 +1427,7 @@ class _SupportCard extends StatelessWidget {
           textField: true,
           child: TextField(
             controller: controller,
+            maxLength: 1400,
             maxLines: 4,
             minLines: 3,
             onChanged: onChanged,
@@ -1441,8 +1471,8 @@ class _SupportCard extends StatelessWidget {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.send),
-            label: Text(sending ? 'Senden…' : 'Nachricht senden'),
+                : const Icon(Icons.support_agent_outlined),
+            label: Text(sending ? 'Support wird geöffnet…' : 'Support-Fall sicher melden'),
           ),
         ),
       ]),
