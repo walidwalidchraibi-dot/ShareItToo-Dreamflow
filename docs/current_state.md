@@ -6,13 +6,13 @@ Verified: 2026-08-21 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current FI1 implementation head:
-  `a732ebaa257462fe2292232c779906d4331b0321`.
-- The FI1 implementation commit is contained in the local branch, remote
+- Current P0A implementation head:
+  `540583829361a402066f85c81716ba60d7d475cc`.
+- The P0A implementation commit is contained in the local branch, remote
   branch and draft PR #7 head; the PR remains open and unmerged.
-- GitHub Actions run `32431950081`, associated with that exact PR head, is
+- GitHub Actions run `32433274526`, associated with that exact PR head, is
   green. The workflow verified GitHub's synthetic PR merge result
-  `daae51624ab305bddee4d704fed37bc0271cfd08`; backend and Flutter regression
+  `6bff2509868afd3be4f5ac8ad3829d589e7f186d`; backend and Flutter regression
   passed, while the signed candidate and image publication were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
@@ -334,6 +334,29 @@ Verified: 2026-08-21 on the Mac mini.
   activation change. `docs/compliance/fi1-operational-delegation-2026-08-21.md`
   and ADR-037 are the detailed evidence. V2.4 auto-continues to P0A.
 
+## P0A closed-pilot technical readiness
+
+- One machine-validated matrix separates 13 passed current-source technical
+  cells, one blocked current-source Pixel cell, one historical Pixel evidence
+  cell and one signed-candidate cell that is outside P0A authorization.
+- Existing single-item, disabled same-owner multi-item and disabled
+  planner/project-cart paths passed focused regression together with account,
+  cancellation, withdrawal, handover/return, damage/`needsReview`,
+  export/deletion, recovery and synthetic payment boundaries.
+- Payment remains memory/disabled and Stripe livemode remains false. No real
+  money, live provider traffic, capture, payout or refund was attempted.
+- Current-source web debug passed a loopback HTTP smoke and current-source
+  Android debug built locally and in CI. Neither artifact is a signed release
+  candidate and neither was uploaded or submitted.
+- The Pixel 7 Pro remains reachable on Android 16, but the installed historical
+  shell build has a different signature. Installed data was preserved; no
+  uninstall, force replacement or identifier capture occurred. Historical
+  device evidence does not satisfy the current-source cell.
+- Legal approval, real payment/provider approval, functional-role assignment,
+  backup/absence proof, signed-candidate binding and public activation remain
+  open external gates. P0A closes as an honest technical-readiness HOLD and
+  V2.4 continues only to the non-activating P0B-READINESS dossier.
+
 ## Validation and rollback
 
 - Exact G4B CI `32425415877` is green at
@@ -418,10 +441,24 @@ Verified: 2026-08-21 on the Mac mini.
 - FI1 has no migration or external state. Its rollback is a revert of
   `a732eba`; FI0/U0, historical audit/evidence and disabled G3-G5 state remain
   intact.
+- P0A GitHub Actions run `32433274526` is green and associated with exact PR
+  head `540583829361a402066f85c81716ba60d7d475cc`. GitHub checked synthetic PR
+  merge result `6bff2509868afd3be4f5ac8ad3829d589e7f186d`: all 333 backend
+  tests passed with PostgreSQL 16, and 321 Flutter tests passed with one
+  documented skip. The P0A validator reported 13 passed, one blocked, one
+  historical and one not-applicable cell with real money and live provider
+  traffic false. Analyzer stayed at 222 findings; loopback web smoke, web
+  debug, Android debug APK, secret scan, dependency audit, Compose validation
+  and API image build passed. One transitive moderate advisory remains; there
+  are no high/critical advisories. Signed-candidate build and publication were
+  skipped.
+- P0A has no migration or external state. Its rollback is a revert of
+  `5405838`; device data, provider/payment state, production and historical
+  legal/device evidence remain untouched.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active P0A under the V2.4
+`docs/current_work_package.md` records active P0B-READINESS under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
