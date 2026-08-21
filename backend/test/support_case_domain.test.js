@@ -264,9 +264,20 @@ test('green cases cannot enter approval and decided cases stay operationally act
       severity: 'low',
       priority: 'p3',
       current_owner_role: 'general_support_owner',
-    }), { status: 'decision_pending_approval' }),
+    }), { status: 'decision_pending_approval', decisionId }),
     /support_decision_approval_level_invalid/,
   );
+  assert.throws(
+    () => transition(caseRecord({ status: 'under_review' }), {
+      status: 'decision_pending_approval',
+    }),
+    /support_decision_id_required/,
+  );
+  const pending = transition(caseRecord({ status: 'under_review' }), {
+    status: 'decision_pending_approval',
+    decisionId,
+  });
+  assert.equal(pending.decisionId, decisionId);
   const decided = transition(caseRecord({ status: 'decision_pending_approval' }), {
     status: 'decided',
     decisionId,
@@ -275,6 +286,38 @@ test('green cases cannot enter approval and decided cases stay operationally act
   assert.equal(decided.waitingOn, 'support_owner');
   assert.equal(decided.nextAction, 'Fall innerhalb der Frist weiter prüfen.');
   assert.deepEqual(decided.nextUpdateAt, nextUpdateAt);
+  assert.throws(
+    () => transition(caseRecord({
+      status: 'decision_pending_approval',
+      decision_id: decisionId,
+    }), {
+      status: 'decided',
+      decisionId: '22222222-2222-4222-8222-222222222222',
+    }),
+    /support_decision_id_mismatch/,
+  );
+});
+
+test('only a green information case can resolve directly from review', () => {
+  assert.throws(
+    () => transition(caseRecord({ status: 'under_review' }), {
+      status: 'resolved',
+      resolutionReference: 'Information wurde nachvollziehbar geliefert.',
+    }),
+    /support_resolution_requires_approved_decision/,
+  );
+  const resolved = transition(caseRecord({
+    status: 'under_review',
+    approval_level: 'green_automatic',
+    priority: 'p3',
+    severity: 'low',
+    current_owner_role: 'general_support_owner',
+  }), {
+    status: 'resolved',
+    resolutionReference: 'Bestätigte Bedienungsinformation wurde geliefert.',
+  });
+  assert.equal(resolved.status, 'resolved');
+  assert.equal(resolved.decisionId, null);
 });
 
 test('implementation, resolution, closure and reopen guards fail closed', () => {

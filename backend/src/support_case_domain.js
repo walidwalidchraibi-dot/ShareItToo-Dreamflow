@@ -181,7 +181,7 @@ const statusTransitions = Object.freeze({
   acknowledged: new Set(['waiting_for_user', 'waiting_for_other_party', 'under_review']),
   waiting_for_user: new Set(['under_review']),
   waiting_for_other_party: new Set(['under_review']),
-  under_review: new Set(['escalated', 'decision_pending_approval']),
+  under_review: new Set(['escalated', 'decision_pending_approval', 'resolved']),
   escalated: new Set(['under_review', 'decision_pending_approval']),
   decision_pending_approval: new Set(['decided', 'under_review']),
   decided: new Set(['implementation_pending', 'resolved']),
@@ -474,12 +474,17 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
     if (caseRecord.approval_level === 'green_automatic') {
       throw new SupportCaseError(409, 'support_decision_approval_level_invalid');
     }
+    updates.decisionId = optionalUuid(raw.decisionId, 'support_decision_id_required');
+    if (!updates.decisionId) throw new SupportCaseError(400, 'support_decision_id_required');
   }
   if (toStatus === 'decided') {
     activeNext();
     updates.waitingOn = 'support_owner';
     updates.decisionId = optionalUuid(raw.decisionId, 'support_decision_id_required');
     if (!updates.decisionId) throw new SupportCaseError(400, 'support_decision_id_required');
+    if (caseRecord.decision_id && updates.decisionId !== caseRecord.decision_id) {
+      throw new SupportCaseError(409, 'support_decision_id_mismatch');
+    }
   }
   if (toStatus === 'implementation_pending') {
     activeNext();
@@ -492,6 +497,10 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
     );
   }
   if (toStatus === 'resolved') {
+    if (caseRecord.status === 'under_review'
+        && caseRecord.approval_level !== 'green_automatic') {
+      throw new SupportCaseError(409, 'support_resolution_requires_approved_decision');
+    }
     updates.resolutionReference = requiredText(
       raw.resolutionReference,
       2000,
@@ -513,6 +522,9 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
   }
   if (toStatus === 'reopened') {
     updates.reopenReason = requiredText(raw.reopenReason, 2000, 'support_reopen_reason_required', 3);
+  }
+  if (toStatus === 'under_review' && caseRecord.status === 'decision_pending_approval') {
+    updates.decisionId = null;
   }
   if (!waitingOnValues.has(updates.waitingOn)) {
     throw new SupportCaseError(400, 'support_waiting_on_invalid');

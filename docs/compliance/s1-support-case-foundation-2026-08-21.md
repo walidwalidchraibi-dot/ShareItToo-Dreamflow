@@ -42,10 +42,11 @@ an operator assignment, a retention schedule or permission to contact users.
 ## Verification
 
 Focused domain, workflow, route, migration, privacy and retention tests pass.
-The complete backend suite passes with local synthetic configuration: 368
+The complete backend suite passed with local synthetic configuration: 368
 tests passed, zero failed and the PostgreSQL integration test was skipped
-locally because `TEST_DATABASE_URL` is absent. PostgreSQL migration execution
-must therefore pass in GitHub CI before this package is treated as integrated.
+locally because `TEST_DATABASE_URL` is absent. GitHub Actions then executed the
+PostgreSQL 16 integration path and complete regression successfully for exact
+commit `64874b9eba0b6b2fca85f1c4f3cdfed0d702f095` in run `32491241853`.
 
 The CI-compatible technical regression passes locally with all bound
 validators, 321 Flutter tests, the Web build/smoke and Android debug APK build.

@@ -17,18 +17,24 @@ lane.
 
 ## Active package
 
-`S1_SUPPORT_CASE_FOUNDATION` implements the canonical non-live case model from
-the updated Drive Support Packet and Aurelius-supported material:
+`S1_SUPPORT_CASE_FOUNDATION` is implemented and verified at commit
+`64874b9eba0b6b2fca85f1c4f3cdfed0d702f095`. GitHub Actions run
+`32491241853` passed backend, PostgreSQL migration, Flutter, Web and Android
+debug regression; publication and signed-candidate jobs stayed skipped.
 
-- migration `032` for cases, events, decisions, evidence, messages, appeals and
-  immutable policy snapshots;
-- deterministic server taxonomy/routing and guarded lifecycle;
-- authenticated user intake/read plus Staff-Step-up queue and transition APIs;
-- account export, retention inventory and account-erasure preflight coverage;
-- Privacy/Retention source-hash bindings remain draft and fail-closed.
+`S2_SUPPORT_DECISION_APPROVAL_LEDGER` is the active non-live package. It adds:
 
-No external message, evidence upload, decision execution, payment/refund,
-account measure, deployment or public/live activation is part of S1.
+- migration `033` for draft, approval, rejection and implementation truth;
+- immutable proposal hashes, expected versions and exact-hash approval;
+- administrator-only four-eyes review behind Staff Step-up;
+- simulation/internal-testing-only implementation evidence with no action
+  adapter;
+- resolution guards that require approved and verified implementation truth;
+- explicit staff assignment boundaries for queue, detail and decision work;
+- Privacy/Retention source-hash binding that remains draft and fail-closed.
+
+No external message, evidence upload, real refund/payout, account measure,
+deployment or public/live activation is part of S2.
 
 ## Prior ordered post-P0B gate close
 

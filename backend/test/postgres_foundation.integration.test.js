@@ -94,6 +94,7 @@ if (!databaseUrl) {
         '030_g3d_shared_handover_item_evidence.up.sql',
         '031_g5b_listing_sets.up.sql',
         '032_support_case_foundation.up.sql',
+        '033_support_decision_approval_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -177,6 +178,28 @@ if (!databaseUrl) {
         { table_name: 'support_evidence' },
         { table_name: 'support_messages' },
         { table_name: 'support_policy_snapshots' },
+      ]);
+      const supportDecisionColumns = await setupPool.query(
+        `SELECT column_name, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'support_decisions'
+            AND column_name = ANY($1::text[])
+          ORDER BY column_name`,
+        [[
+          'approval_payload_sha256',
+          'approval_status',
+          'implementation_reference',
+          'implementation_verified_at',
+          'payload_sha256',
+        ]],
+      );
+      assert.deepEqual(supportDecisionColumns.rows, [
+        { column_name: 'approval_payload_sha256', is_nullable: 'YES' },
+        { column_name: 'approval_status', is_nullable: 'NO' },
+        { column_name: 'implementation_reference', is_nullable: 'YES' },
+        { column_name: 'implementation_verified_at', is_nullable: 'YES' },
+        { column_name: 'payload_sha256', is_nullable: 'NO' },
       ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name
@@ -275,6 +298,232 @@ if (!databaseUrl) {
            ('admin', 'admin@example.com', '{}'::jsonb, 'admin', 'active'),
            ('support', 'support@example.com', '{}'::jsonb, 'support', 'active'),
            ('suspended', 'suspended@example.com', '{}'::jsonb, 'user', 'suspended')`,
+      );
+      const supportPolicy = await setupPool.query(
+        `INSERT INTO support_policy_snapshots (
+           policy_type, version, effective_from, rule_values,
+           source_document_ids, approval_reference, content_sha256
+         ) VALUES (
+           'support_decision_test', 'integration-v1', now() - interval '1 day',
+           '{"mode":"simulation"}'::jsonb, ARRAY['integration-test'],
+           'Technical integration test only', $1
+         ) RETURNING id`,
+        ['a'.repeat(64)],
+      );
+      const supportCase = await setupPool.query(
+        `INSERT INTO support_cases (
+           human_readable_case_number, case_type, case_subtype, status,
+           priority, severity, source_channel, operating_mode,
+           reporter_user_id, reporter_role, current_owner_id,
+           current_owner_role, approval_level, waiting_on, next_action,
+           next_update_at, user_facing_summary, internal_summary,
+           policy_snapshot_id, idempotency_key
+         ) VALUES (
+           'SIT-BCDFGHJKLMNP', 'money_case', 'refund_request_or_review',
+           'under_review', 'p1', 'high', 'internal', 'simulation',
+           'owner', 'user', 'support', 'finance_owner',
+           'red_explicit_decision', 'support_owner',
+           'Verify the exact simulation-only proposal.', now() + interval '1 day',
+           'Refund review in the internal test environment.',
+           'No provider call or real money action is authorized.',
+           $1, 'support-case-ledger-integration'
+         ) RETURNING id`,
+        [supportPolicy.rows[0].id],
+      );
+      const supportDecision = await setupPool.query(
+        `INSERT INTO support_decisions (
+           case_id, decision_code, decision_scope,
+           confirmed_facts_considered, material_uncertainties,
+           policy_snapshot_id, rule_reference, measure_type, amount_minor,
+           currency, affected_entity_ids, unaffected_areas,
+           implementation_plan, automation_used, decided_by,
+           user_facing_reason, internal_reason, redress_route,
+           implementation_status, idempotency_key, payload_sha256
+         ) VALUES (
+           $1, 'support.simulated_refund_review',
+           'Only this internal integration-test case.',
+           '["The database state is synthetic."]'::jsonb,
+           '["No provider approval exists."]'::jsonb,
+           $2, 'Support Packet V1 test binding',
+           'simulated_refund_review', 100, 'EUR', ARRAY['integration-case'],
+           '["No payment or account state changes."]'::jsonb,
+           'Record only the verified internal simulation result.', false,
+           'support', 'The simulated review was recorded.',
+           'This is an internal database integration test.',
+           'A separate human review remains available.', 'not_started',
+           'support-decision-ledger-integration', $3
+         ) RETURNING id, approval_status, approved_by, lock_version`,
+        [supportCase.rows[0].id, supportPolicy.rows[0].id, 'b'.repeat(64)],
+      );
+      assert.deepEqual(supportDecision.rows[0], {
+        id: supportDecision.rows[0].id,
+        approval_status: 'pending',
+        approved_by: null,
+        lock_version: 1,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_decisions
+              SET decision_scope = 'Mutated after proposal creation.',
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportDecision.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_decision_payload_immutable',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_decisions
+              SET approval_status = 'approved', approved_by = 'admin',
+                  approved_at = now(), approval_payload_sha256 = payload_sha256,
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportDecision.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_decision_case_not_pending_approval',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET decision_id = $2, lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportCase.rows[0].id, supportDecision.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_case_decision_binding_invalid',
+      );
+      const pendingSupportCase = await setupPool.query(
+        `UPDATE support_cases
+            SET status = 'decision_pending_approval', decision_id = $2,
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1
+          RETURNING status, decision_id, lock_version`,
+        [supportCase.rows[0].id, supportDecision.rows[0].id],
+      );
+      assert.deepEqual(pendingSupportCase.rows[0], {
+        status: 'decision_pending_approval',
+        decision_id: supportDecision.rows[0].id,
+        lock_version: 2,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_decisions
+              SET approval_status = 'approved', approved_by = decided_by,
+                  approved_at = now(), approval_payload_sha256 = payload_sha256,
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportDecision.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.constraint === 'support_decisions_approval_truth_check',
+      );
+      const approvedSupportDecision = await setupPool.query(
+        `UPDATE support_decisions
+            SET approval_status = 'approved', approved_by = 'admin',
+                approved_at = now(), approval_payload_sha256 = payload_sha256,
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1
+          RETURNING approval_status, approved_by, approval_payload_sha256,
+                    payload_sha256, lock_version`,
+        [supportDecision.rows[0].id],
+      );
+      assert.equal(approvedSupportDecision.rows[0].approval_status, 'approved');
+      assert.equal(approvedSupportDecision.rows[0].approved_by, 'admin');
+      assert.equal(
+        approvedSupportDecision.rows[0].approval_payload_sha256,
+        approvedSupportDecision.rows[0].payload_sha256,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_decisions
+              SET approved_by = 'support', lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportDecision.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_decision_approval_final',
+      );
+      const decidedSupportCase = await setupPool.query(
+        `UPDATE support_cases
+            SET status = 'decided', lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1
+          RETURNING status, decision_id, lock_version`,
+        [supportCase.rows[0].id],
+      );
+      assert.deepEqual(decidedSupportCase.rows[0], {
+        status: 'decided',
+        decision_id: supportDecision.rows[0].id,
+        lock_version: 3,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET status = 'resolved', waiting_on = 'none',
+                  next_action = NULL, next_update_at = NULL,
+                  resolution_reference = 'Unverified implementation.',
+                  resolved_at = now(), lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportCase.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_case_implementation_not_verified',
+      );
+      const implementedSupportDecision = await setupPool.query(
+        `UPDATE support_decisions
+            SET implementation_status = 'succeeded',
+                implementation_reference = 'Verified internal simulation only.',
+                implementation_verified_by = 'admin',
+                implementation_verified_at = now(), implemented_at = now(),
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '2 seconds'
+          WHERE id = $1
+          RETURNING implementation_status, implementation_verified_by,
+                    implementation_reference`,
+        [supportDecision.rows[0].id],
+      );
+      assert.deepEqual(implementedSupportDecision.rows[0], {
+        implementation_status: 'succeeded',
+        implementation_verified_by: 'admin',
+        implementation_reference: 'Verified internal simulation only.',
+      });
+      const resolvedSupportCase = await setupPool.query(
+        `UPDATE support_cases
+            SET status = 'resolved', waiting_on = 'none',
+                next_action = NULL, next_update_at = NULL,
+                resolution_reference = 'Verified internal simulation only.',
+                resolved_at = now(), lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1
+          RETURNING status, resolution_reference, lock_version`,
+        [supportCase.rows[0].id],
+      );
+      assert.deepEqual(resolvedSupportCase.rows[0], {
+        status: 'resolved',
+        resolution_reference: 'Verified internal simulation only.',
+        lock_version: 4,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_decisions
+              SET implementation_reference = 'Rewritten evidence.',
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportDecision.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_decision_implementation_evidence_immutable',
       );
       for (const statement of [
         `INSERT INTO deposit_mandates (

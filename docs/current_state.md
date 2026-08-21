@@ -15,6 +15,9 @@ Verified: 2026-08-21 on the Mac mini.
   debug gates passed; signed candidate and image publication were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
+- The later S1 support foundation is verified at exact commit
+  `64874b9eba0b6b2fca85f1c4f3cdfed0d702f095`; GitHub Actions run
+  `32491241853` is green and draft PR #7 remains open and unmerged.
 
 ## Post-P0B ordered continuation close
 
@@ -34,7 +37,8 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `032`, deterministic
+- Node/Express backend with verified PostgreSQL migrations through `032` and an
+  active non-live S2 candidate migration `033`, deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
@@ -43,6 +47,10 @@ Verified: 2026-08-21 on the Mac mini.
   red approval boundaries, authenticated user intake/read, Staff-Step-up queue
   and transitions, plus export/retention/erasure-preflight coverage. It sends
   no external message and executes no decision or measure.
+- S2 separates immutable decision proposals, exact-hash four-eyes approval and
+  verified implementation evidence. Staff access is assignment-bound, review
+  is administrator-only, and the implementation endpoint records only
+  simulation/internal-testing evidence without calling an external adapter.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

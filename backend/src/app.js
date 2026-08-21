@@ -172,6 +172,12 @@ import {
   transitionSupportCase,
 } from './support_case_workflow.js';
 import {
+  createSupportDecisionDraft,
+  listSupportDecisions,
+  recordSupportDecisionImplementation,
+  reviewSupportDecision,
+} from './support_decision_workflow.js';
+import {
   getPilotCockpitSnapshot,
   PilotCockpitError,
 } from './pilot_cockpit.js';
@@ -4299,6 +4305,7 @@ export function createApp({
     const result = await getSupportCase(pool, {
       actor: req.actor,
       caseId: safeText(req.params.id, 80),
+      staffAccess: true,
     });
     res.set('Cache-Control', 'private, no-store').json(result);
   }));
@@ -4307,6 +4314,47 @@ export function createApp({
     const result = await inTransaction((client) => transitionSupportCase(client, {
       actor: req.actor,
       caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.get('/v1/admin/support/cases/:id/decisions', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const decisions = await listSupportDecisions(pool, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json({ decisions });
+  }));
+
+  app.post('/v1/admin/support/cases/:id/decisions', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createSupportDecisionDraft(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/decisions/:decisionId/review', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => reviewSupportDecision(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      decisionId: safeText(req.params.decisionId, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/decisions/:decisionId/implementation', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordSupportDecisionImplementation(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      decisionId: safeText(req.params.decisionId, 80),
       raw: req.body,
       idempotencyKey: req.get('Idempotency-Key'),
     }));

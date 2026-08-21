@@ -291,7 +291,11 @@ test('transition replays idempotently before locking the case', async () => {
     ]),
     result: {
       rowCount: 1,
-      rows: [caseRow({ status: 'under_review', lock_version: 2 })],
+      rows: [caseRow({
+        status: 'under_review',
+        lock_version: 2,
+        current_owner_id: 'support-1',
+      })],
     },
   }]);
   const result = await transitionSupportCase(client, {
@@ -307,8 +311,33 @@ test('transition replays idempotently before locking the case', async () => {
   client.done();
 });
 
+test('transition replay rechecks the current support assignment', async () => {
+  const client = new ScriptedClient([{
+    match: /FROM support_case_events AS event/,
+    result: {
+      rowCount: 1,
+      rows: [caseRow({ current_owner_id: 'support-2' })],
+    },
+  }]);
+  await assert.rejects(
+    transitionSupportCase(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: 'case-1',
+      raw: null,
+      idempotencyKey: 'transition-reassigned',
+      now,
+    }),
+    /support_case_assignment_required/,
+  );
+  client.done();
+});
+
 test('transition rechecks idempotency after a concurrent row-lock wait', async () => {
-  const updated = caseRow({ status: 'under_review', lock_version: 2 });
+  const updated = caseRow({
+    status: 'under_review',
+    lock_version: 2,
+    current_owner_id: 'support-1',
+  });
   const client = new ScriptedClient([
     { match: /FROM support_case_events AS event/, result: noRows },
     { match: /FOR UPDATE/, result: { rowCount: 1, rows: [updated] } },
@@ -327,6 +356,33 @@ test('transition rechecks idempotency after a concurrent row-lock wait', async (
   client.done();
 });
 
+test('support cannot transition a case that was not explicitly assigned', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    {
+      match: /FOR UPDATE/,
+      result: { rowCount: 1, rows: [caseRow({ current_owner_id: null })] },
+    },
+  ]);
+  await assert.rejects(
+    transitionSupportCase(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: 'case-1',
+      raw: {
+        status: 'acknowledged',
+        expectedVersion: 1,
+        reason: 'Unberechtigter Bearbeitungsversuch.',
+        nextAction: 'Dieser Schritt darf nicht ausgeführt werden.',
+        nextUpdateAt,
+      },
+      idempotencyKey: 'transition-unassigned',
+      now,
+    }),
+    /support_case_assignment_required/,
+  );
+  client.done();
+});
+
 test('transition uses optimistic versioning and appends event plus audit', async () => {
   const current = caseRow({
     status: 'acknowledged',
@@ -334,6 +390,7 @@ test('transition uses optimistic versioning and appends event plus audit', async
     severity: 'high',
     approval_level: 'yellow_human_review',
     current_owner_role: 'booking_operations_owner',
+    current_owner_id: 'support-1',
     lock_version: 4,
   });
   const transitionAt = new Date('2026-08-21T10:05:00.000Z');
@@ -341,6 +398,7 @@ test('transition uses optimistic versioning and appends event plus audit', async
     { match: /FROM support_case_events AS event/, result: noRows },
     { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
     { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    { match: /SELECT id FROM users/, result: { rowCount: 1, rows: [{ id: 'support-1' }] } },
     {
       match: /UPDATE support_cases/,
       check: ({ params }) => {
@@ -404,10 +462,121 @@ test('transition uses optimistic versioning and appends event plus audit', async
   client.done();
 });
 
+test('decision-pending transition requires the exact pending draft for the same case', async () => {
+  const decisionId = '11111111-1111-4111-8111-111111111111';
+  const current = caseRow({
+    status: 'under_review',
+    approval_level: 'yellow_human_review',
+    current_owner_id: 'support-1',
+    lock_version: 2,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
+    { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    { match: /SELECT id FROM users/, result: { rowCount: 1, rows: [{ id: 'support-1' }] } },
+    {
+      match: /approval_status = 'pending'/,
+      check: ({ params }) => assert.deepEqual(params, [decisionId, 'case-1']),
+      result: noRows,
+    },
+  ]);
+  await assert.rejects(
+    transitionSupportCase(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: 'case-1',
+      raw: {
+        status: 'decision_pending_approval',
+        expectedVersion: 2,
+        reason: 'Entwurf wurde zur Prüfung vorbereitet.',
+        decisionId,
+        nextAction: 'Unabhängige Freigabe des unveränderten Entwurfs prüfen.',
+        nextUpdateAt,
+      },
+      idempotencyKey: 'transition-pending-draft',
+      now,
+    }),
+    /support_decision_draft_unavailable/,
+  );
+  client.done();
+});
+
+test('decision-backed resolution requires separately verified implementation success', async () => {
+  const decisionId = '11111111-1111-4111-8111-111111111111';
+  const current = caseRow({
+    status: 'decided',
+    approval_level: 'red_explicit_decision',
+    current_owner_id: 'support-1',
+    decision_id: decisionId,
+    lock_version: 4,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
+    { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    { match: /SELECT id FROM users/, result: { rowCount: 1, rows: [{ id: 'support-1' }] } },
+    {
+      match: /implementation_status = 'succeeded'/,
+      result: noRows,
+    },
+  ]);
+  await assert.rejects(
+    transitionSupportCase(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: 'case-1',
+      raw: {
+        status: 'resolved',
+        expectedVersion: 4,
+        reason: 'Abschluss darf ohne Umsetzungserfolg nicht erfolgen.',
+        resolutionReference: 'Nur ein unbestätigter Verweis.',
+      },
+      idempotencyKey: 'transition-unverified-resolution',
+      now,
+    }),
+    /support_decision_implementation_not_verified/,
+  );
+  client.done();
+});
+
+test('case cannot leave pending approval until its draft is rejected or superseded', async () => {
+  const decisionId = '11111111-1111-4111-8111-111111111111';
+  const current = caseRow({
+    status: 'decision_pending_approval',
+    approval_level: 'yellow_human_review',
+    current_owner_id: 'support-1',
+    decision_id: decisionId,
+    lock_version: 3,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
+    { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    { match: /SELECT id FROM users/, result: { rowCount: 1, rows: [{ id: 'support-1' }] } },
+    { match: /approval_status IN \('rejected', 'superseded'\)/, result: noRows },
+  ]);
+  await assert.rejects(
+    transitionSupportCase(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: 'case-1',
+      raw: {
+        status: 'under_review',
+        expectedVersion: 3,
+        reason: 'Pending review must not be bypassed.',
+        nextAction: 'Wait for the independent review outcome.',
+        nextUpdateAt,
+      },
+      idempotencyKey: 'transition-review-bypass',
+      now,
+    }),
+    /support_decision_review_pending/,
+  );
+  client.done();
+});
+
 test('get keeps user access and event visibility fail closed', async () => {
   const client = new ScriptedClient([{
     match: /FROM support_cases/,
-    check: ({ params }) => assert.deepEqual(params, ['case-other', false, 'user-1']),
+    check: ({ params }) => assert.deepEqual(params, ['case-other', false, false, 'user-1']),
     result: noRows,
   }]);
   await assert.rejects(
@@ -455,6 +624,38 @@ test('get omits staff transition reasons from the user-safe event projection', a
   client.done();
 });
 
+test('staff detail is separate and support remains assignment-bound', async () => {
+  const denied = new ScriptedClient([{
+    match: /FROM support_cases/,
+    check: ({ params }) => assert.deepEqual(params, ['case-other', true, false, 'support-1']),
+    result: noRows,
+  }]);
+  await assert.rejects(
+    getSupportCase(denied, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: 'case-other',
+      staffAccess: true,
+    }),
+    /support_case_not_found/,
+  );
+  denied.done();
+
+  const assigned = new ScriptedClient([
+    {
+      match: /FROM support_cases/,
+      result: { rowCount: 1, rows: [caseRow({ current_owner_id: 'support-1' })] },
+    },
+    { match: /FROM support_case_events/, result: { rowCount: 0, rows: [] } },
+  ]);
+  const result = await getSupportCase(assigned, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId: 'case-1',
+    staffAccess: true,
+  });
+  assert.equal(result.supportCase.approvalLevel, 'green_automatic');
+  assigned.done();
+});
+
 test('staff queue is role-gated, filter-bounded and keeps internal fields', async () => {
   const denied = new ScriptedClient([]);
   await assert.rejects(
@@ -476,6 +677,8 @@ test('staff queue is role-gated, filter-bounded and keeps internal fields', asyn
       'p0',
       'trust_safety_owner',
       25,
+      false,
+      'support-1',
     ]),
     result: { rowCount: 1, rows: [caseRow({
       priority: 'p0',
@@ -483,6 +686,7 @@ test('staff queue is role-gated, filter-bounded and keeps internal fields', asyn
       current_owner_role: 'trust_safety_owner',
       approval_level: 'red_explicit_decision',
       safety_flag: true,
+      current_owner_id: 'support-1',
     })] },
   }]);
   const queue = await listStaffSupportCases(client, {
@@ -506,6 +710,14 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
   );
   const down = await fs.readFile(
     path.resolve(currentDir, '../sql/migrations/032_support_case_foundation.down.sql'),
+    'utf8',
+  );
+  const approvalUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/033_support_decision_approval_guard.up.sql'),
+    'utf8',
+  );
+  const approvalDown = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/033_support_decision_approval_guard.down.sql'),
     'utf8',
   );
   for (const table of [
@@ -534,6 +746,21 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     down.indexOf('ALTER TABLE support_cases DROP CONSTRAINT support_cases_appeal_fk')
       < down.indexOf('DROP TABLE support_appeals'),
   );
+  assert.match(approvalUp, /support_cases_pending_decision_required/);
+  assert.match(approvalUp, /approval_payload_sha256 = payload_sha256/);
+  assert.match(approvalUp, /approved_by <> decided_by/);
+  assert.match(approvalUp, /support_decisions_measure_scope_check/);
+  assert.match(approvalUp, /support_decision_payload_immutable/);
+  assert.match(approvalUp, /support_decision_approval_final/);
+  assert.match(approvalUp, /support_decision_implementation_evidence_immutable/);
+  assert.match(approvalUp, /support_decision_implementation_regression/);
+  assert.match(approvalUp, /support_decision_case_not_pending_approval/);
+  assert.match(approvalUp, /support_case_implementation_not_verified/);
+  assert.match(approvalUp, /support_case_decision_id_mismatch/);
+  assert.match(approvalUp, /support_case_decision_binding_invalid/);
+  assert.match(approvalUp, /implementation_status = 'succeeded'/);
+  assert.match(approvalUp, /OLD\.approval_level = 'green_automatic'/);
+  assert.match(approvalDown, /Support decision approval rollback blocked: decision data exists/);
 });
 
 test('support routes and personal-data lifecycle stay authenticated, non-live and fail closed', async () => {
@@ -547,6 +774,12 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
     "app.post('/v1/support/cases', requireAuth, requireActiveAccount, actionLimiter",
     "app.get('/v1/support/cases', requireAuth, requireActiveAccount",
     "app.get('/v1/support/cases/:id', requireAuth, requireActiveAccount",
+  ]) assert.ok(app.includes(route), route);
+  for (const route of [
+    "app.get('/v1/admin/support/cases/:id/decisions', requireAuth, requireActiveAccount, requireStaffElevation",
+    "app.post('/v1/admin/support/cases/:id/decisions', requireAuth, requireActiveAccount, requireStaffElevation",
+    "app.post('/v1/admin/support/cases/:id/decisions/:decisionId/review', requireAuth, requireActiveAccount, requireStaffElevation",
+    "app.post('/v1/admin/support/cases/:id/decisions/:decisionId/implementation', requireAuth, requireActiveAccount, requireStaffElevation",
   ]) assert.ok(app.includes(route), route);
   for (const route of [
     "app.get('/v1/admin/support/cases', requireAuth, requireActiveAccount, requireStaffElevation",

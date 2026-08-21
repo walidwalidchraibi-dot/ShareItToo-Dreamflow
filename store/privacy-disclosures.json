@@ -52,11 +52,19 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "662d8e867940f180d01d7c2f7678ad1f0fc24fbf0062b911af7f8d0b54f2feba"
+      "sha256": "ab9208d8a418ffad94c817cbdc46f357ba803337ba2457c5cc536853bb4b9b02"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "a76dc85387cb36839b7d5e7fce2dede2c8f3bde8e82c1cff161636a39635ec6b"
+      "sha256": "937e52803b0d2a4b3552dba32330e5dc3a1d765813093a4d13ee229583ecf6ee"
+    },
+    {
+      "path": "backend/src/support_decision_domain.js",
+      "sha256": "76fcdcbdfc8a8cf559db615caef39dcfc85e469fe621c0744d8577373bc23ab5"
+    },
+    {
+      "path": "backend/src/support_decision_workflow.js",
+      "sha256": "e3b1d8e8918811032ca4b42f22f81423146383231c178ea93d1ff1596e8a437a"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -416,7 +424,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "084e15e5a1852ae2769167eab50f5e449aac4b7c9c7c1e4dff2a626cc2a0d7b3"
+      "sha256": "925687c7e43b4f7a36dbee8adcaba6319f727a333d25dd4067183a721a40a370"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -469,6 +477,10 @@
     {
       "path": "backend/sql/migrations/032_support_case_foundation.up.sql",
       "sha256": "c0c9809479792fd308ce577aa05a987e1934884a0b9932d94e4445c980aa9c27"
+    },
+    {
+      "path": "backend/sql/migrations/033_support_decision_approval_guard.up.sql",
+      "sha256": "ceeb18ac55c64f43b19e7704ddd64eeaae6ac9215ce856181a43acb62f62c8db"
     },
     {
       "path": "lib/config/listing_sets_technical_config.dart",

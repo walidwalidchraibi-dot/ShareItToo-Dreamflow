@@ -337,6 +337,9 @@ export async function transitionSupportCase(client, {
     [key, caseId],
   );
   if (replay.rowCount) {
+    if (actor.role === 'support' && replay.rows[0].current_owner_id !== actor.id) {
+      throw new SupportCaseError(403, 'support_case_assignment_required');
+    }
     return { supportCase: shapeSupportCase(replay.rows[0], { staff: true }), replayed: true };
   }
   const current = await client.query(
@@ -345,6 +348,9 @@ export async function transitionSupportCase(client, {
   );
   if (!current.rowCount) throw new SupportCaseError(404, 'support_case_not_found');
   const row = current.rows[0];
+  if (actor.role === 'support' && row.current_owner_id !== actor.id) {
+    throw new SupportCaseError(403, 'support_case_assignment_required');
+  }
   const concurrentReplay = await client.query(
     `SELECT 1 FROM support_case_events
       WHERE case_id = $1 AND idempotency_key = $2`,
@@ -366,13 +372,52 @@ export async function transitionSupportCase(client, {
     );
     if (!owner.rowCount) throw new SupportCaseError(400, 'support_owner_invalid');
   }
+  if (transition.decisionId && transition.status === 'decision_pending_approval') {
+    const decision = await client.query(
+      `SELECT id FROM support_decisions
+        WHERE id = $1 AND case_id = $2 AND approval_status = 'pending'`,
+      [transition.decisionId, row.id],
+    );
+    if (!decision.rowCount) throw new SupportCaseError(409, 'support_decision_draft_unavailable');
+  }
   if (transition.decisionId && transition.status === 'decided') {
     const decision = await client.query(
       `SELECT id FROM support_decisions
-        WHERE id = $1 AND case_id = $2 AND approved_by IS NOT NULL`,
+        WHERE id = $1 AND case_id = $2
+          AND approval_status = 'approved'
+          AND approved_by IS NOT NULL
+          AND approval_payload_sha256 = payload_sha256`,
       [transition.decisionId, row.id],
     );
     if (!decision.rowCount) throw new SupportCaseError(409, 'support_decision_not_approved');
+  }
+  if (row.status === 'decision_pending_approval' && transition.status === 'under_review') {
+    const decision = await client.query(
+      `SELECT id FROM support_decisions
+        WHERE id = $1 AND case_id = $2
+          AND approval_status IN ('rejected', 'superseded')`,
+      [row.decision_id, row.id],
+    );
+    if (!decision.rowCount) throw new SupportCaseError(409, 'support_decision_review_pending');
+  }
+  if (transition.status === 'resolved') {
+    if (row.decision_id) {
+      const implementation = await client.query(
+        `SELECT id FROM support_decisions
+          WHERE id = $1 AND case_id = $2
+            AND approval_status = 'approved'
+            AND approval_payload_sha256 = payload_sha256
+            AND implementation_status = 'succeeded'
+            AND implementation_verified_by IS NOT NULL
+            AND implementation_verified_at IS NOT NULL`,
+        [row.decision_id, row.id],
+      );
+      if (!implementation.rowCount) {
+        throw new SupportCaseError(409, 'support_decision_implementation_not_verified');
+      }
+    } else if (row.approval_level !== 'green_automatic') {
+      throw new SupportCaseError(409, 'support_resolution_requires_approved_decision');
+    }
   }
 
   const updated = await client.query(
@@ -505,20 +550,26 @@ export async function listStaffSupportCases(client, {
       WHERE ($1::text IS NULL OR status = $1)
         AND ($2::text IS NULL OR priority = $2)
         AND ($3::text IS NULL OR current_owner_role = $3)
+        AND ($5::boolean OR current_owner_id = $6)
       ORDER BY priority, next_update_at NULLS LAST, updated_at, id
       LIMIT $4`,
-    [status, priority, ownerRole, parsedLimit],
+    [status, priority, ownerRole, parsedLimit, actor.role === 'admin', actor.id],
   );
   return result.rows.map((row) => shapeSupportCase(row, { staff: true }));
 }
 
-export async function getSupportCase(client, { actor, caseId }) {
-  const staff = ['support', 'admin'].includes(actor?.role);
+export async function getSupportCase(client, { actor, caseId, staffAccess = false }) {
+  const staff = staffAccess && ['support', 'admin'].includes(actor?.role);
+  if (staffAccess && !staff) throw new SupportCaseError(403, 'support_staff_detail_forbidden');
   const result = await client.query(
     `SELECT * FROM support_cases
       WHERE id::text = $1
-        AND ($2::boolean OR reporter_user_id = $3 OR $3 = ANY(affected_user_ids))`,
-    [caseId, staff, actor?.id ?? null],
+        AND (
+          ($2::boolean AND ($3::boolean OR current_owner_id = $4))
+          OR
+          (NOT $2::boolean AND (reporter_user_id = $4 OR $4 = ANY(affected_user_ids)))
+        )`,
+    [caseId, staffAccess, actor?.role === 'admin', actor?.id ?? null],
   );
   if (!result.rowCount) throw new SupportCaseError(404, 'support_case_not_found');
   const events = await client.query(
