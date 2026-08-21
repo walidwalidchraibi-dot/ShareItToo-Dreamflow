@@ -49,7 +49,7 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "937e52803b0d2a4b3552dba32330e5dc3a1d765813093a4d13ee229583ecf6ee"
+      "sha256": "c56e2042e0aff495154f8cac633e2b0fdf6f7b694e3483a9a6935b019bcdc5ec"
     },
     {
       "path": "backend/src/support_decision_domain.js",
@@ -57,7 +57,7 @@
     },
     {
       "path": "backend/src/support_decision_workflow.js",
-      "sha256": "e3b1d8e8918811032ca4b42f22f81423146383231c178ea93d1ff1596e8a437a"
+      "sha256": "3c07990e9fcec6f76570349589134c605920648670fba76492094579223011fc"
     },
     {
       "path": "backend/src/rental_cart_workflow.js",

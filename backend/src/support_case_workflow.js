@@ -571,7 +571,20 @@ export async function getSupportCase(client, { actor, caseId, staffAccess = fals
         )`,
     [caseId, staffAccess, actor?.role === 'admin', actor?.id ?? null],
   );
-  if (!result.rowCount) throw new SupportCaseError(404, 'support_case_not_found');
+  if (!result.rowCount) {
+    if (staffAccess && actor?.role === 'support') {
+      await writeAudit(client, {
+        actor,
+        action: 'support.case_access_denied',
+        resourceId: caseId,
+        metadata: {
+          accessPath: 'staff_detail',
+          reason: 'not_assigned_or_not_found',
+        },
+      });
+    }
+    throw new SupportCaseError(404, 'support_case_not_found');
+  }
   const events = await client.query(
     `SELECT * FROM support_case_events
       WHERE case_id = $1

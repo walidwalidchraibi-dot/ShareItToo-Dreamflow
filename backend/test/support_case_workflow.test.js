@@ -624,12 +624,30 @@ test('get omits staff transition reasons from the user-safe event projection', a
   client.done();
 });
 
-test('staff detail is separate and support remains assignment-bound', async () => {
-  const denied = new ScriptedClient([{
-    match: /FROM support_cases/,
-    check: ({ params }) => assert.deepEqual(params, ['case-other', true, false, 'support-1']),
-    result: noRows,
-  }]);
+test('staff detail is separate and denied support access is audited without revealing existence', async () => {
+  const denied = new ScriptedClient([
+    {
+      match: /FROM support_cases/,
+      check: ({ params }) => assert.deepEqual(params, ['case-other', true, false, 'support-1']),
+      result: noRows,
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.deepEqual(params.slice(0, 4), [
+          'support-1',
+          'support',
+          'support.case_access_denied',
+          'case-other',
+        ]);
+        assert.deepEqual(JSON.parse(params[4]), {
+          accessPath: 'staff_detail',
+          reason: 'not_assigned_or_not_found',
+        });
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
   await assert.rejects(
     getSupportCase(denied, {
       actor: { id: 'support-1', role: 'support' },

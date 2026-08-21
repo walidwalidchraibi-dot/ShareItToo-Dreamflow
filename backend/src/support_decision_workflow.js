@@ -53,12 +53,25 @@ function shapeDecision(row) {
   });
 }
 
-async function audit(client, { actor, action, resourceId, metadata = {} }) {
+async function audit(client, {
+  actor,
+  action,
+  resourceId,
+  resourceType = 'support_decision',
+  metadata = {},
+}) {
   await client.query(
     `INSERT INTO audit_log (
        actor_id, actor_role, action, resource_type, resource_id, metadata
-     ) VALUES ($1, $2, $3, 'support_decision', $4, $5::jsonb)`,
-    [actor?.id ?? null, actor?.role ?? 'system', action, resourceId, JSON.stringify(metadata)],
+     ) VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+    [
+      actor?.id ?? null,
+      actor?.role ?? 'system',
+      action,
+      resourceType,
+      resourceId,
+      JSON.stringify(metadata),
+    ],
   );
 }
 
@@ -455,9 +468,33 @@ export async function listSupportDecisions(client, { actor, caseId }) {
     `SELECT id, current_owner_id FROM support_cases WHERE id::text = $1`,
     [caseId],
   );
-  if (!supportCase.rowCount) throw new SupportCaseError(404, 'support_case_not_found');
+  if (!supportCase.rowCount) {
+    if (actor.role === 'support') {
+      await audit(client, {
+        actor,
+        action: 'support.case_access_denied',
+        resourceType: 'support_case',
+        resourceId: caseId,
+        metadata: {
+          accessPath: 'decision_list',
+          reason: 'not_assigned_or_not_found',
+        },
+      });
+    }
+    throw new SupportCaseError(404, 'support_case_not_found');
+  }
   if (actor.role === 'support' && supportCase.rows[0].current_owner_id !== actor.id) {
-    throw new SupportCaseError(403, 'support_case_assignment_required');
+    await audit(client, {
+      actor,
+      action: 'support.case_access_denied',
+      resourceType: 'support_case',
+      resourceId: supportCase.rows[0].id,
+      metadata: {
+        accessPath: 'decision_list',
+        reason: 'not_assigned_or_not_found',
+      },
+    });
+    throw new SupportCaseError(404, 'support_case_not_found');
   }
   const result = await client.query(
     `SELECT * FROM support_decisions WHERE case_id = $1 ORDER BY decided_at, id`,

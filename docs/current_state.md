@@ -18,6 +18,11 @@ Verified: 2026-08-21 on the Mac mini.
 - The later S1 support foundation is verified at exact commit
   `64874b9eba0b6b2fca85f1c4f3cdfed0d702f095`; GitHub Actions run
   `32491241853` is green and draft PR #7 remains open and unmerged.
+- The S2 support decision ledger is verified at exact commit
+  `072e2ba8029dc297bfcb3f9a25e2dd8bc59136fa`; GitHub Actions run
+  `32496163016` passed Backend and Flutter regression including PostgreSQL 16
+  migration `033`. Signed-candidate construction and image publication stayed
+  skipped, and draft PR #7 remained open and unmerged.
 
 ## Post-P0B ordered continuation close
 
@@ -37,8 +42,8 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `032` and an
-  active non-live S2 candidate migration `033`, deterministic
+- Node/Express backend with verified PostgreSQL migrations through `033`,
+  deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.

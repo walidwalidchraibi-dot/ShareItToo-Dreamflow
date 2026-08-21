@@ -22,7 +22,9 @@ lane.
 `32491241853` passed backend, PostgreSQL migration, Flutter, Web and Android
 debug regression; publication and signed-candidate jobs stayed skipped.
 
-`S2_SUPPORT_DECISION_APPROVAL_LEDGER` is the active non-live package. It adds:
+`S2_SUPPORT_DECISION_APPROVAL_LEDGER` is verified at exact commit
+`072e2ba8029dc297bfcb3f9a25e2dd8bc59136fa` and exact successful GitHub
+Actions run `32496163016`. It adds:
 
 - migration `033` for draft, approval, rejection and implementation truth;
 - immutable proposal hashes, expected versions and exact-hash approval;
@@ -35,6 +37,12 @@ debug regression; publication and signed-candidate jobs stayed skipped.
 
 No external message, evidence upload, real refund/payout, account measure,
 deployment or public/live activation is part of S2.
+
+The active narrow follow-up is `S2A_SUPPORT_DENIED_ACCESS_AUDIT`. It closes the
+`SUP-020` matrix requirement by recording sanitized audit evidence when a
+support account attempts to read a case or decision list outside its explicit
+assignment. The response stays fail-closed and does not disclose whether an
+unassigned case exists. Break-glass remains unimplemented and blocked.
 
 ## Prior ordered post-P0B gate close
 

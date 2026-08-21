@@ -1,18 +1,22 @@
 # S2 support decision approval ledger - technical compliance record
 
-Status: locally verified implementation candidate, non-live and fail-closed.
-GitHub PostgreSQL integration is required before closeout.
+Status: verified non-live implementation, fail-closed.
+Exact implementation commit: `072e2ba8029dc297bfcb3f9a25e2dd8bc59136fa`.
+Exact successful GitHub Actions run: `32496163016`.
 
 ## Bound source and blocker scope
 
 This package follows the current Drive Support Packet source-of-truth,
 case-handling SOP, automation approval specification and 167-scenario matrix.
-It directly addresses the technical blocker conditions represented by:
+The exact S2 commit directly addresses the technical blocker conditions
+represented by:
 
 - `SUP-008`: a pending-approval state without an exact draft;
 - `SUP-009`: a red decision recorded without independent approval;
 - `SUP-010`: resolution without verified implementation evidence;
-- `SUP-020`: support-role access outside the assigned queue; and
+- `SUP-020`: support-role access outside the assigned queue; the matrix's
+  denied-attempt audit requirement is completed separately by the S2A
+  follow-up; and
 - `SUP-033`: proposal content changed after approval.
 
 The package does not treat those Drive documents as professional legal advice,
@@ -62,8 +66,10 @@ authority.
   known moderate transitive `uuid` advisory through optional Firebase Admin
   storage dependencies; it is not silently classified as fixed.
 
-GitHub CI must still apply migration `033` to PostgreSQL 16 and execute its
-database guard probes before this candidate is recorded as integrated.
+GitHub CI applied migration `033` to PostgreSQL 16 and passed the database
+guard lifecycle probes. The same exact commit passed Backend, Flutter, Web and
+Android debug regression. Signed-candidate construction and API-image
+publication remained skipped behind their closed gates.
 
 ## Remaining boundaries
 

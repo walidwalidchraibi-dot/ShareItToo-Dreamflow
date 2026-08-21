@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   createSupportDecisionDraft,
+  listSupportDecisions,
   recordSupportDecisionImplementation,
   reviewSupportDecision,
 } from '../src/support_decision_workflow.js';
@@ -102,6 +103,68 @@ class ScriptedClient {
 }
 
 const noRows = { rowCount: 0, rows: [] };
+
+test('support decision-list access outside the assignment is blocked and audited', async () => {
+  const client = new ScriptedClient([
+    {
+      match: /FROM support_cases/,
+      result: {
+        rowCount: 1,
+        rows: [{ id: caseRow().id, current_owner_id: 'support-2' }],
+      },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.deepEqual(params.slice(0, 5), [
+          'support-1',
+          'support',
+          'support.case_access_denied',
+          'support_case',
+          caseRow().id,
+        ]);
+        assert.deepEqual(JSON.parse(params[5]), {
+          accessPath: 'decision_list',
+          reason: 'not_assigned_or_not_found',
+        });
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+  await assert.rejects(
+    listSupportDecisions(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: caseRow().id,
+    }),
+    /support_case_not_found/,
+  );
+  client.done();
+});
+
+test('missing and unassigned decision lists return the same audited support response', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.equal(params[4], caseRow().id);
+        assert.deepEqual(JSON.parse(params[5]), {
+          accessPath: 'decision_list',
+          reason: 'not_assigned_or_not_found',
+        });
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+  await assert.rejects(
+    listSupportDecisions(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: caseRow().id,
+    }),
+    (error) => error.status === 404 && error.code === 'support_case_not_found',
+  );
+  client.done();
+});
 
 test('draft requires a non-green reviewed case and an effective policy snapshot', async () => {
   const client = new ScriptedClient([
