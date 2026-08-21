@@ -16,6 +16,21 @@ Verified: 2026-08-21 on the Mac mini.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
 
+## Post-P0B ordered continuation close
+
+- Walid's five ordered post-P0B gate packages were processed to their maximum
+  safe local state. Implementation/evidence head
+  `cc4cf2454395acb4ab0202700ff4cb241ad0f43d` is synchronized to the draft PR.
+- Exact GitHub Actions run `32461470531` is green for that head. Backend and
+  Flutter regression passed, GitGuardian passed, and production publication
+  remained skipped.
+- The Drive control folder still contains no command newer than V2.4. The
+  authorized runway is therefore closed at
+  `docs/SIT_PENDING_GATE_P0B_NEXT_RUNWAY.md` rather than silently extended.
+- Professional legal, real-operations, iOS-device and contracted-provider
+  sandbox facts remain open. The Spiegelberg Cat8 envelope remains inactive and
+  ineligible.
+
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.

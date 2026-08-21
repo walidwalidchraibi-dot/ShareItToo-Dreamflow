@@ -1,6 +1,7 @@
 # Current Work Package: ordered post-P0B gate continuation
 
-Status: **active, non-live and fail-closed** on 21.08.2026.
+Status: **closed at the authorized end of runway; HOLD for Walid's next
+decision, non-live and fail-closed** on 21.08.2026.
 
 Walid explicitly authorized the five P0B-recommended gates in their recorded
 order and instructed Codex to continue without intermediate pauses until he
@@ -37,6 +38,22 @@ blocked gate is bypassed or silently marked complete.
 All five ordered packages have now been processed to the maximum safe local
 state. External legal, human-operations, iOS/device and contracted-provider
 facts remain explicit HOLD conditions rather than inferred successes.
+
+## Post-continuation closeout
+
+- Exact implementation/evidence head: `cc4cf2454395acb4ab0202700ff4cb241ad0f43d`.
+- GitHub Actions run `32461470531` completed successfully for that exact head:
+  backend regression and Flutter regression passed; the production image publish
+  job and signed-candidate job remained skipped by their closed gates.
+- GitGuardian completed successfully, draft PR #7 remained mergeable and no
+  merge or release action occurred.
+- The local branch and its remote were synchronized with a clean working tree
+  before this documentation closeout.
+- Drive folder `00_CODEX_AKTUELL_AB_2026-08-20` was checked again on
+  21.08.2026. Its newest command remains
+  `00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`; no later runway authorization exists.
+- The unresolved end-of-runway decision is recorded in
+  `docs/SIT_PENDING_GATE_P0B_NEXT_RUNWAY.md`.
 
 ## Prior P0B close evidence
 
