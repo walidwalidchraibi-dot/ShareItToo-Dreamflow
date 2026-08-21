@@ -179,6 +179,21 @@ debug build passed. No semantic text classifier, statutory deadline, external
 delivery, production, payment, Store, signed candidate or live operation is
 enabled.
 
+`S3M_SUPPORT_ACCOUNT_DELETION_ACCESS_SEPARATION` is technically verified at
+exact commit `6d8eb4856e46d6ce171ce8caa20479884a3d3498` and successful GitHub
+Actions run `32533886775`. It addresses Drive scenario `SUP-029`: support
+cases are disclosed as retained records instead of being treated as generic
+account-deletion blockers, but active legal holds continue to block deletion.
+The user must separately acknowledge this retention boundary. Successful
+account deletion ends sessions and app access while pseudonymous case and
+audit history remain controlled. Both the workflow and PostgreSQL migration
+`041` reject creation or publication of new support messages to a closed
+account. History replay remains read-only and idempotent. All 439 Backend tests
+including PostgreSQL 16 and the complete 348-test Flutter suite with one
+documented skip, Web smoke/build and Android debug build passed. No legal
+retention period, external delivery, production, payment, Store, signed
+candidate or live operation is enabled.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress

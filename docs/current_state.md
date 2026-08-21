@@ -1,6 +1,6 @@
 # ShareItToo Current State
 
-Verified: 2026-08-21 on the Mac mini.
+Verified: 2026-08-22 on the Mac mini.
 
 ## Repository baseline
 
@@ -67,7 +67,7 @@ Verified: 2026-08-21 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `040`,
+- Node/Express backend with verified PostgreSQL migrations through `041`,
   deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -160,6 +160,19 @@ Verified: 2026-08-21 on the Mac mini.
   Flutter suite with one documented skip, Web smoke/build and Android debug
   build passed. This adds no text inference, statutory deadline claim,
   external delivery, production, payment, Store, signed candidate or live path.
+- S3M is technically verified at exact commit
+  `6d8eb4856e46d6ce171ce8caa20479884a3d3498` and successful GitHub Actions run
+  `32533886775`. It addresses Drive scenario `SUP-029` by
+  separating account access from controlled support-case retention. An open
+  support case is a disclosed retained record rather than a generic deletion
+  blocker, while an active legal hold remains fail-closed. Account deletion
+  invalidates user access and sessions but preserves the pseudonymous case and
+  audit history; workflow checks and migration `041` reject creation or
+  publication of any new in-app support message to the closed account. All 439
+  Backend tests including PostgreSQL 16 and the complete 348-test Flutter suite
+  with one documented skip, Web smoke/build and Android debug build passed.
+  Production, external delivery, payment, Store, signed candidate and live
+  paths remain closed.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and
