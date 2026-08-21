@@ -6,20 +6,21 @@ Verified: 2026-08-21 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G5A implementation head:
-  `2da5cc925619055f0f5decddb282af6ff694c641`.
-- The G5A implementation commit is contained in the local branch, remote
+- Current G5B implementation head:
+  `21106645639c2c09334468817ca3e7b206ae411c`.
+- The G5B implementation commit is contained in the local branch, remote
   branch and draft PR #7 head; the PR remains open and unmerged.
-- Exact GitHub Actions run `32428183285` is green: backend regression and
-  Flutter regression passed, while the signed candidate and image publication
-  were skipped.
+- GitHub Actions run `32430660117`, associated with that exact PR head, is
+  green. The workflow verified GitHub's synthetic PR merge result
+  `c9b41f6549bccc77008a631013cbfb8f75b27eee`; backend and Flutter regression
+  passed, while the signed candidate and image publication were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
 
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `030`, deterministic
+- Node/Express backend with PostgreSQL migrations through `031`, deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
@@ -279,6 +280,34 @@ Verified: 2026-08-21 on the Mac mini.
 - `docs/compliance/g5a-deterministic-supply-enrichment-2026-08-21.md` and
   ADR-035 are the detailed evidence. V2.4 auto-continues to disabled G5B.
 
+## G5B disabled versioned listing sets
+
+- `G5B-2026-08-21.1` lets an owner version optional SIT Sets and 1-Stop Sets
+  from two to twelve existing same-owner listings. Stable set identity,
+  immutable revisions and normalized revision membership are server-owned.
+- Every underlying listing stays independently bookable. Set creation,
+  revision, discovery and resolution create no request, reservation, hold,
+  booking, contract, payment or refund and do not rewrite item evidence.
+- A set resolves only from current, active, moderated, public-image-backed
+  members. Every required member must be eligible and available for the exact
+  selected period; optional unavailable members are omitted rather than
+  silently substituted.
+- Current prices come only from the existing authoritative quote preview. The
+  set total is the exact cent-based sum of item allocations and introduces no
+  hidden set discount, deposit or client-authoritative amount.
+- 1-Stop Sets require one exact internal handover-location hash. Renter-facing
+  output omits that hash and owner identity. Ranking uses only fewer handovers
+  plus a deterministic ID tie-break; Business status and price are excluded.
+- Item booking, contract, handover/return, evidence, damage, `needsReview`,
+  refund and audit truth remain under the established V5.2/G3 boundaries.
+- Account export, erasure, retention, privacy inventory and migration rollback
+  cover all set tables. Migration 031 rolls back only while empty and otherwise
+  fails closed.
+- Backend, Compose and Flutter controls default off. Production enabling and
+  release-mode access are rejected, and no public navigation was added.
+- `docs/compliance/g5b-versioned-listing-sets-2026-08-21.md` and ADR-036 are
+  the detailed evidence. V2.4 auto-continues to FI1.
+
 ## Validation and rollback
 
 - Exact G4B CI `32425415877` is green at
@@ -339,13 +368,26 @@ Verified: 2026-08-21 on the Mac mini.
 - G5A has no migration or external provider state. Its rollback is a revert of
   `2da5cc9` plus restoration of the exact Privacy/Retention source inventories;
   primary listings and historical G2-G4/V5.2 truth remain valid.
+- G5B GitHub Actions run `32430660117` is green and is associated with exact PR
+  head `21106645639c2c09334468817ca3e7b206ae411c`. GitHub checked the synthetic
+  PR merge result `c9b41f6549bccc77008a631013cbfb8f75b27eee`: 331 backend tests
+  passed with PostgreSQL 16, and 321 Flutter tests passed with one documented
+  skip. Analyzer stayed at 222 findings; web debug, Android debug APK, secret
+  scan, dependency audit, Compose validation and API image build passed. One
+  transitive moderate advisory remains; there are no high/critical advisories.
+  Signed-candidate build and publication remained skipped.
+- G5B rollback removes migration-031 objects only when empty and otherwise
+  fails closed. The normal source rollback is a revert of `2110664` plus exact
+  restoration of Privacy/Retention source hashes; all underlying listings and
+  historical G2-G5A/V5.2 truth remain valid.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G5B under the V2.4
+`docs/current_work_package.md` records active FI1 under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
 later legal/release gate. The planner and supply-enrichment runway remain
-disabled and non-public. Older reports and root `architecture.md` are
+disabled and non-public; listing sets also remain disabled and non-public.
+Older reports and root `architecture.md` are
 evidence/history, not permission to reopen a closed launch boundary.

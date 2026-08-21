@@ -1,63 +1,60 @@
-# Current Work Package: G5B - SIT Sets and 1-Stop Sets
+# Current Work Package: FI1 - Operational Delegation Layer
 
 Status: **active under the V2.4 rolling-autonomy runway** on 21.08.2026.
 
 ## Authorization and boundary
 
 Walid instructed Codex to follow `00_NEXT_COMMAND_G3A_APPROVED_V2.4.txt`.
-G5A is technically GREEN at commit
-`2da5cc925619055f0f5decddb282af6ff694c641`; exact GitHub Actions run
-`32428183285` passed with 323 backend and 317 Flutter tests, plus one documented
-Flutter skip. V2.4 therefore auto-continues to G5B even though every
-planner/supply/set public-release gate remains closed.
+G5B is technically GREEN at commit
+`21106645639c2c09334468817ca3e7b206ae411c`; GitHub Actions run
+`32430660117` associated with that exact PR head passed with 331 backend and
+321 Flutter tests, plus one documented Flutter skip. V2.4 therefore
+auto-continues to FI1 while all public/live and real-payment gates stay closed.
 
-No production external generative AI is authorized. No production, public/live,
-VPS/OpenClaw, Maximus, SSH, DNS, cloud-console, real-payment, Store, signing,
-provider-account or destructive action is authorized. PR #7 remains Draft and
-unmerged. Booking groups, the planner and G5 supply enrichment remain disabled
-by default and unavailable in release mode. G5B must preserve the same
-fail-closed boundary.
+No production, public/live, VPS/OpenClaw, Maximus, SSH, DNS, cloud-console,
+real-payment, Store, signing, provider-account, account-permission or
+destructive action is authorized. PR #7 remains Draft and unmerged. Booking
+groups, planner, supply enrichment and listing sets remain disabled by default
+and unavailable in release mode. FI1 must not invent real role assignments,
+delegates, account permissions, staffing evidence or absence-test results.
 
-## G5A handover
+## G5B handover
 
-- Supply enrichment runs only after successful primary-listing creation and
-  cannot block or roll back that listing. It uses bounded deterministic
-  category templates and makes no title/photo detection claim.
-- All five owner outcomes are revision-bound and owner-scoped. Confirmed
-  accessories remain item-specific handover documentation; linked listing
-  creation copies only safe fields and revalidates owner and classification.
-- Private sessions are stripped from public listing output. Export, erasure,
-  retention and audit bindings cover the new state.
-- The backend and Flutter feature controls default off, reject production or
-  release use, and have no external-AI/public-release path.
+- Server-owned versioned sets link only existing same-owner listings and retain
+  individual bookability. Required members must all be current and available
+  for the selected period; stale truth fails closed.
+- Resolution uses existing quote preview truth and preserves exact item price,
+  evidence, damage, `needsReview`, refund and audit boundaries.
+- 1-Stop eligibility uses the exact internal handover-location hash. Ranking
+  may use fewer handovers only; Business status, price and hidden manipulation
+  are excluded.
+- Migration 031 is additive and has a fail-closed non-empty rollback. Export,
+  erasure, retention and privacy inventories cover all three set tables.
 
-## G5B required result
+## FI1 required result
 
-- Allow an owner to link existing active listings into an optional SIT Set or
-  1-Stop Set. Every member must have the same owner; the server must own and
-  validate membership, identifiers, versioning and lifecycle transitions.
-- Preserve every member listing's individual bookability. Set creation or
-  membership must not silently reserve, merge, duplicate or replace the
-  underlying listings, quotes, bookings, contracts or legal evidence.
-- A set may be shown for a selected period only when all required members are
-  currently eligible and available. Availability and price must be revalidated
-  from authoritative server truth; stale or incomplete facts fail closed.
-- Preserve item-level price allocation, handover/return evidence, damage,
-  `needsReview`, refunds and audit references by reusing the established
-  G3/G4/V5.2 boundaries rather than inventing set-level truth.
-- Deterministic ranking may favor fewer handovers only as an explicit approved
-  signal. Business status and hidden price manipulation must never affect set
-  eligibility or ranking.
-- Keep account export, erasure, retention, privacy, audit and rollback coverage
-  bounded and explicit. No real payment, new legal approval, public rollout,
-  external analytics or provider traffic is authorized.
+- Extend the FI0 role model with explicit owner roles, delegate roles and
+  executable runbooks for booking groups/listing sets, project planner/cart,
+  item evidence/`needsReview` and normal support escalation.
+- Bind existing authoritative audit sources and clear, bounded escalation
+  thresholds. Normal failures must route to functional roles rather than a
+  named person; strategy, existential and explicit owner-authorization gates
+  remain distinct.
+- Do not create personal account dependencies or claim company-system RBAC,
+  staffing, delegate assignment or absence readiness without external evidence.
+- Keep the admin pilot cockpit aggregate-only and read-only. Its normal
+  operational funnel, founder-hours aggregates and founder-escalation
+  aggregates must remain explicitly separate and must never be blended into a
+  silent zero or synthetic profitability result.
+- Preserve existing staff step-up, least privilege, append-only audit, privacy,
+  no-store and sensitive-metadata restrictions. Do not add invasive activity
+  tracking, private evidence content or automatic founder monitoring.
 
 ## Package gate
 
-Run focused same-owner, membership/versioning, individual-bookability,
-all-required-availability, price allocation, evidence/damage, ranking,
-concurrency, lifecycle and feature-gate tests plus the complete technical
-regression at the exact package head. Record data lifecycle, compatibility,
-privacy impact, migration/rollback and remaining legal/release gates. When G5B
-is technically GREEN, V2.4 auto-continues to FI1 without enabling sets publicly
-or changing production/payment/provider state.
+Run focused role/delegate/runbook, audit-source, threshold, named-person,
+cockpit-separation and fail-closed readiness tests plus the complete backend and
+technical regression at the exact package head. Record external staffing/RBAC,
+absence-test and founder-replacement gates honestly. When FI1 is technically
+GREEN, V2.4 auto-continues to P0A without activating any feature or changing
+production, payment, provider, Store or account state.
