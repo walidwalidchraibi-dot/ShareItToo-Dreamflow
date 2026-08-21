@@ -3381,7 +3381,9 @@ if (!databaseUrl) {
       await setupPool.query(
         `UPDATE support_cases
             SET created_at = now() - interval '2 hours',
-                next_update_at = now() - interval '1 hour'
+                next_update_at = now() - interval '1 hour',
+                lock_version = lock_version + 1,
+                updated_at = now()
           WHERE id = $1`,
         [p0BreakGlassCase.rows[0].id],
       );
