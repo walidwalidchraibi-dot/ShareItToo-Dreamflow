@@ -67,7 +67,7 @@ Verified: 2026-08-22 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `041`,
+- Node/Express backend with verified PostgreSQL migrations through `042`,
   deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -173,6 +173,20 @@ Verified: 2026-08-22 on the Mac mini.
   with one documented skip, Web smoke/build and Android debug build passed.
   Production, external delivery, payment, Store, signed candidate and live
   paths remain closed.
+- S3N is technically verified at exact implementation commit
+  `c7b74ea0af919362a9706ebf23371a555b3986f5`, CI fixture-isolation commit
+  `a5e33c3f2a6eb61b739018ef5d4ca15777602bba` and successful GitHub Actions run
+  `32536618516`. It addresses Drive scenario `SUP-027` with a separate,
+  authenticated illegal-content intake, versioned structured notice evidence,
+  a server-authoritative reporter identity and an opaque Notice ID. Migration
+  `042` stores immutable evidence; user, event and audit projections remain
+  minimized, and only the reporter's privacy export receives full evidence.
+  All 445 Backend tests including PostgreSQL 16 and the complete 352-test
+  Flutter suite with one documented skip, Web smoke/build and Android debug
+  build passed. Intake creates no automatic illegality finding or content
+  measure: those remain behind explicit human red review. Public/guest access,
+  legal/operator approval, production, payment, Store, signed candidate and
+  live paths remain closed.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

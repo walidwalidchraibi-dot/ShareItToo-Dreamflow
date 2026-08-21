@@ -194,6 +194,22 @@ documented skip, Web smoke/build and Android debug build passed. No legal
 retention period, external delivery, production, payment, Store, signed
 candidate or live operation is enabled.
 
+`S3N_SEPARATE_DSA_NOTICE_INTAKE` is technically verified at exact
+implementation commit `c7b74ea0af919362a9706ebf23371a555b3986f5`, CI
+fixture-isolation commit `a5e33c3f2a6eb61b739018ef5d4ca15777602bba` and
+successful GitHub Actions run `32536618516`. It addresses Drive scenario
+`SUP-027`: the authenticated app exposes a distinct illegal-content route,
+requires versioned structured evidence and derives reporter identity from the
+server. PostgreSQL migration `042` binds one opaque Notice ID to an immutable
+evidence snapshot. User/API/event projections are minimized and full evidence
+is privacy-exported only for the reporter. Intake and routing are deterministic,
+but every illegality or content-measure decision remains an explicit human red
+decision. All 445 Backend tests including PostgreSQL 16 and the complete
+352-test Flutter suite with one documented skip, Web smoke/build and Android
+debug build passed. Public/guest accessibility, legal/operator approval,
+Statement of Reasons delivery, production, payment, Store, signed candidate
+and live operation remain closed.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress
