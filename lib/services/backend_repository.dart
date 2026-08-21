@@ -1042,14 +1042,19 @@ class BackendRepository {
       path: '/support/cases/${Uri.encodeComponent(caseId)}',
     );
     final supportCase = response['supportCase'];
+    final finalDecision = response['finalDecision'];
     final events = response['events'];
     if (supportCase is! Map ||
+        (finalDecision != null && finalDecision is! Map) ||
         events is! List ||
         events.any((event) => event is! Map)) {
       throw const BackendException(502, 'invalid_server_response');
     }
     return {
       'supportCase': Map<String, dynamic>.from(supportCase),
+      'finalDecision': finalDecision == null
+          ? null
+          : Map<String, dynamic>.from(finalDecision),
       'events': _maps(events),
     };
   }
