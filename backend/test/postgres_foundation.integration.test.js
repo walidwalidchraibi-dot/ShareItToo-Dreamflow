@@ -1319,6 +1319,7 @@ if (!databaseUrl) {
         method: 'POST',
         headers: {
           ...renterAHeaders,
+          'X-Forwarded-For': '198.51.100.27',
           'Idempotency-Key': 's3n-dsa-notice-integration',
         },
         body: JSON.stringify({
