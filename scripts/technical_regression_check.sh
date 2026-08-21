@@ -77,6 +77,7 @@ node --test test/tool/support_deadline_watchdog_wiring.test.mjs
 node --test test/tool/support_single_issue_intake_wiring.test.mjs
 node --test test/tool/support_privacy_intake_wiring.test.mjs
 node --test test/tool/support_account_deletion_retention_wiring.test.mjs
+node --test test/tool/support_dsa_notice_intake_wiring.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
 

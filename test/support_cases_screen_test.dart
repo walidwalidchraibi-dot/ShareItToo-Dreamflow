@@ -5,12 +5,16 @@ import 'package:lendify/screens/support_cases_screen.dart';
 
 Map<String, dynamic> _supportCase({
   String status = 'waiting_for_user',
+  String caseType = 'general_help',
+  String caseSubType = 'app_error_or_display',
+  String? dsaNoticeNumber,
 }) =>
     {
       'id': '11111111-1111-4111-8111-111111111111',
       'caseNumber': 'SIT-ABCDEFGHJKLM',
-      'caseType': 'general_help',
-      'caseSubType': 'app_error_or_display',
+      'caseType': caseType,
+      'caseSubType': caseSubType,
+      if (dsaNoticeNumber != null) 'dsaNoticeNumber': dsaNoticeNumber,
       'status': status,
       'priority': 'p3',
       'sourceChannel': 'app',
@@ -111,7 +115,40 @@ void main() {
     expect(find.text('waiting_for_user'), findsNothing);
   });
 
-  testWidgets('sent in-app support message is visible without internal metadata',
+  testWidgets(
+      'DSA Notice ID is visible in list and detail without intake evidence',
+      (tester) async {
+    final noticeCase = _supportCase(
+      caseType: 'moderation_content',
+      caseSubType: 'illegal_content_notice',
+      dsaNoticeNumber: 'SIT-N-ABCDEFGHJKLM',
+    );
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(
+        listLoader: () async => [noticeCase],
+        detailLoader: (_) async => {
+          'supportCase': noticeCase,
+          'finalDecision': null,
+          'messages': const [],
+          'events': const [],
+        },
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Notice-ID: SIT-N-ABCDEFGHJKLM'), findsOneWidget);
+    expect(find.textContaining('reporterEmail'), findsNothing);
+    await tester.tap(find.text('SIT-ABCDEFGHJKLM'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('support_dsa_notice_receipt')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('noch nicht getroffen'), findsOneWidget);
+  });
+
+  testWidgets(
+      'sent in-app support message is visible without internal metadata',
       (tester) async {
     final detail = {
       ..._detail(),
@@ -154,7 +191,8 @@ void main() {
     expect(find.text('renderedContentSha256'), findsNothing);
   });
 
-  test('support message projection fails closed on unresolved placeholders', () {
+  test('support message projection fails closed on unresolved placeholders',
+      () {
     final detail = {
       ..._detail(),
       'messages': [

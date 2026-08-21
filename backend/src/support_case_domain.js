@@ -163,12 +163,20 @@ export const supportOwnerRoles = Object.freeze([
 
 export const supportSafetyTriageVersion = 'sit_support_safety_triage_v1';
 export const supportIntakeScopeVersion = 'sit_support_single_issue_scope_v1';
+export const supportDsaNoticeIntakeVersion = 'sit_dsa_notice_intake_v1';
 export const supportPacketVersion = 'SIT_SUPPORT_PACKET_V1_2026-08-20';
 export const supportSafetyGuidanceVersion = 'T-003@1.0.0';
 
 const severityValues = new Set(['low', 'moderate', 'high', 'critical']);
 const sourceChannels = new Set(['app', 'web', 'email', 'phone', 'internal', 'api']);
 const operatingModes = new Set(['simulation', 'internal_testing']);
+const dsaNoticeContentTypes = new Set([
+  'listing',
+  'profile',
+  'review',
+  'message',
+  'other',
+]);
 const waitingOnValues = new Set(supportWaitingOnValues);
 const approvalLevels = new Set(supportApprovalLevels);
 const ownerRoles = new Set(supportOwnerRoles);
@@ -277,6 +285,15 @@ export function newHumanReadableCaseNumber(randomBytes = crypto.randomBytes(9)) 
   return result;
 }
 
+export function newHumanReadableDsaNoticeNumber(randomBytes = crypto.randomBytes(9)) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = 'SIT-N-';
+  for (let index = 0; index < 12; index += 1) {
+    result += alphabet[randomBytes[index % randomBytes.length] % alphabet.length];
+  }
+  return result;
+}
+
 export function supportRouteFor(caseType, caseSubType, signals = {}) {
   const family = supportCaseFamilies[caseType];
   if (!family) throw new SupportCaseError(400, 'support_case_type_invalid');
@@ -313,6 +330,7 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     : baseOwnerRole;
   const redDecisionBoundary = priority === 'p0'
     || ['money_case', 'privacy_security', 'legal_authority'].includes(caseType)
+    || caseSubType === 'illegal_content_notice'
     || caseSubType === 'account_takeover';
   const approvalLevel = redDecisionBoundary
     ? 'red_explicit_decision'
@@ -411,6 +429,75 @@ function normalizeSupportIssueScope(raw) {
   });
 }
 
+function normalizeDsaNotice(raw, { required }) {
+  if (!required) {
+    if (raw !== undefined && raw !== null) {
+      throw new SupportCaseError(400, 'support_dsa_notice_not_applicable');
+    }
+    return null;
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new SupportCaseError(400, 'support_dsa_notice_required');
+  }
+  const allowedKeys = new Set([
+    'version',
+    'contentType',
+    'contentLocator',
+    'illegalityStatement',
+    'jurisdictionOrLegalBasis',
+    'goodFaithConfirmed',
+  ]);
+  if (Object.keys(raw).some((key) => !allowedKeys.has(key))) {
+    throw new SupportCaseError(400, 'support_dsa_notice_shape_invalid');
+  }
+  const version = requiredText(
+    raw.version,
+    80,
+    'support_dsa_notice_version_invalid',
+  );
+  if (version !== supportDsaNoticeIntakeVersion) {
+    throw new SupportCaseError(400, 'support_dsa_notice_version_invalid');
+  }
+  const contentType = requiredText(
+    raw.contentType,
+    20,
+    'support_dsa_notice_content_type_invalid',
+  ).toLowerCase();
+  if (!dsaNoticeContentTypes.has(contentType)) {
+    throw new SupportCaseError(400, 'support_dsa_notice_content_type_invalid');
+  }
+  if (raw.goodFaithConfirmed !== true) {
+    throw new SupportCaseError(400, 'support_dsa_notice_good_faith_required');
+  }
+  const jurisdictionOrLegalBasis = raw.jurisdictionOrLegalBasis === undefined
+      || raw.jurisdictionOrLegalBasis === null
+      || raw.jurisdictionOrLegalBasis === ''
+    ? null
+    : requiredText(
+      raw.jurisdictionOrLegalBasis,
+      2000,
+      'support_dsa_notice_legal_basis_invalid',
+    );
+  return Object.freeze({
+    version,
+    contentType,
+    contentLocator: requiredText(
+      raw.contentLocator,
+      2000,
+      'support_dsa_notice_locator_invalid',
+      3,
+    ),
+    illegalityStatement: requiredText(
+      raw.illegalityStatement,
+      8000,
+      'support_dsa_notice_illegality_statement_invalid',
+      20,
+    ),
+    jurisdictionOrLegalBasis,
+    goodFaithConfirmed: true,
+  });
+}
+
 export function normalizeSupportCaseInput(raw, {
   sourceChannel = 'app',
   operatingMode = 'simulation',
@@ -440,6 +527,10 @@ export function normalizeSupportCaseInput(raw, {
     possibleHighRiskDataExposure: raw.possibleHighRiskDataExposure,
     imminentAuthorityDeadline: raw.imminentAuthorityDeadline,
   });
+  const dsaNotice = normalizeDsaNotice(raw.dsaNotice, {
+    required: caseType === 'moderation_content'
+      && caseSubType === 'illegal_content_notice',
+  });
   const internalCheckpointMinutes = {
     p0: 15,
     p1: 60,
@@ -465,6 +556,7 @@ export function normalizeSupportCaseInput(raw, {
     linkedPayoutId: optionalUuid(raw.linkedPayoutId, 'support_linked_payout_invalid'),
     safetyTriage,
     issueScope,
+    dsaNotice,
     waitingReason: 'Der Eingang wartet auf die fachliche Übernahme.',
     nextAction: route.priority === 'p0'
       ? 'Sicherheitsroute unverzüglich prüfen und einem verantwortlichen Owner zuweisen.'

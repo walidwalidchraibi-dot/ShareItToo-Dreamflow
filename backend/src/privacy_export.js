@@ -583,6 +583,12 @@ export async function buildAccountExport(client, userId) {
     rows(client,
       `SELECT support_case.id, support_case.human_readable_case_number,
               support_case.case_type, support_case.case_subtype,
+              CASE WHEN support_case.reporter_user_id = $1
+                THEN support_case.dsa_notice_number ELSE NULL
+              END AS dsa_notice_number,
+              CASE WHEN support_case.reporter_user_id = $1
+                THEN support_case.dsa_notice_evidence ELSE NULL
+              END AS dsa_notice_evidence,
               support_case.status, support_case.priority,
               support_case.source_channel, support_case.operating_mode,
               support_case.locale, support_case.linked_booking_id,

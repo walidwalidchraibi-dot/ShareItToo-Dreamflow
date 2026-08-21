@@ -44,6 +44,8 @@ function caseRow(overrides = {}) {
   return {
     id: 'case-1',
     human_readable_case_number: 'SIT-ABCDEFGHJKLM',
+    dsa_notice_number: null,
+    dsa_notice_evidence: null,
     case_type: 'general_help',
     case_subtype: 'general_how_to',
     status: 'received',
@@ -201,8 +203,10 @@ test('create validates linked-entity access and records case, event and audit', 
           linked_listing_id: params[25],
           idempotency_key: params[29],
           intake_scope_evidence: JSON.parse(params[30]),
-          created_at: params[31],
-          updated_at: params[31],
+          dsa_notice_number: params[31],
+          dsa_notice_evidence: params[32] == null ? null : JSON.parse(params[32]),
+          created_at: params[33],
+          updated_at: params[33],
         })],
       }),
     },
@@ -248,6 +252,169 @@ test('create validates linked-entity access and records case, event and audit', 
   assert.equal(result.supportCase.priority, 'p1');
   assert.equal(result.supportCase.operatingMode, 'internal_testing');
   assert.equal('severity' in result.supportCase, false);
+  client.done();
+});
+
+test('DSA notice creation snapshots server-side reporter identity and exposes only its Notice ID', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /AS booking_allowed/,
+      result: {
+        rowCount: 1,
+        rows: [{
+          booking_allowed: true,
+          listing_exists: true,
+          payment_allowed: true,
+          refund_allowed: true,
+          payout_allowed: true,
+        }],
+      },
+    },
+    {
+      match: /profile ->> 'displayName'/,
+      check: ({ params }) => assert.deepEqual(params, ['user-1']),
+      result: {
+        rowCount: 1,
+        rows: [{ email: 'reporter@example.test', display_name: 'Ria Reporterin' }],
+      },
+    },
+    {
+      match: /INSERT INTO support_cases/,
+      check: ({ params }) => {
+        assert.match(params[31], /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u);
+        assert.equal(params[12], 'red_explicit_decision');
+        const evidence = JSON.parse(params[32]);
+        assert.deepEqual(evidence, {
+          version: 'sit_dsa_notice_intake_v1',
+          contentType: 'listing',
+          contentLocator: 'listing:listing-1',
+          illegalityStatement:
+              'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+          jurisdictionOrLegalBasis: 'Deutschland; falls bekannt § Beispiel',
+          goodFaithConfirmed: true,
+          reporterName: 'Ria Reporterin',
+          reporterEmail: 'reporter@example.test',
+          sourceChannel: 'app',
+          submittedAt: now.toISOString(),
+        });
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          id: params[0],
+          human_readable_case_number: params[1],
+          dsa_notice_number: params[31],
+          dsa_notice_evidence: JSON.parse(params[32]),
+          case_type: params[2],
+          case_subtype: params[3],
+          priority: params[4],
+          severity: params[5],
+          current_owner_role: params[11],
+          approval_level: params[12],
+          waiting_on: params[13],
+          dsa_flag: params[20],
+          created_at: params[33],
+          updated_at: params[33],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        const payload = JSON.parse(params[3]);
+        assert.match(payload.dsaNotice.noticeNumber, /^SIT-N-/u);
+        assert.equal(payload.dsaNotice.version, 'sit_dsa_notice_intake_v1');
+        assert.equal(payload.dsaNotice.contentType, 'listing');
+        assert.deepEqual(Object.keys(payload.dsaNotice).sort(), [
+          'contentType', 'noticeNumber', 'version',
+        ]);
+        assert.equal(params[3].includes('listing:listing-1'), false);
+        assert.equal(params[3].includes('reporter@example.test'), false);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        const metadata = JSON.parse(params[4]);
+        assert.match(metadata.dsaNoticeNumber, /^SIT-N-/u);
+        assert.equal(params[4].includes('listing:listing-1'), false);
+        assert.equal(params[4].includes('reporter@example.test'), false);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+
+  const result = await createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: {
+      caseType: 'moderation_content',
+      caseSubType: 'illegal_content_notice',
+      summary: 'Rechtswidrigen Inhalt in einer konkreten Anzeige melden.',
+      safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
+      dsaNotice: {
+        version: 'sit_dsa_notice_intake_v1',
+        contentType: 'listing',
+        contentLocator: 'listing:listing-1',
+        illegalityStatement:
+            'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+        jurisdictionOrLegalBasis: 'Deutschland; falls bekannt § Beispiel',
+        goodFaithConfirmed: true,
+      },
+    },
+    idempotencyKey: 'dsa-key-1',
+    now,
+  });
+
+  assert.equal(result.supportCase.caseType, 'moderation_content');
+  assert.match(result.supportCase.dsaNoticeNumber, /^SIT-N-/u);
+  assert.equal('dsaNoticeEvidence' in result.supportCase, false);
+  client.done();
+});
+
+test('DSA notice creation fails closed when server-side reporter identity is incomplete', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /AS booking_allowed/,
+      result: {
+        rowCount: 1,
+        rows: [{
+          booking_allowed: true,
+          listing_exists: true,
+          payment_allowed: true,
+          refund_allowed: true,
+          payout_allowed: true,
+        }],
+      },
+    },
+    {
+      match: /profile ->> 'displayName'/,
+      result: { rowCount: 1, rows: [{ email: 'reporter@example.test', display_name: null }] },
+    },
+  ]);
+
+  await assert.rejects(createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: {
+      caseType: 'moderation_content',
+      caseSubType: 'illegal_content_notice',
+      summary: 'Rechtswidrigen Inhalt als DSA-Notice melden.',
+      safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
+      dsaNotice: {
+        version: 'sit_dsa_notice_intake_v1',
+        contentType: 'other',
+        contentLocator: 'content:123',
+        illegalityStatement: 'Dieser genaue Inhalt verletzt nach meiner Einschätzung geltendes Recht.',
+        goodFaithConfirmed: true,
+      },
+    },
+    idempotencyKey: 'dsa-key-identity',
+    now,
+  }), /support_dsa_notice_reporter_identity_incomplete/u);
   client.done();
 });
 

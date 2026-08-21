@@ -46,7 +46,7 @@ class SupportFlowContext {
     this.itemImageUrl,
     this.otherUserImageUrl,
   });
-  
+
   /// Factory für Chat-Kontext
   factory SupportFlowContext.fromChat({
     required String itemTitle,
@@ -72,7 +72,7 @@ class SupportFlowContext {
       otherUserImageUrl: otherUserImageUrl,
     );
   }
-  
+
   /// Factory für Buchungsdetail-Kontext
   factory SupportFlowContext.fromBookingDetail({
     required String itemTitle,
@@ -96,7 +96,7 @@ class SupportFlowContext {
       otherUserImageUrl: otherUserImageUrl,
     );
   }
-  
+
   /// Factory für Owner-Request-Detail-Kontext
   factory SupportFlowContext.fromOwnerRequestDetail({
     required String itemTitle,
@@ -119,7 +119,7 @@ class SupportFlowContext {
       otherUserImageUrl: otherUserImageUrl,
     );
   }
-  
+
   /// Konvertiert den Kontext zu einer Map für den Support-Fall
   Map<String, dynamic> toSupportContext() {
     return {
@@ -151,12 +151,12 @@ class SupportSafetyTriage {
   });
 
   Map<String, dynamic> toMap() => {
-    'version': version,
-    'packetVersion': packetVersion,
-    'guidanceVersion': guidanceVersion,
-    'immediateDanger': immediateDanger,
-    'guidanceShown': guidanceShown,
-  };
+        'version': version,
+        'packetVersion': packetVersion,
+        'guidanceVersion': guidanceVersion,
+        'immediateDanger': immediateDanger,
+        'guidanceShown': guidanceShown,
+      };
 }
 
 /// Versionierter Nachweis, dass ein Support-Fall genau ein Problem enthält.
@@ -172,10 +172,41 @@ class SupportIssueScope {
   });
 
   Map<String, dynamic> toMap() => {
-    'version': version,
-    'singleIssueConfirmed': singleIssueConfirmed,
-    'separationGuidanceShown': separationGuidanceShown,
-  };
+        'version': version,
+        'singleIssueConfirmed': singleIssueConfirmed,
+        'separationGuidanceShown': separationGuidanceShown,
+      };
+}
+
+/// Strukturierte Angaben für eine gesonderte DSA-Notice-and-Action-Meldung.
+class SupportDsaNotice {
+  static const version = 'sit_dsa_notice_intake_v1';
+
+  final String contentType;
+  final String contentLocator;
+  final String illegalityStatement;
+  final String? jurisdictionOrLegalBasis;
+  final bool goodFaithConfirmed;
+
+  const SupportDsaNotice({
+    required this.contentType,
+    required this.contentLocator,
+    required this.illegalityStatement,
+    required this.goodFaithConfirmed,
+    this.jurisdictionOrLegalBasis,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'version': version,
+        'contentType': contentType,
+        'contentLocator': contentLocator.trim(),
+        'illegalityStatement': illegalityStatement.trim(),
+        'jurisdictionOrLegalBasis':
+            jurisdictionOrLegalBasis?.trim().isEmpty == true
+                ? null
+                : jurisdictionOrLegalBasis?.trim(),
+        'goodFaithConfirmed': goodFaithConfirmed,
+      };
 }
 
 class SupportCaseRoute {
@@ -193,6 +224,7 @@ class SupportFlowResult {
   final SupportFlowContext context;
   final SupportSafetyTriage safetyTriage;
   final SupportIssueScope issueScope;
+  final SupportDsaNotice? dsaNotice;
   final Map<String, dynamic>? canonicalCase;
 
   const SupportFlowResult({
@@ -202,117 +234,203 @@ class SupportFlowResult {
     required this.context,
     required this.safetyTriage,
     required this.issueScope,
+    this.dsaNotice,
     this.canonicalCase,
   });
 
+  static const _dsaContentTypes = <String, String>{
+    'Anzeige / Artikel': 'listing',
+    'Profil': 'profile',
+    'Bewertung': 'review',
+    'Nachricht / Chat': 'message',
+    'Anderer Inhalt': 'other',
+  };
+
   static const _backendRoutes = <String, Map<String, SupportCaseRoute>>{
     'handover': {
-      'Mieter ist nicht erschienen': SupportCaseRoute('active_handover', 'party_not_present'),
-      'Vermieter ist nicht erschienen': SupportCaseRoute('active_handover', 'party_not_present'),
-      'Gegenpartei öffnet nicht / reagiert nicht': SupportCaseRoute('active_handover', 'party_not_present'),
-      'Übergabeort ist unklar': SupportCaseRoute('booking_pre_start', 'address_reveal'),
-      'Falsche Person ist erschienen': SupportCaseRoute('active_handover', 'identity_or_person_mismatch'),
-      'Artikel ist nicht wie beschrieben': SupportCaseRoute('active_handover', 'item_not_as_listed'),
-      'Vermieter verweigert Übergabe': SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
-      'Mieter verweigert Bestätigung': SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
-      'QR-Code funktioniert nicht': SupportCaseRoute('active_handover', 'qr_or_code_failure'),
-      '6-stelliger Code funktioniert nicht': SupportCaseRoute('active_handover', 'qr_or_code_failure'),
-      'Kamera/Fotos funktionieren nicht': SupportCaseRoute('active_handover', 'handover_photo_missing'),
-      'Ich fühle mich unsicher vor Ort': SupportCaseRoute('active_handover', 'unsafe_handover'),
-      'Sonstiges Übergabeproblem': SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
+      'Mieter ist nicht erschienen':
+          SupportCaseRoute('active_handover', 'party_not_present'),
+      'Vermieter ist nicht erschienen':
+          SupportCaseRoute('active_handover', 'party_not_present'),
+      'Gegenpartei öffnet nicht / reagiert nicht':
+          SupportCaseRoute('active_handover', 'party_not_present'),
+      'Übergabeort ist unklar':
+          SupportCaseRoute('booking_pre_start', 'address_reveal'),
+      'Falsche Person ist erschienen':
+          SupportCaseRoute('active_handover', 'identity_or_person_mismatch'),
+      'Artikel ist nicht wie beschrieben':
+          SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Vermieter verweigert Übergabe':
+          SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
+      'Mieter verweigert Bestätigung':
+          SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
+      'QR-Code funktioniert nicht':
+          SupportCaseRoute('active_handover', 'qr_or_code_failure'),
+      '6-stelliger Code funktioniert nicht':
+          SupportCaseRoute('active_handover', 'qr_or_code_failure'),
+      'Kamera/Fotos funktionieren nicht':
+          SupportCaseRoute('active_handover', 'handover_photo_missing'),
+      'Ich fühle mich unsicher vor Ort':
+          SupportCaseRoute('active_handover', 'unsafe_handover'),
+      'Sonstiges Übergabeproblem':
+          SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
     },
     'return': {
-      'Mieter ist nicht zur Rückgabe erschienen': SupportCaseRoute('cancellation_no_show', 'return_no_show'),
-      'Vermieter ist nicht zur Rückgabe erschienen': SupportCaseRoute('cancellation_no_show', 'return_no_show'),
-      'Gegenpartei reagiert nicht': SupportCaseRoute('active_return', 'party_not_present'),
-      'Rückgabeort ist unklar': SupportCaseRoute('active_return', 'return_location_or_time'),
-      'Artikel wurde beschädigt zurückgegeben': SupportCaseRoute('post_return_dispute', 'damage_report'),
-      'Artikel fehlt / wurde nicht zurückgegeben': SupportCaseRoute('post_return_dispute', 'missing_item_report'),
-      'Rückgabe wird verweigert': SupportCaseRoute('active_return', 'return_confirmation_conflict'),
-      'QR-Code funktioniert nicht': SupportCaseRoute('active_return', 'qr_or_code_failure'),
-      '6-stelliger Rückgabecode funktioniert nicht': SupportCaseRoute('active_return', 'qr_or_code_failure'),
-      'Rückgabefotos funktionieren nicht': SupportCaseRoute('active_return', 'return_photo_missing'),
-      'Ich fühle mich unsicher vor Ort': SupportCaseRoute('active_return', 'unsafe_return'),
-      'Sonstiges Rückgabeproblem': SupportCaseRoute('active_return', 'return_confirmation_conflict'),
+      'Mieter ist nicht zur Rückgabe erschienen':
+          SupportCaseRoute('cancellation_no_show', 'return_no_show'),
+      'Vermieter ist nicht zur Rückgabe erschienen':
+          SupportCaseRoute('cancellation_no_show', 'return_no_show'),
+      'Gegenpartei reagiert nicht':
+          SupportCaseRoute('active_return', 'party_not_present'),
+      'Rückgabeort ist unklar':
+          SupportCaseRoute('active_return', 'return_location_or_time'),
+      'Artikel wurde beschädigt zurückgegeben':
+          SupportCaseRoute('post_return_dispute', 'damage_report'),
+      'Artikel fehlt / wurde nicht zurückgegeben':
+          SupportCaseRoute('post_return_dispute', 'missing_item_report'),
+      'Rückgabe wird verweigert':
+          SupportCaseRoute('active_return', 'return_confirmation_conflict'),
+      'QR-Code funktioniert nicht':
+          SupportCaseRoute('active_return', 'qr_or_code_failure'),
+      '6-stelliger Rückgabecode funktioniert nicht':
+          SupportCaseRoute('active_return', 'qr_or_code_failure'),
+      'Rückgabefotos funktionieren nicht':
+          SupportCaseRoute('active_return', 'return_photo_missing'),
+      'Ich fühle mich unsicher vor Ort':
+          SupportCaseRoute('active_return', 'unsafe_return'),
+      'Sonstiges Rückgabeproblem':
+          SupportCaseRoute('active_return', 'return_confirmation_conflict'),
     },
     'item_condition': {
-      'Artikel funktioniert nicht': SupportCaseRoute('active_rental', 'item_failure_or_defect'),
-      'Artikel ist beschädigt': SupportCaseRoute('active_rental', 'item_failure_or_defect'),
-      'Zubehör fehlt': SupportCaseRoute('active_rental', 'usage_or_accessory_issue'),
-      'Artikel entspricht nicht der Beschreibung': SupportCaseRoute('active_handover', 'item_not_as_listed'),
-      'Artikel war schmutzig': SupportCaseRoute('post_return_dispute', 'cleaning_or_condition_dispute'),
-      'Falscher Artikel übergeben': SupportCaseRoute('active_handover', 'item_not_as_listed'),
-      'Schaden wurde schon vor Übergabe bemerkt': SupportCaseRoute('active_handover', 'item_not_as_listed'),
-      'Schaden wurde nach Rückgabe gemeldet': SupportCaseRoute('post_return_dispute', 'damage_report'),
-      'Sonstiges Artikelproblem': SupportCaseRoute('listing_quality', 'unclear_condition_or_accessories'),
+      'Artikel funktioniert nicht':
+          SupportCaseRoute('active_rental', 'item_failure_or_defect'),
+      'Artikel ist beschädigt':
+          SupportCaseRoute('active_rental', 'item_failure_or_defect'),
+      'Zubehör fehlt':
+          SupportCaseRoute('active_rental', 'usage_or_accessory_issue'),
+      'Artikel entspricht nicht der Beschreibung':
+          SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Artikel war schmutzig': SupportCaseRoute(
+          'post_return_dispute', 'cleaning_or_condition_dispute'),
+      'Falscher Artikel übergeben':
+          SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Schaden wurde schon vor Übergabe bemerkt':
+          SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Schaden wurde nach Rückgabe gemeldet':
+          SupportCaseRoute('post_return_dispute', 'damage_report'),
+      'Sonstiges Artikelproblem': SupportCaseRoute(
+          'listing_quality', 'unclear_condition_or_accessories'),
     },
     'payment': {
-      'Preis stimmt nicht': SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
-      'Gesamtbetrag unklar': SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
-      'Zahlung wurde doppelt angezeigt': SupportCaseRoute('money_case', 'duplicate_or_unrecognized_charge'),
-      'Rückerstattung unklar': SupportCaseRoute('money_case', 'refund_processing_or_failure'),
-      'Auszahlung unklar': SupportCaseRoute('money_case', 'payout_processing_or_failure'),
-      'Stornierung und Zahlung unklar': SupportCaseRoute('money_case', 'refund_request_or_review'),
-      'Gebühren unklar': SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
-      'Sonstiges Zahlungsproblem': SupportCaseRoute('money_case', 'payment_failed_or_requires_action'),
+      'Preis stimmt nicht':
+          SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
+      'Gesamtbetrag unklar':
+          SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
+      'Zahlung wurde doppelt angezeigt':
+          SupportCaseRoute('money_case', 'duplicate_or_unrecognized_charge'),
+      'Rückerstattung unklar':
+          SupportCaseRoute('money_case', 'refund_processing_or_failure'),
+      'Auszahlung unklar':
+          SupportCaseRoute('money_case', 'payout_processing_or_failure'),
+      'Stornierung und Zahlung unklar':
+          SupportCaseRoute('money_case', 'refund_request_or_review'),
+      'Gebühren unklar':
+          SupportCaseRoute('money_case', 'invoice_amount_or_fee'),
+      'Sonstiges Zahlungsproblem':
+          SupportCaseRoute('money_case', 'payment_failed_or_requires_action'),
     },
     'person': {
-      'Unangemessenes Verhalten': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
+      'Unangemessenes Verhalten':
+          SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
       'Drohung / Druck': SupportCaseRoute('trust_safety', 'threat_or_violence'),
       'Beleidigung': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
-      'Verdächtiges Verhalten': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
-      'Profil wirkt falsch': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
-      'Andere Person will außerhalb von SIT abwickeln': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
-      'Sicherheitsgefühl vor Ort schlecht': SupportCaseRoute('trust_safety', 'threat_or_violence'),
-      'Sonstiges Personenproblem': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
+      'Verdächtiges Verhalten':
+          SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Profil wirkt falsch':
+          SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Andere Person will außerhalb von SIT abwickeln':
+          SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Sicherheitsgefühl vor Ort schlecht':
+          SupportCaseRoute('trust_safety', 'threat_or_violence'),
+      'Sonstiges Personenproblem':
+          SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
     },
     'technical': {
-      'Chat funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
-      'Kamera funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
-      'Datei hochladen funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
-      'Standort senden funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
-      'QR-Code Scanner funktioniert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
-      'App lädt nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
-      'Button reagiert nicht': SupportCaseRoute('general_help', 'app_error_or_display'),
-      'Sonstiges technisches Problem': SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Chat funktioniert nicht':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Kamera funktioniert nicht':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Datei hochladen funktioniert nicht':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Standort senden funktioniert nicht':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
+      'QR-Code Scanner funktioniert nicht':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
+      'App lädt nicht':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Button reagiert nicht':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
+      'Sonstiges technisches Problem':
+          SupportCaseRoute('general_help', 'app_error_or_display'),
     },
     'privacy': {
       'Auskunft oder Kopie meiner Daten':
           SupportCaseRoute('privacy_security', 'access_or_copy_request'),
-      'Daten berichtigen oder löschen':
-          SupportCaseRoute('privacy_security', 'correction_or_deletion_request'),
-      'Verarbeitung widersprechen oder einschränken':
-          SupportCaseRoute('privacy_security', 'objection_or_restriction_request'),
+      'Daten berichtigen oder löschen': SupportCaseRoute(
+          'privacy_security', 'correction_or_deletion_request'),
+      'Verarbeitung widersprechen oder einschränken': SupportCaseRoute(
+          'privacy_security', 'objection_or_restriction_request'),
       'Meine Daten wurden unbefugt offengelegt':
           SupportCaseRoute('privacy_security', 'unauthorized_data_exposure'),
-      'Mögliche Datenschutzverletzung melden':
-          SupportCaseRoute('privacy_security', 'suspected_personal_data_breach'),
-      'Daten gingen an falsches Konto oder falsche Person':
-          SupportCaseRoute('privacy_security', 'wrong_recipient_or_wrong_account'),
+      'Mögliche Datenschutzverletzung melden': SupportCaseRoute(
+          'privacy_security', 'suspected_personal_data_breach'),
+      'Daten gingen an falsches Konto oder falsche Person': SupportCaseRoute(
+          'privacy_security', 'wrong_recipient_or_wrong_account'),
       'Identität für Datenschutzanfrage bestätigen': SupportCaseRoute(
         'privacy_security',
         'identity_verification_for_rights_request',
       ),
     },
+    'dsa_notice': {
+      'Anzeige / Artikel':
+          SupportCaseRoute('moderation_content', 'illegal_content_notice'),
+      'Profil':
+          SupportCaseRoute('moderation_content', 'illegal_content_notice'),
+      'Bewertung':
+          SupportCaseRoute('moderation_content', 'illegal_content_notice'),
+      'Nachricht / Chat':
+          SupportCaseRoute('moderation_content', 'illegal_content_notice'),
+      'Anderer Inhalt':
+          SupportCaseRoute('moderation_content', 'illegal_content_notice'),
+    },
     'other': {
-      'Ich bin unsicher, was ich tun soll': SupportCaseRoute('general_help', 'general_how_to'),
-      'Allgemeine Frage zur Buchung': SupportCaseRoute('booking_pre_start', 'booking_request_or_acceptance'),
-      'Ich brauche Hilfe vom Support': SupportCaseRoute('general_help', 'general_how_to'),
+      'Ich bin unsicher, was ich tun soll':
+          SupportCaseRoute('general_help', 'general_how_to'),
+      'Allgemeine Frage zur Buchung': SupportCaseRoute(
+          'booking_pre_start', 'booking_request_or_acceptance'),
+      'Ich brauche Hilfe vom Support':
+          SupportCaseRoute('general_help', 'general_how_to'),
       'Anderes Problem': SupportCaseRoute('general_help', 'general_how_to'),
     },
     'profile_report': {
-      'Falsche Identität': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
-      'Unangemessenes Verhalten': SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
-      'Betrugsverdacht': SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
-      'Beleidigende/gefährliche Inhalte': SupportCaseRoute('moderation_content', 'image_or_text_violation'),
+      'Falsche Identität':
+          SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Unangemessenes Verhalten':
+          SupportCaseRoute('trust_safety', 'harassment_or_stalking'),
+      'Betrugsverdacht':
+          SupportCaseRoute('trust_safety', 'suspected_fraud_or_impersonation'),
+      'Beleidigende/gefährliche Inhalte':
+          SupportCaseRoute('moderation_content', 'image_or_text_violation'),
       'Spam': SupportCaseRoute('moderation_content', 'image_or_text_violation'),
-      'Sonstiges': SupportCaseRoute('moderation_content', 'account_or_service_restriction'),
+      'Sonstiges': SupportCaseRoute(
+          'moderation_content', 'account_or_service_restriction'),
     },
   };
 
   SupportCaseRoute get backendRoute {
     if (safetyTriage.immediateDanger) {
-      return const SupportCaseRoute('trust_safety', 'immediate_physical_danger');
+      return const SupportCaseRoute(
+          'trust_safety', 'immediate_physical_danger');
     }
     final route = _backendRoutes[mainCategory]?[subCategory];
     if (route == null) throw StateError('support_case_route_unmapped');
@@ -321,12 +439,27 @@ class SupportFlowResult {
 
   Map<String, dynamic> toBackendInput() {
     final route = backendRoute;
+    final isDsaNotice = route.caseType == 'moderation_content' &&
+        route.caseSubType == 'illegal_content_notice';
+    final expectedDsaContentType = _dsaContentTypes[subCategory];
+    if (isDsaNotice &&
+        (dsaNotice == null ||
+            dsaNotice!.contentType != expectedDsaContentType ||
+            dsaNotice!.contentLocator.trim().length < 3 ||
+            dsaNotice!.illegalityStatement.trim().length < 20 ||
+            !dsaNotice!.goodFaithConfirmed)) {
+      throw const FormatException('invalid_dsa_notice_intake');
+    }
+    if (!isDsaNotice && dsaNotice != null) {
+      throw const FormatException('unexpected_dsa_notice_intake');
+    }
     final description = userDescription.trim();
     final summary = '$mainCategoryLabel: $subCategory.'
         '${description.isEmpty ? '' : ' $description'}';
     final requestId = context.requestId.trim();
     final itemId = context.itemId.trim();
-    final profileContext = requestId.startsWith('profile:') || itemId.startsWith('profile:');
+    final profileContext =
+        requestId.startsWith('profile:') || itemId.startsWith('profile:');
     final listingContext = requestId.startsWith('listing:');
     return <String, dynamic>{
       'caseType': route.caseType,
@@ -335,6 +468,7 @@ class SupportFlowResult {
       'immediateDanger': safetyTriage.immediateDanger,
       'safetyTriage': safetyTriage.toMap(),
       'issueScope': issueScope.toMap(),
+      if (isDsaNotice) 'dsaNotice': dsaNotice!.toMap(),
       if (!profileContext && !listingContext && requestId.isNotEmpty)
         'linkedBookingId': requestId,
       if (!profileContext && itemId.isNotEmpty && !itemId.contains(':'))
@@ -344,6 +478,9 @@ class SupportFlowResult {
 
   SupportFlowResult withCanonicalCase(Map<String, dynamic> value) {
     final route = backendRoute;
+    final isDsaNotice = route.caseType == 'moderation_content' &&
+        route.caseSubType == 'illegal_content_notice';
+    final dsaNoticeNumber = value['dsaNoticeNumber']?.toString().trim();
     final requiredTextFields = <String>[
       'id',
       'caseNumber',
@@ -353,15 +490,20 @@ class SupportFlowResult {
       'timezone',
       'operatingMode',
     ];
-    if (requiredTextFields.any((field) => (value[field]?.toString().trim() ?? '').isEmpty)
-        || value['status'] != 'received'
-        || value['timezone'] != 'Europe/Berlin'
-        || value['operatingMode'] != 'simulation'
-        || value['caseType'] != route.caseType
-        || value['caseSubType'] != route.caseSubType
-        || !RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
-            .hasMatch(value['caseNumber'].toString())
-        || DateTime.tryParse(value['nextUpdateAt'].toString()) == null) {
+    if (requiredTextFields
+            .any((field) => (value[field]?.toString().trim() ?? '').isEmpty) ||
+        value['status'] != 'received' ||
+        value['timezone'] != 'Europe/Berlin' ||
+        value['operatingMode'] != 'simulation' ||
+        value['caseType'] != route.caseType ||
+        value['caseSubType'] != route.caseSubType ||
+        (isDsaNotice
+            ? !RegExp(r'^SIT-N-[A-HJ-NP-Z2-9]{12}$')
+                .hasMatch(dsaNoticeNumber ?? '')
+            : dsaNoticeNumber != null && dsaNoticeNumber.isNotEmpty) ||
+        !RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
+            .hasMatch(value['caseNumber'].toString()) ||
+        DateTime.tryParse(value['nextUpdateAt'].toString()) == null) {
       throw const FormatException('invalid_support_case_receipt');
     }
     return SupportFlowResult(
@@ -371,6 +513,7 @@ class SupportFlowResult {
       context: context,
       safetyTriage: safetyTriage,
       issueScope: issueScope,
+      dsaNotice: dsaNotice,
       canonicalCase: Map<String, dynamic>.unmodifiable(value),
     );
   }
@@ -378,11 +521,17 @@ class SupportFlowResult {
   String get canonicalReceiptMessage {
     final supportCase = canonicalCase;
     if (supportCase == null) throw StateError('canonical_support_case_missing');
+    final isDsaNotice = backendRoute.caseType == 'moderation_content' &&
+        backendRoute.caseSubType == 'illegal_content_notice';
     final routingLine = backendRoute.caseType == 'privacy_security'
         ? 'Deine Anfrage ist als eigener Datenschutz-Fall im '
             'Datenschutz-Prüfweg erfasst.'
-        : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
-            'noch nicht entschieden.';
+        : isDsaNotice
+            ? 'Deine Meldung ist im gesonderten DSA-Prüfweg als Notice '
+                '${supportCase['dsaNoticeNumber']} erfasst. Die Eingangsbestätigung '
+                'ist noch keine Entscheidung über die Rechtswidrigkeit.'
+            : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
+                'noch nicht entschieden.';
     final safetyLine = safetyTriage.immediateDanger
         ? 'Sicherheit geht vor: Bleib an einem sicheren Ort und nutze bei unmittelbarer Gefahr 110 oder 112. SIT ist kein Notfalldienst.'
         : routingLine;
@@ -398,7 +547,7 @@ class SupportFlowResult {
     if (value.isEmpty) throw StateError('canonical_support_case_missing');
     return value;
   }
-  
+
   /// Konvertiert zu einer Map
   Map<String, dynamic> toMap() {
     return {
@@ -407,24 +556,37 @@ class SupportFlowResult {
       'userDescription': userDescription,
       'immediateDanger': safetyTriage.immediateDanger,
       'safetyTriage': safetyTriage.toMap(),
+      if (dsaNotice != null) 'dsaNotice': dsaNotice!.toMap(),
       if (canonicalCase != null) 'supportCase': canonicalCase,
       ...context.toSupportContext(),
     };
   }
-  
+
   /// Menschenlesbare Kategorie-Bezeichnung
   String get mainCategoryLabel {
     switch (mainCategory) {
-      case 'handover': return 'Problem mit Übergabe';
-      case 'return': return 'Problem mit Rückgabe';
-      case 'item_condition': return 'Problem mit Artikel/Zustand';
-      case 'payment': return 'Problem mit Zahlung';
-      case 'person': return 'Problem mit anderer Person';
-      case 'technical': return 'Technisches Problem';
-      case 'privacy': return 'Datenschutz & Daten';
-      case 'other': return 'Sonstiges';
-      case 'profile_report': return 'Profil melden';
-      default: return mainCategory;
+      case 'handover':
+        return 'Problem mit Übergabe';
+      case 'return':
+        return 'Problem mit Rückgabe';
+      case 'item_condition':
+        return 'Problem mit Artikel/Zustand';
+      case 'payment':
+        return 'Problem mit Zahlung';
+      case 'person':
+        return 'Problem mit anderer Person';
+      case 'technical':
+        return 'Technisches Problem';
+      case 'privacy':
+        return 'Datenschutz & Daten';
+      case 'dsa_notice':
+        return 'Rechtswidrigen Inhalt melden';
+      case 'other':
+        return 'Sonstiges';
+      case 'profile_report':
+        return 'Profil melden';
+      default:
+        return mainCategory;
     }
   }
 }
@@ -447,7 +609,7 @@ class SupportFlowScreen extends StatefulWidget {
     this.submitter,
     this.initialDescription = '',
   });
-  
+
   /// Legacy-Konstruktor für Kompatibilität mit bestehendem Code
   factory SupportFlowScreen.legacy({
     required String itemTitle,
@@ -481,14 +643,28 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   String? _selectedSubCategory;
   String? _selectedDetailSubCategory;
   final _descriptionController = TextEditingController();
+  final _dsaContentLocatorController = TextEditingController();
+  final _dsaLegalBasisController = TextEditingController();
+  bool _dsaGoodFaithConfirmed = false;
   bool _sendingSupport = false;
   bool _cardsHidden = false;
 
   bool get _showSafetyQuestion => _immediateDanger == null;
-  bool get _showSafetyGuidance => _immediateDanger == true && !_safetyGuidanceAcknowledged;
+  bool get _showSafetyGuidance =>
+      _immediateDanger == true && !_safetyGuidanceAcknowledged;
   bool get _showIssueScopeQuestion =>
-      !_showSafetyQuestion && !_showSafetyGuidance && _singleIssueConfirmed == null;
+      !_showSafetyQuestion &&
+      !_showSafetyGuidance &&
+      _singleIssueConfirmed == null;
   bool get _showIssueSeparationGuidance => _singleIssueConfirmed == false;
+  bool get _isDsaNoticeSelection =>
+      _selectedMainCategory == 'dsa_notice' && _selectedSubCategory != null;
+  bool get _dsaNoticeReady =>
+      !_isDsaNoticeSelection ||
+      _immediateDanger == true ||
+      (_dsaContentLocatorController.text.trim().length >= 3 &&
+          _descriptionController.text.trim().length >= 20 &&
+          _dsaGoodFaithConfirmed);
 
   @override
   void initState() {
@@ -502,6 +678,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   @override
   void dispose() {
     _descriptionController.dispose();
+    _dsaContentLocatorController.dispose();
+    _dsaLegalBasisController.dispose();
     super.dispose();
   }
 
@@ -509,36 +687,48 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   static const _categoryTitles = <String, Map<String, String>>{
     'handover': {
       'title': 'Hast du ein Problem mit der Übergabe?',
-      'subline': 'Wir helfen dir gerne dabei. Wähle den Grund, der am besten passt.',
+      'subline':
+          'Wir helfen dir gerne dabei. Wähle den Grund, der am besten passt.',
     },
     'return': {
       'title': 'Hast du ein Problem mit der Rückgabe?',
-      'subline': 'Wir helfen dir gerne dabei. Wähle den genauesten Grund, damit wir schneller reagieren können.',
+      'subline':
+          'Wir helfen dir gerne dabei. Wähle den genauesten Grund, damit wir schneller reagieren können.',
     },
     'item_condition': {
       'title': 'Gibt es ein Problem mit dem Artikel?',
-      'subline': 'Beschreibe zuerst den passenden Grund. So kann der Support den Zustand besser einordnen.',
+      'subline':
+          'Beschreibe zuerst den passenden Grund. So kann der Support den Zustand besser einordnen.',
     },
     'payment': {
       'title': 'Gibt es ein Problem mit der Zahlung?',
-      'subline': 'Wähle den passenden Zahlungsgrund, damit wir den Fall schneller prüfen können.',
+      'subline':
+          'Wähle den passenden Zahlungsgrund, damit wir den Fall schneller prüfen können.',
     },
     'person': {
       'title': 'Gibt es ein Problem mit der anderen Person?',
-      'subline': 'Wenn du dich unwohl fühlst oder etwas nicht stimmt, wähle bitte den genauesten Grund.',
+      'subline':
+          'Wenn du dich unwohl fühlst oder etwas nicht stimmt, wähle bitte den genauesten Grund.',
     },
     'technical': {
       'title': 'Gibt es ein technisches Problem?',
-      'subline': 'Wähle, was nicht funktioniert. So können wir den Fehler schneller finden.',
+      'subline':
+          'Wähle, was nicht funktioniert. So können wir den Fehler schneller finden.',
     },
     'privacy': {
       'title': 'Geht es um Datenschutz oder deine Daten?',
       'subline': 'Wähle den genauen Anlass. Die Anfrage wird als eigener '
           'Datenschutz-Fall geprüft.',
     },
+    'dsa_notice': {
+      'title': 'Welcher Inhalt soll rechtlich geprüft werden?',
+      'subline': 'Diese Meldung wird als eigene DSA-Notice erfasst und nicht '
+          'als allgemeiner Buchungsfall behandelt.',
+    },
     'other': {
       'title': 'Wobei brauchst du Hilfe?',
-      'subline': 'Wähle den passendsten Grund oder beschreibe dein Anliegen im nächsten Schritt.',
+      'subline':
+          'Wähle den passendsten Grund oder beschreibe dein Anliegen im nächsten Schritt.',
     },
   };
 
@@ -650,6 +840,17 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         'Identität für Datenschutzanfrage bestätigen',
       ],
     ),
+    'dsa_notice': _SupportCategory(
+      icon: Icons.gavel_outlined,
+      label: 'Rechtswidrigen Inhalt melden',
+      subcategories: [
+        'Anzeige / Artikel',
+        'Profil',
+        'Bewertung',
+        'Nachricht / Chat',
+        'Anderer Inhalt',
+      ],
+    ),
     'other': _SupportCategory(
       icon: Icons.more_horiz_rounded,
       label: 'Sonstiges',
@@ -663,9 +864,14 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     ),
   };
 
-  bool get _isProfileContext => widget.context.requestId.startsWith('profile:') || widget.context.itemId.startsWith('profile:');
+  bool get _isProfileContext =>
+      widget.context.requestId.startsWith('profile:') ||
+      widget.context.itemId.startsWith('profile:');
 
-  bool get _needsProfileReasonStep => _isProfileContext && _selectedMainCategory == 'other' && _selectedSubCategory == 'Profil melden';
+  bool get _needsProfileReasonStep =>
+      _isProfileContext &&
+      _selectedMainCategory == 'other' &&
+      _selectedSubCategory == 'Profil melden';
 
   static const List<String> _profileReportReasons = [
     'Falsche Identität',
@@ -703,25 +909,52 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     if (_showSafetyGuidance) return 'Sicherheit geht jetzt vor';
     if (_showIssueScopeQuestion) return 'Geht es um genau ein Problem?';
     if (_showIssueSeparationGuidance) return 'Trenne die Probleme zuerst';
-    if (_selectedDetailSubCategory != null) return 'Beschreibe kurz, was passiert ist';
-    if (_needsProfileReasonStep) return 'Warum möchtest du dieses Profil melden?';
-    if (_selectedSubCategory != null) return 'Beschreibe kurz, was passiert ist';
+    if (_selectedDetailSubCategory != null) {
+      return 'Beschreibe kurz, was passiert ist';
+    }
+    if (_needsProfileReasonStep) {
+      return 'Warum möchtest du dieses Profil melden?';
+    }
+    if (_selectedSubCategory != null) {
+      return _isDsaNoticeSelection
+          ? 'Angaben zur Meldung'
+          : 'Beschreibe kurz, was passiert ist';
+    }
     if (_selectedMainCategory != null) {
-      return _categoryTitles[_selectedMainCategory]?['title'] ?? 'Wähle einen Grund';
+      return _categoryTitles[_selectedMainCategory]?['title'] ??
+          'Wähle einen Grund';
     }
     return 'Wobei brauchst du Hilfe?';
   }
 
   String _currentSubline() {
-    if (_showSafetyQuestion) return 'Beantworte diese Frage zuerst. Danach kannst du dein Anliegen melden.';
-    if (_showSafetyGuidance) return 'Beende zuerst die gefährliche Situation. SIT ist kein Notfalldienst.';
-    if (_showIssueScopeQuestion) return 'Unabhängige Probleme brauchen getrennte Support-Fälle.';
-    if (_showIssueSeparationGuidance) return 'Wähle für diesen Fall nur eines der Probleme aus.';
-    if (_selectedDetailSubCategory != null) return 'Prüfe die Auswahl kurz und beschreibe danach den Fall für den Support.';
-    if (_needsProfileReasonStep) return 'Wähle den genauesten Grund, damit der Support den Fall richtig einordnen kann.';
-    if (_selectedSubCategory != null) return 'Je genauer du es beschreibst, desto schneller kann dir der Support helfen.';
+    if (_showSafetyQuestion) {
+      return 'Beantworte diese Frage zuerst. Danach kannst du dein Anliegen melden.';
+    }
+    if (_showSafetyGuidance) {
+      return 'Beende zuerst die gefährliche Situation. SIT ist kein Notfalldienst.';
+    }
+    if (_showIssueScopeQuestion) {
+      return 'Unabhängige Probleme brauchen getrennte Support-Fälle.';
+    }
+    if (_showIssueSeparationGuidance) {
+      return 'Wähle für diesen Fall nur eines der Probleme aus.';
+    }
+    if (_selectedDetailSubCategory != null) {
+      return 'Prüfe die Auswahl kurz und beschreibe danach den Fall für den Support.';
+    }
+    if (_needsProfileReasonStep) {
+      return 'Wähle den genauesten Grund, damit der Support den Fall richtig einordnen kann.';
+    }
+    if (_selectedSubCategory != null) {
+      return _isDsaNoticeSelection
+          ? 'Nenne den exakten Inhalt und begründe, warum du ihn für '
+              'rechtswidrig hältst. Die Meldung allein entscheidet noch nichts.'
+          : 'Je genauer du es beschreibst, desto schneller kann dir der Support helfen.';
+    }
     if (_selectedMainCategory != null) {
-      return _categoryTitles[_selectedMainCategory]?['subline'] ?? 'Wähle den genauesten Grund.';
+      return _categoryTitles[_selectedMainCategory]?['subline'] ??
+          'Wähle den genauesten Grund.';
     }
     return 'Wähle den genauesten Grund, damit wir dir schneller helfen können.';
   }
@@ -743,21 +976,30 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     final dark = theme.colorScheme.secondary;
     final isDark = theme.brightness == Brightness.dark;
     final isSafetyPage = _showSafetyQuestion || _showSafetyGuidance;
-    final isIssueScopePage = _showIssueScopeQuestion || _showIssueSeparationGuidance;
-    final isMainCategoryPage = !isSafetyPage && !isIssueScopePage
-        && _selectedMainCategory == null && _selectedSubCategory == null;
-    final isSubcategoryPage = _selectedMainCategory != null && _selectedSubCategory == null;
-    final shouldCenterTitle = isSafetyPage || isIssueScopePage
-        || isMainCategoryPage || isSubcategoryPage;
+    final isIssueScopePage =
+        _showIssueScopeQuestion || _showIssueSeparationGuidance;
+    final isMainCategoryPage = !isSafetyPage &&
+        !isIssueScopePage &&
+        _selectedMainCategory == null &&
+        _selectedSubCategory == null;
+    final isSubcategoryPage =
+        _selectedMainCategory != null && _selectedSubCategory == null;
+    final shouldCenterTitle = isSafetyPage ||
+        isIssueScopePage ||
+        isMainCategoryPage ||
+        isSubcategoryPage;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.transparent : AppTheme.surfaceMuted(context),
+      backgroundColor:
+          isDark ? Colors.transparent : AppTheme.surfaceMuted(context),
       body: GestureDetector(
         // Tap außerhalb der Cards = Hintergrund-Preview
         onTap: () {
           // Nur im Dark Theme und nur auf Hauptkategorie/Subkategorie-Seite aktivieren
-          if (isDark && !isSafetyPage && !isIssueScopePage
-              && _selectedSubCategory == null) {
+          if (isDark &&
+              !isSafetyPage &&
+              !isIssueScopePage &&
+              _selectedSubCategory == null) {
             _toggleCardsVisibility();
           }
         },
@@ -795,7 +1037,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                 duration: const Duration(milliseconds: 300),
                 child: ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: isDark ? 14 : 6, sigmaY: isDark ? 14 : 6),
+                    filter: ImageFilter.blur(
+                        sigmaX: isDark ? 14 : 6, sigmaY: isDark ? 14 : 6),
                     child: const SizedBox.expand(),
                   ),
                 ),
@@ -806,7 +1049,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
               Positioned.fill(
                 child: ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: isDark ? 2 : 1, sigmaY: isDark ? 2 : 1),
+                    filter: ImageFilter.blur(
+                        sigmaX: isDark ? 2 : 1, sigmaY: isDark ? 2 : 1),
                     child: const SizedBox.expand(),
                   ),
                 ),
@@ -823,8 +1067,12 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                       end: Alignment.bottomRight,
                       colors: isDark
                           ? [
-                              Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: 0.45),
-                              Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: 0.38),
+                              Color.lerp(primary, BrandColors.logoGradientStart,
+                                      0.35)!
+                                  .withValues(alpha: 0.45),
+                              Color.lerp(
+                                      dark, BrandColors.logoGradientEnd, 0.55)!
+                                  .withValues(alpha: 0.38),
                             ]
                           : [
                               BrandColors.primary.withValues(alpha: 0.06),
@@ -912,15 +1160,19 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                 children: [
                   // Header mit Back-Button - immer sichtbar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     child: Row(
                       children: [
                         IconButton(
-                          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                          tooltip: MaterialLocalizations.of(context)
+                              .backButtonTooltip,
                           onPressed: _handleBack,
                           icon: Icon(
                             Icons.arrow_back_ios_new_rounded,
-                            color: isDark ? Colors.white.withValues(alpha: 0.9) : AppTheme.textPrimary(context),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.9)
+                                : AppTheme.textPrimary(context),
                             size: 20,
                           ),
                         ),
@@ -945,13 +1197,19 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Column(
-                        crossAxisAlignment: shouldCenterTitle ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+                        crossAxisAlignment: shouldCenterTitle
+                            ? CrossAxisAlignment.center
+                            : CrossAxisAlignment.start,
                         children: [
                           Text(
                             _currentTitle(),
-                            textAlign: shouldCenterTitle ? TextAlign.center : TextAlign.start,
+                            textAlign: shouldCenterTitle
+                                ? TextAlign.center
+                                : TextAlign.start,
                             style: TextStyle(
-                              color: isDark ? Colors.white.withValues(alpha: 0.95) : AppTheme.textPrimary(context),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.95)
+                                  : AppTheme.textPrimary(context),
                               fontWeight: FontWeight.w800,
                               fontSize: shouldCenterTitle ? 26 : 24,
                             ),
@@ -959,9 +1217,13 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                           const SizedBox(height: 8),
                           Text(
                             _currentSubline(),
-                            textAlign: shouldCenterTitle ? TextAlign.center : TextAlign.start,
+                            textAlign: shouldCenterTitle
+                                ? TextAlign.center
+                                : TextAlign.start,
                             style: TextStyle(
-                              color: isDark ? Colors.white.withValues(alpha: 0.55) : AppTheme.textBody(context),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.55)
+                                  : AppTheme.textBody(context),
                               fontWeight: FontWeight.w500,
                               fontSize: 14,
                               height: 1.4,
@@ -973,7 +1235,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                   ),
                   const SizedBox(height: 20),
                   // Buchungs-Kontextkarte - immer sichtbar für Kontext
-                  if (!isSafetyPage && (widget.context.requestId.isNotEmpty || widget.context.itemTitle.isNotEmpty))
+                  if (!isSafetyPage &&
+                      (widget.context.requestId.isNotEmpty ||
+                          widget.context.itemTitle.isNotEmpty))
                     AnimatedOpacity(
                       opacity: _cardsHidden ? 0.15 : 1.0,
                       duration: const Duration(milliseconds: 250),
@@ -1012,9 +1276,11 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                                                 ? _buildProfileReportReasons()
                                                 : _selectedSubCategory != null
                                                     ? _buildDescriptionStep()
-                                                    : _selectedMainCategory == null
+                                                    : _selectedMainCategory ==
+                                                            null
                                                         ? _buildMainCategories()
-                                                        : _buildSubcategories(_selectedMainCategory!),
+                                                        : _buildSubcategories(
+                                                            _selectedMainCategory!),
                       ),
                     ),
                   ),
@@ -1032,16 +1298,24 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                     opacity: _cardsHidden ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.black.withValues(alpha: 0.55) : AppTheme.surfacePrimary(context),
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.55)
+                            : AppTheme.surfacePrimary(context),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.12) : AppTheme.glassStroke(context)),
+                        border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : AppTheme.glassStroke(context)),
                       ),
                       child: Text(
                         'Tippe erneut, um fortzufahren',
                         style: TextStyle(
-                          color: isDark ? Colors.white.withValues(alpha: 0.8) : AppTheme.textPrimary(context),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.8)
+                              : AppTheme.textPrimary(context),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1065,7 +1339,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         _SupportSafetyPanel(
           icon: Icons.health_and_safety_outlined,
           title: 'Akute Sicherheit vor dem normalen Ablauf',
-          body: 'Wenn du in Gefahr bist oder unsicher bist, zeigen wir dir zuerst die wichtigsten Sicherheitshinweise.',
+          body:
+              'Wenn du in Gefahr bist oder unsicher bist, zeigen wir dir zuerst die wichtigsten Sicherheitshinweise.',
           isDark: isDark,
         ),
         const SizedBox(height: 20),
@@ -1093,7 +1368,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         _SupportSafetyPanel(
           icon: Icons.warning_amber_rounded,
           title: 'Beende die Begegnung und geh an einen sicheren Ort.',
-          body: 'Übergib oder übernimm den Gegenstand vorerst nicht. Bei unmittelbarer Gefahr: Polizei 110 oder Rettungsdienst/Feuerwehr 112. SIT ist kein Notfalldienst.',
+          body:
+              'Übergib oder übernimm den Gegenstand vorerst nicht. Bei unmittelbarer Gefahr: Polizei 110 oder Rettungsdienst/Feuerwehr 112. SIT ist kein Notfalldienst.',
           isDark: isDark,
           urgent: true,
         ),
@@ -1101,7 +1377,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         _SupportSafetyPanel(
           icon: Icons.privacy_tip_outlined,
           title: 'Dokumentiere nur, wenn es gefahrlos möglich ist.',
-          body: 'Teile im Support keine Live-Standorte, Passwörter, PINs oder Zahlungsdaten.',
+          body:
+              'Teile im Support keine Live-Standorte, Passwörter, PINs oder Zahlungsdaten.',
           isDark: isDark,
         ),
         const SizedBox(height: 20),
@@ -1126,7 +1403,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         _SupportSafetyPanel(
           icon: Icons.call_split_outlined,
           title: 'Ein Problem pro Support-Fall',
-          body: 'So bleiben Zuständigkeit, Fristen, Entscheidungen und der Prüfverlauf für jedes Problem eindeutig.',
+          body:
+              'So bleiben Zuständigkeit, Fristen, Entscheidungen und der Prüfverlauf für jedes Problem eindeutig.',
           isDark: isDark,
         ),
         const SizedBox(height: 20),
@@ -1160,7 +1438,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         _SupportSafetyPanel(
           icon: Icons.account_tree_outlined,
           title: 'Erstelle für jedes unabhängige Problem einen eigenen Fall.',
-          body: 'Wähle jetzt das erste Problem aus. Nach dem Absenden kannst du für das nächste Problem einen weiteren Support-Fall erstellen.',
+          body:
+              'Wähle jetzt das erste Problem aus. Nach dem Absenden kannst du für das nächste Problem einen weiteren Support-Fall erstellen.',
           isDark: isDark,
         ),
         const SizedBox(height: 20),
@@ -1185,8 +1464,10 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         // Mindestens 54px pro Card, plus dynamischen Abstand
         final minCardHeight = 58.0;
         final totalMinHeight = cardCount * minCardHeight;
-        final dynamicSpacing = ((availableHeight - totalMinHeight - 32) / (cardCount - 1)).clamp(10.0, 22.0);
-        
+        final dynamicSpacing =
+            ((availableHeight - totalMinHeight - 32) / (cardCount - 1))
+                .clamp(10.0, 22.0);
+
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           physics: availableHeight > totalMinHeight + (cardCount - 1) * 10
@@ -1246,12 +1527,98 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     );
   }
 
+  Widget _supportTextField({
+    required TextEditingController controller,
+    required String fieldKey,
+    required String label,
+    required String hint,
+    required int maxLength,
+    int minLines = 1,
+    int maxLines = 4,
+  }) {
+    return TextField(
+      key: ValueKey(fieldKey),
+      controller: controller,
+      maxLength: maxLength,
+      minLines: minLines,
+      maxLines: maxLines,
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        alignLabelWithHint: true,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _buildDsaNoticeFields() {
+    return ListView(
+      key: const ValueKey('support_dsa_notice_fields'),
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'Pflichtangaben für die gesonderte Notice-and-Action-Prüfung',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        _supportTextField(
+          controller: _dsaContentLocatorController,
+          fieldKey: 'support_dsa_content_locator',
+          label: 'Exakter Fundort des Inhalts *',
+          hint: 'Zum Beispiel URL, Anzeigen-ID oder Nachrichtenreferenz',
+          maxLength: 2000,
+          maxLines: 3,
+        ),
+        const SizedBox(height: 12),
+        _supportTextField(
+          controller: _descriptionController,
+          fieldKey: 'support_dsa_illegality_statement',
+          label: 'Warum ist genau dieser Inhalt rechtswidrig? *',
+          hint: 'Begründe konkret, welches Recht verletzt sein könnte.',
+          maxLength: 8000,
+          minLines: 4,
+          maxLines: 8,
+        ),
+        const SizedBox(height: 12),
+        _supportTextField(
+          controller: _dsaLegalBasisController,
+          fieldKey: 'support_dsa_legal_basis',
+          label: 'Rechtsgrundlage oder betroffenes Land (optional)',
+          hint: 'Falls bekannt: Vorschrift, Rechtsgrundlage oder Staat',
+          maxLength: 2000,
+          maxLines: 4,
+        ),
+        CheckboxListTile(
+          key: const ValueKey('support_dsa_good_faith'),
+          value: _dsaGoodFaithConfirmed,
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          title: const Text(
+            'Ich bestätige nach bestem Wissen, dass die Angaben richtig '
+            'und vollständig sind. *',
+          ),
+          onChanged: (value) => setState(
+            () => _dsaGoodFaithConfirmed = value == true,
+          ),
+        ),
+        const Text(
+          'Die Eingangsbestätigung ist noch keine Entscheidung über die '
+          'Rechtswidrigkeit und löst keine automatische Entfernung aus.',
+          style: TextStyle(fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDescriptionStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final resolvedMainCategory = (_needsProfileReasonStep || _selectedDetailSubCategory != null)
-        ? 'profile_report'
-        : _selectedMainCategory;
-    final resolvedSubCategory = _selectedDetailSubCategory ?? _selectedSubCategory;
+    final resolvedMainCategory =
+        (_needsProfileReasonStep || _selectedDetailSubCategory != null)
+            ? 'profile_report'
+            : _selectedMainCategory;
+    final resolvedSubCategory =
+        _selectedDetailSubCategory ?? _selectedSubCategory;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -1269,31 +1636,43 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                 filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.04) : AppTheme.surfacePrimary(context),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.04)
+                        : AppTheme.surfacePrimary(context),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFD9E2EC)),
+                    border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : const Color(0xFFD9E2EC)),
                   ),
-                  child: TextField(
-                    controller: _descriptionController,
-                    maxLength: 1400,
-                    maxLines: null,
-                    expands: true,
-                    textAlignVertical: TextAlignVertical.top,
-                    style: TextStyle(
-                      color: isDark ? Colors.white.withValues(alpha: 0.95) : AppTheme.textPrimary(context),
-                      fontSize: 15,
-                      height: 1.5,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Was ist passiert? Beschreibe die Situation so genau wie möglich …',
-                      hintStyle: TextStyle(
-                        color: isDark ? Colors.white.withValues(alpha: 0.35) : AppTheme.textDisabled(context),
-                        fontSize: 15,
-                      ),
-                      contentPadding: const EdgeInsets.all(18),
-                      border: InputBorder.none,
-                    ),
-                  ),
+                  child: _isDsaNoticeSelection
+                      ? _buildDsaNoticeFields()
+                      : TextField(
+                          controller: _descriptionController,
+                          maxLength: 1400,
+                          maxLines: null,
+                          expands: true,
+                          textAlignVertical: TextAlignVertical.top,
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.95)
+                                : AppTheme.textPrimary(context),
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
+                          decoration: InputDecoration(
+                            hintText:
+                                'Was ist passiert? Beschreibe die Situation so genau wie möglich …',
+                            hintStyle: TextStyle(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.35)
+                                  : AppTheme.textDisabled(context),
+                              fontSize: 15,
+                            ),
+                            contentPadding: const EdgeInsets.all(18),
+                            border: InputBorder.none,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -1304,7 +1683,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
             width: double.infinity,
             height: 52,
             child: _SupportPressScale(
-              onTap: _sendingSupport ? null : _submitSupportCase,
+              onTap: _sendingSupport || !_dsaNoticeReady
+                  ? null
+                  : _submitSupportCase,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: BackdropFilter(
@@ -1313,12 +1694,17 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          BrandColors.primary,
-                          BrandColors.primary.withValues(alpha: 0.85),
+                          BrandColors.primary.withValues(
+                            alpha: _dsaNoticeReady ? 1 : 0.45,
+                          ),
+                          BrandColors.primary.withValues(
+                            alpha: _dsaNoticeReady ? 0.85 : 0.35,
+                          ),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15)),
                     ),
                     child: Center(
                       child: _sendingSupport
@@ -1327,7 +1713,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: isDark ? Colors.white.withValues(alpha: 0.9) : AppTheme.textPrimary(context),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.9)
+                                    : AppTheme.textPrimary(context),
                               ),
                             )
                           : const Text(
@@ -1356,7 +1744,10 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
 
     try {
       final draft = SupportFlowResult(
-        mainCategory: (_needsProfileReasonStep || _selectedDetailSubCategory != null) ? 'profile_report' : (_selectedMainCategory ?? ''),
+        mainCategory:
+            (_needsProfileReasonStep || _selectedDetailSubCategory != null)
+                ? 'profile_report'
+                : (_selectedMainCategory ?? ''),
         subCategory: _selectedDetailSubCategory ?? _selectedSubCategory ?? '',
         userDescription: _descriptionController.text.trim(),
         context: widget.context,
@@ -1368,12 +1759,22 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
           singleIssueConfirmed: true,
           separationGuidanceShown: _separationGuidanceShown,
         ),
+        dsaNotice: _immediateDanger != true && _isDsaNoticeSelection
+            ? SupportDsaNotice(
+                contentType:
+                    SupportFlowResult._dsaContentTypes[_selectedSubCategory]!,
+                contentLocator: _dsaContentLocatorController.text,
+                illegalityStatement: _descriptionController.text,
+                jurisdictionOrLegalBasis: _dsaLegalBasisController.text,
+                goodFaithConfirmed: _dsaGoodFaithConfirmed,
+              )
+            : null,
       );
-      final submitter = widget.submitter ?? (intake, idempotencyKey) =>
-          BackendRepository.createSupportCase(
-            intake: intake,
-            idempotencyKey: idempotencyKey,
-          );
+      final submitter = widget.submitter ??
+          (intake, idempotencyKey) => BackendRepository.createSupportCase(
+                intake: intake,
+                idempotencyKey: idempotencyKey,
+              );
       final supportCase = await submitter(
         draft.toBackendInput(),
         _submissionIdempotencyKey,
@@ -1437,7 +1838,9 @@ class _SupportSafetyPanel extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? Colors.black.withValues(alpha: 0.36) : AppTheme.surfacePrimary(context),
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.36)
+              : AppTheme.surfacePrimary(context),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: accent.withValues(alpha: 0.55)),
         ),
@@ -1453,7 +1856,8 @@ class _SupportSafetyPanel extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isDark ? Colors.white : AppTheme.textPrimary(context),
+                      color:
+                          isDark ? Colors.white : AppTheme.textPrimary(context),
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                       height: 1.3,
@@ -1463,7 +1867,9 @@ class _SupportSafetyPanel extends StatelessWidget {
                   Text(
                     body,
                     style: TextStyle(
-                      color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textBody(context),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.78)
+                          : AppTheme.textBody(context),
                       fontSize: 14,
                       height: 1.45,
                     ),
@@ -1491,15 +1897,24 @@ class _SupportPreviewCard extends StatelessWidget {
 
   String _categoryLabel(String value) {
     switch (value) {
-      case 'handover': return 'Problem mit Übergabe';
-      case 'return': return 'Problem mit Rückgabe';
-      case 'item_condition': return 'Problem mit Artikel/Zustand';
-      case 'payment': return 'Problem mit Zahlung';
-      case 'person': return 'Problem mit anderer Person';
-      case 'technical': return 'Technisches Problem';
-      case 'other': return 'Sonstiges';
-      case 'profile_report': return 'Profil melden';
-      default: return value;
+      case 'handover':
+        return 'Problem mit Übergabe';
+      case 'return':
+        return 'Problem mit Rückgabe';
+      case 'item_condition':
+        return 'Problem mit Artikel/Zustand';
+      case 'payment':
+        return 'Problem mit Zahlung';
+      case 'person':
+        return 'Problem mit anderer Person';
+      case 'technical':
+        return 'Technisches Problem';
+      case 'other':
+        return 'Sonstiges';
+      case 'profile_report':
+        return 'Profil melden';
+      default:
+        return value;
     }
   }
 
@@ -1510,20 +1925,46 @@ class _SupportPreviewCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfacePrimary(context),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : AppTheme.surfacePrimary(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.10) : AppTheme.glassStroke(context)),
+        border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.10)
+                : AppTheme.glassStroke(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Vorschau für den Support', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.92) : AppTheme.textPrimary(context), fontWeight: FontWeight.w700, fontSize: 14)),
+          Text('Vorschau für den Support',
+              style: TextStyle(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.92)
+                      : AppTheme.textPrimary(context),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14)),
           const SizedBox(height: 8),
-          Text('Kontext: $itemTitle', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textSecondary(context), fontSize: 13)),
+          Text('Kontext: $itemTitle',
+              style: TextStyle(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.78)
+                      : AppTheme.textSecondary(context),
+                  fontSize: 13)),
           const SizedBox(height: 4),
-          Text('Kategorie: ${_categoryLabel(mainCategory)}', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textSecondary(context), fontSize: 13)),
+          Text('Kategorie: ${_categoryLabel(mainCategory)}',
+              style: TextStyle(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.78)
+                      : AppTheme.textSecondary(context),
+                  fontSize: 13)),
           const SizedBox(height: 4),
-          Text('Grund: $subCategory', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textSecondary(context), fontSize: 13)),
+          Text('Grund: $subCategory',
+              style: TextStyle(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.78)
+                      : AppTheme.textSecondary(context),
+                  fontSize: 13)),
         ],
       ),
     );
@@ -1565,25 +2006,39 @@ class _DistinctBookingContextCard extends StatelessWidget {
 
   String _statusLabel(String status) {
     switch (status.toLowerCase()) {
-      case 'pending': return 'Angefragt';
-      case 'accepted': return 'Bestätigt';
-      case 'running': return 'Laufend';
-      case 'completed': return 'Abgeschlossen';
-      case 'declined': return 'Abgelehnt';
-      case 'cancelled': return 'Storniert';
-      default: return status;
+      case 'pending':
+        return 'Angefragt';
+      case 'accepted':
+        return 'Bestätigt';
+      case 'running':
+        return 'Laufend';
+      case 'completed':
+        return 'Abgeschlossen';
+      case 'declined':
+        return 'Abgelehnt';
+      case 'cancelled':
+        return 'Storniert';
+      default:
+        return status;
     }
   }
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'pending': return Colors.orange;
-      case 'accepted': return Colors.green;
-      case 'running': return BrandColors.primary;
-      case 'completed': return Colors.teal;
-      case 'declined': return Colors.red;
-      case 'cancelled': return Colors.grey;
-      default: return BrandColors.primary;
+      case 'pending':
+        return Colors.orange;
+      case 'accepted':
+        return Colors.green;
+      case 'running':
+        return BrandColors.primary;
+      case 'completed':
+        return Colors.teal;
+      case 'declined':
+        return Colors.red;
+      case 'cancelled':
+        return Colors.grey;
+      default:
+        return BrandColors.primary;
     }
   }
 
@@ -1591,7 +2046,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final statusCol = _statusColor(bookingStatus);
-    
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
@@ -1614,12 +2069,16 @@ class _DistinctBookingContextCard extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFD9E2EC),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : const Color(0xFFD9E2EC),
               width: 1.2,
             ),
             boxShadow: [
               BoxShadow(
-                color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.05),
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.25)
+                    : Colors.black.withValues(alpha: 0.05),
                 blurRadius: isDark ? 20 : 14,
                 offset: const Offset(0, 6),
               ),
@@ -1647,7 +2106,8 @@ class _DistinctBookingContextCard extends StatelessWidget {
                             )
                           : null,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: BrandColors.primary.withValues(alpha: 0.18)),
+                      border: Border.all(
+                          color: BrandColors.primary.withValues(alpha: 0.18)),
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: itemImageUrl != null && itemImageUrl!.isNotEmpty
@@ -1657,7 +2117,8 @@ class _DistinctBookingContextCard extends StatelessWidget {
                             fallback: Center(
                               child: Icon(
                                 Icons.inventory_2_rounded,
-                                color: BrandColors.primary.withValues(alpha: 0.75),
+                                color:
+                                    BrandColors.primary.withValues(alpha: 0.75),
                                 size: 24,
                               ),
                             ),
@@ -1665,7 +2126,8 @@ class _DistinctBookingContextCard extends StatelessWidget {
                         : Center(
                             child: Icon(
                               Icons.inventory_2_rounded,
-                              color: BrandColors.primary.withValues(alpha: 0.75),
+                              color:
+                                  BrandColors.primary.withValues(alpha: 0.75),
                               size: 24,
                             ),
                           ),
@@ -1679,8 +2141,14 @@ class _DistinctBookingContextCard extends StatelessWidget {
                       height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDark ? Colors.grey.shade800 : AppTheme.surfacePrimary(context),
-                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.25) : const Color(0xFFE2E8F0), width: 2),
+                        color: isDark
+                            ? Colors.grey.shade800
+                            : AppTheme.surfacePrimary(context),
+                        border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.25)
+                                : const Color(0xFFE2E8F0),
+                            width: 2),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.35),
@@ -1690,14 +2158,17 @@ class _DistinctBookingContextCard extends StatelessWidget {
                         ],
                       ),
                       clipBehavior: Clip.antiAlias,
-                      child: otherUserImageUrl != null && otherUserImageUrl!.isNotEmpty
+                      child: otherUserImageUrl != null &&
+                              otherUserImageUrl!.isNotEmpty
                           ? AppImage(
                               url: otherUserImageUrl!,
                               fit: BoxFit.cover,
                               fallback: Center(
                                 child: Icon(
                                   Icons.person_rounded,
-                                  color: isDark ? Colors.white.withValues(alpha: 0.7) : AppTheme.textSecondary(context),
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.7)
+                                      : AppTheme.textSecondary(context),
                                   size: 14,
                                 ),
                               ),
@@ -1705,7 +2176,9 @@ class _DistinctBookingContextCard extends StatelessWidget {
                           : Center(
                               child: Icon(
                                 Icons.person_rounded,
-                                color: isDark ? Colors.white.withValues(alpha: 0.7) : AppTheme.textSecondary(context),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : AppTheme.textSecondary(context),
                                 size: 14,
                               ),
                             ),
@@ -1723,7 +2196,9 @@ class _DistinctBookingContextCard extends StatelessWidget {
                       Text(
                         itemTitle,
                         style: TextStyle(
-                          color: isDark ? Colors.white.withValues(alpha: 0.95) : AppTheme.textPrimary(context),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.95)
+                              : AppTheme.textPrimary(context),
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
                         ),
@@ -1736,7 +2211,9 @@ class _DistinctBookingContextCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.person_outline_rounded,
-                          color: isDark ? Colors.white.withValues(alpha: 0.45) : AppTheme.textSecondary(context),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.45)
+                              : AppTheme.textSecondary(context),
                           size: 13,
                         ),
                         const SizedBox(width: 4),
@@ -1744,7 +2221,9 @@ class _DistinctBookingContextCard extends StatelessWidget {
                           child: Text(
                             otherUserName ?? 'Gegenpartei',
                             style: TextStyle(
-                              color: isDark ? Colors.white.withValues(alpha: 0.50) : AppTheme.textSecondary(context),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.50)
+                                  : AppTheme.textSecondary(context),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1756,7 +2235,9 @@ class _DistinctBookingContextCard extends StatelessWidget {
                           Text(
                             '#${requestId.length > 6 ? requestId.substring(0, 6) : requestId}',
                             style: TextStyle(
-                              color: isDark ? Colors.white.withValues(alpha: 0.35) : AppTheme.textDisabled(context),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.35)
+                                  : AppTheme.textDisabled(context),
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               fontFamily: 'monospace',
@@ -1771,11 +2252,13 @@ class _DistinctBookingContextCard extends StatelessWidget {
               if (bookingStatus.isNotEmpty)
                 Container(
                   margin: const EdgeInsets.only(left: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: statusCol.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: statusCol.withValues(alpha: 0.25)),
+                    border:
+                        Border.all(color: statusCol.withValues(alpha: 0.25)),
                   ),
                   child: Text(
                     _statusLabel(bookingStatus),
@@ -1820,9 +2303,14 @@ class _GlassySupportCategoryCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.045) : AppTheme.surfacePrimary(context),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.045)
+                  : AppTheme.surfacePrimary(context),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFD9E2EC)),
+              border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFD9E2EC)),
             ),
             child: Row(
               children: [
@@ -1840,7 +2328,8 @@ class _GlassySupportCategoryCard extends StatelessWidget {
                         ],
                       ),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: BrandColors.primary.withValues(alpha: 0.15)),
+                      border: Border.all(
+                          color: BrandColors.primary.withValues(alpha: 0.15)),
                     ),
                     child: Center(
                       child: Icon(icon, color: BrandColors.primary, size: 22),
@@ -1852,7 +2341,9 @@ class _GlassySupportCategoryCard extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: isDark ? Colors.white.withValues(alpha: 0.92) : AppTheme.textPrimary(context),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.92)
+                          : AppTheme.textPrimary(context),
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -1861,7 +2352,9 @@ class _GlassySupportCategoryCard extends StatelessWidget {
                 if (showChevron)
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: isDark ? Colors.white.withValues(alpha: 0.4) : AppTheme.textSecondary(context),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.4)
+                        : AppTheme.textSecondary(context),
                     size: 22,
                   ),
               ],
@@ -1897,9 +2390,14 @@ class _GlassySubcategoryCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               // Transparenter und leichter als Hauptkategorien
-              color: isDark ? Colors.white.withValues(alpha: 0.035) : AppTheme.surfacePrimary(context),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.035)
+                  : AppTheme.surfacePrimary(context),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFD9E2EC)),
+              border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : const Color(0xFFD9E2EC)),
             ),
             child: Row(
               children: [
@@ -1909,7 +2407,9 @@ class _GlassySubcategoryCard extends StatelessWidget {
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isDark ? BrandColors.primary.withValues(alpha: 0.6) : BrandColors.primary,
+                    color: isDark
+                        ? BrandColors.primary.withValues(alpha: 0.6)
+                        : BrandColors.primary,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -1917,7 +2417,9 @@ class _GlassySubcategoryCard extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: isDark ? Colors.white.withValues(alpha: 0.88) : AppTheme.textPrimary(context),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.88)
+                          : AppTheme.textPrimary(context),
                       fontWeight: FontWeight.w500,
                       fontSize: 14,
                       height: 1.3,
@@ -1926,7 +2428,9 @@ class _GlassySubcategoryCard extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: isDark ? Colors.white.withValues(alpha: 0.32) : AppTheme.textSecondary(context),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.32)
+                      : AppTheme.textSecondary(context),
                   size: 20,
                 ),
               ],

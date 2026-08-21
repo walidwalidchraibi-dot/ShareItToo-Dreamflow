@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 
 import {
   newHumanReadableCaseNumber,
+  newHumanReadableDsaNoticeNumber,
   normalizeSupportCaseInput,
   normalizeSupportCaseTransition,
   SupportCaseError,
@@ -66,6 +67,7 @@ function shapeSupportCase(row, { staff = false, actorId = null, now = new Date()
   const base = {
     id: row.id,
     caseNumber: row.human_readable_case_number,
+    dsaNoticeNumber: row.dsa_notice_number ?? null,
     caseType: row.case_type,
     caseSubType: row.case_subtype,
     status: row.status,
@@ -266,6 +268,34 @@ export async function createSupportCase(client, {
   });
   await validateSupportLinks(client, actor.id, normalized);
 
+  let dsaNoticeNumber = null;
+  let dsaNoticeEvidence = null;
+  if (normalized.dsaNotice) {
+    const reporter = await client.query(
+      `SELECT email,
+              NULLIF(BTRIM(profile ->> 'displayName'), '') AS display_name
+         FROM users
+        WHERE id = $1`,
+      [actor.id],
+    );
+    const reporterEmail = reporter.rows[0]?.email?.trim();
+    const reporterName = reporter.rows[0]?.display_name?.trim();
+    if (!reporterEmail || !reporterName) {
+      throw new SupportCaseError(
+        409,
+        'support_dsa_notice_reporter_identity_incomplete',
+      );
+    }
+    dsaNoticeNumber = newHumanReadableDsaNoticeNumber();
+    dsaNoticeEvidence = Object.freeze({
+      ...normalized.dsaNotice,
+      reporterName,
+      reporterEmail,
+      sourceChannel: normalized.sourceChannel,
+      submittedAt: now.toISOString(),
+    });
+  }
+
   const id = crypto.randomUUID();
   const caseNumber = newHumanReadableCaseNumber();
   const inserted = await client.query(
@@ -278,7 +308,7 @@ export async function createSupportCase(client, {
        authority_flag, money_flag, account_takeover_flag,
        linked_booking_id, linked_listing_id, linked_payment_id,
        linked_refund_id, linked_payout_id, idempotency_key,
-       intake_scope_evidence,
+       intake_scope_evidence, dsa_notice_number, dsa_notice_evidence,
        created_at, updated_at
      ) VALUES (
        $1, $2, $3, $4, 'received',
@@ -289,8 +319,8 @@ export async function createSupportCase(client, {
        $22, $23, $24,
        $25, $26, $27,
        $28, $29, $30,
-       $31::jsonb,
-       $32, $32
+       $31::jsonb, $32, $33::jsonb,
+       $34, $34
      ) ON CONFLICT (reporter_user_id, idempotency_key) DO NOTHING
      RETURNING *`,
     [
@@ -325,6 +355,8 @@ export async function createSupportCase(client, {
       normalized.linkedPayoutId,
       key,
       JSON.stringify(normalized.issueScope),
+      dsaNoticeNumber,
+      dsaNoticeEvidence == null ? null : JSON.stringify(dsaNoticeEvidence),
       now,
     ],
   );
@@ -367,6 +399,13 @@ export async function createSupportCase(client, {
         operatingMode: normalized.operatingMode,
         safetyTriage: normalized.safetyTriage,
         issueScope: normalized.issueScope,
+        ...(dsaNoticeEvidence == null ? {} : {
+          dsaNotice: {
+            noticeNumber: dsaNoticeNumber,
+            version: dsaNoticeEvidence.version,
+            contentType: dsaNoticeEvidence.contentType,
+          },
+        }),
       }),
       `${key}:event`,
       now,
@@ -385,6 +424,11 @@ export async function createSupportCase(client, {
       safetyGuidanceShown: normalized.safetyTriage.guidanceShown,
       issueScopeVersion: normalized.issueScope.version,
       separationGuidanceShown: normalized.issueScope.separationGuidanceShown,
+      ...(dsaNoticeEvidence == null ? {} : {
+        dsaNoticeNumber,
+        dsaNoticeVersion: dsaNoticeEvidence.version,
+        dsaNoticeContentType: dsaNoticeEvidence.contentType,
+      }),
     },
   });
   return {

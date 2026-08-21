@@ -4,12 +4,14 @@ import test from 'node:test';
 import {
   canTransitionSupportCase,
   newHumanReadableCaseNumber,
+  newHumanReadableDsaNoticeNumber,
   normalizeSupportCaseInput,
   normalizeSupportCaseTransition,
   supportApprovalLevels,
   supportCaseFamilies,
   supportCaseStatuses,
   supportIntakeScopeVersion,
+  supportDsaNoticeIntakeVersion,
   supportPacketVersion,
   supportPriorities,
   supportRouteFor,
@@ -154,6 +156,15 @@ test('human-readable case number is opaque, fixed length and ambiguity-safe', ()
   assert.doesNotMatch(number.slice(4), /[01IO]/);
 });
 
+test('human-readable DSA Notice ID is opaque, fixed length and ambiguity-safe', () => {
+  const number = newHumanReadableDsaNoticeNumber(
+    Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+  );
+  assert.match(number, /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u);
+  assert.equal(number.length, 18);
+  assert.doesNotMatch(number.slice(6), /[01IO]/u);
+});
+
 test('intake derives authoritative route and retains non-live operating truth', () => {
   const result = normalizeSupportCaseInput({
     caseType: 'money_case',
@@ -195,6 +206,95 @@ test('privacy intake gets its own owner and bounded operational checkpoint', () 
   assert.equal(result.privacyFlag, true);
   assert.equal(result.nextUpdateAt.toISOString(), '2026-08-21T14:00:00.000Z');
   assert.equal(result.operatingMode, 'simulation');
+});
+
+test('illegal-content notice requires complete structured DSA evidence and keeps a human-review boundary', () => {
+  const result = normalizeSupportCaseInput({
+    caseType: 'moderation_content',
+    caseSubType: 'illegal_content_notice',
+    summary: 'Konkreten mutmaßlich rechtswidrigen Inhalt prüfen.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+    dsaNotice: {
+      version: supportDsaNoticeIntakeVersion,
+      contentType: 'message',
+      contentLocator: 'thread:abc:message:42',
+      illegalityStatement:
+          'Diese konkrete Nachricht verletzt nach meiner Einschätzung geltendes Recht.',
+      jurisdictionOrLegalBasis: '',
+      goodFaithConfirmed: true,
+    },
+  }, { now });
+
+  assert.equal(result.priority, 'p2');
+  assert.equal(result.ownerRole, 'moderation_owner');
+  assert.equal(result.waitingOn, 'support_owner');
+  assert.equal(result.approvalLevel, 'red_explicit_decision');
+  assert.equal(result.dsaFlag, true);
+  assert.deepEqual(result.dsaNotice, {
+    version: supportDsaNoticeIntakeVersion,
+    contentType: 'message',
+    contentLocator: 'thread:abc:message:42',
+    illegalityStatement:
+        'Diese konkrete Nachricht verletzt nach meiner Einschätzung geltendes Recht.',
+    jurisdictionOrLegalBasis: null,
+    goodFaithConfirmed: true,
+  });
+});
+
+test('DSA intake rejects missing, malformed, extra or misplaced evidence', () => {
+  const base = {
+    caseType: 'moderation_content',
+    caseSubType: 'illegal_content_notice',
+    summary: 'Konkreten mutmaßlich rechtswidrigen Inhalt prüfen.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+  };
+  const validNotice = {
+    version: supportDsaNoticeIntakeVersion,
+    contentType: 'listing',
+    contentLocator: 'listing:123',
+    illegalityStatement:
+        'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+    goodFaithConfirmed: true,
+  };
+
+  assert.throws(
+    () => normalizeSupportCaseInput(base, { now }),
+    /support_dsa_notice_required/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      dsaNotice: { ...validNotice, goodFaithConfirmed: false },
+    }, { now }),
+    /support_dsa_notice_good_faith_required/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      dsaNotice: { ...validNotice, contentType: 'booking' },
+    }, { now }),
+    /support_dsa_notice_content_type_invalid/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      dsaNotice: { ...validNotice, clientReporterEmail: 'fake@example.test' },
+    }, { now }),
+    /support_dsa_notice_shape_invalid/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      caseType: 'general_help',
+      caseSubType: 'general_how_to',
+      summary: 'Allgemeiner Support-Fall ohne DSA-Route.',
+      safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
+      dsaNotice: validNotice,
+    }, { now }),
+    /support_dsa_notice_not_applicable/u,
+  );
 });
 
 test('intake rejects live modes, malformed references and unsafe deadlines', () => {

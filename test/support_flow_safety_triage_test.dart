@@ -14,11 +14,14 @@ const _context = SupportFlowContext(
 Map<String, dynamic> _canonicalCase({
   String caseType = 'general_help',
   String caseSubType = 'app_error_or_display',
-}) => {
+  String? dsaNoticeNumber,
+}) =>
+    {
       'id': 'case-1',
       'caseNumber': 'SIT-ABCDEFGHJKLM',
       'caseType': caseType,
       'caseSubType': caseSubType,
+      if (dsaNoticeNumber != null) 'dsaNoticeNumber': dsaNoticeNumber,
       'status': 'received',
       'nextUpdateAt': '2026-08-21T16:00:00.000Z',
       'nextUpdateDisplay': '21.08.2026, 18:00',
@@ -232,6 +235,149 @@ void main() {
       confirmed.canonicalReceiptMessage,
       contains('Nächstes Update spätestens'),
     );
+  });
+
+  test(
+      'DSA category creates an exact notice payload and requires its own server receipt',
+      () {
+    const result = SupportFlowResult(
+      mainCategory: 'dsa_notice',
+      subCategory: 'Anzeige / Artikel',
+      userDescription:
+          'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+      context: _context,
+      safetyTriage: SupportSafetyTriage(
+        immediateDanger: false,
+        guidanceShown: false,
+      ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
+      ),
+      dsaNotice: SupportDsaNotice(
+        contentType: 'listing',
+        contentLocator: 'listing:listing-1',
+        illegalityStatement:
+            'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+        jurisdictionOrLegalBasis: 'Deutschland',
+        goodFaithConfirmed: true,
+      ),
+    );
+
+    final intake = result.toBackendInput();
+    expect(intake['caseType'], 'moderation_content');
+    expect(intake['caseSubType'], 'illegal_content_notice');
+    expect(intake['dsaNotice'], {
+      'version': 'sit_dsa_notice_intake_v1',
+      'contentType': 'listing',
+      'contentLocator': 'listing:listing-1',
+      'illegalityStatement':
+          'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+      'jurisdictionOrLegalBasis': 'Deutschland',
+      'goodFaithConfirmed': true,
+    });
+
+    expect(
+      () => result.withCanonicalCase(_canonicalCase(
+        caseType: 'moderation_content',
+        caseSubType: 'illegal_content_notice',
+      )),
+      throwsFormatException,
+    );
+    final confirmed = result.withCanonicalCase(_canonicalCase(
+      caseType: 'moderation_content',
+      caseSubType: 'illegal_content_notice',
+      dsaNoticeNumber: 'SIT-N-ABCDEFGHJKLM',
+    ));
+    expect(
+        confirmed.canonicalReceiptMessage, contains('gesonderten DSA-Prüfweg'));
+    expect(confirmed.canonicalReceiptMessage, contains('SIT-N-ABCDEFGHJKLM'));
+    expect(
+      confirmed.canonicalReceiptMessage,
+      contains('noch keine Entscheidung über die Rechtswidrigkeit'),
+    );
+  });
+
+  test(
+      'DSA route fails closed on a mismatched content type or missing good-faith confirmation',
+      () {
+    SupportFlowResult result(SupportDsaNotice notice) => SupportFlowResult(
+          mainCategory: 'dsa_notice',
+          subCategory: 'Profil',
+          userDescription:
+              'Dieses konkrete Profil verletzt nach meiner Einschätzung geltendes Recht.',
+          context: _context,
+          safetyTriage: const SupportSafetyTriage(
+            immediateDanger: false,
+            guidanceShown: false,
+          ),
+          issueScope: const SupportIssueScope(
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          ),
+          dsaNotice: notice,
+        );
+
+    expect(
+      () => result(const SupportDsaNotice(
+        contentType: 'listing',
+        contentLocator: 'profile:user-1',
+        illegalityStatement:
+            'Dieses konkrete Profil verletzt nach meiner Einschätzung geltendes Recht.',
+        goodFaithConfirmed: true,
+      )).toBackendInput(),
+      throwsFormatException,
+    );
+    expect(
+      () => result(const SupportDsaNotice(
+        contentType: 'profile',
+        contentLocator: 'profile:user-1',
+        illegalityStatement:
+            'Dieses konkrete Profil verletzt nach meiner Einschätzung geltendes Recht.',
+        goodFaithConfirmed: false,
+      )).toBackendInput(),
+      throwsFormatException,
+    );
+  });
+
+  testWidgets(
+      'DSA category presents structured locator, reason and declaration fields',
+      (tester) async {
+    await _pumpFlow(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('support_safety_answer_no_danger')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Rechtswidrigen Inhalt melden'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Rechtswidrigen Inhalt melden'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Anzeige / Artikel'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('support_dsa_notice_fields')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('support_dsa_content_locator')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('support_dsa_illegality_statement')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('support_dsa_good_faith')),
+      findsOneWidget,
+    );
+    expect(
+        find.textContaining('keine automatische Entfernung'), findsOneWidget);
   });
 
   test('canonical receipt rejects unconfirmed or non-simulation responses', () {

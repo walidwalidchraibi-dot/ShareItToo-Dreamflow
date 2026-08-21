@@ -86,6 +86,8 @@ class SupportCaseViewData {
   final String id;
   final String caseNumber;
   final String caseType;
+  final String caseSubType;
+  final String? dsaNoticeNumber;
   final String status;
   final String operatingMode;
   final String userFacingSummary;
@@ -106,6 +108,8 @@ class SupportCaseViewData {
     required this.id,
     required this.caseNumber,
     required this.caseType,
+    required this.caseSubType,
+    required this.dsaNoticeNumber,
     required this.status,
     required this.operatingMode,
     required this.userFacingSummary,
@@ -127,6 +131,8 @@ class SupportCaseViewData {
     final id = _requiredText(value, 'id');
     final caseNumber = _requiredText(value, 'caseNumber');
     final caseType = _requiredText(value, 'caseType');
+    final caseSubType = _requiredText(value, 'caseSubType');
+    final dsaNoticeNumber = _optionalText(value, 'dsaNoticeNumber');
     final status = _requiredText(value, 'status');
     final operatingMode = _requiredText(value, 'operatingMode');
     final userFacingSummary = _requiredText(value, 'userFacingSummary');
@@ -150,6 +156,12 @@ class SupportCaseViewData {
         !const {'simulation', 'internal_testing'}.contains(operatingMode) ||
         value['timezone'] != 'Europe/Berlin' ||
         caseType.length > 80 ||
+        caseSubType.length > 100 ||
+        (caseType == 'moderation_content' &&
+                caseSubType == 'illegal_content_notice'
+            ? !RegExp(r'^SIT-N-[A-HJ-NP-Z2-9]{12}$')
+                .hasMatch(dsaNoticeNumber ?? '')
+            : dsaNoticeNumber != null) ||
         userFacingSummary.length > 2000 ||
         (nextAction?.length ?? 0) > 2000 ||
         (nextUpdateDisplay?.length ?? 0) > 80 ||
@@ -191,6 +203,8 @@ class SupportCaseViewData {
       id: id,
       caseNumber: caseNumber,
       caseType: caseType,
+      caseSubType: caseSubType,
+      dsaNoticeNumber: dsaNoticeNumber,
       status: status,
       operatingMode: operatingMode,
       userFacingSummary: userFacingSummary,
@@ -724,6 +738,13 @@ class _SupportCaseListCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _SupportStatusChip(supportCase: supportCase),
+                if (supportCase.dsaNoticeNumber != null) ...[
+                  const SizedBox(height: 8),
+                  _SupportMetaLine(
+                    icon: Icons.gavel_outlined,
+                    text: 'Notice-ID: ${supportCase.dsaNoticeNumber}',
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Text(
                   supportCase.typeLabel,
@@ -798,6 +819,20 @@ class _SupportCaseDetailBody extends StatelessWidget {
             style: const TextStyle(color: Colors.white70, height: 1.5),
           ),
         ),
+        if (supportCase.dsaNoticeNumber != null) ...[
+          const SizedBox(height: 12),
+          _SupportInfoCard(
+            key: const ValueKey('support_dsa_notice_receipt'),
+            title: 'Gesonderte DSA-Meldung',
+            icon: Icons.gavel_outlined,
+            child: Text(
+              'Notice-ID: ${supportCase.dsaNoticeNumber}\n'
+              'Der Eingang ist bestätigt. Eine Entscheidung über die '
+              'Rechtswidrigkeit ist damit noch nicht getroffen.',
+              style: const TextStyle(color: Colors.white70, height: 1.5),
+            ),
+          ),
+        ],
         if (supportCase.waitsForUser) ...[
           const SizedBox(height: 12),
           _SupportInfoCard(

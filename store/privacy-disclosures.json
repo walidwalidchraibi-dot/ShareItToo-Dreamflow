@@ -48,15 +48,15 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "13e7a8c0c0c693b531b490aea9cdadeec561fd8ca99e3d7e3cbd526667ceafc4"
+      "sha256": "54b1fc249f6bc39600b8abaf438b1c8df2ff9c936b819390091213c1f1c0732e"
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "85efa82f0a91bda27c9190958004fd985bb63a9d1957e0a7ff3c61df4b087cb4"
+      "sha256": "5c887dfdbdf4f6b4807d580ab64bb0208a2fc5bde1e06575cdcbf79a284b6fdc"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "7a47419eb4601edac41d21730b481f1d497466d866fda7a6b14054884cceadc9"
+      "sha256": "9a868d025a77c238d06c18803f916c2801dd71a8e951327b2c0695d86e7bbf38"
     },
     {
       "path": "backend/src/support_appeal_domain.js",
@@ -259,6 +259,10 @@
       "sha256": "3d293850e7ea37f84e51e057156e418e309e1bb2a66ebb1d7ed5492c0eb83235"
     },
     {
+      "path": "backend/sql/migrations/042_support_dsa_notice_intake.up.sql",
+      "sha256": "34f9db90b5131aca3e4c05a01102502862de3a2eac740736e8355fa4bfc1c4ea"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -384,7 +388,11 @@
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "6d0b3af64f6daceeff7a36cf20db31af1333e52d1109c3df9de1476975adf286"
+      "sha256": "93a25e80b06b14fb07312139b0a06712d48db5320eb0180d8f19a41aaf270990"
+    },
+    {
+      "path": "lib/screens/support_flow_screen.dart",
+      "sha256": "2b5a9ba0c3368e71f8592e23dc862b97e87091aa0400ebffa0fa18bdf242d36d"
     },
     {
       "path": "lib/models/rental_cart.dart",

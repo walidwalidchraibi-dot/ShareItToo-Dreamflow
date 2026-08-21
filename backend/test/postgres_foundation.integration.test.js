@@ -103,6 +103,7 @@ if (!databaseUrl) {
         '039_support_deadline_watchdog.up.sql',
         '040_support_single_issue_intake.up.sql',
         '041_support_closed_account_access_guard.up.sql',
+        '042_support_dsa_notice_intake.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -203,6 +204,27 @@ if (!databaseUrl) {
         data_type: 'jsonb',
         is_nullable: 'YES',
       }]);
+      const supportDsaNoticeColumns = await setupPool.query(
+        `SELECT column_name, data_type, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'support_cases'
+            AND column_name = ANY($1::text[])
+          ORDER BY column_name`,
+        [['dsa_notice_evidence', 'dsa_notice_number']],
+      );
+      assert.deepEqual(supportDsaNoticeColumns.rows, [
+        {
+          column_name: 'dsa_notice_evidence',
+          data_type: 'jsonb',
+          is_nullable: 'YES',
+        },
+        {
+          column_name: 'dsa_notice_number',
+          data_type: 'text',
+          is_nullable: 'YES',
+        },
+      ]);
       const supportDecisionColumns = await setupPool.query(
         `SELECT column_name, is_nullable
            FROM information_schema.columns
@@ -375,7 +397,7 @@ if (!databaseUrl) {
         `INSERT INTO users (id, email, profile, role, account_status)
          VALUES
            ('owner', 'owner@example.com', '{}'::jsonb, 'user', 'active'),
-           ('renter-a', 'renter-a@example.com', '{}'::jsonb, 'user', 'active'),
+           ('renter-a', 'renter-a@example.com', '{"displayName":"Renter A"}'::jsonb, 'user', 'active'),
            ('renter-b', 'renter-b@example.com', '{}'::jsonb, 'user', 'active'),
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
            ('admin', 'admin@example.com', '{}'::jsonb, 'admin', 'active'),
@@ -1271,6 +1293,133 @@ if (!databaseUrl) {
         issueScopeVersion: 'sit_support_single_issue_scope_v1',
         separationGuidanceShown: true,
       });
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO support_cases (
+             human_readable_case_number, case_type, case_subtype, status,
+             priority, severity, source_channel, operating_mode,
+             reporter_user_id, reporter_role, current_owner_role,
+             approval_level, waiting_on, next_action, next_update_at,
+             user_facing_summary, idempotency_key, intake_scope_evidence
+           ) VALUES (
+             'SIT-NPQRSTVWXYZ2', 'moderation_content',
+             'illegal_content_notice', 'received', 'p2', 'moderate',
+             'internal', 'simulation', 'renter-a', 'user',
+             'moderation_owner', 'yellow_human_review', 'support_owner',
+             'Review the synthetic notice.', now() + interval '4 hours',
+             'Synthetic notice without required evidence.',
+             'dsa-notice-missing-evidence-integration',
+             '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
+           )`,
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_dsa_notice_required',
+      );
+      const createDsaNotice = () => fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 's3n-dsa-notice-integration',
+        },
+        body: JSON.stringify({
+          caseType: 'moderation_content',
+          caseSubType: 'illegal_content_notice',
+          summary: 'Konkreten mutmaßlich rechtswidrigen Inhalt prüfen.',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+          dsaNotice: {
+            version: 'sit_dsa_notice_intake_v1',
+            contentType: 'listing',
+            contentLocator: 'listing:listing-1',
+            illegalityStatement:
+              'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+            jurisdictionOrLegalBasis: 'Deutschland',
+            goodFaithConfirmed: true,
+          },
+        }),
+      });
+      const dsaNoticeResponse = await createDsaNotice();
+      assert.equal(dsaNoticeResponse.status, 201);
+      const dsaNotice = await dsaNoticeResponse.json();
+      assert.equal(dsaNotice.replayed, false);
+      assert.equal(dsaNotice.supportCase.caseType, 'moderation_content');
+      assert.equal(dsaNotice.supportCase.caseSubType, 'illegal_content_notice');
+      assert.match(
+        dsaNotice.supportCase.dsaNoticeNumber,
+        /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u,
+      );
+      assert.equal('dsaNoticeEvidence' in dsaNotice.supportCase, false);
+      const dsaNoticeReplay = await createDsaNotice();
+      assert.equal(dsaNoticeReplay.status, 200);
+      assert.equal((await dsaNoticeReplay.json()).replayed, true);
+
+      const storedDsaNotice = await setupPool.query(
+        `SELECT dsa_notice_number, dsa_notice_evidence
+           FROM support_cases
+          WHERE id = $1`,
+        [dsaNotice.supportCase.id],
+      );
+      assert.equal(
+        storedDsaNotice.rows[0].dsa_notice_number,
+        dsaNotice.supportCase.dsaNoticeNumber,
+      );
+      assert.deepEqual(storedDsaNotice.rows[0].dsa_notice_evidence, {
+        version: 'sit_dsa_notice_intake_v1',
+        contentType: 'listing',
+        contentLocator: 'listing:listing-1',
+        illegalityStatement:
+          'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+        jurisdictionOrLegalBasis: 'Deutschland',
+        goodFaithConfirmed: true,
+        reporterName: 'Renter A',
+        reporterEmail: 'renter-a@example.com',
+        sourceChannel: 'app',
+        submittedAt: storedDsaNotice.rows[0].dsa_notice_evidence.submittedAt,
+      });
+      assert.ok(Date.parse(
+        storedDsaNotice.rows[0].dsa_notice_evidence.submittedAt,
+      ));
+      const dsaCreatedEvent = await setupPool.query(
+        `SELECT structured_payload
+           FROM support_case_events
+          WHERE case_id = $1 AND event_type = 'case.created'`,
+        [dsaNotice.supportCase.id],
+      );
+      assert.deepEqual(dsaCreatedEvent.rows[0].structured_payload.dsaNotice, {
+        noticeNumber: dsaNotice.supportCase.dsaNoticeNumber,
+        version: 'sit_dsa_notice_intake_v1',
+        contentType: 'listing',
+      });
+      assert.equal(
+        JSON.stringify(dsaCreatedEvent.rows[0].structured_payload)
+          .includes('renter-a@example.com'),
+        false,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET dsa_notice_evidence = jsonb_set(
+                    dsa_notice_evidence,
+                    '{goodFaithConfirmed}',
+                    'false'::jsonb
+                  )
+            WHERE id = $1`,
+          [dsaNotice.supportCase.id],
+        ),
+        (error) => error?.code === '55000'
+          && error?.message === 'support_dsa_notice_immutable',
+      );
       await assert.rejects(
         setupPool.query(
           `UPDATE support_cases
