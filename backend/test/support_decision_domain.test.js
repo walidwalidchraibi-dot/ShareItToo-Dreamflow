@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  normalizeSupportDecisionCommunication,
   normalizeSupportDecisionImplementation,
   normalizeSupportDecisionInput,
   normalizeSupportDecisionReview,
@@ -24,7 +25,11 @@ function decision(overrides = {}) {
     unaffectedAreas: ['Keine Zahlung oder Kontomaßnahme.'],
     implementationPlan: 'Bestätigte Information im internen Testfall dokumentieren.',
     automationUsed: false,
+    userFacingDecision: 'Die interne technische Prüfung ist abgeschlossen.',
+    userFacingEffect: 'Für dein Konto und deine Zahlung ändert sich nichts.',
     userFacingReason: 'Wir haben den bestätigten technischen Stand geprüft.',
+    userFacingImplementationResult:
+      'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
     internalReason: 'Simulation ohne Außenwirkung oder technische Aktion.',
     redressRoute: 'Menschliche Prüfung kann angefordert werden.',
     ...overrides,
@@ -45,6 +50,12 @@ test('decision proposal is normalized, immutable-hashed and automation-free', ()
   );
   assert.notEqual(
     normalizeSupportDecisionInput(decision({ internalReason: 'Geänderter interner Grund.' })).payloadSha256,
+    result.payloadSha256,
+  );
+  assert.notEqual(
+    normalizeSupportDecisionInput(decision({
+      userFacingEffect: 'Eine andere freizugebende Auswirkung.',
+    })).payloadSha256,
     result.payloadSha256,
   );
 });
@@ -91,6 +102,18 @@ test('proposal rejects automation, missing facts and non-allowlisted measures', 
   assert.throws(
     () => normalizeSupportDecisionInput(decision({ measureType: 'capture_money' })),
     /support_measure_type_invalid/,
+  );
+  assert.throws(
+    () => normalizeSupportDecisionInput(decision({ userFacingDecision: '' })),
+    /support_user_decision_required/,
+  );
+  assert.throws(
+    () => normalizeSupportDecisionInput(decision({ userFacingEffect: '' })),
+    /support_user_effect_required/,
+  );
+  assert.throws(
+    () => normalizeSupportDecisionInput(decision({ userFacingImplementationResult: '' })),
+    /support_user_implementation_result_required/,
   );
 });
 
@@ -153,5 +176,22 @@ test('implementation ledger permits only explicit monotonic transitions', () => 
       expectedPayloadSha256: payloadHash,
     }, 'pending'),
     /support_implementation_failure_reason_required/,
+  );
+});
+
+test('communication binds publication to the exact immutable payload and version', () => {
+  assert.deepEqual(normalizeSupportDecisionCommunication({
+    expectedVersion: 3,
+    expectedPayloadSha256: payloadHash,
+  }), {
+    expectedVersion: 3,
+    expectedPayloadSha256: payloadHash,
+  });
+  assert.throws(
+    () => normalizeSupportDecisionCommunication({
+      expectedVersion: 3,
+      expectedPayloadSha256: 'changed',
+    }),
+    /support_decision_payload_hash_required/,
   );
 });

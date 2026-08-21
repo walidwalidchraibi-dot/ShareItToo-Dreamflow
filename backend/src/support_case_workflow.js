@@ -33,6 +33,20 @@ function supportCaseDateTimeDisplay(value) {
   }).format(new Date(value));
 }
 
+function shapeFinalDecision(row) {
+  return Object.freeze({
+    decision: row.user_facing_decision,
+    effect: row.user_facing_effect,
+    reason: row.user_facing_reason,
+    implementationResult: row.user_facing_implementation_result,
+    redressRoute: row.redress_route,
+    implementedAt: iso(row.implemented_at),
+    implementedDisplay: supportCaseDateTimeDisplay(row.implemented_at),
+    communicatedAt: iso(row.communicated_at),
+    timezone: supportCaseTimeZone,
+  });
+}
+
 function shapeSupportCase(row, { staff = false } = {}) {
   const base = {
     id: row.id,
@@ -56,6 +70,8 @@ function shapeSupportCase(row, { staff = false } = {}) {
       : null,
     timezone: supportCaseTimeZone,
     userFacingSummary: row.user_facing_summary,
+    finalDecisionAvailable: ['resolved', 'closed'].includes(row.status)
+      && row.decision_id != null,
     appealAvailable: row.appeal_available === true,
     appealDeadline: iso(row.appeal_deadline),
     closureReason: row.closure_reason ?? null,
@@ -433,11 +449,14 @@ export async function transitionSupportCase(client, {
             AND approval_payload_sha256 = payload_sha256
             AND implementation_status = 'succeeded'
             AND implementation_verified_by IS NOT NULL
-            AND implementation_verified_at IS NOT NULL`,
+            AND implementation_verified_at IS NOT NULL
+            AND communicated_at IS NOT NULL
+            AND communicated_by IS NOT NULL
+            AND communication_payload_sha256 = payload_sha256`,
         [row.decision_id, row.id],
       );
       if (!implementation.rowCount) {
-        throw new SupportCaseError(409, 'support_decision_implementation_not_verified');
+        throw new SupportCaseError(409, 'support_decision_publication_not_verified');
       }
     } else if (row.approval_level !== 'green_automatic') {
       throw new SupportCaseError(409, 'support_resolution_requires_approved_decision');
@@ -624,8 +643,33 @@ export async function getSupportCase(client, { actor, caseId, staffAccess = fals
       ORDER BY created_at, id`,
     [result.rows[0].id, staff],
   );
+  const caseRow = result.rows[0];
+  let finalDecision = null;
+  if (['resolved', 'closed'].includes(caseRow.status) && caseRow.decision_id) {
+    const published = await client.query(
+      `SELECT user_facing_decision, user_facing_effect, user_facing_reason,
+              user_facing_implementation_result, redress_route,
+              implemented_at, communicated_at
+         FROM support_decisions
+        WHERE id = $1 AND case_id = $2
+          AND approval_status = 'approved'
+          AND approval_payload_sha256 = payload_sha256
+          AND implementation_status = 'succeeded'
+          AND implementation_verified_by IS NOT NULL
+          AND implementation_verified_at IS NOT NULL
+          AND communicated_at IS NOT NULL
+          AND communicated_by IS NOT NULL
+          AND communication_payload_sha256 = payload_sha256`,
+      [caseRow.decision_id, caseRow.id],
+    );
+    if (!published.rowCount) {
+      throw new SupportCaseError(409, 'support_case_final_decision_unavailable');
+    }
+    finalDecision = shapeFinalDecision(published.rows[0]);
+  }
   return Object.freeze({
-    supportCase: shapeSupportCase(result.rows[0], { staff }),
+    supportCase: shapeSupportCase(caseRow, { staff }),
+    finalDecision,
     events: events.rows.map((row) => shapeSupportEvent(row, { staff })),
   });
 }

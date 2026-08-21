@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "47da03b0efbde5d7eeaeff9f0ca53b1d7acb380b5e81507d7f3643ca5f10099b"
+      "sha256": "a6629ddf4385adcc196741677a4aa45086912f8a3cc841890a9e90098a87b554"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -56,15 +56,15 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "ae46e405868c8ca1f4dcaebaa198179c799553c06a6251d448acde947a5bf0ef"
+      "sha256": "983fd97dd57d67484a760aa67d4e1e11aea7a5129d090bd8bbf44ebab5c5c3fb"
     },
     {
       "path": "backend/src/support_decision_domain.js",
-      "sha256": "76fcdcbdfc8a8cf559db615caef39dcfc85e469fe621c0744d8577373bc23ab5"
+      "sha256": "7f1488ed387a4ea59d5fc2a448c2b5437f0ced014600262b85f4a51b697887d9"
     },
     {
       "path": "backend/src/support_decision_workflow.js",
-      "sha256": "3c07990e9fcec6f76570349589134c605920648670fba76492094579223011fc"
+      "sha256": "b03178bb51da2381d1c4457ae437f38dcf5b4ce8b594fd092c6487e8277acd28"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -304,7 +304,7 @@
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "52b7847c3faa425efe55822151f11968b7189545fa24d5ad450c2635a23b1ba3"
+      "sha256": "9d61d0bc1eb39623bae6dab56dd851498273b205b0cc9ec4f10b84aed2b88ec9"
     },
     {
       "path": "lib/models/rental_cart.dart",
@@ -428,7 +428,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "925687c7e43b4f7a36dbee8adcaba6319f727a333d25dd4067183a721a40a370"
+      "sha256": "ea57ba31b8a7caebd3138c4810333302b0f21bfb7dab024aa2ca85970eaa275a"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -489,6 +489,10 @@
     {
       "path": "backend/sql/migrations/034_support_user_action_deadline.up.sql",
       "sha256": "9b9497df34807e71527baa9a2afdda3efb76fd26625d85e31b5892ee86a6fb8f"
+    },
+    {
+      "path": "backend/sql/migrations/035_support_final_decision_publication.up.sql",
+      "sha256": "d9c8afd42036c0f8edb07f8465d41a6fd1a1dbd245f578b4a423361582d7b5c9"
     },
     {
       "path": "lib/config/listing_sets_technical_config.dart",

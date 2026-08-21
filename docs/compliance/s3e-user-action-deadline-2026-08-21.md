@@ -1,7 +1,7 @@
 # S3E user-action deadline - technical compliance record
 
-Status: implementation candidate under local verification, non-live and
-fail-closed. Exact GitHub CI is required before closeout.
+Status: verified at exact commit
+`2d01bebb24c884cf1358bd0e1cc606d8ad8ec536`, non-live and fail-closed.
 
 ## Bound source and scope
 
@@ -41,9 +41,10 @@ separate server-confirmed response deadline when a support case enters
   PostgreSQL skip. Syntax checks and the repository secret scan passed; the
   production dependency audit found zero high or critical vulnerabilities and
   one moderate vulnerability.
-- Exact-commit GitHub CI remains required before closeout. PostgreSQL 16
-  migration execution is delegated to that CI because the Mac mini has no
-  local Docker runtime.
+- Exact-commit GitHub Actions run `32508816204` completed successfully. Backend
+  regression applied migration `034` on PostgreSQL 16; Flutter, analyzer, Web,
+  Android debug, secret, dependency and Compose/API-image checks passed. The
+  signed-candidate step and API-image publication remained skipped.
 
 ## Persistent boundaries
 

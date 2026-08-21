@@ -96,6 +96,7 @@ if (!databaseUrl) {
         '032_support_case_foundation.up.sql',
         '033_support_decision_approval_guard.up.sql',
         '034_support_user_action_deadline.up.sql',
+        '035_support_final_decision_publication.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -190,17 +191,27 @@ if (!databaseUrl) {
         [[
           'approval_payload_sha256',
           'approval_status',
+          'communicated_by',
+          'communication_payload_sha256',
           'implementation_reference',
           'implementation_verified_at',
           'payload_sha256',
+          'user_facing_decision',
+          'user_facing_effect',
+          'user_facing_implementation_result',
         ]],
       );
       assert.deepEqual(supportDecisionColumns.rows, [
         { column_name: 'approval_payload_sha256', is_nullable: 'YES' },
         { column_name: 'approval_status', is_nullable: 'NO' },
+        { column_name: 'communicated_by', is_nullable: 'YES' },
+        { column_name: 'communication_payload_sha256', is_nullable: 'YES' },
         { column_name: 'implementation_reference', is_nullable: 'YES' },
         { column_name: 'implementation_verified_at', is_nullable: 'YES' },
         { column_name: 'payload_sha256', is_nullable: 'NO' },
+        { column_name: 'user_facing_decision', is_nullable: 'YES' },
+        { column_name: 'user_facing_effect', is_nullable: 'YES' },
+        { column_name: 'user_facing_implementation_result', is_nullable: 'YES' },
       ]);
       const financialDocumentTables = await setupPool.query(
         `SELECT table_name
@@ -338,7 +349,8 @@ if (!databaseUrl) {
            policy_snapshot_id, rule_reference, measure_type, amount_minor,
            currency, affected_entity_ids, unaffected_areas,
            implementation_plan, automation_used, decided_by,
-           user_facing_reason, internal_reason, redress_route,
+           user_facing_decision, user_facing_effect, user_facing_reason,
+           user_facing_implementation_result, internal_reason, redress_route,
            implementation_status, idempotency_key, payload_sha256
          ) VALUES (
            $1, 'support.simulated_refund_review',
@@ -349,7 +361,10 @@ if (!databaseUrl) {
            'simulated_refund_review', 100, 'EUR', ARRAY['integration-case'],
            '["No payment or account state changes."]'::jsonb,
            'Record only the verified internal simulation result.', false,
-           'support', 'The simulated review was recorded.',
+           'support', 'The internal review is complete.',
+           'No account or payment state changes.',
+           'The simulated review was recorded.',
+           'The verified result was recorded in the internal test case.',
            'This is an internal database integration test.',
            'A separate human review remains available.', 'not_started',
            'support-decision-ledger-integration', $3
@@ -366,6 +381,18 @@ if (!databaseUrl) {
         setupPool.query(
           `UPDATE support_decisions
               SET decision_scope = 'Mutated after proposal creation.',
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportDecision.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_decision_payload_immutable',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_decisions
+              SET user_facing_effect = 'Changed after payload hashing.',
                   lock_version = lock_version + 1,
                   updated_at = updated_at + interval '1 second'
             WHERE id = $1`,
@@ -498,6 +525,37 @@ if (!databaseUrl) {
         implementation_verified_by: 'admin',
         implementation_reference: 'Verified internal simulation only.',
       });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET status = 'resolved', waiting_on = 'none',
+                  next_action = NULL, next_update_at = NULL,
+                  resolution_reference = 'Verified but not communicated.',
+                  resolved_at = now(), lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [supportCase.rows[0].id],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_case_decision_not_communicated',
+      );
+      const communicatedSupportDecision = await setupPool.query(
+        `UPDATE support_decisions
+            SET communicated_at = implemented_at + interval '1 second',
+                communicated_by = 'admin',
+                communication_payload_sha256 = payload_sha256,
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '3 seconds'
+          WHERE id = $1
+          RETURNING communicated_at, communicated_by,
+                    communication_payload_sha256, payload_sha256`,
+        [supportDecision.rows[0].id],
+      );
+      assert.equal(communicatedSupportDecision.rows[0].communicated_by, 'admin');
+      assert.equal(
+        communicatedSupportDecision.rows[0].communication_payload_sha256,
+        communicatedSupportDecision.rows[0].payload_sha256,
+      );
       const resolvedSupportCase = await setupPool.query(
         `UPDATE support_cases
             SET status = 'resolved', waiting_on = 'none',

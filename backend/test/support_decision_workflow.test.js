@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   createSupportDecisionDraft,
   listSupportDecisions,
+  recordSupportDecisionCommunication,
   recordSupportDecisionImplementation,
   reviewSupportDecision,
 } from '../src/support_decision_workflow.js';
@@ -25,7 +26,11 @@ function decisionInput(overrides = {}) {
     unaffectedAreas: ['Keine Zahlung und keine Kontomaßnahme.'],
     implementationPlan: 'Interne Information nachvollziehbar dokumentieren.',
     automationUsed: false,
+    userFacingDecision: 'Die interne Prüfung ist abgeschlossen.',
+    userFacingEffect: 'Dein Konto und deine Zahlung bleiben unverändert.',
     userFacingReason: 'Der bestätigte technische Stand wurde geprüft.',
+    userFacingImplementationResult:
+      'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
     internalReason: 'Reine Simulation ohne Außenwirkung.',
     redressRoute: 'Menschliche Prüfung kann angefordert werden.',
     ...overrides,
@@ -66,13 +71,22 @@ function decisionRow(overrides = {}) {
     decided_by: 'support-1',
     approved_by: null,
     rejected_by: null,
+    user_facing_decision: 'Die interne Prüfung ist abgeschlossen.',
+    user_facing_effect: 'Dein Konto und deine Zahlung bleiben unverändert.',
     user_facing_reason: 'Der bestätigte technische Stand wurde geprüft.',
+    user_facing_implementation_result:
+      'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
     internal_reason: 'Reine Simulation ohne Außenwirkung.',
     redress_route: 'Menschliche Prüfung kann angefordert werden.',
     approval_status: 'pending',
+    approval_payload_sha256: null,
     implementation_status: 'not_started',
     implementation_reference: null,
     implementation_failure_reason: null,
+    implementation_verified_by: null,
+    communicated_by: null,
+    communication_payload_sha256: null,
+    communicated_at: null,
     payload_sha256: 'a'.repeat(64),
     lock_version: 1,
     decided_at: now,
@@ -237,16 +251,19 @@ test('draft stores immutable proposal hash, internal event and sanitized audit',
       match: /INSERT INTO support_decisions/,
       check: ({ params }) => {
         assert.equal(params[16], 'support-1');
-        assert.match(params[21], /^[0-9a-f]{64}$/);
+        assert.equal(params[17], decisionInput().userFacingDecision);
+        assert.equal(params[18], decisionInput().userFacingEffect);
+        assert.equal(params[20], decisionInput().userFacingImplementationResult);
+        assert.match(params[24], /^[0-9a-f]{64}$/);
       },
       result: ({ params }) => ({
         rowCount: 1,
         rows: [decisionRow({
           id: params[0],
           case_id: params[1],
-          payload_sha256: params[21],
-          decided_at: params[22],
-          updated_at: params[22],
+          payload_sha256: params[24],
+          decided_at: params[25],
+          updated_at: params[25],
         })],
       }),
     },
@@ -439,5 +456,86 @@ test('implementation record is admin-only, simulation-bound and separately verif
   });
   assert.equal(result.decision.implementationStatus, 'succeeded');
   assert.equal(result.decision.approvalStatus, 'approved');
+  client.done();
+});
+
+test('final communication is explicit, admin-only and bound to approved implementation truth', async () => {
+  const denied = new ScriptedClient([]);
+  await assert.rejects(
+    recordSupportDecisionCommunication(denied, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: caseRow().id,
+      decisionId,
+      raw: {},
+      idempotencyKey: 'communication-denied',
+      now,
+    }),
+    /support_decision_communication_requires_admin/,
+  );
+  denied.done();
+
+  const approvedImplementation = decisionRow({
+    approval_status: 'approved',
+    approved_by: 'admin-1',
+    approval_payload_sha256: 'a'.repeat(64),
+    implementation_status: 'succeeded',
+    implementation_reference: 'Interne Simulation wurde verifiziert.',
+    implementation_verified_by: 'admin-2',
+    implementation_verified_at: now,
+    implemented_at: now,
+    case_status: 'decided',
+    case_operating_mode: 'simulation',
+    lock_version: 3,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events/, result: noRows },
+    { match: /FOR UPDATE OF decision/, result: { rowCount: 1, rows: [approvedImplementation] } },
+    { match: /FROM support_case_events/, result: noRows },
+    {
+      match: /communicated_at = \$2/,
+      check: ({ params }) => assert.deepEqual(params, [decisionId, now, 'admin-3', 3]),
+      result: {
+        rowCount: 1,
+        rows: [decisionRow({
+          ...approvedImplementation,
+          communicated_by: 'admin-3',
+          communication_payload_sha256: 'a'.repeat(64),
+          communicated_at: now,
+          lock_version: 4,
+        })],
+      },
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        const payload = JSON.parse(params[5]);
+        assert.equal(payload.externalMessageSent, false);
+        assert.equal(payload.payloadSha256, 'a'.repeat(64));
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.equal(params[2], 'support.decision_communicated');
+        assert.equal(JSON.parse(params[5]).externalMessageSent, false);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+  const result = await recordSupportDecisionCommunication(client, {
+    actor: { id: 'admin-3', role: 'admin' },
+    caseId: caseRow().id,
+    decisionId,
+    raw: {
+      expectedVersion: 3,
+      expectedPayloadSha256: 'a'.repeat(64),
+    },
+    idempotencyKey: 'communication-1',
+    now,
+  });
+  assert.equal(result.decision.communicatedBy, 'admin-3');
+  assert.equal(result.decision.communicationPayloadSha256, 'a'.repeat(64));
+  assert.equal(result.decision.communicatedAt, now.toISOString());
   client.done();
 });

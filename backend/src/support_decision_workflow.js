@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 
 import { SupportCaseError } from './support_case_domain.js';
 import {
+  normalizeSupportDecisionCommunication,
   normalizeSupportDecisionImplementation,
   normalizeSupportDecisionInput,
   normalizeSupportDecisionReview,
@@ -35,7 +36,10 @@ function shapeDecision(row) {
     approvedBy: row.approved_by ?? null,
     rejectedBy: row.rejected_by ?? null,
     rejectionReason: row.rejection_reason ?? null,
+    userFacingDecision: row.user_facing_decision ?? null,
+    userFacingEffect: row.user_facing_effect ?? null,
     userFacingReason: row.user_facing_reason,
+    userFacingImplementationResult: row.user_facing_implementation_result ?? null,
     internalReason: row.internal_reason,
     redressRoute: row.redress_route,
     approvalStatus: row.approval_status,
@@ -43,12 +47,16 @@ function shapeDecision(row) {
     implementationReference: row.implementation_reference ?? null,
     implementationVerifiedBy: row.implementation_verified_by ?? null,
     implementationFailureReason: row.implementation_failure_reason ?? null,
+    communicatedBy: row.communicated_by ?? null,
+    communicationPayloadSha256: row.communication_payload_sha256 ?? null,
     payloadSha256: row.payload_sha256,
     version: Number(row.lock_version),
     proposedAt: iso(row.decided_at),
     approvedAt: iso(row.approved_at),
     rejectedAt: iso(row.rejected_at),
+    implementedAt: iso(row.implemented_at),
     implementationVerifiedAt: iso(row.implementation_verified_at),
+    communicatedAt: iso(row.communicated_at),
     updatedAt: iso(row.updated_at),
   });
 }
@@ -185,7 +193,8 @@ export async function createSupportDecisionDraft(client, {
        policy_snapshot_id, rule_reference, measure_type, amount_minor,
        currency, duration, affected_entity_ids, unaffected_areas,
        implementation_plan, automation_used, recommendation_id,
-       decided_by, approved_by, user_facing_reason, internal_reason,
+       decided_by, approved_by, user_facing_decision, user_facing_effect,
+       user_facing_reason, user_facing_implementation_result, internal_reason,
        redress_route, implementation_status, idempotency_key,
        approval_status, payload_sha256, lock_version, decided_at, updated_at
      ) VALUES (
@@ -195,8 +204,9 @@ export async function createSupportDecisionDraft(client, {
        $11, $12, $13, $14::jsonb,
        $15, false, $16,
        $17, NULL, $18, $19,
-       $20, 'not_started', $21,
-       'pending', $22, 1, $23, $23
+       $20, $21, $22,
+       $23, 'not_started', $24,
+       'pending', $25, 1, $26, $26
      ) RETURNING *`,
     [
       id,
@@ -216,7 +226,10 @@ export async function createSupportDecisionDraft(client, {
       input.implementationPlan,
       input.recommendationId,
       actor.id,
+      input.userFacingDecision,
+      input.userFacingEffect,
       input.userFacingReason,
+      input.userFacingImplementationResult,
       input.internalReason,
       input.redressRoute,
       key,
@@ -455,6 +468,116 @@ export async function recordSupportDecisionImplementation(client, {
       implementationStatus: implementation.status,
       operatingMode: row.case_operating_mode,
       expectedVersion: implementation.expectedVersion,
+    },
+  });
+  return { decision: shapeDecision(updated.rows[0]), replayed: false };
+}
+
+export async function recordSupportDecisionCommunication(client, {
+  actor,
+  caseId,
+  decisionId,
+  raw,
+  idempotencyKey,
+  now = new Date(),
+}) {
+  if (actor?.role !== 'admin') {
+    throw new SupportCaseError(403, 'support_decision_communication_requires_admin');
+  }
+  const key = supportDecisionIdempotencyKey(idempotencyKey, 'support.decision.communication');
+  const replay = await client.query(
+    `SELECT decision.* FROM support_case_events AS event
+      JOIN support_decisions AS decision ON decision.id::text = event.entity_id
+      WHERE event.case_id::text = $1 AND event.entity_id = $2
+        AND event.idempotency_key = $3`,
+    [caseId, decisionId, key],
+  );
+  if (replay.rowCount) return { decision: shapeDecision(replay.rows[0]), replayed: true };
+  const communication = normalizeSupportDecisionCommunication(raw);
+  const locked = await client.query(
+    `SELECT decision.*, support_case.status AS case_status,
+            support_case.operating_mode AS case_operating_mode
+       FROM support_decisions AS decision
+       JOIN support_cases AS support_case ON support_case.id = decision.case_id
+      WHERE decision.id::text = $1 AND support_case.id::text = $2
+      FOR UPDATE OF decision`,
+    [decisionId, caseId],
+  );
+  if (!locked.rowCount) throw new SupportCaseError(404, 'support_decision_not_found');
+  const row = locked.rows[0];
+  const concurrentReplay = await client.query(
+    `SELECT decision.* FROM support_case_events AS event
+      JOIN support_decisions AS decision ON decision.id::text = event.entity_id
+      WHERE event.case_id = $1 AND event.entity_id = $2
+        AND event.idempotency_key = $3`,
+    [row.case_id, String(row.id), key],
+  );
+  if (concurrentReplay.rowCount) {
+    return { decision: shapeDecision(concurrentReplay.rows[0]), replayed: true };
+  }
+  if (row.communicated_at) {
+    throw new SupportCaseError(409, 'support_decision_communication_final');
+  }
+  if (row.approval_status !== 'approved'
+      || row.approval_payload_sha256 !== row.payload_sha256) {
+    throw new SupportCaseError(409, 'support_decision_not_approved');
+  }
+  if (row.implementation_status !== 'succeeded'
+      || !row.implementation_verified_by
+      || !row.implementation_verified_at) {
+    throw new SupportCaseError(409, 'support_decision_implementation_not_verified');
+  }
+  if (!['simulation', 'internal_testing'].includes(row.case_operating_mode)) {
+    throw new SupportCaseError(409, 'support_decision_live_communication_forbidden');
+  }
+  if (!['decided', 'implementation_pending'].includes(row.case_status)) {
+    throw new SupportCaseError(409, 'support_decision_communication_case_status_invalid');
+  }
+  if (new Date(row.implemented_at).getTime() > now.getTime()) {
+    throw new SupportCaseError(409, 'support_decision_communication_time_invalid');
+  }
+  if (Number(row.lock_version) !== communication.expectedVersion) {
+    throw new SupportCaseError(409, 'support_decision_version_conflict');
+  }
+  if (row.payload_sha256 !== communication.expectedPayloadSha256) {
+    throw new SupportCaseError(409, 'support_decision_payload_changed');
+  }
+  const updated = await client.query(
+    `UPDATE support_decisions
+        SET communicated_at = $2,
+            communicated_by = $3,
+            communication_payload_sha256 = payload_sha256,
+            lock_version = lock_version + 1,
+            updated_at = $2
+      WHERE id = $1 AND lock_version = $4 AND communicated_at IS NULL
+      RETURNING *`,
+    [row.id, now, actor.id, communication.expectedVersion],
+  );
+  if (!updated.rowCount) throw new SupportCaseError(409, 'support_decision_version_conflict');
+  await event(client, {
+    caseId: row.case_id,
+    actor,
+    eventType: 'decision.communicated',
+    entityId: row.id,
+    payload: {
+      payloadSha256: row.payload_sha256,
+      expectedVersion: communication.expectedVersion,
+      operatingMode: row.case_operating_mode,
+      externalMessageSent: false,
+    },
+    idempotencyKey: key,
+    now,
+  });
+  await audit(client, {
+    actor,
+    action: 'support.decision_communicated',
+    resourceId: row.id,
+    metadata: {
+      caseId: row.case_id,
+      payloadSha256: row.payload_sha256,
+      expectedVersion: communication.expectedVersion,
+      operatingMode: row.case_operating_mode,
+      externalMessageSent: false,
     },
   });
   return { decision: shapeDecision(updated.rows[0]), replayed: false };

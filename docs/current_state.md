@@ -678,3 +678,21 @@ S1 support foundations remain simulation-only and do not authorize live
 support, automated messages or decision execution. Older reports and root
 `architecture.md` are
 evidence/history, not permission to reopen a closed launch boundary.
+
+## S3E and S3F support continuation
+
+- S3E is verified at exact commit
+  `2d01bebb24c884cf1358bd0e1cc606d8ad8ec536` and successful GitHub Actions
+  run `32508816204`. PostgreSQL migration `034`, Backend, Flutter, analyzer,
+  Web and Android debug checks passed; signed-candidate and publication jobs
+  remained skipped.
+- The current S3F candidate binds Drive scenario `SUP-145` to five explicit
+  user-facing statements inside the immutable decision payload. It requires
+  exact four-eyes approval, verified simulation implementation and an explicit
+  administrator publication before a decision-backed case can resolve.
+- Migration `035` and the application both enforce the publication boundary.
+  The authenticated detail excludes internal decision codes, measure types,
+  implementation references, hashes and staff identifiers.
+- S3F sends no message and performs no external action. Appeal submission,
+  reopen execution, live staffing and all production/payment/provider gates
+  remain open separate work.

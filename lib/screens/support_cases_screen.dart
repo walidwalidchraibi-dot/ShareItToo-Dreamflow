@@ -70,6 +70,7 @@ class SupportCaseViewData {
   final String? nextUpdateDisplay;
   final String? userActionDueAt;
   final String? userActionDueDisplay;
+  final bool finalDecisionAvailable;
   final bool appealAvailable;
   final String? closureReason;
 
@@ -84,6 +85,7 @@ class SupportCaseViewData {
     required this.nextUpdateDisplay,
     required this.userActionDueAt,
     required this.userActionDueDisplay,
+    required this.finalDecisionAvailable,
     required this.appealAvailable,
     required this.closureReason,
   });
@@ -121,7 +123,9 @@ class SupportCaseViewData {
         (status == 'waiting_for_user' &&
             (userActionDueAt == null || userActionDueDisplay == null)) ||
         (status != 'waiting_for_user' &&
-            (userActionDueAt != null || userActionDueDisplay != null))) {
+            (userActionDueAt != null || userActionDueDisplay != null)) ||
+        value['finalDecisionAvailable'] is! bool ||
+        (value['finalDecisionAvailable'] == true && !isFinal)) {
       throw const FormatException('invalid_support_case');
     }
     return SupportCaseViewData(
@@ -135,6 +139,7 @@ class SupportCaseViewData {
       nextUpdateDisplay: nextUpdateDisplay,
       userActionDueAt: userActionDueAt,
       userActionDueDisplay: userActionDueDisplay,
+      finalDecisionAvailable: value['finalDecisionAvailable'] == true,
       appealAvailable: value['appealAvailable'] == true,
       closureReason: closureReason,
     );
@@ -144,6 +149,63 @@ class SupportCaseViewData {
   String get typeLabel => _supportTypeLabels[caseType] ?? 'Support-Anliegen';
   bool get waitsForUser => status == 'waiting_for_user';
   bool get isFinal => status == 'resolved' || status == 'closed';
+}
+
+class SupportFinalDecisionViewData {
+  final String decision;
+  final String effect;
+  final String reason;
+  final String implementationResult;
+  final String redressRoute;
+  final String implementedAt;
+  final String implementedDisplay;
+  final String communicatedAt;
+
+  const SupportFinalDecisionViewData({
+    required this.decision,
+    required this.effect,
+    required this.reason,
+    required this.implementationResult,
+    required this.redressRoute,
+    required this.implementedAt,
+    required this.implementedDisplay,
+    required this.communicatedAt,
+  });
+
+  factory SupportFinalDecisionViewData.fromMap(Map<String, dynamic> value) {
+    final decision = _requiredText(value, 'decision');
+    final effect = _requiredText(value, 'effect');
+    final reason = _requiredText(value, 'reason');
+    final implementationResult = _requiredText(value, 'implementationResult');
+    final redressRoute = _requiredText(value, 'redressRoute');
+    final implementedAt = _requiredText(value, 'implementedAt');
+    final implementedDisplay = _requiredText(value, 'implementedDisplay');
+    final communicatedAt = _requiredText(value, 'communicatedAt');
+    final implementedDate = DateTime.tryParse(implementedAt);
+    final communicatedDate = DateTime.tryParse(communicatedAt);
+    if (decision.length > 4000 ||
+        effect.length > 4000 ||
+        reason.length > 8000 ||
+        implementationResult.length > 4000 ||
+        redressRoute.length > 2000 ||
+        implementedDisplay.length > 80 ||
+        implementedDate == null ||
+        communicatedDate == null ||
+        communicatedDate.isBefore(implementedDate) ||
+        value['timezone'] != 'Europe/Berlin') {
+      throw const FormatException('invalid_support_final_decision');
+    }
+    return SupportFinalDecisionViewData(
+      decision: decision,
+      effect: effect,
+      reason: reason,
+      implementationResult: implementationResult,
+      redressRoute: redressRoute,
+      implementedAt: implementedAt,
+      implementedDisplay: implementedDisplay,
+      communicatedAt: communicatedAt,
+    );
+  }
 }
 
 class SupportCaseEventViewData {
@@ -176,25 +238,41 @@ class SupportCaseEventViewData {
 
 class SupportCaseDetailViewData {
   final SupportCaseViewData supportCase;
+  final SupportFinalDecisionViewData? finalDecision;
   final List<SupportCaseEventViewData> events;
 
   const SupportCaseDetailViewData({
     required this.supportCase,
+    required this.finalDecision,
     required this.events,
   });
 
   factory SupportCaseDetailViewData.fromMap(Map<String, dynamic> value) {
     final rawCase = value['supportCase'];
+    final rawFinalDecision = value['finalDecision'];
     final rawEvents = value['events'];
     if (rawCase is! Map ||
         rawEvents is! List ||
         rawEvents.any((event) => event is! Map)) {
       throw const FormatException('invalid_support_case_detail');
     }
+    final supportCase = SupportCaseViewData.fromMap(
+      Map<String, dynamic>.from(rawCase),
+    );
+    if (rawFinalDecision != null && rawFinalDecision is! Map) {
+      throw const FormatException('invalid_support_case_detail');
+    }
+    final finalDecision = rawFinalDecision is Map
+        ? SupportFinalDecisionViewData.fromMap(
+            Map<String, dynamic>.from(rawFinalDecision),
+          )
+        : null;
+    if (supportCase.finalDecisionAvailable != (finalDecision != null)) {
+      throw const FormatException('invalid_support_case_detail');
+    }
     return SupportCaseDetailViewData(
-      supportCase: SupportCaseViewData.fromMap(
-        Map<String, dynamic>.from(rawCase),
-      ),
+      supportCase: supportCase,
+      finalDecision: finalDecision,
       events: rawEvents
           .cast<Map>()
           .map((event) => SupportCaseEventViewData.fromMap(
@@ -568,6 +646,17 @@ class _SupportCaseDetailBody extends StatelessWidget {
             ),
           ),
         ],
+        if (detail.finalDecision != null) ...[
+          const SizedBox(height: 12),
+          _SupportInfoCard(
+            key: const ValueKey('support_final_decision'),
+            title: 'Finale Entscheidung',
+            icon: Icons.gavel_outlined,
+            child: _SupportFinalDecisionCard(
+              finalDecision: detail.finalDecision!,
+            ),
+          ),
+        ],
         if (supportCase.appealAvailable) ...[
           const SizedBox(height: 12),
           const _SupportInfoCard(
@@ -606,6 +695,79 @@ class _SupportCaseDetailBody extends StatelessWidget {
             _SupportTimelineEntry(label: event.label),
         ],
       ],
+    );
+  }
+}
+
+class _SupportFinalDecisionCard extends StatelessWidget {
+  final SupportFinalDecisionViewData finalDecision;
+
+  const _SupportFinalDecisionCard({required this.finalDecision});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SupportDecisionSection(
+          label: 'Entscheidung',
+          value: finalDecision.decision,
+        ),
+        _SupportDecisionSection(
+          label: 'Auswirkung',
+          value: finalDecision.effect,
+        ),
+        _SupportDecisionSection(
+          label: 'Begründung',
+          value: finalDecision.reason,
+        ),
+        _SupportDecisionSection(
+          label: 'Umsetzung',
+          value: finalDecision.implementationResult,
+        ),
+        _SupportDecisionSection(
+          label: 'Überprüfung',
+          value: finalDecision.redressRoute,
+        ),
+        _SupportMetaLine(
+          icon: Icons.verified_outlined,
+          text: 'Umgesetzt am: ${finalDecision.implementedDisplay}',
+        ),
+      ],
+    );
+  }
+}
+
+class _SupportDecisionSection extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _SupportDecisionSection({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white70, height: 1.5),
+          ),
+        ],
+      ),
     );
   }
 }

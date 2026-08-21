@@ -174,6 +174,7 @@ import {
 import {
   createSupportDecisionDraft,
   listSupportDecisions,
+  recordSupportDecisionCommunication,
   recordSupportDecisionImplementation,
   reviewSupportDecision,
 } from './support_decision_workflow.js';
@@ -4352,6 +4353,17 @@ export function createApp({
 
   app.post('/v1/admin/support/cases/:id/decisions/:decisionId/implementation', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => recordSupportDecisionImplementation(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      decisionId: safeText(req.params.decisionId, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/decisions/:decisionId/communication', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordSupportDecisionCommunication(client, {
       actor: req.actor,
       caseId: safeText(req.params.id, 80),
       decisionId: safeText(req.params.decisionId, 80),

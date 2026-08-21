@@ -74,13 +74,22 @@ Flutter surface under the Help Center. Raw lifecycle/type/event codes are never
 shown; unknown states fail closed. It addresses `SUP-143` and the accessibility
 foundation for `SUP-146` through `SUP-148`.
 
-The active package is `S3E_USER_ACTION_DEADLINE`. It addresses `SUP-144` with
+`S3E_USER_ACTION_DEADLINE` is verified at exact commit
+`2d01bebb24c884cf1358bd0e1cc606d8ad8ec536` and exact successful GitHub
+Actions run `32508816204`. It addresses `SUP-144` with
 a distinct server-authoritative deadline required exactly while a case is
 `waiting_for_user`. Reversible migration `034`, append-only audit evidence and
 the user-safe Flutter projection preserve the difference between `Antwort bis`
 and `Nächstes Update`. Automatic reminders, timeout closure and external action
-remain excluded. `SUP-145` remains open until approved decision/redress data
-exists server-side.
+remain excluded.
+
+The active package is `S3F_FINAL_SUPPORT_DECISION_PUBLICATION`. It addresses
+`SUP-145` by binding decision, effect, reason, implementation result and
+redress route to the immutable four-eyes-approved proposal. Reversible
+migration `035`, an explicit administrator publication action, a resolution
+guard and the authenticated Flutter detail keep the path simulation-only and
+fail closed. No template, external message, appeal execution or live measure
+is part of S3F.
 
 ## Prior ordered post-P0B gate close
 

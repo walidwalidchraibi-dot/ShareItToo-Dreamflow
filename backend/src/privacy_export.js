@@ -623,7 +623,9 @@ export async function buildAccountExport(client, userId) {
       `SELECT decision.id, decision.case_id, decision.decision_code,
               decision.decision_scope, decision.measure_type,
               decision.amount_minor, decision.currency, decision.duration,
-              decision.unaffected_areas, decision.user_facing_reason,
+              decision.unaffected_areas, decision.user_facing_decision,
+              decision.user_facing_effect, decision.user_facing_reason,
+              decision.user_facing_implementation_result,
               decision.redress_route, decision.implementation_status,
               decision.decided_at, decision.implemented_at,
               decision.communicated_at

@@ -599,7 +599,7 @@ test('decision-pending transition requires the exact pending draft for the same 
   client.done();
 });
 
-test('decision-backed resolution requires separately verified implementation success', async () => {
+test('decision-backed resolution requires verified implementation and exact communication', async () => {
   const decisionId = '11111111-1111-4111-8111-111111111111';
   const current = caseRow({
     status: 'decided',
@@ -631,7 +631,7 @@ test('decision-backed resolution requires separately verified implementation suc
       idempotencyKey: 'transition-unverified-resolution',
       now,
     }),
-    /support_decision_implementation_not_verified/,
+    /support_decision_publication_not_verified/,
   );
   client.done();
 });
@@ -719,6 +719,69 @@ test('get omits staff transition reasons from the user-safe event projection', a
   assert.equal(result.events[0].toStatus, 'acknowledged');
   assert.equal('transitionReason' in result.events[0], false);
   assert.equal('actorId' in result.events[0], false);
+  assert.equal(result.supportCase.finalDecisionAvailable, false);
+  assert.equal(result.finalDecision, null);
+  client.done();
+});
+
+test('final user detail exposes only the approved publication fields', async () => {
+  const decisionId = '11111111-1111-4111-8111-111111111111';
+  const implementedAt = new Date('2026-08-21T14:30:00.000Z');
+  const communicatedAt = new Date('2026-08-21T14:35:00.000Z');
+  const client = new ScriptedClient([
+    {
+      match: /FROM support_cases/,
+      result: {
+        rowCount: 1,
+        rows: [caseRow({
+          status: 'resolved',
+          approval_level: 'red_explicit_decision',
+          decision_id: decisionId,
+          waiting_on: 'none',
+          next_action: null,
+          next_update_at: null,
+          resolved_at: implementedAt,
+        })],
+      },
+    },
+    { match: /FROM support_case_events/, result: noRows },
+    {
+      match: /FROM support_decisions/,
+      check: ({ params }) => assert.deepEqual(params, [decisionId, 'case-1']),
+      result: {
+        rowCount: 1,
+        rows: [{
+          user_facing_decision: 'Die interne Prüfung ist abgeschlossen.',
+          user_facing_effect: 'Dein Konto und deine Zahlung bleiben unverändert.',
+          user_facing_reason: 'Der bestätigte technische Stand wurde geprüft.',
+          user_facing_implementation_result:
+            'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
+          redress_route: 'Eine menschliche Überprüfung kann angefordert werden.',
+          implemented_at: implementedAt,
+          communicated_at: communicatedAt,
+        }],
+      },
+    },
+  ]);
+  const result = await getSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    caseId: 'case-1',
+  });
+  assert.equal(result.supportCase.finalDecisionAvailable, true);
+  assert.deepEqual(result.finalDecision, {
+    decision: 'Die interne Prüfung ist abgeschlossen.',
+    effect: 'Dein Konto und deine Zahlung bleiben unverändert.',
+    reason: 'Der bestätigte technische Stand wurde geprüft.',
+    implementationResult:
+      'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
+    redressRoute: 'Eine menschliche Überprüfung kann angefordert werden.',
+    implementedAt: implementedAt.toISOString(),
+    implementedDisplay: '21.08.2026, 16:30',
+    communicatedAt: communicatedAt.toISOString(),
+    timezone: 'Europe/Berlin',
+  });
+  assert.equal('decisionCode' in result.finalDecision, false);
+  assert.equal('implementationReference' in result.finalDecision, false);
   client.done();
 });
 
@@ -844,6 +907,14 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     path.resolve(currentDir, '../sql/migrations/034_support_user_action_deadline.down.sql'),
     'utf8',
   );
+  const publicationUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/035_support_final_decision_publication.up.sql'),
+    'utf8',
+  );
+  const publicationDown = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/035_support_final_decision_publication.down.sql'),
+    'utf8',
+  );
   for (const table of [
     'support_policy_snapshots',
     'support_cases',
@@ -889,6 +960,13 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
   assert.match(userDeadlineUp, /status = 'waiting_for_user' AND evidence_due_at IS NOT NULL/);
   assert.match(userDeadlineUp, /status <> 'waiting_for_user' AND evidence_due_at IS NULL/);
   assert.match(userDeadlineDown, /DROP CONSTRAINT IF EXISTS support_cases_user_action_deadline_state/);
+  assert.match(publicationUp, /support_decisions_user_publication_payload_check/);
+  assert.match(publicationUp, /existing resolved decision requires manual review/);
+  assert.match(publicationUp, /communication_payload_sha256 = payload_sha256/);
+  assert.match(publicationUp, /support_decision_communication_final/);
+  assert.match(publicationUp, /support_case_decision_not_communicated/);
+  assert.match(publicationUp, /operating_mode IN \('simulation', 'internal_testing'\)/);
+  assert.match(publicationDown, /Support final-decision rollback blocked: publication data exists/);
 });
 
 test('support routes and personal-data lifecycle stay authenticated, non-live and fail closed', async () => {
@@ -908,6 +986,7 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
     "app.post('/v1/admin/support/cases/:id/decisions', requireAuth, requireActiveAccount, requireStaffElevation",
     "app.post('/v1/admin/support/cases/:id/decisions/:decisionId/review', requireAuth, requireActiveAccount, requireStaffElevation",
     "app.post('/v1/admin/support/cases/:id/decisions/:decisionId/implementation', requireAuth, requireActiveAccount, requireStaffElevation",
+    "app.post('/v1/admin/support/cases/:id/decisions/:decisionId/communication', requireAuth, requireActiveAccount, requireStaffElevation",
   ]) assert.ok(app.includes(route), route);
   for (const route of [
     "app.get('/v1/admin/support/cases', requireAuth, requireActiveAccount, requireStaffElevation",
@@ -931,6 +1010,9 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
   assert.match(privacyExport, /event\.visibility = 'user_visible'/);
   assert.match(privacyExport, /message\.recipient_user_id = \$1 AND message\.send_status = 'sent'/);
   assert.match(privacyExport, /decision\.communicated_at IS NOT NULL/);
+  assert.match(privacyExport, /decision\.user_facing_decision/);
+  assert.match(privacyExport, /decision\.user_facing_effect/);
+  assert.match(privacyExport, /decision\.user_facing_implementation_result/);
   assert.match(privacyExport, /evidence\.access_level = 'user_visible'/);
   assert.match(privacyExport, /internalNotesExcluded: true/);
 

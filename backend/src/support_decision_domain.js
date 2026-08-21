@@ -89,7 +89,10 @@ function canonicalPayload(value) {
     implementationPlan: value.implementationPlan,
     automationUsed: value.automationUsed,
     recommendationId: value.recommendationId,
+    userFacingDecision: value.userFacingDecision,
+    userFacingEffect: value.userFacingEffect,
     userFacingReason: value.userFacingReason,
+    userFacingImplementationResult: value.userFacingImplementationResult,
     internalReason: value.internalReason,
     redressRoute: value.redressRoute,
   });
@@ -157,7 +160,25 @@ export function normalizeSupportDecisionInput(raw) {
     implementationPlan: requiredText(raw.implementationPlan, 8000, 'support_implementation_plan_required', 3),
     automationUsed: false,
     recommendationId,
+    userFacingDecision: requiredText(
+      raw.userFacingDecision,
+      4000,
+      'support_user_decision_required',
+      3,
+    ),
+    userFacingEffect: requiredText(
+      raw.userFacingEffect,
+      4000,
+      'support_user_effect_required',
+      3,
+    ),
     userFacingReason: requiredText(raw.userFacingReason, 8000, 'support_user_reason_required', 3),
+    userFacingImplementationResult: requiredText(
+      raw.userFacingImplementationResult,
+      4000,
+      'support_user_implementation_result_required',
+      3,
+    ),
     internalReason: requiredText(raw.internalReason, 8000, 'support_internal_reason_required', 3),
     redressRoute: requiredText(raw.redressRoute, 2000, 'support_redress_route_required', 3),
   });
@@ -209,5 +230,18 @@ export function normalizeSupportDecisionImplementation(raw, currentStatus) {
     implementationFailureReason: status === 'failed'
       ? requiredText(raw.failureReason, 2000, 'support_implementation_failure_reason_required', 3)
       : null,
+  });
+}
+
+export function normalizeSupportDecisionCommunication(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new SupportCaseError(400, 'support_decision_communication_invalid');
+  }
+  return Object.freeze({
+    expectedVersion: integer(raw.expectedVersion, 'support_decision_version_invalid'),
+    expectedPayloadSha256: exactHash(
+      raw.expectedPayloadSha256,
+      'support_decision_payload_hash_required',
+    ),
   });
 }
