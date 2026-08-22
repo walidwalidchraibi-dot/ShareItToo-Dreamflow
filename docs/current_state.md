@@ -1855,3 +1855,21 @@ debug build.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AE profile-info async-lifecycle ratchet
+
+`S4AE_PROFILE_INFO_ASYNC_LIFECYCLE_RATCHET` is locally verified at
+implementation commit `42a2982`. A successful save now rechecks the owning
+State after its toast before navigation. A late profile-load failure also stops
+before `setState` when the screen has been disposed.
+
+The exact analyzer snapshot ratcheted `204 -> 203`, with
+`use_build_context_synchronously` `82 -> 81` and the profile-info bucket
+`1 -> 0`; all other buckets remained identical. Three focused contracts, 15
+related Flutter tests and the complete clean implementation-head local metadata
+gate passed at `42a2982109db3b7a9c784f74ed82f9caa7a247cc` with 384 Flutter
+tests plus one documented skip, Google-only, Web build/smoke and one direct
+448-task Android debug build.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

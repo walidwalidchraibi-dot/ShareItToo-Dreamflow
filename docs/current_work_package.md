@@ -1319,3 +1319,20 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AE profile-info async-lifecycle ratchet
+
+`S4AE_PROFILE_INFO_ASYNC_LIFECYCLE_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `42a2982`. Profile save rechecks lifecycle
+after its toast before navigation, and late load failures stop before disposed
+State access.
+
+The exact debt snapshot moves `204 -> 203`, and only the intended
+`use_build_context_synchronously` profile-info bucket changes. Three focused
+contracts, 15 related Flutter tests and the complete clean implementation gate
+pass with the new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
