@@ -73,7 +73,13 @@ external delivery, and the incident/breach controls in `SUP-128` through
 - Backend syntax checks and the complete local technical regression passed:
   359 Flutter tests with one documented skip, the separate Google-only test,
   Web smoke/build and Android debug build.
-- Exact-head GitHub CI remains pending the guarded push.
+- GitHub regression `32551835411` is green for head
+  `60b8017c00a63d18dd3d6887cfab3baee1f0fafb`; Actions tested PR merge
+  snapshot `57e987471a770e222b91d47ea8e1e141bf3ceb23`. CI passed 471 Backend
+  tests, audit/secret checks, Compose validation, the commit-labelled API
+  image, 359 Flutter tests with one documented skip, the separate Google-only
+  test, Web smoke/build and Android debug build. Signed-candidate construction
+  and API-image publication remained skipped.
 
 No production, external notification, public pilot, real payment, payout,
 Store, Cloud/VPS/DNS, signed release, publication, PR merge or live data action

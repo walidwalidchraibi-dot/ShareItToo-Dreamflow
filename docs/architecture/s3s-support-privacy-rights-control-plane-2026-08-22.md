@@ -111,4 +111,10 @@ signed-candidate or public-pilot change is part of S3S.
 - Backend source and shell syntax checks passed. The complete technical
   regression passed all 359 Flutter tests with one documented skip, the
   separate Google-only test, Web smoke/build and Android debug build.
-- Exact-head GitHub CI remains pending the guarded push.
+- GitHub regression `32551835411` is green for head
+  `60b8017c00a63d18dd3d6887cfab3baee1f0fafb`; Actions tested PR merge
+  snapshot `57e987471a770e222b91d47ea8e1e141bf3ceb23`. It passed all 471 Backend
+  tests, audit/secret checks, Compose validation, the commit-labelled API
+  image, all 359 Flutter tests with one documented skip, the separate
+  Google-only test, Web smoke/build and Android debug build. Signed-candidate
+  construction and API-image publication remained skipped.

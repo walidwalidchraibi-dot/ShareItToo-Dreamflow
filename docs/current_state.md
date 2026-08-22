@@ -260,7 +260,8 @@ Verified: 2026-08-22 on the Mac mini.
   API-image publication were skipped. Legal approval, real role assignments,
   competent-recipient verification, approved disclosure scope, external
   reporting, production, payment, Store and every live path remain closed.
-- S3S is a locally verified non-live candidate for the technical core of Drive
+- S3S is a locally and CI-verified non-live package at exact implementation
+  commit `60b8017c00a63d18dd3d6887cfab3baee1f0fafb` for the technical core of Drive
   scenarios `SUP-123` through `SUP-127`. It separates six exact
   privacy-rights request kinds, starts a conservative response deadline at
   receipt, keeps account-password identity verification deadline-neutral,
@@ -272,7 +273,13 @@ Verified: 2026-08-22 on the Mac mini.
   focused tests, the complete Flutter/Web/Android regression and a
   CI-equivalent Backend run pass. The Backend run executed all 471 tests
   without skips against isolated PostgreSQL 16.15 and applied every migration
-  through `047`; exact-head GitHub CI remains pending the guarded push. No
+  through `047`. GitHub regression `32551835411` is green for head
+  `60b8017c00a63d18dd3d6887cfab3baee1f0fafb`; Actions tested PR merge
+  snapshot `57e987471a770e222b91d47ea8e1e141bf3ceb23`. CI passed 471 Backend
+  tests, audit/secret checks, Compose validation, the commit-labelled API
+  image, 359 Flutter tests with one documented skip, the separate Google-only
+  test, Web smoke/build and Android debug build. Signed-candidate construction
+  and API-image publication remained skipped. No
   rights execution, disclosure, erasure, external delivery,
   production, payment, Store, signed candidate or live path is enabled.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed

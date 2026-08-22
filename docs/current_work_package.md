@@ -293,9 +293,10 @@ owners, authenticated competent-authority channel, approved disclosure scope,
 retention/legal hold, external reporting, production, payment, Store and all
 live operation remain closed.
 
-`S3S_SUPPORT_PRIVACY_RIGHTS_CONTROL_PLANE` is a locally verified non-live
-candidate based on Drive scenarios `SUP-123` through `SUP-127`; exact commit
-and GitHub Actions evidence are pending the guarded push. Flutter now submits
+`S3S_SUPPORT_PRIVACY_RIGHTS_CONTROL_PLANE` is a locally and CI-verified
+non-live package based on Drive scenarios `SUP-123` through `SUP-127` at exact
+implementation commit `60b8017c00a63d18dd3d6887cfab3baee1f0fafb`.
+Flutter now submits
 one exact versioned right instead of combining access/portability,
 rectification/erasure or objection/restriction. Migration `047` records the
 request from receipt, a conservative Europe/Berlin calendar-month deadline,
@@ -310,7 +311,13 @@ and the previously skipped foundation integration against isolated PostgreSQL
 Flutter tests with one documented skip, the separate Google-only profile test,
 Web smoke/build and Android debug build passed. A CI-equivalent Backend run
 passed all 471 tests without skips on isolated PostgreSQL 16.15 with every
-migration through `047`; exact-head GitHub CI remains pending the guarded push.
+migration through `047`. GitHub regression `32551835411` is green for head
+`60b8017c00a63d18dd3d6887cfab3baee1f0fafb`; Actions tested the PR merge
+snapshot `57e987471a770e222b91d47ea8e1e141bf3ceb23`. CI passed all 471 Backend
+tests, audit/secret checks, Compose validation, the commit-labelled API image,
+359 Flutter tests with one documented skip, the separate Google-only test,
+Web smoke/build and Android debug build. Signed-candidate construction and API
+image publication remained skipped.
 Actual rights execution and delivery, scoped Legal Hold
 resolution, professional review, and `SUP-128` through `SUP-131` remain
 separate gates; production, payment, Store and every live path remain closed.
