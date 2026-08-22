@@ -1776,3 +1776,21 @@ remained zero.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AA image-gallery async-context ratchet
+
+`S4AA_IMAGE_GALLERY_ASYNC_CONTEXT_RATCHET` is locally verified at
+implementation commit `4522bb2`. A dismissed image gallery now ignores late
+Wishlist completion before `setState`, and late Wishlist/Share failures before
+error-popup creation, unless their exact lifecycle targets remain mounted.
+
+The exact analyzer snapshot ratcheted `212 -> 210`, with
+`use_build_context_synchronously` `90 -> 88` and the gallery file's bucket
+`2 -> 0`; all other buckets remained identical. Three focused widget tests and
+the complete clean implementation-head local metadata gate passed at
+`4522bb26c156500518af22045671ac67836285ca` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and Android debug. SIT temp roots
+remained zero.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

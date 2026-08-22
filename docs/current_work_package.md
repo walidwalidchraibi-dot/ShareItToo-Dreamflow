@@ -1251,3 +1251,21 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AA image-gallery async-context ratchet
+
+`S4AA_IMAGE_GALLERY_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `4522bb2`. Wishlist completion now requires
+the gallery State to remain mounted before UI refresh. Wishlist and Share
+failure require the exact captured build context to remain mounted before an
+error popup may open.
+
+The exact debt snapshot moves `212 -> 210`, and only the intended
+`use_build_context_synchronously` gallery bucket changes. Three focused widget
+tests and the complete clean implementation-head local metadata gate pass with
+the new exact fingerprint and 384 Flutter tests plus one documented skip.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.

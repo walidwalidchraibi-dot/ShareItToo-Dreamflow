@@ -18,7 +18,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 | `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
-| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y and S4Z then guard Wishlist selector and popup navigator lifetimes, ratcheting the exact backlog `220 -> 214 -> 212`; `use_build_context_synchronously` alone decreases `98 -> 92 -> 90`, most recently at `e7b7f8f`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y, S4Z and S4AA then guard Wishlist selector, popup navigator and gallery callback lifetimes, ratcheting the exact backlog `220 -> 214 -> 212 -> 210`; `use_build_context_synchronously` alone decreases `98 -> 92 -> 90 -> 88`, most recently at `4522bb2`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
 
 ## Observation log
 
@@ -243,6 +243,17 @@ claimed until every item below has reproducible evidence and is closed.
   commands were launched together; it was discarded as evidence and both were
   rerun sequentially before the clean full gate. Parallel Flutter commands are
   not an accepted release prerequisite. `TD-RR-010` remains open for further
+  reviewed reductions to zero and exact-commit CI.
+- 22.08.2026, S4AA: the image gallery now stops a late Wishlist success before
+  disposed `setState`, and stops late Wishlist/Share failures before popup
+  creation unless the exact context remains mounted. The analyzer correctly
+  rejected an initial State-only guard as unrelated to the local context;
+  acceptance required the precise context boundary. Three focused lifecycle
+  tests and the complete clean implementation-head local metadata gate passed
+  at `4522bb26c156500518af22045671ac67836285ca`. The analyzer ratcheted exactly
+  `212 -> 210`, `use_build_context_synchronously` `90 -> 88`, and the gallery
+  path bucket `2 -> 0`; every other bucket stayed unchanged. No delay, retry or
+  lint suppression was introduced. `TD-RR-010` remains open for further
   reviewed reductions to zero and exact-commit CI.
 
 ## Closure rule
