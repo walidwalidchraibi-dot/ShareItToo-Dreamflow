@@ -218,19 +218,26 @@ Verified: 2026-08-22 on the Mac mini.
   assignment, correction, professional legal approval, external transparency
   reporting and every production, payment, Store, signed-candidate or live path
   remain separate closed gates.
-- S3Q is implemented and locally verified; its exact commit and GitHub
-  PostgreSQL evidence are pending. It adds an Administrator-only, Staff-Step-up
+- S3Q is technically verified at exact implementation commit
+  `b3d122bb0dc0a4377d6311aa4798c5f3367bfabf`, migration-syntax correction
+  `339db52e7577ac7f7711fbd963f7031a98934830`, privacy-export correction and
+  verified head `6c58d33456885e2470e858a708297d7aa37832d8`, with successful GitHub Actions
+  run `32545973414`. It adds an Administrator-only, Staff-Step-up
   protected review queue in which the original decision issuer cannot claim or
   resolve the review. Migration `045` requires append-only, human-only and
   independently assigned resolution evidence before terminal review state.
   `modified` and `reversed` outcomes apply a guarded correction and create a new
   S3P-complete moderation decision in the same transaction; users receive the
   exact result, reason and implementation truth without staff identity. The
-  complete local Backend run passed 458 executable tests with only PostgreSQL
-  skipped for unavailable local infrastructure; pinned Flutter 3.41.7 passed
-  359 tests with one documented skip. Unsupported correction semantics fail
-  closed, and legal/operator approval, external delivery, production, payment,
-  Store, signed-candidate and live paths remain separate gates.
+  exact-head CI applied all migrations through `045` on PostgreSQL 16.14 and
+  passed all 459 Backend tests without skips. Pinned Flutter 3.41.7 passed 359
+  tests with one documented skip, plus the separate Google-only test, Web
+  smoke/build and Android debug build. Dependency/history checks, Compose
+  validation and the commit-labelled API image build passed. The signed
+  candidate and API-image publication steps were skipped; Draft PR #7 remained
+  open and unmerged. Unsupported correction semantics fail closed, and
+  legal/operator approval, external delivery, production, payment, Store,
+  signed-candidate and live paths remain separate gates.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

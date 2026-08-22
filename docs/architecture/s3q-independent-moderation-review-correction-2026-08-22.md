@@ -1,8 +1,12 @@
 # S3Q independent moderation review and correction - architecture
 
-Status: implemented and locally verified for non-live operation on 22.08.2026.
-Exact implementation commit and GitHub PostgreSQL evidence are pending. No
-production, external delivery or public or invited pilot operation is enabled.
+Status: implemented and technically verified for non-live operation on
+22.08.2026. Implementation commit
+`b3d122bb0dc0a4377d6311aa4798c5f3367bfabf`, migration-syntax correction
+`339db52e7577ac7f7711fbd963f7031a98934830`, privacy-export correction and
+verified head `6c58d33456885e2470e858a708297d7aa37832d8`; successful GitHub Actions run
+`32545973414`. No production, external delivery or public or invited pilot
+operation is enabled.
 
 ## Source basis
 
@@ -71,3 +75,18 @@ legacy records, or execute unsupported correction types.
 
 No production service, Cloud/VPS/DNS, payment, payout, Store, real-money,
 signed-release or public-pilot state changes.
+
+## Exact-head verification
+
+GitHub Actions run `32545973414` verified exact head
+`6c58d33456885e2470e858a708297d7aa37832d8`. PostgreSQL 16.14 applied all
+migrations through `045` and the complete Backend suite passed 459 of 459 tests
+without skips. Dependency and tracked-history secret checks, source and shell
+syntax, production and staging Compose plans and the commit-labelled API image
+build also passed.
+
+Pinned Flutter 3.41.7/Dart 3.11.5 passed 359 tests with one documented skip,
+the separate Google-only test passed, and Web build, loopback smoke and Android
+debug build passed. The conditional signed Android candidate and API-image
+publication steps were skipped; no signed-release, registry publication or
+live evidence is claimed. Draft PR #7 remained open and unmerged.

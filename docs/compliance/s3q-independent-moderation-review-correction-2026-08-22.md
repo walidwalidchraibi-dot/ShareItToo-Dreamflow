@@ -1,7 +1,9 @@
 # S3Q independent moderation review and correction - technical compliance record
 
-Status: implemented and locally verified on 22.08.2026. Exact commit and
-GitHub Actions/PostgreSQL evidence are pending.
+Status: technically verified on 22.08.2026 at exact head
+`6c58d33456885e2470e858a708297d7aa37832d8` by successful GitHub Actions run
+`32545973414`. The implementation chain is `b3d122bb0dc0a4377d6311aa4798c5f3367bfabf`,
+`339db52e7577ac7f7711fbd963f7031a98934830` and the verified-head privacy fix.
 
 ## Implemented controls
 
@@ -40,9 +42,23 @@ GitHub Actions/PostgreSQL evidence are pending.
   analyzer baseline, the 359-test Flutter suite with one documented skip, the
   separate Google-only test, Web build and loopback smoke, and Android debug
   build. No signed candidate was created.
-- Source syntax/import checks and JSON parsing passed. Exact PostgreSQL 16,
-  dependency/history-secret, Compose and commit-labelled API-image evidence
-  awaits the exact-head GitHub Actions run.
+- Source syntax/import checks and JSON parsing passed.
+
+## Exact-head GitHub verification
+
+- GitHub Actions run `32545973414` succeeded for exact head
+  `6c58d33456885e2470e858a708297d7aa37832d8`.
+- PostgreSQL 16.14 applied all migrations through `045`; all 459 Backend tests
+  passed without skips.
+- Dependency and tracked-history secret audits, source and shell syntax,
+  production and staging Compose validation and the commit-labelled API image
+  build passed.
+- Pinned Flutter 3.41.7/Dart 3.11.5 passed 359 tests with one documented skip;
+  the separate Google-only test, Web build, loopback smoke and Android debug
+  build passed.
+- The conditional signed Android candidate and API-image publication steps
+  were skipped. Draft PR #7 remained open and unmerged, so this evidence does
+  not authorize or claim a signed release, registry publication or live use.
 
 ## Residual gates
 

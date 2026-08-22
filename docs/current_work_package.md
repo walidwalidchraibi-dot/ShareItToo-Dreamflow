@@ -246,17 +246,25 @@ not invented; independent review assignment, correction workflow,
 legal/operator approval, external transparency reporting, production, payment,
 Store, signed candidate and live operation remain closed.
 
-`S3Q_INDEPENDENT_MODERATION_REVIEW_CORRECTION` is implemented and locally
-verified; exact commit and GitHub Actions/PostgreSQL evidence are pending. It
+`S3Q_INDEPENDENT_MODERATION_REVIEW_CORRECTION` is technically verified at
+implementation commit `b3d122bb0dc0a4377d6311aa4798c5f3367bfabf`,
+migration-syntax correction `339db52e7577ac7f7711fbd963f7031a98934830`,
+privacy-export correction and verified head
+`6c58d33456885e2470e858a708297d7aa37832d8`, with successful GitHub Actions run
+`32545973414`. It
 addresses Drive scenarios `SUP-119` and `SUP-120`: only an active Administrator
 other than the original decision issuer may claim and resolve a review, every
 outcome is explicitly human-only and append-only, and `modified` or `reversed`
 requires an applied correction plus a new S3P-complete decision and Statement
 of Reasons in the same transaction. The affected user receives the exact
 outcome, reason and implementation truth without reviewer identity. The local
-Backend run passed 458 of 458 executable tests with only the unavailable
-PostgreSQL integration skipped; pinned Flutter 3.41.7 passed 359 tests with one
-documented skip. Listing and private-marketplace corrections support bounded
+exact-head CI applied all migrations through `045` on PostgreSQL 16.14 and
+passed all 459 Backend tests without skips. Pinned Flutter 3.41.7 passed 359
+tests with one documented skip together with the separate Google-only test,
+Web smoke/build and Android debug build; dependency/history checks, Compose
+validation and the commit-labelled API image build passed. The conditional
+signed-candidate and API-image publication steps were skipped, and Draft PR #7
+remained open and unmerged. Listing and private-marketplace corrections support bounded
 modification or reversal; active suspensions support reversal only. Suspension
 modification and report-resolution correction fail closed. Legal/operator
 approval, real staffing, external delivery, production, payment, Store, signed
