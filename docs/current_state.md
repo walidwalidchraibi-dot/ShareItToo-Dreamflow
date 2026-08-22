@@ -1049,3 +1049,40 @@ API-image publication were skipped; Draft PR #7 remained open, mergeable and
 unmerged. Production, Firebase Console/provider traffic, real support
 operations, payment, Store, signed candidate, deployment and merge remain
 closed.
+
+## S3Z legacy support history migration
+
+`S3Z_SUPPORT_LEGACY_HISTORY_MIGRATION` is locally verified at exact
+implementation commit `c73cf25065c2c2ad568613e1b89cfee504969381` for Drive
+scenarios `SUP-153` through `SUP-157`. Eligible old local support threads can
+be previewed and explicitly imported into one canonical simulation case with
+ordered append-only history, deterministic replay protection and an origin
+event. `paused` requires an explicit canonical mapping and reason; archived,
+malformed, oversized, cross-account and already-canonical histories fail
+closed.
+
+The device-controlled source is always labelled
+`unverified_user_device_source`; a historical sender label cannot prove SIT
+staff authorship and imported text is never decision evidence. Timezone-naive
+timestamps preserve their uncertainty. The old Flutter thread is read-only,
+generic templates and presence are removed, and new issues/updates continue
+through canonical support cases. Privacy export and Retention inventory cover
+the two new tables, while purge remains blocked by the unchanged open
+Retention decision. Feature enablement defaults off and is rejected in
+production; rollback is dry-run/disable-and-retain, and schema rollback refuses
+to delete stored history.
+
+Focused S3Z checks pass 15 tests. Exact isolated PostgreSQL 16 integration,
+including concurrent replay and append-only enforcement, is green. The full
+Backend/PostgreSQL suite passes 504 tests without failure or skip;
+Privacy/Retention validators and 58 protection tests pass. The complete local
+technical regression passes the accepted 220-issue analyzer baseline, 369
+Flutter tests with one documented skip, the separate Google-only test, Web
+build/loopback smoke and Android debug APK. No signed candidate was created or
+changed. GitHub Actions run `32564821610` repeated all Backend and Flutter
+gates successfully for PR merge snapshot
+`c812fe5c53c326e8a3c1e5f81d55de68d71f88df`; signed-candidate construction
+and API-image publication were skipped. Draft PR #7 remained open, mergeable
+and unmerged. Production, real-history import, external messaging, Payment,
+Store, Firebase Console, Cloud/VPS/DNS, deployment, merge and public activation
+remain closed.

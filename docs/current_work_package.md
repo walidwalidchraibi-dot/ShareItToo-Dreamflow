@@ -585,3 +585,36 @@ Backend/PostgreSQL tests without skips. Signed-candidate construction and
 API-image publication were skipped; Draft PR #7 remained open, mergeable and
 unmerged. No live Firebase, production, payment, Store, signed candidate,
 deployment, merge or public action is enabled.
+
+## S3Z legacy support history migration
+
+`S3Z_SUPPORT_LEGACY_HISTORY_MIGRATION` implements the non-live portion of Drive
+scenarios `SUP-153` through `SUP-157` at exact commit
+`c73cf25065c2c2ad568613e1b89cfee504969381`. It adds an aggregate preview and a
+separate explicit, idempotent import from exactly
+`local_shared_preferences_message_threads_v1`; the source is always treated as
+unverified user-device data and is prohibited from decision-evidence use.
+Open threads map to `acknowledged`; paused threads require an explicit reason
+and supported target state. Archived, unsafe and already-canonical histories
+are blocked.
+
+Migration `050` records the source import and exact ordered history under
+append-only database guards. A deterministic fingerprint and PostgreSQL
+advisory lock converge sequential and concurrent retries on one canonical
+simulation case. Reporter-only history, privacy export, count-only Retention
+inventory and a privileged dry-run rollback preview are wired. The local old
+thread is read-only with no generic template, presence or composer. The
+feature defaults off and production startup rejects enablement.
+
+Local verification passes 15 focused tests, exact PostgreSQL 16 migration and
+integration coverage, all 504 Backend/PostgreSQL tests without skips, both
+Privacy/Retention validators and 58 protection tests. The full local technical
+regression passes the accepted analyzer baseline, 369 Flutter tests with one
+documented skip, separate Google-only coverage, Web build/smoke and Android
+debug APK. GitHub Actions run `32564821610` repeated all Backend and Flutter
+gates successfully for PR merge snapshot
+`c812fe5c53c326e8a3c1e5f81d55de68d71f88df`. Signed-candidate construction
+and API-image publication were skipped; Draft PR #7 remained open, mergeable
+and unmerged. No production data, external message, Payment, Store, Firebase
+Console, Cloud/VPS/DNS, deployment, PR merge or public activation is authorized
+or performed.
