@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "13e60ea5e714a12db13cac3979db116797e0659f709e401feb6329cb919c45c9"
+      "sha256": "903dc48eea4a4d08b44656563c7690f6603d338fecfd54708b1c150c213aa5e8"
     },
     {
       "path": "backend/src/server.js",
@@ -41,11 +41,11 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "a0d0fdba3f11c1b9679fd8cdb75087793dc44b6df20d62ff8473e388d13ea15f"
+      "sha256": "e45ca6c2aa6b7aa53f51fd0b8d68facea0f85782de89f12c1f5fde81d376c641"
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "c86acf9d2f47f39dd571ea0a82997acbe3495e6359f4ec8eabc5f14f97b3edd6"
+      "sha256": "adebd5752e57c2c2f89397db89c961e4d4f4e511ed0e96539dc14efec1b83636"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -136,6 +136,10 @@
       "sha256": "538011825f9ea7aa5847b072094c7ed9533eaecc35b8f5221dfcadb97b5bdc4e"
     },
     {
+      "path": "backend/src/support_legacy_migration.js",
+      "sha256": "c878853252bb4a7d3ca53bcb166ee4d955c4a752a84b4432b9cd395353c3c0ff"
+    },
+    {
       "path": "backend/src/rental_cart_workflow.js",
       "sha256": "4ec196e0064d95122cbafad68e6de8647a96b3f875e4b45107d275f8df24d7cf"
     },
@@ -157,7 +161,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "a0878adcfd713178685e0bed3b0f0713b6b995850fbc2e11443f0f8d38bab63a"
+      "sha256": "e9251d13c18199e54a648487382e0477f7f288b5a5441749f25d6b783dbf6467"
     },
     {
       "path": "backend/src/notifications.js",
@@ -396,6 +400,14 @@
       "sha256": "51f1754b42d69c9f0b950bee5efc8eec3625e0d2176dfb3345ca7c7226a1a973"
     },
     {
+      "path": "backend/sql/migrations/050_support_legacy_history_import.up.sql",
+      "sha256": "2d98df5ca98582f9e9a0225cdf12976a6df767c2e4f47011e184a4ac51cd45b3"
+    },
+    {
+      "path": "backend/sql/migrations/050_support_legacy_history_import.down.sql",
+      "sha256": "63aae15233fdce0515742312cf6e47a775f4f715824d98901f936cc643a54ace"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -433,7 +445,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "8e29d77bf63c7eb175e2eddf0bea2cb4422b1b5e381862a01b218fcb3d63a894"
+      "sha256": "ac4c5ce7118f8c1bceacef928c323226310b4f99119bb96ff7abbf10adf8d6dc"
     },
     {
       "path": "lib/services/maps_service.dart",
@@ -441,7 +453,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "b91f496d1e49f10d7ec6be95ad4dafc002ca37dfcaf9d54110350d8ffc3a4b9c"
+      "sha256": "71af33d115f9d80fb11b1fe07d4ff18242b29a3d468028f929cf27d7ec84b180"
     },
     {
       "path": "lib/screens/help_center_screen.dart",

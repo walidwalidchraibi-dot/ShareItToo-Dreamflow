@@ -39,6 +39,7 @@ const sourcePaths = [
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
   'backend/src/support_operational_metrics.js',
+  'backend/src/support_legacy_migration.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -104,6 +105,8 @@ const sourcePaths = [
   'backend/sql/migrations/048_support_privacy_incident_control_plane.down.sql',
   'backend/sql/migrations/049_support_product_safety_intake.up.sql',
   'backend/sql/migrations/049_support_product_safety_intake.down.sql',
+  'backend/sql/migrations/050_support_legacy_history_import.up.sql',
+  'backend/sql/migrations/050_support_legacy_history_import.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -569,6 +572,50 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!inventory.includes("'communications', 'support_messages'")) {
     fail('Retention inventory is missing immutable dataset support_messages.');
+  }
+  for (const dataset of [
+    'support_legacy_imports',
+    'support_legacy_history_entries',
+  ]) {
+    if (!inventory.includes(`'communications', '${dataset}'`)) {
+      fail(`Retention inventory is missing legacy-support dataset ${dataset}.`);
+    }
+  }
+  const supportLegacyMigration = text(
+    root,
+    sourceTexts,
+    'backend/src/support_legacy_migration.js',
+  );
+  const supportLegacyMigrationUp = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/050_support_legacy_history_import.up.sql',
+  );
+  const supportLegacyMigrationDown = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/050_support_legacy_history_import.down.sql',
+  );
+  for (const marker of [
+    'usableAsDecisionEvidence: false',
+    "verificationState: 'unverified_user_device_source'",
+    'externalMessagesSent: false',
+  ]) {
+    if (!supportLegacyMigration.includes(marker)) {
+      fail(`Legacy-support retention boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'support_legacy_imports_append_only',
+    'support_legacy_history_entries_append_only',
+    "source_trust = 'unverified_user_device_source'",
+  ]) {
+    if (!supportLegacyMigrationUp.includes(marker)) {
+      fail(`Legacy-support schema retention boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportLegacyMigrationDown.includes('rollback would lose history')) {
+    fail('Legacy-support rollback must refuse deletion of archived history.');
   }
   if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
     fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');

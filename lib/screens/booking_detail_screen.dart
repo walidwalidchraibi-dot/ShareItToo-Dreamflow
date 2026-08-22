@@ -522,6 +522,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     if (result == null || !mounted) return;
     final supportThread = await DataService.createSupportThread(
       userId: current.id,
+      canonicalCaseNumber: result.canonicalCaseNumber,
     );
     if (!mounted) return;
     if (supportThread == null) {

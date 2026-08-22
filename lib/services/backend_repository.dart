@@ -1062,6 +1062,57 @@ class BackendRepository {
     return Map<String, dynamic>.from(supportCase);
   }
 
+  static Future<Map<String, dynamic>> previewLegacySupportMigration(
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/support/legacy-migrations/preview',
+      body: payload,
+    );
+    final migration = response['migration'];
+    if (migration is! Map) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return Map<String, dynamic>.from(migration);
+  }
+
+  static Future<Map<String, dynamic>> importLegacySupportMigration({
+    required Map<String, dynamic> payload,
+    required String idempotencyKey,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/support/legacy-migrations',
+      body: payload,
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    final supportCase = response['supportCase'];
+    final migration = response['migration'];
+    if (supportCase is! Map || migration is! Map) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return {
+      'supportCase': Map<String, dynamic>.from(supportCase),
+      'migration': Map<String, dynamic>.from(migration),
+      'replayed': response['replayed'] == true,
+    };
+  }
+
+  static Future<Map<String, dynamic>> getLegacySupportHistory(
+    String caseId,
+  ) async {
+    final response = await _authorized(
+      method: 'GET',
+      path: '/support/cases/${Uri.encodeComponent(caseId)}/legacy-history',
+    );
+    final history = response['legacyHistory'];
+    if (history is! Map) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return Map<String, dynamic>.from(history);
+  }
+
   static Future<List<Map<String, dynamic>>> getMySupportCases() async {
     final response = await _authorized(method: 'GET', path: '/support/cases');
     return _maps(response['supportCases']);

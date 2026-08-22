@@ -268,7 +268,6 @@ class _PublicProfileBlockDialogCard extends StatelessWidget {
       ),
     );
   }
-
 }
 
 Future<bool?> showPublicProfileBlockConfirmationDialog(
@@ -527,8 +526,10 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           builder: (_) => SupportFlowScreen(context: flowContext)),
     );
     if (result == null || !mounted) return;
-    final supportThread =
-        await DataService.createSupportThread(userId: current.id);
+    final supportThread = await DataService.createSupportThread(
+      userId: current.id,
+      canonicalCaseNumber: result.canonicalCaseNumber,
+    );
     if (!mounted) return;
     if (supportThread == null) {
       AppPopup.toast(

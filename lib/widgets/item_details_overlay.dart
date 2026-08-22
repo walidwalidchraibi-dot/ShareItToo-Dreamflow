@@ -971,12 +971,13 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                           builder: (_) =>
                               SupportFlowScreen(context: flowContext)));
                   if (result == null || !mounted) break;
-                  final supportThread =
-                      await DataService.createSupportThread(userId: current.id);
+                  final supportThread = await DataService.createSupportThread(
+                    userId: current.id,
+                    canonicalCaseNumber: result.canonicalCaseNumber,
+                  );
                   if (!context.mounted) break;
                   if (supportThread == null) {
-                    AppPopup.toast(
-                        context,
+                    AppPopup.toast(context,
                         icon: Icons.check_circle_outline,
                         title:
                             'Fall ${result.canonicalCaseNumber} ist eingegangen');

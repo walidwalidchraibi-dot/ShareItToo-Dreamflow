@@ -106,6 +106,8 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'communications', 'notification_outbox', count(*)::bigint, min(created_at), max(updated_at) FROM notification_outbox
        UNION ALL SELECT 'communications', 'support_cases', count(*)::bigint, min(created_at), max(updated_at) FROM support_cases
        UNION ALL SELECT 'communications', 'support_messages', count(*)::bigint, min(created_at), max(COALESCE(sent_at, created_at)) FROM support_messages
+       UNION ALL SELECT 'communications', 'support_legacy_imports', count(*)::bigint, min(imported_at), max(imported_at) FROM support_legacy_imports
+       UNION ALL SELECT 'communications', 'support_legacy_history_entries', count(*)::bigint, min(archived_at), max(archived_at) FROM support_legacy_history_entries
        UNION ALL SELECT 'privacyRights', 'support_privacy_rights_requests', count(*)::bigint, min(received_at), max(updated_at) FROM support_privacy_rights_requests
        UNION ALL SELECT 'privacyRights', 'support_privacy_identity_verifications', count(*)::bigint, min(verified_at), max(verified_at) FROM support_privacy_identity_verifications
        UNION ALL SELECT 'privacyRights', 'support_privacy_deadline_extensions', count(*)::bigint, min(recorded_at), max(recorded_at) FROM support_privacy_deadline_extensions

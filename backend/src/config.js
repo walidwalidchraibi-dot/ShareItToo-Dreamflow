@@ -276,6 +276,14 @@ const supportDeadlineWorkerIntervalMs = Math.min(
     Number.parseInt(process.env.SUPPORT_DEADLINE_WORKER_INTERVAL_MS ?? '60000', 10),
   ),
 );
+const supportLegacyMigrationEnabled = (
+  process.env.SUPPORT_LEGACY_MIGRATION_ENABLED ?? 'false'
+).trim().toLowerCase() === 'true';
+if (supportLegacyMigrationEnabled && deploymentEnvironment === 'production') {
+  throw new Error(
+    'support legacy migration cannot be enabled in production before the migration gate',
+  );
+}
 
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
@@ -372,6 +380,12 @@ export const config = Object.freeze({
       supportDeadlineWorkerIntervalMs * 3,
       Number.parseInt(process.env.SUPPORT_DEADLINE_MAX_STALENESS_MS ?? '180000', 10),
     ),
+  }),
+  supportLegacyMigration: Object.freeze({
+    enabled: supportLegacyMigrationEnabled,
+    operatingMode: 'simulation',
+    automaticImportAllowed: false,
+    externalMessagesAllowed: false,
   }),
   push: Object.freeze({
     transport: pushTransport,

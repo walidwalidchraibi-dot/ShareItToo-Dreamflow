@@ -45,6 +45,7 @@ if (!databaseUrl) {
     process.env.MAIL_TRANSPORT = 'memory';
     process.env.PAYMENT_TRANSPORT = 'memory';
     process.env.FIREBASE_PHONE_VERIFICATION_ENABLED = 'true';
+    process.env.SUPPORT_LEGACY_MIGRATION_ENABLED = 'true';
     process.env.PAYOUT_HOLD_HOURS = '0';
     const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sit-b3-uploads-'));
     process.env.UPLOAD_DIR = uploadDir;
@@ -132,6 +133,7 @@ if (!databaseUrl) {
         '047_support_privacy_rights_control_plane.up.sql',
         '048_support_privacy_incident_control_plane.up.sql',
         '049_support_product_safety_intake.up.sql',
+        '050_support_legacy_history_import.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -209,6 +211,8 @@ if (!databaseUrl) {
           'support_dsa_notice_locator_amendments',
           'support_messages',
           'support_policy_snapshots',
+          'support_legacy_history_entries',
+          'support_legacy_imports',
           'support_privacy_incident_containment_actions',
           'support_privacy_incidents',
         ]],
@@ -223,6 +227,8 @@ if (!databaseUrl) {
         { table_name: 'support_decisions' },
         { table_name: 'support_dsa_notice_locator_amendments' },
         { table_name: 'support_evidence' },
+        { table_name: 'support_legacy_history_entries' },
+        { table_name: 'support_legacy_imports' },
         { table_name: 'support_messages' },
         { table_name: 'support_policy_snapshots' },
         { table_name: 'support_privacy_incident_containment_actions' },
@@ -1353,6 +1359,256 @@ if (!databaseUrl) {
       const supportIntakeReplay = await createSupportIntake();
       assert.equal(supportIntakeReplay.status, 200);
       assert.equal((await supportIntakeReplay.json()).replayed, true);
+
+      const legacyMigrationPayload = {
+        schemaVersion: 1,
+        source: {
+          system: 'local_shared_preferences_message_threads_v1',
+          thread: {
+            id: 'legacy-support-thread-integration',
+            threadType: 'support',
+            user1Id: 'renter-a',
+            user2Id: 'support',
+            archivedForUserIds: [],
+            createdAt: '2026-08-20T10:00:00.000',
+            lastMessageAt: '2026-08-20T10:05:00.000Z',
+            legacyStatus: 'open',
+            messages: [
+              {
+                id: 'legacy-support-message-user',
+                senderId: 'renter-a',
+                text: 'Mein älterer lokaler Supportverlauf soll erhalten bleiben.',
+                timestamp: '2026-08-20T10:00:00.000',
+                isRead: true,
+              },
+              {
+                id: 'legacy-support-message-support',
+                senderId: 'support',
+                text: 'Diese historische Antwort löst keine externe Nachricht aus.',
+                timestamp: '2026-08-20T10:05:00.000Z',
+                isRead: false,
+              },
+            ],
+          },
+        },
+        intake: {
+          caseType: 'general_help',
+          caseSubType: 'app_error_or_display',
+          summary: 'Ein vorhandener lokaler Supportverlauf soll geprüft werden.',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: true,
+          },
+        },
+      };
+      const legacyPreviewResponse = await fetch(
+        `${baseUrl}/v1/support/legacy-migrations/preview`,
+        {
+          method: 'POST',
+          headers: renterAHeaders,
+          body: JSON.stringify(legacyMigrationPayload),
+        },
+      );
+      assert.equal(legacyPreviewResponse.status, 200);
+      assert.match(legacyPreviewResponse.headers.get('cache-control'), /no-store/u);
+      const legacyPreview = (await legacyPreviewResponse.json()).migration;
+      assert.equal(legacyPreview.eligible, true);
+      assert.equal(legacyPreview.dataMutation, false);
+      assert.equal(legacyPreview.externalMessagesSent, false);
+      assert.equal(legacyPreview.historyEntryCount, 2);
+      assert.equal(legacyPreview.unresolvedLocalTimestampCount, 1);
+      assert.equal('source' in legacyPreview, false);
+      assert.doesNotMatch(JSON.stringify(legacyPreview), /älterer lokaler/u);
+
+      const createLegacyImport = () => fetch(
+        `${baseUrl}/v1/support/legacy-migrations`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'Idempotency-Key': 'legacy-support-import-integration',
+          },
+          body: JSON.stringify(legacyMigrationPayload),
+        },
+      );
+      const legacyImportResponse = await createLegacyImport();
+      assert.equal(legacyImportResponse.status, 201);
+      assert.match(legacyImportResponse.headers.get('cache-control'), /no-store/u);
+      const legacyImport = await legacyImportResponse.json();
+      assert.equal(legacyImport.replayed, false);
+      assert.equal(legacyImport.supportCase.status, 'acknowledged');
+      assert.equal(legacyImport.supportCase.operatingMode, 'simulation');
+      assert.match(legacyImport.migration.importId, /^[0-9a-f-]{36}$/u);
+      assert.equal(legacyImport.migration.templateState, 'historical_disabled');
+      assert.equal(
+        legacyImport.migration.verificationState,
+        'unverified_user_device_source',
+      );
+      assert.equal(legacyImport.migration.usableAsDecisionEvidence, false);
+      assert.equal(legacyImport.migration.externalMessagesSent, false);
+      const legacyReplayResponse = await createLegacyImport();
+      assert.equal(legacyReplayResponse.status, 200);
+      const legacyReplay = await legacyReplayResponse.json();
+      assert.equal(legacyReplay.replayed, true);
+      assert.equal(legacyReplay.supportCase.id, legacyImport.supportCase.id);
+      assert.equal(legacyReplay.migration.importId, legacyImport.migration.importId);
+
+      const changedLegacyPayload = structuredClone(legacyMigrationPayload);
+      changedLegacyPayload.source.thread.messages[0].text += ' Verändert.';
+      const changedLegacyResponse = await fetch(
+        `${baseUrl}/v1/support/legacy-migrations`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'Idempotency-Key': 'legacy-support-import-changed-integration',
+          },
+          body: JSON.stringify(changedLegacyPayload),
+        },
+      );
+      assert.equal(changedLegacyResponse.status, 409);
+      assert.equal(
+        (await changedLegacyResponse.json()).error,
+        'support_legacy_source_changed_after_import',
+      );
+
+      const canonicalLegacyPayload = structuredClone(legacyMigrationPayload);
+      canonicalLegacyPayload.source.thread.id = 'legacy-already-canonical-integration';
+      canonicalLegacyPayload.source.thread.messages[0].id = 'legacy-canonical-message';
+      canonicalLegacyPayload.source.thread.messages[0].text =
+        `Support-Fall ${supportIntake.supportCase.caseNumber} ist bereits bestätigt.`;
+      const canonicalLegacyPreviewResponse = await fetch(
+        `${baseUrl}/v1/support/legacy-migrations/preview`,
+        {
+          method: 'POST',
+          headers: renterAHeaders,
+          body: JSON.stringify(canonicalLegacyPayload),
+        },
+      );
+      assert.equal(canonicalLegacyPreviewResponse.status, 200);
+      const canonicalLegacyPreview =
+        (await canonicalLegacyPreviewResponse.json()).migration;
+      assert.equal(canonicalLegacyPreview.eligible, false);
+      assert.deepEqual(
+        canonicalLegacyPreview.blockers,
+        ['canonical_case_reference_present'],
+      );
+
+      const pausedLegacyPayload = structuredClone(legacyMigrationPayload);
+      pausedLegacyPayload.source.thread.id = 'legacy-paused-support-integration';
+      pausedLegacyPayload.source.thread.legacyStatus = 'paused';
+      pausedLegacyPayload.source.thread.pausedMapping = 'waiting_for_user';
+      pausedLegacyPayload.source.thread.pauseReason =
+        'Eine konkret benannte Nutzerantwort war im Altverlauf noch offen.';
+      pausedLegacyPayload.source.thread.messages.forEach((message, index) => {
+        message.id = `legacy-paused-message-${index}`;
+      });
+      const pausedLegacyResponse = await fetch(
+        `${baseUrl}/v1/support/legacy-migrations`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'Idempotency-Key': 'legacy-paused-import-integration',
+          },
+          body: JSON.stringify(pausedLegacyPayload),
+        },
+      );
+      assert.equal(pausedLegacyResponse.status, 201);
+      const pausedLegacyImport = await pausedLegacyResponse.json();
+      assert.equal(pausedLegacyImport.supportCase.status, 'waiting_for_user');
+      assert.equal(pausedLegacyImport.supportCase.waitingOn, 'reporter');
+
+      const concurrentLegacyPayload = structuredClone(legacyMigrationPayload);
+      concurrentLegacyPayload.source.thread.id = 'legacy-concurrent-support-integration';
+      concurrentLegacyPayload.source.thread.messages.forEach((message, index) => {
+        message.id = `legacy-concurrent-message-${index}`;
+      });
+      const concurrentLegacyResponses = await Promise.all([
+        'legacy-concurrent-import-a',
+        'legacy-concurrent-import-b',
+      ].map((idempotencyKey) => fetch(
+        `${baseUrl}/v1/support/legacy-migrations`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'Idempotency-Key': idempotencyKey,
+          },
+          body: JSON.stringify(concurrentLegacyPayload),
+        },
+      )));
+      assert.deepEqual(
+        concurrentLegacyResponses.map((response) => response.status).sort(),
+        [200, 201],
+      );
+      const concurrentLegacyImports = await Promise.all(
+        concurrentLegacyResponses.map((response) => response.json()),
+      );
+      assert.equal(
+        concurrentLegacyImports[0].migration.importId,
+        concurrentLegacyImports[1].migration.importId,
+      );
+      assert.equal(
+        concurrentLegacyImports[0].supportCase.id,
+        concurrentLegacyImports[1].supportCase.id,
+      );
+
+      const legacyHistoryResponse = await fetch(
+        `${baseUrl}/v1/support/cases/${legacyImport.supportCase.id}/legacy-history`,
+        { headers: renterAHeaders },
+      );
+      assert.equal(legacyHistoryResponse.status, 200);
+      assert.match(legacyHistoryResponse.headers.get('cache-control'), /no-store/u);
+      const legacyHistory = (await legacyHistoryResponse.json()).legacyHistory;
+      assert.equal(legacyHistory.historyEntryCount, 2);
+      assert.equal(legacyHistory.entries.length, 2);
+      assert.equal(legacyHistory.entries[0].senderType, 'user');
+      assert.equal(
+        legacyHistory.entries[0].sourceTrust,
+        'unverified_user_device_source',
+      );
+      assert.equal(legacyHistory.entries[0].occurredAt, null);
+      assert.equal(
+        legacyHistory.entries[0].timestampInterpretation,
+        'unresolved_local_time',
+      );
+      assert.equal(legacyHistory.entries[1].senderType, 'support');
+      assert.equal(legacyHistory.externalMessagesSent, false);
+      const outsiderLegacyHistory = await fetch(
+        `${baseUrl}/v1/support/cases/${legacyImport.supportCase.id}/legacy-history`,
+        { headers: renterBHeaders },
+      );
+      assert.equal(outsiderLegacyHistory.status, 404);
+      const legacyOriginEvent = await setupPool.query(
+        `SELECT structured_payload, source_system
+           FROM support_case_events
+          WHERE case_id = $1 AND event_type = 'case.legacy_history_imported'`,
+        [legacyImport.supportCase.id],
+      );
+      assert.equal(legacyOriginEvent.rowCount, 1);
+      assert.equal(legacyOriginEvent.rows[0].source_system, 'sit-legacy-migration');
+      assert.equal(legacyOriginEvent.rows[0].structured_payload.historyEntryCount, 2);
+      assert.equal(legacyOriginEvent.rows[0].structured_payload.templateState,
+        'historical_disabled');
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_legacy_history_entries
+              SET rendered_content = 'verboten'
+            WHERE case_id = $1`,
+          [legacyImport.supportCase.id],
+        ),
+        /append-only/u,
+      );
       const mySupportCasesResponse = await fetch(`${baseUrl}/v1/support/cases`, {
         headers: renterAHeaders,
       });
@@ -3587,6 +3843,28 @@ if (!databaseUrl) {
       });
       assert.equal(adminElevation.status, 200);
       adminHeaders['X-Admin-Step-Up'] = (await adminElevation.json()).elevation.token;
+      const legacyRollbackPreviewResponse = await fetch(
+        `${baseUrl}/v1/admin/support/legacy-migrations/${legacyImport.migration.importId}/rollback-preview`,
+        { headers: adminHeaders },
+      );
+      assert.equal(legacyRollbackPreviewResponse.status, 200);
+      assert.match(
+        legacyRollbackPreviewResponse.headers.get('cache-control'),
+        /no-store/u,
+      );
+      const legacyRollbackPreview =
+        (await legacyRollbackPreviewResponse.json()).rollback;
+      assert.equal(legacyRollbackPreview.dryRun, true);
+      assert.equal(legacyRollbackPreview.dataMutation, false);
+      assert.equal(legacyRollbackPreview.featureDisableSafe, true);
+      assert.equal(legacyRollbackPreview.historyPreservedOnFeatureDisable, true);
+      assert.equal(legacyRollbackPreview.destructiveSchemaRollbackAllowed, false);
+      assert.equal(
+        legacyRollbackPreview.requiredAction,
+        'disable_support_legacy_migration_and_keep_append_only_archive',
+      );
+      assert.equal(legacyRollbackPreview.historyEntryCount, 2);
+      assert.equal(legacyRollbackPreview.externalMessagesSent, false);
       const privacyQueueResponse = await fetch(
         `${baseUrl}/v1/admin/support/privacy-rights`,
         { headers: adminHeaders },
@@ -5242,6 +5520,21 @@ if (!databaseUrl) {
         renterExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId),
       );
       assert.equal(renterExport.data.marketplace.rentalCart.reservationCreated, false);
+      assert.equal(
+        renterExport.data.communication.support.legacyHistoryVerificationState,
+        'unverified_user_device_source',
+      );
+      assert.equal(
+        renterExport.data.communication.support.legacyHistoryUsableAsDecisionEvidence,
+        false,
+      );
+      assert.ok(renterExport.data.communication.support.legacyImports.some(
+        (entry) => entry.id === legacyImport.migration.importId,
+      ));
+      assert.equal(
+        renterExport.data.communication.support.legacyHistory.length,
+        6,
+      );
       const renterOwnerLocation = renterExport.data.communication.messages.find(
         (entry) => entry.id === 's3t-location-owner',
       ).body;

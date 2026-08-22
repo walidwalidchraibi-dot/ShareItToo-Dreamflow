@@ -84,6 +84,7 @@ node --test test/tool/support_break_glass_wiring.test.mjs
 node --test test/tool/support_message_template_wiring.test.mjs
 node --test test/tool/support_deadline_watchdog_wiring.test.mjs
 node --test test/tool/support_operational_privacy_wiring.test.mjs
+node --test test/tool/support_legacy_migration_wiring.test.mjs
 node --test test/tool/support_single_issue_intake_wiring.test.mjs
 node --test test/tool/support_privacy_intake_wiring.test.mjs
 node --test test/tool/support_account_deletion_retention_wiring.test.mjs

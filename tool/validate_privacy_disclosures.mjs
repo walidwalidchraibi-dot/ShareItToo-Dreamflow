@@ -38,6 +38,7 @@ const sourcePaths = [
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
   'backend/src/support_operational_metrics.js',
+  'backend/src/support_legacy_migration.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -89,6 +90,8 @@ const sourcePaths = [
   'backend/sql/migrations/048_support_privacy_incident_control_plane.down.sql',
   'backend/sql/migrations/049_support_product_safety_intake.up.sql',
   'backend/sql/migrations/049_support_product_safety_intake.down.sql',
+  'backend/sql/migrations/050_support_legacy_history_import.up.sql',
+  'backend/sql/migrations/050_support_legacy_history_import.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -502,6 +505,45 @@ function assertSourceContracts({ root, sourceTexts }) {
     if (!supportOperationalMetrics.includes(marker)) {
       fail(`Support operational-metrics privacy boundary is missing ${marker}.`);
     }
+  }
+  const supportLegacyMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_legacy_migration.js',
+  );
+  for (const marker of [
+    "verificationState: 'unverified_user_device_source'",
+    'usableAsDecisionEvidence: false',
+    'externalMessagesSent: false',
+    'pg_advisory_xact_lock',
+    'const { source: _source, intake: _intake, ...result } = preview',
+  ]) {
+    if (!supportLegacyMigration.includes(marker)) {
+      fail(`Legacy-support migration privacy boundary is missing ${marker}.`);
+    }
+  }
+  const supportLegacyMigrationUp = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/050_support_legacy_history_import.up.sql',
+  );
+  const supportLegacyMigrationDown = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/050_support_legacy_history_import.down.sql',
+  );
+  for (const marker of [
+    "verification_state = 'unverified_user_device_source'",
+    "source_trust = 'unverified_user_device_source'",
+    'support_legacy_imports_append_only',
+    'support_legacy_history_entries_append_only',
+  ]) {
+    if (!supportLegacyMigrationUp.includes(marker)) {
+      fail(`Legacy-support migration schema privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportLegacyMigrationDown.includes('rollback would lose history')) {
+    fail('Legacy-support migration rollback must refuse stored history.');
   }
   const privacyIncidentWorkflow = sourceText(
     root,

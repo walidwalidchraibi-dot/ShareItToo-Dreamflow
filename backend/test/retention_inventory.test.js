@@ -82,4 +82,6 @@ test('retention inventory is read-only, step-up routed and covers every local de
     "eligibleRowsCalculated: false",
   ]) assert.match(source, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
   assert.match(app, /\/v1\/admin\/privacy\/retention-inventory[\s\S]*requireStaffElevation/u);
+  assert.match(source, /'communications', 'support_legacy_imports'/u);
+  assert.match(source, /'communications', 'support_legacy_history_entries'/u);
 });

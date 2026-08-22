@@ -204,6 +204,12 @@ import {
 } from './support_deadline_watchdog.js';
 import { getSupportOperationalMetrics } from './support_operational_metrics.js';
 import {
+  getLegacySupportHistory,
+  importLegacySupportMigration,
+  previewLegacySupportRollback,
+  publicLegacyMigrationPreview,
+} from './support_legacy_migration.js';
+import {
   getPrivacyRightsRequestForCase,
   listPrivacyRightsQueue,
   recordPrivacyRightsDeadlineExtension,
@@ -1331,6 +1337,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
         'pseudonymous_notification_delivery_audit',
         'pseudonymous_booking_condition_evidence',
         'pseudonymous_support_case_records',
+        'unverified_local_legacy_support_history',
         'audit_log',
       ],
       erasedUploadCount: erasedUploads.rowCount,
@@ -1498,6 +1505,7 @@ export function createApp({
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportLegacyMigrationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportPrivacyIdentityLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const supportPrivacyExtensionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -4055,6 +4063,29 @@ export function createApp({
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
+  app.post('/v1/support/legacy-migrations/preview', requireAuth, requireActiveAccount, supportLegacyMigrationLimiter, asyncRoute(async (req, res) => {
+    if (!config.supportLegacyMigration.enabled) {
+      throw new HttpError(503, 'support_legacy_migration_disabled');
+    }
+    const migration = publicLegacyMigrationPreview(req.body, {
+      actorId: req.auth.userId,
+    });
+    res.set('Cache-Control', 'private, no-store').json({ migration });
+  }));
+
+  app.post('/v1/support/legacy-migrations', requireAuth, requireActiveAccount, supportLegacyMigrationLimiter, asyncRoute(async (req, res) => {
+    if (!config.supportLegacyMigration.enabled) {
+      throw new HttpError(503, 'support_legacy_migration_disabled');
+    }
+    const result = await inTransaction((client) => importLegacySupportMigration(client, {
+      actor: req.actor,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
   app.get('/v1/support/cases', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const supportCases = await listMySupportCases(pool, req.auth.userId);
     res.set('Cache-Control', 'private, no-store').json({ supportCases });
@@ -4066,6 +4097,14 @@ export function createApp({
       caseId: safeText(req.params.id, 80),
     });
     res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.get('/v1/support/cases/:id/legacy-history', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const legacyHistory = await getLegacySupportHistory(pool, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json({ legacyHistory });
   }));
 
   app.get('/v1/support/cases/:id/privacy-rights', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
@@ -4469,6 +4508,13 @@ export function createApp({
       to: req.query.to ?? null,
     });
     res.set('Cache-Control', 'private, no-store').json({ metrics });
+  }));
+
+  app.get('/v1/admin/support/legacy-migrations/:id/rollback-preview', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const rollback = await previewLegacySupportRollback(pool, {
+      importId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json({ rollback });
   }));
 
   app.get('/v1/admin/support/article-18/candidates', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {

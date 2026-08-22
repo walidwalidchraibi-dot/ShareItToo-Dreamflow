@@ -96,6 +96,8 @@ export async function buildAccountExport(client, userId) {
     supportCaseEvents,
     supportBreakGlassAccess,
     supportMessages,
+    supportLegacyImports,
+    supportLegacyHistory,
     supportDecisions,
     supportAppeals,
     supportEvidence,
@@ -731,6 +733,30 @@ export async function buildAccountExport(client, userId) {
            OR (message.recipient_user_id = $1 AND message.send_status = 'sent')
         ORDER BY message.created_at, message.id`, userId),
     rows(client,
+      `SELECT legacy_import.id, legacy_import.case_id,
+              legacy_import.source_system, legacy_import.source_thread_id,
+              legacy_import.legacy_status, legacy_import.mapped_status,
+              legacy_import.template_state, legacy_import.verification_state,
+              legacy_import.history_entry_count,
+              legacy_import.unresolved_local_timestamp_count,
+              legacy_import.imported_at
+         FROM support_legacy_imports AS legacy_import
+        WHERE legacy_import.reporter_user_id = $1
+        ORDER BY legacy_import.imported_at, legacy_import.id`, userId),
+    rows(client,
+      `SELECT history.id, history.case_id, history.source_message_id,
+              history.sequence_number, history.sender_type,
+              (history.sender_user_id = $1) AS sent_by_me,
+              history.source_trust, history.rendered_content,
+              history.source_timestamp_text, history.occurred_at,
+              history.timestamp_interpretation, history.was_read,
+              history.archived_at
+         FROM support_legacy_history_entries AS history
+         JOIN support_legacy_imports AS legacy_import
+           ON legacy_import.id = history.import_id
+        WHERE legacy_import.reporter_user_id = $1
+        ORDER BY history.archived_at, history.sequence_number, history.id`, userId),
+    rows(client,
       `SELECT decision.id, decision.case_id, decision.decision_code,
               decision.decision_scope, decision.measure_type,
               decision.amount_minor, decision.currency, decision.duration,
@@ -962,6 +988,10 @@ export async function buildAccountExport(client, userId) {
         events: supportCaseEvents,
         emergencyAccess: supportBreakGlassAccess,
         messages: supportMessages,
+        legacyImports: supportLegacyImports,
+        legacyHistory: supportLegacyHistory,
+        legacyHistoryVerificationState: 'unverified_user_device_source',
+        legacyHistoryUsableAsDecisionEvidence: false,
         decisions: supportDecisions,
         appeals: supportAppeals,
         submittedEvidence: supportEvidence,

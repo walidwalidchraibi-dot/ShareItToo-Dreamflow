@@ -9355,11 +9355,21 @@ class DataService {
     return [th1, th2, support, th3];
   }
 
-  /// Erstellt einen neuen Support-Thread für einen User oder verwendet den bestehenden erneut.
+  /// Opens the local, read-only presentation for a server-confirmed case.
+  /// A local support thread must never be created as a fallback for a failed
+  /// or unconfirmed canonical intake.
   static Future<MessageThread?> createSupportThread({
     required String userId,
+    required String canonicalCaseNumber,
   }) async {
     try {
+      if (!RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
+          .hasMatch(canonicalCaseNumber.trim())) {
+        debugPrint(
+          '[DataService] createSupportThread: canonical receipt required',
+        );
+        return null;
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
       final List<dynamic> list =
@@ -9392,20 +9402,12 @@ class DataService {
         bookingStatus: null,
         handoverAt: null,
         returnAt: null,
-        otherUserOnline: true,
-        otherUserLastActive: now,
+        otherUserOnline: null,
+        otherUserLastActive: null,
         archivedForUserIds: const <String>[],
-        messages: [
-          Message(
-            id: 'msg_${now.microsecondsSinceEpoch}_welcome',
-            senderId: 'support',
-            text: 'Hallo! Wie können wir dir helfen?',
-            timestamp: now,
-            isRead: false,
-          ),
-        ],
+        messages: const <Message>[],
         createdAt: now,
-        lastMessageAt: now,
+        lastMessageAt: null,
       );
 
       list.add(supportThread.toJson());

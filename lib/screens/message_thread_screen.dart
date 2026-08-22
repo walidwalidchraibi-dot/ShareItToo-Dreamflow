@@ -169,7 +169,7 @@ bool _isChatActiveForState(_ChatState st) {
     case _ChatState.returnPlanned:
       return true;
     case _ChatState.support:
-      return true; // Support immer aktiv
+      return false; // Legacy support history is read-only.
     case _ChatState.requestOpen: // pending
     case _ChatState.completed: // completed/declined/cancelled
       return false;
@@ -1459,6 +1459,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final t = _thread;
     final text = _controller.text.trim();
     if (me == null || t == null || text.isEmpty) return;
+    if (_deriveChatState() == _ChatState.support) {
+      if (mounted) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.lock_outline,
+          title: 'Historischer Supportverlauf',
+          message:
+              'Neue Anliegen und Ergänzungen werden als eigener Support-Fall erfasst.',
+        );
+      }
+      return;
+    }
     _controller.clear();
     if (t.id == _translationDemoThreadId) {
       final msg = Message(
@@ -2037,7 +2049,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final showAddressHint = _showAddressHint();
 
     final request = _request;
-    final isChatActive = st == _ChatState.support ||
+    final isChatActive = st != _ChatState.support &&
         (request == null
             ? _isChatActiveForState(st)
             : isPrivatePilotBookingChatOpen(
@@ -2513,6 +2525,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         return 'Der Chat ist erst nach Annahme der Anfrage verfügbar.';
       case _ChatState.completed:
         return 'Das Rückgabe- oder Fallfenster ist geschlossen.\nFür weitere Fragen nutze den Support.';
+      case _ChatState.support:
+        return 'Historischer Supportverlauf – neue Anliegen und Ergänzungen werden als eigener Support-Fall erfasst.';
       default:
         return 'Der Chat ist derzeit nicht verfügbar.';
     }
@@ -3901,7 +3915,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             orElse: () => null,
           );
 
-      supportThread ??= await DataService.createSupportThread(userId: me.id);
+      supportThread ??= await DataService.createSupportThread(
+        userId: me.id,
+        canonicalCaseNumber: result.canonicalCaseNumber,
+      );
 
       if (supportThread == null) {
         if (mounted) {
