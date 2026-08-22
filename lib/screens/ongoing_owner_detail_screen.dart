@@ -240,6 +240,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final thread = await DataService.createOrGetThreadForRequest(req.id);
     if (thread == null || !mounted) return;
     final state = await DataService.getHandoverReturnState(req.id);
+    if (!mounted) return;
     final key = isReturn ? 'return' : 'handover';
     final requestedLabel =
         ((state['${key}TimeRequested'] as String?) ?? '').trim();
@@ -290,6 +291,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           text:
               '${isReturn ? '🔄' : '📦'} $flowLabel bestätigt: $requestedLabel Uhr',
         );
+        if (!mounted) return;
         AppPopup.toast(
           context,
           icon: Icons.check_circle_outline,
@@ -328,6 +330,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       text:
           '${isReturn ? '🔄' : '📦'} $flowLabel ${requestedLabel.isNotEmpty ? 'geändert' : 'angefragt'}: $label Uhr',
     );
+    if (!mounted) return;
     AppPopup.toast(context, icon: Icons.schedule, title: '$flowLabel gesendet');
     await _load();
   }
@@ -559,6 +562,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                     ),
                   ],
                 );
+                if (!context.mounted) return;
                 switch (picked) {
                   case 'view':
                     ItemDetailsOverlay.showFullPage(context, item: item);
@@ -597,7 +601,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                               type: 'cancelled',
                               note: 'Von Vermieter storniert',
                             );
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             AppPopup.toast(
                               context,
                               icon: Icons.cancel_outlined,
