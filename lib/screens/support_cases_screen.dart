@@ -645,14 +645,17 @@ class _SupportCasesScreenState extends State<SupportCasesScreen> {
           }
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              itemCount: cases.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _SupportCaseListCard(
-                supportCase: cases[index],
-                onTap: () => _open(cases[index]),
+            child: FocusTraversalGroup(
+              policy: WidgetOrderTraversalPolicy(),
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                itemCount: cases.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) => _SupportCaseListCard(
+                  supportCase: cases[index],
+                  onTap: () => _open(cases[index]),
+                ),
               ),
             ),
           );
@@ -872,9 +875,12 @@ class _SupportCaseListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      key: ValueKey('support_case_card_${supportCase.id}'),
+      container: true,
       button: true,
       label:
           'Support-Fall ${supportCase.caseNumber}, Status ${supportCase.statusLabel}',
+      hint: 'Öffnet die Falldetails',
       child: Material(
         color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(18),
@@ -1604,6 +1610,8 @@ class _SupportStatusChip extends StatelessWidget {
             ? Icons.task_alt_outlined
             : Icons.pending_actions_outlined);
     return Semantics(
+      container: true,
+      excludeSemantics: true,
       label: 'Status: ${supportCase.statusLabel}',
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1658,14 +1666,17 @@ class _SupportInfoCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: accent),
+              ExcludeSemantics(child: Icon(icon, size: 20, color: accent)),
               const SizedBox(width: 9),
               Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
@@ -1690,7 +1701,7 @@ class _SupportMetaLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.white60),
+        ExcludeSemantics(child: Icon(icon, size: 18, color: Colors.white60)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -1717,7 +1728,9 @@ class _SupportTimelineEntry extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 4),
-            child: Icon(Icons.circle, size: 10, color: Color(0xFF8FCBFF)),
+            child: ExcludeSemantics(
+              child: Icon(Icons.circle, size: 10, color: Color(0xFF8FCBFF)),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(

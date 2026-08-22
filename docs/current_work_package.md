@@ -536,3 +536,22 @@ Backend/PostgreSQL tests passed without skips and the Flutter results repeated.
 The signed candidate and API-image publication jobs were skipped; Draft PR #7
 remained open, mergeable and unmerged. No live FCM, provider call, production,
 payment, Store, signed candidate, deployment, merge or public pilot is enabled.
+
+## S3X support case UI accessibility
+
+`S3X_SUPPORT_CASE_UI_ACCESSIBILITY` is the active non-live candidate for Drive
+scenarios `SUP-143` through `SUP-152`. The existing canonical list/detail,
+waiting-user deadline, published decision, appeal path and blocked-user filter
+are retained. The UI now binds readable German status text, prominent action,
+five-part decision meaning, widget-order keyboard traversal, labelled
+semantics, headings, two-times text scaling, a 48 logical-pixel case-card
+target and conditional `Blockiert` behavior to automated tests.
+
+Focused checks pass 19 Flutter widget tests and three static matrix/wiring
+tests; 58 Privacy/Retention protection tests and both source validators are
+green. The complete local technical regression passes the accepted 220-issue
+analyzer baseline, 367 Flutter tests with one documented Google-profile skip,
+the separate Google-only test, Web build/loopback smoke and Android debug APK.
+Commit and exact GitHub CI evidence remain pending. No manual
+TalkBack/VoiceOver device pass, signed candidate, Store, production, payment,
+deployment, merge or public action is claimed or enabled.

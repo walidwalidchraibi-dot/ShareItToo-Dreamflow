@@ -1000,3 +1000,22 @@ Backend/PostgreSQL tests without skips. GitGuardian passed; the signed
 candidate and API-image publication jobs were skipped. Draft PR #7 remained
 open, mergeable and unmerged. No live Push, provider traffic, production,
 payment, Store, signed candidate, deployment or merge occurred.
+
+## S3X support case UI accessibility
+
+`S3X_SUPPORT_CASE_UI_ACCESSIBILITY` is the current locally verified non-live
+candidate for Drive scenarios `SUP-143` through `SUP-152`. It preserves the
+canonical support truth while strengthening German status/action/decision
+copy, semantic heading and card order, text-only status meaning, keyboard
+activation, two-times text layout, minimum case-card target size and the
+existing conditional empty-`Blockiert` behavior. Focused verification passes
+19 Flutter widget tests, three static contract tests and 58 Privacy/Retention
+protection tests. Both source validators are green. The complete local
+technical regression passes the accepted 220-issue analyzer baseline, 367
+Flutter tests with one documented Google-profile skip, the separate
+Google-only test, Web build/loopback smoke and Android debug APK.
+
+Commit and exact GitHub CI evidence remain pending.
+Automated checks are not represented as a manual TalkBack or VoiceOver pass;
+signed-device evidence and every live, Store, production, payment, deployment
+and merge action remain closed.

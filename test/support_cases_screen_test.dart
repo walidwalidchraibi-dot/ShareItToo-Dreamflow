@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/help_center_screen.dart';
 import 'package:lendify/screens/support_cases_screen.dart';
@@ -601,12 +602,92 @@ void main() {
       ),
       home: SupportCasesScreen(
         listLoader: () async => [_supportCase()],
+        detailLoader: (_) async => _detail(),
       ),
     ));
     await tester.pumpAndSettle();
 
     expect(find.text('SIT-ABCDEFGHJKLM'), findsOneWidget);
+    await tester.tap(find.text('SIT-ABCDEFGHJKLM'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Testmodus'),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Testmodus'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('support detail exposes named status and ordered headings',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(
+        listLoader: () async => [_supportCase()],
+        detailLoader: (_) async => _detail(),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final card = find.byKey(const ValueKey(
+      'support_case_card_11111111-1111-4111-8111-111111111111',
+    ));
+    expect(card, findsOneWidget);
+    expect(tester.getSize(card).height, greaterThanOrEqualTo(48));
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+          r'^Support-Fall SIT-ABCDEFGHJKLM, Status Antwort von dir nötig',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.bySemanticsLabel('Status: Antwort von dir nötig'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .getSemantics(find.text('Allgemeine Hilfe'))
+          .flagsCollection
+          .isHeader,
+      isTrue,
+    );
+    expect(
+      tester
+          .getSemantics(find.text('Aktueller Stand'))
+          .flagsCollection
+          .isHeader,
+      isTrue,
+    );
+    expect(find.text('Antwort von dir nötig'), findsOneWidget);
+    expect(find.text('waiting_for_user'), findsNothing);
+    semantics.dispose();
+  });
+
+  testWidgets('keyboard activation opens the support case in widget order',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(
+        listLoader: () async => [_supportCase()],
+        detailLoader: (_) async => _detail(),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(FocusManager.instance.primaryFocus, isNotNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Allgemeine Hilfe'), findsOneWidget);
+    expect(find.byKey(const ValueKey('support_user_action')), findsOneWidget);
   });
 
   testWidgets(
