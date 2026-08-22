@@ -280,7 +280,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
       if (!mounted) return;
       final rootNav = Navigator.of(context, rootNavigator: true);
       rootNav.popUntil((route) => route.isFirst);
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      if (!rootNav.mounted) return;
       await _showReservationSentPopup(rootNav.context,
           requestId: stored.id, item: widget.item);
     } catch (e) {
@@ -868,9 +868,10 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       if (!mounted) return;
       await DataService.clearSavedDateRange(widget.item.id);
       await DataService.clearSavedDeliverySelection(widget.item.id);
+      if (!mounted) return;
       final rootNav = Navigator.of(context, rootNavigator: true);
       rootNav.popUntil((route) => route.isFirst);
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      if (!rootNav.mounted) return;
       await _showReservationSentPopup(rootNav.context,
           requestId: stored.id, item: widget.item);
     } catch (e) {
@@ -3161,11 +3162,10 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     }
 
     final current = await DataService.getCurrentUser();
+    if (!mounted || !context.mounted) return;
     if (current == null) {
-      if (context.mounted) {
-        await showGuestRestrictionSheet(context,
-            gateContext: GuestGateContext.rentalRequest);
-      }
+      await showGuestRestrictionSheet(context,
+          gateContext: GuestGateContext.rentalRequest);
       return;
     }
     if (widget.range == null) {
@@ -3178,8 +3178,9 @@ class _BottomActionBarState extends State<_BottomActionBar> {
         itemId: widget.item.id,
         start: widget.range!.start,
         end: widget.range!.end);
+    if (!mounted || !context.mounted) return;
     if (!availableNow) {
-      if (mounted) await _showUnavailablePopup(context);
+      await _showUnavailablePopup(context);
       return;
     }
 
@@ -3191,16 +3192,16 @@ class _BottomActionBarState extends State<_BottomActionBar> {
         end: widget.range!.end,
         expressRequested: false,
       );
-      if (!mounted) return;
+      if (!mounted || !context.mounted) return;
       await AppPopup.toast(context,
           icon: Icons.check_circle_outline,
           title: 'Reservierung aktualisiert.');
+      if (!context.mounted) return;
       Navigator.of(context).maybePop();
       return;
     }
 
     if (PrivatePilotConfig.enabled) {
-      if (!mounted) return;
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => PrivatePilotCheckoutScreen(
@@ -3227,11 +3228,11 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     );
     final stored = await DataService.addRentalRequest(req);
 
-    if (!mounted) return;
+    if (!mounted || !context.mounted) return;
     // Navigate back to Explore: pop to root, then show confirmation on top
     final rootNav = Navigator.of(context, rootNavigator: true);
     rootNav.popUntil((route) => route.isFirst);
-    await Future<void>.delayed(const Duration(milliseconds: 120));
+    if (!rootNav.mounted) return;
     await _showReservationSentPopup(rootNav.context,
         requestId: stored.id, item: widget.item);
   }
@@ -3296,6 +3297,7 @@ Future<void> _showReservationSentPopup(BuildContext context,
     {required String requestId, required Item item}) async {
   final owner = await ItemDetailsOverlay._loadOwner(item.ownerId);
   final range = await DataService.getRentalRequestById(requestId);
+  if (!context.mounted) return;
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
   String formatDate(DateTime value) {
@@ -3513,8 +3515,7 @@ Future<void> _showReservationSentPopup(BuildContext context,
                                 final nav =
                                     Navigator.of(ctx, rootNavigator: true);
                                 nav.pop();
-                                await Future<void>.delayed(
-                                    const Duration(milliseconds: 80));
+                                if (!nav.mounted) return;
                                 await nav.push(
                                   MaterialPageRoute(
                                       builder: (_) => BookingsScreen(
