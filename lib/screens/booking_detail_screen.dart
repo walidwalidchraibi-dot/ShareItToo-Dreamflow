@@ -3361,6 +3361,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       );
       if (challenge == null) return;
     }
+    if (!mounted) return;
 
     final ok = await ReturnHandoverStepperSheet.push(
       context,
@@ -3385,6 +3386,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final counterpartyConfirmed = ok?.confirmed == true;
     if (counterpartyConfirmed && mounted) {
       final ownerUserId = await DataService.getCurrentUser();
+      if (!mounted) return;
       final expectedOwnerId = (widget.booking['ownerId'] as String?)?.trim();
       if (ownerUserId == null ||
           expectedOwnerId == null ||
@@ -3416,6 +3418,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       if (requestId != null && requestId.isNotEmpty) {
         await _syncBookingLifecycleFromRequest(requestId);
       }
+      if (!mounted) return;
       final titleTxt = (widget.booking['title'] as String?) ?? '';
       final listerId = widget.booking['listerId'] as String?;
       final itemId = widget.booking['itemId'] as String?;
@@ -3524,6 +3527,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       );
       if (challenge == null) return;
     }
+    if (!mounted) return;
 
     final ok = await ReturnHandoverStepperSheet.push(
       context,
@@ -3549,8 +3553,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final counterpartyConfirmed = ok?.confirmed == true;
     if (counterpartyConfirmed) {
       try {
+        if (!mounted) return;
         final renterUserId = await _guardAuthenticatedRenter();
-        if (renterUserId == null) return;
+        if (renterUserId == null || !mounted) return;
         final requestId = widget.booking['requestId'] as String?;
         if (requestId != null && requestId.isNotEmpty) {
           final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
@@ -3580,6 +3585,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           bookingId: bookingId,
           message: message,
         );
+        if (!mounted) return;
         AppPopup.toast(
           context,
           icon: Icons.check_circle_outline,
@@ -3720,7 +3726,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
 
       final renterUserId = await _guardAuthenticatedRenter();
-      if (renterUserId == null) return;
+      if (renterUserId == null || !mounted) return;
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         final matches = await _verifySecureChallenge(
@@ -3761,6 +3767,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         title: 'Übergabe bestätigt',
         body: 'Übergabe des Listings "$title" bestätigt.',
       );
+      if (!mounted) return;
       AppPopup.toast(
         context,
         icon: Icons.check_circle_outline,
@@ -3851,6 +3858,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
 
       final ownerUserId = await DataService.getCurrentUser();
+      if (!mounted) return;
       final expectedOwnerId = (widget.booking['ownerId'] as String?)?.trim();
       if (ownerUserId == null ||
           expectedOwnerId == null ||
@@ -3903,6 +3911,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         title: 'Buchung abgeschlossen',
         body: 'Die Rückgabe für "$title" wurde abgeschlossen. Beleg gesendet.',
       );
+      if (!mounted) return;
       AppPopup.toast(
         context,
         icon: Icons.check_circle_outline,
@@ -3959,6 +3968,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
 
       final ownerUserId = await DataService.getCurrentUser();
+      if (!mounted) return;
       final expectedOwnerId = (widget.booking['ownerId'] as String?)?.trim();
       if (ownerUserId == null ||
           expectedOwnerId == null ||
@@ -4010,11 +4020,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         title: 'Buchung abgeschlossen',
         body: 'Die Rückgabe für "$title" wurde abgeschlossen. Beleg gesendet.',
       );
+      if (!mounted) return;
       AppPopup.toast(
         context,
         icon: Icons.check_circle_outline,
         title: 'Rückgabe per Code bestätigt',
       );
+      if (!mounted) return;
       setState(() {
         _showManualReturnEntry = false;
         _manualReturnCodeCtrl.clear();
@@ -4264,7 +4276,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
     try {
       final renterUserId = await _guardAuthenticatedRenter();
-      if (renterUserId == null) return;
+      if (renterUserId == null || !mounted) return;
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         if (!_canStartBookingHandover) {
@@ -4320,11 +4332,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         bookingId: bookingId,
         message: message,
       );
+      if (!mounted) return;
       AppPopup.toast(
         context,
         icon: Icons.check_circle_outline,
         title: 'Übergabe per Code bestätigt',
       );
+      if (!mounted) return;
       setState(() {
         _showManualPickupEntry = false;
         _manualPickupCodeCtrl.clear();
