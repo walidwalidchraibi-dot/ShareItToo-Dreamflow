@@ -1397,3 +1397,24 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AI bookings async-context ratchet
+
+`S4AI_BOOKINGS_ASYNC_CONTEXT_RATCHET` delivers the next downward `TD-RR-010`
+source ratchet at commit `4a050fc`. Booking-card navigation now proves the exact
+card context after its read mutation, and the inline renter review stops after
+user lookup when its owning State has been disposed. Booking state, read
+semantics, review eligibility, quote and navigation destinations are unchanged.
+
+The exact debt snapshot moves `198 -> 196`, and only the intended
+`use_build_context_synchronously` bookings bucket changes. Twenty combined
+booking/quote/privacy source-contract assertions, 55 focused booking/review
+Flutter tests, 73 privacy/retention contracts and the complete clean local
+metadata gate pass with the new exact fingerprint. The privacy inventory is
+rebound to the reviewed source without changing any disclosure or release
+state.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.

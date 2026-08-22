@@ -1934,3 +1934,24 @@ debug build.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AI bookings async-context ratchet
+
+`S4AI_BOOKINGS_ASYNC_CONTEXT_RATCHET` is locally verified at commit `4a050fc`.
+Booking-card navigation now rechecks the exact builder context after its read
+mutation. Inline renter review rechecks its owning State after current-user
+lookup. Booking state, read semantics, review eligibility, quote and navigation
+destinations are unchanged.
+
+The exact analyzer snapshot ratcheted `198 -> 196`, with
+`use_build_context_synchronously` `76 -> 74` and the bookings-screen bucket
+`2 -> 0`; all other buckets remained identical. Twenty combined
+booking/quote/privacy source-contract assertions, 55 focused booking/review
+Flutter tests, 73 privacy/retention contracts and the complete clean local
+metadata gate passed at `4a050fc4a695183e9352de2349255507bccc487f` with 384
+Flutter tests plus one documented skip, Google-only, Web build/smoke and one
+direct 448-task Android debug build. The privacy validator remains honestly
+draft and fail-closed.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
