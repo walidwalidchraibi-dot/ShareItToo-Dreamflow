@@ -27,7 +27,11 @@ const retention = readFileSync(
 test('SUP-121 wiring exposes only an admin and step-up guarded internal preparation path', () => {
   assert.match(
     app,
-    /\/v1\/admin\/support\/cases\/:id\/article-18-assessments[\s\S]*requireAdminRole[\s\S]*requireStaffElevation/u,
+    /const supportArticle18Limiter = rateLimit\(\{[^\n]*limit: 5/u,
+  );
+  assert.match(
+    app,
+    /\/v1\/admin\/support\/cases\/:id\/article-18-assessments[\s\S]*requireAdminRole[\s\S]*requireStaffElevation[\s\S]*supportArticle18Limiter/u,
   );
   assert.match(
     app,
@@ -42,7 +46,7 @@ test('SUP-121 wiring exposes only an admin and step-up guarded internal preparat
 test('SUP-122 dispatch route denies normal agents and stays disabled for admins', () => {
   assert.match(
     app,
-    /article-18-assessments\/:id\/dispatch[\s\S]*requireAdminRole[\s\S]*requireStaffElevation/u,
+    /article-18-assessments\/:id\/dispatch[\s\S]*requireAdminRole[\s\S]*requireStaffElevation[\s\S]*supportArticle18Limiter/u,
   );
   assert.match(workflow, /support_article18_dispatch_admin_required/u);
   assert.match(workflow, /support_article18_external_dispatch_disabled/u);

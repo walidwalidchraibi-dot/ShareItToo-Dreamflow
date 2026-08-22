@@ -1486,6 +1486,7 @@ export function createApp({
   const socialAuthLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const moderationReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const phoneVerificationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -4405,7 +4406,7 @@ export function createApp({
     });
   }));
 
-  app.post('/v1/admin/support/cases/:id/article-18-assessments', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, actionLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/admin/support/cases/:id/article-18-assessments', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportArticle18Limiter, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => recordSupportArticle18Assessment(client, {
       actor: req.actor,
       sessionId: req.auth.sessionId,
@@ -4419,7 +4420,7 @@ export function createApp({
       .json(result);
   }));
 
-  app.post('/v1/admin/support/article-18-assessments/:id/dispatch', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, actionLimiter, asyncRoute(async (req) => {
+  app.post('/v1/admin/support/article-18-assessments/:id/dispatch', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportArticle18Limiter, asyncRoute(async (req) => {
     rejectSupportArticle18ExternalDispatch({
       actor: req.actor,
       assessmentId: safeText(req.params.id, 80),
