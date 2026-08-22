@@ -131,6 +131,7 @@ import { v51DisabledTransportCode } from './v51_transport_domain.js';
 import {
   createAccountLegalHold,
   createBookingReview,
+  createHarassmentBlockReport,
   createReport,
   createStaffElevation,
   getStaffEvidence,
@@ -1570,6 +1571,7 @@ export function createApp({
   const socialAuthLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const harassmentBlockReportLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportSafetyIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportIntakeRateLimiter = (req, res, next) => (
@@ -4160,6 +4162,16 @@ export function createApp({
       raw: req.body,
       idempotencyKey: req.get('Idempotency-Key'),
     }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/reports/harassment-block', requireAuth, requireActiveAccount, harassmentBlockReportLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createHarassmentBlockReport(client, {
+      actor: req.actor,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 

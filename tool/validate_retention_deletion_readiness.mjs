@@ -139,6 +139,8 @@ const sourcePaths = [
   'backend/sql/migrations/058_moderation_account_measure_approval.down.sql',
   'backend/sql/migrations/059_support_message_content_block_audit.up.sql',
   'backend/sql/migrations/059_support_message_content_block_audit.down.sql',
+  'backend/sql/migrations/060_harassment_block_report_guard.up.sql',
+  'backend/sql/migrations/060_harassment_block_report_guard.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -883,6 +885,22 @@ function assertSourceContracts(root, sourceTexts) {
   if (!app.includes('runSupportMessageOperationWithContentAudit')
       || !app.includes("action: 'support.message_content_blocked'")) {
     fail('Support-message blocked-content audit wiring is missing.');
+  }
+  const harassmentBlockReportAuditMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/060_harassment_block_report_guard.up.sql',
+  );
+  for (const marker of [
+    'audit_log_harassment_block_report_request_idx',
+    'audit_log_harassment_block_report_guard',
+    'requestFingerprint',
+    'neutralReviewRequired',
+    'active direct-contact block',
+  ]) {
+    if (!harassmentBlockReportAuditMigration.includes(marker)) {
+      fail(`Harassment block-report retention boundary is missing ${marker}.`);
+    }
   }
   if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
     fail('Retention inventory must remain read-only.');

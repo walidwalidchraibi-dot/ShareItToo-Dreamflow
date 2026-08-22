@@ -33,11 +33,16 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
   bool _submitting = false;
   bool _uploadingEvidence = false;
   bool _success = false;
+  bool _successWasHarassment = false;
+  bool _successHasActiveBlock = false;
 
   User? _reportedUser;
   User? _currentUser;
 
   ReportReason? _reason;
+  bool? _immediateDanger;
+  final String _harassmentIdempotencyKey =
+      'harassment_${DateTime.now().microsecondsSinceEpoch}';
   final TextEditingController _detailsController = TextEditingController();
   final List<_ReportEvidence> _evidence = [];
 
@@ -146,23 +151,43 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
     final me = _currentUser;
     final reason = _reason;
     if (reported == null || me == null || reason == null) return;
+    if (reason == ReportReason.harassment && _immediateDanger != false) return;
 
     setState(() => _submitting = true);
     try {
-      await UserReportsService.addReport(
-        reporterUserId: me.id,
-        reportedUserId: reported.id,
-        reasonCode: _reasonCode(reason),
-        details: _detailsController.text.trim(),
-        evidenceNames: _evidence.map((entry) => entry.name).toList(),
-        evidenceUploadIds: _evidence
-            .map((entry) => entry.uploadId)
-            .whereType<String>()
-            .toList(),
-        reference: widget.reference,
-      );
+      final evidenceNames = _evidence.map((entry) => entry.name).toList();
+      final evidenceUploadIds =
+          _evidence.map((entry) => entry.uploadId).whereType<String>().toList();
+      var harassmentBlockActive = false;
+      if (reason == ReportReason.harassment) {
+        harassmentBlockActive =
+            await UserReportsService.addHarassmentBlockReport(
+          reporterUserId: me.id,
+          reportedUserId: reported.id,
+          immediateDanger: false,
+          idempotencyKey: _harassmentIdempotencyKey,
+          details: _detailsController.text.trim(),
+          evidenceNames: evidenceNames,
+          evidenceUploadIds: evidenceUploadIds,
+          reference: widget.reference,
+        );
+      } else {
+        await UserReportsService.addReport(
+          reporterUserId: me.id,
+          reportedUserId: reported.id,
+          reasonCode: _reasonCode(reason),
+          details: _detailsController.text.trim(),
+          evidenceNames: evidenceNames,
+          evidenceUploadIds: evidenceUploadIds,
+          reference: widget.reference,
+        );
+      }
       if (!mounted) return;
-      setState(() => _success = true);
+      setState(() {
+        _success = true;
+        _successWasHarassment = reason == ReportReason.harassment;
+        _successHasActiveBlock = harassmentBlockActive;
+      });
     } catch (e) {
       debugPrint('[ReportUserScreen] submit failed: $e');
       if (!mounted) return;
@@ -199,6 +224,8 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
                 duration: const Duration(milliseconds: 220),
                 child: _success
                     ? _ReportSuccess(
+                        protectedByBlock: _successWasHarassment,
+                        directContactBlocked: _successHasActiveBlock,
                         onDone: () => Navigator.of(context).maybePop(true))
                     : SingleChildScrollView(
                         key: const ValueKey('form'),
@@ -219,8 +246,10 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
                                         icon: _reasonIcon(r),
                                         title: _reasonLabel(r),
                                         selected: _reason == r,
-                                        onTap: () =>
-                                            setState(() => _reason = r),
+                                        onTap: () => setState(() {
+                                          _reason = r;
+                                          _immediateDanger = null;
+                                        }),
                                       ),
                                       if (r != ReportReason.values.last)
                                         const SizedBox(height: 10),
@@ -228,6 +257,61 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
                                   ],
                                 ),
                               ),
+                              if (_reason == ReportReason.harassment) ...[
+                                const SizedBox(height: 16),
+                                _Section(
+                                  title: 'Besteht unmittelbare Gefahr?',
+                                  child: Column(children: [
+                                    RadioGroup<bool>(
+                                      groupValue: _immediateDanger,
+                                      onChanged: (value) => setState(
+                                          () => _immediateDanger = value),
+                                      child: const Column(children: [
+                                        RadioListTile<bool>(
+                                          key: ValueKey('harassment-non-acute'),
+                                          value: false,
+                                          title: Text(
+                                              'Nein, keine unmittelbare Gefahr'),
+                                          subtitle: Text(
+                                              'Die Person wird blockiert und die Meldung neutral geprüft.'),
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                        RadioListTile<bool>(
+                                          key: ValueKey(
+                                              'harassment-immediate-danger'),
+                                          value: true,
+                                          title: Text('Ja oder unsicher'),
+                                          subtitle: Text(
+                                              'Nutze den unmittelbaren Sicherheitsweg.'),
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                      ]),
+                                    ),
+                                    if (_immediateDanger == true)
+                                      Container(
+                                        key: const ValueKey(
+                                            'immediate-danger-guidance'),
+                                        margin: const EdgeInsets.only(top: 8),
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red
+                                              .withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: Colors.red
+                                                .withValues(alpha: 0.35),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Beende den Kontakt und bringe dich in Sicherheit. '
+                                          'Rufe bei unmittelbarer Gefahr 110 oder 112. '
+                                          'SIT ist kein Notfalldienst; sende diesen akuten Fall nicht über dieses Formular.',
+                                        ),
+                                      ),
+                                  ]),
+                                ),
+                              ],
                               const SizedBox(height: 16),
                               _Section(
                                 title: 'Zusätzliche Details (optional)',
@@ -300,7 +384,9 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
                                   onPressed: (_reason == null ||
                                           _submitting ||
                                           _reportedUser == null ||
-                                          _currentUser == null)
+                                          _currentUser == null ||
+                                          (_reason == ReportReason.harassment &&
+                                              _immediateDanger != false))
                                       ? null
                                       : _submit,
                                   style: ElevatedButton.styleFrom(
@@ -313,7 +399,9 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
                                           height: 18,
                                           child: CircularProgressIndicator(
                                               strokeWidth: 2))
-                                      : const Text('Meldung senden'),
+                                      : Text(_reason == ReportReason.harassment
+                                          ? 'Blockieren und melden'
+                                          : 'Meldung senden'),
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -555,7 +643,13 @@ class _EvidenceChip extends StatelessWidget {
 
 class _ReportSuccess extends StatelessWidget {
   final VoidCallback onDone;
-  const _ReportSuccess({required this.onDone});
+  final bool protectedByBlock;
+  final bool directContactBlocked;
+  const _ReportSuccess({
+    required this.onDone,
+    required this.protectedByBlock,
+    required this.directContactBlocked,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -601,7 +695,15 @@ class _ReportSuccess extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 8),
                   Text(
-                    'Vielen Dank. Wir prüfen den Fall und kümmern uns darum.',
+                    protectedByBlock && directContactBlocked
+                        ? 'Die Person ist für direkten Kontakt blockiert. '
+                            'Die Meldung bleibt für eine neutrale Prüfung offen; '
+                            'damit ist noch kein Verstoß und keine Schuld festgestellt.'
+                        : protectedByBlock
+                            ? 'Die Meldung bleibt für eine neutrale Prüfung offen. '
+                                'Der Kontaktblock ist aktuell nicht aktiv; damit ist '
+                                'noch kein Verstoß und keine Schuld festgestellt.'
+                            : 'Vielen Dank. Wir prüfen den Fall und kümmern uns darum.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium
                         ?.copyWith(color: Colors.white70, height: 1.5),

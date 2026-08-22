@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "d9c9779813a739d62dbd4bda66acf68778f3e0361ce273ae4bcb499523088fad"
+      "sha256": "2230bca27ed2362e44af2b6c06f3279207fa1d5405b96799ccf857b3d247d319"
     },
     {
       "path": "backend/src/server.js",
@@ -17,11 +17,11 @@
     },
     {
       "path": "backend/src/moderation_workflow.js",
-      "sha256": "7ac14f9e7b0f3ed43f4bf3eb7979ed6f441988d9f996f39973196512536f3e4b"
+      "sha256": "d43671cbf3f27520acc1752b4cd0a6cae94ae442bcb4095914203d810f39f2e6"
     },
     {
       "path": "backend/src/moderation_domain.js",
-      "sha256": "3c829d150e81c7db181cca1b69faf2881a86d84dbd6418ac975ad807585c0928"
+      "sha256": "55f46588ffac86b1ca2d49347a169811715818818ae8e9f3050f17028f0439e9"
     },
     {
       "path": "backend/src/moderation_decision_workflow.js",
@@ -536,6 +536,14 @@
       "sha256": "59ef1b083202afa2067bb6f74264ea47b387215d73ea6843ea2e55a1a5ef2ee0"
     },
     {
+      "path": "backend/sql/migrations/060_harassment_block_report_guard.up.sql",
+      "sha256": "b81cd255391a8957e5775f9a7726d19681bec7afeb51a32c1759c5de7e029469"
+    },
+    {
+      "path": "backend/sql/migrations/060_harassment_block_report_guard.down.sql",
+      "sha256": "5bd24011a25dbfcd1cc7fca5d1936be04ae2f61752012daf310e9aa2ecf2dab2"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -581,7 +589,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "71af33d115f9d80fb11b1fe07d4ff18242b29a3d468028f929cf27d7ec84b180"
+      "sha256": "bca3fef34e7485af0473c5c13a5b530f8d9280abbbf0046e09a2ba21ce0f2988"
     },
     {
       "path": "lib/screens/help_center_screen.dart",

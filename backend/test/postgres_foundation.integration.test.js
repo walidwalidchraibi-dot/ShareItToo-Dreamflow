@@ -78,6 +78,7 @@ if (!databaseUrl) {
     const { runMigrations } = await import('../src/migrations.js');
 
     let server;
+    let s4jServer;
     let applicationPool;
     try {
       await setupPool.query(schema);
@@ -146,6 +147,7 @@ if (!databaseUrl) {
         '057_account_recovery_session_integrity.up.sql',
         '058_moderation_account_measure_approval.up.sql',
         '059_support_message_content_block_audit.up.sql',
+        '060_harassment_block_report_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -541,6 +543,7 @@ if (!databaseUrl) {
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
            ('s4h-target', 's4h-target@example.com', '{}'::jsonb, 'user', 'active'),
            ('s4h-provisional', 's4h-provisional@example.com', '{}'::jsonb, 'user', 'active'),
+           ('s4j-target', 's4j-target@example.com', '{}'::jsonb, 'user', 'active'),
            ('admin', 'admin@example.com', '{}'::jsonb, 'admin', 'active'),
            ('admin-reviewer', 'admin-reviewer@example.com', '{}'::jsonb, 'admin', 'active'),
            ('support', 'support@example.com', '{}'::jsonb, 'support', 'active'),
@@ -6455,6 +6458,236 @@ if (!databaseUrl) {
       assert.equal(supportUsers.status, 200);
       assert.ok((await supportUsers.json()).users.every((user) => !Object.hasOwn(user, 'email')));
 
+      s4jServer = http.createServer(createApp());
+      await new Promise((resolve) => s4jServer.listen(0, '127.0.0.1', resolve));
+      const s4jBaseUrl = `http://127.0.0.1:${s4jServer.address().port}`;
+
+      const genericHarassmentReport = await fetch(`${s4jBaseUrl}/v1/reports`, {
+        method: 'POST',
+        headers: {
+          ...renterBHeaders,
+          'Idempotency-Key': 's4j-generic-path-blocked',
+        },
+        body: JSON.stringify({
+          targetType: 'user',
+          targetId: 's4j-target',
+          reasonCode: 'harassment',
+        }),
+      });
+      assert.equal(genericHarassmentReport.status, 409);
+      assert.equal(
+        (await genericHarassmentReport.json()).error,
+        'harassment_requires_block_report_path',
+      );
+
+      const acuteHarassmentReport = await fetch(
+        `${s4jBaseUrl}/v1/reports/harassment-block`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterBHeaders,
+            'Idempotency-Key': 's4j-acute-safety-path',
+          },
+          body: JSON.stringify({
+            targetUserId: 's4j-target',
+            immediateDanger: true,
+          }),
+        },
+      );
+      assert.equal(acuteHarassmentReport.status, 409);
+      assert.equal(
+        (await acuteHarassmentReport.json()).error,
+        'immediate_danger_requires_safety_path',
+      );
+
+      const clientOwnedPriority = await fetch(
+        `${s4jBaseUrl}/v1/reports/harassment-block`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterBHeaders,
+            'Idempotency-Key': 's4j-client-priority-blocked',
+          },
+          body: JSON.stringify({
+            targetUserId: 's4j-target',
+            immediateDanger: false,
+            priority: 'urgent',
+          }),
+        },
+      );
+      assert.equal(clientOwnedPriority.status, 400);
+      assert.equal(
+        (await clientOwnedPriority.json()).error,
+        'invalid_harassment_block_report_fields',
+      );
+
+      const rolledBackHarassmentReport = await fetch(
+        `${s4jBaseUrl}/v1/reports/harassment-block`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterBHeaders,
+            'Idempotency-Key': 's4j-atomic-rollback',
+          },
+          body: JSON.stringify({
+            targetUserId: 'suspended',
+            immediateDanger: false,
+          }),
+        },
+      );
+      assert.equal(rolledBackHarassmentReport.status, 404);
+      assert.equal((await rolledBackHarassmentReport.json()).error, 'user_not_found');
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM reports
+          WHERE reporter_id = 'renter-b'
+            AND target_type = 'user'
+            AND target_id = 'suspended'`,
+      )).rows[0].count, 0);
+
+      const createHarassmentBlockReport = (
+        idempotencyKey = 's4j-non-acute-atomic',
+      ) => fetch(
+        `${s4jBaseUrl}/v1/reports/harassment-block`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterBHeaders,
+            'Idempotency-Key': idempotencyKey,
+          },
+          body: JSON.stringify({
+            targetUserId: 's4j-target',
+            immediateDanger: false,
+            details: 'Kontrollierter nicht-akuter Integrationsfall.',
+            reference: 'S4J-SUP-094',
+          }),
+        },
+      );
+      const harassmentResponse = await createHarassmentBlockReport();
+      assert.equal(harassmentResponse.status, 201);
+      assert.equal(harassmentResponse.headers.get('cache-control'), 'private, no-store');
+      const harassmentResult = await harassmentResponse.json();
+      assert.equal(harassmentResult.report.reasonCode, 'harassment');
+      assert.equal(harassmentResult.report.priority, 'normal');
+      assert.equal(harassmentResult.report.status, 'open');
+      assert.deepEqual(harassmentResult.protection, {
+        directContactBlocked: true,
+        neutralReviewRequired: true,
+        guiltDetermined: false,
+        moderationAccountMeasureTaken: false,
+        externalActionTaken: false,
+      });
+      const harassmentPersistence = await setupPool.query(
+        `SELECT
+           (SELECT count(*)::int FROM reports
+             WHERE reporter_id = 'renter-b'
+               AND target_type = 'user'
+               AND target_id = 's4j-target'
+               AND reason_code = 'harassment') AS reports,
+           (SELECT count(*)::int FROM user_blocks
+             WHERE blocker_id = 'renter-b'
+               AND blocked_id = 's4j-target'
+               AND unblocked_at IS NULL) AS blocks,
+           (SELECT count(*)::int FROM audit_log
+             WHERE actor_id = 'renter-b'
+               AND action = 'report.harassment_blocked_for_reporter') AS receipts`,
+      );
+      assert.deepEqual(harassmentPersistence.rows[0], {
+        reports: 1,
+        blocks: 1,
+        receipts: 1,
+      });
+      const harassmentAudit = await setupPool.query(
+        `SELECT metadata FROM audit_log
+          WHERE actor_id = 'renter-b'
+            AND action = 'report.harassment_blocked_for_reporter'`,
+      );
+      assert.deepEqual(harassmentAudit.rows[0].metadata, {
+        reasonCode: 'harassment',
+        immediateDanger: false,
+        directContactBlocked: true,
+        neutralReviewRequired: true,
+        guiltDetermined: false,
+        moderationAccountMeasureTaken: false,
+        externalActionTaken: false,
+        requestFingerprint: harassmentAudit.rows[0].metadata.requestFingerprint,
+      });
+      assert.match(
+        harassmentAudit.rows[0].metadata.requestFingerprint,
+        /^[0-9a-f]{64}$/u,
+      );
+
+      const replayedHarassmentResponse = await createHarassmentBlockReport();
+      assert.equal(replayedHarassmentResponse.status, 200);
+      assert.equal((await replayedHarassmentResponse.json()).replayed, true);
+      const semanticHarassmentReplay = await createHarassmentBlockReport(
+        's4j-non-acute-semantic-replay',
+      );
+      assert.equal(semanticHarassmentReplay.status, 200);
+      assert.equal((await semanticHarassmentReplay.json()).replayed, true);
+      assert.deepEqual((await setupPool.query(
+        `SELECT
+           (SELECT count(*)::int FROM reports
+             WHERE reporter_id = 'renter-b'
+               AND target_id = 's4j-target'
+               AND reason_code = 'harassment') AS reports,
+           (SELECT count(*)::int FROM user_blocks
+             WHERE blocker_id = 'renter-b'
+               AND blocked_id = 's4j-target'
+               AND unblocked_at IS NULL) AS blocks,
+           (SELECT count(*)::int FROM audit_log
+             WHERE actor_id = 'renter-b'
+               AND action = 'report.harassment_blocked_for_reporter') AS receipts`,
+      )).rows[0], { reports: 1, blocks: 1, receipts: 1 });
+
+      const conflictingHarassmentReplay = await fetch(
+        `${s4jBaseUrl}/v1/reports/harassment-block`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterBHeaders,
+            'Idempotency-Key': 's4j-non-acute-atomic',
+          },
+          body: JSON.stringify({
+            targetUserId: 's4j-target',
+            immediateDanger: false,
+            details: 'Abweichender Payload.',
+            reference: 'S4J-SUP-094',
+          }),
+        },
+      );
+      assert.equal(conflictingHarassmentReplay.status, 409);
+      assert.equal(
+        (await conflictingHarassmentReplay.json()).error,
+        'harassment_block_report_idempotency_conflict',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO audit_log (
+             actor_id, actor_role, action, resource_type, resource_id,
+             request_id, metadata
+           ) VALUES (
+             'renter-b', 'user', 'report.harassment_blocked_for_reporter',
+             'report', $1, 'report.harassment_block:s4j-forged', $2::jsonb
+           )`,
+          [
+            harassmentResult.report.id,
+            JSON.stringify({
+              reasonCode: 'harassment',
+              immediateDanger: false,
+              directContactBlocked: false,
+              neutralReviewRequired: true,
+              guiltDetermined: false,
+              moderationAccountMeasureTaken: false,
+              externalActionTaken: false,
+              requestFingerprint: 'a'.repeat(64),
+            }),
+          ],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'harassment block-report audit must remain exact and neutral',
+      );
+
       const reportEvidenceForm = new FormData();
       reportEvidenceForm.append('purpose', 'report_evidence');
       reportEvidenceForm.append('file', new Blob([listingImage], { type: 'image/jpeg' }), 'evidence.jpg');
@@ -8146,6 +8379,20 @@ if (!databaseUrl) {
             === 'cannot roll back support message content-block guard while audit evidence exists',
       );
 
+      const harassmentBlockReportDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/060_harassment_block_report_guard.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(harassmentBlockReportDown),
+        (error) => error?.code === 'P0001'
+          && error?.message
+            === 'cannot roll back harassment block-report guard while audit evidence exists',
+      );
+
       const g3bDown = await fs.readFile(
         path.resolve(currentDir, '../sql/migrations/028_g3b_booking_group_foundation.down.sql'),
         'utf8',
@@ -8266,6 +8513,11 @@ if (!databaseUrl) {
       assert.equal(limitedAttempts.at(-1).status, 429);
       assert.equal((await limitedAttempts.at(-1).json()).error, 'rate_limit_exceeded');
     } finally {
+      if (s4jServer) {
+        await new Promise((resolve, reject) => s4jServer.close((error) => (
+          error ? reject(error) : resolve()
+        )));
+      }
       if (server) {
         await new Promise((resolve, reject) => server.close((error) => (
           error ? reject(error) : resolve()

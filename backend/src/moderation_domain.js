@@ -109,6 +109,40 @@ export function normalizeReportInput(raw) {
   };
 }
 
+export function normalizeHarassmentBlockReportInput(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ModerationDomainError(400, 'invalid_harassment_block_report');
+  }
+  const allowedKeys = new Set([
+    'targetUserId',
+    'immediateDanger',
+    'details',
+    'reference',
+    'evidenceUploadIds',
+  ]);
+  if (Object.keys(raw).some((key) => !allowedKeys.has(key))) {
+    throw new ModerationDomainError(400, 'invalid_harassment_block_report_fields');
+  }
+  if (raw.immediateDanger === true) {
+    throw new ModerationDomainError(409, 'immediate_danger_requires_safety_path');
+  }
+  if (raw.immediateDanger !== false) {
+    throw new ModerationDomainError(400, 'non_acute_confirmation_required');
+  }
+  return Object.freeze({
+    ...normalizeReportInput({
+      targetType: 'user',
+      targetId: raw.targetUserId,
+      reasonCode: 'harassment',
+      priority: 'normal',
+      details: raw.details,
+      reference: raw.reference,
+      evidenceUploadIds: raw.evidenceUploadIds,
+    }),
+    immediateDanger: false,
+  });
+}
+
 export function canTransitionReport({ role, fromStatus, toStatus }) {
   if (fromStatus === toStatus) return true;
   return REPORT_TRANSITIONS[role]?.[fromStatus]?.has(toStatus) === true;

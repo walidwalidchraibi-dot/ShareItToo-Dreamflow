@@ -126,6 +126,8 @@ const sourcePaths = [
   'backend/sql/migrations/058_moderation_account_measure_approval.down.sql',
   'backend/sql/migrations/059_support_message_content_block_audit.up.sql',
   'backend/sql/migrations/059_support_message_content_block_audit.down.sql',
+  'backend/sql/migrations/060_harassment_block_report_guard.up.sql',
+  'backend/sql/migrations/060_harassment_block_report_guard.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -384,6 +386,26 @@ function assertSourceContracts({ root, sourceTexts }) {
   ]) {
     if (!new RegExp(`${marker}[\\s\\S]{0,120}android:value="false"`).test(android)) {
       fail(`Android Firebase opt-in default is missing ${marker}=false.`);
+    }
+  }
+  const harassmentBlockReportAuditMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/060_harassment_block_report_guard.up.sql',
+  );
+  for (const marker of [
+    'report.harassment_blocked_for_reporter',
+    'immediateDanger',
+    'directContactBlocked',
+    'neutralReviewRequired',
+    'guiltDetermined',
+    'moderationAccountMeasureTaken',
+    'externalActionTaken',
+    'requestFingerprint',
+    'active direct-contact block',
+  ]) {
+    if (!harassmentBlockReportAuditMigration.includes(marker)) {
+      fail(`Harassment block-report privacy boundary is missing ${marker}.`);
     }
   }
 

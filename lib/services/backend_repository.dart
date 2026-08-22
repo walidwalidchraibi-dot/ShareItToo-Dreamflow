@@ -1015,6 +1015,30 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['report'] as Map);
   }
 
+  static Future<Map<String, dynamic>> createHarassmentBlockReport({
+    required String targetUserId,
+    required bool immediateDanger,
+    required String idempotencyKey,
+    String details = '',
+    String? reference,
+    List<String> evidenceUploadIds = const <String>[],
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/reports/harassment-block',
+      body: {
+        'targetUserId': targetUserId,
+        'immediateDanger': immediateDanger,
+        if (details.trim().isNotEmpty) 'details': details.trim(),
+        if ((reference ?? '').trim().isNotEmpty) 'reference': reference!.trim(),
+        if (evidenceUploadIds.isNotEmpty)
+          'evidenceUploadIds': evidenceUploadIds,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response);
+  }
+
   static Future<List<Map<String, dynamic>>> getMyReports() async {
     final response = await _authorized(method: 'GET', path: '/reports/mine');
     return _maps(response['reports']);

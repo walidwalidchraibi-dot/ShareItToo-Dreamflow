@@ -5,11 +5,13 @@ import {
   assertReportTransition,
   ModerationDomainError,
   moderationIdempotencyKey,
+  normalizeHarassmentBlockReportInput,
   normalizeReportInput,
   normalizeReviewInput,
   shapeReview,
   shapeStaffUser,
 } from './moderation_domain.js';
+import { blockUser } from './message_workflow.js';
 import { verifyPassword } from './security.js';
 import { persistModerationDecision } from './moderation_decision_workflow.js';
 import { provisionalAccountMeasureNotice } from './moderation_account_measure_domain.js';
@@ -36,11 +38,43 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-async function audit(client, { actor, action, resourceType, resourceId, metadata = {} }) {
+async function audit(client, {
+  actor,
+  action,
+  resourceType,
+  resourceId,
+  requestId = null,
+  metadata = {},
+}) {
+  if (requestId === null) {
+    await client.query(
+      `INSERT INTO audit_log (
+         actor_id, actor_role, action, resource_type, resource_id, metadata
+       ) VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+      [
+        actor?.id ?? null,
+        actor?.role ?? 'system',
+        action,
+        resourceType,
+        resourceId,
+        JSON.stringify(metadata),
+      ],
+    );
+    return;
+  }
   await client.query(
-    `INSERT INTO audit_log (actor_id, actor_role, action, resource_type, resource_id, metadata)
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
-    [actor?.id ?? null, actor?.role ?? 'system', action, resourceType, resourceId, JSON.stringify(metadata)],
+    `INSERT INTO audit_log (
+       actor_id, actor_role, action, resource_type, resource_id, request_id, metadata
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
+    [
+      actor?.id ?? null,
+      actor?.role ?? 'system',
+      action,
+      resourceType,
+      resourceId,
+      requestId,
+      JSON.stringify(metadata),
+    ],
   );
 }
 
@@ -140,8 +174,18 @@ async function bindEvidence(client, { actorId, reportId, uploadIds }) {
   return result.rows;
 }
 
-export async function createReport(client, { actor, raw, idempotencyKey }) {
+export async function createReport(client, {
+  actor,
+  raw,
+  idempotencyKey,
+  allowProtectedHarassment = false,
+}) {
   const report = normalizeReportInput(raw);
+  if (report.targetType === 'user'
+      && report.reasonCode === 'harassment'
+      && !allowProtectedHarassment) {
+    throw new ModerationWorkflowError(409, 'harassment_requires_block_report_path');
+  }
   await assertReportTarget(client, actor.id, report);
   const existing = await client.query(
     `SELECT * FROM reports
@@ -191,6 +235,185 @@ export async function createReport(client, { actor, raw, idempotencyKey }) {
     metadata: { targetType: row.target_type, targetId: row.target_id, evidenceCount: evidence.length },
   });
   return { report: reportShape(row), replayed: false };
+}
+
+function harassmentRequestFingerprint(report) {
+  return crypto.createHash('sha256').update(JSON.stringify({
+    targetUserId: report.targetId,
+    immediateDanger: false,
+    details: report.details,
+    reference: report.reporterReference,
+    evidenceUploadIds: [...report.evidenceUploadIds].sort(),
+  })).digest('hex');
+}
+
+function harassmentProtectionShape({ directContactBlocked }) {
+  return Object.freeze({
+    directContactBlocked,
+    neutralReviewRequired: true,
+    guiltDetermined: false,
+    moderationAccountMeasureTaken: false,
+    externalActionTaken: false,
+  });
+}
+
+async function directContactBlockIsActive(client, blockerId, blockedId) {
+  const activeBlock = await client.query(
+    `SELECT 1 FROM user_blocks
+      WHERE blocker_id = $1 AND blocked_id = $2 AND unblocked_at IS NULL`,
+    [blockerId, blockedId],
+  );
+  return activeBlock.rowCount === 1;
+}
+
+export async function createHarassmentBlockReport(client, {
+  actor,
+  raw,
+  idempotencyKey,
+}) {
+  const reportInput = normalizeHarassmentBlockReportInput(raw);
+  const requestId = moderationIdempotencyKey(
+    idempotencyKey,
+    'report.harassment_block',
+  );
+  const requestFingerprint = harassmentRequestFingerprint(reportInput);
+
+  await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [actor.id]);
+  const prior = await client.query(
+    `SELECT report.*, receipt.metadata
+       FROM audit_log AS receipt
+       JOIN reports AS report ON report.id::text = receipt.resource_id
+      WHERE receipt.actor_id = $1
+        AND receipt.action = 'report.harassment_blocked_for_reporter'
+        AND receipt.request_id = $2
+      LIMIT 1`,
+    [actor.id, requestId],
+  );
+  if (prior.rowCount) {
+    if (prior.rows[0].metadata?.requestFingerprint !== requestFingerprint) {
+      throw new ModerationWorkflowError(409, 'harassment_block_report_idempotency_conflict');
+    }
+    return {
+      report: reportShape(prior.rows[0]),
+      protection: harassmentProtectionShape({
+        directContactBlocked: await directContactBlockIsActive(
+          client,
+          actor.id,
+          prior.rows[0].target_id,
+        ),
+      }),
+      replayed: true,
+    };
+  }
+
+  const activeReport = await client.query(
+    `SELECT report.*, receipt.metadata AS protection_metadata
+       FROM reports AS report
+       LEFT JOIN LATERAL (
+         SELECT metadata
+           FROM audit_log
+          WHERE action = 'report.harassment_blocked_for_reporter'
+            AND resource_type = 'report'
+            AND resource_id = report.id::text
+          ORDER BY id DESC
+          LIMIT 1
+       ) AS receipt ON true
+      WHERE report.reporter_id = $1
+        AND report.target_type = 'user'
+        AND report.target_id = $2
+        AND report.reason_code = 'harassment'
+        AND report.status IN ('open', 'triaged', 'investigating', 'actioned')
+      ORDER BY report.created_at DESC
+      LIMIT 1
+      FOR UPDATE OF report`,
+    [actor.id, reportInput.targetId],
+  );
+  let created;
+  if (activeReport.rowCount) {
+    const active = activeReport.rows[0];
+    if (active.protection_metadata) {
+      if (active.protection_metadata.requestFingerprint !== requestFingerprint) {
+        throw new ModerationWorkflowError(
+          409,
+          'active_harassment_block_report_already_exists',
+          { reportId: active.id },
+        );
+      }
+      return {
+        report: reportShape(active),
+        protection: harassmentProtectionShape({
+          directContactBlocked: await directContactBlockIsActive(
+            client,
+            actor.id,
+            active.target_id,
+          ),
+        }),
+        replayed: true,
+      };
+    }
+    const existingEvidence = await client.query(
+      `SELECT upload_id::text AS upload_id
+         FROM report_evidence
+        WHERE report_id = $1
+        ORDER BY upload_id::text`,
+      [active.id],
+    );
+    const sameExistingPayload = active.priority === reportInput.priority
+      && active.details === reportInput.details
+      && active.reporter_reference === reportInput.reporterReference
+      && JSON.stringify(existingEvidence.rows.map((row) => row.upload_id))
+        === JSON.stringify([...reportInput.evidenceUploadIds].sort());
+    if (!sameExistingPayload) {
+      throw new ModerationWorkflowError(
+        409,
+        'active_harassment_report_requires_review',
+        { reportId: active.id },
+      );
+    }
+    created = { report: reportShape(active), replayed: true };
+  } else {
+    created = await createReport(client, {
+      actor,
+      raw: {
+        targetType: reportInput.targetType,
+        targetId: reportInput.targetId,
+        reasonCode: reportInput.reasonCode,
+        priority: reportInput.priority,
+        details: reportInput.details,
+        reference: reportInput.reporterReference,
+        evidenceUploadIds: reportInput.evidenceUploadIds,
+      },
+      idempotencyKey,
+      allowProtectedHarassment: true,
+    });
+  }
+  await blockUser(client, {
+    actor,
+    blockedId: reportInput.targetId,
+    reasonCode: 'harassment_reporter_protection',
+  });
+  await audit(client, {
+    actor,
+    action: 'report.harassment_blocked_for_reporter',
+    resourceType: 'report',
+    resourceId: created.report.id,
+    requestId,
+    metadata: {
+      reasonCode: 'harassment',
+      immediateDanger: false,
+      directContactBlocked: true,
+      neutralReviewRequired: true,
+      guiltDetermined: false,
+      moderationAccountMeasureTaken: false,
+      externalActionTaken: false,
+      requestFingerprint,
+    },
+  });
+  return {
+    report: created.report,
+    protection: harassmentProtectionShape({ directContactBlocked: true }),
+    replayed: false,
+  };
 }
 
 export async function listMyReports(client, actorId) {

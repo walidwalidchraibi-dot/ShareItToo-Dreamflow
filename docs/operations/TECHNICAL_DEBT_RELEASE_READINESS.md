@@ -35,6 +35,20 @@ claimed until every item below has reproducible evidence and is closed.
   close `TD-RR-002`; the suite still needs repository-owned isolated limiter
   state and separate repeatable threshold tests. The fresh PostgreSQL 16
   instance was again started manually, so `TD-RR-004` also remains open.
+- 22.08.2026, S4J: the first integration run reproduced `TD-RR-002`: six new
+  harassment endpoint requests consumed the monolithic application's remaining
+  general-limit budget and a later unchanged compliance request received 429.
+  No wait, IP rotation, bypass or increased general limit was accepted. The S4J
+  HTTP scenario now owns a fresh application/limiter instance while continuing
+  against the same isolated PostgreSQL transaction fixture; the canonical
+  integration then passed twice consecutively from fresh databases. This is
+  deterministic scenario isolation, but
+  `TD-RR-002` remains open until the whole monolith is split and real thresholds
+  pass separately and repeatedly.
+- 22.08.2026, S4J: the focused Flutter check still used concurrency one and the
+  PostgreSQL instance still required manual lifecycle commands. These runs do
+  not close `TD-RR-003` or `TD-RR-004`; neither accommodation may be part of the
+  release-ready path.
 
 ## Closure rule
 

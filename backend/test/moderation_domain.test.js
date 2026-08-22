@@ -6,6 +6,7 @@ import {
   canTransitionReport,
   ModerationDomainError,
   moderationIdempotencyKey,
+  normalizeHarassmentBlockReportInput,
   normalizeReportInput,
   normalizeReviewInput,
   shapeStaffUser,
@@ -27,6 +28,50 @@ test('report input is bounded, categorized and deduplicates evidence', () => {
   assert.equal(report.targetType, 'user');
   assert.equal(report.priority, 'high');
   assert.equal(report.evidenceUploadIds.length, 1);
+});
+
+test('non-acute harassment intake owns reason and priority server-side', () => {
+  const report = normalizeHarassmentBlockReportInput({
+    targetUserId: 'user-2',
+    immediateDanger: false,
+    details: 'Dokumentierter nicht-akuter Testfall',
+    evidenceUploadIds: [
+      '11111111-1111-1111-1111-111111111111',
+      '11111111-1111-1111-1111-111111111111',
+    ],
+  });
+  assert.equal(report.targetType, 'user');
+  assert.equal(report.targetId, 'user-2');
+  assert.equal(report.reasonCode, 'harassment');
+  assert.equal(report.priority, 'normal');
+  assert.equal(report.immediateDanger, false);
+  assert.equal(report.evidenceUploadIds.length, 1);
+});
+
+test('harassment intake diverts acute danger and rejects client-owned policy fields', () => {
+  assert.throws(
+    () => normalizeHarassmentBlockReportInput({
+      targetUserId: 'user-2',
+      immediateDanger: true,
+    }),
+    (error) => error instanceof ModerationDomainError
+      && error.status === 409
+      && error.code === 'immediate_danger_requires_safety_path',
+  );
+  assert.throws(
+    () => normalizeHarassmentBlockReportInput({
+      targetUserId: 'user-2',
+      immediateDanger: false,
+      priority: 'urgent',
+    }),
+    (error) => error instanceof ModerationDomainError
+      && error.code === 'invalid_harassment_block_report_fields',
+  );
+  assert.throws(
+    () => normalizeHarassmentBlockReportInput({ targetUserId: 'user-2' }),
+    (error) => error instanceof ModerationDomainError
+      && error.code === 'non_acute_confirmation_required',
+  );
 });
 
 test('report workflow separates support triage from admin action', () => {
