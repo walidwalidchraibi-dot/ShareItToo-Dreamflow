@@ -2281,3 +2281,32 @@ required deterministic release-host capacity evidence.
 
 `TD-RR-010` remains open for the remaining 59 unused-code diagnostics and
 exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AX DataService dead demo-code ratchet
+
+`S4AX_DATA_SERVICE_DEAD_DEMO_CODE_RATCHET` is locally verified at
+implementation commit `0fcf3dd`. Four unreferenced demo remnants and their
+orphaned prefix are removed from DataService. Current-user-bound debug QA
+fixtures, showcase category initialization, real request persistence, express
+timeouts, participant threads and canonical support remain guarded. Quote,
+Payment, refund, privacy, retention, audit and `needsReview` behavior are
+unchanged.
+
+The exact analyzer snapshot ratcheted `59 -> 55`: `unused_element` moved
+`36 -> 32`, `unused_element_parameter` remained `17`, `unused_field` remained
+`6`, and the DataService analyzer bucket is now zero. Ninety-eight focused
+source/analyzer/privacy/retention/data-integrity contracts, 125 focused Flutter
+tests and the privacy, retention, G2 lifecycle and analyzer validators pass.
+The complete standard-parallel gate passed in one execution at `0fcf3dd` with
+384 Flutter tests plus one documented skip, Google-only, Web build/smoke and
+one direct 448-task Android debug build. S4AW exact CI run `32603729530` is
+green.
+
+The S4AX gate used no retry, cleanup, alternate temp root or changed
+parallelism; free data-volume capacity measured 980 MiB before and 984 MiB
+after. `TD-RR-012` remains open because this is not deterministic release-host
+capacity evidence.
+
+`TD-RR-010` remains open for the remaining 55 screen-only unused-code
+diagnostics and exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live
+boundary changed.
