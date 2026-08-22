@@ -176,6 +176,9 @@ test('approved public imprint exposes only the confirmed provider identity', () 
       representative: 'Example Representative',
       contentResponsible: 'Example Responsible',
     },
+    consumerDispute: {
+      isComplete: true,
+    },
   });
 
   assert.match(imprint, /data-sit-compliance-status="approved"/);
@@ -183,6 +186,27 @@ test('approved public imprint exposes only the confirmed provider identity', () 
   assert.match(imprint, /Example Representative/);
   assert.match(imprint, /Example Responsible/);
   assert.match(imprint, /mailto:contact\.invalid/);
+  assert.match(imprint, /soweit keine gesetzliche Verpflichtung im Einzelfall besteht/);
+});
+
+test('public imprint stays draft when the VSBG configuration is incomplete', () => {
+  const imprint = accountActions.publicImprintPage({
+    compliance: {
+      approved: true,
+      providerName: 'Example Provider',
+      providerAddress: 'Example Address',
+      supportEmail: 'contact.invalid',
+      representative: 'Example Representative',
+      contentResponsible: 'Example Responsible',
+    },
+    consumerDispute: {
+      isComplete: false,
+    },
+  });
+
+  assert.match(imprint, /data-sit-compliance-status="draft"/);
+  assert.doesNotMatch(imprint, /Example Provider/);
+  assert.match(imprint, /Verbraucherstreitbeilegung/);
 });
 
 test('approved public support page exposes a clear electronic notice and complaint route', () => {

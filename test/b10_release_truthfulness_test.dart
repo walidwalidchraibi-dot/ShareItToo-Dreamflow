@@ -216,7 +216,11 @@ void main() {
 
     expect(source, isNot(contains('OPENAI_PROXY_API_KEY')));
     expect(source, isNot(contains("'Authorization': 'Bearer")));
-    expect(RegExp(r'if \(!isAvailable\)').allMatches(source).length, 5);
+    expect(source, isNot(contains('package:http/http.dart')));
+    expect(source, isNot(contains('http.post')));
+    expect(source, contains('externalAiNetworkAllowed = false'));
+    expect(source, contains('directAiChatEnabled = false'));
+    expect(source, contains('static bool get isAvailable => false'));
   });
 
   test('account security copy does not present demo 2FA as real protection',

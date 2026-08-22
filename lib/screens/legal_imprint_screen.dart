@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/config/consumer_dispute_config.dart';
 import 'package:lendify/config/legal_provider_config.dart';
 import 'package:lendify/screens/legal_detail_scaffold.dart';
 
@@ -70,11 +71,7 @@ class LegalImprintScreen extends StatelessWidget {
           icon: Icons.balance_outlined,
           title: 'Verbraucherstreitbeilegung',
           children: [
-            LegalParagraph(
-              approved
-                  ? 'Wir sind zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle weder verpflichtet noch bereit.'
-                  : 'Die Erklärung zur Verbraucherstreitbeilegung wird zusammen mit der Anbieterkennzeichnung vor der Veröffentlichung geprüft.',
-            ),
+            LegalParagraph(ConsumerDisputeConfig.generalInformationText),
           ],
         ),
       ],

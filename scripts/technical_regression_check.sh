@@ -50,6 +50,11 @@ node --check tool/validate_legal_readiness.mjs
 node --test test/tool/validate_legal_readiness.test.mjs
 node tool/validate_legal_readiness.mjs
 
+node --check tool/validate_support_launch_content.mjs
+node --test test/tool/validate_support_launch_content.test.mjs
+node --test backend/test/consumer_dispute_config.test.js backend/test/support_message_domain.test.js backend/test/support_message_workflow.test.js
+node tool/validate_support_launch_content.mjs
+
 node --check tool/validate_founder_independence_guardrails.mjs
 node --test test/tool/validate_founder_independence_guardrails.test.mjs
 node tool/validate_founder_independence_guardrails.mjs
@@ -431,7 +436,12 @@ if (( analyze_status != 0 )) && (( issue_count == 0 )); then
   exit 1
 fi
 
-flutter test --reporter expanded
+flutter_test_concurrency="${SIT_FLUTTER_TEST_CONCURRENCY:-1}"
+if [[ ! "$flutter_test_concurrency" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: SIT_FLUTTER_TEST_CONCURRENCY must be a positive integer." >&2
+  exit 1
+fi
+flutter test --reporter expanded --concurrency "$flutter_test_concurrency"
 
 # Compile and execute the exact next social-auth profile without producing a
 # release artifact: Google is opt-in, while Apple and Facebook remain closed.

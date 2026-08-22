@@ -450,3 +450,29 @@ The detailed dossier is
 They are no longer authorization by inference: Walid explicitly authorized the
 ordered continuation on 21.08.2026. Their substantive prerequisites remain
 unchanged.
+
+## S3U support AI and VSBG launch gates
+
+`S3U_SUPPORT_AI_VSBG_LAUNCH_GATES` is locally verified on 22.08.2026 and
+awaits exact pushed-commit/CI evidence. It addresses Drive matrix scenarios
+`SUP-132` through `SUP-136` without opening a live lane:
+
+- direct and external AI remain unavailable and transport-free;
+- any future direct AI chat requires a separate transparency/privacy/provider
+  package rather than a flag change;
+- VSBG configuration is shared, explicit and default-closed across app,
+  Backend, Compose examples and Android build inputs;
+- unresolved/TBD facts block public compliance and Store preflight;
+- T-053 alone has an Administrator-only, independent exact-hash RED review and
+  authenticated in-app publication path with all regulated values server-bound;
+- old EU ODR links fail static and release validation.
+
+Local final gates passed: 482 Backend/PostgreSQL tests through migration `048`,
+361 Flutter tests plus one documented skip, the Google-only test, accepted
+220-issue analyzer baseline, 58 Privacy/Retention protection tests, Legal/P0B
+hold checks, Web debug/smoke and Android debug APK. Exact CI evidence will be
+recorded after the implementation head is pushed and green. Professional legal
+review, operator facts, competent-body approval, real support staffing,
+external delivery, production, payment, Store, signed-candidate and every live
+path remain closed. Autonomous work continues next with `SUP-137` only after
+S3U commit/CI evidence is complete.

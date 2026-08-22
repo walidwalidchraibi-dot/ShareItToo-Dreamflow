@@ -5624,6 +5624,7 @@ if (!databaseUrl) {
         pages: {
           support: 'draft',
           privacy: 'draft',
+          consumerDispute: 'draft',
           accountDeletion: 'operational',
         },
       });

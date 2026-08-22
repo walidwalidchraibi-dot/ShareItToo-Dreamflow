@@ -405,7 +405,8 @@ class _SearchSheetState extends State<_SearchSheet> {
       return;
     }
 
-    // Use ChatGPT to intelligently parse the user's natural language input
+    // The compatibility helper is fail-closed and currently returns only an
+    // empty local parse result; no search text leaves the device.
     final result = await OpenAIConfig.parseSearchQuery(prompt);
     if (!mounted) return;
 
@@ -619,8 +620,7 @@ class _SearchSheetState extends State<_SearchSheet> {
         _displayNearby = available.take(16).toList();
       });
     } catch (e) {
-      debugPrint(
-          '[_SearchSheet] recompute suggestions failed: $e');
+      debugPrint('[_SearchSheet] recompute suggestions failed: $e');
     } finally {
       if (mounted) setState(() => _recomputing = false);
     }

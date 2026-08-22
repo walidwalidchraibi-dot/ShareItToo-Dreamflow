@@ -912,3 +912,25 @@ evidence/history, not permission to reopen a closed launch boundary.
   creates a separate `SIT-R-*` receipt and priority-bound next update without
   reopening the case, accepting evidence IDs, sending a message or executing
   an outcome. Reopen remains staff-only with an explicit owner.
+
+## S3U external-AI and consumer-dispute gates
+
+`S3U_SUPPORT_AI_VSBG_LAUNCH_GATES` is locally verified as a non-live package on
+22.08.2026; exact implementation commit and CI run are added only after the
+pushed Draft-PR head is green. Drive scenarios `SUP-132` through `SUP-136` are
+implemented conservatively: direct/external AI has no runtime transport and
+cannot be enabled; incomplete consumer-dispute facts keep app, Backend public
+imprint and Store preflight in draft/HOLD; only exact T-053 may enter the
+Administrator-only RED review path with server-bound data and in-app-only
+publication; former EU ODR links fail static validation.
+
+The complete Backend suite passed 482 tests on isolated PostgreSQL 16.15
+through migration `048`. Flutter passed 361 tests with one documented skip and
+the separate Google-only test; analyzer remained at the accepted 220-issue
+baseline; Web build/smoke and Android debug APK passed. Privacy/Retention,
+Legal and affected P0B hold validators remain green and fail closed. No
+professional approval, production configuration, AI activation, external
+message, payment, Store, signed artifact, deployment, merge or live action was
+performed. Detailed records:
+`docs/architecture/s3u-support-ai-vsbg-launch-gates-2026-08-22.md` and
+`docs/compliance/s3u-support-ai-vsbg-launch-gates-2026-08-22.md`.

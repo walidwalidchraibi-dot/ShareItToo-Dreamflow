@@ -104,6 +104,12 @@ function assertAssignment(actor, supportCase) {
   }
 }
 
+function isHumanReviewableMessage(row) {
+  return row.approval_level === 'yellow_human_review'
+    || (row.approval_level === 'red_explicit_decision'
+      && row.template_id === 'T-053');
+}
+
 function assertNonLive(supportCase) {
   if (!['simulation', 'internal_testing'].includes(supportCase.operating_mode)) {
     throw new SupportCaseError(409, 'support_message_live_delivery_forbidden');
@@ -156,6 +162,10 @@ export async function createSupportMessage(client, {
     : '';
   if (!recipientUserId || !recipientBelongsToCase(supportCase, recipientUserId)) {
     throw new SupportCaseError(403, 'support_message_recipient_forbidden');
+  }
+  if (String(raw.templateId ?? '').trim().toUpperCase() === 'T-053'
+      && actor.role !== 'admin') {
+    throw new SupportCaseError(403, 'support_consumer_dispute_notice_requires_admin');
   }
   const activeRecipient = await client.query(
     `SELECT id FROM users
@@ -313,7 +323,8 @@ export async function reviewSupportMessage(client, {
     return { message: shapeSupportMessage(row, { staff: true }), replayed: true };
   }
   if (row.sender_id === actor.id) throw new SupportCaseError(409, 'support_message_self_review_forbidden');
-  if (row.approval_level !== 'yellow_human_review' || row.send_status !== 'pending_approval') {
+  if (!isHumanReviewableMessage(row)
+      || row.send_status !== 'pending_approval') {
     throw new SupportCaseError(409, 'support_message_review_state_invalid');
   }
   if (Number(row.lock_version) !== review.expectedVersion) {
@@ -449,12 +460,12 @@ export async function publishSupportMessage(client, {
     now,
   );
   const greenDraft = row.approval_level === 'green_automatic' && row.send_status === 'draft';
-  const reviewedYellow = row.approval_level === 'yellow_human_review'
+  const reviewedHuman = isHumanReviewableMessage(row)
     && row.send_status === 'approved'
     && row.approved_by
     && row.approved_at
     && row.approval_payload_sha256 === row.rendered_content_sha256;
-  if (!greenDraft && !reviewedYellow) {
+  if (!greenDraft && !reviewedHuman) {
     throw new SupportCaseError(409, 'support_message_publication_not_approved');
   }
   const updated = await client.query(

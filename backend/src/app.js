@@ -2740,7 +2740,8 @@ export function createApp({
   });
 
   app.get('/v1/public/imprint', (_req, res) => {
-    const approved = config.publicCompliance.approved;
+    const approved = config.publicCompliance.approved
+      && config.consumerDispute.isComplete;
     res.set('X-SIT-Compliance-Status', approved ? 'approved' : 'draft');
     sendHtml(res, approved ? 200 : 503, publicImprintPage());
   });

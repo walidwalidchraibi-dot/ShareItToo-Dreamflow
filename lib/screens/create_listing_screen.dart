@@ -785,7 +785,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       return;
     }
 
-    // Use ChatGPT for intelligent price suggestion
+    // The compatibility helper is fail-closed and currently returns only a
+    // deterministic local fallback; no listing content leaves the device.
     final result = await OpenAIConfig.suggestPrice(
       title: _titleCtrl.text.trim(),
       description: _descCtrl.text.trim(),

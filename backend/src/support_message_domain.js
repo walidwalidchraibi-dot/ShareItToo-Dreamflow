@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 
 import { SupportCaseError } from './support_case_domain.js';
+import { readConsumerDisputeConfiguration } from './consumer_dispute_config.js';
 
 const TEMPLATE_SOURCE_SHA256 = '947f307e7919eed543c28e36af4d2b364d87dcde52025649d0d4620d64baaaa5';
 const identifiers = /^[A-Za-z0-9_.:-]+$/u;
@@ -35,6 +36,16 @@ const serverBoundPlaceholders = new Set([
   'legal_rule_version',
   'authority_reference',
   'received_datetime',
+  'conciliation_body_address',
+  'conciliation_body_name',
+  'conciliation_body_website',
+  'participation_status_plain',
+]);
+const consumerDisputeServerBindings = new Set([
+  'conciliation_body_address',
+  'conciliation_body_name',
+  'conciliation_body_website',
+  'participation_status_plain',
 ]);
 const automaticTemplateStatuses = Object.freeze({
   'T-001': new Set(['received', 'acknowledged']),
@@ -215,12 +226,15 @@ function supportCaseBindings(supportCase) {
   return Object.freeze(bindings);
 }
 
-function renderTemplate(template, rawVariables, bindings) {
+function renderTemplate(template, rawVariables, bindings, { serverOnly = new Set() } = {}) {
   const source = requiredObject(rawVariables, 'support_message_variables_required');
   const allowed = new Set(template.requiredPlaceholders);
   const supplied = Object.keys(source);
   if (supplied.some((key) => !allowed.has(key))) {
     throw new SupportCaseError(400, 'support_message_variable_unexpected');
+  }
+  if (supplied.some((key) => serverOnly.has(key))) {
+    throw new SupportCaseError(400, 'support_message_server_variable_forbidden');
   }
   const variables = {};
   for (const key of template.requiredPlaceholders) {
@@ -270,14 +284,33 @@ export function assertSupportMessageDeadlineCurrent(templateOrMessage, supportCa
   }
 }
 
-export function normalizeSupportMessageDraft(raw, { supportCase, now = new Date() }) {
+export function normalizeSupportMessageDraft(raw, {
+  supportCase,
+  now = new Date(),
+  consumerDisputeEnvironment = process.env,
+}) {
   requiredObject(raw, 'support_message_invalid');
   requiredObject(supportCase, 'support_message_case_context_required');
   const templateId = requiredText(raw.templateId, 20, 'support_message_template_required').toUpperCase();
   const template = templateCatalog.get(templateId);
   if (!template) throw new SupportCaseError(400, 'support_message_template_unknown');
-  if (template.approvalLevel === 'RED') {
+  const consumerDisputeNotice = template.id === 'T-053';
+  if (template.approvalLevel === 'RED' && !consumerDisputeNotice) {
     throw new SupportCaseError(409, 'support_message_red_template_requires_decision_workflow');
+  }
+  let consumerDisputeConfiguration = null;
+  if (consumerDisputeNotice) {
+    if (supportCase.case_type !== 'legal_authority'
+        || supportCase.case_subtype !== 'consumer_dispute_information') {
+      throw new SupportCaseError(409, 'support_consumer_dispute_case_required');
+    }
+    consumerDisputeConfiguration = readConsumerDisputeConfiguration(
+      consumerDisputeEnvironment,
+    );
+    if (!consumerDisputeConfiguration.isComplete
+        || consumerDisputeConfiguration.oldOdrLinkPresent) {
+      throw new SupportCaseError(409, 'support_consumer_dispute_configuration_incomplete');
+    }
   }
   if (template.requiredPlaceholders.some((key) => moneyPlaceholderPattern.test(key))) {
     throw new SupportCaseError(409, 'support_message_money_template_requires_snapshot_workflow');
@@ -297,14 +330,32 @@ export function normalizeSupportMessageDraft(raw, { supportCase, now = new Date(
     }
   }
   assertSupportMessageDeadlineCurrent(template, supportCase, now);
+  const bindings = { ...supportCaseBindings(supportCase) };
+  if (consumerDisputeConfiguration) {
+    Object.assign(bindings, {
+      conciliation_body_address: consumerDisputeConfiguration.conciliationBodyAddress,
+      conciliation_body_name: consumerDisputeConfiguration.conciliationBodyName,
+      conciliation_body_website: consumerDisputeConfiguration.conciliationBodyWebsite,
+      participation_status_plain: consumerDisputeConfiguration.participationStatusPlain,
+    });
+  }
   const { variables, rendered } = renderTemplate(
     template,
     raw.variables,
-    supportCaseBindings(supportCase),
+    bindings,
+    { serverOnly: consumerDisputeNotice ? consumerDisputeServerBindings : new Set() },
   );
   const approvalLevel = template.approvalLevel === 'GREEN'
     ? 'green_automatic'
-    : 'yellow_human_review';
+    : (template.approvalLevel === 'RED' ? 'red_explicit_decision' : 'yellow_human_review');
+  const structuredVariables = consumerDisputeConfiguration
+    ? Object.freeze({
+      ...variables,
+      consumer_dispute_policy_version: consumerDisputeConfiguration.policyVersion,
+      consumer_dispute_configuration_version:
+        consumerDisputeConfiguration.configurationVersion,
+    })
+    : variables;
   return Object.freeze({
     templateId: template.id,
     templateVersion: template.version,
@@ -313,7 +364,7 @@ export function normalizeSupportMessageDraft(raw, { supportCase, now = new Date(
     approvalLevel,
     renderedContent: rendered,
     renderedContentSha256: sha256(rendered),
-    structuredVariables: variables,
+    structuredVariables,
     publishNow,
     sendStatus: publishNow ? 'sent' : (approvalLevel === 'green_automatic' ? 'draft' : 'pending_approval'),
     correctsMessageId: optionalUuid(raw.correctsMessageId, 'support_message_correction_id_invalid'),

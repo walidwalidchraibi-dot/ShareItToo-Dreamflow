@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { validateFirebaseServiceAccount } from './firebase_service_account.js';
+import { readConsumerDisputeConfiguration } from './consumer_dispute_config.js';
 import { evaluateGoogleMapsActivation } from './google_maps_activation.js';
 import { evaluateOperatorReadiness } from './operator_readiness.js';
 import { normalizePrivatePilotRegion } from './private_pilot_domain.js';
@@ -203,6 +204,7 @@ const publicCompliance = {
   withdrawalUrl: process.env.PUBLIC_LEGAL_WITHDRAWAL_URL?.trim() ?? '',
   effectiveDate: process.env.PUBLIC_PRIVACY_EFFECTIVE_DATE?.trim() ?? '',
 };
+const consumerDispute = readConsumerDisputeConfiguration(process.env);
 const financialDocumentsLiveIssuanceApproved =
   (process.env.FINANCIAL_DOCUMENTS_LIVE_ISSUANCE_APPROVED ?? 'false')
     .trim()
@@ -229,6 +231,11 @@ if (publicComplianceApproved && !operatorReadiness.activationAllowed) {
   ];
   throw new Error(
     `PUBLIC_COMPLIANCE_APPROVED requires complete non-placeholder operator facts: ${blockers.join(', ')}`,
+  );
+}
+if (publicComplianceApproved && !consumerDispute.isComplete) {
+  throw new Error(
+    'PUBLIC_COMPLIANCE_APPROVED requires a complete approved VSBG configuration',
   );
 }
 if (financialDocumentsLiveIssuanceApproved) {
@@ -314,6 +321,7 @@ export const config = Object.freeze({
   failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
   publicCompliance: Object.freeze(publicCompliance),
+  consumerDispute,
   operatorReadiness,
   financialDocuments: Object.freeze({
     liveIssuanceApproved: financialDocumentsLiveIssuanceApproved,

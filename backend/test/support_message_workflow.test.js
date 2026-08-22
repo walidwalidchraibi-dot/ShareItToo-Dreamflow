@@ -92,6 +92,30 @@ function intakeVariables() {
   };
 }
 
+const approvedConsumerDisputeEnvironment = Object.freeze({
+  SIT_CONSUMER_DISPUTE_APPROVED: 'true',
+  SIT_CONSUMER_DISPUTE_CONFIGURATION_VERSION: 'VSBG-REVIEW-1',
+  SIT_CONSUMER_DISPUTE_BODY_NAME: 'Universalschlichtungsstelle des Bundes',
+  SIT_CONSUMER_DISPUTE_BODY_ADDRESS: 'Beispielweg 1, 00000 Beispielstadt',
+  SIT_CONSUMER_DISPUTE_BODY_WEBSITE: 'https://www.verbraucher-schlichter.de/',
+  SIT_CONSUMER_DISPUTE_PARTICIPATION_STATUS:
+    'not_willing_or_obliged_except_mandatory_case',
+});
+
+async function withConsumerDisputeEnvironment(callback) {
+  const prior = Object.fromEntries(Object.keys(approvedConsumerDisputeEnvironment)
+    .map((key) => [key, process.env[key]]));
+  Object.assign(process.env, approvedConsumerDisputeEnvironment);
+  try {
+    return await callback();
+  } finally {
+    for (const [key, value] of Object.entries(prior)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
 test('green template publication records an in-app message without external delivery', async () => {
   const client = new ScriptedClient([
     { match: /message\.idempotency_key = \$1/u, result: noRows },
@@ -210,6 +234,102 @@ test('message recipient must belong to the locked support case', async () => {
   client.done();
 });
 
+test('T-053 is an admin-only configured red text-form draft with no external send', async () => {
+  const supportOwnedLegalCase = caseRow({
+    case_type: 'legal_authority',
+    case_subtype: 'consumer_dispute_information',
+  });
+  const supportClient = new ScriptedClient([
+    { match: /message\.idempotency_key = \$1/u, result: noRows },
+    { match: /FROM support_cases WHERE id::text = \$1 FOR UPDATE/u, result: { rowCount: 1, rows: [supportOwnedLegalCase] } },
+  ]);
+  await assert.rejects(
+    createSupportMessage(supportClient, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      raw: {
+        templateId: 'T-053',
+        recipientUserId: 'user-1',
+        variables: {
+          first_name: 'Walid',
+          dispute_subject: 'die entgeltliche Plattformleistung',
+        },
+      },
+      idempotencyKey: 'consumer-dispute-support-forbidden',
+      now,
+    }),
+    /support_consumer_dispute_notice_requires_admin/u,
+  );
+  supportClient.done();
+
+  const legalCase = { ...supportOwnedLegalCase, current_owner_id: 'admin-1' };
+  const adminClient = new ScriptedClient([
+    { match: /message\.idempotency_key = \$1/u, result: noRows },
+    { match: /FROM support_cases WHERE id::text = \$1 FOR UPDATE/u, result: { rowCount: 1, rows: [legalCase] } },
+    { match: /FROM users[\s\S]*FOR KEY SHARE/u, result: { rowCount: 1, rows: [{ id: 'user-1' }] } },
+    { match: /SELECT \* FROM support_messages WHERE idempotency_key/u, result: noRows },
+    {
+      match: /INSERT INTO support_messages/u,
+      check: ({ params }) => {
+        assert.equal(params[5], 'T-053');
+        assert.equal(params[11], 'red_explicit_decision');
+        assert.equal(params[12], 'pending_approval');
+        assert.equal(params[13], null);
+        assert.equal(params[14], null);
+        assert.match(params[8], /wird in Textform erteilt/u);
+        const variables = JSON.parse(params[10]);
+        assert.equal(variables.consumer_dispute_configuration_version, 'VSBG-REVIEW-1');
+        assert.equal(
+          variables.conciliation_body_website,
+          'https://www.verbraucher-schlichter.de/',
+        );
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [messageRow({
+          id: params[0],
+          sender_id: params[2],
+          recipient_user_id: params[3],
+          message_title: params[4],
+          template_id: params[5],
+          rendered_content: params[8],
+          rendered_content_sha256: params[9],
+          structured_variables: JSON.parse(params[10]),
+          approval_level: params[11],
+          send_status: params[12],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/u,
+      check: ({ params }) => {
+        assert.equal(params[1], 'message.drafted');
+        assert.equal(params[7], 'internal');
+      },
+      result: noRows,
+    },
+    { match: /INSERT INTO audit_log/u, result: noRows },
+  ]);
+  const result = await withConsumerDisputeEnvironment(() => createSupportMessage(adminClient, {
+    actor: { id: 'admin-1', role: 'admin' },
+    caseId,
+    raw: {
+      templateId: 'T-053',
+      recipientUserId: 'user-1',
+      variables: {
+        first_name: 'Walid',
+        dispute_subject: 'die entgeltliche Plattformleistung',
+      },
+    },
+    idempotencyKey: 'consumer-dispute-admin-draft',
+    now,
+  }));
+  assert.equal(result.message.approvalLevel, 'red_explicit_decision');
+  assert.equal(result.message.sendStatus, 'pending_approval');
+  assert.equal(result.message.externalMessageSent, false);
+  adminClient.done();
+});
+
 test('independent admin review binds approval to the exact immutable hash', async () => {
   const row = messageRow();
   const client = new ScriptedClient([
@@ -259,6 +379,199 @@ test('independent admin review binds approval to the exact immutable hash', asyn
   });
   assert.equal(result.message.sendStatus, 'approved');
   assert.equal(result.message.approvalPayloadSha256, row.rendered_content_sha256);
+  client.done();
+});
+
+test('configured T-053 red draft requires independent review before in-app publication', async () => {
+  const red = messageRow({
+    sender_id: 'admin-1',
+    template_id: 'T-053',
+    approval_level: 'red_explicit_decision',
+  });
+  const reviewClient = new ScriptedClient([
+    { match: /FROM support_case_events AS event/u, result: noRows },
+    { match: /FOR UPDATE OF message/u, result: { rowCount: 1, rows: [{ ...red, case_operating_mode: 'simulation' }] } },
+    { match: /SELECT 1 FROM support_case_events/u, result: noRows },
+    {
+      match: /UPDATE support_messages/u,
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [{
+          ...red,
+          reviewed_by: params[1],
+          reviewed_at: params[2],
+          review_outcome: params[3],
+          approved_by: params[5],
+          approved_at: params[6],
+          approval_payload_sha256: params[7],
+          send_status: params[8],
+          lock_version: 2,
+        }],
+      }),
+    },
+    { match: /INSERT INTO support_case_events/u, result: noRows },
+    { match: /INSERT INTO audit_log/u, result: noRows },
+  ]);
+  const reviewed = await reviewSupportMessage(reviewClient, {
+    actor: { id: 'admin-2', role: 'admin' },
+    caseId,
+    messageId,
+    raw: {
+      outcome: 'approved',
+      expectedVersion: 1,
+      expectedPayloadSha256: red.rendered_content_sha256,
+      reviewNotes: 'VSBG-Konfiguration und Textformhinweis wurden unabhängig geprüft.',
+    },
+    idempotencyKey: 'consumer-dispute-review',
+    now,
+  });
+  assert.equal(reviewed.message.sendStatus, 'approved');
+  reviewClient.done();
+
+  const approved = messageRow({
+    ...red,
+    approved_by: 'admin-2',
+    approved_at: now,
+    approval_payload_sha256: red.rendered_content_sha256,
+    reviewed_by: 'admin-2',
+    reviewed_at: now,
+    review_outcome: 'approved',
+    send_status: 'approved',
+    lock_version: 2,
+  });
+  const publishClient = new ScriptedClient([
+    { match: /FROM support_case_events AS event/u, result: noRows },
+    {
+      match: /FOR UPDATE OF message/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          ...approved,
+          case_current_owner_id: 'admin-1',
+          case_operating_mode: 'simulation',
+        }],
+      },
+    },
+    { match: /SELECT 1 FROM support_case_events/u, result: noRows },
+    {
+      match: /UPDATE support_messages/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          ...approved,
+          send_status: 'sent',
+          sent_at: now,
+          delivery_status: 'in_app_recorded',
+          lock_version: 3,
+        }],
+      },
+    },
+    {
+      match: /INSERT INTO support_case_events/u,
+      check: ({ params }) => {
+        const payload = JSON.parse(params[5]);
+        assert.equal(payload.approvalLevel, 'red_explicit_decision');
+        assert.equal(payload.externalMessageSent, false);
+        assert.equal(params[7], 'user_visible');
+      },
+      result: noRows,
+    },
+    { match: /INSERT INTO audit_log/u, result: noRows },
+  ]);
+  const published = await publishSupportMessage(publishClient, {
+    actor: { id: 'admin-1', role: 'admin' },
+    caseId,
+    messageId,
+    raw: {
+      expectedVersion: 2,
+      expectedPayloadSha256: red.rendered_content_sha256,
+    },
+    idempotencyKey: 'consumer-dispute-publication',
+    now,
+  });
+  assert.equal(published.message.sendStatus, 'sent');
+  assert.equal(published.message.externalMessageSent, false);
+  publishClient.done();
+});
+
+test('review rejects a red draft outside the dedicated T-053 decision path', async () => {
+  const red = messageRow({
+    sender_id: 'admin-1',
+    template_id: 'T-043',
+    approval_level: 'red_explicit_decision',
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/u, result: noRows },
+    {
+      match: /FOR UPDATE OF message/u,
+      result: { rowCount: 1, rows: [{ ...red, case_operating_mode: 'simulation' }] },
+    },
+    { match: /SELECT 1 FROM support_case_events/u, result: noRows },
+  ]);
+
+  await assert.rejects(
+    reviewSupportMessage(client, {
+      actor: { id: 'admin-2', role: 'admin' },
+      caseId,
+      messageId,
+      raw: {
+        outcome: 'approved',
+        expectedVersion: 1,
+        expectedPayloadSha256: red.rendered_content_sha256,
+        reviewNotes: 'Dieser rote Entwurf darf nicht den T-053-Sonderweg verwenden.',
+      },
+      idempotencyKey: 'other-red-review',
+      now,
+    }),
+    /support_message_review_state_invalid/u,
+  );
+  client.done();
+});
+
+test('publication rejects an approved red record outside T-053', async () => {
+  const red = messageRow({
+    template_id: 'T-043',
+    approval_level: 'red_explicit_decision',
+    approved_by: 'admin-2',
+    approved_at: now,
+    approval_payload_sha256: 'a'.repeat(64),
+    reviewed_by: 'admin-2',
+    reviewed_at: now,
+    review_outcome: 'approved',
+    send_status: 'approved',
+    lock_version: 2,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/u, result: noRows },
+    {
+      match: /FOR UPDATE OF message, recipient/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          ...red,
+          case_current_owner_id: 'support-1',
+          case_operating_mode: 'simulation',
+          case_next_update_at: new Date('2026-08-22T10:00:00.000Z'),
+        }],
+      },
+    },
+    { match: /SELECT 1 FROM support_case_events/u, result: noRows },
+  ]);
+
+  await assert.rejects(
+    publishSupportMessage(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      messageId,
+      raw: {
+        expectedVersion: 2,
+        expectedPayloadSha256: red.rendered_content_sha256,
+      },
+      idempotencyKey: 'other-red-publication',
+      now,
+    }),
+    /support_message_publication_not_approved/u,
+  );
   client.done();
 });
 

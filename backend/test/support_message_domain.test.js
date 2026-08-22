@@ -19,6 +19,20 @@ const supportCase = Object.freeze({
   appeal_deadline: null,
   safety_flag: false,
 });
+const consumerDisputeCase = Object.freeze({
+  ...supportCase,
+  case_type: 'legal_authority',
+  case_subtype: 'consumer_dispute_information',
+});
+const approvedConsumerDisputeEnvironment = Object.freeze({
+  SIT_CONSUMER_DISPUTE_APPROVED: 'true',
+  SIT_CONSUMER_DISPUTE_CONFIGURATION_VERSION: 'VSBG-REVIEW-1',
+  SIT_CONSUMER_DISPUTE_BODY_NAME: 'Universalschlichtungsstelle des Bundes',
+  SIT_CONSUMER_DISPUTE_BODY_ADDRESS: 'Beispielweg 1, 00000 Beispielstadt',
+  SIT_CONSUMER_DISPUTE_BODY_WEBSITE: 'https://www.verbraucher-schlichter.de/',
+  SIT_CONSUMER_DISPUTE_PARTICIPATION_STATUS:
+    'not_willing_or_obliged_except_mandatory_case',
+});
 
 function intakeVariables(overrides = {}) {
   return {
@@ -156,6 +170,66 @@ test('yellow requires review while red and money templates stay on dedicated pat
   assert.throws(
     () => normalizeSupportMessageDraft({ templateId: 'T-021', variables: {} }, { supportCase }),
     /support_message_money_template_requires_snapshot_workflow/u,
+  );
+});
+
+test('T-053 uses only complete server VSBG configuration and remains a red draft', () => {
+  const result = normalizeSupportMessageDraft({
+    templateId: 'T-053',
+    variables: {
+      first_name: 'Walid',
+      dispute_subject: 'die entgeltliche Plattformleistung',
+    },
+  }, {
+    supportCase: consumerDisputeCase,
+    consumerDisputeEnvironment: approvedConsumerDisputeEnvironment,
+  });
+  assert.equal(result.approvalLevel, 'red_explicit_decision');
+  assert.equal(result.sendStatus, 'pending_approval');
+  assert.equal(
+    result.structuredVariables.consumer_dispute_configuration_version,
+    'VSBG-REVIEW-1',
+  );
+  assert.match(result.renderedContent, /Universalschlichtungsstelle des Bundes/u);
+  assert.match(result.renderedContent, /wird in Textform erteilt/u);
+  assert.doesNotMatch(result.renderedContent, /https?:\/\/ec\.europa\.eu\/consumers\/odr/iu);
+
+  assert.throws(
+    () => normalizeSupportMessageDraft({
+      templateId: 'T-053',
+      variables: {
+        first_name: 'Walid',
+        dispute_subject: 'die entgeltliche Plattformleistung',
+      },
+    }, { supportCase: consumerDisputeCase, consumerDisputeEnvironment: {} }),
+    /support_consumer_dispute_configuration_incomplete/u,
+  );
+  assert.throws(
+    () => normalizeSupportMessageDraft({
+      templateId: 'T-053',
+      variables: {
+        first_name: 'Walid',
+        dispute_subject: 'die entgeltliche Plattformleistung',
+        participation_status_plain: 'frei erfunden',
+      },
+    }, {
+      supportCase: consumerDisputeCase,
+      consumerDisputeEnvironment: approvedConsumerDisputeEnvironment,
+    }),
+    /support_message_server_variable_forbidden/u,
+  );
+  assert.throws(
+    () => normalizeSupportMessageDraft({
+      templateId: 'T-053',
+      variables: {
+        first_name: 'Walid',
+        dispute_subject: 'die entgeltliche Plattformleistung',
+      },
+    }, {
+      supportCase,
+      consumerDisputeEnvironment: approvedConsumerDisputeEnvironment,
+    }),
+    /support_consumer_dispute_case_required/u,
   );
 });
 

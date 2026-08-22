@@ -31,6 +31,7 @@ const sourcePaths = [
   'backend/src/support_decision_workflow.js',
   'backend/src/support_break_glass_domain.js',
   'backend/src/support_break_glass_workflow.js',
+  'backend/src/consumer_dispute_config.js',
   'backend/src/support_message_domain.js',
   'backend/src/support_message_workflow.js',
   'backend/src/support_message_templates_v1.json',

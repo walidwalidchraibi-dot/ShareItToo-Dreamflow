@@ -73,14 +73,18 @@ function pageShell({ title, content, pageId = '', complianceStatus = '' }) {
 </head><body><main class="wrap"><section class="card"><div class="brand">ShareItToo</div>${content}</section></main></body></html>`;
 }
 
-export function publicComplianceOverview() {
-  const { approved } = config.publicCompliance;
+export function publicComplianceOverview({
+  compliance = config.publicCompliance,
+  consumerDispute = config.consumerDispute,
+} = {}) {
+  const approved = compliance.approved && consumerDispute.isComplete;
   return {
     status: approved ? 'approved' : 'draft',
     submissionReady: approved,
     pages: {
       support: approved ? 'approved' : 'draft',
       privacy: approved ? 'approved' : 'draft',
+      consumerDispute: consumerDispute.isComplete ? 'approved' : 'draft',
       accountDeletion: 'operational',
     },
   };
@@ -141,15 +145,17 @@ export function publicPrivacyPage({
 
 export function publicImprintPage({
   compliance = config.publicCompliance,
+  consumerDispute = config.consumerDispute,
 } = {}) {
-  const status = compliance.approved ? 'approved' : 'draft';
-  const content = compliance.approved
+  const approved = compliance.approved && consumerDispute.isComplete;
+  const status = approved ? 'approved' : 'draft';
+  const content = approved
     ? `<h1>Impressum</h1>
 <h2>Anbieter</h2><p>${escapeHtml(compliance.providerName)}<br>${escapeHtml(compliance.providerAddress)}</p>
 <h2>Kontakt</h2><p><a href="mailto:${escapeHtml(compliance.supportEmail)}">${escapeHtml(compliance.supportEmail)}</a></p>
 <h2>Vertretung und inhaltliche Verantwortung</h2><p>Vertretungsberechtigt: ${escapeHtml(compliance.representative)}<br>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV: ${escapeHtml(compliance.contentResponsible)}</p>
-<h2>Verbraucherstreitbeilegung</h2><p>Wir sind zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle weder verpflichtet noch bereit.</p>`
-    : `<h1>Impressum</h1><p class="draft">Die Anbieterkennzeichnung ist noch nicht zur Veröffentlichung freigegeben.</p>`;
+<h2>Verbraucherstreitbeilegung</h2><p>ShareItToo ist nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen, soweit keine gesetzliche Verpflichtung im Einzelfall besteht.</p>`
+    : `<h1>Impressum</h1><p class="draft">Die Anbieterkennzeichnung und die Erklärung zur Verbraucherstreitbeilegung sind noch nicht vollständig zur Veröffentlichung freigegeben.</p>`;
   return pageShell({
     title: 'Impressum',
     pageId: 'imprint',
