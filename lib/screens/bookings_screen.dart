@@ -573,6 +573,7 @@ class _BookingsScreenState extends State<BookingsScreen>
                         userId: _currentUserId!, requestId: requestId);
                   }
                 }
+                if (!context.mounted) return;
                 await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => BookingDetailScreen(booking: booking),
@@ -815,6 +816,7 @@ class _BookingsScreenState extends State<BookingsScreen>
               if (current == null || !_canReviewCompletedBooking(booking)) {
                 return;
               }
+              if (!mounted) return;
               final requestId = booking['requestId'] as String;
               final itemId = booking['itemId'] as String;
               final listerId = booking['listerId'] as String;

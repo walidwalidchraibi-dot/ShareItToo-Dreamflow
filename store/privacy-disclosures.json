@@ -756,7 +756,7 @@
     },
     {
       "path": "lib/screens/bookings_screen.dart",
-      "sha256": "7a6e2395e724d77c55b089e57e73526c0141b431eaf566ebe43de6dbbbe5d142"
+      "sha256": "376cbe34c1852fa49b7793b809b1d2948cd10507731bdb84c7f6683741a2e524"
     },
     {
       "path": "lib/screens/payment_methods_screen.dart",
