@@ -136,7 +136,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           legalDeclarations: declarations,
                         );
                         if (!accepted) return;
-                        if (mounted) Navigator.of(context).pop(true);
+                        if (!context.mounted) return;
+                        Navigator.of(context).pop(true);
                       },
                 onDecline: () async {
                   await AppPopup.show(
@@ -170,7 +171,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           Navigator.of(context, rootNavigator: true).maybePop();
                           await DataService.updateRentalRequestStatus(
                               requestId: req.id, status: 'declined');
-                          if (mounted) Navigator.of(context).pop(true);
+                          if (!context.mounted) return;
+                          Navigator.of(context).pop(true);
                         },
                         child: Text(l10n.t('Ablehnen')),
                       ),
