@@ -67,9 +67,10 @@ Verified: 2026-08-22 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `043`,
-  deterministic
-  server quotes, immutable legal/acceptance evidence, checkout and booking
+- Node/Express backend with PostgreSQL migrations through `044`. Migration
+  `044` is locally verified and awaiting exact GitHub PostgreSQL evidence. The
+  backend provides deterministic server quotes, immutable legal/acceptance
+  evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
 - S1 adds a simulation-only central support-case foundation from the current
@@ -200,6 +201,17 @@ Verified: 2026-08-22 on the Mac mini.
   Android debug build. Locator status remains a completeness signal only; no
   illegality decision, content measure, external delivery, production,
   payment, Store, signed candidate or live operation is enabled.
+- S3P is locally verified and awaiting its exact implementation commit and
+  GitHub Actions run. It requires a versioned, append-only Statement of Reasons
+  for every new significant moderation measure and reversal. The Statement is
+  action-duration-bound, Administrator-issued and human-reviewed; fully
+  automated significant decisions fail closed. Authenticated affected users
+  receive exact confirmed facts, basis, reasoning, scope, duration, origin and
+  automation disclosure plus the existing free electronic review route.
+  Legacy gaps remain explicit rather than being backfilled. Independent review
+  assignment, correction, professional legal approval, external transparency
+  reporting and every production, payment, Store, signed-candidate or live path
+  remain separate closed gates.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

@@ -13,7 +13,7 @@ test('C1H private and moderation state is included in the user export', () => {
     'privateMarketplaceReviewEvents',
     'moderationDecisions',
     'moderationReviewRequests',
-    'WHERE recipient_user_id = $1',
+    'WHERE decision.recipient_user_id = $1',
     'WHERE request.requester_id = $1',
   ]) assert.match(privacyExport, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
 });

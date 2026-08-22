@@ -70,6 +70,7 @@ const sourcePaths = [
   'backend/sql/migrations/041_support_closed_account_access_guard.up.sql',
   'backend/sql/migrations/042_support_dsa_notice_intake.up.sql',
   'backend/sql/migrations/043_support_dsa_notice_locator_completion.up.sql',
+  'backend/sql/migrations/044_moderation_statement_of_reasons.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -101,6 +102,9 @@ const sourcePaths = [
   'lib/widgets/app_image.dart',
   'lib/services/data_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/screens/help_center_screen.dart',
+  'lib/screens/moderation_admin_screen.dart',
+  'lib/screens/moderation_decisions_screen.dart',
   'lib/screens/support_cases_screen.dart',
   'lib/screens/support_flow_screen.dart',
   'lib/models/rental_cart.dart',
@@ -779,6 +783,57 @@ function assertSourceContracts({ root, sourceTexts }) {
     "throw new HttpError(415, 'unsupported_image_type')",
   ]) {
     if (!backendApp.includes(marker)) fail(`Backend image-only upload boundary is missing ${marker}.`);
+  }
+  const moderationStatementMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/044_moderation_statement_of_reasons.up.sql',
+  );
+  const moderationDecisionWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/moderation_decision_workflow.js',
+  );
+  const moderationDecisionsScreen = sourceText(
+    root,
+    sourceTexts,
+    'lib/screens/moderation_decisions_screen.dart',
+  );
+  const moderationAdminScreen = sourceText(
+    root,
+    sourceTexts,
+    'lib/screens/moderation_admin_screen.dart',
+  );
+  const backendRepository = sourceText(
+    root,
+    sourceTexts,
+    'lib/services/backend_repository.dart',
+  );
+  for (const marker of [
+    'moderation_statements_of_reasons_append_only',
+    'moderation_decisions_statement_required',
+    'moderation_statement_admin_reviewer_required',
+    "review_channel = 'authenticated_in_app'",
+  ]) {
+    if (!moderationStatementMigration.includes(marker)) {
+      fail(`Moderation Statement of Reasons migration is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'LEFT JOIN moderation_statements_of_reasons AS statement',
+    'statementOfReasons: statement',
+    "statementVersion: decision.statementOfReasons?.version ?? null",
+  ]) {
+    if (!moderationDecisionWorkflow.includes(marker)) {
+      fail(`Moderation Statement of Reasons workflow is missing ${marker}.`);
+    }
+  }
+  if (!moderationDecisionsScreen.includes('sit_dsa_statement_of_reasons_v1')
+      || !moderationDecisionsScreen.includes('keine vollständig bestätigte digitale Begründung')
+      || !moderationDecisionsScreen.includes('Menschliche Prüfung beantragen')
+      || moderationAdminScreen.includes("value: 'automated'")
+      || !backendRepository.includes("path: '/moderation/decisions'")) {
+    fail('Moderation reasons must stay exact, user-bound, reviewable and human-reviewed.');
   }
   const listingUpload = sourceText(root, sourceTexts, 'lib/screens/create_listing_screen.dart');
   const chatUpload = sourceText(root, sourceTexts, 'lib/screens/message_thread_screen.dart');

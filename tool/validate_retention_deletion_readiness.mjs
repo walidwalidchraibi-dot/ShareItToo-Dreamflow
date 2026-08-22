@@ -81,6 +81,8 @@ const sourcePaths = [
   'backend/sql/migrations/041_support_closed_account_access_guard.up.sql',
   'backend/sql/migrations/042_support_dsa_notice_intake.up.sql',
   'backend/sql/migrations/043_support_dsa_notice_locator_completion.up.sql',
+  'backend/sql/migrations/044_moderation_statement_of_reasons.up.sql',
+  'backend/sql/migrations/044_moderation_statement_of_reasons.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -93,6 +95,9 @@ const sourcePaths = [
   'lib/services/data_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/screens/help_center_screen.dart',
+  'lib/screens/moderation_admin_screen.dart',
+  'lib/screens/moderation_decisions_screen.dart',
   'lib/screens/support_cases_screen.dart',
   'lib/screens/support_flow_screen.dart',
   'lib/config/supply_enrichment_technical_config.dart',
@@ -431,6 +436,34 @@ function assertSourceContracts(root, sourceTexts) {
   ]) {
     if (!moderation.includes(marker)) fail(`Account legal-hold enforcement is missing the contract: ${marker}.`);
   }
+  const moderationDecision = text(
+    root,
+    sourceTexts,
+    'backend/src/moderation_decision_workflow.js',
+  );
+  const statementMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/044_moderation_statement_of_reasons.up.sql',
+  );
+  const statementRollback = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/044_moderation_statement_of_reasons.down.sql',
+  );
+  for (const marker of [
+    'moderation_statements_of_reasons_append_only',
+    'moderation_decisions_statement_required',
+    'moderation_statement_admin_reviewer_required',
+  ]) {
+    if (!statementMigration.includes(marker)) {
+      fail(`Moderation Statement retention is missing ${marker}.`);
+    }
+  }
+  if (!statementRollback.includes('rollback refused: moderation Statement of Reasons evidence exists')
+      || !moderationDecision.includes('LEFT JOIN moderation_statements_of_reasons AS statement')) {
+    fail('Moderation Statement evidence must be append-only, exportable and rollback-protected.');
+  }
   const legalHoldMigration = text(root, sourceTexts, 'backend/sql/migrations/014_account_legal_holds.up.sql');
   for (const marker of [
     'CREATE TABLE IF NOT EXISTS account_legal_holds',
@@ -476,6 +509,9 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!inventory.includes("'communications', 'support_messages'")) {
     fail('Retention inventory is missing immutable dataset support_messages.');
+  }
+  if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
+    fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');
   }
   const supportMessageMigration = text(
     root,

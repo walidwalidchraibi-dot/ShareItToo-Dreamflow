@@ -4047,16 +4047,19 @@ export function createApp({
   }));
 
   app.get('/v1/moderation/decisions', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    res.json({ decisions: await listMyModerationDecisions(pool, req.auth.userId) });
+    res.set('Cache-Control', 'private, no-store').json({
+      decisions: await listMyModerationDecisions(pool, req.auth.userId),
+    });
   }));
 
-  app.post('/v1/moderation/decisions/:id/review', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/moderation/decisions/:id/review', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => submitModerationReviewRequest(client, {
       actor: req.actor,
       decisionId: safeText(req.params.id, 80),
       raw: req.body,
       idempotencyKey: req.get('Idempotency-Key'),
     }));
+    res.set('Cache-Control', 'private, no-store');
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 

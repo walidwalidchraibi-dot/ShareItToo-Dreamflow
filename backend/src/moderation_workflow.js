@@ -517,6 +517,10 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
     const report = await client.query('SELECT id FROM reports WHERE id::text = $1', [reportId]);
     if (!report.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
   }
+  const endsAt = candidate.endsAt ? new Date(candidate.endsAt) : null;
+  if (endsAt && (!Number.isFinite(endsAt.getTime()) || endsAt <= new Date())) {
+    throw new ModerationWorkflowError(400, 'invalid_suspension_end');
+  }
   const decision = await persistModerationDecision(client, {
     actor,
     recipientUserId: userId,
@@ -527,11 +531,11 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
     measureState: scope,
     raw: candidate.decision,
     idempotencyKey: `${key}:decision`,
+    expectedStatement: {
+      durationType: endsAt ? 'fixed' : 'until_reversed',
+      endsAt,
+    },
   });
-  const endsAt = candidate.endsAt ? new Date(candidate.endsAt) : null;
-  if (endsAt && (!Number.isFinite(endsAt.getTime()) || endsAt <= new Date())) {
-    throw new ModerationWorkflowError(400, 'invalid_suspension_end');
-  }
   const inserted = await client.query(
     `INSERT INTO user_suspensions (
        user_id, imposed_by, scope, reason_code, note, ends_at, report_id, idempotency_key
@@ -639,6 +643,7 @@ export async function liftUserSuspension(client, { actor, suspensionId, raw, ide
     measureState: `suspension_lifted:${row.scope}`,
     raw: candidate.decision,
     idempotencyKey: `${key}:decision`,
+    expectedStatement: { durationType: 'not_applicable', endsAt: null },
   });
   await audit(client, {
     actor,
@@ -792,6 +797,10 @@ export async function setListingModeration(client, { actor, listingId, raw, idem
     measureState: status,
     raw: candidate.decision,
     idempotencyKey: `${key}:decision`,
+    expectedStatement: {
+      durationType: status === 'active' ? 'not_applicable' : 'until_reversed',
+      endsAt: null,
+    },
   });
   const firstRestriction = before === 'active' && status !== 'active';
   const restoredStatus = before === 'active'

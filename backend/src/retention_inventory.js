@@ -130,6 +130,7 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'moderation', 'user_suspensions', count(*)::bigint, min(created_at), max(created_at) FROM user_suspensions
        UNION ALL SELECT 'moderation', 'private_marketplace_review_events', count(*)::bigint, min(created_at), max(created_at) FROM private_marketplace_review_events
        UNION ALL SELECT 'moderation', 'moderation_decisions', count(*)::bigint, min(created_at), max(created_at) FROM moderation_decisions
+       UNION ALL SELECT 'moderation', 'moderation_statements_of_reasons', count(*)::bigint, min(created_at), max(published_at) FROM moderation_statements_of_reasons
        UNION ALL SELECT 'moderation', 'moderation_review_requests', count(*)::bigint, min(submitted_at), max(updated_at) FROM moderation_review_requests
        UNION ALL SELECT 'moderation', 'moderation_review_events', count(*)::bigint, min(created_at), max(created_at) FROM moderation_review_events
        UNION ALL SELECT 'moderation', 'v52_return_cases', count(*)::bigint, min(t1), max(created_at) FROM v52_return_cases

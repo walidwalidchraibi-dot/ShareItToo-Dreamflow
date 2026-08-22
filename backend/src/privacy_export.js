@@ -713,11 +713,22 @@ export async function buildAccountExport(client, userId) {
        FROM private_marketplace_review_events
        WHERE user_id = $1 ORDER BY created_at, id`, userId),
     rows(client,
-      `SELECT id, report_id, target_type, target_id, measure_type,
-              measure_state, facts, basis, reasoning, detection_method,
-              automated_means, review_available, review_deadline_at, created_at
-       FROM moderation_decisions
-       WHERE recipient_user_id = $1 ORDER BY created_at, id`, userId),
+      `SELECT decision.id, decision.report_id, decision.target_type,
+              decision.target_id, decision.measure_type, decision.measure_state,
+              decision.facts, decision.basis, decision.reasoning,
+              decision.detection_method, decision.automated_means,
+              decision.review_available, decision.review_deadline_at,
+              statement.statement_version, statement.decision_ground,
+              statement.decision_origin, statement.territorial_scope,
+              statement.duration_type, statement.starts_at, statement.ends_at,
+              statement.automation_role, statement.human_reviewed,
+              statement.review_channel, statement.published_at,
+              decision.created_at
+       FROM moderation_decisions AS decision
+       LEFT JOIN moderation_statements_of_reasons AS statement
+         ON statement.moderation_decision_id = decision.id
+       WHERE decision.recipient_user_id = $1
+       ORDER BY decision.created_at, decision.id`, userId),
     rows(client,
       `SELECT request.id, request.decision_id, request.reason, request.status,
               request.resolution, request.submitted_at, request.updated_at,

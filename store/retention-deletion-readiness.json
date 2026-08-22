@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "df59d28b36d6315d7fd2db5620db7e868dcbac0e571a2a519b9813bbab60ad65"
+      "sha256": "422f91cb460a95a3a67dc0a14c6da9a8b3d053d15dee427ab7b774f93db53dd9"
     },
     {
       "path": "backend/src/server.js",
@@ -17,15 +17,15 @@
     },
     {
       "path": "backend/src/moderation_workflow.js",
-      "sha256": "2d652e2145499396ab022c24fbbe34e4ba9d806bae1ef3f20e6f6e2e001e96ab"
+      "sha256": "6c9a119ac1df4f21caf244069d11ea4bea74d6080cada1eacdd6655a8007c539"
     },
     {
       "path": "backend/src/moderation_domain.js",
-      "sha256": "40e4c83a7d56963ac46b0081b71e9a5e0f3faf3a3e90b389dc455606d5106d0d"
+      "sha256": "3c829d150e81c7db181cca1b69faf2881a86d84dbd6418ac975ad807585c0928"
     },
     {
       "path": "backend/src/moderation_decision_workflow.js",
-      "sha256": "35c0eeac8d64c4e60e45a95bccf85a6d3ff26a4598f2e7a784fc38b4a64a8cbc"
+      "sha256": "0cf3ead37a6a332c0bd4c56cc6ce2c6fbfd30639c0cd607616f4f969ab419a3c"
     },
     {
       "path": "backend/src/compliance_review.js",
@@ -37,11 +37,11 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "128605858ecbc141ee8585ae4dccf287118fe52afabddcf79e83d7de2e8a9741"
+      "sha256": "402d09b7e52a4b785be4688b2bd8e8ec1ee8529d469c67fbb46cda225d723a27"
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "8752cc5645479574ec644ffa8a5f825b8f77e63522569e7cdcb4a097a0b8c07e"
+      "sha256": "3721416bbf6ea6e235ef62dd2c236324062cc8dc7e8b2c77d9e09e78b728dad8"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -304,6 +304,14 @@
       "sha256": "c2f9a30ccf73278c599ad34b27c12a4e8b7861928a9cfde3fb49f5b27830e7d4"
     },
     {
+      "path": "backend/sql/migrations/044_moderation_statement_of_reasons.up.sql",
+      "sha256": "16f8f394056171ec735d007dde3d3f2b03c0babd0a21c370a6e61cf935727403"
+    },
+    {
+      "path": "backend/sql/migrations/044_moderation_statement_of_reasons.down.sql",
+      "sha256": "781529c0dd207e8ebaabc0007ea8b97e7220ff552f50f6504a64e190098e0cc9"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -349,7 +357,19 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "38ca506eb9407972c58b2e30f175e0cb1a802605275e14eadb8e7e348a226f4d"
+      "sha256": "e959bee5cf09a33a8c3d9d12c52f4eda5d7c33c9ba67a983c88f56fc79a0d376"
+    },
+    {
+      "path": "lib/screens/help_center_screen.dart",
+      "sha256": "7d56e2f4a17992b6cedc158071ced25f04f91f54cd41fbd0c928dbfa14284435"
+    },
+    {
+      "path": "lib/screens/moderation_admin_screen.dart",
+      "sha256": "e2efd0c17964f39f2eebd1dd7fe981288a938ecaba2572feb169b695ea57ef79"
+    },
+    {
+      "path": "lib/screens/moderation_decisions_screen.dart",
+      "sha256": "4abc7de8fa46ae7c074f33d7736f24590db4cb53b6c886793c0102b2fb92a433"
     },
     {
       "path": "lib/screens/support_cases_screen.dart",

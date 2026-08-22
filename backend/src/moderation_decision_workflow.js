@@ -13,6 +13,23 @@ function text(value, maximum = 8000) {
 }
 
 function decisionShape(row) {
+  const statement = row.statement_version
+    ? Object.freeze({
+        version: row.statement_version,
+        decisionGround: row.statement_decision_ground,
+        decisionOrigin: row.statement_decision_origin,
+        territorialScope: row.statement_territorial_scope,
+        durationType: row.statement_duration_type,
+        startsAt: new Date(row.statement_starts_at).toISOString(),
+        endsAt: row.statement_ends_at
+          ? new Date(row.statement_ends_at).toISOString()
+          : null,
+        automationRole: row.statement_automation_role,
+        humanReviewed: row.statement_human_reviewed === true,
+        reviewChannel: row.statement_review_channel,
+        publishedAt: new Date(row.statement_published_at).toISOString(),
+      })
+    : null;
   return Object.freeze({
     id: row.id,
     targetType: row.target_type,
@@ -29,6 +46,7 @@ function decisionShape(row) {
       ? new Date(row.review_deadline_at).toISOString()
       : null,
     createdAt: new Date(row.created_at).toISOString(),
+    statementOfReasons: statement,
     reviewRequest: row.review_request_id
       ? Object.freeze({
           id: row.review_request_id,
@@ -81,11 +99,45 @@ export async function persistModerationDecision(client, {
   raw,
   idempotencyKey,
   issuedAt = new Date(),
+  expectedStatement = null,
 }) {
-  const decision = normalizeModerationDecisionInput(raw);
+  const statementRequired = measureType !== 'report_resolution';
+  if (statementRequired && actor?.role !== 'admin') {
+    throw new ModerationDecisionError(403, 'admin_role_required');
+  }
+  const decision = normalizeModerationDecisionInput(raw, { statementRequired });
+  if (expectedStatement && decision.statementOfReasons) {
+    if (decision.statementOfReasons.durationType !== expectedStatement.durationType) {
+      throw new ModerationDecisionError(400, 'moderation_statement_duration_mismatch');
+    }
+    const expectedEnd = expectedStatement.endsAt
+      ? new Date(expectedStatement.endsAt).toISOString()
+      : null;
+    const actualEnd = decision.statementOfReasons.endsAt
+      ? decision.statementOfReasons.endsAt.toISOString()
+      : null;
+    if (actualEnd !== expectedEnd) {
+      throw new ModerationDecisionError(400, 'moderation_statement_end_mismatch');
+    }
+  }
   const key = moderationIdempotencyKey(idempotencyKey, 'moderation.decision');
   const existing = await client.query(
-    'SELECT * FROM moderation_decisions WHERE idempotency_key = $1',
+    `SELECT decision.*,
+            statement.statement_version,
+            statement.decision_ground AS statement_decision_ground,
+            statement.decision_origin AS statement_decision_origin,
+            statement.territorial_scope AS statement_territorial_scope,
+            statement.duration_type AS statement_duration_type,
+            statement.starts_at AS statement_starts_at,
+            statement.ends_at AS statement_ends_at,
+            statement.automation_role AS statement_automation_role,
+            statement.human_reviewed AS statement_human_reviewed,
+            statement.review_channel AS statement_review_channel,
+            statement.published_at AS statement_published_at
+       FROM moderation_decisions AS decision
+       LEFT JOIN moderation_statements_of_reasons AS statement
+         ON statement.moderation_decision_id = decision.id
+      WHERE decision.idempotency_key = $1`,
     [key],
   );
   if (existing.rowCount) return { decision: decisionShape(existing.rows[0]), replayed: true };
@@ -140,25 +192,91 @@ export async function persistModerationDecision(client, {
       issuedAt,
     ],
   );
+  let storedDecision = inserted.rows[0];
+  if (decision.statementOfReasons) {
+    const statement = decision.statementOfReasons;
+    if (statement.endsAt && statement.endsAt <= new Date(issuedAt)) {
+      throw new ModerationDecisionError(400, 'moderation_statement_end_invalid');
+    }
+    const insertedStatement = await client.query(
+      `INSERT INTO moderation_statements_of_reasons (
+         moderation_decision_id, statement_version, decision_ground,
+         decision_origin, territorial_scope, duration_type, starts_at,
+         ends_at, automation_role, human_reviewed, human_reviewed_by,
+         review_channel, published_at
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10,
+         'authenticated_in_app', $7
+       ) RETURNING *`,
+      [
+        storedDecision.id,
+        statement.version,
+        statement.decisionGround,
+        statement.decisionOrigin,
+        statement.territorialScope,
+        statement.durationType,
+        issuedAt,
+        statement.endsAt,
+        statement.automationRole,
+        actor.id,
+      ],
+    );
+    const storedStatement = insertedStatement.rows[0];
+    storedDecision = {
+      ...storedDecision,
+      statement_version: storedStatement.statement_version,
+      statement_decision_ground: storedStatement.decision_ground,
+      statement_decision_origin: storedStatement.decision_origin,
+      statement_territorial_scope: storedStatement.territorial_scope,
+      statement_duration_type: storedStatement.duration_type,
+      statement_starts_at: storedStatement.starts_at,
+      statement_ends_at: storedStatement.ends_at,
+      statement_automation_role: storedStatement.automation_role,
+      statement_human_reviewed: storedStatement.human_reviewed,
+      statement_review_channel: storedStatement.review_channel,
+      statement_published_at: storedStatement.published_at,
+    };
+  }
   await audit(client, {
     actor,
     action: 'moderation.decision_issued',
     resourceType: 'moderation_decision',
     resourceId: inserted.rows[0].id,
-    metadata: { recipientUserId, targetType, targetId, measureType, measureState },
+    metadata: {
+      recipientUserId,
+      targetType,
+      targetId,
+      measureType,
+      measureState,
+      statementVersion: decision.statementOfReasons?.version ?? null,
+      automationRole: decision.statementOfReasons?.automationRole ?? null,
+    },
   });
-  return { decision: decisionShape(inserted.rows[0]), replayed: false };
+  return { decision: decisionShape(storedDecision), replayed: false };
 }
 
 export async function listMyModerationDecisions(client, actorId) {
   const result = await client.query(
     `SELECT decision.*,
+            statement.statement_version,
+            statement.decision_ground AS statement_decision_ground,
+            statement.decision_origin AS statement_decision_origin,
+            statement.territorial_scope AS statement_territorial_scope,
+            statement.duration_type AS statement_duration_type,
+            statement.starts_at AS statement_starts_at,
+            statement.ends_at AS statement_ends_at,
+            statement.automation_role AS statement_automation_role,
+            statement.human_reviewed AS statement_human_reviewed,
+            statement.review_channel AS statement_review_channel,
+            statement.published_at AS statement_published_at,
             review.id AS review_request_id,
             review.status AS review_request_status,
             review.submitted_at AS review_submitted_at,
             review.resolved_at AS review_resolved_at,
             review.resolution AS review_resolution
        FROM moderation_decisions AS decision
+       LEFT JOIN moderation_statements_of_reasons AS statement
+         ON statement.moderation_decision_id = decision.id
        LEFT JOIN moderation_review_requests AS review
          ON review.decision_id = decision.id AND review.requester_id = $1
       WHERE decision.recipient_user_id = $1
@@ -373,6 +491,10 @@ export async function setPrivateMarketplaceReviewStatus(client, {
     measureState: status,
     raw: raw.decision,
     idempotencyKey: `${key}:decision`,
+    expectedStatement: {
+      durationType: status === 'clear' ? 'not_applicable' : 'until_reversed',
+      endsAt: null,
+    },
   });
   await audit(client, {
     actor,

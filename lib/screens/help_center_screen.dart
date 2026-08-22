@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/screens/moderation_decisions_screen.dart';
 import 'package:lendify/screens/support_cases_screen.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/services/auth_service.dart';
@@ -12,6 +13,8 @@ class HelpCenterScreen extends StatefulWidget {
   final HelpCenterSessionCheck? sessionCheck;
   final SupportCaseListLoader? caseListLoader;
   final SupportCaseDetailLoader? caseDetailLoader;
+  final ModerationDecisionLoader? moderationDecisionLoader;
+  final ModerationReviewSubmitter? moderationReviewSubmitter;
 
   const HelpCenterScreen({
     super.key,
@@ -19,6 +22,8 @@ class HelpCenterScreen extends StatefulWidget {
     this.sessionCheck,
     this.caseListLoader,
     this.caseDetailLoader,
+    this.moderationDecisionLoader,
+    this.moderationReviewSubmitter,
   });
 
   @override
@@ -112,6 +117,13 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                     },
                     onOpen: _openArticle,
                   ),
+          ),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            key: const ValueKey('open-moderation-decisions'),
+            onPressed: _openModerationDecisions,
+            icon: const Icon(Icons.gavel_outlined),
+            label: const Text('Meine Moderationsentscheidungen'),
           ),
           const SizedBox(height: 18),
           Text('Support kontaktieren',
@@ -733,7 +745,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             short: 'Wie Löschung und Anonymisierung funktionieren.',
             body: _HelpBody(
               intro:
-                'Konto-Löschung ist endgültig und wird nur durchgeführt, wenn keine blockierenden Aktivitäten offen sind. Eine offene Supportakte allein blockiert die Löschung nicht; sie kann kontrolliert erhalten bleiben, während dein Zugang endet.',
+                  'Konto-Löschung ist endgültig und wird nur durchgeführt, wenn keine blockierenden Aktivitäten offen sind. Eine offene Supportakte allein blockiert die Löschung nicht; sie kann kontrolliert erhalten bleiben, während dein Zugang endet.',
               steps: [
                 'Kontoeinstellungen → Konto löschen.',
                 'Bedingungen prüfen und bestätigen.',
@@ -869,6 +881,36 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       builder: (_) => SupportCasesScreen(
         listLoader: widget.caseListLoader,
         detailLoader: widget.caseDetailLoader,
+      ),
+    ));
+  }
+
+  Future<void> _openModerationDecisions() async {
+    final hasSession = await (widget.sessionCheck?.call() ??
+        AuthService.readSession().then((session) => session != null));
+    if (!mounted) return;
+    if (!hasSession) {
+      await showGuestRestrictionSheet(
+        context,
+        overrideContent: const GuestGateContent(
+          icon: Icons.gavel_outlined,
+          title: 'Moderationsentscheidungen ansehen',
+          description:
+              'Melde dich an oder registriere dich kostenlos, damit nur du '
+              'deine Entscheidungen und Begründungen sehen kannst.',
+          benefits: [
+            'Konkrete Begründungen sicher ansehen',
+            'Umfang und Dauer nachvollziehen',
+            'Kostenlose menschliche Prüfung beantragen',
+          ],
+        ),
+      );
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ModerationDecisionsScreen(
+        loader: widget.moderationDecisionLoader,
+        reviewSubmitter: widget.moderationReviewSubmitter,
       ),
     ));
   }
@@ -1509,7 +1551,9 @@ class _SupportCard extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.support_agent_outlined),
-            label: Text(sending ? 'Support wird geöffnet…' : 'Support-Fall sicher melden'),
+            label: Text(sending
+                ? 'Support wird geöffnet…'
+                : 'Support-Fall sicher melden'),
           ),
         ),
         const SizedBox(height: 10),

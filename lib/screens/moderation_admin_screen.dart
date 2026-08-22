@@ -96,6 +96,10 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
 
   Future<void> _transition(Map<String, dynamic> report, String status) async {
     final terminal = const {'actioned', 'dismissed', 'closed'}.contains(status);
+    final decision = terminal
+        ? await _collectDecision(includeStatementOfReasons: false)
+        : null;
+    if (terminal && decision == null) return;
     try {
       await BackendRepository.updateStaffReport(
         reportId: report['id'].toString(),
@@ -107,6 +111,7 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
               'outcome': status,
               'source': 'staff_app',
             },
+          if (terminal) 'decision': decision,
         },
       );
       if (mounted) Navigator.of(context).pop();
@@ -124,6 +129,11 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
 
   Future<void> _applyCaseAction(
       Map<String, dynamic> report, String action) async {
+    final decision = await _collectDecision(
+      includeStatementOfReasons: true,
+      durationType: action == 'active' ? 'not_applicable' : 'until_reversed',
+    );
+    if (decision == null) return;
     try {
       if (report['targetType'] == 'listing') {
         await BackendRepository.moderateListing(
@@ -132,6 +142,7 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
           reasonCode: 'staff_case_action',
           reportId: report['id'].toString(),
           note: 'Reversible Maßnahme aus dem Moderationsfall.',
+          decision: decision,
         );
       } else if (report['targetType'] == 'user') {
         await BackendRepository.suspendUser(
@@ -140,6 +151,7 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
           reasonCode: 'staff_case_action',
           reportId: report['id'].toString(),
           note: 'Zeitlich überprüfbare Maßnahme aus dem Moderationsfall.',
+          decision: decision,
         );
       }
       if (!mounted) return;
@@ -154,6 +166,210 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
         );
       }
     }
+  }
+
+  Future<Map<String, dynamic>?> _collectDecision({
+    required bool includeStatementOfReasons,
+    String durationType = 'until_reversed',
+  }) async {
+    final formKey = GlobalKey<FormState>();
+    final facts = TextEditingController();
+    final basis = TextEditingController();
+    final reasoning = TextEditingController();
+    final territorialScope = TextEditingController();
+    final automatedMeans = TextEditingController();
+    var decisionGround = 'terms_violation';
+    var detectionMethod = 'human';
+    var automationRole = 'signal';
+
+    String? requiredText(String? value) {
+      if ((value ?? '').trim().length < 3) {
+        return 'Bitte mindestens 3 Zeichen eingeben.';
+      }
+      return null;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(includeStatementOfReasons
+              ? 'Begründung der Maßnahme'
+              : 'Fallentscheidung begründen'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Nur geprüfte Tatsachen eintragen. Keine Vermutungen, '
+                      'internen Sicherheitsdetails oder nicht belegten Vorwürfe.',
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: facts,
+                      maxLength: 8000,
+                      maxLines: 4,
+                      validator: requiredText,
+                      decoration: const InputDecoration(
+                        labelText: 'Konkrete Tatsachen und Umstände',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    TextFormField(
+                      controller: basis,
+                      maxLength: 2000,
+                      maxLines: 3,
+                      validator: requiredText,
+                      decoration: const InputDecoration(
+                        labelText: 'Konkrete Rechts- oder Regelgrundlage',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    TextFormField(
+                      controller: reasoning,
+                      maxLength: 8000,
+                      maxLines: 4,
+                      validator: requiredText,
+                      decoration: const InputDecoration(
+                        labelText: 'Warum die Tatsachen darunter fallen',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    DropdownButtonFormField<String>(
+                      initialValue: detectionMethod,
+                      decoration:
+                          const InputDecoration(labelText: 'Erkennungsart'),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'human',
+                            child: Text('Rein menschlich geprüft')),
+                        DropdownMenuItem(
+                            value: 'hybrid',
+                            child: Text(
+                                'Automatisches Signal + menschliche Prüfung')),
+                      ],
+                      onChanged: (value) => setDialogState(() {
+                        detectionMethod = value ?? 'human';
+                      }),
+                    ),
+                    if (detectionMethod == 'hybrid') ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: automationRole,
+                        decoration: const InputDecoration(
+                            labelText: 'Rolle der Automatisierung'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'signal', child: Text('Nur Signal')),
+                          DropdownMenuItem(
+                              value: 'decision_support',
+                              child: Text('Entscheidungsunterstützung')),
+                        ],
+                        onChanged: (value) => setDialogState(() {
+                          automationRole = value ?? 'signal';
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: automatedMeans,
+                        maxLength: 2000,
+                        maxLines: 3,
+                        validator: requiredText,
+                        decoration: const InputDecoration(
+                          labelText: 'Verwendetes automatisiertes Mittel',
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                    ],
+                    if (includeStatementOfReasons) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: decisionGround,
+                        decoration: const InputDecoration(
+                            labelText: 'Entscheidungsgrund'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'terms_violation',
+                              child: Text('Verstoß gegen Regeln/AGB')),
+                          DropdownMenuItem(
+                              value: 'alleged_illegal_content',
+                              child: Text('Mutmaßlich rechtswidriger Inhalt')),
+                        ],
+                        onChanged: (value) => setDialogState(() {
+                          decisionGround = value ?? 'terms_violation';
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: territorialScope,
+                        maxLength: 2000,
+                        maxLines: 3,
+                        validator: requiredText,
+                        decoration: const InputDecoration(
+                          labelText: 'Räumlicher und funktionaler Umfang',
+                          hintText:
+                              'Wo genau gilt die Maßnahme? Keine Annahmen eintragen.',
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Dauer und Wirkung werden aus der gewählten Aktion '
+                        'gebunden. Eine kostenlose elektronische Prüfung '
+                        'bleibt verfügbar.',
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                Navigator.of(dialogContext).pop({
+                  'facts': facts.text.trim(),
+                  'basis': basis.text.trim(),
+                  'reasoning': reasoning.text.trim(),
+                  'detectionMethod': detectionMethod,
+                  if (detectionMethod == 'hybrid')
+                    'automatedMeans': automatedMeans.text.trim(),
+                  if (includeStatementOfReasons)
+                    'statementOfReasons': {
+                      'decisionGround': decisionGround,
+                      'decisionOrigin': 'notice',
+                      'territorialScope': territorialScope.text.trim(),
+                      'durationType': durationType,
+                      'automationRole':
+                          detectionMethod == 'human' ? 'none' : automationRole,
+                    },
+                });
+              },
+              child: const Text('Geprüfte Begründung bestätigen'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    await Future<void>.delayed(kThemeAnimationDuration);
+    facts.dispose();
+    basis.dispose();
+    reasoning.dispose();
+    territorialScope.dispose();
+    automatedMeans.dispose();
+    return result;
   }
 
   void _openReport(Map<String, dynamic> report) {

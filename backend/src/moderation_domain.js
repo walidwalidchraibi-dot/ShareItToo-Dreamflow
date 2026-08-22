@@ -8,6 +8,18 @@ const REVIEW_CRITERIA = Object.freeze([
   'handover_return',
 ]);
 const MODERATION_DETECTION_METHODS = new Set(['human', 'automated', 'hybrid']);
+const MODERATION_DECISION_GROUNDS = new Set([
+  'alleged_illegal_content',
+  'terms_violation',
+]);
+const MODERATION_DECISION_ORIGINS = new Set(['notice', 'own_initiative']);
+const MODERATION_AUTOMATION_ROLES = new Set(['none', 'signal', 'decision_support']);
+const MODERATION_DURATION_TYPES = new Set([
+  'fixed',
+  'until_reversed',
+  'not_applicable',
+]);
+export const moderationStatementVersion = 'sit_dsa_statement_of_reasons_v1';
 
 const REPORT_TRANSITIONS = Object.freeze({
   support: Object.freeze({
@@ -133,7 +145,7 @@ export function moderationReviewDeadline(issuedAt) {
   return date;
 }
 
-export function normalizeModerationDecisionInput(raw) {
+export function normalizeModerationDecisionInput(raw, { statementRequired = false } = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new ModerationDomainError(400, 'moderation_decision_required');
   }
@@ -156,12 +168,89 @@ export function normalizeModerationDecisionInput(raw) {
   if (detectionMethod !== 'human' && !automatedMeans) {
     throw new ModerationDomainError(400, 'moderation_automated_means_required');
   }
-  return Object.freeze({
+  const base = {
     facts: requiredText(raw.facts, 8000, 'moderation_facts_required'),
     basis: requiredText(raw.basis, 2000, 'moderation_basis_required'),
     reasoning: requiredText(raw.reasoning, 8000, 'moderation_reasoning_required'),
     detectionMethod,
     automatedMeans,
+  };
+  if (statementRequired && detectionMethod === 'automated') {
+    throw new ModerationDomainError(400, 'moderation_human_review_required');
+  }
+  if (!statementRequired && raw.statementOfReasons === undefined) {
+    return Object.freeze(base);
+  }
+  const statement = raw.statementOfReasons;
+  if (!statement || typeof statement !== 'object' || Array.isArray(statement)) {
+    throw new ModerationDomainError(400, 'moderation_statement_of_reasons_required');
+  }
+  const decisionGround = requiredText(
+    statement.decisionGround,
+    60,
+    'moderation_decision_ground_required',
+  ).toLowerCase();
+  if (!MODERATION_DECISION_GROUNDS.has(decisionGround)) {
+    throw new ModerationDomainError(400, 'moderation_decision_ground_invalid');
+  }
+  const decisionOrigin = requiredText(
+    statement.decisionOrigin,
+    60,
+    'moderation_decision_origin_required',
+  ).toLowerCase();
+  if (!MODERATION_DECISION_ORIGINS.has(decisionOrigin)) {
+    throw new ModerationDomainError(400, 'moderation_decision_origin_invalid');
+  }
+  const automationRole = requiredText(
+    statement.automationRole,
+    60,
+    'moderation_automation_role_required',
+  ).toLowerCase();
+  if (!MODERATION_AUTOMATION_ROLES.has(automationRole)) {
+    throw new ModerationDomainError(400, 'moderation_automation_role_invalid');
+  }
+  if (detectionMethod === 'human' && automationRole !== 'none') {
+    throw new ModerationDomainError(400, 'moderation_automation_role_not_applicable');
+  }
+  if (detectionMethod !== 'human' && automationRole === 'none') {
+    throw new ModerationDomainError(400, 'moderation_automation_role_required');
+  }
+  const durationType = requiredText(
+    statement.durationType,
+    60,
+    'moderation_duration_type_required',
+  ).toLowerCase();
+  if (!MODERATION_DURATION_TYPES.has(durationType)) {
+    throw new ModerationDomainError(400, 'moderation_duration_type_invalid');
+  }
+  const endsAt = statement.endsAt === undefined || statement.endsAt === null
+    || statement.endsAt === ''
+    ? null
+    : new Date(statement.endsAt);
+  if (durationType === 'fixed' && (!endsAt || !Number.isFinite(endsAt.getTime()))) {
+    throw new ModerationDomainError(400, 'moderation_statement_end_required');
+  }
+  if (durationType === 'until_reversed' && endsAt) {
+    throw new ModerationDomainError(400, 'moderation_statement_end_not_applicable');
+  }
+  if (durationType === 'not_applicable' && endsAt) {
+    throw new ModerationDomainError(400, 'moderation_statement_end_not_applicable');
+  }
+  return Object.freeze({
+    ...base,
+    statementOfReasons: Object.freeze({
+      version: moderationStatementVersion,
+      decisionGround,
+      decisionOrigin,
+      territorialScope: requiredText(
+        statement.territorialScope,
+        2000,
+        'moderation_territorial_scope_required',
+      ),
+      durationType,
+      endsAt,
+      automationRole,
+    }),
   });
 }
 

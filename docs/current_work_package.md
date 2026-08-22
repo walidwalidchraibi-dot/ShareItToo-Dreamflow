@@ -226,6 +226,21 @@ a completeness signal only and cannot decide illegality or execute a content
 measure. Public/guest access, legal/operator approval, production, payment,
 Store, signed candidate and live operation remain closed.
 
+`S3P_MODERATION_STATEMENT_OF_REASONS` is locally verified and awaiting its
+exact commit and GitHub Actions evidence. It addresses the technical core of
+Drive scenarios `SUP-115` through `SUP-119`: every new significant account,
+function, listing or private-marketplace restriction and every reversal must
+commit one versioned, append-only Statement of Reasons with exact facts, basis,
+reasoning, origin, scope, duration and automation role. Migration `044`
+independently rejects a significant decision without its Statement and binds
+the human reviewer to the issuing Administrator. The authenticated user
+surface fails closed for incomplete legacy evidence but preserves the existing
+free electronic review route. Local Backend, Flutter, privacy, retention, P0B,
+Web and Android debug checks passed. Historical facts are not invented;
+independent review assignment, correction workflow, legal/operator approval,
+external transparency reporting, production, payment, Store, signed candidate
+and live operation remain closed.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress

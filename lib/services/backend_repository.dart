@@ -1014,6 +1014,31 @@ class BackendRepository {
     return _maps(response['reports']);
   }
 
+  static Future<List<Map<String, dynamic>>> getMyModerationDecisions() async {
+    final response =
+        await _authorized(method: 'GET', path: '/moderation/decisions');
+    return _maps(response['decisions']);
+  }
+
+  static Future<Map<String, dynamic>> submitModerationReview({
+    required String decisionId,
+    required String reason,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/moderation/decisions/${Uri.encodeComponent(decisionId)}/review',
+      body: {'reason': reason.trim()},
+      additionalHeaders: {
+        'Idempotency-Key': 'moderation_review_${decisionId.trim()}',
+      },
+    );
+    final review = response['reviewRequest'];
+    if (review is! Map) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return Map<String, dynamic>.from(review);
+  }
+
   static Future<Map<String, dynamic>> createSupportCase({
     required Map<String, dynamic> intake,
     required String idempotencyKey,
@@ -1236,6 +1261,7 @@ class BackendRepository {
     required String reasonCode,
     String? reportId,
     String? note,
+    required Map<String, dynamic> decision,
   }) async {
     await _staff(
       method: 'POST',
@@ -1245,6 +1271,7 @@ class BackendRepository {
         'reasonCode': reasonCode,
         if (reportId != null) 'reportId': reportId,
         if ((note ?? '').isNotEmpty) 'note': note,
+        'decision': decision,
       },
       idempotencyKey: 'user_suspend_${DateTime.now().microsecondsSinceEpoch}',
     );
@@ -1256,6 +1283,7 @@ class BackendRepository {
     required String reasonCode,
     String? reportId,
     String? note,
+    required Map<String, dynamic> decision,
   }) async {
     await _staff(
       method: 'PATCH',
@@ -1265,6 +1293,7 @@ class BackendRepository {
         'reasonCode': reasonCode,
         if (reportId != null) 'reportId': reportId,
         if ((note ?? '').isNotEmpty) 'note': note,
+        'decision': decision,
       },
       idempotencyKey:
           'listing_moderation_${DateTime.now().microsecondsSinceEpoch}',

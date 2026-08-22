@@ -14,6 +14,27 @@ import { createEphemeralAcceptancePassword } from '../ops/ephemeral_acceptance_p
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
 
+function humanStatementDecision({
+  facts,
+  basis,
+  reasoning,
+  durationType = 'until_reversed',
+}) {
+  return {
+    facts,
+    basis,
+    reasoning,
+    detectionMethod: 'human',
+    statementOfReasons: {
+      decisionGround: 'terms_violation',
+      decisionOrigin: 'notice',
+      territorialScope: 'Alle SIT-Oberflächen; keine geografische Teilbeschränkung.',
+      durationType,
+      automationRole: 'none',
+    },
+  };
+}
+
 if (!databaseUrl) {
   test.skip('PostgreSQL foundation integration requires TEST_DATABASE_URL');
 } else {
@@ -105,6 +126,7 @@ if (!databaseUrl) {
         '041_support_closed_account_access_guard.up.sql',
         '042_support_dsa_notice_intake.up.sql',
         '043_support_dsa_notice_locator_completion.up.sql',
+        '044_moderation_statement_of_reasons.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -4041,12 +4063,11 @@ if (!databaseUrl) {
         body: JSON.stringify({
           status: 'hidden', reportId: b9Report.id,
           reasonCode: 'documented_policy_violation', note: 'Temporary reversible measure',
-          decision: {
+          decision: humanStatementDecision({
             facts: 'Controlled listing evidence confirms the documented policy violation.',
             basis: 'Controlled marketplace listing policy fixture.',
             reasoning: 'The verified fixture requires a temporary, reversible visibility restriction.',
-            detectionMethod: 'human',
-          },
+          }),
         }),
       });
       assert.equal(hideListing.status, 200);
@@ -4062,12 +4083,12 @@ if (!databaseUrl) {
         body: JSON.stringify({
           status: 'active', reportId: b9Report.id,
           reasonCode: 'verification_completed', note: 'Restriction reversed',
-          decision: {
+          decision: humanStatementDecision({
             facts: 'Controlled follow-up verification confirms the temporary restriction can end.',
             basis: 'Controlled marketplace verification-completion fixture.',
             reasoning: 'The follow-up fixture supports restoring the listing to its prior active state.',
-            detectionMethod: 'human',
-          },
+            durationType: 'not_applicable',
+          }),
         }),
       });
       assert.equal(restoreListing.status, 200);
@@ -4087,12 +4108,11 @@ if (!databaseUrl) {
         body: JSON.stringify({
           scope: 'booking', reportId: outsiderReportId,
           reasonCode: 'controlled_scope_probe', note: 'Temporary integration restriction',
-          decision: {
+          decision: humanStatementDecision({
             facts: 'Controlled account evidence confirms the booking-scope integration condition.',
             basis: 'Controlled booking-scope moderation fixture.',
             reasoning: 'The fixture requires a temporary booking-only restriction for the test subject.',
-            detectionMethod: 'human',
-          },
+          }),
         }),
       });
       assert.equal(suspendBooking.status, 201);
@@ -4112,12 +4132,12 @@ if (!databaseUrl) {
         headers: { ...adminHeaders, 'Idempotency-Key': 'b9-lift-outsider-booking' },
         body: JSON.stringify({
           reasonCode: 'controlled_probe_complete',
-          decision: {
+          decision: humanStatementDecision({
             facts: 'Controlled follow-up evidence confirms the booking-scope probe is complete.',
             basis: 'Controlled moderation-reversal fixture.',
             reasoning: 'The completed probe no longer supports keeping the temporary restriction.',
-            detectionMethod: 'human',
-          },
+            durationType: 'not_applicable',
+          }),
         }),
       });
       assert.equal(liftBooking.status, 200);
@@ -4129,6 +4149,95 @@ if (!databaseUrl) {
         },
         body: JSON.stringify({ itemId: 'listing-1', startDate: '2027-02-01', endDate: '2027-02-03' }),
       })).status, 200);
+
+      const ownerDecisionResponse = await fetch(
+        `${baseUrl}/v1/moderation/decisions`,
+        { headers: ownerHeaders },
+      );
+      assert.equal(ownerDecisionResponse.status, 200);
+      assert.equal(ownerDecisionResponse.headers.get('cache-control'), 'private, no-store');
+      const ownerDecisions = (await ownerDecisionResponse.json()).decisions;
+      const listingStatements = ownerDecisions
+        .filter((decision) => decision.targetType === 'listing')
+        .map((decision) => decision.statementOfReasons);
+      assert.equal(listingStatements.length, 2);
+      assert.deepEqual(
+        new Set(listingStatements.map((statement) => statement.durationType)),
+        new Set(['until_reversed', 'not_applicable']),
+      );
+      assert.ok(listingStatements.every((statement) =>
+        statement.version === 'sit_dsa_statement_of_reasons_v1'
+          && statement.humanReviewed === true
+          && statement.reviewChannel === 'authenticated_in_app'));
+
+      const outsiderDecisionResponse = await fetch(
+        `${baseUrl}/v1/moderation/decisions`,
+        { headers: { Authorization: `Bearer ${tokenFor('outsider')}` } },
+      );
+      assert.equal(outsiderDecisionResponse.status, 200);
+      assert.equal(
+        outsiderDecisionResponse.headers.get('cache-control'),
+        'private, no-store',
+      );
+      const outsiderDecisions = (await outsiderDecisionResponse.json()).decisions;
+      const suspensionDecision = outsiderDecisions.find(
+        (decision) => decision.measureType === 'scope_suspension',
+      );
+      assert.ok(suspensionDecision);
+      const requestDecisionReview = await fetch(
+        `${baseUrl}/v1/moderation/decisions/${suspensionDecision.id}/review`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${tokenFor('outsider')}`,
+            'Content-Type': 'application/json',
+            'Idempotency-Key': 's3p-review-suspension-decision',
+          },
+          body: JSON.stringify({
+            reason: 'Controlled request for a fresh human review.',
+          }),
+        },
+      );
+      assert.equal(requestDecisionReview.status, 201);
+      assert.equal(
+        requestDecisionReview.headers.get('cache-control'),
+        'private, no-store',
+      );
+      assert.equal(
+        (await requestDecisionReview.json()).reviewRequest.status,
+        'submitted',
+      );
+
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO moderation_decisions (
+             recipient_user_id, target_type, target_id, measure_type,
+             measure_state, facts, basis, reasoning, detection_method,
+             review_available, review_deadline_at, issued_by, idempotency_key
+           ) VALUES (
+             'owner', 'listing', 'listing-1', 'listing_restriction',
+             'hidden', 'Missing Statement probe', 'Controlled basis',
+             'Controlled reasoning', 'human', true, now() + interval '6 months',
+             'admin', 'moderation.decision:s3p-missing-statement-probe'
+           )`,
+        ),
+        /moderation_statement_of_reasons_required/u,
+      );
+      const immutableStatement = await setupPool.query(
+        `SELECT moderation_decision_id
+           FROM moderation_statements_of_reasons
+          ORDER BY created_at LIMIT 1`,
+      );
+      assert.equal(immutableStatement.rowCount, 1);
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE moderation_statements_of_reasons
+              SET territorial_scope = 'Mutated scope'
+            WHERE moderation_decision_id = $1`,
+          [immutableStatement.rows[0].moderation_decision_id],
+        ),
+        /append-only/u,
+      );
 
       assert.equal((await fetch(`${baseUrl}/v1/user-blocks/owner`, {
         method: 'PUT',

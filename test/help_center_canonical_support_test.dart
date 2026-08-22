@@ -121,6 +121,33 @@ void main() {
     );
   });
 
+  testWidgets('help center opens the authenticated moderation decisions',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(MaterialApp(
+      home: HelpCenterScreen(
+        sessionCheck: () async => true,
+        moderationDecisionLoader: () async => const [],
+      ),
+    ));
+    final openDecisions =
+        find.byKey(const ValueKey('open-moderation-decisions'));
+    await tester.scrollUntilVisible(
+      openDecisions,
+      600,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(openDecisions);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Moderationsentscheidungen'), findsOneWidget);
+    expect(find.text('Keine Moderationsentscheidungen'), findsOneWidget);
+  });
+
   test('profile help tile opens the real help center', () {
     final source = File('lib/screens/profile_screen.dart').readAsStringSync();
     expect(
