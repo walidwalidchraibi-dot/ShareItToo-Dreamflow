@@ -29,7 +29,6 @@ import 'package:lendify/widgets/login_nudge_sheet.dart';
 import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/config/private_pilot_config.dart';
-import 'package:lendify/services/private_pilot_pricing.dart';
 import 'package:lendify/screens/private_pilot_checkout_screen.dart';
 import 'package:lendify/widgets/private_pilot_risk_notice.dart';
 import 'package:lendify/theme.dart';
@@ -221,77 +220,6 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     }
   }
 
-  Future<void> _sendRequest() async {
-    final range = _selectedRange;
-    if (range == null) return;
-
-    final ok = await DataService.checkAvailability(
-        itemId: widget.item.id, start: range.start, end: range.end);
-    if (!ok) {
-      if (!mounted) return;
-      await _showUnavailablePopup(context);
-      return;
-    }
-    final current = await DataService.getCurrentUser();
-    if (!mounted) return;
-    if (current == null) {
-      await showGuestRestrictionSheet(context,
-          gateContext: GuestGateContext.rentalRequest);
-      return;
-    }
-
-    if (PrivatePilotConfig.enabled) {
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (_) => PrivatePilotCheckoutScreen(
-            item: widget.item,
-            range: range,
-          ),
-        ),
-      );
-      return;
-    }
-
-    final req = RentalRequest(
-      id: 'local',
-      itemId: widget.item.id,
-      ownerId: widget.item.ownerId,
-      renterId: current.id,
-      start: range.start,
-      end: range.end,
-      status: 'pending',
-      message: null,
-      expressRequested: false,
-      expressStatus: null,
-      expressFee: 5.0,
-    );
-
-    RentalRequest stored;
-    try {
-      stored = await DataService.addRentalRequest(req);
-    } catch (e) {
-      f.debugPrint('[ItemDetailsOverlay] addRentalRequest failed: $e');
-      if (!mounted) return;
-      await AppPopup.toast(context,
-          icon: Icons.error_outline,
-          title: 'Anfrage konnte nicht gesendet werden');
-      return;
-    }
-
-    // UI flow errors should not be shown as “send failed” if the request was stored.
-    try {
-      if (!mounted) return;
-      final rootNav = Navigator.of(context, rootNavigator: true);
-      rootNav.popUntil((route) => route.isFirst);
-      if (!rootNav.mounted) return;
-      await _showReservationSentPopup(rootNav.context,
-          requestId: stored.id, item: widget.item);
-    } catch (e) {
-      f.debugPrint(
-          '[ItemDetailsOverlay] post-send UI flow failed (request stored): $e');
-    }
-  }
-
   String _priceWithUnit(Item i) {
     final unit = i.priceUnit;
     final raw = i.priceRaw;
@@ -303,15 +231,6 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final von = '${two(r.start.day)}.${two(r.start.month)}.${r.start.year}';
     final bis = '${two(r.end.day)}.${two(r.end.month)}.${r.end.year}';
     return 'Von: $von    Bis: $bis';
-  }
-
-  String _buildPriceSummary(Item i, DateTimeRange r) {
-    final diff = r.end.difference(r.start);
-    int days = diff.inDays;
-    if (days <= 0) days = 1;
-    final quote = PrivatePilotPricing.quoteForItem(item: i, days: days);
-    final span = days == 1 ? '1 Tag' : '$days Tage';
-    return '${PrivatePilotPricing.formatMinor(quote.totalMinor, currency: quote.currency)} für $span';
   }
 
   Future<void> _addToWishlist() async {
@@ -1441,26 +1360,6 @@ class _ItemMetaSection extends StatelessWidget {
   }
 }
 
-class _MetaLine extends StatelessWidget {
-  final String label;
-  final Widget value;
-  const _MetaLine({required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      // Make the title bigger than the info as requested
-      Text(label,
-          style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : AppTheme.textPrimary(context),
-              fontSize: 14)),
-      const SizedBox(height: 2),
-      value,
-    ]);
-  }
-}
-
 class _TableLine extends StatelessWidget {
   final String label;
   final String? value;
@@ -1526,46 +1425,6 @@ class _NoDeliveryParagraph extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _DeliveryMetaChips extends StatelessWidget {
-  final Item item;
-  const _DeliveryMetaChips({required this.item});
-  @override
-  Widget build(BuildContext context) {
-    final bool d = item.offersDeliveryAtDropoff;
-    final bool p = item.offersPickupAtReturn;
-    if (!d && !p) {
-      return const _NoDeliveryParagraph();
-    }
-    Widget chip(String text) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-        child: Text(text,
-            style: const TextStyle(color: Colors.white, fontSize: 13)),
-      );
-    }
-
-    final List<Widget> chips = [];
-    if (d) {
-      final label = item.maxDeliveryKmAtDropoff != null
-          ? 'Lieferung bei Abgabe · bis ${item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km'
-          : 'Lieferung bei Abgabe';
-      chips.add(chip(label));
-    }
-    if (p) {
-      final label = item.maxPickupKmAtReturn != null
-          ? 'Abholung bei Rückgabe · bis ${item.maxPickupKmAtReturn!.toStringAsFixed(0)} km'
-          : 'Abholung bei Rückgabe';
-      chips.add(chip(label));
-    }
-    return Wrap(spacing: 8, runSpacing: 8, children: chips);
   }
 }
 
@@ -1759,182 +1618,6 @@ class _CollapsingDescriptionSlotState
   }
 }
 
-class _OwnerRow extends StatelessWidget {
-  final model.User? owner;
-  const _OwnerRow({required this.owner});
-  @override
-  Widget build(BuildContext context) {
-    final verified = owner?.isVerified == true;
-    return Container(
-      decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.white.withValues(alpha: 0.06)
-              : AppTheme.surfacePrimary(context),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : AppTheme.glassStroke(context))),
-      padding: const EdgeInsets.all(10),
-      child: Row(children: [
-        SitUserAvatar(
-          url: owner?.photoURL,
-          radius: 18,
-          borderColor: Colors.white.withValues(alpha: 0.12),
-          placeholderIcon: Icons.person_outline,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Builder(builder: (context) {
-                final l10n = context.watch<LocalizationController>();
-                return Text(owner?.displayName ?? l10n.t('Anbieter'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : AppTheme.textPrimary(context),
-                        fontWeight: FontWeight.w700));
-              })),
-              Icon(Icons.verified,
-                  size: 16,
-                  color: verified ? const Color(0xFF22C55E) : Colors.grey),
-            ]),
-            const SizedBox(height: 2),
-            _OwnerReviewSummary(user: owner),
-          ]),
-        ),
-      ]),
-    );
-  }
-}
-
-class _ListerDetailsCard extends StatelessWidget {
-  final model.User? user;
-  final Key? boxKey;
-  const _ListerDetailsCard({required this.user, this.boxKey});
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.watch<LocalizationController>();
-    final u = user;
-    return Container(
-      key: boxKey,
-      decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
-      padding: const EdgeInsets.all(12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          SitUserAvatar(
-            url: u?.photoURL,
-            radius: 22,
-            borderColor: Colors.white.withValues(alpha: 0.12),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                Row(children: [
-                  Expanded(
-                      child: Text(u?.displayName ?? l10n.t('Anbieter'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : AppTheme.textPrimary(context),
-                              fontWeight: FontWeight.w700))),
-                  Icon(Icons.verified,
-                      size: 18,
-                      color: (u?.isVerified == true)
-                          ? const Color(0xFF22C55E)
-                          : Colors.grey)
-                ]),
-                const SizedBox(height: 2),
-                _OwnerReviewSummary(user: u, iconSize: 16),
-                if (u?.city != null) ...[
-                  const SizedBox(height: 2),
-                  Text('${u!.city}${u.country != null ? ', ${u.country}' : ''}',
-                      style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : AppTheme.textSecondary(context),
-                          fontSize: 12)),
-                ],
-                if (u != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                      '${l10n.t('Dabei seit')}: ${_joinedMonthYear(u.createdAt)}',
-                      style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : AppTheme.textSecondary(context),
-                          fontSize: 12)),
-                ],
-              ])),
-
-          // Vertical divider
-          Container(
-              height: 44,
-              width: 1,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : const Color(0xFFE2E8F0)),
-          const SizedBox(width: 12),
-
-          // Small profile button aligned to the right
-          TextButton.icon(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              shape: const StadiumBorder(),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.20)),
-              foregroundColor: Colors.white,
-              textStyle: const TextStyle(fontSize: 13),
-            ),
-            onPressed: () {
-              final userId = u?.id;
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => PublicProfileScreen(userId: userId)));
-            },
-            icon: const Icon(Icons.person_outline, size: 18),
-            label: Text(l10n.t('Zum Profil')),
-          ),
-        ]),
-        if ((u?.bio?.isNotEmpty ?? false)) ...[
-          const SizedBox(height: 10),
-          Text(u!.bio!, style: const TextStyle(color: Colors.white)),
-        ],
-      ]),
-    );
-  }
-
-  static String _joinedMonthYear(DateTime createdAt) {
-    const monthsDe = [
-      'Januar',
-      'Februar',
-      'März',
-      'April',
-      'Mai',
-      'Juni',
-      'Juli',
-      'August',
-      'September',
-      'Oktober',
-      'November',
-      'Dezember'
-    ];
-    final m = monthsDe[createdAt.month - 1];
-    return '$m ${createdAt.year}';
-  }
-}
-
 class _ListingImageRatingBadge extends StatelessWidget {
   final Future<model.User?> ownerFuture;
   final Item item;
@@ -2012,9 +1695,8 @@ class _ListingImageRatingBadge extends StatelessWidget {
 
 class _OwnerReviewSummary extends StatelessWidget {
   final model.User? user;
-  final double iconSize;
 
-  const _OwnerReviewSummary({required this.user, this.iconSize = 14});
+  const _OwnerReviewSummary({required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -2037,7 +1719,7 @@ class _OwnerReviewSummary extends StatelessWidget {
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Text('${u.reviewCount} ${l10n.t('Bewertungen')}', style: style),
       const SizedBox(width: 8),
-      Icon(Icons.star, size: iconSize, color: const Color(0xFFFB923C)),
+      const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
       const SizedBox(width: 4),
       Text(rating.toStringAsFixed(1), style: style),
     ]);
@@ -2281,15 +1963,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       lat: _addressLat,
       lng: _addressLng,
     );
-  }
-
-  double _baseRentalTotal() {
-    final range = widget.range;
-    if (range == null) return 0.0;
-    final perDay = widget.item.pricePerDay;
-    int days = range.end.difference(range.start).inDays;
-    if (days <= 0) days = 1;
-    return days * perDay;
   }
 
   @override
@@ -3142,14 +2815,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     );
   }
 
-  bool _isValidAddressLine(String text) {
-    final trimmed = text.trim();
-    // Basic: require a space and at least one digit
-    return trimmed.contains(' ') &&
-        RegExp(r"\d").hasMatch(trimmed) &&
-        trimmed.length >= 5;
-  }
-
   Future<void> _handleReserve(BuildContext context) async {
     if (widget.ownerPreview) {
       await _showOwnerPreviewBlockPopup(context);
@@ -3551,27 +3216,6 @@ Future<void> _showReservationSentPopup(BuildContext context,
   );
 }
 
-Future<void> _showAddressGuardPopup(BuildContext context, bool empty) async {
-  await AppPopup.show(
-    context,
-    icon: Icons.error_outline,
-    title: 'Adresse benötigt',
-    message: empty
-        ? 'Bitte Adresse angeben.'
-        : 'Bitte eine gültige Adresse auswählen oder korrigieren (Google Maps Vorschlag wählen).',
-    actions: [
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
-          onPressed: () =>
-              Navigator.of(context, rootNavigator: true).maybePop(),
-          child: const Text('OK'),
-        ),
-      ),
-    ],
-  );
-}
-
 Future<void> _showOwnerPreviewBlockPopup(BuildContext context) async {
   await AppPopup.show(
     context,
@@ -3590,62 +3234,6 @@ Future<void> _showOwnerPreviewBlockPopup(BuildContext context) async {
       ),
     ],
   );
-}
-
-class _LineRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool bold;
-  const _LineRow({required this.label, required this.value, this.bold = false});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(children: [
-        Expanded(
-            child: Text(label,
-                style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: bold ? FontWeight.w700 : FontWeight.w500))),
-        Text(value,
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
-      ]),
-    );
-  }
-}
-
-class _CancellationPolicySection extends StatelessWidget {
-  final String policy; // 'flexible' | 'moderate' | 'strict'
-  const _CancellationPolicySection({required this.policy});
-  String _header() => CancellationPolicyText.header;
-
-  String _body() => CancellationPolicyText.body();
-  @override
-  Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 0),
-        collapsedIconColor: Colors.white70,
-        iconColor: Colors.white70,
-        initiallyExpanded: false,
-        title: Text(_header(),
-            style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : AppTheme.textPrimary(context),
-                fontWeight: FontWeight.w700)),
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Text(_body(), style: const TextStyle(color: Colors.white70)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // Match the expandable card design used in booking_detail_screen.dart (_CancellationPolicyCard)
@@ -3918,41 +3506,6 @@ class _CitySelectorState extends State<_CitySelector> {
                 value: c,
                 child: Text(c, style: const TextStyle(color: Colors.white)))
         ],
-      ),
-    );
-  }
-}
-
-class _GlassButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback? onPressed;
-  const _GlassButton(
-      {required this.label, required this.icon, required this.onPressed});
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.16))),
-          child: TextButton.icon(
-            onPressed: onPressed,
-            icon: Icon(icon, color: Colors.white),
-            label: Text(label, style: const TextStyle(color: Colors.white)),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -4254,92 +3807,5 @@ extension on _BottomActionBarState {
       ],
     );
     return baseRow;
-  }
-}
-
-class _TwoLineCenteredButtonContent extends StatelessWidget {
-  final IconData leadingIcon;
-  final String top;
-  final String bottom;
-  final bool filled;
-  const _TwoLineCenteredButtonContent({
-    required this.leadingIcon,
-    required this.top,
-    required this.bottom,
-    required this.filled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color textColor =
-        filled ? Colors.white : Theme.of(context).colorScheme.primary;
-    final Color iconColor =
-        filled ? Colors.white : Theme.of(context).colorScheme.primary;
-    // Subtle badge background: faint white on filled, faint primary on outlined
-    final Color badgeBg = filled
-        ? Colors.white.withValues(alpha: 0.18)
-        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Centered two-line label built as two Text widgets to avoid mid-word wrap
-        // on the first line ("Reservierung"). The first line scales down slightly
-        // instead of breaking, so the second line stays visible.
-        Padding(
-          // a bit tighter than before to give the first line more room
-          padding: const EdgeInsets.symmetric(horizontal: 22.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Prevent intraword wrapping of the first line by scaling down if needed
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.center,
-                child: Text(
-                  top,
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 1.5),
-              Text(
-                bottom,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Leading icon inside a circular badge at the far left that does not affect text centering
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            // keep the badge ~1mm from the rounded border of the button
-            // 1mm ≈ 6 logical px (approx across densities)
-            padding: const EdgeInsets.only(left: 6.0),
-            child: Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: badgeBg,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(leadingIcon, color: iconColor, size: 16.5),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }

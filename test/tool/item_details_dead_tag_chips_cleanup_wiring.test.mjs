@@ -12,10 +12,15 @@ test('item details cannot regain the unused tag-chip presentation class', () => 
   assert.doesNotMatch(source, /_TagChips\s*\(/u);
 });
 
-test('active delivery and category presentation remain intact', () => {
-  assert.match(source, /class _DeliveryMetaChips extends StatelessWidget/u);
+test('unused delivery chips stay removed while active delivery presentation remains', () => {
+  assert.doesNotMatch(source, /class _DeliveryMetaChips\b/u);
+  assert.doesNotMatch(source, /_DeliveryMetaChips\s*\(/u);
+  assert.match(source, /class _NoDeliveryParagraph extends StatelessWidget/u);
   assert.match(source, /item\.offersDeliveryAtDropoff/u);
   assert.match(source, /item\.offersPickupAtReturn/u);
+});
+
+test('active category presentation remains intact', () => {
   assert.match(source, /class _CategoryNameById extends StatelessWidget/u);
   assert.match(source, /DataService\.getCategories\(\)/u);
   assert.match(source, /DataService\.coarseCategoryFor\(cat\.name\)/u);

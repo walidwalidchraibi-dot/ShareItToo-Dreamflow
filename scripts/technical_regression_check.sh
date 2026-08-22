@@ -426,6 +426,7 @@ node --test test/tool/booking_detail_handover_return_async_context_wiring.test.m
 node --test test/tool/item_details_reservation_async_context_wiring.test.mjs
 node --test test/tool/item_details_secondary_async_context_wiring.test.mjs
 node --test test/tool/item_details_radio_group_migration_wiring.test.mjs
+node --test test/tool/item_details_dead_code_ratchet_wiring.test.mjs
 node --test test/tool/android_debug_single_attempt_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs

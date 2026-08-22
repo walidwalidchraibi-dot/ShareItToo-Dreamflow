@@ -720,7 +720,7 @@
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",
-      "sha256": "3e3a29197cd72a355065212b7eeb7f59820a7a25ce58adbc0c1ba0a564bb0035"
+      "sha256": "04063d4a2029f5da201a4fb431b3fa655c46aa7541808fbce3f3a461f2b9a183"
     },
     {
       "path": "lib/config/private_pilot_config.dart",
