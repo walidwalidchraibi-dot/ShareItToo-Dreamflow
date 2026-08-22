@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --import ./test_setup.js --test",
+    "test:postgres:local": "node ../tool/run_local_postgres_integration.mjs",
     "check": "for file in src/*.js ops/*.mjs; do node --check \"$file\"; done && for file in ops/*.sh; do bash -n \"$file\"; done",
     "security:secrets": "node ops/scan_git_secrets.mjs"
   },
