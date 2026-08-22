@@ -142,6 +142,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
           icon: Icons.check_circle_outline, title: 'Link kopiert');
     } catch (e) {
       f.debugPrint('[share] failed: $e');
+      if (!mounted) return;
       await AppPopup.toast(context,
           icon: Icons.error_outline, title: 'Teilen fehlgeschlagen');
     }
@@ -172,6 +173,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final DateTimeRange? initial = _selectedRange;
     // Load booked ranges to mark them in calendar
     await DataService.getUnavailableRangesForItem(widget.item.id);
+    if (!mounted) return;
     // Switch to the new full screen availability UX
     final picked = await Navigator.of(context).push<DateTimeRange>(
       PageRouteBuilder(
@@ -203,6 +205,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
         },
       ),
     );
+    if (!mounted) return;
     if (picked != null) {
       DateTimeRange rangeWithTime = picked;
       // Enforce full-week selection for week-based listings (exactly 7 days)
@@ -324,16 +327,20 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
       return;
     }
     final choice = await WishlistSelectionSheet.showManageOptions(context);
+    if (!mounted) return;
     if (choice == 'move') {
       final sel = await WishlistSelectionSheet.showMove(context,
           currentListId: _wishlistId!);
+      if (!mounted) return;
       if (sel != null && sel.isNotEmpty) {
         await DataService.setItemWishlist(widget.item.id, sel);
-        if (mounted) setState(() => _wishlistId = sel);
+        if (!mounted) return;
+        setState(() => _wishlistId = sel);
       }
     } else if (choice == 'remove') {
       await DataService.removeItemFromWishlist(widget.item.id);
-      if (mounted) setState(() => _wishlistId = null);
+      if (!mounted) return;
+      setState(() => _wishlistId = null);
     }
   }
 
@@ -710,6 +717,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
           icon: Icons.check_circle_outline, title: 'Link kopiert');
     } catch (e) {
       f.debugPrint('[share] failed: $e');
+      if (!mounted) return;
       await AppPopup.toast(context,
           icon: Icons.error_outline, title: 'Teilen fehlgeschlagen');
     }
@@ -936,16 +944,18 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                     label: 'Anzeige melden',
                     value: 'report'),
               ]);
-              if (!mounted || choice == null) return;
+              if (!context.mounted || choice == null) return;
               switch (choice) {
                 case 'share':
                   try {
                     final url = AppLinkBuilder.listing(item.id).toString();
                     await Clipboard.setData(ClipboardData(text: url));
+                    if (!context.mounted) break;
                     await AppPopup.toast(context,
                         icon: Icons.ios_share, title: 'Link kopiert');
                   } catch (e) {
                     f.debugPrint('[share] failed: $e');
+                    if (!context.mounted) break;
                     await AppPopup.toast(context,
                         icon: Icons.error_outline,
                         title: 'Teilen fehlgeschlagen');
@@ -956,7 +966,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                   break;
                 case 'report':
                   final current = await DataService.getCurrentUser();
-                  if (current == null || !mounted) break;
+                  if (current == null || !context.mounted) break;
                   final flowContext = SupportFlowContext.fromBookingDetail(
                     itemTitle: item.title,
                     itemId: item.id,
@@ -971,7 +981,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                       .push<SupportFlowResult?>(MaterialPageRoute(
                           builder: (_) =>
                               SupportFlowScreen(context: flowContext)));
-                  if (result == null || !mounted) break;
+                  if (result == null || !context.mounted) break;
                   final supportThread = await DataService.createSupportThread(
                     userId: current.id,
                     canonicalCaseNumber: result.canonicalCaseNumber,
@@ -991,7 +1001,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                       threadId: supportThread.id,
                       text:
                           "${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu Anzeige: ${item.title}\nReferenz: listing:${item.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText");
-                  if (!mounted) break;
+                  if (!context.mounted) break;
                   await Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => MessageThreadScreen(
                           threadId: supportThread.id,
@@ -4000,6 +4010,7 @@ class _ExpressCountdownSheetState extends State<_ExpressCountdownSheet> {
         await AppPopup.toast(context,
             icon: Icons.flash_on_outlined,
             title: 'Prioritätslieferung bestätigt (+5,00 €).');
+        if (!mounted) return;
         Navigator.of(context).maybePop();
       } else if (r?.expressStatus == 'declined') {
         _showFallbackChoice();
@@ -4221,7 +4232,9 @@ class _ExpressFallbackSheetState extends State<_ExpressFallbackSheet> {
                               icon: Icons.cancel_outlined,
                               title: 'Anfrage storniert.');
                         }
-                        if (mounted) Navigator.of(context).maybePop();
+                        if (context.mounted) {
+                          Navigator.of(context).maybePop();
+                        }
                       },
                       child: const Text('Bestätigen'),
                     ),
