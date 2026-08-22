@@ -1608,3 +1608,32 @@ This package clears the booking-detail context bucket but does not close
 reviewed reductions to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`;
 no production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or
 public activation is enabled.
+
+## S4AS item-details reservation async-context ratchet
+
+`S4AS_ITEM_DETAILS_RESERVATION_ASYNC_CONTEXT_RATCHET` delivers the next
+downward `TD-RR-010` source ratchet at commit `be95424`. Listing-sheet,
+listing-page and bottom-action reservation completion now prove their State,
+exact caller context and mounted root navigator after asynchronous work. The
+confirmation helper proves its own context after lookup. Three fixed
+120-millisecond waits and one 80-millisecond booking-navigation wait are
+removed without a substitute timer or retry.
+
+Request persistence and the existing availability, edit, checkout, saved-state,
+confirmation and booking destinations are unchanged. The exact debt snapshot
+moves `143 -> 132`, and only the intended
+`use_build_context_synchronously` item-overlay bucket changes from `21 -> 10`.
+Forty-nine focused source/analyzer/privacy contracts, 96 focused Flutter tests,
+the privacy and retention validators and a complete
+application-source-identical pre-registration gate pass with the new exact
+fingerprint. The final clean-head run stopped emitting Flutter output after 293
+green results until a terminal interrupt was requested; it then continued and
+returned success, but is not accepted as deterministic evidence. No retry,
+reduced parallelism, timeout or alternate command was used. Exact-commit CI is
+required. The privacy inventory is rebound without changing any disclosure or
+release state.
+
+This package does not close `TD-RR-010`; the remaining ten item-overlay context
+findings require a further reviewed reduction to zero plus exact-commit CI.
+P0B remains `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS,
+deployment, signing, merge or public activation is enabled.

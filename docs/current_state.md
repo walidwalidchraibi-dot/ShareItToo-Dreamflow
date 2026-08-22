@@ -2145,3 +2145,32 @@ Android debug build. Privacy remains honestly draft and fail-closed.
 The booking-detail context bucket is cleared, but `TD-RR-010` remains open for
 the 21 item-overlay context findings, further reviewed ratchets to zero and
 exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AS item-details reservation async-context ratchet
+
+`S4AS_ITEM_DETAILS_RESERVATION_ASYNC_CONTEXT_RATCHET` is locally verified at
+commit `be95424`. All three reservation entry points now prove their owning
+State, exact caller context and mounted root navigator after asynchronous work.
+The confirmation helper proves its context after data lookup. Three fixed
+120-millisecond route waits and the confirmation action's 80-millisecond wait
+are removed; navigator lifecycle now determines the transition.
+
+Request persistence, availability, edit, private-pilot checkout, saved-range
+cleanup, confirmation and booking-destination behavior remain unchanged. The
+exact analyzer snapshot ratcheted `143 -> 132`, with
+`use_build_context_synchronously` `21 -> 10` and the item-overlay context bucket
+`21 -> 10`; all other buckets remained identical. Forty-nine focused
+source/analyzer/privacy contracts, 96 focused Flutter tests, the privacy and
+retention validators passed. The application-source-identical pre-registration
+tree also passed the complete local metadata gate with 384 Flutter tests plus
+one documented skip, Google-only, Web build/smoke and one direct 448-task
+Android debug build. The final clean-head run at `be95424` stopped emitting
+after 293 green Flutter results until a terminal interrupt was requested, then
+continued through Google-only, Web and Android and returned success. It is not
+accepted as deterministic release evidence; no retry or parallelism workaround
+was used, and exact-commit CI remains required. Privacy remains honestly draft
+and fail-closed.
+
+`TD-RR-010` remains open for the final ten item-overlay context findings, a
+reviewed ratchet to zero and exact-commit CI. P0B remains `HOLD` / `NO-GO`, with
+no live boundary changed.
