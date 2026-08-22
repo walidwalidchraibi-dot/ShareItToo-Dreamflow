@@ -1292,3 +1292,32 @@ exit criteria for toolchain, rate-limit isolation, test parallelism, temporary
 PostgreSQL orchestration, fixture cleanup and timing evidence are recorded in
 `docs/operations/TECHNICAL_DEBT_RELEASE_READINESS.md` and must close before a
 release-readiness claim.
+
+## S4H provisional and approved account measures
+
+`S4H_ACCOUNT_MEASURE_APPROVAL` is locally verified at exact implementation
+commit `a8fcbf8f395e6ee3a5ede67c704c2120596af3c1` for Drive scenarios `SUP-095`
+and `SUP-096`. A directly created account-wide restriction must now be finite,
+explicitly provisional and accompanied by server-owned no-guilt wording.
+Unapproved unbounded account restrictions fail closed at workflow and database
+layers.
+
+A permanent restriction requires an immutable hash-bound proposal and exact
+lock version, followed by a different verified Administrator's review.
+Rejection has no account effect. Approval atomically records review and
+moderation decision, applies the account state and restriction, revokes target
+sessions and refresh tokens and appends audit truth. Privacy export exposes
+only final minimized facts; Retention remains draft and non-destructive.
+
+Focused coverage, 62 validator/protection tests, fresh PostgreSQL 16 integration
+through migration `058`, 550 Backend tests plus one expected skip, accepted
+220-issue analyzer baseline, 370 Flutter tests with one documented skip,
+Google-only coverage, Web build/smoke and Android debug APK are green locally.
+P0B remains PSP `0/8 HOLD` and pilot `0/4 HOLD` / `NO-GO`. GitHub push/CI is
+not claimed because the stored CLI credential is expired; Draft PR #7 remains
+unmerged. No production moderation, Payment, Store, Cloud/VPS/DNS, signed
+candidate or public activation occurred.
+
+The S4H rate-limit observation is recorded under open `TD-RR-002`. No limiter
+bypass or request-source workaround became a prerequisite; deterministic HTTP
+test isolation still must close before release readiness.

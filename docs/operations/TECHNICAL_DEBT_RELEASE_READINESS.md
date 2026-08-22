@@ -16,6 +16,20 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-005` | Validator tests left 3,728 `sit-*` temp fixtures (about 2.84 GiB), eventually causing `ENOSPC`; manual removal was required. | Every fixture uses scoped temp roots and cleanup in success/failure paths. Run the complete technical regression twice and prove bounded disk delta with no orphaned `sit-*` fixture directories. |
 | `TD-RR-006` | The reset-token clock-boundary defect exposed by PostgreSQL used transaction time for `created_at` and a later process clock for `expires_at`. The product fix now supplies one timestamp and has focused coverage. | Keep the exact-lifetime unit test and run migration/API integration repeatedly on PostgreSQL 16. Release evidence must show no boundary flake and retain the database 30-minute upper-bound constraint. |
 
+## Observation log
+
+- 22.08.2026, S4H: extending the already large PostgreSQL HTTP integration with
+  more authenticated requests exhausted its shared general rate-limit bucket
+  before the final compliance-page assertion. No new IP rotation, limiter
+  bypass or increased production limit was introduced. The new S4H state
+  transitions were moved to direct transactional workflow integration against
+  PostgreSQL; the unchanged canonical HTTP integration and complete technical
+  regression then passed. `TD-RR-002` remains open until isolated application
+  and limiter tests pass repeatedly without request-source manipulation.
+- 22.08.2026, S4H: PostgreSQL 16 verification again required a manually created
+  scoped data directory and loopback port. Successful cleanup is operational
+  hygiene, not deterministic runner evidence; `TD-RR-004` remains open.
+
 ## Closure rule
 
 Each item closes only through a separate bounded implementation with committed

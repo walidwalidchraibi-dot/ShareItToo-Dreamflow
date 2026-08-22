@@ -818,3 +818,32 @@ register for local toolchain, test-parallelism, rate-limit isolation, timing,
 temporary PostgreSQL and fixture-cleanup accommodations. These may support
 development only and must be replaced by committed reproducible test paths
 before release readiness is claimed.
+
+## S4H provisional and approved account measures
+
+`S4H_ACCOUNT_MEASURE_APPROVAL` implements the non-live portion of Drive
+scenarios `SUP-095` and `SUP-096` at exact commit
+`a8fcbf8f395e6ee3a5ede67c704c2120596af3c1`. The direct account route accepts
+only finite provisional measures and uses server-owned wording that denies any
+finding of guilt. A permanent effect requires an immutable proposal and exact
+hash/version review by a different verified Administrator.
+
+Approval rechecks current target truth and commits proposal review, structured
+decision, unbounded suspension, account state, target session/refresh
+revocation and audit atomically. Rejection has no account effect. Migration
+`058` independently enforces the four-eyes and payload bindings, blocks legacy
+unapproved permanent restrictions and refuses rollback with retained evidence.
+Privacy export is minimized and Retention execution remains blocked.
+
+Focused tests, fresh PostgreSQL 16 integration, 550 Backend passes plus one
+expected skip, all bound validators, accepted analyzer baseline, 370 Flutter
+tests with one documented skip, Google-only coverage, Web build/smoke and
+Android debug APK pass locally. P0B remains `HOLD` / `NO-GO`; GitHub push and
+CI are not claimed because the stored CLI credential is expired. No live
+account action, production, Payment, Store, Cloud/VPS/DNS, signed candidate,
+deployment, PR merge or public activation is enabled.
+
+The added S4H HTTP-heavy test path exposed the suite-wide limiter bucket. It
+was not papered over with IP rotation or higher limits: workflow integration
+keeps S4H deterministic while `TD-RR-002` remains open until the HTTP harness
+and real limiter thresholds are isolated and repeatedly reproducible.
