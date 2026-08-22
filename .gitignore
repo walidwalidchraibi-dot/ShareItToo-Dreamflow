@@ -41,6 +41,7 @@ backend/node_modules/
 **/service-account-key*.json
 .flutter-plugins
 .flutter-plugins-dependencies
+.fvm/
 .pub-cache/
 .pub/
 /build/
