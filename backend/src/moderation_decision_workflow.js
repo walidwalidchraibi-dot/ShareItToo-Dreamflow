@@ -47,6 +47,10 @@ function decisionShape(row) {
     targetId: row.target_id,
     measureType: row.measure_type,
     measureState: row.measure_state,
+    measureStatus: row.measure_status ?? 'standard',
+    noGuiltDetermination: row.no_guilt_determination === true,
+    userFacingMeasureNotice: row.user_facing_measure_notice ?? null,
+    accountSuspensionProposalId: row.account_suspension_proposal_id ?? null,
     facts: row.facts,
     basis: row.basis,
     reasoning: row.reasoning,
@@ -147,6 +151,7 @@ export async function persistModerationDecision(client, {
   idempotencyKey,
   issuedAt = new Date(),
   expectedStatement = null,
+  measureContext = null,
 }) {
   const statementRequired = measureType !== 'report_resolution';
   if (statementRequired && actor?.role !== 'admin') {
@@ -211,15 +216,31 @@ export async function persistModerationDecision(client, {
     if (!report.rowCount) throw new ModerationDecisionError(404, 'report_not_found');
   }
   const deadline = moderationReviewDeadline(issuedAt);
+  const context = measureContext ?? Object.freeze({
+    status: 'standard',
+    noGuiltDetermination: false,
+    userFacingNotice: null,
+    accountSuspensionProposalId: null,
+  });
+  if (!['standard', 'provisional', 'approved'].includes(context.status)
+      || typeof context.noGuiltDetermination !== 'boolean'
+      || (context.userFacingNotice !== null && typeof context.userFacingNotice !== 'string')
+      || (context.accountSuspensionProposalId !== null
+        && typeof context.accountSuspensionProposalId !== 'string')) {
+    throw new ModerationDecisionError(400, 'moderation_measure_context_invalid');
+  }
   const inserted = await client.query(
     `INSERT INTO moderation_decisions (
        report_id, recipient_user_id, target_type, target_id,
        measure_type, measure_state, facts, basis, reasoning,
        detection_method, automated_means, review_available,
-       review_deadline_at, issued_by, idempotency_key, created_at
+       review_deadline_at, issued_by, idempotency_key, created_at,
+       measure_status, no_guilt_determination, user_facing_measure_notice,
+       account_suspension_proposal_id
      ) VALUES (
        $1::uuid, $2, $3, $4, $5, $6, $7, $8, $9,
-       $10, $11, true, $12, $13, $14, $15
+       $10, $11, true, $12, $13, $14, $15,
+       $16, $17, $18, $19::uuid
      ) RETURNING *`,
     [
       reportId,
@@ -237,6 +258,10 @@ export async function persistModerationDecision(client, {
       actor?.id ?? null,
       key,
       issuedAt,
+      context.status,
+      context.noGuiltDetermination,
+      context.userFacingNotice,
+      context.accountSuspensionProposalId,
     ],
   );
   let storedDecision = inserted.rows[0];
@@ -297,6 +322,9 @@ export async function persistModerationDecision(client, {
       measureState,
       statementVersion: decision.statementOfReasons?.version ?? null,
       automationRole: decision.statementOfReasons?.automationRole ?? null,
+      measureStatus: context.status,
+      noGuiltDetermination: context.noGuiltDetermination,
+      accountSuspensionProposalId: context.accountSuspensionProposalId,
     },
   });
   return { decision: decisionShape(storedDecision), replayed: false };

@@ -62,6 +62,8 @@ const sourcePaths = [
   'backend/src/listing_supply_enrichment.js',
   'backend/src/listing_set_workflow.js',
   'backend/src/moderation_domain.js',
+  'backend/src/moderation_account_measure_domain.js',
+  'backend/src/moderation_account_measure_workflow.js',
   'backend/src/moderation_workflow.js',
   'backend/src/moderation_decision_workflow.js',
   'backend/src/moderation_review_correction_workflow.js',
@@ -120,6 +122,8 @@ const sourcePaths = [
   'backend/sql/migrations/056_support_account_recovery_guard.down.sql',
   'backend/sql/migrations/057_account_recovery_session_integrity.up.sql',
   'backend/sql/migrations/057_account_recovery_session_integrity.down.sql',
+  'backend/sql/migrations/058_moderation_account_measure_approval.up.sql',
+  'backend/sql/migrations/058_moderation_account_measure_approval.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -1181,6 +1185,26 @@ function assertSourceContracts({ root, sourceTexts }) {
     sourceTexts,
     'backend/src/moderation_decision_workflow.js',
   );
+  const moderationWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/moderation_workflow.js',
+  );
+  const accountMeasureWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/moderation_account_measure_workflow.js',
+  );
+  const accountMeasureDomain = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/moderation_account_measure_domain.js',
+  );
+  const accountMeasureMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/058_moderation_account_measure_approval.up.sql',
+  );
   const moderationDecisionsScreen = sourceText(
     root,
     sourceTexts,
@@ -1236,6 +1260,35 @@ function assertSourceContracts({ root, sourceTexts }) {
       || !moderationDecisionWorkflow.includes('resolutionDetails: reviewResolution')
       || !moderationDecisionsScreen.includes('Unabhängig und ausschließlich menschlich geprüft')) {
     fail('Moderation review must remain independent, human-only, corrected and user-visible.');
+  }
+  for (const marker of [
+    'moderation_account_suspension_proposals',
+    'payload_sha256 CHAR(64) GENERATED ALWAYS AS',
+    'approved_by IS NOT NULL AND approved_by <> proposed_by',
+    'account_suspension_proposal_payload_immutable',
+    'new_legacy_suspension_forbidden',
+  ]) {
+    if (!accountMeasureMigration.includes(marker)) {
+      fail(`Account suspension approval migration is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    "candidate.provisional !== true",
+    'account_suspension_approval_required',
+    'account_suspension_four_eyes_required',
+    'account_suspension_proposal_payload_changed',
+    'account_suspension_target_state_changed',
+  ]) {
+    if (!moderationWorkflow.includes(marker)
+        && !accountMeasureWorkflow.includes(marker)) {
+      fail(`Account suspension workflow is missing ${marker}.`);
+    }
+  }
+  if (!accountMeasureDomain.includes('Diese Kontoeinschränkung ist vorläufig.')
+      || !accountMeasureDomain.includes('keine Feststellung strafrechtlicher oder zivilrechtlicher Schuld')
+      || !backendApp.includes('/v1/admin/users/:id/account-suspension-proposals')
+      || !backendApp.includes('/v1/admin/account-suspension-proposals/:id/review')) {
+    fail('Account measures must stay provisional/no-guilt or independently approved.');
   }
   const listingUpload = sourceText(root, sourceTexts, 'lib/screens/create_listing_screen.dart');
   const chatUpload = sourceText(root, sourceTexts, 'lib/screens/message_thread_screen.dart');

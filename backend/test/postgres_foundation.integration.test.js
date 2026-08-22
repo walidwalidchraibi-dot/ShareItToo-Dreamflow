@@ -19,6 +19,7 @@ function humanStatementDecision({
   basis,
   reasoning,
   durationType = 'until_reversed',
+  endsAt = null,
 }) {
   return {
     facts,
@@ -30,6 +31,7 @@ function humanStatementDecision({
       decisionOrigin: 'notice',
       territorialScope: 'Alle SIT-Oberflächen; keine geografische Teilbeschränkung.',
       durationType,
+      endsAt,
       automationRole: 'none',
     },
   };
@@ -142,6 +144,7 @@ if (!databaseUrl) {
         '055_support_progress_updates.up.sql',
         '056_support_account_recovery_guard.up.sql',
         '057_account_recovery_session_integrity.up.sql',
+        '058_moderation_account_measure_approval.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -249,6 +252,45 @@ if (!databaseUrl) {
         { table_name: 'support_policy_snapshots' },
         { table_name: 'support_privacy_incident_containment_actions' },
         { table_name: 'support_privacy_incidents' },
+      ]);
+      const accountSuspensionApprovalTables = await setupPool.query(
+        `SELECT table_name
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name = 'moderation_account_suspension_proposals'`,
+      );
+      assert.deepEqual(accountSuspensionApprovalTables.rows, [{
+        table_name: 'moderation_account_suspension_proposals',
+      }]);
+      const accountSuspensionMeasureColumns = await setupPool.query(
+        `SELECT table_name, column_name, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = ANY($1::text[])
+            AND column_name = ANY($2::text[])
+          ORDER BY table_name, column_name`,
+        [[
+          'moderation_decisions',
+          'user_suspensions',
+        ], [
+          'account_suspension_proposal_id',
+          'measure_status',
+          'moderation_decision_id',
+          'no_guilt_determination',
+          'user_facing_measure_notice',
+          'user_facing_notice',
+        ]],
+      );
+      assert.deepEqual(accountSuspensionMeasureColumns.rows, [
+        { table_name: 'moderation_decisions', column_name: 'account_suspension_proposal_id', is_nullable: 'YES' },
+        { table_name: 'moderation_decisions', column_name: 'measure_status', is_nullable: 'NO' },
+        { table_name: 'moderation_decisions', column_name: 'no_guilt_determination', is_nullable: 'NO' },
+        { table_name: 'moderation_decisions', column_name: 'user_facing_measure_notice', is_nullable: 'YES' },
+        { table_name: 'user_suspensions', column_name: 'account_suspension_proposal_id', is_nullable: 'YES' },
+        { table_name: 'user_suspensions', column_name: 'measure_status', is_nullable: 'NO' },
+        { table_name: 'user_suspensions', column_name: 'moderation_decision_id', is_nullable: 'YES' },
+        { table_name: 'user_suspensions', column_name: 'no_guilt_determination', is_nullable: 'NO' },
+        { table_name: 'user_suspensions', column_name: 'user_facing_notice', is_nullable: 'YES' },
       ]);
       const supportIntakeScopeColumn = await setupPool.query(
         `SELECT column_name, data_type, is_nullable
@@ -496,6 +538,8 @@ if (!databaseUrl) {
            ('renter-a', 'renter-a@example.com', '{"displayName":"Renter A"}'::jsonb, 'user', 'active'),
            ('renter-b', 'renter-b@example.com', '{}'::jsonb, 'user', 'active'),
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
+           ('s4h-target', 's4h-target@example.com', '{}'::jsonb, 'user', 'active'),
+           ('s4h-provisional', 's4h-provisional@example.com', '{}'::jsonb, 'user', 'active'),
            ('admin', 'admin@example.com', '{}'::jsonb, 'admin', 'active'),
            ('admin-reviewer', 'admin-reviewer@example.com', '{}'::jsonb, 'admin', 'active'),
            ('support', 'support@example.com', '{}'::jsonb, 'support', 'active'),
@@ -973,6 +1017,278 @@ if (!databaseUrl) {
            ($8, 'support', 'Support test')`,
         Object.values(sessionIds),
       );
+      const {
+        liftUserSuspension,
+        setUserSuspension,
+      } = await import('../src/moderation_workflow.js');
+      const {
+        proposePermanentAccountSuspension,
+        reviewPermanentAccountSuspensionProposal,
+      } = await import('../src/moderation_account_measure_workflow.js');
+      const runS4hCommand = async (command) => {
+        const client = await setupPool.connect();
+        try {
+          await client.query('BEGIN');
+          const result = await command(client);
+          await client.query('COMMIT');
+          return result;
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      };
+      await assert.rejects(
+        runS4hCommand((client) => setUserSuspension(client, {
+          actor: { id: 'admin', role: 'admin' },
+          userId: 's4h-target',
+          idempotencyKey: 's4h-unapproved-permanent-blocked',
+          raw: {
+            scope: 'account',
+            reasonCode: 'controlled_permanent_measure',
+          },
+        })),
+        (error) => error?.code === 'account_suspension_approval_required',
+      );
+      const accountProposalResult = await runS4hCommand((client) => (
+        proposePermanentAccountSuspension(client, {
+          actor: { id: 'admin', role: 'admin' },
+          userId: 's4h-target',
+          idempotencyKey: 's4h-permanent-proposal',
+          raw: {
+            reasonCode: 'controlled_permanent_measure',
+            note: 'Controlled proposal; no live account or provider action.',
+            decision: humanStatementDecision({
+              facts: 'Controlled permanent-measure proposal fixture.',
+              basis: 'Controlled four-eyes integration fixture.',
+              reasoning: 'The fixture exercises an independently reviewed account restriction.',
+            }),
+          },
+        })
+      ));
+      const accountProposal = accountProposalResult.proposal;
+      assert.equal(accountProposal.status, 'pending');
+      assert.equal(accountProposal.lockVersion, 1);
+      assert.match(accountProposal.payloadSha256, /^[0-9a-f]{64}$/u);
+      const proposalReplay = await runS4hCommand((client) => (
+        proposePermanentAccountSuspension(client, {
+          actor: { id: 'admin', role: 'admin' },
+          userId: 's4h-target',
+          idempotencyKey: 's4h-permanent-proposal',
+          raw: {
+            reasonCode: 'controlled_permanent_measure',
+            note: 'Controlled proposal; no live account or provider action.',
+            decision: humanStatementDecision({
+              facts: 'Controlled permanent-measure proposal fixture.',
+              basis: 'Controlled four-eyes integration fixture.',
+              reasoning: 'The fixture exercises an independently reviewed account restriction.',
+            }),
+          },
+        })
+      ));
+      assert.equal(proposalReplay.replayed, true);
+      await assert.rejects(
+        runS4hCommand((client) => proposePermanentAccountSuspension(client, {
+          actor: { id: 'admin', role: 'admin' },
+          userId: 's4h-target',
+          idempotencyKey: 's4h-permanent-proposal',
+          raw: {
+            reasonCode: 'controlled_permanent_measure',
+            note: 'Changed proposal content must not replay.',
+            decision: humanStatementDecision({
+              facts: 'Controlled permanent-measure proposal fixture.',
+              basis: 'Controlled four-eyes integration fixture.',
+              reasoning: 'The fixture exercises an independently reviewed account restriction.',
+            }),
+          },
+        })),
+        (error) => error?.code === 'account_suspension_proposal_idempotency_conflict',
+      );
+      assert.equal(
+        (await setupPool.query(
+          `SELECT account_status FROM users WHERE id = 's4h-target'`,
+        )).rows[0].account_status,
+        'active',
+      );
+      assert.equal(
+        (await setupPool.query(
+          `SELECT count(*)::int AS count FROM user_suspensions
+            WHERE user_id = 's4h-target'`,
+        )).rows[0].count,
+        0,
+      );
+      await assert.rejects(
+        runS4hCommand((client) => reviewPermanentAccountSuspensionProposal(client, {
+          actor: { id: 'admin', role: 'admin' },
+          proposalId: accountProposal.id,
+          idempotencyKey: 's4h-proposer-review-forbidden',
+          raw: {
+            outcome: 'approved',
+            expectedVersion: accountProposal.lockVersion,
+            expectedPayloadSha256: accountProposal.payloadSha256,
+          },
+        })),
+        (error) => error?.code === 'account_suspension_four_eyes_required',
+      );
+      await assert.rejects(
+        runS4hCommand((client) => reviewPermanentAccountSuspensionProposal(client, {
+          actor: { id: 'admin-reviewer', role: 'admin' },
+          proposalId: accountProposal.id,
+          idempotencyKey: 's4h-stale-payload-review',
+          raw: {
+            outcome: 'approved',
+            expectedVersion: accountProposal.lockVersion,
+            expectedPayloadSha256: '0'.repeat(64),
+          },
+        })),
+        (error) => error?.code === 'account_suspension_proposal_payload_changed',
+      );
+      const approvedAccountMeasure = await runS4hCommand((client) => (
+        reviewPermanentAccountSuspensionProposal(client, {
+          actor: { id: 'admin-reviewer', role: 'admin' },
+          proposalId: accountProposal.id,
+          idempotencyKey: 's4h-independent-approval',
+          raw: {
+            outcome: 'approved',
+            expectedVersion: accountProposal.lockVersion,
+            expectedPayloadSha256: accountProposal.payloadSha256,
+          },
+        })
+      ));
+      assert.equal(approvedAccountMeasure.proposal.status, 'approved');
+      assert.equal(approvedAccountMeasure.proposal.approvedBy, 'admin-reviewer');
+      assert.equal(approvedAccountMeasure.suspension.measure_status, 'approved');
+      assert.equal(approvedAccountMeasure.suspension.no_guilt_determination, true);
+      assert.equal(approvedAccountMeasure.decision.measureStatus, 'approved');
+      assert.equal(approvedAccountMeasure.decision.noGuiltDetermination, true);
+      assert.equal(
+        (await setupPool.query(
+          `SELECT account_status FROM users WHERE id = 's4h-target'`,
+        )).rows[0].account_status,
+        'suspended',
+      );
+      const approvedReplay = await runS4hCommand((client) => (
+        reviewPermanentAccountSuspensionProposal(client, {
+          actor: { id: 'admin-reviewer', role: 'admin' },
+          proposalId: accountProposal.id,
+          idempotencyKey: 's4h-independent-approval',
+          raw: {
+            outcome: 'approved',
+            expectedVersion: accountProposal.lockVersion,
+            expectedPayloadSha256: accountProposal.payloadSha256,
+          },
+        })
+      ));
+      assert.equal(approvedReplay.replayed, true);
+      assert.equal(approvedReplay.suspension.id, approvedAccountMeasure.suspension.id);
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE moderation_account_suspension_proposals
+              SET payload = jsonb_set(payload, '{reasonCode}', '"mutated"'::jsonb),
+                  lock_version = lock_version + 1,
+                  updated_at = now()
+            WHERE id = $1`,
+          [accountProposal.id],
+        ),
+        /account_suspension_proposal_payload_immutable/u,
+      );
+      await runS4hCommand((client) => liftUserSuspension(client, {
+        actor: { id: 'admin-reviewer', role: 'admin' },
+        suspensionId: approvedAccountMeasure.suspension.id,
+        idempotencyKey: 's4h-lift-approved-fixture',
+        raw: {
+          reasonCode: 'controlled_fixture_complete',
+          decision: humanStatementDecision({
+            facts: 'The controlled approval fixture is complete.',
+            basis: 'Controlled moderation reversal fixture.',
+            reasoning: 'No test restriction is needed after the approval assertions.',
+            durationType: 'not_applicable',
+          }),
+        },
+      }));
+      const rejectedProposal = await runS4hCommand((client) => (
+        proposePermanentAccountSuspension(client, {
+          actor: { id: 'admin', role: 'admin' },
+          userId: 's4h-provisional',
+          idempotencyKey: 's4h-rejected-proposal',
+          raw: {
+            reasonCode: 'controlled_rejected_measure',
+            decision: humanStatementDecision({
+              facts: 'Controlled rejected proposal fixture.',
+              basis: 'Controlled four-eyes integration fixture.',
+              reasoning: 'The independent reviewer can reject without account effect.',
+            }),
+          },
+        })
+      ));
+      const rejectedReview = await runS4hCommand((client) => (
+        reviewPermanentAccountSuspensionProposal(client, {
+          actor: { id: 'admin-reviewer', role: 'admin' },
+          proposalId: rejectedProposal.proposal.id,
+          idempotencyKey: 's4h-independent-rejection',
+          raw: {
+            outcome: 'rejected',
+            rejectionReason: 'The controlled fixture intentionally rejects this proposal.',
+            expectedVersion: rejectedProposal.proposal.lockVersion,
+            expectedPayloadSha256: rejectedProposal.proposal.payloadSha256,
+          },
+        })
+      ));
+      assert.equal(rejectedReview.proposal.status, 'rejected');
+      assert.equal(rejectedReview.suspension, null);
+      assert.equal(
+        (await setupPool.query(
+          `SELECT account_status FROM users WHERE id = 's4h-provisional'`,
+        )).rows[0].account_status,
+        'active',
+      );
+      const provisionalEndsAt = new Date(Date.now() + 30 * 60 * 1000);
+      const provisionalAccountMeasure = await runS4hCommand((client) => (
+        setUserSuspension(client, {
+          actor: { id: 'admin', role: 'admin' },
+          userId: 's4h-provisional',
+          idempotencyKey: 's4h-provisional-account-measure',
+          raw: {
+            scope: 'account',
+            provisional: true,
+            endsAt: provisionalEndsAt.toISOString(),
+            reasonCode: 'controlled_provisional_measure',
+            note: 'Finite provisional account measure fixture.',
+            decision: humanStatementDecision({
+              facts: 'Controlled evidence requires a finite provisional review.',
+              basis: 'Controlled provisional-measure integration fixture.',
+              reasoning: 'The measure remains provisional while review is incomplete.',
+              durationType: 'fixed',
+              endsAt: provisionalEndsAt.toISOString(),
+            }),
+          },
+        })
+      ));
+      assert.equal(provisionalAccountMeasure.suspension.measure_status, 'provisional');
+      assert.equal(provisionalAccountMeasure.suspension.no_guilt_determination, true);
+      assert.match(provisionalAccountMeasure.suspension.user_facing_notice, /vorläufig/u);
+      assert.match(provisionalAccountMeasure.suspension.user_facing_notice, /keine Feststellung/u);
+      assert.equal(provisionalAccountMeasure.decision.measureStatus, 'provisional');
+      assert.equal(provisionalAccountMeasure.decision.noGuiltDetermination, true);
+      assert.equal(
+        provisionalAccountMeasure.decision.statementOfReasons.durationType,
+        'fixed',
+      );
+      await runS4hCommand((client) => liftUserSuspension(client, {
+        actor: { id: 'admin', role: 'admin' },
+        suspensionId: provisionalAccountMeasure.suspension.id,
+        idempotencyKey: 's4h-lift-provisional-fixture',
+        raw: {
+          reasonCode: 'controlled_fixture_complete',
+          decision: humanStatementDecision({
+            facts: 'The controlled provisional fixture is complete.',
+            basis: 'Controlled moderation reversal fixture.',
+            reasoning: 'The finite test restriction can now be lifted.',
+            durationType: 'not_applicable',
+          }),
+        },
+      }));
       await setupPool.query(
         `INSERT INTO refresh_tokens (
            user_id, token_hash, expires_at, user_agent, session_id, family_id
@@ -3311,12 +3627,26 @@ if (!databaseUrl) {
           groupPositionId: itemBindings[1].groupPositionId,
           bookingId: itemBindings[1].bookingId,
         });
-        const suspension = await g3dClient.query(
-          `INSERT INTO user_suspensions (
-             user_id, imposed_by, scope, reason_code, starts_at
-           ) VALUES ('renter-a', 'admin', 'account', 'g3d_system_risk_probe', now())
-           RETURNING id`,
-        );
+        const provisionalEndsAt = new Date(Date.now() + 60 * 60 * 1000);
+        const suspension = await setUserSuspension(g3dClient, {
+          actor: { id: 'admin', role: 'admin' },
+          userId: 'renter-a',
+          idempotencyKey: 'g3d-system-risk-hold-probe',
+          raw: {
+            scope: 'account',
+            provisional: true,
+            endsAt: provisionalEndsAt.toISOString(),
+            reasonCode: 'g3d_system_risk_probe',
+            note: 'Controlled provisional system-risk fixture',
+            decision: humanStatementDecision({
+              facts: 'Controlled evidence requires a temporary safety review.',
+              basis: 'Controlled booking-group system-risk fixture.',
+              reasoning: 'The finite restriction preserves the fixture while review remains open.',
+              durationType: 'fixed',
+              endsAt: provisionalEndsAt.toISOString(),
+            }),
+          },
+        });
         await assert.rejects(
           scheduleBookingGroupAppointments(g3dClient, {
             actor: groupActors.owner,
@@ -3328,7 +3658,7 @@ if (!databaseUrl) {
         await g3dClient.query(
           `UPDATE user_suspensions SET lifted_at = now(), lifted_by = 'admin'
             WHERE id = $1`,
-          [suspension.rows[0].id],
+          [suspension.suspension.id],
         );
         const scheduled = await scheduleBookingGroupAppointments(g3dClient, {
           actor: groupActors.owner,
@@ -6332,6 +6662,7 @@ if (!databaseUrl) {
       assert.equal(reviewerElevation.status, 200);
       reviewerHeaders['X-Admin-Step-Up'] =
         (await reviewerElevation.json()).elevation.token;
+
       const reviewerQueue = await fetch(
         `${baseUrl}/v1/admin/moderation/reviews`,
         { headers: reviewerHeaders },

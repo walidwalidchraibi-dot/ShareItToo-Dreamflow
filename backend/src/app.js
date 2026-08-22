@@ -145,7 +145,6 @@ import {
   listStaffPayments,
   listStaffReports,
   listStaffUsers,
-  ModerationWorkflowError,
   releaseAccountLegalHold,
   setListingModeration,
   setUserSuspension,
@@ -153,6 +152,11 @@ import {
   updateStaffReport,
   verifyStaffElevation,
 } from './moderation_workflow.js';
+import {
+  listPermanentAccountSuspensionProposals,
+  proposePermanentAccountSuspension,
+  reviewPermanentAccountSuspensionProposal,
+} from './moderation_account_measure_workflow.js';
 import {
   claimModerationReviewRequest,
   listMyModerationDecisions,
@@ -5186,6 +5190,38 @@ export function createApp({
     }));
     publishToUsers([safeText(req.params.id, 120)], { type: 'changed', resource: 'profiles' });
     res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/users/:id/account-suspension-proposals', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => proposePermanentAccountSuspension(client, {
+      actor: req.actor,
+      userId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/admin/account-suspension-proposals', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({
+      proposals: await listPermanentAccountSuspensionProposals(pool, {
+        actor: req.actor,
+        status: req.query.status,
+      }),
+    });
+  }));
+
+  app.post('/v1/admin/account-suspension-proposals/:id/review', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => reviewPermanentAccountSuspensionProposal(client, {
+      actor: req.actor,
+      proposalId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    if (result.suspension) {
+      publishToUsers([result.suspension.user_id], { type: 'changed', resource: 'profiles' });
+    }
+    res.json(result);
   }));
 
   app.put('/v1/admin/users/:id/private-marketplace-review', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {

@@ -12,6 +12,7 @@ import {
 } from './moderation_domain.js';
 import { verifyPassword } from './security.js';
 import { persistModerationDecision } from './moderation_decision_workflow.js';
+import { provisionalAccountMeasureNotice } from './moderation_account_measure_domain.js';
 
 export class ModerationWorkflowError extends ModerationDomainError {}
 
@@ -509,9 +510,16 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
   const key = moderationIdempotencyKey(idempotencyKey, 'user.suspend');
   const existing = await client.query('SELECT * FROM user_suspensions WHERE idempotency_key = $1', [key]);
   if (existing.rowCount) return { suspension: existing.rows[0], replayed: true };
-  const target = await client.query('SELECT id, role, account_status FROM users WHERE id = $1 FOR UPDATE', [userId]);
+  const target = await client.query(
+    `SELECT id, role, account_status, deactivated_at
+       FROM users WHERE id = $1 FOR UPDATE`,
+    [userId],
+  );
   if (!target.rowCount) throw new ModerationWorkflowError(404, 'user_not_found');
   if (target.rows[0].role !== 'user') throw new ModerationWorkflowError(409, 'staff_suspension_requires_emergency_process');
+  if (target.rows[0].deactivated_at || target.rows[0].account_status !== 'active') {
+    throw new ModerationWorkflowError(409, 'suspension_target_not_active');
+  }
   const reportId = text(candidate.reportId, 80) || null;
   if (reportId) {
     const report = await client.query('SELECT id FROM reports WHERE id::text = $1', [reportId]);
@@ -520,6 +528,24 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
   const endsAt = candidate.endsAt ? new Date(candidate.endsAt) : null;
   if (endsAt && (!Number.isFinite(endsAt.getTime()) || endsAt <= new Date())) {
     throw new ModerationWorkflowError(400, 'invalid_suspension_end');
+  }
+  if (scope === 'account' && candidate.provisional !== true) {
+    throw new ModerationWorkflowError(409, 'account_suspension_approval_required');
+  }
+  if (scope === 'account' && !endsAt) {
+    throw new ModerationWorkflowError(400, 'provisional_account_suspension_end_required');
+  }
+  if (scope === 'account') {
+    const active = await client.query(
+      `SELECT id FROM user_suspensions
+        WHERE user_id = $1 AND scope = 'account' AND lifted_at IS NULL
+          AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now())
+        LIMIT 1`,
+      [userId],
+    );
+    if (active.rowCount) {
+      throw new ModerationWorkflowError(409, 'account_suspension_already_active');
+    }
   }
   const decision = await persistModerationDecision(client, {
     actor,
@@ -535,13 +561,36 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
       durationType: endsAt ? 'fixed' : 'until_reversed',
       endsAt,
     },
+    measureContext: scope === 'account'
+      ? {
+          status: 'provisional',
+          noGuiltDetermination: true,
+          userFacingNotice: provisionalAccountMeasureNotice,
+          accountSuspensionProposalId: null,
+        }
+      : null,
   });
   const inserted = await client.query(
     `INSERT INTO user_suspensions (
-       user_id, imposed_by, scope, reason_code, note, ends_at, report_id, idempotency_key
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
+       user_id, imposed_by, scope, reason_code, note, ends_at, report_id,
+       idempotency_key, measure_status, no_guilt_determination,
+       user_facing_notice, moderation_decision_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8, $9, $10, $11, $12)
      RETURNING *`,
-    [userId, actor.id, scope, reasonCode, text(candidate.note, 8000) || null, endsAt, reportId, key],
+    [
+      userId,
+      actor.id,
+      scope,
+      reasonCode,
+      text(candidate.note, 8000) || null,
+      endsAt,
+      reportId,
+      key,
+      scope === 'account' ? 'provisional' : 'scope',
+      scope === 'account',
+      scope === 'account' ? provisionalAccountMeasureNotice : null,
+      decision.decision.id,
+    ],
   );
   if (scope === 'account') {
     await client.query('UPDATE users SET account_status = \'suspended\' WHERE id = $1', [userId]);
@@ -564,7 +613,13 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
     [
       reportId, actor.id, actor.role, userId, reasonCode,
       JSON.stringify({ accountStatus: target.rows[0].account_status }),
-      JSON.stringify({ scope, endsAt: endsAt?.toISOString() ?? null }), `${key}:action`,
+      JSON.stringify({
+        scope,
+        endsAt: endsAt?.toISOString() ?? null,
+        measureStatus: scope === 'account' ? 'provisional' : 'scope',
+        noGuiltDetermination: scope === 'account',
+      }),
+      `${key}:action`,
     ],
   );
   if (reportId) {
@@ -580,7 +635,13 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
     action: 'moderation.user_suspended',
     resourceType: 'user',
     resourceId: userId,
-    metadata: { scope, reportId, endsAt: endsAt?.toISOString() ?? null },
+    metadata: {
+      scope,
+      reportId,
+      endsAt: endsAt?.toISOString() ?? null,
+      measureStatus: scope === 'account' ? 'provisional' : 'scope',
+      noGuiltDetermination: scope === 'account',
+    },
   });
   return { suspension: inserted.rows[0], decision: decision.decision, replayed: false };
 }

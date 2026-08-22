@@ -109,6 +109,7 @@ export async function buildAccountExport(client, userId) {
     reviews,
     reports,
     privateMarketplaceReviewEvents,
+    accountSuspensionProposals,
     moderationDecisions,
     moderationReviewRequests,
     blocks,
@@ -861,8 +862,20 @@ export async function buildAccountExport(client, userId) {
        FROM private_marketplace_review_events
        WHERE user_id = $1 ORDER BY created_at, id`, userId),
     rows(client,
+      `SELECT id, report_id, status, payload_sha256,
+              payload->>'reasonCode' AS reason_code,
+              (payload->>'noGuiltDetermination')::boolean AS no_guilt_determination,
+              payload->>'userFacingMeasureNotice' AS user_facing_measure_notice,
+              approved_at, rejected_at, created_at, updated_at
+         FROM moderation_account_suspension_proposals
+        WHERE user_id = $1 AND status IN ('approved', 'rejected')
+        ORDER BY created_at, id`, userId),
+    rows(client,
       `SELECT decision.id, decision.report_id, decision.target_type,
               decision.target_id, decision.measure_type, decision.measure_state,
+              decision.measure_status, decision.no_guilt_determination,
+              decision.user_facing_measure_notice,
+              decision.account_suspension_proposal_id,
               decision.facts, decision.basis, decision.reasoning,
               decision.detection_method, decision.automated_means,
               decision.review_available, decision.review_deadline_at,
@@ -1061,6 +1074,7 @@ export async function buildAccountExport(client, userId) {
       reviews,
       reports,
       privateMarketplaceReviewEvents,
+      accountSuspensionProposals,
       moderationDecisions,
       moderationReviewRequests,
       blocks,
