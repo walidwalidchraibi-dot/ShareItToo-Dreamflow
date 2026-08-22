@@ -1603,3 +1603,30 @@ Android debug and temp-fixture `0/0 KiB -> 0/0 KiB` remained green. The local
 `TD-RR-002` requirement is implemented; formal closure still requires green CI
 on the exact commit. P0B remains `HOLD` / `NO-GO`, with no live boundary
 changed.
+
+## S4S Flutter standard-parallel stability
+
+`S4S_FLUTTER_STANDARD_PARALLEL_STABILITY` is locally verified at implementation
+commit `cea3a1f`. A repository-owned stress command runs the complete Flutter
+suite five times from one clean exact commit using Flutter's default
+parallelism. It fails closed on a concurrency override or dirty worktree and
+contains no sleep, retry or pass-on-rerun path.
+
+All five consecutive suites passed with 379 tests and one documented skip each.
+The retained final result binds `runs: 5`, `parallelism: flutter-default` and
+commit `cea3a1f404f90cc4ae1ed8dd86c453245f97e331`; the temp-fixture root remained
+empty. A committed wiring contract is part of the full technical regression.
+
+The same stress proof is available in GitHub only through an explicit manual
+input that defaults false, preserving ordinary CI cost without weakening the
+acceptance path. The local retained-stress portion of `TD-RR-003` is
+implemented; formal closure still requires green exact-commit CI with that
+input enabled. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+The post-package complete gate also exposed two stale source hashes left after
+S4R changed the PostgreSQL integration. Commits `109913d` and `8f8e496` rebind
+only the exact PSP and invited-pilot prerequisite chain; both focused gates and
+their mutation/overstatement negatives pass with PSP `0/8 HOLD` and pilot `0/4
+HOLD`. The complete local gate then passed in its documented CI-metadata-only
+mode because historical AAB `2026081509` is absent on this Mac mini. This is
+not actual CI, Store or device evidence.

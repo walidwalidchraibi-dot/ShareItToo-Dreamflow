@@ -11,7 +11,7 @@ claimed until every item below has reproducible evidence and is closed.
 | --- | --- | --- |
 | `TD-RR-001` | S4P installed and repository-bound normal-shell Node 22 plus exact Corepack pnpm 11.16.0. A fresh login shell passed frozen install, Backend, syntax, moderate audit, secret scan and PostgreSQL without a copied runtime; exact-commit CI is unavailable. | Retain green exact-package CI for the same pinned Node/pnpm contract and commands. No copied runtime or Codex-internal fallback may appear in the evidence. |
 | `TD-RR-002` | S4R removed every historical request-source accommodation from the monolithic PostgreSQL integration and isolates unrelated scenarios with fresh application/limiter instances. Exactly one multi-source input remains solely to prove account lockout against a distributed attack. Isolated 10/30/240 thresholds, two fresh PostgreSQL runs and two complete regressions pass locally; exact-commit CI is unavailable. | Retain green exact-commit CI for the monolithic integration and isolated threshold contract. No source rotation for unrelated scenarios, reset hook, wait, bypass or increased production limit may reappear. |
-| `TD-RR-003` | The serial default was removed in S4L and two complete local standard-parallel runs passed, but exact-commit CI and a retained repeated stress result are still missing. | Remove timer/animation leakage, run the complete suite repeatedly at the standard supported parallelism, and retain a stress result with zero flakes in local and CI evidence; concurrency one must no longer be required for a green result. |
+| `TD-RR-003` | S4S adds a clean-exact-commit proof that runs the complete Flutter suite five times at default parallelism and rejects concurrency overrides, sleeps and retries. All five local runs passed with 379 tests plus one documented skip each at `cea3a1f`; exact-commit CI with the explicit stress input is unavailable. | Retain green exact-commit CI with `run_flutter_parallel_stress=true` using the same five complete runs. No concurrency one, reduced suite, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-004` | S4O added the PostgreSQL-16-pinned repository runner; S4P repeated it from the normal pinned Node/pnpm shell. Consecutive fresh-cluster runs passed with runner temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-package CI for the runner contract and canonical PostgreSQL 16 integration without caller-supplied port, database or lifecycle commands. |
 | `TD-RR-005` | S4Q routes all twelve known leaking suites through scoped fail-closed cleanup and adds a twice-repeated parallel boundedness guard to the full gate. After recoverable historical cleanup, the focused guard and two complete technical regressions passed `0/0 KiB -> 0/0 KiB`; exact-commit CI is unavailable. | Retain green exact-commit CI running the same boundedness guard with no orphaned `sit-*` fixture directories. Manual cleanup, a larger disk, alternate temp root or serial execution cannot be acceptance evidence. |
 | `TD-RR-006` | The reset-token clock-boundary defect exposed by PostgreSQL used transaction time for `created_at` and a later process clock for `expires_at`. The product fix now supplies one timestamp and has focused coverage. | Keep the exact-lifetime unit test and run migration/API integration repeatedly on PostgreSQL 16. Release evidence must show no boundary flake and retain the database 30-minute upper-bound constraint. |
@@ -162,6 +162,14 @@ claimed until every item below has reproducible evidence and is closed.
   complete standard-parallel regressions passed without wait, reset, bypass,
   limit change or unrelated source rotation. This implements the local part of
   `TD-RR-002`; exact-commit CI is still required for formal closure.
+- 22.08.2026, S4S: a repository-owned clean-exact-commit proof ran the complete
+  Flutter suite five consecutive times at standard parallelism. Every run
+  passed 379 tests with one documented skip at
+  `cea3a1f404f90cc4ae1ed8dd86c453245f97e331`; the temp-fixture root remained
+  empty. A committed contract rejects concurrency overrides, sleeps and
+  retries. GitHub exposes the same proof only through an explicit manual input
+  defaulting false. This implements the local retained-stress part of
+  `TD-RR-003`; exact-commit CI with that input remains required for closure.
 
 ## Closure rule
 

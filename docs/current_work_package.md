@@ -1090,3 +1090,30 @@ rotation is accepted. `TD-RR-002` remains formally open only for exact-commit
 CI evidence. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
 Cloud/VPS/DNS, deployment, signed candidate, merge or public activation is
 enabled.
+
+## S4S Flutter standard-parallel stability
+
+`S4S_FLUTTER_STANDARD_PARALLEL_STABILITY` implements the local retained-stress
+exit path for `TD-RR-003` at commit `cea3a1f`. The canonical command requires a
+clean exact-commit worktree and runs the complete Flutter suite five times at
+Flutter's standard parallelism. It rejects a concurrency override and contains
+no sleep, retry, failure rerun or reduced-suite path.
+
+Five consecutive complete runs passed with 379 tests and one documented skip
+each at exact commit `cea3a1f404f90cc4ae1ed8dd86c453245f97e331`. A committed
+wiring test locks the repeat count and forbids timing accommodations. GitHub
+exposes the same command only through an explicit manual input defaulting false,
+so normal CI cost does not increase silently.
+
+Concurrency one, timing waits and pass-on-rerun are not accepted. `TD-RR-003`
+remains formally open only for retained green exact-commit CI with the stress
+input enabled. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
+Cloud/VPS/DNS, deployment, signed candidate, merge or public activation is
+enabled.
+
+The complete local gate found and rejected stale P0B source bindings caused by
+the earlier S4R integration change. Commits `109913d` and `8f8e496` update only
+the exact hash chain; PSP stays `0/8 HOLD`, invited pilot stays `0/4 HOLD`, and
+their negative tests remain green. The final complete run uses the already
+documented CI-metadata-only branch because historical AAB `2026081509` is not
+present locally; it is not claimed as actual CI, Store or device proof.
