@@ -3,14 +3,14 @@
   "kind": "flutter-analyzer-debt-baseline",
   "flutterVersion": "3.41.7",
   "dartVersion": "3.11.5",
-  "total": 202,
-  "fingerprintSha256": "450b3cf87867dd26e7a02cfd38633f569063f543671fc585ee1d45a7d8127a05",
+  "total": 200,
+  "fingerprintSha256": "521233f5d8bfbbb086e2ed3cd3d33d43726c83e30cd9f963c65f4ed7171f0bbb",
   "byCode": {
     "deprecated_member_use": 36,
     "unused_element": 56,
     "unused_element_parameter": 24,
     "unused_field": 6,
-    "use_build_context_synchronously": 80
+    "use_build_context_synchronously": 78
   },
   "byPathCode": {
     "lib/screens/booking_detail_screen.dart|unused_element": 12,
@@ -29,7 +29,6 @@
     "lib/screens/ongoing_owner_detail_screen.dart|unused_field": 1,
     "lib/screens/ongoing_owner_detail_screen.dart|use_build_context_synchronously": 17,
     "lib/screens/owner_requests_screen.dart|use_build_context_synchronously": 2,
-    "lib/screens/public_profile_screen.dart|use_build_context_synchronously": 2,
     "lib/screens/request_detail_screen.dart|use_build_context_synchronously": 2,
     "lib/screens/search_results_screen.dart|use_build_context_synchronously": 3,
     "lib/services/data_service.dart|unused_element": 4,

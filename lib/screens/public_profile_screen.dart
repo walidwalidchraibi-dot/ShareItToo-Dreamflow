@@ -593,13 +593,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 if (value == 'share_profile') {
                   final link = AppLinkBuilder.profile(u.id).toString();
                   await Clipboard.setData(ClipboardData(text: link));
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   AppPopup.toast(context,
                       icon: Icons.link, title: l10n.t('Profil-Link kopiert'));
                 }
                 if (value == 'block_user') {
                   final targetUserId = u.id;
                   if (targetUserId.isEmpty) return;
+                  if (!context.mounted) return;
                   await runPublicProfileBlockFlow(
                     context,
                     displayName: displayName,
