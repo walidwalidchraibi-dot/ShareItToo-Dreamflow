@@ -986,3 +986,25 @@ or public activation is enabled.
 No new workaround became a prerequisite. Exact-commit CI, normal Node/pnpm
 resolution, isolated limiter thresholds, automatic PostgreSQL lifecycle,
 bounded fixture proof and the remaining release-readiness debt stay open.
+
+## S4N bounded Safety rate-limit isolation
+
+`S4N_BOUNDED_SAFETY_RATE_LIMIT_ISOLATION` implements Drive Support Matrix
+scenario `SUP-109` at commit
+`6da227ba2abaf3d5aa75e6f0f235b31bf655eb4f`. A central repository-owned
+factory now creates fresh general, ordinary-support and Safety limiter stores
+for every application. Exact protected Safety and handover-exception requests
+skip only the general bucket and still enter the dedicated 30-attempt bucket
+before authentication and database work.
+
+Real 10/30/240 thresholds, general-starvation isolation and fresh-instance
+repetition pass with one fixed request source. Focused, Privacy/Retention,
+P0B, two fresh PostgreSQL, full Backend, standard-parallel Flutter,
+Google-only, analyzer, Web smoke, Android debug, syntax, diff and secret checks
+pass locally.
+
+No sleep, reset, IP rotation, higher production limit or serial test mode was
+accepted. `TD-RR-002` remains open for the historical monolithic integration
+cleanup and exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signed candidate, merge or public
+activation is enabled.

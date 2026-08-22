@@ -1475,3 +1475,30 @@ No timing, rate-limit, request-source or serial-test workaround was introduced.
 Temporary Node resolution and manual PostgreSQL orchestration remain open under
 `TD-RR-001` and `TD-RR-004`; exact-commit CI and every remaining deterministic
 exit criterion are still mandatory before release readiness.
+
+## S4N bounded Safety rate-limit isolation
+
+`S4N_BOUNDED_SAFETY_RATE_LIMIT_ISOLATION` is locally verified at exact
+implementation commit `6da227ba2abaf3d5aa75e6f0f235b31bf655eb4f` for Drive
+scenario `SUP-109`. Exact protected Safety support intake and participant
+handover exceptions can no longer be starved by unrelated exhaustion of the
+general request bucket, but they remain bounded by their own 30-attempt limit
+before authentication and database work. Ordinary support remains at 10 per
+15 minutes and all other traffic remains subject to the 240-per-minute general
+policy.
+
+The repository-owned limiter factory gives every application fresh stores.
+Real 10/30/240 thresholds and post-general-exhaustion behavior pass twice over
+loopback with one fixed request source, without sleeps, resets, IP rotation,
+limit changes or serial execution. Local verification also passed 39 focused
+tests, 68 Privacy/Retention tests, 37 P0B tests, all actual validators, two
+fresh PostgreSQL 16 runs, 587 Backend tests plus one expected skip, analyzer
+baseline 220, 379 standard-parallel Flutter tests plus one documented skip,
+separate Google-only, Web/loopback smoke, Android debug, syntax, diff and secret
+checks.
+
+P0B remains PSP `0/8 HOLD` and pilot `0/4 HOLD` / `NO-GO`. `TD-RR-002`
+remains open until historical request-source accommodations are removed from
+the monolithic integration and exact-commit CI passes. Temporary Node and
+manual PostgreSQL accommodations also remain open. No live boundary changed,
+and GitHub push/CI is not claimed.

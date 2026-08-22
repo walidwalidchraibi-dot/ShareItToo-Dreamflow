@@ -10,7 +10,7 @@ claimed until every item below has reproducible evidence and is closed.
 | ID | Current observation / temporary accommodation | Required deterministic exit evidence |
 | --- | --- | --- |
 | `TD-RR-001` | Backend module loading now has repository-owned non-secret test defaults, but local verification still prepends a temporary signed Node-compatible runtime; `pnpm` is not available as a normal shell command. | A clean documented Mac setup and CI both resolve the pinned Node and pnpm versions without a copied temp runtime; `pnpm install --frozen-lockfile`, Backend tests, syntax checks and secret scan pass from a fresh shell. |
-| `TD-RR-002` | The monolithic PostgreSQL HTTP integration gives added auth/recovery requests distinct reserved test IPs so unrelated calls do not consume one shared rate-limit bucket. | Split or reset test application/limiter state so each scenario has an isolated deterministic bucket; separately test the real limiter thresholds; repeat the suite without IP rotation as a pass prerequisite. |
+| `TD-RR-002` | S4N added repository-owned fresh limiter stores and twice-repeated real 10/30/240 threshold tests with one fixed source. The historical monolithic PostgreSQL HTTP integration still gives some auth/recovery scenarios distinct reserved test IPs. | Remove every request-source accommodation from the monolithic integration, run two complete clean regressions without rotation/reset/wait, and retain green exact-commit CI together with the isolated threshold proof. |
 | `TD-RR-003` | The serial default was removed in S4L and two complete local standard-parallel runs passed, but exact-commit CI and a retained repeated stress result are still missing. | Remove timer/animation leakage, run the complete suite repeatedly at the standard supported parallelism, and retain a stress result with zero flakes in local and CI evidence; concurrency one must no longer be required for a green result. |
 | `TD-RR-004` | Local PostgreSQL verification is assembled manually with a temporary data directory and selected loopback port. | Add a version-pinned, repository-owned local integration runner using an available loopback port, readiness probe, isolated database and guaranteed trap/finally cleanup; two consecutive clean-machine runs must pass without manual intervention. |
 | `TD-RR-005` | Validator tests left 3,728 `sit-*` temp fixtures (about 2.84 GiB), eventually causing `ENOSPC`; manual removal was required. | Every fixture uses scoped temp roots and cleanup in success/failure paths. Run the complete technical regression twice and prove bounded disk delta with no orphaned `sit-*` fixture directories. |
@@ -95,6 +95,19 @@ claimed until every item below has reproducible evidence and is closed.
   manually and local Backend checks still used the temporary Node runtime, so
   `TD-RR-004` and `TD-RR-001` remain open. The temporary database was stopped
   and moved to Trash; neither accommodation is a release prerequisite.
+- 22.08.2026, S4N: a dedicated Safety bucket alone was proven insufficient
+  because the preceding general bucket could still starve urgent intake. The
+  source fix allows only exact protected Safety and handover-exception requests
+  to skip that bucket while a dedicated 30-attempt limiter still runs before
+  auth/database work. Exact 10/30/240 loopback boundaries passed twice with one
+  fixed source and fresh application instances, with no sleep, reset, IP
+  rotation or production-limit change. This closes the isolated-policy part of
+  `TD-RR-002`; the item remains open until the historical monolithic fixture is
+  free of request-source accommodations and exact-commit CI is green.
+- 22.08.2026, S4N: the complete Flutter suite again passed at standard
+  parallelism with 379 passes and one documented skip. Two fresh PostgreSQL 16
+  integrations also passed, but their lifecycle was still manual. These are
+  positive local results for `TD-RR-003` and `TD-RR-004`, not closure evidence.
 
 ## Closure rule
 
