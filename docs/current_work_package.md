@@ -1838,3 +1838,35 @@ message-thread unused-code categories still require reviewed downward ratchets
 to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production,
 Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
 is enabled.
+
+## S4BA booking dead manual-pickup ratchet
+
+`S4BA_BOOKING_DEAD_MANUAL_PICKUP_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at implementation commit `ebd0cf3`. It removes the
+unreachable direct renter pickup QR/manual chain, its unused failure/manual
+state and its transitive local gate helpers. Active pickup remains one
+server-verified stepper flow with authenticated renter verification and four
+role-bound evidence photos. Active return QR/manual confirmation remains
+renter-presenter bound and transition guarded.
+
+The exact debt snapshot moves `42 -> 33`: `unused_element` changes `20 -> 14`,
+`unused_element_parameter` remains `17`, `unused_field` changes `5 -> 2`, and
+the booking-detail element/field buckets reach zero. One hundred fifty-three
+focused source/analyzer/privacy/retention/booking/legal contracts, 125 focused
+Flutter tests and all exact privacy, retention, G2 lifecycle and analyzer
+validators pass. The complete standard-parallel gate passed in one execution
+on `ebd0cf3` with 384 Flutter tests plus one documented skip, the separate
+Google-only test, Web build/smoke and one direct 448-task Android debug build.
+The privacy inventory is rebound to the exact source without changing its
+draft or release state.
+
+The complete S4BA gate passed with the unchanged command, no retry, cleanup or
+network switch and 981 MiB to 975 MiB available capacity. This does not close
+`TD-RR-012`: deterministic release-host capacity and bounded-growth evidence
+remain open.
+
+This package does not close `TD-RR-010`; 33 diagnostics in booking-detail and
+message-thread unused-code categories still require reviewed downward ratchets
+to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
+is enabled.
