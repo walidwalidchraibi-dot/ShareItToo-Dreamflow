@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  completeDsaNoticeLocator,
   createSupportCase,
   getSupportCase,
   listStaffSupportCases,
@@ -46,6 +47,8 @@ function caseRow(overrides = {}) {
     human_readable_case_number: 'SIT-ABCDEFGHJKLM',
     dsa_notice_number: null,
     dsa_notice_evidence: null,
+    dsa_notice_locator_status: null,
+    dsa_notice_locator_kind: null,
     case_type: 'general_help',
     case_subtype: 'general_how_to',
     status: 'received',
@@ -284,6 +287,8 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
       check: ({ params }) => {
         assert.match(params[31], /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u);
         assert.equal(params[12], 'red_explicit_decision');
+        assert.equal(params[33], 'complete');
+        assert.equal(params[34], 'listing_reference');
         const evidence = JSON.parse(params[32]);
         assert.deepEqual(evidence, {
           version: 'sit_dsa_notice_intake_v1',
@@ -306,6 +311,8 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
           human_readable_case_number: params[1],
           dsa_notice_number: params[31],
           dsa_notice_evidence: JSON.parse(params[32]),
+          dsa_notice_locator_status: params[33],
+          dsa_notice_locator_kind: params[34],
           case_type: params[2],
           case_subtype: params[3],
           priority: params[4],
@@ -314,8 +321,8 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
           approval_level: params[12],
           waiting_on: params[13],
           dsa_flag: params[20],
-          created_at: params[33],
-          updated_at: params[33],
+          created_at: params[35],
+          updated_at: params[35],
         })],
       }),
     },
@@ -327,7 +334,8 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
         assert.equal(payload.dsaNotice.version, 'sit_dsa_notice_intake_v1');
         assert.equal(payload.dsaNotice.contentType, 'listing');
         assert.deepEqual(Object.keys(payload.dsaNotice).sort(), [
-          'contentType', 'noticeNumber', 'version',
+          'contentType', 'locatorKind', 'locatorStatus', 'noticeNumber',
+          'version',
         ]);
         assert.equal(params[3].includes('listing:listing-1'), false);
         assert.equal(params[3].includes('reporter@example.test'), false);
@@ -370,6 +378,9 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
 
   assert.equal(result.supportCase.caseType, 'moderation_content');
   assert.match(result.supportCase.dsaNoticeNumber, /^SIT-N-/u);
+  assert.equal(result.supportCase.dsaNoticeLocatorStatus, 'complete');
+  assert.equal(result.supportCase.dsaNoticeLocatorPrompt, null);
+  assert.equal(result.supportCase.dsaNoticeLocatorMaySubmit, false);
   assert.equal('dsaNoticeEvidence' in result.supportCase, false);
   client.done();
 });
@@ -415,6 +426,114 @@ test('DSA notice creation fails closed when server-side reporter identity is inc
     idempotencyKey: 'dsa-key-identity',
     now,
   }), /support_dsa_notice_reporter_identity_incomplete/u);
+  client.done();
+});
+
+test('reporter completes a DSA locator append-only without exposing its value', async () => {
+  const incomplete = caseRow({
+    case_type: 'moderation_content',
+    case_subtype: 'illegal_content_notice',
+    dsa_notice_number: 'SIT-N-ABCDEFGHJKLM',
+    dsa_notice_evidence: {
+      version: 'sit_dsa_notice_intake_v1',
+      contentType: 'message',
+    },
+    dsa_notice_locator_status: 'needs_clarification',
+    dsa_notice_locator_kind: null,
+    current_owner_role: 'moderation_owner',
+    approval_level: 'red_explicit_decision',
+    waiting_on: 'reporter',
+    dsa_flag: true,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_dsa_notice_locator_amendments AS amendment/, result: noRows },
+    { match: /FROM support_cases[\s\S]*FOR UPDATE/u, result: { rowCount: 1, rows: [incomplete] } },
+    {
+      match: /INSERT INTO support_dsa_notice_locator_amendments/,
+      check: ({ params }) => {
+        assert.equal(params[1], incomplete.id);
+        assert.equal(params[2], incomplete.dsa_notice_number);
+        assert.equal(params[3], 'user-1');
+        assert.equal(params[4], 'message:message-9');
+        assert.equal(params[5], 'message_reference');
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /UPDATE support_cases/,
+      result: {
+        rowCount: 1,
+        rows: [caseRow({
+          ...incomplete,
+          dsa_notice_locator_status: 'complete',
+          dsa_notice_locator_kind: 'message_reference',
+          waiting_on: 'support_owner',
+          lock_version: 2,
+        })],
+      },
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        assert.deepEqual(JSON.parse(params[5]), {
+          locatorStatus: 'complete',
+          locatorKind: 'message_reference',
+        });
+        assert.equal(params[5].includes('message-9'), false);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        assert.equal(params[2], 'support.dsa_notice_locator_completed');
+        assert.equal(params[4].includes('message-9'), false);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+
+  const result = await completeDsaNoticeLocator(client, {
+    actor: { id: 'user-1', role: 'user' },
+    caseId: incomplete.id,
+    raw: { contentLocator: 'message:message-9', expectedVersion: 1 },
+    idempotencyKey: 'locator-key-1',
+    now,
+  });
+
+  assert.equal(result.replayed, false);
+  assert.equal(result.supportCase.dsaNoticeLocatorStatus, 'complete');
+  assert.equal(result.supportCase.dsaNoticeLocatorMaySubmit, false);
+  assert.equal(result.supportCase.version, 2);
+  client.done();
+});
+
+test('concurrent DSA locator replay is rechecked after the case lock', async () => {
+  const complete = caseRow({
+    case_type: 'moderation_content',
+    case_subtype: 'illegal_content_notice',
+    dsa_notice_number: 'SIT-N-ABCDEFGHJKLM',
+    dsa_notice_evidence: { contentType: 'listing' },
+    dsa_notice_locator_status: 'complete',
+    dsa_notice_locator_kind: 'listing_reference',
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_dsa_notice_locator_amendments AS amendment/, result: noRows },
+    { match: /FROM support_cases[\s\S]*FOR UPDATE/u, result: { rowCount: 1, rows: [complete] } },
+    {
+      match: /SELECT 1 FROM support_dsa_notice_locator_amendments/,
+      result: { rowCount: 1, rows: [{ '?column?': 1 }] },
+    },
+  ]);
+
+  const result = await completeDsaNoticeLocator(client, {
+    actor: { id: 'user-1', role: 'user' },
+    caseId: complete.id,
+    raw: { contentLocator: 'listing:listing-1', expectedVersion: 1 },
+    idempotencyKey: 'locator-key-1',
+    now,
+  });
+  assert.equal(result.replayed, true);
   client.done();
 });
 

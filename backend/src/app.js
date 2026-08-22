@@ -164,6 +164,7 @@ import {
   RetentionInventoryError,
 } from './retention_inventory.js';
 import {
+  completeDsaNoticeLocator,
   createSupportCase,
   getSupportCase,
   listMySupportCases,
@@ -4021,6 +4022,17 @@ export function createApp({
       caseId: safeText(req.params.id, 80),
     });
     res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.post('/v1/support/cases/:id/dsa-locator', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => completeDsaNoticeLocator(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
   }));
 
   app.post('/v1/support/cases/:id/appeals', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {

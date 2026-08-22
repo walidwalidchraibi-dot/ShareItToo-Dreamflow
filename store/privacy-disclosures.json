@@ -48,15 +48,15 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "54b1fc249f6bc39600b8abaf438b1c8df2ff9c936b819390091213c1f1c0732e"
+      "sha256": "8752cc5645479574ec644ffa8a5f825b8f77e63522569e7cdcb4a097a0b8c07e"
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "5c887dfdbdf4f6b4807d580ab64bb0208a2fc5bde1e06575cdcbf79a284b6fdc"
+      "sha256": "3cff8cd8dcce4d8d729e9b97b4810fcb32af498d4fe8594451b2bc4b0c46b896"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "9a868d025a77c238d06c18803f916c2801dd71a8e951327b2c0695d86e7bbf38"
+      "sha256": "10d006166b8cfdca6a7977eff5d9a8c4ffc17b70ddff3d73279fc4562a811804"
     },
     {
       "path": "backend/src/support_appeal_domain.js",
@@ -263,6 +263,10 @@
       "sha256": "34f9db90b5131aca3e4c05a01102502862de3a2eac740736e8355fa4bfc1c4ea"
     },
     {
+      "path": "backend/sql/migrations/043_support_dsa_notice_locator_completion.up.sql",
+      "sha256": "c2f9a30ccf73278c599ad34b27c12a4e8b7861928a9cfde3fb49f5b27830e7d4"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -384,15 +388,15 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "cbb861bbd862f40a372c80320fea25096f854dd198b070b7b576f1acf52fb85d"
+      "sha256": "38ca506eb9407972c58b2e30f175e0cb1a802605275e14eadb8e7e348a226f4d"
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "93a25e80b06b14fb07312139b0a06712d48db5320eb0180d8f19a41aaf270990"
+      "sha256": "760e4419b984f509b96324cf0670a97424b9d5f4c1f023c8bd2c113153c2fe58"
     },
     {
       "path": "lib/screens/support_flow_screen.dart",
-      "sha256": "2b5a9ba0c3368e71f8592e23dc862b97e87091aa0400ebffa0fa18bdf242d36d"
+      "sha256": "dc08d6ff8ece8f0c5339eb95223083ade74d9c915ee0a4eb941758eb0de5089f"
     },
     {
       "path": "lib/models/rental_cart.dart",
@@ -524,7 +528,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "e3d2f3df68dfbb047e21d7a7a24eeeb6be270191ce45a54a541ef334c2d7882b"
+      "sha256": "df59d28b36d6315d7fd2db5620db7e868dcbac0e571a2a519b9813bbab60ad65"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

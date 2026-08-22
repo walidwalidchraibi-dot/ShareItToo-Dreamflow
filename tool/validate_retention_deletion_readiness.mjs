@@ -80,6 +80,7 @@ const sourcePaths = [
   'backend/sql/migrations/040_support_single_issue_intake.up.sql',
   'backend/sql/migrations/041_support_closed_account_access_guard.up.sql',
   'backend/sql/migrations/042_support_dsa_notice_intake.up.sql',
+  'backend/sql/migrations/043_support_dsa_notice_locator_completion.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',

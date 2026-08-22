@@ -8,6 +8,7 @@ Map<String, dynamic> _supportCase({
   String caseType = 'general_help',
   String caseSubType = 'app_error_or_display',
   String? dsaNoticeNumber,
+  String dsaNoticeLocatorStatus = 'complete',
 }) =>
     {
       'id': '11111111-1111-4111-8111-111111111111',
@@ -15,6 +16,14 @@ Map<String, dynamic> _supportCase({
       'caseType': caseType,
       'caseSubType': caseSubType,
       if (dsaNoticeNumber != null) 'dsaNoticeNumber': dsaNoticeNumber,
+      if (dsaNoticeNumber != null)
+        'dsaNoticeLocatorStatus': dsaNoticeLocatorStatus,
+      if (dsaNoticeNumber != null &&
+          dsaNoticeLocatorStatus == 'needs_clarification')
+        'dsaNoticeLocatorPrompt':
+            'Bitte ergänze einen exakten Fundort: eine vollständige http(s)-URL oder eine passende Referenz.',
+      'dsaNoticeLocatorMaySubmit': dsaNoticeNumber != null &&
+          dsaNoticeLocatorStatus == 'needs_clarification',
       'status': status,
       'priority': 'p3',
       'sourceChannel': 'app',
@@ -189,6 +198,74 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('renderedContentSha256'), findsNothing);
+  });
+
+  testWidgets('reporter can append an exact DSA locator once', (tester) async {
+    var completed = false;
+    final incomplete = _supportCase(
+      status: 'received',
+      caseType: 'moderation_content',
+      caseSubType: 'illegal_content_notice',
+      dsaNoticeNumber: 'SIT-N-ABCDEFGHJKLM',
+      dsaNoticeLocatorStatus: 'needs_clarification',
+    );
+    Map<String, dynamic> currentCase() => completed
+        ? {
+            ...incomplete,
+            'dsaNoticeLocatorStatus': 'complete',
+            'dsaNoticeLocatorPrompt': null,
+            'dsaNoticeLocatorMaySubmit': false,
+            'version': 3,
+          }
+        : incomplete;
+
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCasesScreen(
+        listLoader: () async => [incomplete],
+        detailLoader: (_) async => {
+          'supportCase': currentCase(),
+          'finalDecision': null,
+          'messages': const [],
+          'events': const [],
+        },
+        dsaLocatorSubmitter: (caseId, locator, version, key) async {
+          expect(caseId, incomplete['id']);
+          expect(locator, 'message:message-9');
+          expect(version, 2);
+          expect(key, startsWith('support_dsa_locator_'));
+          completed = true;
+          return currentCase();
+        },
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Exakten Fundort ergänzen'), findsOneWidget);
+    await tester.tap(find.text('SIT-ABCDEFGHJKLM'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('support_dsa_locator_follow_up')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('support_dsa_locator_input')),
+      'message:message-9',
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('support_dsa_locator_submit')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('support_dsa_locator_submit')));
+    await tester.pumpAndSettle();
+
+    expect(completed, true);
+    expect(
+      find.byKey(const ValueKey('support_dsa_locator_follow_up')),
+      findsNothing,
+    );
+    expect(find.textContaining('reporterEmail'), findsNothing);
   });
 
   test('support message projection fails closed on unresolved placeholders',

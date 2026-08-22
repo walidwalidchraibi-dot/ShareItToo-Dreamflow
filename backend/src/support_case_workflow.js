@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import {
   newHumanReadableCaseNumber,
   newHumanReadableDsaNoticeNumber,
+  normalizeDsaNoticeLocatorCompletion,
   normalizeSupportCaseInput,
   normalizeSupportCaseTransition,
   SupportCaseError,
@@ -64,10 +65,22 @@ function shapeSupportCase(row, { staff = false, actorId = null, now = new Date()
   const actorMaySubmitAppeal = appealState === 'available'
     && actorId != null
     && row.reporter_user_id === actorId;
+  const dsaLocatorVisible = staff
+    || (actorId != null && row.reporter_user_id === actorId);
+  const dsaLocatorStatus = dsaLocatorVisible
+    ? row.dsa_notice_locator_status ?? null
+    : null;
   const base = {
     id: row.id,
     caseNumber: row.human_readable_case_number,
     dsaNoticeNumber: row.dsa_notice_number ?? null,
+    dsaNoticeLocatorStatus: dsaLocatorStatus,
+    dsaNoticeLocatorPrompt: dsaLocatorStatus === 'needs_clarification'
+      ? 'Bitte ergänze einen exakten Fundort: eine vollständige http(s)-URL oder eine zur Inhaltsart passende Referenz.'
+      : null,
+    dsaNoticeLocatorMaySubmit: actorId != null
+      && row.reporter_user_id === actorId
+      && dsaLocatorStatus === 'needs_clarification',
     caseType: row.case_type,
     caseSubType: row.case_subtype,
     status: row.status,
@@ -270,6 +283,8 @@ export async function createSupportCase(client, {
 
   let dsaNoticeNumber = null;
   let dsaNoticeEvidence = null;
+  let dsaNoticeLocatorStatus = null;
+  let dsaNoticeLocatorKind = null;
   if (normalized.dsaNotice) {
     const reporter = await client.query(
       `SELECT email,
@@ -287,8 +302,15 @@ export async function createSupportCase(client, {
       );
     }
     dsaNoticeNumber = newHumanReadableDsaNoticeNumber();
+    const {
+      locatorStatus,
+      locatorKind,
+      ...noticeEvidence
+    } = normalized.dsaNotice;
+    dsaNoticeLocatorStatus = locatorStatus;
+    dsaNoticeLocatorKind = locatorKind;
     dsaNoticeEvidence = Object.freeze({
-      ...normalized.dsaNotice,
+      ...noticeEvidence,
       reporterName,
       reporterEmail,
       sourceChannel: normalized.sourceChannel,
@@ -309,6 +331,7 @@ export async function createSupportCase(client, {
        linked_booking_id, linked_listing_id, linked_payment_id,
        linked_refund_id, linked_payout_id, idempotency_key,
        intake_scope_evidence, dsa_notice_number, dsa_notice_evidence,
+       dsa_notice_locator_status, dsa_notice_locator_kind,
        created_at, updated_at
      ) VALUES (
        $1, $2, $3, $4, 'received',
@@ -320,7 +343,8 @@ export async function createSupportCase(client, {
        $25, $26, $27,
        $28, $29, $30,
        $31::jsonb, $32, $33::jsonb,
-       $34, $34
+       $34, $35,
+       $36, $36
      ) ON CONFLICT (reporter_user_id, idempotency_key) DO NOTHING
      RETURNING *`,
     [
@@ -337,9 +361,15 @@ export async function createSupportCase(client, {
       actor.role,
       normalized.ownerRole,
       normalized.approvalLevel,
-      normalized.waitingOn,
-      normalized.waitingReason,
-      normalized.nextAction,
+      dsaNoticeLocatorStatus === 'needs_clarification'
+        ? 'reporter'
+        : normalized.waitingOn,
+      dsaNoticeLocatorStatus === 'needs_clarification'
+        ? 'Für die sorgfältige DSA-Prüfung fehlt ein exakter elektronischer Fundort.'
+        : normalized.waitingReason,
+      dsaNoticeLocatorStatus === 'needs_clarification'
+        ? 'Bitte ergänze eine vollständige http(s)-URL oder eine zur Inhaltsart passende Referenz.'
+        : normalized.nextAction,
       normalized.nextUpdateAt,
       normalized.userFacingSummary,
       normalized.safetyFlag,
@@ -357,6 +387,8 @@ export async function createSupportCase(client, {
       JSON.stringify(normalized.issueScope),
       dsaNoticeNumber,
       dsaNoticeEvidence == null ? null : JSON.stringify(dsaNoticeEvidence),
+      dsaNoticeLocatorStatus,
+      dsaNoticeLocatorKind,
       now,
     ],
   );
@@ -404,6 +436,8 @@ export async function createSupportCase(client, {
             noticeNumber: dsaNoticeNumber,
             version: dsaNoticeEvidence.version,
             contentType: dsaNoticeEvidence.contentType,
+            locatorStatus: dsaNoticeLocatorStatus,
+            locatorKind: dsaNoticeLocatorKind,
           },
         }),
       }),
@@ -428,11 +462,169 @@ export async function createSupportCase(client, {
         dsaNoticeNumber,
         dsaNoticeVersion: dsaNoticeEvidence.version,
         dsaNoticeContentType: dsaNoticeEvidence.contentType,
+        dsaNoticeLocatorStatus,
+        dsaNoticeLocatorKind,
       }),
     },
   });
   return {
     supportCase: shapeSupportCase(inserted.rows[0], {
+      staff: actor.role !== 'user',
+      actorId: actor.id,
+      now,
+    }),
+    replayed: false,
+  };
+}
+
+export async function completeDsaNoticeLocator(client, {
+  actor,
+  caseId,
+  raw,
+  idempotencyKey,
+  now = new Date(),
+}) {
+  if (!actor?.id || !['user', 'support', 'admin'].includes(actor.role)) {
+    throw new SupportCaseError(403, 'support_dsa_notice_locator_forbidden');
+  }
+  const key = supportCaseIdempotencyKey(
+    idempotencyKey,
+    'support.dsa_notice.locator.complete',
+  );
+  const prior = await client.query(
+    `SELECT amendment.case_id, support_case.*
+       FROM support_dsa_notice_locator_amendments AS amendment
+       JOIN support_cases AS support_case ON support_case.id = amendment.case_id
+      WHERE amendment.reporter_user_id = $1
+        AND amendment.idempotency_key = $2`,
+    [actor.id, key],
+  );
+  if (prior.rowCount) {
+    if (prior.rows[0].case_id.toString() !== caseId) {
+      throw new SupportCaseError(409, 'support_idempotency_scope_mismatch');
+    }
+    return {
+      supportCase: shapeSupportCase(prior.rows[0], {
+        staff: actor.role !== 'user',
+        actorId: actor.id,
+        now,
+      }),
+      replayed: true,
+    };
+  }
+
+  const current = await client.query(
+    `SELECT * FROM support_cases
+      WHERE id::text = $1 AND reporter_user_id = $2
+      FOR UPDATE`,
+    [caseId, actor.id],
+  );
+  if (!current.rowCount) {
+    throw new SupportCaseError(404, 'support_case_not_found');
+  }
+  const row = current.rows[0];
+  if (row.case_type !== 'moderation_content'
+      || row.case_subtype !== 'illegal_content_notice'
+      || !row.dsa_notice_number
+      || !row.dsa_notice_evidence) {
+    throw new SupportCaseError(409, 'support_dsa_notice_locator_not_applicable');
+  }
+  if (row.dsa_notice_locator_status !== 'needs_clarification') {
+    const replayAfterLock = await client.query(
+      `SELECT 1 FROM support_dsa_notice_locator_amendments
+        WHERE case_id = $1 AND reporter_user_id = $2 AND idempotency_key = $3`,
+      [row.id, actor.id, key],
+    );
+    if (replayAfterLock.rowCount) {
+      return {
+        supportCase: shapeSupportCase(row, {
+          staff: actor.role !== 'user',
+          actorId: actor.id,
+          now,
+        }),
+        replayed: true,
+      };
+    }
+    throw new SupportCaseError(409, 'support_dsa_notice_locator_already_complete');
+  }
+  if (['decision_pending_approval', 'decided', 'implementation_pending', 'resolved', 'closed'].includes(row.status)) {
+    throw new SupportCaseError(409, 'support_dsa_notice_locator_case_finalizing');
+  }
+  const normalized = normalizeDsaNoticeLocatorCompletion(raw, {
+    contentType: row.dsa_notice_evidence.contentType,
+  });
+  if (normalized.expectedVersion !== Number(row.lock_version)) {
+    throw new SupportCaseError(409, 'support_case_version_conflict', {
+      currentVersion: Number(row.lock_version),
+    });
+  }
+
+  const amendmentId = crypto.randomUUID();
+  await client.query(
+    `INSERT INTO support_dsa_notice_locator_amendments (
+       id, case_id, dsa_notice_number, reporter_user_id, content_locator,
+       locator_kind, idempotency_key, submitted_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [
+      amendmentId,
+      row.id,
+      row.dsa_notice_number,
+      actor.id,
+      normalized.contentLocator,
+      normalized.locatorKind,
+      key,
+      now,
+    ],
+  );
+  const nextUpdateAt = new Date(now.getTime() + (4 * 60 * 60 * 1000));
+  const updated = await client.query(
+    `UPDATE support_cases
+        SET dsa_notice_locator_status = 'complete',
+            dsa_notice_locator_kind = $2,
+            waiting_on = 'support_owner',
+            waiting_reason = 'Exakter Fundort ergänzt; fachliche Prüfung ausstehend.',
+            next_action = 'Ergänzten Fundort sorgfältig und nicht automatisch prüfen.',
+            next_update_at = $3,
+            lock_version = lock_version + 1,
+            updated_at = GREATEST($4, updated_at + INTERVAL '1 microsecond')
+      WHERE id = $1
+      RETURNING *`,
+    [row.id, normalized.locatorKind, nextUpdateAt, now],
+  );
+  await client.query(
+    `INSERT INTO support_case_events (
+       case_id, event_type, actor_type, actor_id, from_status, to_status,
+       transition_reason, entity_type, entity_id, structured_payload,
+       automation_used, visibility, idempotency_key, source_system, created_at
+     ) VALUES (
+       $1, 'dsa_notice.locator_completed', $2, $3, $4, $4,
+       'Exakter DSA-Fundort ergänzt', 'dsa_notice_locator_amendment', $5,
+       $6::jsonb, false, 'user_visible', $7, 'sit-api', $8
+     )`,
+    [
+      row.id,
+      actor.role,
+      actor.id,
+      row.status,
+      amendmentId,
+      JSON.stringify({ locatorStatus: 'complete', locatorKind: normalized.locatorKind }),
+      `${key}:event`,
+      now,
+    ],
+  );
+  await writeAudit(client, {
+    actor,
+    action: 'support.dsa_notice_locator_completed',
+    resourceId: row.id,
+    metadata: {
+      dsaNoticeNumber: row.dsa_notice_number,
+      locatorStatus: 'complete',
+      locatorKind: normalized.locatorKind,
+      expectedVersion: normalized.expectedVersion,
+    },
+  });
+  return {
+    supportCase: shapeSupportCase(updated.rows[0], {
       staff: actor.role !== 'user',
       actorId: actor.id,
       now,

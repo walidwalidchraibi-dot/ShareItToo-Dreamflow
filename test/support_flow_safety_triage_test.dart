@@ -15,6 +15,7 @@ Map<String, dynamic> _canonicalCase({
   String caseType = 'general_help',
   String caseSubType = 'app_error_or_display',
   String? dsaNoticeNumber,
+  String dsaNoticeLocatorStatus = 'complete',
 }) =>
     {
       'id': 'case-1',
@@ -22,6 +23,14 @@ Map<String, dynamic> _canonicalCase({
       'caseType': caseType,
       'caseSubType': caseSubType,
       if (dsaNoticeNumber != null) 'dsaNoticeNumber': dsaNoticeNumber,
+      if (dsaNoticeNumber != null)
+        'dsaNoticeLocatorStatus': dsaNoticeLocatorStatus,
+      if (dsaNoticeNumber != null &&
+          dsaNoticeLocatorStatus == 'needs_clarification')
+        'dsaNoticeLocatorPrompt': 'Bitte ergänze einen exakten Fundort.',
+      if (dsaNoticeNumber != null)
+        'dsaNoticeLocatorMaySubmit':
+            dsaNoticeLocatorStatus == 'needs_clarification',
       'status': 'received',
       'nextUpdateAt': '2026-08-21T16:00:00.000Z',
       'nextUpdateDisplay': '21.08.2026, 18:00',
@@ -340,6 +349,40 @@ void main() {
     );
   });
 
+  test('DSA category may be submitted without an exact locator', () {
+    const result = SupportFlowResult(
+      mainCategory: 'dsa_notice',
+      subCategory: 'Nachricht / Chat',
+      userDescription:
+          'Diese konkrete Nachricht verletzt nach meiner Einschätzung geltendes Recht.',
+      context: _context,
+      safetyTriage: SupportSafetyTriage(
+        immediateDanger: false,
+        guidanceShown: false,
+      ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
+      ),
+      dsaNotice: SupportDsaNotice(
+        contentType: 'message',
+        contentLocator: '',
+        illegalityStatement:
+            'Diese konkrete Nachricht verletzt nach meiner Einschätzung geltendes Recht.',
+        goodFaithConfirmed: true,
+      ),
+    );
+
+    expect(result.toBackendInput()['dsaNotice']['contentLocator'], '');
+    final confirmed = result.withCanonicalCase(_canonicalCase(
+      caseType: 'moderation_content',
+      caseSubType: 'illegal_content_notice',
+      dsaNoticeNumber: 'SIT-N-ABCDEFGHJKLM',
+      dsaNoticeLocatorStatus: 'needs_clarification',
+    ));
+    expect(confirmed.canonicalReceiptMessage, contains('bleibt gespeichert'));
+  });
+
   testWidgets(
       'DSA category presents structured locator, reason and declaration fields',
       (tester) async {
@@ -374,6 +417,10 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('support_dsa_good_faith')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('auch ohne exakten Fundort absenden'),
       findsOneWidget,
     );
     expect(

@@ -164,6 +164,10 @@ export const supportOwnerRoles = Object.freeze([
 export const supportSafetyTriageVersion = 'sit_support_safety_triage_v1';
 export const supportIntakeScopeVersion = 'sit_support_single_issue_scope_v1';
 export const supportDsaNoticeIntakeVersion = 'sit_dsa_notice_intake_v1';
+export const supportDsaNoticeLocatorStatuses = Object.freeze([
+  'complete',
+  'needs_clarification',
+]);
 export const supportPacketVersion = 'SIT_SUPPORT_PACKET_V1_2026-08-20';
 export const supportSafetyGuidanceVersion = 'T-003@1.0.0';
 
@@ -177,6 +181,12 @@ const dsaNoticeContentTypes = new Set([
   'message',
   'other',
 ]);
+const dsaNoticeReferencePatterns = Object.freeze({
+  listing: /^listing:[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/u,
+  profile: /^profile:[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/u,
+  review: /^review:[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/u,
+  message: /^(?:message:[A-Za-z0-9][A-Za-z0-9_.-]{0,119}|thread:[A-Za-z0-9][A-Za-z0-9_.-]{0,119}:message:[A-Za-z0-9][A-Za-z0-9_.-]{0,119})$/u,
+});
 const waitingOnValues = new Set(supportWaitingOnValues);
 const approvalLevels = new Set(supportApprovalLevels);
 const ownerRoles = new Set(supportOwnerRoles);
@@ -478,15 +488,13 @@ function normalizeDsaNotice(raw, { required }) {
       2000,
       'support_dsa_notice_legal_basis_invalid',
     );
+  const locator = classifyDsaNoticeLocator(raw.contentLocator, contentType);
   return Object.freeze({
     version,
     contentType,
-    contentLocator: requiredText(
-      raw.contentLocator,
-      2000,
-      'support_dsa_notice_locator_invalid',
-      3,
-    ),
+    contentLocator: locator.contentLocator,
+    locatorStatus: locator.locatorStatus,
+    locatorKind: locator.locatorKind,
     illegalityStatement: requiredText(
       raw.illegalityStatement,
       8000,
@@ -495,6 +503,73 @@ function normalizeDsaNotice(raw, { required }) {
     ),
     jurisdictionOrLegalBasis,
     goodFaithConfirmed: true,
+  });
+}
+
+export function classifyDsaNoticeLocator(value, contentType, {
+  requireExact = false,
+} = {}) {
+  if (!dsaNoticeContentTypes.has(contentType)) {
+    throw new SupportCaseError(400, 'support_dsa_notice_content_type_invalid');
+  }
+  if (value !== undefined && value !== null && typeof value !== 'string') {
+    throw new SupportCaseError(400, 'support_dsa_notice_locator_invalid');
+  }
+  const contentLocator = value?.trim() || null;
+  if (contentLocator != null && contentLocator.length > 2000) {
+    throw new SupportCaseError(400, 'support_dsa_notice_locator_invalid');
+  }
+
+  let locatorKind = null;
+  if (contentLocator != null) {
+    try {
+      const url = new URL(contentLocator);
+      if (['http:', 'https:'].includes(url.protocol)
+          && url.hostname
+          && !url.username
+          && !url.password) {
+        locatorKind = 'url';
+      }
+    } catch {
+      // A non-URL may still be an exact, type-bound SIT reference below.
+    }
+    if (locatorKind == null
+        && dsaNoticeReferencePatterns[contentType]?.test(contentLocator)) {
+      locatorKind = `${contentType}_reference`;
+    }
+  }
+
+  if (requireExact && locatorKind == null) {
+    throw new SupportCaseError(
+      422,
+      'support_dsa_notice_locator_exact_required',
+      { accepted: ['http_or_https_url', `${contentType}_reference`] },
+    );
+  }
+  return Object.freeze({
+    contentLocator,
+    locatorStatus: locatorKind == null ? 'needs_clarification' : 'complete',
+    locatorKind,
+  });
+}
+
+export function normalizeDsaNoticeLocatorCompletion(raw, { contentType }) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new SupportCaseError(400, 'support_dsa_notice_locator_completion_invalid');
+  }
+  const allowedKeys = new Set(['contentLocator', 'expectedVersion']);
+  if (Object.keys(raw).some((key) => !allowedKeys.has(key))) {
+    throw new SupportCaseError(400, 'support_dsa_notice_locator_completion_invalid');
+  }
+  const expectedVersion = Number(raw.expectedVersion);
+  if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1) {
+    throw new SupportCaseError(400, 'support_expected_version_invalid');
+  }
+  return Object.freeze({
+    ...classifyDsaNoticeLocator(raw.contentLocator, contentType, {
+      requireExact: true,
+    }),
+    expectedVersion,
   });
 }
 

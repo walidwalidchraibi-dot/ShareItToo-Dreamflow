@@ -104,6 +104,7 @@ if (!databaseUrl) {
         '040_support_single_issue_intake.up.sql',
         '041_support_closed_account_access_guard.up.sql',
         '042_support_dsa_notice_intake.up.sql',
+        '043_support_dsa_notice_locator_completion.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -177,6 +178,7 @@ if (!databaseUrl) {
           'support_decisions',
           'support_deadline_watchdog_state',
           'support_evidence',
+          'support_dsa_notice_locator_amendments',
           'support_messages',
           'support_policy_snapshots',
         ]],
@@ -188,6 +190,7 @@ if (!databaseUrl) {
         { table_name: 'support_cases' },
         { table_name: 'support_deadline_watchdog_state' },
         { table_name: 'support_decisions' },
+        { table_name: 'support_dsa_notice_locator_amendments' },
         { table_name: 'support_evidence' },
         { table_name: 'support_messages' },
         { table_name: 'support_policy_snapshots' },
@@ -211,12 +214,27 @@ if (!databaseUrl) {
             AND table_name = 'support_cases'
             AND column_name = ANY($1::text[])
           ORDER BY column_name`,
-        [['dsa_notice_evidence', 'dsa_notice_number']],
+        [[
+          'dsa_notice_evidence',
+          'dsa_notice_locator_kind',
+          'dsa_notice_locator_status',
+          'dsa_notice_number',
+        ]],
       );
       assert.deepEqual(supportDsaNoticeColumns.rows, [
         {
           column_name: 'dsa_notice_evidence',
           data_type: 'jsonb',
+          is_nullable: 'YES',
+        },
+        {
+          column_name: 'dsa_notice_locator_kind',
+          data_type: 'text',
+          is_nullable: 'YES',
+        },
+        {
+          column_name: 'dsa_notice_locator_status',
+          data_type: 'text',
           is_nullable: 'YES',
         },
         {
@@ -1360,13 +1378,17 @@ if (!databaseUrl) {
         dsaNotice.supportCase.dsaNoticeNumber,
         /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u,
       );
+      assert.equal(dsaNotice.supportCase.dsaNoticeLocatorStatus, 'complete');
+      assert.equal(dsaNotice.supportCase.dsaNoticeLocatorPrompt, null);
+      assert.equal(dsaNotice.supportCase.dsaNoticeLocatorMaySubmit, false);
       assert.equal('dsaNoticeEvidence' in dsaNotice.supportCase, false);
       const dsaNoticeReplay = await createDsaNotice();
       assert.equal(dsaNoticeReplay.status, 200);
       assert.equal((await dsaNoticeReplay.json()).replayed, true);
 
       const storedDsaNotice = await setupPool.query(
-        `SELECT dsa_notice_number, dsa_notice_evidence
+        `SELECT dsa_notice_number, dsa_notice_evidence,
+                dsa_notice_locator_status, dsa_notice_locator_kind
            FROM support_cases
           WHERE id = $1`,
         [dsaNotice.supportCase.id],
@@ -1388,6 +1410,8 @@ if (!databaseUrl) {
         sourceChannel: 'app',
         submittedAt: storedDsaNotice.rows[0].dsa_notice_evidence.submittedAt,
       });
+      assert.equal(storedDsaNotice.rows[0].dsa_notice_locator_status, 'complete');
+      assert.equal(storedDsaNotice.rows[0].dsa_notice_locator_kind, 'listing_reference');
       assert.ok(Date.parse(
         storedDsaNotice.rows[0].dsa_notice_evidence.submittedAt,
       ));
@@ -1401,6 +1425,8 @@ if (!databaseUrl) {
         noticeNumber: dsaNotice.supportCase.dsaNoticeNumber,
         version: 'sit_dsa_notice_intake_v1',
         contentType: 'listing',
+        locatorStatus: 'complete',
+        locatorKind: 'listing_reference',
       });
       assert.equal(
         JSON.stringify(dsaCreatedEvent.rows[0].structured_payload)
@@ -1420,6 +1446,152 @@ if (!databaseUrl) {
         ),
         (error) => error?.code === '55000'
           && error?.message === 'support_dsa_notice_immutable',
+      );
+
+      const incompleteDsaResponse = await fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'X-Forwarded-For': '198.51.100.28',
+          'Idempotency-Key': 's3o-incomplete-dsa-notice-integration',
+        },
+        body: JSON.stringify({
+          caseType: 'moderation_content',
+          caseSubType: 'illegal_content_notice',
+          summary: 'Meldung ohne bereits bekannten exakten Fundort aufnehmen.',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+          dsaNotice: {
+            version: 'sit_dsa_notice_intake_v1',
+            contentType: 'message',
+            contentLocator: '',
+            illegalityStatement:
+              'Diese konkrete Nachricht verletzt nach meiner Einschätzung geltendes Recht.',
+            jurisdictionOrLegalBasis: null,
+            goodFaithConfirmed: true,
+          },
+        }),
+      });
+      assert.equal(incompleteDsaResponse.status, 201);
+      const incompleteDsa = await incompleteDsaResponse.json();
+      assert.match(
+        incompleteDsa.supportCase.dsaNoticeNumber,
+        /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u,
+      );
+      assert.equal(
+        incompleteDsa.supportCase.dsaNoticeLocatorStatus,
+        'needs_clarification',
+      );
+      assert.equal(incompleteDsa.supportCase.dsaNoticeLocatorMaySubmit, true);
+      assert.match(
+        incompleteDsa.supportCase.dsaNoticeLocatorPrompt,
+        /exakten Fundort/u,
+      );
+      assert.equal(incompleteDsa.supportCase.waitingOn, 'reporter');
+
+      const otherReporterLocator = await fetch(
+        `${baseUrl}/v1/support/cases/${incompleteDsa.supportCase.id}/dsa-locator`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterBHeaders,
+            'X-Forwarded-For': '198.51.100.29',
+            'Idempotency-Key': 's3o-locator-other-reporter-integration',
+          },
+          body: JSON.stringify({
+            contentLocator: 'message:message-9',
+            expectedVersion: incompleteDsa.supportCase.version,
+          }),
+        },
+      );
+      assert.equal(otherReporterLocator.status, 404);
+
+      const incompleteLocatorResponse = await fetch(
+        `${baseUrl}/v1/support/cases/${incompleteDsa.supportCase.id}/dsa-locator`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'X-Forwarded-For': '198.51.100.28',
+            'Idempotency-Key': 's3o-locator-inexact-integration',
+          },
+          body: JSON.stringify({
+            contentLocator: 'die Nachricht oben',
+            expectedVersion: incompleteDsa.supportCase.version,
+          }),
+        },
+      );
+      assert.equal(incompleteLocatorResponse.status, 422);
+      assert.equal(
+        (await incompleteLocatorResponse.json()).error,
+        'support_dsa_notice_locator_exact_required',
+      );
+
+      const completeLocator = () => fetch(
+        `${baseUrl}/v1/support/cases/${incompleteDsa.supportCase.id}/dsa-locator`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'X-Forwarded-For': '198.51.100.28',
+            'Idempotency-Key': 's3o-locator-complete-integration',
+          },
+          body: JSON.stringify({
+            contentLocator: 'thread:thread-7:message:message-9',
+            expectedVersion: incompleteDsa.supportCase.version,
+          }),
+        },
+      );
+      const completeLocatorResponse = await completeLocator();
+      assert.equal(completeLocatorResponse.status, 201);
+      const completedDsa = await completeLocatorResponse.json();
+      assert.equal(completedDsa.replayed, false);
+      assert.equal(completedDsa.supportCase.dsaNoticeLocatorStatus, 'complete');
+      assert.equal(completedDsa.supportCase.dsaNoticeLocatorPrompt, null);
+      assert.equal(completedDsa.supportCase.dsaNoticeLocatorMaySubmit, false);
+      assert.equal(
+        completedDsa.supportCase.version,
+        incompleteDsa.supportCase.version + 1,
+      );
+      const completeLocatorReplay = await completeLocator();
+      assert.equal(completeLocatorReplay.status, 200);
+      assert.equal((await completeLocatorReplay.json()).replayed, true);
+
+      const storedLocator = await setupPool.query(
+        `SELECT content_locator, locator_kind
+           FROM support_dsa_notice_locator_amendments
+          WHERE case_id = $1`,
+        [incompleteDsa.supportCase.id],
+      );
+      assert.deepEqual(storedLocator.rows, [{
+        content_locator: 'thread:thread-7:message:message-9',
+        locator_kind: 'message_reference',
+      }]);
+      const locatorEvent = await setupPool.query(
+        `SELECT structured_payload
+           FROM support_case_events
+          WHERE case_id = $1 AND event_type = 'dsa_notice.locator_completed'`,
+        [incompleteDsa.supportCase.id],
+      );
+      assert.deepEqual(locatorEvent.rows[0].structured_payload, {
+        locatorStatus: 'complete',
+        locatorKind: 'message_reference',
+      });
+      assert.equal(
+        JSON.stringify(locatorEvent.rows[0].structured_payload)
+          .includes('thread-7'),
+        false,
       );
       await assert.rejects(
         setupPool.query(

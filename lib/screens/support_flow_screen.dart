@@ -445,7 +445,6 @@ class SupportFlowResult {
     if (isDsaNotice &&
         (dsaNotice == null ||
             dsaNotice!.contentType != expectedDsaContentType ||
-            dsaNotice!.contentLocator.trim().length < 3 ||
             dsaNotice!.illegalityStatement.trim().length < 20 ||
             !dsaNotice!.goodFaithConfirmed)) {
       throw const FormatException('invalid_dsa_notice_intake');
@@ -481,6 +480,8 @@ class SupportFlowResult {
     final isDsaNotice = route.caseType == 'moderation_content' &&
         route.caseSubType == 'illegal_content_notice';
     final dsaNoticeNumber = value['dsaNoticeNumber']?.toString().trim();
+    final dsaLocatorStatus = value['dsaNoticeLocatorStatus']?.toString().trim();
+    final dsaLocatorPrompt = value['dsaNoticeLocatorPrompt']?.toString().trim();
     final requiredTextFields = <String>[
       'id',
       'caseNumber',
@@ -501,6 +502,18 @@ class SupportFlowResult {
             ? !RegExp(r'^SIT-N-[A-HJ-NP-Z2-9]{12}$')
                 .hasMatch(dsaNoticeNumber ?? '')
             : dsaNoticeNumber != null && dsaNoticeNumber.isNotEmpty) ||
+        (isDsaNotice
+            ? !const {'complete', 'needs_clarification'}
+                .contains(dsaLocatorStatus)
+            : dsaLocatorStatus != null && dsaLocatorStatus.isNotEmpty) ||
+        (isDsaNotice &&
+            dsaLocatorStatus == 'needs_clarification' &&
+            ((dsaLocatorPrompt ?? '').isEmpty ||
+                value['dsaNoticeLocatorMaySubmit'] != true)) ||
+        (isDsaNotice &&
+            dsaLocatorStatus == 'complete' &&
+            ((dsaLocatorPrompt ?? '').isNotEmpty ||
+                value['dsaNoticeLocatorMaySubmit'] != false)) ||
         !RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
             .hasMatch(value['caseNumber'].toString()) ||
         DateTime.tryParse(value['nextUpdateAt'].toString()) == null) {
@@ -530,6 +543,7 @@ class SupportFlowResult {
             ? 'Deine Meldung ist im gesonderten DSA-Prüfweg als Notice '
                 '${supportCase['dsaNoticeNumber']} erfasst. Die Eingangsbestätigung '
                 'ist noch keine Entscheidung über die Rechtswidrigkeit.'
+                '${supportCase['dsaNoticeLocatorStatus'] == 'needs_clarification' ? ' Der Fundort kann im Support-Fall gezielt ergänzt werden; die Meldung bleibt gespeichert.' : ''}'
             : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
                 'noch nicht entschieden.';
     final safetyLine = safetyTriage.immediateDanger
@@ -662,8 +676,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   bool get _dsaNoticeReady =>
       !_isDsaNoticeSelection ||
       _immediateDanger == true ||
-      (_dsaContentLocatorController.text.trim().length >= 3 &&
-          _descriptionController.text.trim().length >= 20 &&
+      (_descriptionController.text.trim().length >= 20 &&
           _dsaGoodFaithConfirmed);
 
   @override
@@ -1565,10 +1578,17 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         _supportTextField(
           controller: _dsaContentLocatorController,
           fieldKey: 'support_dsa_content_locator',
-          label: 'Exakter Fundort des Inhalts *',
+          label: 'Exakter Fundort des Inhalts (falls schon bekannt)',
           hint: 'Zum Beispiel URL, Anzeigen-ID oder Nachrichtenreferenz',
           maxLength: 2000,
           maxLines: 3,
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Du kannst die Meldung auch ohne exakten Fundort absenden. Sie erhält '
+          'sofort eine Notice-ID; den Fundort kannst du danach im Support-Fall '
+          'gezielt ergänzen.',
+          style: TextStyle(fontSize: 12),
         ),
         const SizedBox(height: 12),
         _supportTextField(

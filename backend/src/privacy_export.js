@@ -68,6 +68,7 @@ export async function buildAccountExport(client, userId) {
     v52ReturnCaseEvidence,
     v52ReturnCaseEvents,
     supportCases,
+    supportDsaNoticeLocatorAmendments,
     supportCaseEvents,
     supportBreakGlassAccess,
     supportMessages,
@@ -589,6 +590,9 @@ export async function buildAccountExport(client, userId) {
               CASE WHEN support_case.reporter_user_id = $1
                 THEN support_case.dsa_notice_evidence ELSE NULL
               END AS dsa_notice_evidence,
+              CASE WHEN support_case.reporter_user_id = $1
+                THEN support_case.dsa_notice_locator_status ELSE NULL
+              END AS dsa_notice_locator_status,
               support_case.status, support_case.priority,
               support_case.source_channel, support_case.operating_mode,
               support_case.locale, support_case.linked_booking_id,
@@ -604,6 +608,13 @@ export async function buildAccountExport(client, userId) {
         WHERE support_case.reporter_user_id = $1
            OR $1 = ANY(support_case.affected_user_ids)
         ORDER BY support_case.created_at`, userId),
+    rows(client,
+      `SELECT amendment.id, amendment.case_id,
+              amendment.dsa_notice_number, amendment.content_locator,
+              amendment.locator_kind, amendment.submitted_at
+         FROM support_dsa_notice_locator_amendments AS amendment
+        WHERE amendment.reporter_user_id = $1
+        ORDER BY amendment.submitted_at, amendment.id`, userId),
     rows(client,
       `SELECT event.id, event.case_id, event.event_type,
               event.from_status, event.to_status, event.transition_reason,
@@ -840,6 +851,7 @@ export async function buildAccountExport(client, userId) {
       v52ReturnCaseEvents,
       support: {
         cases: supportCases,
+        dsaNoticeLocatorAmendments: supportDsaNoticeLocatorAmendments,
         events: supportCaseEvents,
         emergencyAccess: supportBreakGlassAccess,
         messages: supportMessages,

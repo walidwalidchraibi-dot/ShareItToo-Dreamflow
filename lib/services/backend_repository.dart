@@ -1062,6 +1062,28 @@ class BackendRepository {
     };
   }
 
+  static Future<Map<String, dynamic>> completeSupportDsaNoticeLocator({
+    required String caseId,
+    required String contentLocator,
+    required int expectedVersion,
+    required String idempotencyKey,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/support/cases/${Uri.encodeComponent(caseId)}/dsa-locator',
+      body: {
+        'contentLocator': contentLocator.trim(),
+        'expectedVersion': expectedVersion,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    final supportCase = response['supportCase'];
+    if (supportCase is! Map) {
+      throw const BackendException(502, 'invalid_server_response');
+    }
+    return Map<String, dynamic>.from(supportCase);
+  }
+
   static Future<Map<String, dynamic>> submitSupportAppeal({
     required String caseId,
     required String grounds,

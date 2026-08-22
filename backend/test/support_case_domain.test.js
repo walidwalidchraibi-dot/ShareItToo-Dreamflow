@@ -3,9 +3,11 @@ import test from 'node:test';
 
 import {
   canTransitionSupportCase,
+  classifyDsaNoticeLocator,
   newHumanReadableCaseNumber,
   newHumanReadableDsaNoticeNumber,
   normalizeSupportCaseInput,
+  normalizeDsaNoticeLocatorCompletion,
   normalizeSupportCaseTransition,
   supportApprovalLevels,
   supportCaseFamilies,
@@ -208,7 +210,7 @@ test('privacy intake gets its own owner and bounded operational checkpoint', () 
   assert.equal(result.operatingMode, 'simulation');
 });
 
-test('illegal-content notice requires complete structured DSA evidence and keeps a human-review boundary', () => {
+test('illegal-content notice records structured DSA evidence and keeps a human-review boundary', () => {
   const result = normalizeSupportCaseInput({
     caseType: 'moderation_content',
     caseSubType: 'illegal_content_notice',
@@ -235,10 +237,63 @@ test('illegal-content notice requires complete structured DSA evidence and keeps
     version: supportDsaNoticeIntakeVersion,
     contentType: 'message',
     contentLocator: 'thread:abc:message:42',
+    locatorStatus: 'complete',
+    locatorKind: 'message_reference',
     illegalityStatement:
         'Diese konkrete Nachricht verletzt nach meiner Einschätzung geltendes Recht.',
     jurisdictionOrLegalBasis: null,
     goodFaithConfirmed: true,
+  });
+});
+
+test('DSA locator completeness is deterministic and missing locators remain recordable', () => {
+  const base = {
+    caseType: 'moderation_content',
+    caseSubType: 'illegal_content_notice',
+    summary: 'Konkreten mutmaßlich rechtswidrigen Inhalt prüfen.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+    dsaNotice: {
+      version: supportDsaNoticeIntakeVersion,
+      contentType: 'listing',
+      contentLocator: '',
+      illegalityStatement:
+          'Diese konkrete Anzeige verletzt nach meiner Einschätzung geltendes Recht.',
+      goodFaithConfirmed: true,
+    },
+  };
+  const incomplete = normalizeSupportCaseInput(base, { now });
+  assert.equal(incomplete.dsaNotice.contentLocator, null);
+  assert.equal(incomplete.dsaNotice.locatorStatus, 'needs_clarification');
+  assert.equal(incomplete.dsaNotice.locatorKind, null);
+
+  assert.deepEqual(classifyDsaNoticeLocator(
+    'https://example.test/listings/123',
+    'listing',
+  ), {
+    contentLocator: 'https://example.test/listings/123',
+    locatorStatus: 'complete',
+    locatorKind: 'url',
+  });
+  assert.equal(
+    classifyDsaNoticeLocator('Die Anzeige oben', 'listing').locatorStatus,
+    'needs_clarification',
+  );
+  assert.throws(
+    () => normalizeDsaNoticeLocatorCompletion({
+      contentLocator: 'profile:user-1',
+      expectedVersion: 1,
+    }, { contentType: 'listing' }),
+    /support_dsa_notice_locator_exact_required/u,
+  );
+  assert.deepEqual(normalizeDsaNoticeLocatorCompletion({
+    contentLocator: 'listing:listing-1',
+    expectedVersion: 3,
+  }, { contentType: 'listing' }), {
+    contentLocator: 'listing:listing-1',
+    locatorStatus: 'complete',
+    locatorKind: 'listing_reference',
+    expectedVersion: 3,
   });
 });
 

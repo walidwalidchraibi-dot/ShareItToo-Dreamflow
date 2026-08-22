@@ -11,6 +11,12 @@ typedef SupportAppealSubmitter = Future<Map<String, dynamic>> Function(
   int expectedVersion,
   String idempotencyKey,
 );
+typedef SupportDsaLocatorSubmitter = Future<Map<String, dynamic>> Function(
+  String caseId,
+  String contentLocator,
+  int expectedVersion,
+  String idempotencyKey,
+);
 
 const _supportAppealStates = <String>{
   'not_applicable',
@@ -88,6 +94,9 @@ class SupportCaseViewData {
   final String caseType;
   final String caseSubType;
   final String? dsaNoticeNumber;
+  final String? dsaNoticeLocatorStatus;
+  final String? dsaNoticeLocatorPrompt;
+  final bool dsaNoticeLocatorMaySubmit;
   final String status;
   final String operatingMode;
   final String userFacingSummary;
@@ -110,6 +119,9 @@ class SupportCaseViewData {
     required this.caseType,
     required this.caseSubType,
     required this.dsaNoticeNumber,
+    required this.dsaNoticeLocatorStatus,
+    required this.dsaNoticeLocatorPrompt,
+    required this.dsaNoticeLocatorMaySubmit,
     required this.status,
     required this.operatingMode,
     required this.userFacingSummary,
@@ -133,6 +145,10 @@ class SupportCaseViewData {
     final caseType = _requiredText(value, 'caseType');
     final caseSubType = _requiredText(value, 'caseSubType');
     final dsaNoticeNumber = _optionalText(value, 'dsaNoticeNumber');
+    final dsaNoticeLocatorStatus =
+        _optionalText(value, 'dsaNoticeLocatorStatus');
+    final dsaNoticeLocatorPrompt =
+        _optionalText(value, 'dsaNoticeLocatorPrompt');
     final status = _requiredText(value, 'status');
     final operatingMode = _requiredText(value, 'operatingMode');
     final userFacingSummary = _requiredText(value, 'userFacingSummary');
@@ -162,6 +178,21 @@ class SupportCaseViewData {
             ? !RegExp(r'^SIT-N-[A-HJ-NP-Z2-9]{12}$')
                 .hasMatch(dsaNoticeNumber ?? '')
             : dsaNoticeNumber != null) ||
+        (dsaNoticeLocatorStatus != null &&
+            !const {'complete', 'needs_clarification'}
+                .contains(dsaNoticeLocatorStatus)) ||
+        (dsaNoticeLocatorStatus == null && dsaNoticeLocatorPrompt != null) ||
+        (dsaNoticeLocatorStatus == 'complete' &&
+            dsaNoticeLocatorPrompt != null) ||
+        (dsaNoticeLocatorStatus == 'needs_clarification' &&
+            (dsaNoticeLocatorPrompt == null ||
+                dsaNoticeLocatorPrompt.length > 500)) ||
+        value['dsaNoticeLocatorMaySubmit'] is! bool ||
+        (value['dsaNoticeLocatorMaySubmit'] == true &&
+            dsaNoticeLocatorStatus != 'needs_clarification') ||
+        (caseType != 'moderation_content' &&
+            (dsaNoticeLocatorStatus != null ||
+                value['dsaNoticeLocatorMaySubmit'] == true)) ||
         userFacingSummary.length > 2000 ||
         (nextAction?.length ?? 0) > 2000 ||
         (nextUpdateDisplay?.length ?? 0) > 80 ||
@@ -205,6 +236,10 @@ class SupportCaseViewData {
       caseType: caseType,
       caseSubType: caseSubType,
       dsaNoticeNumber: dsaNoticeNumber,
+      dsaNoticeLocatorStatus: dsaNoticeLocatorStatus,
+      dsaNoticeLocatorPrompt: dsaNoticeLocatorPrompt,
+      dsaNoticeLocatorMaySubmit:
+          value['dsaNoticeLocatorMaySubmit'] == true,
       status: status,
       operatingMode: operatingMode,
       userFacingSummary: userFacingSummary,
@@ -226,6 +261,9 @@ class SupportCaseViewData {
   String get statusLabel => _supportStatusLabels[status]!;
   String get typeLabel => _supportTypeLabels[caseType] ?? 'Support-Anliegen';
   bool get waitsForUser => status == 'waiting_for_user';
+  bool get needsDsaLocator =>
+      dsaNoticeLocatorStatus == 'needs_clarification' &&
+      dsaNoticeLocatorMaySubmit;
   bool get isFinal => status == 'resolved' || status == 'closed';
 }
 
@@ -512,12 +550,14 @@ class SupportCasesScreen extends StatefulWidget {
   final SupportCaseListLoader? listLoader;
   final SupportCaseDetailLoader? detailLoader;
   final SupportAppealSubmitter? appealSubmitter;
+  final SupportDsaLocatorSubmitter? dsaLocatorSubmitter;
 
   const SupportCasesScreen({
     super.key,
     this.listLoader,
     this.detailLoader,
     this.appealSubmitter,
+    this.dsaLocatorSubmitter,
   });
 
   @override
@@ -551,6 +591,7 @@ class _SupportCasesScreenState extends State<SupportCasesScreen> {
         initialCase: supportCase,
         detailLoader: widget.detailLoader,
         appealSubmitter: widget.appealSubmitter,
+        dsaLocatorSubmitter: widget.dsaLocatorSubmitter,
       ),
     ));
   }
@@ -626,12 +667,14 @@ class SupportCaseDetailScreen extends StatefulWidget {
   final SupportCaseViewData initialCase;
   final SupportCaseDetailLoader? detailLoader;
   final SupportAppealSubmitter? appealSubmitter;
+  final SupportDsaLocatorSubmitter? dsaLocatorSubmitter;
 
   const SupportCaseDetailScreen({
     super.key,
     required this.initialCase,
     this.detailLoader,
     this.appealSubmitter,
+    this.dsaLocatorSubmitter,
   });
 
   @override
@@ -681,7 +724,9 @@ class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
           return _SupportCaseDetailBody(
             detail: snapshot.data!,
             appealSubmitter: widget.appealSubmitter,
+            dsaLocatorSubmitter: widget.dsaLocatorSubmitter,
             onAppealSubmitted: () => setState(_reload),
+            onDsaLocatorSubmitted: () => setState(_reload),
           );
         },
       ),
@@ -745,6 +790,13 @@ class _SupportCaseListCard extends StatelessWidget {
                     text: 'Notice-ID: ${supportCase.dsaNoticeNumber}',
                   ),
                 ],
+                if (supportCase.needsDsaLocator) ...[
+                  const SizedBox(height: 8),
+                  const _SupportMetaLine(
+                    icon: Icons.add_location_alt_outlined,
+                    text: 'Exakten Fundort ergänzen',
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Text(
                   supportCase.typeLabel,
@@ -784,12 +836,16 @@ class _SupportCaseListCard extends StatelessWidget {
 class _SupportCaseDetailBody extends StatelessWidget {
   final SupportCaseDetailViewData detail;
   final SupportAppealSubmitter? appealSubmitter;
+  final SupportDsaLocatorSubmitter? dsaLocatorSubmitter;
   final VoidCallback onAppealSubmitted;
+  final VoidCallback onDsaLocatorSubmitted;
 
   const _SupportCaseDetailBody({
     required this.detail,
     required this.appealSubmitter,
+    required this.dsaLocatorSubmitter,
     required this.onAppealSubmitted,
+    required this.onDsaLocatorSubmitted,
   });
 
   @override
@@ -831,6 +887,14 @@ class _SupportCaseDetailBody extends StatelessWidget {
               'Rechtswidrigkeit ist damit noch nicht getroffen.',
               style: const TextStyle(color: Colors.white70, height: 1.5),
             ),
+          ),
+        ],
+        if (supportCase.needsDsaLocator) ...[
+          const SizedBox(height: 12),
+          _SupportDsaLocatorCard(
+            supportCase: supportCase,
+            submitter: dsaLocatorSubmitter,
+            onSubmitted: onDsaLocatorSubmitted,
           ),
         ],
         if (supportCase.waitsForUser) ...[
@@ -985,6 +1049,136 @@ class _SupportCaseDetailBody extends StatelessWidget {
             _SupportTimelineEntry(label: event.label),
         ],
       ],
+    );
+  }
+}
+
+class _SupportDsaLocatorCard extends StatefulWidget {
+  final SupportCaseViewData supportCase;
+  final SupportDsaLocatorSubmitter? submitter;
+  final VoidCallback onSubmitted;
+
+  const _SupportDsaLocatorCard({
+    required this.supportCase,
+    required this.submitter,
+    required this.onSubmitted,
+  });
+
+  @override
+  State<_SupportDsaLocatorCard> createState() =>
+      _SupportDsaLocatorCardState();
+}
+
+class _SupportDsaLocatorCardState extends State<_SupportDsaLocatorCard> {
+  final TextEditingController _locator = TextEditingController();
+  late final String _idempotencyKey;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _idempotencyKey =
+        'support_dsa_locator_${widget.supportCase.id}_${widget.supportCase.version}_${DateTime.now().microsecondsSinceEpoch}';
+  }
+
+  @override
+  void dispose() {
+    _locator.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final locator = _locator.text.trim();
+    if (_submitting || locator.length < 3 || locator.length > 2000) return;
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final submitter = widget.submitter ??
+        (caseId, value, version, key) =>
+            BackendRepository.completeSupportDsaNoticeLocator(
+              caseId: caseId,
+              contentLocator: value,
+              expectedVersion: version,
+              idempotencyKey: key,
+            );
+    try {
+      await submitter(
+        widget.supportCase.id,
+        locator,
+        widget.supportCase.version,
+        _idempotencyKey,
+      );
+      if (!mounted) return;
+      widget.onSubmitted();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error =
+            'Der Fundort konnte nicht sicher bestätigt werden. Nutze '
+            'eine vollständige http(s)-URL oder eine passende Referenz.';
+        _submitting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SupportInfoCard(
+      key: const ValueKey('support_dsa_locator_follow_up'),
+      title: 'Exakten Fundort ergänzen',
+      icon: Icons.add_location_alt_outlined,
+      accent: const Color(0xFFFFB277),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.supportCase.dsaNoticeLocatorPrompt!,
+            style: const TextStyle(color: Colors.white70, height: 1.5),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('support_dsa_locator_input'),
+            controller: _locator,
+            maxLength: 2000,
+            maxLines: 3,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'URL oder exakte Inhaltsreferenz',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: const TextStyle(color: Color(0xFFFFB4AB), height: 1.4),
+            ),
+          ],
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            key: const ValueKey('support_dsa_locator_submit'),
+            onPressed: _submitting || _locator.text.trim().length < 3
+                ? null
+                : _submit,
+            icon: _submitting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.check_circle_outline),
+            label: const Text('Fundort sicher ergänzen'),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Der Nachtrag ergänzt nur die Fundstelle. Er entscheidet nicht '
+            'über Rechtswidrigkeit und entfernt keinen Inhalt automatisch.',
+            style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+          ),
+        ],
+      ),
     );
   }
 }
