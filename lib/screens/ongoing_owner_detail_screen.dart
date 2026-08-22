@@ -1618,6 +1618,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             )) {
                               return;
                             }
+                            if (!context.mounted) return;
                             await _startPickupFlowOwner(
                               context,
                               req,
@@ -1649,6 +1650,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             )) {
                               return;
                             }
+                            if (!context.mounted) return;
                             await _startReturnFlow(context, req, item, renter);
                           },
                           icon: const Icon(Icons.qr_code_scanner),
@@ -1761,10 +1763,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}',
     );
     try {
-      if (!await launchUrl(uri, mode: LaunchMode.platformDefault)) {
+      final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+      if (!context.mounted) return;
+      if (!launched) {
         _toast(context, 'Karte konnte nicht geöffnet werden');
       }
     } catch (_) {
+      if (!context.mounted) return;
       _toast(context, 'Karte konnte nicht geöffnet werden');
     }
   }
@@ -1987,7 +1992,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }) async {
     // Set completed, add timeline + notification, send receipt
     final ownerUserId = await _guardAuthenticatedOwner(req.ownerId);
-    if (!context.mounted) return;
+    if (!mounted) return;
     if (ownerUserId == null) return;
     if (!_canCompleteOwnerReturn(req)) {
       AppPopup.toast(
@@ -2068,6 +2073,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       );
       return;
     }
+    if (!context.mounted) return;
     await ReturnHandoverStepperSheet.push(
       context,
       item: item,
