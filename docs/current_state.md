@@ -1650,3 +1650,24 @@ The local portion of `TD-RR-007` is implemented. Formal closure requires
 independent green exact-commit CI runs retaining the same one-attempt contract;
 local metadata mode is not actual CI. P0B remains `HOLD` / `NO-GO`, and no live
 boundary changed.
+
+## S4U reset-token single-clock boundary
+
+`S4U_RESET_TOKEN_SINGLE_CLOCK_BOUNDARY` is locally verified at implementation
+commit `db92a8c`. A clean-exact-commit proof now repeats the exact reset-token
+timestamp unit five times and the repository-owned fresh PostgreSQL 16
+integration twice. It locks the single persisted `createdAt`, derived
+1,800,000-millisecond expiry and migration `057`'s independent 30-minute upper
+bound.
+
+All seven repeated runs passed without sleep, retry, clock wait, relaxed
+constraint, reused database or manual cleanup. The final result binds five unit
+runs and two PostgreSQL runs to commit
+`db92a8c6564a9554bc6379c95783eec6d3406a69`; runner and general test temp roots
+remained empty. The complete clean-head local metadata gate also passed with
+analyzer baseline 220, 379 Flutter tests plus one documented skip, Google-only,
+Web/loopback smoke and Android debug.
+
+The local deterministic portion of `TD-RR-006` is implemented. Formal closure
+still requires retained green exact-commit CI on PostgreSQL 16. P0B remains
+`HOLD` / `NO-GO`, with no live boundary changed.

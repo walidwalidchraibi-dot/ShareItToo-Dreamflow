@@ -1135,3 +1135,21 @@ remains formally open only for independent green exact-commit CI evidence with
 the same single-attempt contract. P0B remains `HOLD` / `NO-GO`; no production,
 Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
 is enabled.
+
+## S4U reset-token single-clock boundary
+
+`S4U_RESET_TOKEN_SINGLE_CLOCK_BOUNDARY` implements the local `TD-RR-006` exit
+path at commit `db92a8c`. The canonical clean-head command runs the exact
+single-clock reset-token unit five times and two complete fresh PostgreSQL 16
+integrations. A committed static contract is part of the full technical gate.
+
+The proof locks one persisted issuance timestamp, an exact 30-minute derived
+expiry and migration `057`'s independently validated upper bound. Five focused
+runs, two repository-owned PostgreSQL runs with temp roots `0 -> 0`, and the
+complete clean implementation-head local metadata gate pass.
+
+No sleep, retry, clock wait, relaxed constraint, reused database or manual
+cleanup is accepted. `TD-RR-006` remains formally open only for exact-commit CI
+evidence on PostgreSQL 16. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
+is enabled.

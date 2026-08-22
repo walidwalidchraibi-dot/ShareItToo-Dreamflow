@@ -14,7 +14,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-003` | S4S adds a clean-exact-commit proof that runs the complete Flutter suite five times at default parallelism and rejects concurrency overrides, sleeps and retries. All five local runs passed with 379 tests plus one documented skip each at `cea3a1f`; exact-commit CI with the explicit stress input is unavailable. | Retain green exact-commit CI with `run_flutter_parallel_stress=true` using the same five complete runs. No concurrency one, reduced suite, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-004` | S4O added the PostgreSQL-16-pinned repository runner; S4P repeated it from the normal pinned Node/pnpm shell. Consecutive fresh-cluster runs passed with runner temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-package CI for the runner contract and canonical PostgreSQL 16 integration without caller-supplied port, database or lifecycle commands. |
 | `TD-RR-005` | S4Q routes all twelve known leaking suites through scoped fail-closed cleanup and adds a twice-repeated parallel boundedness guard to the full gate. After recoverable historical cleanup, the focused guard and two complete technical regressions passed `0/0 KiB -> 0/0 KiB`; exact-commit CI is unavailable. | Retain green exact-commit CI running the same boundedness guard with no orphaned `sit-*` fixture directories. Manual cleanup, a larger disk, alternate temp root or serial execution cannot be acceptance evidence. |
-| `TD-RR-006` | The reset-token clock-boundary defect exposed by PostgreSQL used transaction time for `created_at` and a later process clock for `expires_at`. The product fix now supplies one timestamp and has focused coverage. | Keep the exact-lifetime unit test and run migration/API integration repeatedly on PostgreSQL 16. Release evidence must show no boundary flake and retain the database 30-minute upper-bound constraint. |
+| `TD-RR-006` | S4U retains a clean-head proof of the single persisted issuance clock, exact 30-minute derived expiry and independently validated database bound. Five focused units and two fresh PostgreSQL 16 integrations passed at `db92a8c` with temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-commit PostgreSQL 16 CI with the same source, exact-lifetime unit and migration/API constraint. No sleep, retry, clock wait, relaxed bound, reused database or manual schema may appear in the evidence. |
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 
 ## Observation log
@@ -180,6 +180,15 @@ claimed until every item below has reproducible evidence and is closed.
   clean implementation-head local metadata gate passed. This implements the
   local part of `TD-RR-007`; independent green exact-commit CI is still required
   for formal closure.
+- 22.08.2026, S4U: a clean-exact-commit command repeated the reset-token
+  single-clock unit five times and the repository-owned fresh PostgreSQL 16
+  integration twice. All runs passed at
+  `db92a8c6564a9554bc6379c95783eec6d3406a69`; migration `057` retained the
+  database 30-minute upper bound and runner temp roots stayed `0 -> 0`. The
+  committed wiring contract rejects sleeps, retries, clock waits, concurrency
+  overrides and noncanonical database execution. This implements the local
+  deterministic part of `TD-RR-006`; exact-commit CI remains required for
+  formal closure.
 
 ## Closure rule
 
