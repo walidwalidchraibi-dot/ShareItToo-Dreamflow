@@ -47,6 +47,8 @@ const sourcePaths = [
   'backend/src/support_evidence_workflow.js',
   'backend/src/support_safety_impact_domain.js',
   'backend/src/support_safety_impact_workflow.js',
+  'backend/src/support_duplicate_case_domain.js',
+  'backend/src/support_duplicate_case_workflow.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -104,6 +106,8 @@ const sourcePaths = [
   'backend/sql/migrations/051_support_evidence_security.down.sql',
   'backend/sql/migrations/052_support_safety_impact_review.up.sql',
   'backend/sql/migrations/052_support_safety_impact_review.down.sql',
+  'backend/sql/migrations/053_support_duplicate_case_linking.up.sql',
+  'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -409,6 +413,7 @@ function assertSourceContracts({ root, sourceTexts }) {
     'THIRD_PARTY_EXACT_LOCATION_OMITTED',
     'privacyIncidents: supportPrivacyIncidents',
     'internalSafetyImpactReviewsExcluded: true',
+    'duplicateCaseLinks: supportDuplicateCaseLinks',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
   }
@@ -641,6 +646,51 @@ function assertSourceContracts({ root, sourceTexts }) {
     'rollback blocked: support safety impact reviews exist',
   )) {
     fail('Support safety-impact rollback must refuse stored reviews.');
+  }
+  const supportDuplicateCaseWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_duplicate_case_workflow.js',
+  );
+  const supportDuplicateCaseMigrationUp = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/053_support_duplicate_case_linking.up.sql',
+  );
+  const supportDuplicateCaseMigrationDown = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
+  );
+  for (const marker of [
+    'humanReviewed: row.human_reviewed === true',
+    'automaticMergeExecuted: false',
+    'externalDeliveryEnabled: false',
+    "false, 'user_visible'",
+    'leadingCaseNumber',
+  ]) {
+    if (!supportDuplicateCaseWorkflow.includes(marker)) {
+      fail(`Support duplicate-case privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (/fetch\s*\(|https?:\/\//u.test(supportDuplicateCaseWorkflow)) {
+    fail('Support duplicate-case linking must not have an external network path.');
+  }
+  for (const marker of [
+    'support_case_links_append_only',
+    'support_duplicate_case_separate_lane_required',
+    'support_duplicate_case_link_required',
+    'CHECK (NOT automatic_merge_executed)',
+    'CHECK (NOT external_delivery_enabled)',
+  ]) {
+    if (!supportDuplicateCaseMigrationUp.includes(marker)) {
+      fail(`Support duplicate-case schema privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportDuplicateCaseMigrationDown.includes(
+    'Refusing to drop retained support duplicate-case links',
+  )) {
+    fail('Support duplicate-case rollback must refuse stored links.');
   }
   const observability = sourceText(root, sourceTexts, 'backend/src/observability.js');
   if (!observability.includes('safeOperationalErrorCode')

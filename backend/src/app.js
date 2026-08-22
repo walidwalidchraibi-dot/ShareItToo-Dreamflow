@@ -179,6 +179,7 @@ import {
   listSupportSafetyImpactReviews,
   recordSupportSafetyImpactReview,
 } from './support_safety_impact_workflow.js';
+import { recordSupportDuplicateCaseLink } from './support_duplicate_case_workflow.js';
 import { submitSupportAppeal } from './support_appeal_workflow.js';
 import {
   createSupportBreakGlassGrant,
@@ -1545,6 +1546,7 @@ export function createApp({
   const supportEvidenceAccessLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceScanLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportSafetyImpactLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportDuplicateCaseLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportPrivacyIdentityLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const supportPrivacyExtensionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -4720,6 +4722,20 @@ export function createApp({
       sessionId: req.auth.sessionId,
       staffElevationId: req.staffElevation.id,
       caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store')
+      .status(result.replayed ? 200 : 201)
+      .json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/duplicate-links', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportDuplicateCaseLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordSupportDuplicateCaseLink(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      staffElevationId: req.staffElevation.id,
+      duplicateCaseId: safeText(req.params.id, 80),
       raw: req.body,
       idempotencyKey: req.get('Idempotency-Key'),
     }));

@@ -46,6 +46,8 @@ const sourcePaths = [
   'backend/src/support_evidence_workflow.js',
   'backend/src/support_safety_impact_domain.js',
   'backend/src/support_safety_impact_workflow.js',
+  'backend/src/support_duplicate_case_domain.js',
+  'backend/src/support_duplicate_case_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -117,6 +119,8 @@ const sourcePaths = [
   'backend/sql/migrations/051_support_evidence_security.down.sql',
   'backend/sql/migrations/052_support_safety_impact_review.up.sql',
   'backend/sql/migrations/052_support_safety_impact_review.down.sql',
+  'backend/sql/migrations/053_support_duplicate_case_linking.up.sql',
+  'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -710,6 +714,47 @@ function assertSourceContracts(root, sourceTexts) {
     'rollback blocked: support safety impact reviews exist',
   )) {
     fail('Support safety-impact rollback must refuse deletion of retained reviews.');
+  }
+  if (!inventory.includes("'communications', 'support_case_links'")) {
+    fail('Retention inventory is missing immutable dataset support_case_links.');
+  }
+  const supportDuplicateCaseWorkflow = text(
+    root,
+    sourceTexts,
+    'backend/src/support_duplicate_case_workflow.js',
+  );
+  const supportDuplicateCaseMigrationUp = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/053_support_duplicate_case_linking.up.sql',
+  );
+  const supportDuplicateCaseMigrationDown = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
+  );
+  for (const marker of [
+    'snapshotSha256',
+    'automaticMergeExecuted: false',
+    'externalDeliveryEnabled: false',
+  ]) {
+    if (!supportDuplicateCaseWorkflow.includes(marker)) {
+      fail(`Support duplicate-case retention boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'support_case_links_append_only',
+    'snapshot_sha256 CHAR(64) GENERATED ALWAYS',
+    'support_duplicate_case_link_required',
+  ]) {
+    if (!supportDuplicateCaseMigrationUp.includes(marker)) {
+      fail(`Support duplicate-case schema retention boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportDuplicateCaseMigrationDown.includes(
+    'Refusing to drop retained support duplicate-case links',
+  )) {
+    fail('Support duplicate-case rollback must refuse deletion of retained links.');
   }
   if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
     fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');

@@ -88,6 +88,7 @@ export async function buildAccountExport(client, userId) {
     v52ReturnCaseEvidence,
     v52ReturnCaseEvents,
     supportCases,
+    supportDuplicateCaseLinks,
     supportPrivacyRightsRequests,
     supportPrivacyIdentityVerifications,
     supportPrivacyDeadlineExtensions,
@@ -645,6 +646,16 @@ export async function buildAccountExport(client, userId) {
            OR $1 = ANY(support_case.affected_user_ids)
         ORDER BY support_case.created_at`, userId),
     rows(client,
+      `SELECT duplicate_case.human_readable_case_number AS duplicate_case_number,
+              leading_case.human_readable_case_number AS leading_case_number,
+              link.relation_type, link.snapshot_sha256, link.created_at
+         FROM support_case_links AS link
+         JOIN support_cases AS duplicate_case ON duplicate_case.id = link.case_id
+         JOIN support_cases AS leading_case ON leading_case.id = link.object_id
+        WHERE duplicate_case.reporter_user_id = $1
+           OR $1 = ANY(duplicate_case.affected_user_ids)
+        ORDER BY link.created_at, link.id`, userId),
+    rows(client,
       `SELECT privacy_request.id, privacy_request.case_id,
               privacy_request.request_version, privacy_request.request_kind,
               privacy_request.identity_status,
@@ -998,6 +1009,7 @@ export async function buildAccountExport(client, userId) {
       v52ReturnCaseEvents,
       support: {
         cases: supportCases,
+        duplicateCaseLinks: supportDuplicateCaseLinks,
         privacyRightsRequests: supportPrivacyRightsRequests,
         privacyIdentityVerifications: supportPrivacyIdentityVerifications,
         privacyDeadlineExtensions: supportPrivacyDeadlineExtensions,

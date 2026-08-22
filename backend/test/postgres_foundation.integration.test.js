@@ -137,6 +137,7 @@ if (!databaseUrl) {
         '050_support_legacy_history_import.up.sql',
         '051_support_evidence_security.up.sql',
         '052_support_safety_impact_review.up.sql',
+        '053_support_duplicate_case_linking.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -207,6 +208,7 @@ if (!databaseUrl) {
           'support_appeals',
           'support_break_glass_grants',
           'support_case_events',
+          'support_case_links',
           'support_cases',
           'support_decisions',
           'support_deadline_watchdog_state',
@@ -227,6 +229,7 @@ if (!databaseUrl) {
         { table_name: 'support_article18_assessments' },
         { table_name: 'support_break_glass_grants' },
         { table_name: 'support_case_events' },
+        { table_name: 'support_case_links' },
         { table_name: 'support_cases' },
         { table_name: 'support_deadline_watchdog_state' },
         { table_name: 'support_decisions' },
@@ -3898,6 +3901,205 @@ if (!databaseUrl) {
       });
       assert.equal(adminElevation.status, 200);
       adminHeaders['X-Admin-Step-Up'] = (await adminElevation.json()).elevation.token;
+      const duplicateCasePair = await setupPool.query(
+        `INSERT INTO support_cases (
+           human_readable_case_number, case_type, case_subtype, status,
+           priority, severity, source_channel, operating_mode,
+           reporter_user_id, reporter_role, affected_user_ids,
+           current_owner_id, current_owner_role, approval_level, waiting_on,
+           next_action, next_update_at, user_facing_summary, internal_summary,
+           policy_snapshot_id, resolution_reference, idempotency_key,
+           intake_scope_evidence
+         ) VALUES (
+           'SIT-BCDFGHJKLMN2', 'general_help', 'app_error_or_display',
+           'resolved', 'p3', 'low', 'internal', 'simulation',
+           'renter-a', 'user', ARRAY['owner'], 'admin',
+           'general_support_owner', 'green_automatic', 'none',
+           NULL, NULL,
+           'Der gleiche technische Testhinweis wurde bereits geprüft.',
+           'Synthetic duplicate-case integration evidence only.',
+           $1, 'Im führenden Testfall weiterbearbeitet.',
+           's4c-duplicate-case-integration',
+           '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
+         ), (
+           'SIT-CDFGHJKLMN23', 'general_help', 'app_error_or_display',
+           'under_review', 'p3', 'low', 'internal', 'simulation',
+           'renter-a', 'user', ARRAY['owner'], 'admin',
+           'general_support_owner', 'green_automatic', 'support_owner',
+           'Den führenden technischen Testfall weiter prüfen.',
+           now() + interval '1 day',
+           'Der führende technische Testfall wird weiter geprüft.',
+           'Synthetic leading-case integration evidence only.',
+           $1, NULL, 's4c-leading-case-integration',
+           '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
+         )
+         RETURNING id, human_readable_case_number, status, lock_version`,
+        [supportPolicy.rows[0].id],
+      );
+      const duplicateCase = duplicateCasePair.rows.find(
+        (row) => row.human_readable_case_number === 'SIT-BCDFGHJKLMN2',
+      );
+      const leadingCase = duplicateCasePair.rows.find(
+        (row) => row.human_readable_case_number === 'SIT-CDFGHJKLMN23',
+      );
+      const duplicateCloseWithoutLink = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${duplicateCase.id}/status`,
+        {
+          method: 'PATCH',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's4c-duplicate-close-without-link',
+          },
+          body: JSON.stringify({
+            status: 'closed',
+            expectedVersion: Number(duplicateCase.lock_version),
+            reason: 'Duplikatschließung ohne belegte Verknüpfung ablehnen.',
+            closureReason: 'duplicate_merged',
+            appealAvailable: false,
+          }),
+        },
+      );
+      assert.equal(duplicateCloseWithoutLink.status, 409);
+      assert.equal(
+        (await duplicateCloseWithoutLink.json()).error,
+        'support_duplicate_case_link_required',
+      );
+      const duplicateLinkRequest = () => fetch(
+        `${baseUrl}/v1/admin/support/cases/${duplicateCase.id}/duplicate-links`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's4c-duplicate-link-integration',
+          },
+          body: JSON.stringify({
+            leadingCaseId: leadingCase.id,
+            duplicateExpectedVersion: Number(duplicateCase.lock_version),
+            leadingExpectedVersion: Number(leadingCase.lock_version),
+            sameCoreFactsConfirmed: true,
+            sameParticipantsAndObjectsConfirmed: true,
+            sameDecisionQuestionConfirmed: true,
+            noSeparateDeadlineLossConfirmed: true,
+            privacyDsaSeparationConfirmed: true,
+          }),
+        },
+      );
+      const duplicateLinkResponse = await duplicateLinkRequest();
+      assert.equal(duplicateLinkResponse.status, 201);
+      const duplicateLink = await duplicateLinkResponse.json();
+      assert.equal(duplicateLink.replayed, false);
+      assert.equal(
+        duplicateLink.link.duplicateCaseNumber,
+        duplicateCase.human_readable_case_number,
+      );
+      assert.equal(
+        duplicateLink.link.leadingCaseNumber,
+        leadingCase.human_readable_case_number,
+      );
+      assert.equal(duplicateLink.link.humanReviewed, true);
+      assert.equal(duplicateLink.link.automaticMergeExecuted, false);
+      assert.equal(duplicateLink.link.externalDeliveryEnabled, false);
+      assert.match(duplicateLink.link.snapshotSha256, /^[0-9a-f]{64}$/u);
+      const duplicateLinkReplayResponse = await duplicateLinkRequest();
+      assert.equal(duplicateLinkReplayResponse.status, 200);
+      assert.equal((await duplicateLinkReplayResponse.json()).replayed, true);
+      const storedDuplicateLink = await setupPool.query(
+        `SELECT assessment_snapshot, automatic_merge_executed,
+                external_delivery_enabled
+           FROM support_case_links WHERE id = $1`,
+        [duplicateLink.link.id],
+      );
+      assert.equal(storedDuplicateLink.rows[0].automatic_merge_executed, false);
+      assert.equal(storedDuplicateLink.rows[0].external_delivery_enabled, false);
+      assert.equal(
+        storedDuplicateLink.rows[0].assessment_snapshot.leadingCaseNumber,
+        leadingCase.human_readable_case_number,
+      );
+      assert.doesNotMatch(
+        JSON.stringify(storedDuplicateLink.rows[0].assessment_snapshot),
+        /summary|address|amount|email/iu,
+      );
+      const duplicateLinkEvent = await setupPool.query(
+        `SELECT visibility, structured_payload
+           FROM support_case_events
+          WHERE case_id = $1
+            AND event_type = 'case.duplicate_link_recorded'`,
+        [duplicateCase.id],
+      );
+      assert.deepEqual(duplicateLinkEvent.rows[0], {
+        visibility: 'user_visible',
+        structured_payload: {
+          relationType: 'duplicate_of',
+          leadingCaseNumber: leadingCase.human_readable_case_number,
+          duplicateClosurePending: true,
+          separateDeadlineLost: false,
+          automaticMergeExecuted: false,
+          externalDeliveryEnabled: false,
+        },
+      });
+      assert.deepEqual(
+        (await setupPool.query(
+          `SELECT human_readable_case_number, status, lock_version
+             FROM support_cases
+            WHERE id = ANY($1::uuid[])
+            ORDER BY human_readable_case_number`,
+          [[duplicateCase.id, leadingCase.id]],
+        )).rows,
+        [
+          {
+            human_readable_case_number: duplicateCase.human_readable_case_number,
+            status: 'resolved',
+            lock_version: Number(duplicateCase.lock_version),
+          },
+          {
+            human_readable_case_number: leadingCase.human_readable_case_number,
+            status: 'under_review',
+            lock_version: Number(leadingCase.lock_version),
+          },
+        ],
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_case_links
+              SET external_delivery_enabled = true
+            WHERE id = $1`,
+          [duplicateLink.link.id],
+        ),
+        /append-only/u,
+      );
+      await assert.rejects(
+        setupPool.query('DELETE FROM support_case_links WHERE id = $1', [duplicateLink.link.id]),
+        /append-only/u,
+      );
+      const duplicateCloseResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${duplicateCase.id}/status`,
+        {
+          method: 'PATCH',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's4c-duplicate-close-after-link',
+          },
+          body: JSON.stringify({
+            status: 'closed',
+            expectedVersion: Number(duplicateCase.lock_version),
+            reason: 'Geprüften Duplikatfall mit sichtbarer Führungsreferenz schließen.',
+            closureReason: 'duplicate_merged',
+            appealAvailable: false,
+          }),
+        },
+      );
+      assert.equal(duplicateCloseResponse.status, 200);
+      const closedDuplicateCase = (await duplicateCloseResponse.json()).supportCase;
+      assert.equal(closedDuplicateCase.status, 'closed');
+      assert.equal(closedDuplicateCase.closureReason, 'duplicate_merged');
+      assert.equal(closedDuplicateCase.version, Number(duplicateCase.lock_version) + 1);
+      assert.deepEqual(
+        (await setupPool.query(
+          'SELECT status, lock_version FROM support_cases WHERE id = $1',
+          [leadingCase.id],
+        )).rows,
+        [{ status: 'under_review', lock_version: Number(leadingCase.lock_version) }],
+      );
       const safetyListingBefore = await setupPool.query(
         `SELECT status, is_active, moderation_status
            FROM listings WHERE id = 'listing-1'`,
@@ -4811,6 +5013,9 @@ if (!databaseUrl) {
       );
       assert.equal(evidenceRetentionResponse.status, 200);
       const evidenceRetentionInventory = (await evidenceRetentionResponse.json()).inventory;
+      assert.ok(evidenceRetentionInventory.categories
+        .find((entry) => entry.category === 'communications')
+        .datasets.some((entry) => entry.dataset === 'support_case_links'));
       assert.ok(evidenceRetentionInventory.categories
         .find((entry) => entry.category === 'moderation')
         .datasets.some((entry) => entry.dataset === 'support_evidence_files'));
@@ -5906,6 +6111,12 @@ if (!databaseUrl) {
         renterExport.data.communication.support.legacyHistoryUsableAsDecisionEvidence,
         false,
       );
+      assert.ok(renterExport.data.communication.support.duplicateCaseLinks.some(
+        (entry) => entry.duplicate_case_number === duplicateCase.human_readable_case_number
+          && entry.leading_case_number === leadingCase.human_readable_case_number
+          && entry.relation_type === 'duplicate_of'
+          && /^[0-9a-f]{64}$/u.test(entry.snapshot_sha256),
+      ));
       assert.ok(renterExport.data.communication.support.legacyImports.some(
         (entry) => entry.id === legacyImport.migration.importId,
       ));
@@ -6609,6 +6820,19 @@ if (!databaseUrl) {
       assert.equal(
         (await verifiedFacebookLogin.json()).user.id,
         facebookAccount.rows[0].id,
+      );
+
+      const supportDuplicateCaseDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/053_support_duplicate_case_linking.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(supportDuplicateCaseDown),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'Refusing to drop retained support duplicate-case links',
       );
 
       const g3bDown = await fs.readFile(

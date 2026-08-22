@@ -836,6 +836,28 @@ export async function transitionSupportCase(client, {
       throw new SupportCaseError(409, 'support_appeal_requires_published_decision');
     }
   }
+  if (transition.status === 'closed'
+      && transition.closureReason === 'duplicate_merged') {
+    const duplicateLink = await client.query(
+      `SELECT link.id
+         FROM support_case_links AS link
+        WHERE link.case_id = $1
+          AND link.object_type = 'another_support_case'
+          AND link.relation_type = 'duplicate_of'
+          AND EXISTS (
+            SELECT 1 FROM support_case_events AS event
+             WHERE event.case_id = link.case_id
+               AND event.entity_type = 'support_case_link'
+               AND event.entity_id = link.id::text
+               AND event.event_type = 'case.duplicate_link_recorded'
+               AND event.visibility = 'user_visible'
+          )`,
+      [row.id],
+    );
+    if (!duplicateLink.rowCount) {
+      throw new SupportCaseError(409, 'support_duplicate_case_link_required');
+    }
+  }
 
   const updated = await client.query(
     `UPDATE support_cases

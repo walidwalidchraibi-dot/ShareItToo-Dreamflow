@@ -1077,6 +1077,92 @@ test('decision-backed resolution requires verified implementation and exact comm
   client.done();
 });
 
+test('duplicate closure requires the immutable user-visible leading-case link', async () => {
+  const current = caseRow({
+    status: 'resolved',
+    current_owner_id: 'support-1',
+    lock_version: 6,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
+    { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    { match: /SELECT id FROM users/, result: { rowCount: 1, rows: [{ id: 'support-1' }] } },
+    {
+      match: /FROM support_case_links AS link[\s\S]*case\.duplicate_link_recorded/u,
+      result: noRows,
+    },
+  ]);
+  await assert.rejects(
+    transitionSupportCase(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId: 'case-1',
+      raw: {
+        status: 'closed',
+        expectedVersion: 6,
+        reason: 'Der bestätigte Duplikatfall soll nachvollziehbar geschlossen werden.',
+        closureReason: 'duplicate_merged',
+        appealAvailable: false,
+      },
+      idempotencyKey: 'transition-duplicate-without-link',
+      now,
+    }),
+    /support_duplicate_case_link_required/u,
+  );
+  client.done();
+});
+
+test('duplicate closure succeeds only after the user-visible leading-case reference', async () => {
+  const current = caseRow({
+    status: 'resolved',
+    current_owner_id: 'support-1',
+    lock_version: 6,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/, result: noRows },
+    { match: /FOR UPDATE/, result: { rowCount: 1, rows: [current] } },
+    { match: /SELECT 1 FROM support_case_events/, result: noRows },
+    { match: /SELECT id FROM users/, result: { rowCount: 1, rows: [{ id: 'support-1' }] } },
+    {
+      match: /FROM support_case_links AS link[\s\S]*case\.duplicate_link_recorded/u,
+      result: { rowCount: 1, rows: [{ id: 'link-1' }] },
+    },
+    {
+      match: /UPDATE support_cases/u,
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          ...current,
+          status: 'closed',
+          closure_reason: 'duplicate_merged',
+          appeal_available: false,
+          lock_version: 7,
+          closed_at: params[17],
+          updated_at: params[17],
+        })],
+      }),
+    },
+    { match: /INSERT INTO support_case_events/u, result: noRows },
+    { match: /INSERT INTO audit_log/u, result: noRows },
+  ]);
+  const result = await transitionSupportCase(client, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId: 'case-1',
+    raw: {
+      status: 'closed',
+      expectedVersion: 6,
+      reason: 'Der bestätigte Duplikatfall wird mit führendem Verweis geschlossen.',
+      closureReason: 'duplicate_merged',
+      appealAvailable: false,
+    },
+    idempotencyKey: 'transition-duplicate-with-link',
+    now,
+  });
+  assert.equal(result.supportCase.status, 'closed');
+  assert.equal(result.supportCase.closureReason, 'duplicate_merged');
+  client.done();
+});
+
 test('case cannot leave pending approval until its draft is rejected or superseded', async () => {
   const decisionId = '11111111-1111-4111-8111-111111111111';
   const current = caseRow({
