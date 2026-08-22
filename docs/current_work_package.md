@@ -1587,3 +1587,24 @@ This package does not close `TD-RR-010`; the remaining 12 booking-detail and 21
 item-overlay context findings still require reviewed reductions to zero plus
 exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
 Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.
+
+## S4AR booking-detail handover/return async-context ratchet
+
+`S4AR_BOOKING_DETAIL_HANDOVER_RETURN_ASYNC_CONTEXT_RATCHET` delivers the next
+downward `TD-RR-010` source ratchet at commit `5658f10`. Stepper, QR and
+manual-code pickup/return paths now prove their owning State after challenge,
+identity, transition, synchronization, notification and banner work. Secure
+roles, evidence, transitions, review reminders and `needsReview` are unchanged.
+
+The exact debt snapshot moves `155 -> 143`, and only the intended
+`use_build_context_synchronously` booking-detail bucket changes from `12 -> 0`.
+Forty-five focused source/analyzer/privacy contracts, 96 focused Flutter tests,
+the privacy and retention validators and the complete clean local metadata gate
+pass with the new exact fingerprint. The privacy inventory is rebound without
+changing any disclosure or release state.
+
+This package clears the booking-detail context bucket but does not close
+`TD-RR-010`; the remaining 21 item-overlay context findings still require
+reviewed reductions to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`;
+no production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or
+public activation is enabled.

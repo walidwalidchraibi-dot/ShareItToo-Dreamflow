@@ -2124,3 +2124,24 @@ debug build. Privacy remains honestly draft and fail-closed.
 `TD-RR-010` remains open for the final 12 booking-detail and 21 item-overlay
 context findings, further reviewed ratchets to zero and exact-commit CI. P0B
 remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AR booking-detail handover/return async-context ratchet
+
+`S4AR_BOOKING_DETAIL_HANDOVER_RETURN_ASYNC_CONTEXT_RATCHET` is locally verified
+at commit `5658f10`. Stepper, QR and manual-code pickup/return paths now prove
+their owning State after challenge, identity, transition, synchronization,
+notification and banner work. Secure roles, evidence, transitions, review
+reminders and `needsReview` are unchanged.
+
+The exact analyzer snapshot ratcheted `155 -> 143`, with
+`use_build_context_synchronously` `33 -> 21` and the booking-detail context
+bucket `12 -> 0`; all other buckets remained identical. Forty-five focused
+source/analyzer/privacy contracts, 96 focused Flutter tests, the privacy and
+retention validators and the complete clean local metadata gate passed in one
+execution at `5658f101a9a744f34c7ccdfd70cce1a317646cd8` with 384 Flutter tests
+plus one documented skip, Google-only, Web build/smoke and one direct 448-task
+Android debug build. Privacy remains honestly draft and fail-closed.
+
+The booking-detail context bucket is cleared, but `TD-RR-010` remains open for
+the 21 item-overlay context findings, further reviewed ratchets to zero and
+exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
