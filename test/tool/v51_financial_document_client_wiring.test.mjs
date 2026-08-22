@@ -21,7 +21,10 @@ test('release invoices come from the authenticated financial document endpoint',
 
 test('renter receipt download never recomputes tax, delivery or express amounts', () => {
   const start = renter.indexOf('Future<void> _downloadReceiptPdf()');
-  const end = renter.indexOf('Future<void> _startScanOwnerQr()', start);
+  const end = renter.indexOf(
+    'Future<void> _startScanRenterQrForReturn()',
+    start,
+  );
   assert.ok(start >= 0 && end > start);
   const section = renter.slice(start, end);
   assert.match(section, /InvoicesService\.getInvoicesForCurrentUser/u);

@@ -792,7 +792,7 @@
     },
     {
       "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "0aa3ed1acf04ea30b230211f8e97271c75be2748e7f060c34bd3f8d489a85920"
+      "sha256": "497e6a7169f803caf619673bd55a2228956881b4b6ab759a6a05fcb5d040dfd2"
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",

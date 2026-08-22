@@ -65,7 +65,7 @@ test('direct return QR path remains server verified', () => {
 test('direct return manual-code path remains server verified', () => {
   const manual = between(
     'Future<void> _confirmManualReturnByCode() async',
-    'Future<bool> _guardRequiredHandoverPhotos(',
+    'Future<bool> _acknowledgeGalleryEvidenceIfNeeded(',
   );
   assert.match(manual, /if \(!_canCompleteBookingReturn\)/);
   assert.match(manual, /_verifySecureChallenge\(/);

@@ -23,21 +23,13 @@ const pickup = section(
   '  Future<void> _startPickupFlow()',
   '  Future<void> _downloadReceiptPdf()',
 );
-const pickupQr = section(
-  '  Future<void> _startScanOwnerQr()',
-  '  Future<void> _startScanRenterQrForReturn()',
-);
 const returnQr = section(
   '  Future<void> _startScanRenterQrForReturn()',
   '  Future<void> _confirmManualReturnByCode()',
 );
 const manualReturn = section(
   '  Future<void> _confirmManualReturnByCode()',
-  '  Future<bool> _hasRequiredHandoverPhotos',
-);
-const manualPickup = section(
-  '  Future<void> _confirmManualPickupByCode()',
-  '  Future<void> _confirmCancelUpcoming()',
+  '  Future<bool> _acknowledgeGalleryEvidenceIfNeeded',
 );
 
 test('both steppers stop after challenge lookup when their State is gone', () => {
@@ -60,18 +52,10 @@ test('owner return proves lifecycle after identity and transition work', () => {
   );
 });
 
-test('stepper and QR pickup feedback require a current State', () => {
+test('stepper pickup feedback requires a current State', () => {
   assert.match(
     pickup,
     /setHandoverBanner\([\s\S]*?\);\s+if \(!mounted\) return;\s+AppPopup\.toast\(\s+context,/u,
-  );
-  assert.match(
-    pickupQr,
-    /_guardAuthenticatedRenter\(\);\s+if \(renterUserId == null \|\| !mounted\) return;/u,
-  );
-  assert.match(
-    pickupQr,
-    /addNotification\([\s\S]*?\);\s+if \(!mounted\) return;\s+AppPopup\.toast\(\s+context,/u,
   );
 });
 
@@ -92,25 +76,12 @@ test('QR and manual return prove identity and result-feedback lifecycle', () => 
   );
 });
 
-test('manual pickup proves lifecycle before flow and local result state', () => {
-  assert.match(
-    manualPickup,
-    /_guardAuthenticatedRenter\(\);\s+if \(renterUserId == null \|\| !mounted\) return;/u,
-  );
-  assert.match(
-    manualPickup,
-    /setHandoverBanner\([\s\S]*?\);\s+if \(!mounted\) return;\s+AppPopup\.toast\(\s+context,[\s\S]*?\);\s+if \(!mounted\) return;\s+setState\(/u,
-  );
-});
-
 test('handover and return context fixes add no timing or lint accommodation', () => {
   for (const value of [
     ownerReturn,
     pickup,
-    pickupQr,
     returnQr,
     manualReturn,
-    manualPickup,
   ]) {
     assert.doesNotMatch(value, /ignore:\s*use_build_context_synchronously/u);
     assert.doesNotMatch(value, /Future(?:<void>)?\.delayed|Timer\s*\(/u);

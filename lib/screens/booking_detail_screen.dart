@@ -60,11 +60,6 @@ class BookingDetailScreen extends StatefulWidget {
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
   late final PageController _pageController;
   int _page = 0;
-  int _ownerPickupFailCount = 0;
-  bool _manualPickupAllowed = false;
-  // Renter upcoming: manual code entry toggle + controller
-  bool _showManualPickupEntry = false;
-  final TextEditingController _manualPickupCodeCtrl = TextEditingController();
   // Owner laufend (Rückgabe bestätigen): manueller Code-Eingabe-Toggle + Controller
   bool _showManualReturnEntry = false;
   final TextEditingController _manualReturnCodeCtrl = TextEditingController();
@@ -291,11 +286,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return _effectiveCategory() == 'ongoing';
   }
 
-  bool get _canStartBookingHandover {
-    final status = ((widget.booking['status'] as String?) ?? '').trim();
-    return status == 'Akzeptiert' && !_isCompletedState && !_isOngoing;
-  }
-
   bool get _canCompleteBookingReturn {
     final status = ((widget.booking['status'] as String?) ?? '').trim();
     return status == 'Laufend' && _isOngoing;
@@ -402,17 +392,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         _sharedPersistenceRefresh.schedule(_reloadFromSharedPersistence),
       );
     });
-    // Load owner-side failed confirmations to decide when to show manual pickup confirmation for renter
+    // Show one-time banner if a handover confirmation happened on the other side.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final id = _computeBookingId();
-      final fails = await DataService.getPickupFailCountForBooking(id);
-      if (mounted) {
-        setState(() {
-          _ownerPickupFailCount = fails;
-          _manualPickupAllowed = fails >= 3;
-        });
-      }
-      // Show one-time banner if a handover confirmation happened on the other side
       final msg = await DataService.takeHandoverBanner(id);
       if (msg != null && msg.isNotEmpty && mounted) {
         AppPopup.toast(context, icon: Icons.check_circle_outline, title: msg);
@@ -488,7 +470,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
     _pageController.dispose();
-    _manualPickupCodeCtrl.dispose();
     _manualReturnCodeCtrl.dispose();
     super.dispose();
   }
@@ -3563,138 +3544,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
-  Future<void> _startScanOwnerQr() async {
-    String? scanned;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.black,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder: (ctx) {
-        return SizedBox(
-          height: MediaQuery.of(ctx).size.height * 0.86,
-          child: Stack(
-            children: [
-              MobileScanner(
-                controller: MobileScannerController(
-                  detectionSpeed: DetectionSpeed.normal,
-                  facing: CameraFacing.back,
-                  torchEnabled: false,
-                ),
-                onDetect: (capture) {
-                  final barcodes = capture.barcodes;
-                  if (barcodes.isEmpty) return;
-                  final value = barcodes.first.rawValue ?? '';
-                  if (value.isEmpty) return;
-                  scanned = value;
-                  Navigator.of(ctx).maybePop();
-                },
-              ),
-              Positioned(
-                left: 8,
-                top: 8,
-                child: IconButton(
-                  onPressed: () => Navigator.of(ctx).maybePop(),
-                  icon: const Icon(Icons.close, color: Colors.white),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: const Text(
-                    'Scanne den QR‑Code des Vermieters',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (!mounted) return;
-    if (scanned == null || scanned!.isEmpty) {
-      AppPopup.toast(
-        context,
-        icon: Icons.qr_code_2,
-        title: 'Kein Code erkannt',
-      );
-      return;
-    }
-
-    try {
-      if (!_canStartBookingHandover) {
-        AppPopup.toast(
-          context,
-          icon: Icons.info_outline,
-          title: 'Übergabe ist gerade nicht verfügbar',
-        );
-        return;
-      }
-
-      final renterUserId = await _guardAuthenticatedRenter();
-      if (renterUserId == null || !mounted) return;
-      final requestId = widget.booking['requestId'] as String?;
-      if (requestId != null && requestId.isNotEmpty) {
-        final matches = await _verifySecureChallenge(
-          segment: HandoverCodeService.segmentPickup,
-          presenterRole: HandoverCodeService.presenterOwner,
-          qrPayload: scanned!.trim(),
-        );
-        if (!mounted) return;
-        if (!matches) {
-          AppPopup.toast(
-            context,
-            icon: Icons.error_outline,
-            title:
-                'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.',
-          );
-          return;
-        }
-        final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
-          requestId,
-          isReturn: false,
-        );
-        if (!galleryAcknowledged) return;
-        final transitioned = await _finalizePickupTransition(
-          requestId: requestId,
-          confirmedByUserId: renterUserId,
-          method: 'qr',
-          confirmationContextVerified: true,
-          galleryAcknowledged: galleryAcknowledged,
-        );
-        if (!transitioned) return;
-      }
-      if (!mounted) return;
-      if (requestId != null && requestId.isNotEmpty) {
-        await _syncBookingLifecycleFromRequest(requestId);
-      }
-      final title = (widget.booking['title'] as String?) ?? '';
-      await DataService.addNotification(
-        title: 'Übergabe bestätigt',
-        body: 'Übergabe des Listings "$title" bestätigt.',
-      );
-      if (!mounted) return;
-      AppPopup.toast(
-        context,
-        icon: Icons.check_circle_outline,
-        title: 'Übergabe per QR bestätigt',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title: 'Bestätigung fehlgeschlagen',
-      );
-    }
-  }
-
   Future<void> _startScanRenterQrForReturn() async {
     String? scanned;
     await showModalBottomSheet(
@@ -3973,40 +3822,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
-  Future<bool> _hasRequiredHandoverPhotos(String requestId) async {
-    final handoverPhotos = await DataService.getHandoverPhotoCount(requestId);
-    return handoverPhotos >= DataService.minimumRequiredPhotos;
-  }
-
-  Future<bool> _hasRequiredReturnPhotos(String requestId) async {
-    final returnPhotos = await DataService.getReturnPhotoCount(requestId);
-    return returnPhotos >= DataService.minimumRequiredPhotos;
-  }
-
-  Future<bool> _guardRequiredHandoverPhotos(String requestId) async {
-    final ok = await _hasRequiredHandoverPhotos(requestId);
-    if (!ok && mounted) {
-      AppPopup.toast(
-        context,
-        icon: Icons.photo_camera_back_outlined,
-        title: 'Bitte dokumentiere die Übergabe zuerst mit mindestens 4 Fotos.',
-      );
-    }
-    return ok;
-  }
-
-  Future<bool> _guardRequiredReturnPhotos(String requestId) async {
-    final ok = await _hasRequiredReturnPhotos(requestId);
-    if (!ok && mounted) {
-      AppPopup.toast(
-        context,
-        icon: Icons.photo_camera_back_outlined,
-        title: 'Bitte dokumentiere die Rückgabe zuerst mit mindestens 4 Fotos.',
-      );
-    }
-    return ok;
-  }
-
   Future<bool> _acknowledgeGalleryEvidenceIfNeeded(
     String requestId, {
     required bool isReturn,
@@ -4039,27 +3854,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       ],
     );
     return acknowledged;
-  }
-
-  Future<bool> _guardActiveFlow(
-    String requestId, {
-    required bool isReturn,
-  }) async {
-    final state = await DataService.getHandoverReturnState(requestId);
-    final isActive = isReturn
-        ? state['returnActive'] == true
-        : state['handoverActive'] == true;
-    if (isActive) return true;
-    if (mounted) {
-      AppPopup.toast(
-        context,
-        icon: Icons.info_outline,
-        title: isReturn
-            ? 'Bitte starte die Rückgabe zuerst im Chat.'
-            : 'Bitte starte die Übergabe zuerst im Chat.',
-      );
-    }
-    return false;
   }
 
   Future<void> _syncBookingLifecycleFromRequest(String requestId) async {
@@ -4165,104 +3959,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       return null;
     }
     return current.id;
-  }
-
-  Future<void> _confirmManualPickupAsRenter() async {
-    await AppPopup.toast(
-      context,
-      icon: Icons.info_outline,
-      title:
-          'Eine Übergabe kann nur durch QR-Code oder den 6-stelligen Code der Gegenpartei bestätigt werden.',
-    );
-  }
-
-  Future<void> _confirmManualPickupByCode() async {
-    final entered = _manualPickupCodeCtrl.text.trim();
-    if (entered.isEmpty) {
-      AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title: 'Bitte Code eingeben',
-      );
-      return;
-    }
-    try {
-      final renterUserId = await _guardAuthenticatedRenter();
-      if (renterUserId == null || !mounted) return;
-      final requestId = widget.booking['requestId'] as String?;
-      if (requestId != null && requestId.isNotEmpty) {
-        if (!_canStartBookingHandover) {
-          AppPopup.toast(
-            context,
-            icon: Icons.info_outline,
-            title: 'Übergabe ist gerade nicht verfügbar',
-          );
-          return;
-        }
-        final matches = await _verifySecureChallenge(
-          segment: HandoverCodeService.segmentPickup,
-          presenterRole: HandoverCodeService.presenterOwner,
-          code: entered,
-        );
-        if (!mounted) return;
-        if (!matches) {
-          AppPopup.toast(
-            context,
-            icon: Icons.error_outline,
-            title:
-                'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.',
-          );
-          return;
-        }
-        final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
-          requestId,
-          isReturn: false,
-        );
-        if (!galleryAcknowledged) return;
-        final transitioned = await _finalizePickupTransition(
-          requestId: requestId,
-          confirmedByUserId: renterUserId,
-          method: 'manual',
-          confirmationContextVerified: true,
-          galleryAcknowledged: galleryAcknowledged,
-        );
-        if (!transitioned) return;
-      }
-      if (!mounted) return;
-      if (requestId != null && requestId.isNotEmpty) {
-        await _syncBookingLifecycleFromRequest(requestId);
-      }
-      final bookingId = _computeBookingId();
-      final title = (widget.booking['title'] as String?) ?? '';
-      final message =
-          'Übergabe des Listings "$title" wurde vom Mieter bestätigt.';
-      await DataService.addNotification(
-        title: 'Übergabe bestätigt',
-        body: message,
-      );
-      await DataService.setHandoverBanner(
-        bookingId: bookingId,
-        message: message,
-      );
-      if (!mounted) return;
-      AppPopup.toast(
-        context,
-        icon: Icons.check_circle_outline,
-        title: 'Übergabe per Code bestätigt',
-      );
-      if (!mounted) return;
-      setState(() {
-        _showManualPickupEntry = false;
-        _manualPickupCodeCtrl.clear();
-      });
-    } catch (e) {
-      if (!mounted) return;
-      AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title: 'Bestätigung fehlgeschlagen',
-      );
-    }
   }
 
   Future<void> _confirmCancelUpcoming() async {
