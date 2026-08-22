@@ -1630,3 +1630,23 @@ their mutation/overstatement negatives pass with PSP `0/8 HOLD` and pilot `0/4
 HOLD`. The complete local gate then passed in its documented CI-metadata-only
 mode because historical AAB `2026081509` is absent on this Mac mini. This is
 not actual CI, Store or device evidence.
+
+## S4T single-attempt Gradle wrapper verification
+
+`S4T_SINGLE_ATTEMPT_GRADLE_WRAPPER_VERIFICATION` is locally verified at
+implementation commit `84357c4`. The Flutter CI job no longer retries Gradle
+wrapper provisioning three times or sleeps after failures. It now performs one
+`./android/gradlew --version` after the existing verified basic-cache setup and
+before the complete regression.
+
+The committed contract requires exactly one invocation, preserves the Gradle
+8.12 distribution SHA-256 and URL validation, and rejects an attempt loop,
+sleep or retry in that workflow segment. The direct wrapper check passed with
+Gradle 8.12 and Java 17. A complete clean-head local metadata gate also passed
+with analyzer baseline 220, 379 Flutter tests plus one documented skip,
+Google-only, Web/loopback smoke and Android debug.
+
+The local portion of `TD-RR-007` is implemented. Formal closure requires
+independent green exact-commit CI runs retaining the same one-attempt contract;
+local metadata mode is not actual CI. P0B remains `HOLD` / `NO-GO`, and no live
+boundary changed.

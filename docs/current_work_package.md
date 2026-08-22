@@ -1117,3 +1117,21 @@ the exact hash chain; PSP stays `0/8 HOLD`, invited pilot stays `0/4 HOLD`, and
 their negative tests remain green. The final complete run uses the already
 documented CI-metadata-only branch because historical AAB `2026081509` is not
 present locally; it is not claimed as actual CI, Store or device proof.
+
+## S4T single-attempt Gradle wrapper verification
+
+`S4T_SINGLE_ATTEMPT_GRADLE_WRAPPER_VERIFICATION` implements the local
+`TD-RR-007` exit path at commit `84357c4`. The CI wrapper preflight now executes
+exactly one `./android/gradlew --version` after the verified basic-cache action.
+The former three-attempt loop and its five-/ten-second sleeps are removed.
+
+The wiring contract locks step order, the single invocation and the pinned
+Gradle 8.12 distribution URL/SHA-256; it rejects an attempt loop, sleep or retry.
+Eight focused tests, the direct Gradle 8.12/Java 17 check and a complete clean
+implementation-head technical gate pass locally.
+
+Automatic retries, waits and pass-on-rerun are not accepted. `TD-RR-007`
+remains formally open only for independent green exact-commit CI evidence with
+the same single-attempt contract. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
+is enabled.

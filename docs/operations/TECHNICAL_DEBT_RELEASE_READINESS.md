@@ -15,6 +15,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-004` | S4O added the PostgreSQL-16-pinned repository runner; S4P repeated it from the normal pinned Node/pnpm shell. Consecutive fresh-cluster runs passed with runner temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-package CI for the runner contract and canonical PostgreSQL 16 integration without caller-supplied port, database or lifecycle commands. |
 | `TD-RR-005` | S4Q routes all twelve known leaking suites through scoped fail-closed cleanup and adds a twice-repeated parallel boundedness guard to the full gate. After recoverable historical cleanup, the focused guard and two complete technical regressions passed `0/0 KiB -> 0/0 KiB`; exact-commit CI is unavailable. | Retain green exact-commit CI running the same boundedness guard with no orphaned `sit-*` fixture directories. Manual cleanup, a larger disk, alternate temp root or serial execution cannot be acceptance evidence. |
 | `TD-RR-006` | The reset-token clock-boundary defect exposed by PostgreSQL used transaction time for `created_at` and a later process clock for `expires_at`. The product fix now supplies one timestamp and has focused coverage. | Keep the exact-lifetime unit test and run migration/API integration repeatedly on PostgreSQL 16. Release evidence must show no boundary flake and retain the database 30-minute upper-bound constraint. |
+| `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 
 ## Observation log
 
@@ -170,6 +171,15 @@ claimed until every item below has reproducible evidence and is closed.
   retries. GitHub exposes the same proof only through an explicit manual input
   defaulting false. This implements the local retained-stress part of
   `TD-RR-003`; exact-commit CI with that input remains required for closure.
+- 22.08.2026, S4T: the Flutter CI job's three-attempt Gradle wrapper loop and
+  five-/ten-second sleeps were removed. It now runs one
+  `./android/gradlew --version` after the verified basic-cache setup. A committed
+  contract locks exactly one invocation, step order, Gradle 8.12's distribution
+  SHA-256 and URL validation, and rejects attempt loops, sleeps and retries.
+  Eight focused tests, a direct Gradle 8.12/Java 17 invocation and the complete
+  clean implementation-head local metadata gate passed. This implements the
+  local part of `TD-RR-007`; independent green exact-commit CI is still required
+  for formal closure.
 
 ## Closure rule
 
