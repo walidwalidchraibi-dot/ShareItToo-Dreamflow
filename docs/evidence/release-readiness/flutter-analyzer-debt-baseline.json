@@ -3,14 +3,14 @@
   "kind": "flutter-analyzer-debt-baseline",
   "flutterVersion": "3.41.7",
   "dartVersion": "3.11.5",
-  "total": 220,
-  "fingerprintSha256": "3a2fcf242ac029bcf4e3f2b70a92660700f88b68a05e3a3fca7d81b94b5010bd",
+  "total": 214,
+  "fingerprintSha256": "313ea421e579179cfef4d8d1adf2e27ec2706de4d4e80f83c76775dcc5ecaa58",
   "byCode": {
     "deprecated_member_use": 36,
     "unused_element": 56,
     "unused_element_parameter": 24,
     "unused_field": 6,
-    "use_build_context_synchronously": 98
+    "use_build_context_synchronously": 92
   },
   "byPathCode": {
     "lib/screens/booking_detail_screen.dart|unused_element": 12,
@@ -42,7 +42,6 @@
     "lib/widgets/item_details_overlay.dart|unused_element": 13,
     "lib/widgets/item_details_overlay.dart|unused_element_parameter": 2,
     "lib/widgets/item_details_overlay.dart|use_build_context_synchronously": 21,
-    "lib/widgets/listing_options_dialog.dart|use_build_context_synchronously": 3,
-    "lib/widgets/wishlist_selection_sheet.dart|use_build_context_synchronously": 6
+    "lib/widgets/listing_options_dialog.dart|use_build_context_synchronously": 3
   }
 }

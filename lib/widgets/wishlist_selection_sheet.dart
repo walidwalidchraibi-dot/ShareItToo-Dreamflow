@@ -8,7 +8,9 @@ class WishlistSelectionSheet {
   /// Shows the first-time add sheet with the three predefined lists only.
   static Future<String?> showAdd(BuildContext context) async {
     final lists = await DataService.getWishlists();
+    if (!context.mounted) return null;
     final itemsBy = await DataService.getItemsByWishlist();
+    if (!context.mounted) return null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final system = lists.where((e) => e['system'] == true).toList();
     final custom = lists.where((e) => e['system'] != true).toList();
@@ -57,7 +59,9 @@ class WishlistSelectionSheet {
   static Future<String?> showMove(BuildContext context,
       {required String currentListId}) async {
     final lists = await DataService.getWishlists();
+    if (!context.mounted) return null;
     final itemsBy = await DataService.getItemsByWishlist();
+    if (!context.mounted) return null;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final options = lists
         .where((e) => (e['id'] ?? '').toString() != currentListId)
