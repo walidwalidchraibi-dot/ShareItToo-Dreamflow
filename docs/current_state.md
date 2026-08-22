@@ -941,9 +941,10 @@ unmerged. Detailed records:
 
 ## S3V product-safety contact and rapid triage
 
-`S3V_SUPPORT_PRODUCT_SAFETY_CONTACT_TRIAGE` is locally verified as a non-live
-package for Drive scenario `SUP-137`; exact implementation commit and GitHub CI
-evidence are pending. Authenticated users can submit one versioned structured
+`S3V_SUPPORT_PRODUCT_SAFETY_CONTACT_TRIAGE` is locally and CI-verified as a
+non-live package for Drive scenario `SUP-137` at exact implementation commit
+`c71c263f785b5305800706a5129a321a00f76937` and successful GitHub Actions run
+`32558511471`. Authenticated users can submit one versioned structured
 notice for a possibly dangerous product or an accident/injury, acknowledge
 emergency-first safety guidance and receive an opaque `SIT-P-*` receipt plus a
 candidate triage checkpoint no later than 60 minutes after receipt. Migration
@@ -964,7 +965,11 @@ PostgreSQL skip, the isolated PostgreSQL 16.15 integration through migration
 accepted 220-issue analyzer baseline, Web build/smoke and Android debug APK.
 P0B provider and invited-pilot gates remain HOLD/NO-GO. Professional legal
 review, real registrations, named staffing, production, payment, Store, signed
-candidate and every live path remain closed. Detailed records:
+candidate and every live path remain closed. CI passed all 489 Backend tests,
+the complete Flutter regression and PR merge snapshot
+`bdfea22d35d2cf6b39486318563d8fbd0f2ddaae`; signed-candidate construction
+and API-image publication remained skipped, and Draft PR #7 remained open,
+mergeable and unmerged. Detailed records:
 `docs/architecture/s3v-support-product-safety-contact-triage-2026-08-22.md`,
 `docs/compliance/s3v-support-product-safety-contact-triage-2026-08-22.md` and
 `docs/decisions/ADR-059-product-safety-contact-and-external-action-separation.md`.

@@ -1,7 +1,8 @@
 # S3V product-safety contact and rapid triage - technical compliance record
 
-Status: locally verified non-live package on 22.08.2026. Exact implementation
-commit and GitHub CI evidence are pending. This record is technical evidence,
+Status: locally and CI-verified non-live package on 22.08.2026 at exact
+implementation commit `c71c263f785b5305800706a5129a321a00f76937` and
+successful GitHub Actions run `32558511471`. This record is technical evidence,
 not legal advice, professional approval, a product-safety determination or an
 external notification authorization.
 
@@ -71,6 +72,14 @@ owner gates. This work made no Play Console or Store mutation.
   automatic listing action false and public release false.
 - P0B provider and invited-pilot gates remain explicitly HOLD/NO-GO after their
   source hashes were truthfully refreshed.
+- GitHub regression `32558511471` passed for exact implementation head
+  `c71c263f785b5305800706a5129a321a00f76937` and PR merge snapshot
+  `bdfea22d35d2cf6b39486318563d8fbd0f2ddaae`: 489 Backend/PostgreSQL
+  tests passed without skips, the complete Flutter regression passed 363 tests
+  with one documented skip, and dependency/history audit, Compose, the
+  commit-labelled API image, Web smoke/build and Android debug build passed.
+  Signed-candidate construction and API-image publication were skipped; Draft
+  PR #7 remained open, mergeable and unmerged.
 
 No production, VPS, Cloud, DNS, public pilot, external notification, payment,
 payout, Store save/submission, signed artifact, deployment, PR merge or live

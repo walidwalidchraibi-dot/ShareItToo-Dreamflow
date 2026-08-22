@@ -481,9 +481,10 @@ work continues next with `SUP-137` after the evidence-only head is green.
 
 ## S3V product-safety contact and rapid triage
 
-`S3V_SUPPORT_PRODUCT_SAFETY_CONTACT_TRIAGE` is locally verified for Drive
-scenario `SUP-137`; exact implementation commit and GitHub CI evidence are
-pending. The app and Backend now accept one versioned structured
+`S3V_SUPPORT_PRODUCT_SAFETY_CONTACT_TRIAGE` is locally and CI-verified for
+Drive scenario `SUP-137` at exact implementation commit
+`c71c263f785b5305800706a5129a321a00f76937` and successful GitHub Actions run
+`32558511471`. The app and Backend now accept one versioned structured
 product-safety notice on the exact `trust_safety/dangerous_item_or_injury`
 route, require emergency-first safety acknowledgement and return an opaque
 `SIT-P-*` receipt with a database-enforced candidate triage checkpoint no later
@@ -505,4 +506,8 @@ tests with one documented skip, the separate Google-only test, Web smoke/build
 and Android debug APK. P0B PSP and invited-pilot gates remain HOLD/NO-GO after
 source-hash refresh only. Professional legal review, real registrations,
 staffing, external delivery, production, payment, Store, signed candidate and
-all live paths remain closed.
+all live paths remain closed. CI passed 489 Backend/PostgreSQL tests without
+skips and the complete Flutter regression for PR merge snapshot
+`bdfea22d35d2cf6b39486318563d8fbd0f2ddaae`; signed-candidate construction
+and API-image publication remained skipped, and Draft PR #7 stayed open,
+mergeable and unmerged.

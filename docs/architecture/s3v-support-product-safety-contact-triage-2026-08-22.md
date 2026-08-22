@@ -1,7 +1,8 @@
 # S3V product-safety contact and rapid triage - architecture
 
-Status: locally verified non-live package on 22.08.2026. Exact implementation
-commit and GitHub CI evidence are pending. No authority report, Safety Gate
+Status: locally and CI-verified non-live package on 22.08.2026 at exact
+implementation commit `c71c263f785b5305800706a5129a321a00f76937` and
+successful GitHub Actions run `32558511471`. No authority report, Safety Gate
 submission, listing action, production operation, Store action or real-money
 flow is enabled.
 
@@ -117,6 +118,15 @@ no period, purge, erasure execution or Legal Hold outcome was invented.
 - P0B PSP and invited-pilot source bindings were refreshed only for changed
   repository evidence. Both gates remain HOLD/NO-GO: no provider contract,
   sandbox pass, participant activation or real-money path was claimed.
+- GitHub regression `32558511471` is green for exact implementation head
+  `c71c263f785b5305800706a5129a321a00f76937`; Actions tested PR merge
+  snapshot `bdfea22d35d2cf6b39486318563d8fbd0f2ddaae`. Backend passed all
+  489 tests without skips on PostgreSQL 16, dependency/history audit, Compose
+  validation and the commit-labelled API image build. Flutter passed the
+  accepted 220-issue analyzer baseline, all 363 tests with one documented
+  skip, the separate Google-only test, Web smoke/build and Android debug APK.
+  Signed-candidate construction and API-image publication remained skipped;
+  Draft PR #7 remained open, mergeable and unmerged.
 
 Professional legal review, real operator/contact facts, competent-authority
 and Safety Gate registrations, named staffing, an approved internal process,
