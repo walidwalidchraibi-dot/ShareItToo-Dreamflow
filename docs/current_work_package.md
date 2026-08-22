@@ -1567,3 +1567,23 @@ This package clears the owner-detail context bucket but does not close
 still require reviewed reductions to zero plus exact-commit CI. P0B remains
 `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
 signing, merge or public activation is enabled.
+
+## S4AQ booking-detail primary async-context ratchet
+
+`S4AQ_BOOKING_DETAIL_PRIMARY_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `1cb7489`. Time management, listing lookup,
+overflow selection and completed-renter review now prove their owning State and
+exact callback contexts after asynchronous work. Appointment, listing-match,
+menu destinations, review, Payment and `needsReview` behavior are unchanged.
+
+The exact debt snapshot moves `165 -> 155`, and only the intended
+`use_build_context_synchronously` booking-detail bucket changes from `22 -> 12`.
+Thirty-nine focused source/analyzer/privacy contracts, 96 focused Flutter
+tests, the privacy and retention validators and the complete clean local
+metadata gate pass with the new exact fingerprint. The privacy inventory is
+rebound without changing any disclosure or release state.
+
+This package does not close `TD-RR-010`; the remaining 12 booking-detail and 21
+item-overlay context findings still require reviewed reductions to zero plus
+exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
+Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.

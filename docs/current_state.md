@@ -2103,3 +2103,24 @@ The owner-detail context bucket is cleared, but `TD-RR-010` remains open for the
 booking-detail and item-overlay context findings, further reviewed ratchets to
 zero and exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary
 changed.
+
+## S4AQ booking-detail primary async-context ratchet
+
+`S4AQ_BOOKING_DETAIL_PRIMARY_ASYNC_CONTEXT_RATCHET` is locally verified at
+commit `1cb7489`. Time management, listing lookup, overflow selection and
+completed-renter review now prove their owning State and exact callback
+contexts after asynchronous work. Appointment, listing-match, menu
+destinations, review, Payment and `needsReview` behavior are unchanged.
+
+The exact analyzer snapshot ratcheted `165 -> 155`, with
+`use_build_context_synchronously` `43 -> 33` and the booking-detail context
+bucket `22 -> 12`; all other buckets remained identical. Thirty-nine focused
+source/analyzer/privacy contracts, 96 focused Flutter tests, the privacy and
+retention validators and the complete clean local metadata gate passed at
+`1cb74899cc2c051c749acd85a8b40d9dc414b47e` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build. Privacy remains honestly draft and fail-closed.
+
+`TD-RR-010` remains open for the final 12 booking-detail and 21 item-overlay
+context findings, further reviewed ratchets to zero and exact-commit CI. P0B
+remains `HOLD` / `NO-GO`, with no live boundary changed.
