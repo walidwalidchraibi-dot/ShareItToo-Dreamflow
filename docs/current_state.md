@@ -1830,3 +1830,23 @@ direct Android debug build. SIT temp roots remained zero.
 `TD-RR-011` remains open for exact GitHub cold-cache-write and restored-cache
 proof without retry or pass-on-rerun. P0B remains `HOLD` / `NO-GO`, with no
 live boundary changed.
+
+## S4AD listing-options async-context ratchet
+
+`S4AD_LISTING_OPTIONS_ASYNC_CONTEXT_RATCHET` is locally verified at
+implementation commit `1299518`. Add, move and removal callbacks now stop after
+each relevant selector, lookup or persistence boundary when their exact caller
+context has been disposed. Completed persistence is retained without later
+callback, navigator or toast access.
+
+The exact analyzer snapshot ratcheted `207 -> 204`, with
+`use_build_context_synchronously` `85 -> 82` and the listing-options bucket
+`3 -> 0`; all other buckets remained identical. Ten combined Wishlist
+lifecycle contracts, five related Flutter tests and the complete clean
+implementation-head local metadata gate passed at
+`1299518107e51b6079bee17624e711c3e794ca0b` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

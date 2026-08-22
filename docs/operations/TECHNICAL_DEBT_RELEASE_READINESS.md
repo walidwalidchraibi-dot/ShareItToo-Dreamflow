@@ -18,7 +18,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 | `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
-| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4AB guard Wishlist selector, popup navigator, gallery callback and item-card state lifetimes, ratcheting the backlog `220 -> 214 -> 212 -> 210 -> 207`; `use_build_context_synchronously` decreases `98 -> 92 -> 90 -> 88 -> 85`, most recently at `84dcc07`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4AD guard Wishlist selector, popup navigator, gallery callback, item-card state and listing-options callback lifetimes, ratcheting the backlog `220 -> 214 -> 212 -> 210 -> 207 -> 204`; `use_build_context_synchronously` decreases `98 -> 92 -> 90 -> 88 -> 85 -> 82`, most recently at `1299518`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
 | `TD-RR-011` | Exact run `32592388940` restored/saved zero Gradle entries, hit Maven `403` on a cold PR build and exposed Flutter CLI's automatic one-time APK retry. S4AC enables only the PR-scoped Basic Cache write and replaces that path with one direct wrapper `assembleDebug`; focused and complete local gates pass at `1d9816e`. | Retain a green exact-commit GitHub run that writes the cold PR-scoped cache and a later run that restores it, each with exactly one direct Android debug build. A rerun after failure, sleep, retry loop, alternate mirror, manual cache injection or paid provider is not closure evidence. |
 
 ## Observation log
@@ -274,6 +274,15 @@ claimed until every item below has reproducible evidence and is closed.
   contracts, a direct 448-task build and the complete clean implementation-head
   local gate passed at `1d9816e41304fd4f3d5ba3b95a8a14f3200312ee`.
   `TD-RR-011` remains open for cold-write and restored-cache GitHub evidence.
+- 22.08.2026, S4AD: listing-option add, move and removal callbacks now check
+  their exact caller context after every relevant selector, lookup and
+  persistence boundary before later callback, navigator or toast access. Ten
+  combined Wishlist lifecycle contracts, five Gemerkt/Mietkorb tests and the
+  complete clean implementation-head local metadata gate passed at
+  `1299518107e51b6079bee17624e711c3e794ca0b`. The analyzer ratcheted exactly
+  `207 -> 204`, `use_build_context_synchronously` `85 -> 82`, and the
+  listing-options path bucket `3 -> 0`; every other bucket stayed unchanged.
+  No delay, retry or lint suppression was introduced. `TD-RR-010` remains open.
 
 ## Closure rule
 

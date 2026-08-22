@@ -1301,3 +1301,20 @@ restore without rerun-after-failure, sleep, retry or alternate mirror.
 `TD-RR-011` remains open. P0B remains `HOLD` / `NO-GO`; no production,
 Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
 is enabled.
+
+## S4AD listing-options async-context ratchet
+
+`S4AD_LISTING_OPTIONS_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `1299518`. Listing-option add, move and
+removal callbacks now recheck their exact caller lifecycle after every relevant
+asynchronous boundary before later UI or callback access.
+
+The exact debt snapshot moves `207 -> 204`, and only the intended
+`use_build_context_synchronously` listing-options bucket changes. Ten combined
+Wishlist lifecycle contracts, five related Flutter tests and the complete clean
+implementation gate pass with the new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
