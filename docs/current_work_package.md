@@ -1195,3 +1195,23 @@ uncorrelated events and value-bearing verification output are not accepted.
 observation in a dedicated QA profile. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4X exact Flutter analyzer debt ratchet
+
+`S4X_EXACT_FLUTTER_ANALYZER_DEBT_RATCHET` implements the containment stage of
+`TD-RR-010` at commit `5a1aba9`. The former `<= 220` analyzer ceiling is gone.
+The repository now requires the exact total and normalized diagnostic
+fingerprint, so neither a same-count replacement nor a reduction without an
+immediate committed ratchet can pass.
+
+The seven-test contract covers exact success, old-debt return, replacement
+drift and parse/summary disagreement. The real 220-diagnostic output matched
+fingerprint `3a2fcf242ac029bcf4e3f2b70a92660700f88b68a05e3a3fca7d81b94b5010bd`,
+and the complete clean implementation-head local metadata gate passed.
+
+The containment snapshot is not release closure. Every bounded source cleanup
+must strictly lower and update it in the same reviewed commit until zero;
+raising it, lint suppression or non-fatal analyzer configuration is forbidden.
+`TD-RR-010` remains open for those ratchets and exact-commit CI. P0B remains
+`HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
+signing, merge or public activation is enabled.

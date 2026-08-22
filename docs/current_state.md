@@ -1717,3 +1717,24 @@ seed or local QA/user-state change occurred.
 The automated local portion of `TD-RR-009` is implemented. Formal closure still
 requires exact-commit CI plus one controlled observation in a dedicated local
 QA browser profile. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4X exact Flutter analyzer debt ratchet
+
+`S4X_EXACT_FLUTTER_ANALYZER_DEBT_RATCHET` is locally verified at implementation
+commit `5a1aba9`. The complete gate no longer accepts any analyzer result at or
+below a loose 220 ceiling. A committed snapshot locks the exact total and the
+sorted SHA-256 of every normalized severity, path, code and message while
+retaining duplicate occurrences.
+
+The current fingerprint is
+`3a2fcf242ac029bcf4e3f2b70a92660700f88b68a05e3a3fca7d81b94b5010bd`.
+Seven focused tests prove exact acceptance and reject an unratcheted reduction,
+a same-count replacement and summary/parser disagreement. The actual analyzer
+matched all 220 records. The complete clean implementation-head local metadata
+gate also passed with 379 Flutter tests plus one documented skip, Google-only,
+Web build/smoke and Android debug; SIT temp roots remained zero.
+
+This contains but does not close `TD-RR-010`. The snapshot must ratchet downward
+only with reviewed source fixes and reach zero before release readiness, then
+pass exact-commit CI. It cannot be raised or refreshed merely to accept drift.
+P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
