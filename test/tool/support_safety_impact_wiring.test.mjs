@@ -8,8 +8,9 @@ const root = path.resolve(import.meta.dirname, '../..');
 const read = (file) => fs.readFile(path.join(root, file), 'utf8');
 
 test('SUP-106 through SUP-112 safety review is permanently non-live and proportionate', async () => {
-  const [app, workflow, decision, messageWorkflow, foundation, migration, rollback] = await Promise.all([
+  const [app, rateLimitPolicy, workflow, decision, messageWorkflow, foundation, migration, rollback] = await Promise.all([
     read('backend/src/app.js'),
+    read('backend/src/rate_limit_policy.js'),
     read('backend/src/support_safety_impact_workflow.js'),
     read('backend/src/support_decision_workflow.js'),
     read('backend/src/message_workflow.js'),
@@ -18,9 +19,22 @@ test('SUP-106 through SUP-112 safety review is permanently non-live and proporti
     read('backend/sql/migrations/052_support_safety_impact_review.down.sql'),
   ]);
 
-  assert.match(app, /const supportIntakeLimiter = rateLimit\([^;]+limit: 10/u);
-  assert.match(app, /const supportSafetyIntakeLimiter = rateLimit\([^;]+limit: 30/u);
-  assert.match(app, /isProtectedSupportSafetyIntake\(req\.body\)/u);
+  assert.match(
+    rateLimitPolicy,
+    /supportIntake: Object\.freeze\(\{ windowMs: 15 \* 60_000, limit: 10 \}\)/u,
+  );
+  assert.match(
+    rateLimitPolicy,
+    /supportSafetyIntake: Object\.freeze\(\{ windowMs: 15 \* 60_000, limit: 30 \}\)/u,
+  );
+  assert.match(
+    rateLimitPolicy,
+    /skip: isProtectedSafetyRateLimitRequest/u,
+  );
+  assert.match(
+    rateLimitPolicy,
+    /isProtectedSupportSafetyIntake\(req\.body\)[\s\S]*supportSafetyIntakeLimiter/u,
+  );
   assert.match(app, /\/v1\/admin\/support\/cases\/:id\/safety-impact-reviews/u);
   assert.match(app, /requireAdminRole, requireStaffElevation, supportSafetyImpactLimiter/u);
 
