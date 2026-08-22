@@ -59,6 +59,7 @@ test('Drive template catalog is hash-bound, complete and exposes safe metadata o
   assert.equal(templates.find((entry) => entry.id === 'T-001').genericDraftAvailable, true);
   assert.equal(templates.find((entry) => entry.id === 'T-021').moneySnapshotRequired, true);
   assert.equal(templates.find((entry) => entry.id === 'T-043').genericDraftAvailable, false);
+  assert.equal(templates.find((entry) => entry.id === 'T-035').genericDraftAvailable, false);
   assert.equal('body' in templates[0], false);
 });
 
@@ -167,6 +168,69 @@ test('sensitive data and unsafe decision claims are blocked in variables', () =>
       /support_message_(?:sensitive_content|policy_claim)_blocked/u,
     );
   }
+});
+
+test('support cannot request passwords PINs or recovery codes in free variables', () => {
+  for (const confirmed_fact of [
+    'Bitte sende dein Passwort im Supportchat.',
+    'Wir benötigen deine PIN zur Prüfung.',
+    'Übermittle uns den Wiederherstellungscode.',
+  ]) {
+    assert.throws(
+      () => normalizeSupportMessageDraft({
+        templateId: 'T-001',
+        variables: intakeVariables({ confirmed_fact }),
+      }, activeSupportCaseContext),
+      /support_message_credential_request_blocked/u,
+    );
+  }
+  assert.doesNotThrow(() => normalizeSupportMessageDraft({
+    templateId: 'T-001',
+    variables: intakeVariables({
+      confirmed_fact: 'Bitte sende keine Passwörter, PINs oder Wiederherstellungscodes.',
+    }),
+  }, activeSupportCaseContext));
+});
+
+test('T-035 requires server-bound account recovery guidance', () => {
+  const accountCase = {
+    ...supportCase,
+    case_type: 'trust_safety',
+    case_subtype: 'account_takeover',
+    priority: 'p0',
+    severity: 'critical',
+    safety_flag: true,
+    account_takeover_flag: true,
+    approval_level: 'red_explicit_decision',
+    reporter_user_id: 'user-1',
+  };
+  assert.throws(
+    () => normalizeSupportMessageDraft({
+      templateId: 'T-035',
+      variables: {
+        first_name: 'Walid',
+        secure_recovery_channel: 'E-Mail',
+        temporary_account_effect: 'Freigabe erteilt',
+      },
+    }, { supportCase: accountCase, now: activeSupportCaseContext.now }),
+    /support_account_recovery_workflow_required/u,
+  );
+  const result = normalizeSupportMessageDraft({
+    templateId: 'T-035',
+    variables: {},
+  }, {
+    supportCase: accountCase,
+    now: activeSupportCaseContext.now,
+    accountRecoveryContext: {
+      recipientUserId: 'user-1',
+      activeAuthenticatedSession: true,
+      passwordReauthenticationAvailable: true,
+    },
+  });
+  assert.equal(result.sendStatus, 'pending_approval');
+  assert.equal(result.structuredVariables.compromised_channel_used, false);
+  assert.equal(result.structuredVariables.password_or_pin_requested, false);
+  assert.match(result.renderedContent, /E-Mail-Kanal allein wird nicht akzeptiert/u);
 });
 
 test('yellow requires review while red and money templates stay on dedicated paths', () => {

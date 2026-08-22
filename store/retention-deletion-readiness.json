@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "e69500273aa35f4ba539f7e52c51b7b3ade306140c0e1709d08dd0cef56391d7"
+      "sha256": "9498a0670746a34fd5538166a49efb5bc7bdcb5f301c185bfbe03552ae7309de"
     },
     {
       "path": "backend/src/server.js",
@@ -124,12 +124,16 @@
       "sha256": "bb33661e09f7a7c96e6510eb1115cf11b9142660961ae703a0fb207674c9ba5b"
     },
     {
+      "path": "backend/src/support_account_recovery_domain.js",
+      "sha256": "38ef0839e15b0781f6855ba5d0669d48cc959ead34f8409f600e4be96a5a2d82"
+    },
+    {
       "path": "backend/src/support_message_domain.js",
-      "sha256": "cd280ce7d3c10eae6610f4c7bc9d055766675bbcd3d15e671051eb3d29f4ff3a"
+      "sha256": "46a8dc4ad1f5cce86a68f50cd7628371ecdff3994fd48081945522e306897f36"
     },
     {
       "path": "backend/src/support_message_workflow.js",
-      "sha256": "faf7989e26d4ff8baf2cbfcb62f70d36c3e23bdc71f83a0c94e55c2fe47868e1"
+      "sha256": "20bc7a652ace8636e46444efe98b54f5bc909cefdf5ac5ca0d7905f83f9a3db2"
     },
     {
       "path": "backend/src/support_progress_update_domain.js",
@@ -486,6 +490,14 @@
     {
       "path": "backend/sql/migrations/055_support_progress_updates.down.sql",
       "sha256": "c032e2b67aa61841776114ab31cca73f1daaf51a9848d068cef55256668d52c3"
+    },
+    {
+      "path": "backend/sql/migrations/056_support_account_recovery_guard.up.sql",
+      "sha256": "a9227067beba1fcd712427723b0153bbb1c090dd52c51ed63e0a4bd699052e58"
+    },
+    {
+      "path": "backend/sql/migrations/056_support_account_recovery_guard.down.sql",
+      "sha256": "3b5683bdc7fa1dfed4ac2dc54b19b6eaa2d2eca84d4e60c7c2a2744c09955b5f"
     },
     {
       "path": "backend/ops/backup.sh",

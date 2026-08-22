@@ -1,6 +1,9 @@
 import crypto from 'node:crypto';
 
 import { SupportCaseError } from './support_case_domain.js';
+import {
+  assertSupportAccountRecoveryPublication,
+} from './support_account_recovery_domain.js';
 import { enqueueSupportCaseUpdateNotification } from './support_notifications.js';
 import {
   assertSupportMessageDeadlineCurrent,
@@ -130,6 +133,7 @@ export async function createSupportMessage(client, {
   idempotencyKey,
   now = new Date(),
   progressUpdateDraft = false,
+  accountRecoveryDraft = false,
   nextUpdateAtBinding = null,
 }) {
   assertActor(actor, ['support', 'admin'], 'support_message_create_forbidden');
@@ -177,11 +181,30 @@ export async function createSupportMessage(client, {
   if (progressTemplate !== (progressUpdateDraft === true)) {
     throw new SupportCaseError(409, 'support_progress_update_workflow_required');
   }
+  const accountRecoveryTemplate = String(raw.templateId ?? '').trim().toUpperCase()
+    === 'T-035';
+  if (accountRecoveryTemplate !== (accountRecoveryDraft === true)) {
+    throw new SupportCaseError(409, 'support_account_recovery_workflow_required');
+  }
   const activeRecipient = await client.query(
-    `SELECT id FROM users
-      WHERE id = $1 AND account_status = 'active' AND deactivated_at IS NULL
+    `SELECT recipient.id,
+            recipient.password_hash IS NOT NULL
+              AS password_reauthentication_available,
+            EXISTS (
+              SELECT 1
+                FROM auth_sessions AS session
+                JOIN refresh_tokens AS token ON token.session_id = session.id
+               WHERE session.user_id = recipient.id
+                 AND session.revoked_at IS NULL
+                 AND token.revoked_at IS NULL
+                 AND token.expires_at > $2
+            ) AS active_authenticated_session
+       FROM users AS recipient
+      WHERE recipient.id = $1
+        AND recipient.account_status = 'active'
+        AND recipient.deactivated_at IS NULL
       FOR KEY SHARE`,
-    [recipientUserId],
+    [recipientUserId, now],
   );
   if (!activeRecipient.rowCount) {
     throw new SupportCaseError(409, 'support_message_recipient_account_closed');
@@ -192,6 +215,15 @@ export async function createSupportMessage(client, {
   const draft = normalizeSupportMessageDraft(raw, {
     supportCase: draftCase,
     now,
+    accountRecoveryContext: accountRecoveryTemplate
+      ? {
+        recipientUserId,
+        activeAuthenticatedSession:
+          activeRecipient.rows[0].active_authenticated_session === true,
+        passwordReauthenticationAvailable:
+          activeRecipient.rows[0].password_reauthentication_available === true,
+      }
+      : null,
   });
   if (draft.correctsMessageId) {
     const correctionTarget = await client.query(
@@ -460,14 +492,33 @@ export async function publishSupportMessage(client, {
     `SELECT message.*, support_case.current_owner_id AS case_current_owner_id,
             support_case.operating_mode AS case_operating_mode,
             support_case.next_update_at AS case_next_update_at,
+            support_case.case_type AS case_type,
+            support_case.case_subtype AS case_subtype,
+            support_case.priority AS case_priority,
+            support_case.severity AS case_severity,
+            support_case.safety_flag AS case_safety_flag,
+            support_case.account_takeover_flag AS case_account_takeover_flag,
+            support_case.approval_level AS case_approval_level,
+            support_case.reporter_user_id AS case_reporter_user_id,
             recipient.account_status AS recipient_account_status,
-            recipient.deactivated_at AS recipient_deactivated_at
+            recipient.deactivated_at AS recipient_deactivated_at,
+            recipient.password_hash IS NOT NULL
+              AS recipient_password_reauthentication_available,
+            EXISTS (
+              SELECT 1
+                FROM auth_sessions AS session
+                JOIN refresh_tokens AS token ON token.session_id = session.id
+               WHERE session.user_id = recipient.id
+                 AND session.revoked_at IS NULL
+                 AND token.revoked_at IS NULL
+                 AND token.expires_at > $3
+            ) AS recipient_active_authenticated_session
        FROM support_messages AS message
        JOIN support_cases AS support_case ON support_case.id = message.case_id
        JOIN users AS recipient ON recipient.id = message.recipient_user_id
       WHERE message.id::text = $1 AND support_case.id::text = $2
       FOR UPDATE OF message, recipient`,
-    [messageId, caseId],
+    [messageId, caseId, now],
   );
   if (!locked.rowCount) throw new SupportCaseError(404, 'support_message_not_found');
   const row = locked.rows[0];
@@ -503,6 +554,25 @@ export async function publishSupportMessage(client, {
     row,
     { next_update_at: row.case_next_update_at },
   );
+  assertSupportAccountRecoveryPublication({
+    message: row,
+    supportCase: {
+      case_type: row.case_type,
+      case_subtype: row.case_subtype,
+      priority: row.case_priority,
+      severity: row.case_severity,
+      safety_flag: row.case_safety_flag,
+      account_takeover_flag: row.case_account_takeover_flag,
+      approval_level: row.case_approval_level,
+      reporter_user_id: row.case_reporter_user_id,
+    },
+    recipientState: {
+      activeAuthenticatedSession:
+        row.recipient_active_authenticated_session === true,
+      passwordReauthenticationAvailable:
+        row.recipient_password_reauthentication_available === true,
+    },
+  });
   const greenDraft = row.approval_level === 'green_automatic' && row.send_status === 'draft';
   const reviewedHuman = isHumanReviewableMessage(row)
     && row.send_status === 'approved'

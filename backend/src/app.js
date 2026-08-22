@@ -4931,6 +4931,22 @@ export function createApp({
     res.set('Cache-Control', 'private, no-store').json(result);
   }));
 
+  app.post('/v1/admin/support/cases/:id/account-recovery-guidance', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createSupportMessage(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      raw: {
+        templateId: 'T-035',
+        recipientUserId: req.body?.recipientUserId,
+        variables: {},
+      },
+      idempotencyKey: req.get('Idempotency-Key'),
+      accountRecoveryDraft: true,
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
   app.post('/v1/admin/support/cases/:id/messages', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => createSupportMessage(client, {
       actor: req.actor,

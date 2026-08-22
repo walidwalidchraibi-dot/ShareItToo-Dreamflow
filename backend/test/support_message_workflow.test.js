@@ -6,6 +6,9 @@ import {
   publishSupportMessage,
   reviewSupportMessage,
 } from '../src/support_message_workflow.js';
+import {
+  normalizeSupportAccountRecoveryGuidance,
+} from '../src/support_account_recovery_domain.js';
 
 const now = new Date('2026-08-21T10:00:00.000Z');
 const caseId = '11111111-1111-4111-8111-111111111111';
@@ -282,6 +285,104 @@ test('progress templates cannot bypass the dedicated proposal workflow', async (
     }),
     /support_progress_update_workflow_required/u,
   );
+  client.done();
+});
+
+test('account recovery guidance is server-bound and cannot use the generic message route', async () => {
+  const accountRecoveryCase = caseRow({
+    case_type: 'trust_safety',
+    case_subtype: 'account_takeover',
+    priority: 'p0',
+    severity: 'critical',
+    safety_flag: true,
+    account_takeover_flag: true,
+    approval_level: 'red_explicit_decision',
+  });
+  const bypassClient = new ScriptedClient([
+    { match: /message\.idempotency_key = \$1/u, result: noRows },
+    { match: /FROM support_cases WHERE id::text = \$1 FOR UPDATE/u,
+      result: { rowCount: 1, rows: [accountRecoveryCase] } },
+  ]);
+  await assert.rejects(
+    createSupportMessage(bypassClient, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      raw: {
+        templateId: 'T-035',
+        recipientUserId: 'user-1',
+        variables: {
+          first_name: 'Walid',
+          secure_recovery_channel: 'E-Mail',
+          temporary_account_effect: 'Wiederherstellung freigegeben',
+        },
+      },
+      idempotencyKey: 'account-recovery-bypass',
+      now,
+    }),
+    /support_account_recovery_workflow_required/u,
+  );
+  bypassClient.done();
+
+  const client = new ScriptedClient([
+    { match: /message\.idempotency_key = \$1/u, result: noRows },
+    { match: /FROM support_cases WHERE id::text = \$1 FOR UPDATE/u,
+      result: { rowCount: 1, rows: [accountRecoveryCase] } },
+    {
+      match: /password_reauthentication_available[\s\S]*active_authenticated_session/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: 'user-1',
+          password_reauthentication_available: true,
+          active_authenticated_session: true,
+        }],
+      },
+    },
+    { match: /SELECT \* FROM support_messages WHERE idempotency_key/u, result: noRows },
+    {
+      match: /INSERT INTO support_messages/u,
+      check: ({ params }) => {
+        assert.equal(params[5], 'T-035');
+        assert.equal(params[11], 'yellow_human_review');
+        assert.equal(params[12], 'pending_approval');
+        const variables = JSON.parse(params[10]);
+        assert.equal(variables.compromised_channel_used, false);
+        assert.equal(variables.password_or_pin_requested, false);
+        assert.equal(variables.recovery_action_executed, false);
+        assert.match(params[8], /Konto > Sicherheit/u);
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [messageRow({
+          id: params[0],
+          sender_id: params[2],
+          recipient_user_id: params[3],
+          message_title: params[4],
+          template_id: params[5],
+          rendered_content: params[8],
+          rendered_content_sha256: params[9],
+          structured_variables: JSON.parse(params[10]),
+          approval_level: params[11],
+          send_status: params[12],
+        })],
+      }),
+    },
+    { match: /INSERT INTO support_case_events/u, result: noRows },
+    { match: /INSERT INTO audit_log/u, result: noRows },
+  ]);
+  const result = await createSupportMessage(client, {
+    actor: { id: 'support-1', role: 'support' },
+    caseId,
+    raw: {
+      templateId: 'T-035',
+      recipientUserId: 'user-1',
+      variables: {},
+    },
+    idempotencyKey: 'account-recovery-guidance',
+    accountRecoveryDraft: true,
+    now,
+  });
+  assert.equal(result.message.sendStatus, 'pending_approval');
   client.done();
 });
 
@@ -694,6 +795,75 @@ test('reviewed yellow message publishes only into the authenticated in-app recor
   });
   assert.equal(result.message.sendStatus, 'sent');
   assert.equal(result.message.externalMessageSent, false);
+  client.done();
+});
+
+test('reviewed account recovery guidance rechecks the alternate authenticated path', async () => {
+  const accountCase = {
+    case_type: 'trust_safety',
+    case_subtype: 'account_takeover',
+    priority: 'p0',
+    severity: 'critical',
+    safety_flag: true,
+    account_takeover_flag: true,
+    approval_level: 'red_explicit_decision',
+    reporter_user_id: 'user-1',
+  };
+  const guidance = normalizeSupportAccountRecoveryGuidance({
+    supportCase: accountCase,
+    recipientUserId: 'user-1',
+    activeAuthenticatedSession: true,
+    passwordReauthenticationAvailable: true,
+  });
+  const approved = messageRow({
+    template_id: 'T-035',
+    structured_variables: { ...guidance.bindings, ...guidance.metadata },
+    approved_by: 'admin-1',
+    approved_at: now,
+    approval_payload_sha256: 'a'.repeat(64),
+    reviewed_by: 'admin-1',
+    reviewed_at: now,
+    review_outcome: 'approved',
+    send_status: 'approved',
+    lock_version: 2,
+  });
+  const client = new ScriptedClient([
+    { match: /FROM support_case_events AS event/u, result: noRows },
+    {
+      match: /recipient_active_authenticated_session/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          ...approved,
+          case_current_owner_id: 'support-1',
+          case_operating_mode: 'simulation',
+          case_next_update_at: new Date('2026-08-22T10:00:00.000Z'),
+          case_type: accountCase.case_type,
+          case_subtype: accountCase.case_subtype,
+          case_priority: accountCase.priority,
+          case_severity: accountCase.severity,
+          case_safety_flag: accountCase.safety_flag,
+          case_account_takeover_flag: accountCase.account_takeover_flag,
+          case_approval_level: accountCase.approval_level,
+          case_reporter_user_id: accountCase.reporter_user_id,
+          recipient_active_authenticated_session: false,
+          recipient_password_reauthentication_available: true,
+        }],
+      },
+    },
+    { match: /SELECT 1 FROM support_case_events/u, result: noRows },
+  ]);
+  await assert.rejects(
+    publishSupportMessage(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      messageId,
+      raw: { expectedVersion: 2, expectedPayloadSha256: 'a'.repeat(64) },
+      idempotencyKey: 'account-recovery-stale-publication',
+      now,
+    }),
+    /support_account_recovery_alternate_verification_unavailable/u,
+  );
   client.done();
 });
 

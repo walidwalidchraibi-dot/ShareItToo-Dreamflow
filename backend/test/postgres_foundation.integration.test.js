@@ -140,6 +140,7 @@ if (!databaseUrl) {
         '053_support_duplicate_case_linking.up.sql',
         '054_support_feedback_priority.up.sql',
         '055_support_progress_updates.up.sql',
+        '056_support_account_recovery_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -970,6 +971,15 @@ if (!databaseUrl) {
            ($7, 'admin-reviewer', 'Independent reviewer test'),
            ($8, 'support', 'Support test')`,
         Object.values(sessionIds),
+      );
+      await setupPool.query(
+        `INSERT INTO refresh_tokens (
+           user_id, token_hash, expires_at, user_agent, session_id, family_id
+         ) VALUES (
+           'renter-a', $1, now() + interval '1 day',
+           'S4F account recovery test', $2, $2
+         )`,
+        ['b'.repeat(64), sessionIds['renter-a']],
       );
       const databaseSupportElevation = await setupPool.query(
         `INSERT INTO staff_elevations (
@@ -5194,7 +5204,186 @@ if (!databaseUrl) {
       assert.equal(supportTemplates.length, 55);
       assert.equal(supportTemplates.find((entry) => entry.id === 'T-001').genericDraftAvailable, true);
       assert.equal(supportTemplates.find((entry) => entry.id === 'T-043').genericDraftAvailable, false);
+      assert.equal(supportTemplates.find((entry) => entry.id === 'T-035').genericDraftAvailable, false);
       assert.ok(supportTemplates.every((entry) => !Object.hasOwn(entry, 'body')));
+
+      const accountRecoveryRequestIp = { 'X-Forwarded-For': '203.0.113.91' };
+      const accountTakeoverIntakeResponse = await fetch(
+        `${baseUrl}/v1/support/cases`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            ...accountRecoveryRequestIp,
+            'Idempotency-Key': 's4f-account-takeover-intake',
+          },
+          body: JSON.stringify({
+            caseType: 'trust_safety',
+            caseSubType: 'account_takeover',
+            summary: 'Moegliche Kontouebernahme sicher und getrennt pruefen.',
+            accountTakeover: true,
+            immediateDanger: false,
+            safetyTriage: {
+              version: 'sit_support_safety_triage_v1',
+              packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+              guidanceVersion: 'T-003@1.0.0',
+              immediateDanger: false,
+              guidanceShown: false,
+            },
+            issueScope: {
+              version: 'sit_support_single_issue_scope_v1',
+              singleIssueConfirmed: true,
+              separationGuidanceShown: false,
+            },
+          }),
+        },
+      );
+      assert.equal(accountTakeoverIntakeResponse.status, 201);
+      const accountTakeoverIntake = await accountTakeoverIntakeResponse.json();
+      assert.equal(accountTakeoverIntake.supportCase.priority, 'p0');
+      await setupPool.query(
+        `UPDATE support_cases
+            SET current_owner_id = 'support',
+                lock_version = lock_version + 1,
+                updated_at = now()
+          WHERE id = $1`,
+        [accountTakeoverIntake.supportCase.id],
+      );
+
+      const accountRecoveryBypass = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${accountTakeoverIntake.supportCase.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            ...accountRecoveryRequestIp,
+            'Idempotency-Key': 'http-account-recovery-bypass',
+          },
+          body: JSON.stringify({
+            templateId: 'T-035',
+            recipientUserId: 'renter-a',
+            variables: {
+              first_name: 'Walid',
+              secure_recovery_channel: 'E-Mail',
+              temporary_account_effect: 'Freigabe erteilt',
+            },
+          }),
+        },
+      );
+      assert.equal(accountRecoveryBypass.status, 409);
+      assert.equal(
+        (await accountRecoveryBypass.json()).error,
+        'support_account_recovery_workflow_required',
+      );
+
+      const accountRecoveryDraftResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${accountTakeoverIntake.supportCase.id}/account-recovery-guidance`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            ...accountRecoveryRequestIp,
+            'Idempotency-Key': 'http-account-recovery-guidance',
+          },
+          body: JSON.stringify({ recipientUserId: 'renter-a' }),
+        },
+      );
+      const accountRecoveryDraft = await accountRecoveryDraftResponse.json();
+      assert.equal(accountRecoveryDraftResponse.status, 201, accountRecoveryDraft.error);
+      assert.equal(accountRecoveryDraft.message.templateId, 'T-035');
+      assert.equal(accountRecoveryDraft.message.sendStatus, 'pending_approval');
+      assert.match(accountRecoveryDraft.message.content, /Konto > Sicherheit/u);
+      assert.match(accountRecoveryDraft.message.content, /E-Mail-Kanal allein wird nicht akzeptiert/u);
+      const storedAccountRecovery = await setupPool.query(
+        `SELECT structured_variables
+           FROM support_messages
+          WHERE id = $1`,
+        [accountRecoveryDraft.message.id],
+      );
+      assert.equal(
+        storedAccountRecovery.rows[0].structured_variables.compromised_channel_used,
+        false,
+      );
+      assert.equal(
+        storedAccountRecovery.rows[0].structured_variables.password_or_pin_requested,
+        false,
+      );
+      assert.equal(
+        storedAccountRecovery.rows[0].structured_variables.recovery_action_executed,
+        false,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO support_messages (
+             id, case_id, sender_type, sender_id, recipient_user_id,
+             message_type, message_title, template_id, template_version, locale,
+             rendered_content, rendered_content_sha256, structured_variables,
+             approval_level, send_status, notification_ids,
+             ai_disclosure_included, human_handoff_available,
+             idempotency_key, lock_version, created_at
+           )
+           SELECT gen_random_uuid(), case_id, sender_type, sender_id,
+                  recipient_user_id, message_type, message_title, template_id,
+                  template_version, locale, rendered_content,
+                  rendered_content_sha256,
+                  jsonb_set(
+                    structured_variables,
+                    '{secure_recovery_channel}',
+                    to_jsonb('reported email channel'::text)
+                  ),
+                  approval_level, send_status, notification_ids,
+                  ai_disclosure_included, human_handoff_available,
+                  idempotency_key || '-forged-binding', lock_version, created_at
+             FROM support_messages
+            WHERE id = $1`,
+          [accountRecoveryDraft.message.id],
+        ),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'Account recovery guidance binding is invalid',
+      );
+
+      const accountRecoveryReviewResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${accountTakeoverIntake.supportCase.id}/messages/${accountRecoveryDraft.message.id}/review`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            ...accountRecoveryRequestIp,
+            'Idempotency-Key': 'http-account-recovery-review',
+          },
+          body: JSON.stringify({
+            outcome: 'approved',
+            expectedVersion: accountRecoveryDraft.message.version,
+            expectedPayloadSha256:
+              accountRecoveryDraft.message.renderedContentSha256,
+            reviewNotes:
+              'Kompromittierter Kanal, In-App-Reauthentifizierung und Nicht-Aktion wurden geprueft.',
+          }),
+        },
+      );
+      assert.equal(accountRecoveryReviewResponse.status, 200);
+      const accountRecoveryReview = await accountRecoveryReviewResponse.json();
+      const accountRecoveryPublicationResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${accountTakeoverIntake.supportCase.id}/messages/${accountRecoveryDraft.message.id}/publication`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            ...accountRecoveryRequestIp,
+            'Idempotency-Key': 'http-account-recovery-publication',
+          },
+          body: JSON.stringify({
+            expectedVersion: accountRecoveryReview.message.version,
+            expectedPayloadSha256:
+              accountRecoveryReview.message.renderedContentSha256,
+          }),
+        },
+      );
+      assert.equal(accountRecoveryPublicationResponse.status, 200);
+      const accountRecoveryPublication =
+        await accountRecoveryPublicationResponse.json();
+      assert.equal(accountRecoveryPublication.message.sendStatus, 'sent');
+      assert.equal(accountRecoveryPublication.message.externalMessageSent, false);
 
       const greenMessageRequest = () => fetch(
         `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
@@ -7184,6 +7373,20 @@ if (!databaseUrl) {
         (error) => error?.code === 'P0001'
           && error?.message
             === 'Cannot roll back support progress updates while retained update evidence exists',
+      );
+
+      const supportAccountRecoveryDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/056_support_account_recovery_guard.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(supportAccountRecoveryDown),
+        (error) => error?.code === 'P0001'
+          && error?.message
+            === 'Cannot roll back account recovery guidance while retained message evidence exists',
       );
 
       const g3bDown = await fs.readFile(

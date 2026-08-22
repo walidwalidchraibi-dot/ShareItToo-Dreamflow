@@ -2,6 +2,9 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 
 import { SupportCaseError } from './support_case_domain.js';
+import {
+  normalizeSupportAccountRecoveryGuidance,
+} from './support_account_recovery_domain.js';
 import { readConsumerDisputeConfiguration } from './consumer_dispute_config.js';
 
 const TEMPLATE_SOURCE_SHA256 = '947f307e7919eed543c28e36af4d2b364d87dcde52025649d0d4620d64baaaa5';
@@ -47,6 +50,11 @@ const consumerDisputeServerBindings = new Set([
   'conciliation_body_website',
   'participation_status_plain',
 ]);
+const accountRecoveryServerBindings = new Set([
+  'first_name',
+  'secure_recovery_channel',
+  'temporary_account_effect',
+]);
 const automaticTemplateStatuses = Object.freeze({
   'T-001': new Set(['received', 'acknowledged']),
   'T-003': new Set(['received', 'acknowledged', 'under_review', 'escalated']),
@@ -72,6 +80,10 @@ const unsafeClaimPatterns = Object.freeze([
   /\b(?:ist|war|bleibt)\s+(?:eindeutig\s+)?schuld(?:ig)?\b/iu,
   /\b(?:garantiert|garantie|hundertprozentig|100\s*prozent\s+sicher)\b/iu,
   /\b(?:erstattung|refund|auszahlung)\b.{0,40}\b(?:garantiert|abgeschlossen|bestaetigt|bestätigt)\b/iu,
+]);
+const credentialSolicitationPatterns = Object.freeze([
+  /(?:^|[^\p{L}])(?:sende|schicke|teile|nenne|uebermittle|übermittle|gib)(?![^.!?]{0,100}(?:kein(?:e|en|er|es)?|nicht|niemals))[^.!?]{0,100}(?:passwort|pin|otp|tan|einmalcode|wiederherstellungscode|recovery[ _-]?code|karten(?:zugangs)?daten|kontozugangsdaten)(?:$|[^\p{L}])/iu,
+  /(?:^|[^\p{L}])(?:wir|der support)\s+(?:brauchen|benoetigen|benötigen|verlangen|fordern)(?![^.!?]{0,100}(?:kein(?:e|en|er|es)?|nicht|niemals))[^.!?]{0,100}(?:passwort|pin|otp|tan|einmalcode|wiederherstellungscode|recovery[ _-]?code|karten(?:zugangs)?daten|kontozugangsdaten)(?:$|[^\p{L}])/iu,
 ]);
 
 function sha256(value) {
@@ -175,6 +187,9 @@ function safeVariable(key, value) {
   }
   if (unsafeValuePatterns.some((pattern) => pattern.test(result))) {
     throw new SupportCaseError(400, 'support_message_sensitive_content_blocked', { key });
+  }
+  if (credentialSolicitationPatterns.some((pattern) => pattern.test(result))) {
+    throw new SupportCaseError(400, 'support_message_credential_request_blocked', { key });
   }
   if (unsafeClaimPatterns.some((pattern) => pattern.test(result))) {
     throw new SupportCaseError(400, 'support_message_policy_claim_blocked', { key });
@@ -301,6 +316,7 @@ export function normalizeSupportMessageDraft(raw, {
   supportCase,
   now = new Date(),
   consumerDisputeEnvironment = process.env,
+  accountRecoveryContext = null,
 }) {
   requiredObject(raw, 'support_message_invalid');
   requiredObject(supportCase, 'support_message_case_context_required');
@@ -308,6 +324,10 @@ export function normalizeSupportMessageDraft(raw, {
   const template = templateCatalog.get(templateId);
   if (!template) throw new SupportCaseError(400, 'support_message_template_unknown');
   const consumerDisputeNotice = template.id === 'T-053';
+  const accountRecoveryNotice = template.id === 'T-035';
+  if (accountRecoveryNotice && !accountRecoveryContext) {
+    throw new SupportCaseError(409, 'support_account_recovery_workflow_required');
+  }
   if (template.approvalLevel === 'RED' && !consumerDisputeNotice) {
     throw new SupportCaseError(409, 'support_message_red_template_requires_decision_workflow');
   }
@@ -344,6 +364,14 @@ export function normalizeSupportMessageDraft(raw, {
   }
   assertSupportMessageDeadlineCurrent(template, supportCase, now);
   const bindings = { ...supportCaseBindings(supportCase) };
+  let accountRecoveryGuidance = null;
+  if (accountRecoveryNotice) {
+    accountRecoveryGuidance = normalizeSupportAccountRecoveryGuidance({
+      supportCase,
+      ...accountRecoveryContext,
+    });
+    Object.assign(bindings, accountRecoveryGuidance.bindings);
+  }
   if (consumerDisputeConfiguration) {
     Object.assign(bindings, {
       conciliation_body_address: consumerDisputeConfiguration.conciliationBodyAddress,
@@ -356,7 +384,11 @@ export function normalizeSupportMessageDraft(raw, {
     template,
     raw.variables,
     bindings,
-    { serverOnly: consumerDisputeNotice ? consumerDisputeServerBindings : new Set() },
+    {
+      serverOnly: consumerDisputeNotice
+        ? consumerDisputeServerBindings
+        : (accountRecoveryNotice ? accountRecoveryServerBindings : new Set()),
+    },
   );
   const approvalLevel = template.approvalLevel === 'GREEN'
     ? 'green_automatic'
@@ -368,7 +400,12 @@ export function normalizeSupportMessageDraft(raw, {
       consumer_dispute_configuration_version:
         consumerDisputeConfiguration.configurationVersion,
     })
-    : variables;
+    : (accountRecoveryGuidance
+      ? Object.freeze({
+        ...variables,
+        ...accountRecoveryGuidance.metadata,
+      })
+      : variables);
   return Object.freeze({
     templateId: template.id,
     templateVersion: template.version,
@@ -417,6 +454,7 @@ export function listSupportMessageTemplates() {
     requiredPlaceholders: template.requiredPlaceholders,
     moneySnapshotRequired: template.requiredPlaceholders.some((key) => moneyPlaceholderPattern.test(key)),
     genericDraftAvailable: template.approvalLevel !== 'RED'
+      && template.id !== 'T-035'
       && !template.requiredPlaceholders.some((key) => moneyPlaceholderPattern.test(key)),
   }));
 }
