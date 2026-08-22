@@ -7,7 +7,6 @@ set -euo pipefail
 # safe mechanical cleanup, the targeted correctness/startup-safety batch, and
 # removal of all unused local variables, private state remnants, and
 # unreferenced legacy UI components without changing reachable UI paths.
-ANALYZER_BASELINE=220
 FORBIDDEN_ANALYZER_CODES=(
   dead_code
   empty_catches
@@ -406,6 +405,7 @@ node --test test/tool/validate_p0b_invited_synthetic_pilot_readiness.test.mjs
 node tool/validate_p0b_invited_synthetic_pilot_readiness.mjs
 node --test test/tool/g5b_listing_sets_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
+node --test test/tool/validate_flutter_analyzer_debt.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs
 
@@ -426,10 +426,7 @@ if [[ -z "$issue_count" ]]; then
   exit 1
 fi
 
-if (( issue_count > ANALYZER_BASELINE )); then
-  echo "ERROR: Analyzer regression detected: ${issue_count} issues (baseline ${ANALYZER_BASELINE})." >&2
-  exit 1
-fi
+node tool/validate_flutter_analyzer_debt.mjs --log "$analyze_log"
 
 for analyzer_code in "${FORBIDDEN_ANALYZER_CODES[@]}"; do
   if grep -Eq "(^|[[:space:]•])${analyzer_code}$" "$analyze_log"; then
@@ -437,12 +434,6 @@ for analyzer_code in "${FORBIDDEN_ANALYZER_CODES[@]}"; do
     exit 1
   fi
 done
-
-if (( issue_count < ANALYZER_BASELINE )); then
-  echo "Analyzer improvement detected; baseline update recommended (${issue_count} < ${ANALYZER_BASELINE})."
-else
-  echo "Analyzer baseline accepted (${issue_count} issues)."
-fi
 
 if (( analyze_status == 0 )) && (( issue_count > 0 )); then
   echo "ERROR: flutter analyze exited 0 but reported ${issue_count} issues; refusing ambiguous success." >&2
