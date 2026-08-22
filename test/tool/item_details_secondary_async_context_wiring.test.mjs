@@ -19,8 +19,11 @@ const pageOverflow = source.match(
 const countdown = source.match(
   /void _onTick\(Duration elapsed\) async \{[\s\S]*?\n  \}/u,
 )?.[0];
-const fallbackAction = source.match(
-  /class _ExpressFallbackSheetState[\s\S]*?onPressed: \(\) async \{[\s\S]*?\n                      \},/u,
+const fallbackState = source.match(
+  /class _ExpressFallbackSheetState[\s\S]*?\nextension on /u,
+)?.[0];
+const fallbackAction = fallbackState?.match(
+  /onPressed: \(\) async \{[\s\S]*?\n\s+\},/u,
 )?.[0];
 
 assert.ok(sheetState, 'expected item-details sheet State');

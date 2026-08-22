@@ -2379,140 +2379,137 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                 const Text('Abgabe (Artikel zu dir):',
                                     style: TextStyle(
                                         color: Colors.white70, fontSize: 12)),
-                                RadioListTile<_DropoffOption>(
-                                  value: _DropoffOption.self,
+                                RadioGroup<_DropoffOption>(
                                   groupValue: _dropoff,
-                                  onChanged: (v) {
-                                    if (v != null) {
-                                      setState(() {
-                                        _dropoff = v;
-                                      });
-                                      _persistDeliverySelection();
-                                    }
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setState(() => _dropoff = value);
+                                    _persistDeliverySelection();
                                   },
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  title: const Text('Selbst abholen',
-                                      style: TextStyle(color: Colors.white)),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const RadioListTile<_DropoffOption>(
+                                        value: _DropoffOption.self,
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                        title: Text('Selbst abholen',
+                                            style:
+                                                TextStyle(color: Colors.white)),
+                                      ),
+                                      if (canOfferHinweg)
+                                        const RadioListTile<_DropoffOption>(
+                                          value: _DropoffOption.landlord,
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                              'Vom Vermieter liefern lassen',
+                                              style: TextStyle(
+                                                  color: Colors.white)),
+                                        )
+                                      else
+                                        const RadioListTile<_DropoffOption>(
+                                          value: _DropoffOption.landlord,
+                                          enabled: false,
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                              'Lieferung durch Vermieter nicht verfügbar',
+                                              style: TextStyle(
+                                                  color: Colors.white54)),
+                                          secondary: Icon(Icons.lock_outline,
+                                              color: Colors.white38),
+                                        ),
+                                      if (canOfferHinweg &&
+                                          _dropoff == _DropoffOption.landlord &&
+                                          widget.item.maxDeliveryKmAtDropoff !=
+                                              null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                              left: 16.0, bottom: 6),
+                                          child: Text(
+                                              'Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.',
+                                              style: TextStyle(
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.white70
+                                                      : AppTheme.textSecondary(
+                                                          context),
+                                                  fontSize: 12)),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                                if (canOfferHinweg)
-                                  RadioListTile<_DropoffOption>(
-                                    value: _DropoffOption.landlord,
-                                    groupValue: _dropoff,
-                                    onChanged: (v) {
-                                      if (v != null) {
-                                        setState(() {
-                                          _dropoff = v;
-                                        });
-                                        _persistDeliverySelection();
-                                      }
-                                    },
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    title: const Text(
-                                        'Vom Vermieter liefern lassen',
-                                        style: TextStyle(color: Colors.white)),
-                                  )
-                                else
-                                  RadioListTile<_DropoffOption>(
-                                    value: _DropoffOption.landlord,
-                                    groupValue: _dropoff,
-                                    onChanged: null,
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    title: const Text(
-                                        'Lieferung durch Vermieter nicht verfügbar',
-                                        style:
-                                            TextStyle(color: Colors.white54)),
-                                    secondary: const Icon(Icons.lock_outline,
-                                        color: Colors.white38),
-                                  ),
-                                if (canOfferHinweg &&
-                                    _dropoff == _DropoffOption.landlord &&
-                                    widget.item.maxDeliveryKmAtDropoff != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 16.0, bottom: 6),
-                                    child: Text(
-                                        'Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.',
-                                        style: TextStyle(
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.white70
-                                                    : AppTheme.textSecondary(
-                                                        context),
-                                            fontSize: 12)),
-                                  ),
                                 const SizedBox(height: 4),
                                 const Text('Rückgabe (Artikel zurückgeben):',
                                     style: TextStyle(
                                         color: Colors.white70, fontSize: 12)),
-                                RadioListTile<_ReturnOption>(
-                                  value: _ReturnOption.self,
+                                RadioGroup<_ReturnOption>(
                                   groupValue: _returning,
-                                  onChanged: (v) {
-                                    if (v != null) {
-                                      setState(() {
-                                        _returning = v;
-                                      });
-                                      _persistDeliverySelection();
-                                    }
+                                  onChanged: (value) {
+                                    if (value == null) return;
+                                    setState(() => _returning = value);
+                                    _persistDeliverySelection();
                                   },
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  title: const Text('Selbst zurückbringen',
-                                      style: TextStyle(color: Colors.white)),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const RadioListTile<_ReturnOption>(
+                                        value: _ReturnOption.self,
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                        title: Text('Selbst zurückbringen',
+                                            style:
+                                                TextStyle(color: Colors.white)),
+                                      ),
+                                      if (canOfferRueckweg)
+                                        const RadioListTile<_ReturnOption>(
+                                          value: _ReturnOption.landlord,
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                              'Vom Vermieter abholen lassen',
+                                              style: TextStyle(
+                                                  color: Colors.white)),
+                                        )
+                                      else
+                                        const RadioListTile<_ReturnOption>(
+                                          value: _ReturnOption.landlord,
+                                          enabled: false,
+                                          contentPadding: EdgeInsets.zero,
+                                          dense: true,
+                                          title: Text(
+                                              'Abholung durch Vermieter nicht verfügbar',
+                                              style: TextStyle(
+                                                  color: Colors.white54)),
+                                          secondary: Icon(Icons.lock_outline,
+                                              color: Colors.white38),
+                                        ),
+                                      if (canOfferRueckweg &&
+                                          _returning ==
+                                              _ReturnOption.landlord &&
+                                          widget.item.maxPickupKmAtReturn !=
+                                              null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                              left: 16.0, bottom: 6),
+                                          child: Text(
+                                              'Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.',
+                                              style: TextStyle(
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.white70
+                                                      : AppTheme.textSecondary(
+                                                          context),
+                                                  fontSize: 12)),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                                if (canOfferRueckweg)
-                                  RadioListTile<_ReturnOption>(
-                                    value: _ReturnOption.landlord,
-                                    groupValue: _returning,
-                                    onChanged: (v) {
-                                      if (v != null) {
-                                        setState(() {
-                                          _returning = v;
-                                        });
-                                        _persistDeliverySelection();
-                                      }
-                                    },
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    title: const Text(
-                                        'Vom Vermieter abholen lassen',
-                                        style: TextStyle(color: Colors.white)),
-                                  )
-                                else
-                                  RadioListTile<_ReturnOption>(
-                                    value: _ReturnOption.landlord,
-                                    groupValue: _returning,
-                                    onChanged: null,
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    title: const Text(
-                                        'Abholung durch Vermieter nicht verfügbar',
-                                        style:
-                                            TextStyle(color: Colors.white54)),
-                                    secondary: const Icon(Icons.lock_outline,
-                                        color: Colors.white38),
-                                  ),
-                                if (canOfferRueckweg &&
-                                    _returning == _ReturnOption.landlord &&
-                                    widget.item.maxPickupKmAtReturn != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                        left: 16.0, bottom: 6),
-                                    child: Text(
-                                        'Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.',
-                                        style: TextStyle(
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.white70
-                                                    : AppTheme.textSecondary(
-                                                        context),
-                                            fontSize: 12)),
-                                  ),
                                 const SizedBox(height: 4),
                                 if (!canOfferHinweg && !canOfferRueckweg)
                                   const Text(
@@ -2695,132 +2692,120 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         const Text('Abgabe (Artikel zu dir):',
                             style:
                                 TextStyle(color: Colors.white70, fontSize: 12)),
-                        RadioListTile<_DropoffOption>(
-                          value: _DropoffOption.self,
+                        RadioGroup<_DropoffOption>(
                           groupValue: _dropoff,
-                          onChanged: (v) {
-                            if (v != null) {
-                              setState(() {
-                                _dropoff = v;
-                              });
-                              _persistDeliverySelection();
-                            }
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _dropoff = value);
+                            _persistDeliverySelection();
                           },
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          title: const Text('Selbst abholen',
-                              style: TextStyle(color: Colors.white)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const RadioListTile<_DropoffOption>(
+                                value: _DropoffOption.self,
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                                title: Text('Selbst abholen',
+                                    style: TextStyle(color: Colors.white)),
+                              ),
+                              if (canOfferHinweg)
+                                const RadioListTile<_DropoffOption>(
+                                  value: _DropoffOption.landlord,
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  title: Text('Vom Vermieter liefern lassen',
+                                      style: TextStyle(color: Colors.white)),
+                                )
+                              else
+                                const RadioListTile<_DropoffOption>(
+                                  value: _DropoffOption.landlord,
+                                  enabled: false,
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  title: Text(
+                                      'Lieferung durch Vermieter nicht verfügbar',
+                                      style: TextStyle(color: Colors.white54)),
+                                  secondary: Icon(Icons.lock_outline,
+                                      color: Colors.white38),
+                                ),
+                              if (canOfferHinweg &&
+                                  _dropoff == _DropoffOption.landlord &&
+                                  widget.item.maxDeliveryKmAtDropoff != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 16.0, bottom: 6),
+                                  child: Text(
+                                      'Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.',
+                                      style: TextStyle(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white70
+                                              : AppTheme.textSecondary(context),
+                                          fontSize: 12)),
+                                ),
+                            ],
+                          ),
                         ),
-                        if (canOfferHinweg)
-                          RadioListTile<_DropoffOption>(
-                            value: _DropoffOption.landlord,
-                            groupValue: _dropoff,
-                            onChanged: (v) {
-                              if (v != null) {
-                                setState(() {
-                                  _dropoff = v;
-                                });
-                                _persistDeliverySelection();
-                              }
-                            },
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: const Text('Vom Vermieter liefern lassen',
-                                style: TextStyle(color: Colors.white)),
-                          )
-                        else
-                          RadioListTile<_DropoffOption>(
-                            value: _DropoffOption.landlord,
-                            groupValue: _dropoff,
-                            onChanged: null,
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: const Text(
-                                'Lieferung durch Vermieter nicht verfügbar',
-                                style: TextStyle(color: Colors.white54)),
-                            secondary: const Icon(Icons.lock_outline,
-                                color: Colors.white38),
-                          ),
-                        if (canOfferHinweg &&
-                            _dropoff == _DropoffOption.landlord &&
-                            widget.item.maxDeliveryKmAtDropoff != null)
-                          Padding(
-                            padding:
-                                const EdgeInsets.only(left: 16.0, bottom: 6),
-                            child: Text(
-                                'Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.',
-                                style: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white70
-                                        : AppTheme.textSecondary(context),
-                                    fontSize: 12)),
-                          ),
                         const SizedBox(height: 4),
                         const Text('Rückgabe (Artikel zurückgeben):',
                             style:
                                 TextStyle(color: Colors.white70, fontSize: 12)),
-                        RadioListTile<_ReturnOption>(
-                          value: _ReturnOption.self,
+                        RadioGroup<_ReturnOption>(
                           groupValue: _returning,
-                          onChanged: (v) {
-                            if (v != null) {
-                              setState(() {
-                                _returning = v;
-                              });
-                              _persistDeliverySelection();
-                            }
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _returning = value);
+                            _persistDeliverySelection();
                           },
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          title: const Text('Selbst zurückbringen',
-                              style: TextStyle(color: Colors.white)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const RadioListTile<_ReturnOption>(
+                                value: _ReturnOption.self,
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                                title: Text('Selbst zurückbringen',
+                                    style: TextStyle(color: Colors.white)),
+                              ),
+                              if (canOfferRueckweg)
+                                const RadioListTile<_ReturnOption>(
+                                  value: _ReturnOption.landlord,
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  title: Text('Vom Vermieter abholen lassen',
+                                      style: TextStyle(color: Colors.white)),
+                                )
+                              else
+                                const RadioListTile<_ReturnOption>(
+                                  value: _ReturnOption.landlord,
+                                  enabled: false,
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  title: Text(
+                                      'Abholung durch Vermieter nicht verfügbar',
+                                      style: TextStyle(color: Colors.white54)),
+                                  secondary: Icon(Icons.lock_outline,
+                                      color: Colors.white38),
+                                ),
+                              if (canOfferRueckweg &&
+                                  _returning == _ReturnOption.landlord &&
+                                  widget.item.maxPickupKmAtReturn != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 16.0, bottom: 6),
+                                  child: Text(
+                                      'Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.',
+                                      style: TextStyle(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white70
+                                              : AppTheme.textSecondary(context),
+                                          fontSize: 12)),
+                                ),
+                            ],
+                          ),
                         ),
-                        if (canOfferRueckweg)
-                          RadioListTile<_ReturnOption>(
-                            value: _ReturnOption.landlord,
-                            groupValue: _returning,
-                            onChanged: (v) {
-                              if (v != null) {
-                                setState(() {
-                                  _returning = v;
-                                });
-                                _persistDeliverySelection();
-                              }
-                            },
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: const Text('Vom Vermieter abholen lassen',
-                                style: TextStyle(color: Colors.white)),
-                          )
-                        else
-                          RadioListTile<_ReturnOption>(
-                            value: _ReturnOption.landlord,
-                            groupValue: _returning,
-                            onChanged: null,
-                            contentPadding: EdgeInsets.zero,
-                            dense: true,
-                            title: const Text(
-                                'Abholung durch Vermieter nicht verfügbar',
-                                style: TextStyle(color: Colors.white54)),
-                            secondary: const Icon(Icons.lock_outline,
-                                color: Colors.white38),
-                          ),
-                        if (canOfferRueckweg &&
-                            _returning == _ReturnOption.landlord &&
-                            widget.item.maxPickupKmAtReturn != null)
-                          Padding(
-                            padding:
-                                const EdgeInsets.only(left: 16.0, bottom: 6),
-                            child: Text(
-                                'Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.',
-                                style: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white70
-                                        : AppTheme.textSecondary(context),
-                                    fontSize: 12)),
-                          ),
                         const SizedBox(height: 4),
                         if (!canOfferHinweg && !canOfferRueckweg)
                           const Text(
@@ -4117,130 +4102,132 @@ class _ExpressFallbackSheetState extends State<_ExpressFallbackSheet> {
                   const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(color: border)),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Prioritätslieferung konnte nicht bestätigt werden.',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 8),
-                const Text(
-                    'Du kannst deine Anfrage jetzt anpassen oder stornieren:',
-                    style: TextStyle(color: Colors.white70)),
-                const SizedBox(height: 12),
-                RadioListTile<bool>(
-                  value: true,
-                  groupValue: _rebook,
-                  onChanged: (v) {
-                    setState(() => _rebook = v ?? true);
-                  },
-                  title: const Text('Buchung neu anfragen mit:',
-                      style: TextStyle(color: Colors.white)),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (_rebook) ...[
-                  const Padding(
-                    padding: EdgeInsets.only(left: 16.0, bottom: 4),
-                    child: Text('Abgabe:',
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
+          child: RadioGroup<bool>(
+            groupValue: _rebook,
+            onChanged: (value) {
+              if (value != null) setState(() => _rebook = value);
+            },
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'Prioritätslieferung konnte nicht bestätigt werden.',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  const Text(
+                      'Du kannst deine Anfrage jetzt anpassen oder stornieren:',
+                      style: TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 12),
+                  RadioListTile<bool>(
+                    value: true,
+                    title: const Text('Buchung neu anfragen mit:',
+                        style: TextStyle(color: Colors.white)),
+                    contentPadding: EdgeInsets.zero,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: Column(children: [
-                      RadioListTile<_DropoffOption>(
-                          value: _DropoffOption.self,
-                          groupValue: _drop,
-                          onChanged: (v) =>
-                              setState(() => _drop = v ?? _DropoffOption.self),
-                          title: const Text('Selbst abholen',
-                              style: TextStyle(color: Colors.white)),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true),
-                      RadioListTile<_DropoffOption>(
-                          value: _DropoffOption.landlord,
-                          groupValue: _drop,
-                          onChanged: (v) =>
-                              setState(() => _drop = v ?? _DropoffOption.self),
-                          title: const Text('Vom Vermieter liefern lassen',
-                              style: TextStyle(color: Colors.white)),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true),
-                    ]),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(left: 16.0, top: 6, bottom: 4),
-                    child: Text('Rückgabe:',
-                        style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: Column(children: [
-                      RadioListTile<_ReturnOption>(
-                          value: _ReturnOption.self,
-                          groupValue: _ret,
-                          onChanged: (v) =>
-                              setState(() => _ret = v ?? _ReturnOption.self),
-                          title: const Text('Selbst zurückbringen',
-                              style: TextStyle(color: Colors.white)),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true),
-                      RadioListTile<_ReturnOption>(
-                          value: _ReturnOption.landlord,
-                          groupValue: _ret,
-                          onChanged: (v) =>
-                              setState(() => _ret = v ?? _ReturnOption.self),
-                          title: const Text('Vom Vermieter abholen lassen',
-                              style: TextStyle(color: Colors.white)),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true),
-                    ]),
-                  ),
-                ],
-                RadioListTile<bool>(
-                  value: false,
-                  groupValue: _rebook,
-                  onChanged: (v) {
-                    setState(() => _rebook = v ?? false);
-                  },
-                  title: const Text('Anfrage stornieren',
-                      style: TextStyle(color: Colors.white)),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      child: const Text('Abbrechen'),
+                  if (_rebook) ...[
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16.0, bottom: 4),
+                      child: Text('Abgabe:',
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 12)),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () async {
-                        if (_rebook) {
-                          // Persist new local preference without express
-                          // Note: In this demo we do not update the existing request payload beyond express flags
-                          await AppPopup.toast(context,
-                              icon: Icons.edit_outlined,
-                              title: 'Anfrage aktualisiert (ohne Priorität).');
-                        } else {
-                          // Mark as declined locally (demo)
-                          // We don't have the request id here; renter can manage from requests list in a full app
-                          await AppPopup.toast(context,
-                              icon: Icons.cancel_outlined,
-                              title: 'Anfrage storniert.');
-                        }
-                        if (context.mounted) {
-                          Navigator.of(context).maybePop();
-                        }
-                      },
-                      child: const Text('Bestätigen'),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: RadioGroup<_DropoffOption>(
+                        groupValue: _drop,
+                        onChanged: (value) {
+                          if (value != null) setState(() => _drop = value);
+                        },
+                        child: const Column(children: [
+                          RadioListTile<_DropoffOption>(
+                              value: _DropoffOption.self,
+                              title: Text('Selbst abholen',
+                                  style: TextStyle(color: Colors.white)),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true),
+                          RadioListTile<_DropoffOption>(
+                              value: _DropoffOption.landlord,
+                              title: Text('Vom Vermieter liefern lassen',
+                                  style: TextStyle(color: Colors.white)),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true),
+                        ]),
+                      ),
                     ),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16.0, top: 6, bottom: 4),
+                      child: Text('Rückgabe:',
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 12)),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: RadioGroup<_ReturnOption>(
+                        groupValue: _ret,
+                        onChanged: (value) {
+                          if (value != null) setState(() => _ret = value);
+                        },
+                        child: const Column(children: [
+                          RadioListTile<_ReturnOption>(
+                              value: _ReturnOption.self,
+                              title: Text('Selbst zurückbringen',
+                                  style: TextStyle(color: Colors.white)),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true),
+                          RadioListTile<_ReturnOption>(
+                              value: _ReturnOption.landlord,
+                              title: Text('Vom Vermieter abholen lassen',
+                                  style: TextStyle(color: Colors.white)),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true),
+                        ]),
+                      ),
+                    ),
+                  ],
+                  RadioListTile<bool>(
+                    value: false,
+                    title: const Text('Anfrage stornieren',
+                        style: TextStyle(color: Colors.white)),
+                    contentPadding: EdgeInsets.zero,
                   ),
-                ])
-              ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        child: const Text('Abbrechen'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () async {
+                          if (_rebook) {
+                            // Persist new local preference without express
+                            // Note: In this demo we do not update the existing request payload beyond express flags
+                            await AppPopup.toast(context,
+                                icon: Icons.edit_outlined,
+                                title:
+                                    'Anfrage aktualisiert (ohne Priorität).');
+                          } else {
+                            // Mark as declined locally (demo)
+                            // We don't have the request id here; renter can manage from requests list in a full app
+                            await AppPopup.toast(context,
+                                icon: Icons.cancel_outlined,
+                                title: 'Anfrage storniert.');
+                          }
+                          if (context.mounted) {
+                            Navigator.of(context).maybePop();
+                          }
+                        },
+                        child: const Text('Bestätigen'),
+                      ),
+                    ),
+                  ])
+                ]),
+          ),
         ),
       ),
     );
