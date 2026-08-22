@@ -1,8 +1,9 @@
 # S3R Article 18 authority-referral guard - architecture
 
-Status: implemented and locally verified for non-live operation on 22.08.2026;
-exact-head PostgreSQL and GitHub Actions evidence is pending. No authority
-delivery, production or public operation is enabled.
+Status: technically verified for non-live operation on 22.08.2026 at exact
+implementation head `3497a887d31935560c1371a13e92fee2def21344` and successful
+GitHub Actions run `32548790305`. No authority delivery, production or public
+operation is enabled.
 
 ## Source basis
 
@@ -60,6 +61,10 @@ agent, while the workflow always rejects even an Administrator with HTTP 503.
 There is no network client, provider adapter, webhook, email, push, authority
 address or `sent` state in the package.
 
+Support intake and Article 18 assessment/dispatch use dedicated rate-limit
+buckets. Their requests therefore cannot consume the generic sensitive-action
+budget used by unrelated account-security operations.
+
 ## Residual gates
 
 Before any external authority path can exist, SIT still needs the real named
@@ -83,3 +88,17 @@ signed-candidate, public-pilot or external-delivery change.
   and validators, the accepted analyzer baseline, 359 Flutter tests with one
   documented skip, the separate Google-only profile test, Web debug build,
   loopback smoke and Android debug build. No signed candidate was created.
+- Exact GitHub Actions run `32548790305` passed 468 of 468 Backend tests with
+  PostgreSQL 16.14 and all migrations through `046`. It also passed 359 Flutter
+  tests with one documented skip, the separate Google-only profile test, Web
+  smoke/build, Android debug build, dependency/history and Compose checks and
+  the commit-labelled API image build. Signed-candidate construction and API
+  image publication were skipped.
+
+The implementation chain is `79a2baeabb7e2f09a82f9863f3bfc938f117ee80`,
+`8d0bed5daac77a45b5cf10a9ab5d39ed75cedd0b`,
+`cfb7ac0b72042edce8bd6f19e47b9b8814a0d573`,
+`a25c0587a94c41da2625d15dbcdcf7ced0517475`,
+`9fe30f81e7cb61cc13e5a4ce76687a7f745ebffb`,
+`b0975360f52f52a52dc110cf3aa23b764514867f` and verified head
+`3497a887d31935560c1371a13e92fee2def21344`.

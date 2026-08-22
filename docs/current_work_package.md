@@ -270,6 +270,29 @@ modification and report-resolution correction fail closed. Legal/operator
 approval, real staffing, external delivery, production, payment, Store, signed
 candidate and live operation remain closed.
 
+`S3R_SUPPORT_ARTICLE18_AUTHORITY_REFERRAL_GUARD` is technically verified at
+exact implementation head `3497a887d31935560c1371a13e92fee2def21344` and
+successful GitHub Actions run `32548790305`. It addresses Drive scenarios
+`SUP-121` and `SUP-122`: qualifying non-live P0 Trust & Safety cases enter a
+minimal Administrator-only candidate queue, while only an active elevated
+Administrator may append a human assessment with explicit jurisdiction route,
+symbolic evidence references, minimum information scope and reviewer
+authorization evidence. The flag is conservative triage, not a criminal or
+reporting finding. Migration `046` and the application keep the assessment
+append-only, omit restricted facts from normal audit and self-service export,
+and reject unsafe rollback. Normal support is denied and even an Administrator
+cannot dispatch externally: no provider, channel, address or sent state exists.
+Dedicated intake and Article 18 rate-limit buckets prevent interference with
+unrelated account-security operations. Exact-head CI passed all 468 Backend
+tests without skips on PostgreSQL 16.14 and all migrations through `046`; 359
+Flutter tests passed with one documented skip plus the separate Google-only
+test, Web smoke/build and Android debug build. Dependency/history, Compose and
+the commit-labelled API image build passed. Signed-candidate construction and
+API-image publication were skipped. Professional legal approval, named real
+owners, authenticated competent-authority channel, approved disclosure scope,
+retention/legal hold, external reporting, production, payment, Store and all
+live operation remain closed.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress

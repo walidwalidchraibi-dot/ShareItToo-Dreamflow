@@ -67,8 +67,9 @@ Verified: 2026-08-22 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `045`. Migration
-  `045` is locally verified and awaiting exact GitHub PostgreSQL evidence. The
+- Node/Express backend with PostgreSQL migrations through `046`. Migration
+  `046` is verified on PostgreSQL 16.14 at exact GitHub Actions run
+  `32548790305`. The
   backend provides deterministic server quotes, immutable legal/acceptance
   evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -238,6 +239,27 @@ Verified: 2026-08-22 on the Mac mini.
   open and unmerged. Unsupported correction semantics fail closed, and
   legal/operator approval, external delivery, production, payment, Store,
   signed-candidate and live paths remain separate gates.
+- S3R is technically verified at exact implementation head
+  `3497a887d31935560c1371a13e92fee2def21344` and successful GitHub Actions run
+  `32548790305`. It adds a conservative non-live Article 18 candidate flag for
+  exact P0 Trust & Safety taxonomy, an Administrator-only and Staff-Step-up
+  protected queue, and append-only human assessment truth with explicit route,
+  evidence references, minimum information scope and reviewer authorization.
+  Migration `046` enforces the taxonomy, non-live mode, immutable evidence and
+  guarded rollback. Normal support cannot assess or dispatch, and even an
+  elevated Administrator receives a fail-closed disabled-dispatch response;
+  there is no external transport, authority address or sent state. Restricted
+  facts remain outside normal audit and automatic self-service export while
+  retention inventory remains count-only. Dedicated rate-limit buckets keep
+  support intake and Article 18 operations separate from unrelated account
+  security. Exact-head CI passed all 468 Backend tests without skips on
+  PostgreSQL 16.14 and all migrations through `046`; 359 Flutter tests passed
+  with one documented skip plus the separate Google-only test, Web
+  smoke/build and Android debug build. Dependency/history, Compose and the
+  commit-labelled API image build passed. Signed-candidate construction and
+  API-image publication were skipped. Legal approval, real role assignments,
+  competent-recipient verification, approved disclosure scope, external
+  reporting, production, payment, Store and every live path remain closed.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

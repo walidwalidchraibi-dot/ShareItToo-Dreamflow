@@ -1,8 +1,9 @@
 # S3R Article 18 authority-referral guard - technical compliance record
 
-Status: locally verified in focused tests on 22.08.2026. Exact-head PostgreSQL
-and GitHub Actions verification is pending. This is technical evidence, not a
-legal opinion, legal approval or authorization for authority disclosure.
+Status: technically verified on 22.08.2026 at exact implementation head
+`3497a887d31935560c1371a13e92fee2def21344` and successful GitHub Actions run
+`32548790305`. This is technical evidence, not a legal opinion, legal approval
+or authorization for authority disclosure.
 
 ## Implemented controls
 
@@ -42,6 +43,12 @@ legal opinion, legal approval or authorization for authority disclosure.
   the separate Google-only profile test, Web debug build, loopback smoke and
   Android debug build. No signed candidate, Store upload or publication was
   produced.
+- Exact GitHub Actions run `32548790305` passed all 468 Backend tests without
+  skips on PostgreSQL 16.14 and applied every migration through `046`. The same
+  run passed 359 Flutter tests with one documented skip, the separate
+  Google-only profile test, Web smoke/build, Android debug build,
+  dependency/history and Compose checks and the commit-labelled API image
+  build. Signed-candidate construction and API-image publication were skipped.
 
 ## Open legal and operational gates
 
