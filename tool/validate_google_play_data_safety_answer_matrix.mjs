@@ -114,8 +114,8 @@ export function validateGooglePlayDataSafetyAnswerMatrix({
   if (!Array.isArray(matrix.dataTypes)
       || !Array.isArray(privacy.dataTypes)
       || matrix.dataTypes.length !== privacy.dataTypes.length
-      || matrix.dataTypes.length !== 17) {
-    fail('Data Safety matrix must evaluate all 17 reviewed data types exactly once.');
+      || matrix.dataTypes.length !== 18) {
+    fail('Data Safety matrix must evaluate all 18 reviewed data types exactly once.');
   }
   const matrixById = new Map(matrix.dataTypes.map((entry) => [entry?.id, entry]));
   if (matrixById.size !== matrix.dataTypes.length) fail('Data Safety matrix contains duplicate data types.');
@@ -140,8 +140,8 @@ export function validateGooglePlayDataSafetyAnswerMatrix({
     }
   }
   const selected = matrix.dataTypes.filter((entry) => entry.selected);
-  if (selected.length !== 16 || selected.some((entry) => !entry.collected)) {
-    fail('Exactly 16 collected data types must remain selected.');
+  if (selected.length !== 17 || selected.some((entry) => !entry.collected)) {
+    fail('Exactly 17 collected data types must remain selected.');
   }
 
   if (!Array.isArray(matrix.officialGuidance)

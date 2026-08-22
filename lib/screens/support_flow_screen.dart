@@ -209,6 +209,36 @@ class SupportDsaNotice {
       };
 }
 
+/// Strukturierte, nicht-live Produktsicherheitsmeldung für die Schnelltriage.
+class SupportProductSafetyNotice {
+  static const version = 'sit_product_safety_intake_v1';
+  static const contactPointVersion = 'sit_product_safety_contact_point_v1';
+
+  final String issueKind;
+  final String productIdentification;
+  final String riskDescription;
+  final bool injuryOccurred;
+  final bool safetyGuidanceAcknowledged;
+
+  const SupportProductSafetyNotice({
+    required this.issueKind,
+    required this.productIdentification,
+    required this.riskDescription,
+    required this.injuryOccurred,
+    required this.safetyGuidanceAcknowledged,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'version': version,
+        'contactPointVersion': contactPointVersion,
+        'issueKind': issueKind,
+        'productIdentification': productIdentification.trim(),
+        'riskDescription': riskDescription.trim(),
+        'injuryOccurred': injuryOccurred,
+        'safetyGuidanceAcknowledged': safetyGuidanceAcknowledged,
+      };
+}
+
 /// Eindeutige, versionierte Art eines Betroffenenrechts.
 class SupportPrivacyRightsRequest {
   static const version = 'sit_privacy_rights_request_v1';
@@ -239,6 +269,7 @@ class SupportFlowResult {
   final SupportSafetyTriage safetyTriage;
   final SupportIssueScope issueScope;
   final SupportDsaNotice? dsaNotice;
+  final SupportProductSafetyNotice? productSafetyNotice;
   final Map<String, dynamic>? canonicalCase;
 
   const SupportFlowResult({
@@ -249,6 +280,7 @@ class SupportFlowResult {
     required this.safetyTriage,
     required this.issueScope,
     this.dsaNotice,
+    this.productSafetyNotice,
     this.canonicalCase,
   });
 
@@ -261,8 +293,7 @@ class SupportFlowResult {
   };
 
   static const _privacyRightsRequests = <String, SupportPrivacyRightsRequest>{
-    'Auskunft oder Kopie meiner Daten':
-        SupportPrivacyRightsRequest('access'),
+    'Auskunft oder Kopie meiner Daten': SupportPrivacyRightsRequest('access'),
     'Daten übertragen': SupportPrivacyRightsRequest('portability'),
     'Daten berichtigen': SupportPrivacyRightsRequest('rectification'),
     'Daten löschen': SupportPrivacyRightsRequest('erasure'),
@@ -433,6 +464,12 @@ class SupportFlowResult {
       'Anderer Inhalt':
           SupportCaseRoute('moderation_content', 'illegal_content_notice'),
     },
+    'product_safety': {
+      'Möglicherweise gefährliches Produkt':
+          SupportCaseRoute('trust_safety', 'dangerous_item_or_injury'),
+      'Unfall oder Verletzung durch Produkt':
+          SupportCaseRoute('trust_safety', 'dangerous_item_or_injury'),
+    },
     'other': {
       'Ich bin unsicher, was ich tun soll':
           SupportCaseRoute('general_help', 'general_how_to'),
@@ -471,6 +508,8 @@ class SupportFlowResult {
     final route = backendRoute;
     final isDsaNotice = route.caseType == 'moderation_content' &&
         route.caseSubType == 'illegal_content_notice';
+    final isProductSafetyNotice = route.caseType == 'trust_safety' &&
+        route.caseSubType == 'dangerous_item_or_injury';
     final expectedDsaContentType = _dsaContentTypes[subCategory];
     final privacyRightsRequest = _privacyRightsRequests[subCategory];
     if (isDsaNotice &&
@@ -482,6 +521,18 @@ class SupportFlowResult {
     }
     if (!isDsaNotice && dsaNotice != null) {
       throw const FormatException('unexpected_dsa_notice_intake');
+    }
+    if (isProductSafetyNotice &&
+        (productSafetyNotice == null ||
+            !const {'dangerous_product', 'accident_or_injury'}
+                .contains(productSafetyNotice!.issueKind) ||
+            productSafetyNotice!.productIdentification.trim().length < 3 ||
+            productSafetyNotice!.riskDescription.trim().length < 20 ||
+            !productSafetyNotice!.safetyGuidanceAcknowledged)) {
+      throw const FormatException('invalid_product_safety_intake');
+    }
+    if (!isProductSafetyNotice && productSafetyNotice != null) {
+      throw const FormatException('unexpected_product_safety_intake');
     }
     final description = userDescription.trim();
     final summary = '$mainCategoryLabel: $subCategory.'
@@ -499,6 +550,8 @@ class SupportFlowResult {
       'safetyTriage': safetyTriage.toMap(),
       'issueScope': issueScope.toMap(),
       if (isDsaNotice) 'dsaNotice': dsaNotice!.toMap(),
+      if (isProductSafetyNotice)
+        'productSafetyNotice': productSafetyNotice!.toMap(),
       if (privacyRightsRequest != null)
         'privacyRightsRequest': privacyRightsRequest.toMap(),
       if (!profileContext && !listingContext && requestId.isNotEmpty)
@@ -512,9 +565,17 @@ class SupportFlowResult {
     final route = backendRoute;
     final isDsaNotice = route.caseType == 'moderation_content' &&
         route.caseSubType == 'illegal_content_notice';
+    final isProductSafetyNotice = route.caseType == 'trust_safety' &&
+        route.caseSubType == 'dangerous_item_or_injury';
     final dsaNoticeNumber = value['dsaNoticeNumber']?.toString().trim();
     final dsaLocatorStatus = value['dsaNoticeLocatorStatus']?.toString().trim();
     final dsaLocatorPrompt = value['dsaNoticeLocatorPrompt']?.toString().trim();
+    final productSafetyNoticeNumber =
+        value['productSafetyNoticeNumber']?.toString().trim();
+    final productSafetyTriageDueAt =
+        value['productSafetyTriageDueAt']?.toString().trim();
+    final productSafetyTriageDueDisplay =
+        value['productSafetyTriageDueDisplay']?.toString().trim();
     final requiredTextFields = <String>[
       'id',
       'caseNumber',
@@ -547,6 +608,14 @@ class SupportFlowResult {
             dsaLocatorStatus == 'complete' &&
             ((dsaLocatorPrompt ?? '').isNotEmpty ||
                 value['dsaNoticeLocatorMaySubmit'] != false)) ||
+        (isProductSafetyNotice
+            ? !RegExp(r'^SIT-P-[A-HJ-NP-Z2-9]{12}$')
+                    .hasMatch(productSafetyNoticeNumber ?? '') ||
+                DateTime.tryParse(productSafetyTriageDueAt ?? '') == null ||
+                (productSafetyTriageDueDisplay ?? '').isEmpty
+            : (productSafetyNoticeNumber ?? '').isNotEmpty ||
+                (productSafetyTriageDueAt ?? '').isNotEmpty ||
+                (productSafetyTriageDueDisplay ?? '').isNotEmpty) ||
         !RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
             .hasMatch(value['caseNumber'].toString()) ||
         DateTime.tryParse(value['nextUpdateAt'].toString()) == null) {
@@ -560,6 +629,7 @@ class SupportFlowResult {
       safetyTriage: safetyTriage,
       issueScope: issueScope,
       dsaNotice: dsaNotice,
+      productSafetyNotice: productSafetyNotice,
       canonicalCase: Map<String, dynamic>.unmodifiable(value),
     );
   }
@@ -569,6 +639,8 @@ class SupportFlowResult {
     if (supportCase == null) throw StateError('canonical_support_case_missing');
     final isDsaNotice = backendRoute.caseType == 'moderation_content' &&
         backendRoute.caseSubType == 'illegal_content_notice';
+    final isProductSafetyNotice = backendRoute.caseType == 'trust_safety' &&
+        backendRoute.caseSubType == 'dangerous_item_or_injury';
     final routingLine = backendRoute.caseType == 'privacy_security'
         ? 'Deine Anfrage ist als eigener Datenschutz-Fall im '
             'Datenschutz-Prüfweg erfasst.'
@@ -577,8 +649,15 @@ class SupportFlowResult {
                 '${supportCase['dsaNoticeNumber']} erfasst. Die Eingangsbestätigung '
                 'ist noch keine Entscheidung über die Rechtswidrigkeit.'
                 '${supportCase['dsaNoticeLocatorStatus'] == 'needs_clarification' ? ' Der Fundort kann im Support-Fall gezielt ergänzt werden; die Meldung bleibt gespeichert.' : ''}'
-            : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
-                'noch nicht entschieden.';
+            : isProductSafetyNotice
+                ? 'Deine Produktsicherheitsmeldung '
+                    '${supportCase['productSafetyNoticeNumber']} ist im '
+                    'Trust-&-Safety-Schnelltriageweg erfasst. Nutze oder gib '
+                    'den Gegenstand bis zur Prüfung nicht weiter. Die '
+                    'Eingangsbestätigung ist noch keine technische oder '
+                    'rechtliche Bewertung.'
+                : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
+                    'noch nicht entschieden.';
     final safetyLine = safetyTriage.immediateDanger
         ? 'Sicherheit geht vor: Bleib an einem sicheren Ort und nutze bei unmittelbarer Gefahr 110 oder 112. SIT ist kein Notfalldienst.'
         : routingLine;
@@ -604,6 +683,8 @@ class SupportFlowResult {
       'immediateDanger': safetyTriage.immediateDanger,
       'safetyTriage': safetyTriage.toMap(),
       if (dsaNotice != null) 'dsaNotice': dsaNotice!.toMap(),
+      if (productSafetyNotice != null)
+        'productSafetyNotice': productSafetyNotice!.toMap(),
       if (canonicalCase != null) 'supportCase': canonicalCase,
       ...context.toSupportContext(),
     };
@@ -628,6 +709,8 @@ class SupportFlowResult {
         return 'Datenschutz & Daten';
       case 'dsa_notice':
         return 'Rechtswidrigen Inhalt melden';
+      case 'product_safety':
+        return 'Produktsicherheit melden';
       case 'other':
         return 'Sonstiges';
       case 'profile_report':
@@ -693,6 +776,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   final _dsaContentLocatorController = TextEditingController();
   final _dsaLegalBasisController = TextEditingController();
   bool _dsaGoodFaithConfirmed = false;
+  final _productIdentificationController = TextEditingController();
+  bool _productSafetyGuidanceAcknowledged = false;
   bool _sendingSupport = false;
   bool _cardsHidden = false;
 
@@ -706,16 +791,26 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   bool get _showIssueSeparationGuidance => _singleIssueConfirmed == false;
   bool get _isDsaNoticeSelection =>
       _selectedMainCategory == 'dsa_notice' && _selectedSubCategory != null;
+  bool get _isProductSafetySelection =>
+      _selectedMainCategory == 'product_safety' && _selectedSubCategory != null;
   bool get _dsaNoticeReady =>
       !_isDsaNoticeSelection ||
       _immediateDanger == true ||
       (_descriptionController.text.trim().length >= 20 &&
           _dsaGoodFaithConfirmed);
+  bool get _productSafetyNoticeReady =>
+      !_isProductSafetySelection ||
+      _immediateDanger == true ||
+      (_productIdentificationController.text.trim().length >= 3 &&
+          _descriptionController.text.trim().length >= 20 &&
+          _productSafetyGuidanceAcknowledged);
+  bool get _submissionReady => _dsaNoticeReady && _productSafetyNoticeReady;
 
   @override
   void initState() {
     super.initState();
     _descriptionController.text = widget.initialDescription.trim();
+    _productIdentificationController.text = widget.context.itemTitle.trim();
     final nonce = Random.secure().nextInt(0x7fffffff).toRadixString(16);
     _submissionIdempotencyKey =
         'support_intake_${DateTime.now().microsecondsSinceEpoch}_$nonce';
@@ -726,6 +821,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     _descriptionController.dispose();
     _dsaContentLocatorController.dispose();
     _dsaLegalBasisController.dispose();
+    _productIdentificationController.dispose();
     super.dispose();
   }
 
@@ -770,6 +866,11 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       'title': 'Welcher Inhalt soll rechtlich geprüft werden?',
       'subline': 'Diese Meldung wird als eigene DSA-Notice erfasst und nicht '
           'als allgemeiner Buchungsfall behandelt.',
+    },
+    'product_safety': {
+      'title': 'Was möchtest du zur Produktsicherheit melden?',
+      'subline': 'Dieser elektronische Kontakt führt die Meldung in einen '
+          'eigenen Trust-&-Safety-Schnelltriageweg.',
     },
     'other': {
       'title': 'Wobei brauchst du Hilfe?',
@@ -900,6 +1001,14 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         'Anderer Inhalt',
       ],
     ),
+    'product_safety': _SupportCategory(
+      icon: Icons.health_and_safety_outlined,
+      label: 'Produktsicherheit melden',
+      subcategories: [
+        'Möglicherweise gefährliches Produkt',
+        'Unfall oder Verletzung durch Produkt',
+      ],
+    ),
     'other': _SupportCategory(
       icon: Icons.more_horiz_rounded,
       label: 'Sonstiges',
@@ -965,9 +1074,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       return 'Warum möchtest du dieses Profil melden?';
     }
     if (_selectedSubCategory != null) {
-      return _isDsaNoticeSelection
-          ? 'Angaben zur Meldung'
-          : 'Beschreibe kurz, was passiert ist';
+      if (_isDsaNoticeSelection) return 'Angaben zur Meldung';
+      if (_isProductSafetySelection) return 'Produktsicherheit melden';
+      return 'Beschreibe kurz, was passiert ist';
     }
     if (_selectedMainCategory != null) {
       return _categoryTitles[_selectedMainCategory]?['title'] ??
@@ -996,10 +1105,15 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       return 'Wähle den genauesten Grund, damit der Support den Fall richtig einordnen kann.';
     }
     if (_selectedSubCategory != null) {
-      return _isDsaNoticeSelection
-          ? 'Nenne den exakten Inhalt und begründe, warum du ihn für '
-              'rechtswidrig hältst. Die Meldung allein entscheidet noch nichts.'
-          : 'Je genauer du es beschreibst, desto schneller kann dir der Support helfen.';
+      if (_isDsaNoticeSelection) {
+        return 'Nenne den exakten Inhalt und begründe, warum du ihn für '
+            'rechtswidrig hältst. Die Meldung allein entscheidet noch nichts.';
+      }
+      if (_isProductSafetySelection) {
+        return 'Nutze das Produkt nicht weiter. Beschreibe Produkt und Gefahr '
+            'so konkret wie möglich; bei akuter Gefahr oder Verletzung rufe 112.';
+      }
+      return 'Je genauer du es beschreibst, desto schneller kann dir der Support helfen.';
     }
     if (_selectedMainCategory != null) {
       return _categoryTitles[_selectedMainCategory]?['subline'] ??
@@ -1667,6 +1781,63 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     );
   }
 
+  Widget _buildProductSafetyFields() {
+    return ListView(
+      key: const ValueKey('support_product_safety_fields'),
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'Direkter elektronischer Produktsicherheitskontakt',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Nutze das Produkt nicht weiter und gib es nicht an andere weiter. '
+          'Bei akuter Gefahr oder Verletzung rufe 112. SIT ist kein Notruf und '
+          'kann keine Ferndiagnose oder Sicherheitsgarantie geben.',
+        ),
+        const SizedBox(height: 14),
+        _supportTextField(
+          controller: _productIdentificationController,
+          fieldKey: 'support_product_safety_identification',
+          label: 'Produkt, Hersteller oder Modell *',
+          hint: 'Zum Beispiel Produktname, Marke, Modell oder Kennzeichnung',
+          maxLength: 300,
+          maxLines: 3,
+        ),
+        const SizedBox(height: 12),
+        _supportTextField(
+          controller: _descriptionController,
+          fieldKey: 'support_product_safety_risk_description',
+          label: 'Welche Gefahr, welcher Unfall oder welche Verletzung? *',
+          hint: 'Beschreibe Risiko, Ablauf, Datum und vorhandene Nachweise.',
+          maxLength: 2000,
+          minLines: 4,
+          maxLines: 8,
+        ),
+        CheckboxListTile(
+          key: const ValueKey('support_product_safety_guidance_acknowledged'),
+          value: _productSafetyGuidanceAcknowledged,
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          title: const Text(
+            'Ich habe den Sicherheitshinweis gelesen und melde genau diesen '
+            'Produktsicherheitsfall. *',
+          ),
+          onChanged: (value) => setState(
+            () => _productSafetyGuidanceAcknowledged = value == true,
+          ),
+        ),
+        const Text(
+          'Die Meldung erhält eine eigene Referenz und eine servergebundene '
+          'Schnelltriagefrist. Sie löst keine automatische Sperre, '
+          'Behördenmeldung oder externe Nachricht aus.',
+          style: TextStyle(fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDescriptionStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final resolvedMainCategory =
@@ -1703,32 +1874,34 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                   ),
                   child: _isDsaNoticeSelection
                       ? _buildDsaNoticeFields()
-                      : TextField(
-                          controller: _descriptionController,
-                          maxLength: 1400,
-                          maxLines: null,
-                          expands: true,
-                          textAlignVertical: TextAlignVertical.top,
-                          style: TextStyle(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.95)
-                                : AppTheme.textPrimary(context),
-                            fontSize: 15,
-                            height: 1.5,
-                          ),
-                          decoration: InputDecoration(
-                            hintText:
-                                'Was ist passiert? Beschreibe die Situation so genau wie möglich …',
-                            hintStyle: TextStyle(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.35)
-                                  : AppTheme.textDisabled(context),
-                              fontSize: 15,
+                      : _isProductSafetySelection
+                          ? _buildProductSafetyFields()
+                          : TextField(
+                              controller: _descriptionController,
+                              maxLength: 1400,
+                              maxLines: null,
+                              expands: true,
+                              textAlignVertical: TextAlignVertical.top,
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.95)
+                                    : AppTheme.textPrimary(context),
+                                fontSize: 15,
+                                height: 1.5,
+                              ),
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Was ist passiert? Beschreibe die Situation so genau wie möglich …',
+                                hintStyle: TextStyle(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.35)
+                                      : AppTheme.textDisabled(context),
+                                  fontSize: 15,
+                                ),
+                                contentPadding: const EdgeInsets.all(18),
+                                border: InputBorder.none,
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.all(18),
-                            border: InputBorder.none,
-                          ),
-                        ),
                 ),
               ),
             ),
@@ -1739,7 +1912,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
             width: double.infinity,
             height: 52,
             child: _SupportPressScale(
-              onTap: _sendingSupport || !_dsaNoticeReady
+              onTap: _sendingSupport || !_submissionReady
                   ? null
                   : _submitSupportCase,
               child: ClipRRect(
@@ -1751,10 +1924,10 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                       gradient: LinearGradient(
                         colors: [
                           BrandColors.primary.withValues(
-                            alpha: _dsaNoticeReady ? 1 : 0.45,
+                            alpha: _submissionReady ? 1 : 0.45,
                           ),
                           BrandColors.primary.withValues(
-                            alpha: _dsaNoticeReady ? 0.85 : 0.35,
+                            alpha: _submissionReady ? 0.85 : 0.35,
                           ),
                         ],
                       ),
@@ -1823,6 +1996,20 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                 illegalityStatement: _descriptionController.text,
                 jurisdictionOrLegalBasis: _dsaLegalBasisController.text,
                 goodFaithConfirmed: _dsaGoodFaithConfirmed,
+              )
+            : null,
+        productSafetyNotice: _immediateDanger != true &&
+                _isProductSafetySelection
+            ? SupportProductSafetyNotice(
+                issueKind: _selectedSubCategory ==
+                        'Unfall oder Verletzung durch Produkt'
+                    ? 'accident_or_injury'
+                    : 'dangerous_product',
+                productIdentification: _productIdentificationController.text,
+                riskDescription: _descriptionController.text,
+                injuryOccurred: _selectedSubCategory ==
+                    'Unfall oder Verletzung durch Produkt',
+                safetyGuidanceAcknowledged: _productSafetyGuidanceAcknowledged,
               )
             : null,
       );

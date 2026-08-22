@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "e6645ee05b1f6b35d4dfd1c0c5a2baf72e6f1069f4a64a3547f3f714acb1b530"
+      "sha256": "89581dc1e99139963a1cb33c7a91778bd20aed17a98cfd7989c44cc9396635b6"
     },
     {
       "path": "backend/src/server.js",
@@ -45,15 +45,15 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "8509b3b00852792f4595cb4c581d2de2aca25bb360f2d4d6a1363dea2f05f0d1"
+      "sha256": "c86acf9d2f47f39dd571ea0a82997acbe3495e6359f4ec8eabc5f14f97b3edd6"
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "f00487ee4da5a2cff14cfe06fa2fda181be422db093cff74afa1146ed059be75"
+      "sha256": "021bd9b96e67670749b77ac0d211a29bdf056c178b2efe98cca9d6d66719444e"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "23055bdf83414507f47e78408beed6aafd8b297e6229919b20a3a95f5cc01f97"
+      "sha256": "58860294b10a207c0b722ec98d0ae0f5020eb8edfe3f4df2e21ce1bfeb1e1b56"
     },
     {
       "path": "backend/src/support_privacy_rights_domain.js",
@@ -108,6 +108,10 @@
       "sha256": "98e25d3d20bb567255c42a3738eb8dfe1d28afa5706353a26edebad24eaa1311"
     },
     {
+      "path": "backend/src/product_safety_config.js",
+      "sha256": "bb33661e09f7a7c96e6510eb1115cf11b9142660961ae703a0fb207674c9ba5b"
+    },
+    {
       "path": "backend/src/support_message_domain.js",
       "sha256": "8cc24b6671543a53ba7de5a8bdae896af4ba694f64a9338f935a327483d83f89"
     },
@@ -141,11 +145,11 @@
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "2dab8f77fa5235b321ac7417609b460ffc5071414b2e7d2a0d7a1d432473d47a"
+      "sha256": "a8af9f80a75eba98d3a49754aa12a75a40fa2148db582c3f80619d09727addbd"
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "faad4a34dcb9c23caa611087679857c254cdf5baa1ed4ae0e247f4882f04d64a"
+      "sha256": "a0878adcfd713178685e0bed3b0f0713b6b995850fbc2e11443f0f8d38bab63a"
     },
     {
       "path": "backend/src/notifications.js",
@@ -376,6 +380,14 @@
       "sha256": "ceafc1cf1e51660f4dcec9b8034e7a46df74f55704a5f5a22a3dd090702fe74c"
     },
     {
+      "path": "backend/sql/migrations/049_support_product_safety_intake.up.sql",
+      "sha256": "219fe7b384b274260b1b44b934f52aa30f750e802436f53c82fd8e454c5f8bf6"
+    },
+    {
+      "path": "backend/sql/migrations/049_support_product_safety_intake.down.sql",
+      "sha256": "51f1754b42d69c9f0b950bee5efc8eec3625e0d2176dfb3345ca7c7226a1a973"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -441,7 +453,7 @@
     },
     {
       "path": "lib/screens/support_flow_screen.dart",
-      "sha256": "3f9a85cb507475f174bdc2fdce8f6fedd8bc38ca72a614d1774134a4b8bb1db8"
+      "sha256": "cb3f0345f8a0331c0c194dfde5d4a81b4293471f6fcb4912bd343e0e9ccce9d2"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",

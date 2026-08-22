@@ -19,6 +19,7 @@ node --check tool/verify_android_binary_privacy.mjs
 node --check tool/validate_device_evidence.mjs
 node --check tool/validate_legal_readiness.mjs
 node --check tool/validate_support_launch_content.mjs
+node --check tool/validate_product_safety_readiness.mjs
 node --check tool/validate_privacy_disclosures.mjs
 node --check tool/validate_retention_deletion_readiness.mjs
 node --check tool/diagnose_store_review_accounts.mjs
@@ -57,6 +58,7 @@ else
 fi
 node tool/validate_legal_readiness.mjs
 node tool/validate_support_launch_content.mjs
+node tool/validate_product_safety_readiness.mjs
 node tool/validate_privacy_disclosures.mjs
 node tool/validate_retention_deletion_readiness.mjs
 node tool/validate_store_review_access.mjs
@@ -191,6 +193,7 @@ if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
   node tool/validate_device_evidence.mjs --require-passed
   node tool/validate_legal_readiness.mjs --require-approved
   node tool/validate_support_launch_content.mjs --require-approved
+  node tool/validate_product_safety_readiness.mjs --require-approved
   node tool/validate_privacy_disclosures.mjs --require-approved
   node tool/validate_retention_deletion_readiness.mjs --require-approved
   node tool/validate_store_review_access.mjs --require-ready

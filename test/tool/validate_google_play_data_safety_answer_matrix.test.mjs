@@ -19,8 +19,8 @@ test('accepts the complete but unsaved Data Safety answer matrix', () => {
     root,
     allowCandidateRollover: true,
   }), {
-    evaluated: 17,
-    selected: 16,
+    evaluated: 18,
+    selected: 17,
     consoleSaved: false,
     submissionAllowed: false,
   });

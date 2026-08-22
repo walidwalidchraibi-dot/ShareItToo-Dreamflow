@@ -2721,14 +2721,16 @@ export function createApp({
   });
 
   app.get('/v1/public/compliance', (_req, res) => {
+    const overview = publicComplianceOverview();
     res.set({
       'Cache-Control': 'no-store',
-      'X-SIT-Compliance-Status': config.publicCompliance.approved ? 'approved' : 'draft',
-    }).json(publicComplianceOverview());
+      'X-SIT-Compliance-Status': overview.status,
+    }).json(overview);
   });
 
   app.get('/v1/public/support', (_req, res) => {
-    const approved = config.publicCompliance.approved;
+    const approved = config.publicCompliance.approved
+      && config.productSafety.isComplete;
     res.set('X-SIT-Compliance-Status', approved ? 'approved' : 'draft');
     sendHtml(res, approved ? 200 : 503, publicSupportPage());
   });

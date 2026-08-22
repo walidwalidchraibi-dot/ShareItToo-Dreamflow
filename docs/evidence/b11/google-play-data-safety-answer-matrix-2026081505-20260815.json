@@ -163,6 +163,19 @@
       ]
     },
     {
+      "id": "healthInfo",
+      "google": "Health and fitness / Health info",
+      "selected": true,
+      "collected": true,
+      "shared": "pending-service-provider-contract-classification",
+      "ephemeral": false,
+      "required": false,
+      "purposes": [
+        "appFunctionality",
+        "fraudPreventionSecurityCompliance"
+      ]
+    },
+    {
       "id": "purchaseHistory",
       "google": "Financial info / Purchase history",
       "selected": true,

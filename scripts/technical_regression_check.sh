@@ -55,6 +55,10 @@ node --test test/tool/validate_support_launch_content.test.mjs
 node --test backend/test/consumer_dispute_config.test.js backend/test/support_message_domain.test.js backend/test/support_message_workflow.test.js
 node tool/validate_support_launch_content.mjs
 
+node --check tool/validate_product_safety_readiness.mjs
+node --test test/tool/validate_product_safety_readiness.test.mjs backend/test/product_safety_config.test.js
+node tool/validate_product_safety_readiness.mjs
+
 node --check tool/validate_founder_independence_guardrails.mjs
 node --test test/tool/validate_founder_independence_guardrails.test.mjs
 node tool/validate_founder_independence_guardrails.mjs

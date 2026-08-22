@@ -478,3 +478,31 @@ publication skipped. Professional legal review, operator facts,
 competent-body approval, real support staffing, external delivery, production,
 payment, Store, signed-candidate and every live path remain closed. Autonomous
 work continues next with `SUP-137` after the evidence-only head is green.
+
+## S3V product-safety contact and rapid triage
+
+`S3V_SUPPORT_PRODUCT_SAFETY_CONTACT_TRIAGE` is locally verified for Drive
+scenario `SUP-137`; exact implementation commit and GitHub CI evidence are
+pending. The app and Backend now accept one versioned structured
+product-safety notice on the exact `trust_safety/dangerous_item_or_injury`
+route, require emergency-first safety acknowledgement and return an opaque
+`SIT-P-*` receipt with a database-enforced candidate triage checkpoint no later
+than 60 minutes after receipt. Migration `049` preserves immutable evidence and
+blocks unsafe rollback.
+
+Public/Store readiness remains closed until the consumer contact, authority and
+Safety Gate registrations, internal process and approval version are all real
+and approved. The package contains no external transport, report, Safety Gate
+submission, automatic listing/account action, production configuration or live
+operation. The prepared Google Play Data Safety truth now includes optional
+injury information as Health info: 17 of 18 reviewed types are selected, but
+the matrix remains unsaved and no console action occurred.
+
+Local verification passed 488 Backend unit tests with one environment-only
+PostgreSQL skip, the separate isolated PostgreSQL 16.15 foundation integration
+through migration `049`, the accepted 220-issue analyzer baseline, 363 Flutter
+tests with one documented skip, the separate Google-only test, Web smoke/build
+and Android debug APK. P0B PSP and invited-pilot gates remain HOLD/NO-GO after
+source-hash refresh only. Professional legal review, real registrations,
+staffing, external delivery, production, payment, Store, signed candidate and
+all live paths remain closed.

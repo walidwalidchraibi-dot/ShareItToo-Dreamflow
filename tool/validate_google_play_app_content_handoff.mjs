@@ -111,7 +111,7 @@ export function validateGooglePlayAppContentHandoff({
       tasks.dataSafety.preparedDeleteAccountUrl !==
         'https://shareittoo.com/account-deletion' ||
       tasks.dataSafety.preparedPartialDataDeletionAnswer !== false ||
-      tasks.dataSafety.dataTypesPrepared !== 16 ||
+      tasks.dataSafety.dataTypesPrepared !== 17 ||
       tasks.dataSafety.dataTypesEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
       tasks.dataSafety.answerMatrixEvidenceRef !==

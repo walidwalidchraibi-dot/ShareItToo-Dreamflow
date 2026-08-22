@@ -16,6 +16,7 @@ Map<String, dynamic> _canonicalCase({
   String caseSubType = 'app_error_or_display',
   String? dsaNoticeNumber,
   String dsaNoticeLocatorStatus = 'complete',
+  String? productSafetyNoticeNumber,
 }) =>
     {
       'id': 'case-1',
@@ -31,6 +32,12 @@ Map<String, dynamic> _canonicalCase({
       if (dsaNoticeNumber != null)
         'dsaNoticeLocatorMaySubmit':
             dsaNoticeLocatorStatus == 'needs_clarification',
+      if (productSafetyNoticeNumber != null)
+        'productSafetyNoticeNumber': productSafetyNoticeNumber,
+      if (productSafetyNoticeNumber != null)
+        'productSafetyTriageDueAt': '2026-08-21T15:00:00.000Z',
+      if (productSafetyNoticeNumber != null)
+        'productSafetyTriageDueDisplay': '21.08.2026, 17:00',
       'status': 'received',
       'nextUpdateAt': '2026-08-21T16:00:00.000Z',
       'nextUpdateDisplay': '21.08.2026, 18:00',
@@ -250,6 +257,57 @@ void main() {
     );
   });
 
+  test('product-safety category maps structured evidence to the rapid route',
+      () {
+    const result = SupportFlowResult(
+      mainCategory: 'product_safety',
+      subCategory: 'Unfall oder Verletzung durch Produkt',
+      userDescription:
+          'Beim Einschalten trat Rauch aus und eine Hand wurde verletzt.',
+      context: _context,
+      safetyTriage: SupportSafetyTriage(
+        immediateDanger: false,
+        guidanceShown: false,
+      ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
+      ),
+      productSafetyNotice: SupportProductSafetyNotice(
+        issueKind: 'accident_or_injury',
+        productIdentification: 'Bohrmaschine Modell X',
+        riskDescription:
+            'Beim Einschalten trat Rauch aus und eine Hand wurde verletzt.',
+        injuryOccurred: true,
+        safetyGuidanceAcknowledged: true,
+      ),
+    );
+
+    final intake = result.toBackendInput();
+    expect(intake['caseType'], 'trust_safety');
+    expect(intake['caseSubType'], 'dangerous_item_or_injury');
+    expect(intake['productSafetyNotice'], {
+      'version': 'sit_product_safety_intake_v1',
+      'contactPointVersion': 'sit_product_safety_contact_point_v1',
+      'issueKind': 'accident_or_injury',
+      'productIdentification': 'Bohrmaschine Modell X',
+      'riskDescription':
+          'Beim Einschalten trat Rauch aus und eine Hand wurde verletzt.',
+      'injuryOccurred': true,
+      'safetyGuidanceAcknowledged': true,
+    });
+
+    final confirmed = result.withCanonicalCase(_canonicalCase(
+      caseType: 'trust_safety',
+      caseSubType: 'dangerous_item_or_injury',
+      productSafetyNoticeNumber: 'SIT-P-ABCDEFGHJKLM',
+    ));
+    expect(confirmed.canonicalReceiptMessage,
+        contains('Produktsicherheitsmeldung SIT-P-ABCDEFGHJKLM'));
+    expect(confirmed.canonicalReceiptMessage,
+        contains('keine technische oder rechtliche Bewertung'));
+  });
+
   test(
       'DSA category creates an exact notice payload and requires its own server receipt',
       () {
@@ -429,6 +487,44 @@ void main() {
     );
     expect(
         find.textContaining('keine automatische Entfernung'), findsOneWidget);
+  });
+
+  testWidgets(
+      'product-safety contact requires structured safety acknowledgement',
+      (tester) async {
+    await _pumpFlow(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('support_safety_answer_no_danger')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Produktsicherheit melden'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Produktsicherheit melden'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Möglicherweise gefährliches Produkt'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('support_product_safety_fields')),
+        findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('support_product_safety_identification')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('support_product_safety_risk_description')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+          const ValueKey('support_product_safety_guidance_acknowledged')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('keine automatische Sperre'), findsOneWidget);
   });
 
   test('canonical receipt rejects unconfirmed or non-simulation responses', () {

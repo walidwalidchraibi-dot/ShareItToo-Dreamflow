@@ -6,6 +6,7 @@ import {
   classifyDsaNoticeLocator,
   newHumanReadableCaseNumber,
   newHumanReadableDsaNoticeNumber,
+  newHumanReadableProductSafetyNoticeNumber,
   normalizeSupportCaseInput,
   normalizeDsaNoticeLocatorCompletion,
   normalizeSupportCaseTransition,
@@ -14,6 +15,8 @@ import {
   supportCaseStatuses,
   supportIntakeScopeVersion,
   supportDsaNoticeIntakeVersion,
+  supportProductSafetyContactPointVersion,
+  supportProductSafetyIntakeVersion,
   supportPacketVersion,
   supportPriorities,
   supportRouteFor,
@@ -170,6 +173,15 @@ test('human-readable DSA Notice ID is opaque, fixed length and ambiguity-safe', 
   assert.doesNotMatch(number.slice(6), /[01IO]/u);
 });
 
+test('human-readable product-safety Notice ID is opaque and ambiguity-safe', () => {
+  const number = newHumanReadableProductSafetyNoticeNumber(
+    Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+  );
+  assert.match(number, /^SIT-P-[A-HJ-NP-Z2-9]{12}$/u);
+  assert.equal(number.length, 18);
+  assert.doesNotMatch(number.slice(6), /[01IO]/u);
+});
+
 test('intake derives authoritative route and retains non-live operating truth', () => {
   const result = normalizeSupportCaseInput({
     caseType: 'money_case',
@@ -211,6 +223,85 @@ test('privacy intake gets its own owner and bounded operational checkpoint', () 
   assert.equal(result.privacyFlag, true);
   assert.equal(result.nextUpdateAt.toISOString(), '2026-08-21T14:00:00.000Z');
   assert.equal(result.operatingMode, 'simulation');
+});
+
+test('product-safety intake is server-routed to rapid red Trust and Safety triage', () => {
+  const result = normalizeSupportCaseInput({
+    caseType: 'trust_safety',
+    caseSubType: 'dangerous_item_or_injury',
+    summary: 'Möglicherweise gefährliches Produkt gesondert prüfen.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+    productSafetyNotice: {
+      version: supportProductSafetyIntakeVersion,
+      contactPointVersion: supportProductSafetyContactPointVersion,
+      issueKind: 'dangerous_product',
+      productIdentification: 'Bohrmaschine, Modell X',
+      riskDescription:
+        'Das Gehäuse wird beim Betrieb sehr heiß und riecht verschmort.',
+      injuryOccurred: false,
+      safetyGuidanceAcknowledged: true,
+    },
+  }, { now });
+
+  assert.equal(result.priority, 'p1');
+  assert.equal(result.ownerRole, 'trust_safety_owner');
+  assert.equal(result.waitingOn, 'trust_safety_owner');
+  assert.equal(result.approvalLevel, 'red_explicit_decision');
+  assert.equal(result.safetyFlag, true);
+  assert.equal(result.authorityFlag, true);
+  assert.equal(result.article18CandidateFlag, false);
+  assert.equal(result.nextUpdateAt.toISOString(), '2026-08-21T11:00:00.000Z');
+  assert.deepEqual(result.productSafetyNotice, {
+    version: supportProductSafetyIntakeVersion,
+    contactPointVersion: supportProductSafetyContactPointVersion,
+    issueKind: 'dangerous_product',
+    productIdentification: 'Bohrmaschine, Modell X',
+    riskDescription:
+      'Das Gehäuse wird beim Betrieb sehr heiß und riecht verschmort.',
+    injuryOccurred: false,
+    safetyGuidanceAcknowledged: true,
+  });
+});
+
+test('product-safety evidence is required only on its exact route and fails closed', () => {
+  const base = {
+    caseType: 'trust_safety',
+    caseSubType: 'dangerous_item_or_injury',
+    summary: 'Möglicherweise gefährliches Produkt gesondert prüfen.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+  };
+  assert.throws(
+    () => normalizeSupportCaseInput(base, { now }),
+    /support_product_safety_notice_required/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      productSafetyNotice: {
+        version: supportProductSafetyIntakeVersion,
+        contactPointVersion: supportProductSafetyContactPointVersion,
+        issueKind: 'dangerous_product',
+        productIdentification: 'Produkt X',
+        riskDescription: 'Eine ausreichend konkrete Gefahrbeschreibung liegt vor.',
+        injuryOccurred: false,
+        safetyGuidanceAcknowledged: false,
+      },
+    }, { now }),
+    /support_product_safety_guidance_required/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      caseType: 'general_help',
+      caseSubType: 'general_how_to',
+      summary: 'Allgemeine Hilfe anfordern.',
+      safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
+      productSafetyNotice: {},
+    }, { now }),
+    /support_product_safety_notice_not_applicable/u,
+  );
 });
 
 test('illegal-content notice records structured DSA evidence and keeps a human-review boundary', () => {

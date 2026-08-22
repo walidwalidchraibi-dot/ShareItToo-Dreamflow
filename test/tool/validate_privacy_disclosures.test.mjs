@@ -49,7 +49,7 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   const result = validate();
   assert.equal(result.state, 'draft');
   assert.equal(result.approvalAllowed, false);
-  assert.equal(result.dataTypeCount, 17);
+  assert.equal(result.dataTypeCount, 18);
   assert.equal(result.externalServiceCount, 9);
   assert.equal(result.binaryReleaseCheck, 'passed');
   assert.equal(result.storeGate, 'open');

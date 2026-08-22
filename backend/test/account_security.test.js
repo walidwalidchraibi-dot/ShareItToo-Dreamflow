@@ -209,11 +209,15 @@ test('public imprint stays draft when the VSBG configuration is incomplete', () 
   assert.match(imprint, /Verbraucherstreitbeilegung/);
 });
 
-test('approved public support page exposes a clear electronic notice and complaint route', () => {
+test('approved public support page exposes DSA and product-safety contact routes', () => {
   const support = accountActions.publicSupportPage({
     compliance: {
       approved: true,
       supportEmail: 'support-contact.invalid',
+    },
+    productSafety: {
+      isComplete: true,
+      consumerContactEmail: 'produktsicherheit@example.test',
     },
   });
 
@@ -222,5 +226,33 @@ test('approved public support page exposes a clear electronic notice and complai
   assert.match(support, /Rechtswidrige Inhalte melden/);
   assert.match(support, /Meldung rechtswidriger Inhalt/);
   assert.match(support, /Beschwerde zu einer Moderationsentscheidung/);
+  assert.match(support, /Produktsicherheit melden/);
+  assert.match(support, /mailto:produktsicherheit@example\.test/);
+  assert.match(support, /Nutze das Produkt nicht weiter/);
   assert.match(support, /kein Notruf/);
+});
+
+test('public compliance stays draft until product-safety approval is complete', () => {
+  const common = {
+    compliance: { approved: true },
+    consumerDispute: { isComplete: true },
+  };
+  assert.deepEqual(accountActions.publicComplianceOverview({
+    ...common,
+    productSafety: { isComplete: false },
+  }), {
+    status: 'draft',
+    submissionReady: false,
+    pages: {
+      support: 'draft',
+      privacy: 'draft',
+      consumerDispute: 'approved',
+      productSafety: 'draft',
+      accountDeletion: 'operational',
+    },
+  });
+  assert.equal(accountActions.publicComplianceOverview({
+    ...common,
+    productSafety: { isComplete: true },
+  }).submissionReady, true);
 });

@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import {
   newHumanReadableCaseNumber,
   newHumanReadableDsaNoticeNumber,
+  newHumanReadableProductSafetyNoticeNumber,
   normalizeDsaNoticeLocatorCompletion,
   normalizeSupportCaseInput,
   normalizeSupportCaseTransition,
@@ -84,6 +85,11 @@ function shapeSupportCase(row, { staff = false, actorId = null, now = new Date()
     dsaNoticeLocatorMaySubmit: actorId != null
       && row.reporter_user_id === actorId
       && dsaLocatorStatus === 'needs_clarification',
+    productSafetyNoticeNumber: row.product_safety_notice_number ?? null,
+    productSafetyTriageDueAt: iso(row.product_safety_triage_due_at),
+    productSafetyTriageDueDisplay: supportCaseDateTimeDisplay(
+      row.product_safety_triage_due_at,
+    ),
     caseType: row.case_type,
     caseSubType: row.case_subtype,
     status: row.status,
@@ -135,6 +141,7 @@ function shapeSupportCase(row, { staff = false, actorId = null, now = new Date()
     responseDueAt: iso(row.response_due_at),
     evidenceDueAt: iso(row.evidence_due_at),
     internalSummary: row.internal_summary ?? null,
+    productSafetyEvidence: row.product_safety_evidence ?? null,
     flags: Object.freeze({
       safety: row.safety_flag === true,
       privacy: row.privacy_flag === true,
@@ -329,6 +336,19 @@ export async function createSupportCase(client, {
     });
   }
 
+  let productSafetyNoticeNumber = null;
+  let productSafetyEvidence = null;
+  let productSafetyTriageDueAt = null;
+  if (normalized.productSafetyNotice) {
+    productSafetyNoticeNumber = newHumanReadableProductSafetyNoticeNumber();
+    productSafetyEvidence = Object.freeze({
+      ...normalized.productSafetyNotice,
+      sourceChannel: normalized.sourceChannel,
+      submittedAt: now.toISOString(),
+    });
+    productSafetyTriageDueAt = normalized.nextUpdateAt;
+  }
+
   const id = crypto.randomUUID();
   const caseNumber = newHumanReadableCaseNumber();
   const inserted = await client.query(
@@ -344,7 +364,8 @@ export async function createSupportCase(client, {
        linked_refund_id, linked_payout_id, idempotency_key,
        intake_scope_evidence, dsa_notice_number, dsa_notice_evidence,
        dsa_notice_locator_status, dsa_notice_locator_kind,
-       created_at, updated_at
+       created_at, updated_at, product_safety_notice_number,
+       product_safety_evidence, product_safety_triage_due_at
      ) VALUES (
        $1, $2, $3, $4, 'received',
        $5, $6, $7, $8, $9,
@@ -356,7 +377,7 @@ export async function createSupportCase(client, {
        $29, $30, $31,
        $32::jsonb, $33, $34::jsonb,
        $35, $36,
-       $37, $37
+       $37, $37, $38, $39::jsonb, $40
      ) ON CONFLICT (reporter_user_id, idempotency_key) DO NOTHING
      RETURNING *`,
     [
@@ -403,6 +424,9 @@ export async function createSupportCase(client, {
       dsaNoticeLocatorStatus,
       dsaNoticeLocatorKind,
       now,
+      productSafetyNoticeNumber,
+      productSafetyEvidence == null ? null : JSON.stringify(productSafetyEvidence),
+      productSafetyTriageDueAt,
     ],
   );
   if (!inserted.rowCount) {
@@ -463,6 +487,15 @@ export async function createSupportCase(client, {
             locatorKind: dsaNoticeLocatorKind,
           },
         }),
+        ...(productSafetyEvidence == null ? {} : {
+          productSafetyNotice: {
+            noticeNumber: productSafetyNoticeNumber,
+            version: productSafetyEvidence.version,
+            contactPointVersion: productSafetyEvidence.contactPointVersion,
+            issueKind: productSafetyEvidence.issueKind,
+            triageDueAt: productSafetyTriageDueAt.toISOString(),
+          },
+        }),
         ...(privacyRightsRequest == null ? {} : {
           privacyRightsRequest: {
             version: privacyRightsRequest.version,
@@ -498,6 +531,13 @@ export async function createSupportCase(client, {
         dsaNoticeContentType: dsaNoticeEvidence.contentType,
         dsaNoticeLocatorStatus,
         dsaNoticeLocatorKind,
+      }),
+      ...(productSafetyEvidence == null ? {} : {
+        productSafetyNoticeNumber,
+        productSafetyNoticeVersion: productSafetyEvidence.version,
+        productSafetyContactPointVersion: productSafetyEvidence.contactPointVersion,
+        productSafetyIssueKind: productSafetyEvidence.issueKind,
+        productSafetyTriageDueAt: productSafetyTriageDueAt.toISOString(),
       }),
       ...(privacyRightsRequest == null ? {} : {
         privacyRightsRequestVersion: privacyRightsRequest.version,

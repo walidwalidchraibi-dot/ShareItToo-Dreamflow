@@ -617,6 +617,15 @@ export async function buildAccountExport(client, userId) {
               CASE WHEN support_case.reporter_user_id = $1
                 THEN support_case.dsa_notice_locator_status ELSE NULL
               END AS dsa_notice_locator_status,
+              CASE WHEN support_case.reporter_user_id = $1
+                THEN support_case.product_safety_notice_number ELSE NULL
+              END AS product_safety_notice_number,
+              CASE WHEN support_case.reporter_user_id = $1
+                THEN support_case.product_safety_evidence ELSE NULL
+              END AS product_safety_evidence,
+              CASE WHEN support_case.reporter_user_id = $1
+                THEN support_case.product_safety_triage_due_at ELSE NULL
+              END AS product_safety_triage_due_at,
               support_case.status, support_case.priority,
               support_case.source_channel, support_case.operating_mode,
               support_case.locale, support_case.linked_booking_id,

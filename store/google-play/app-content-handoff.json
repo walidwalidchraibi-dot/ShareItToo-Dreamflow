@@ -53,7 +53,7 @@
       "deleteAccountUrlSaved": false,
       "preparedDeleteAccountUrl": "https://shareittoo.com/account-deletion",
       "preparedPartialDataDeletionAnswer": false,
-      "dataTypesPrepared": 16,
+      "dataTypesPrepared": 17,
       "dataTypesEvidenceRef": "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
       "answerMatrixEvidenceRef": "docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json",
       "providerClassificationEvidenceRef": "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json",

@@ -129,7 +129,7 @@ test('rejects claiming OAuth support before the providers are available', async 
 
 test('rejects a Data safety type count that includes free documents', async (t) => {
   const data = await fixture((handoff) => {
-    handoff.tasks.dataSafety.dataTypesPrepared = 17;
+    handoff.tasks.dataSafety.dataTypesPrepared = 18;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validate(data),

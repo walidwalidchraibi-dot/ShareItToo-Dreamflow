@@ -10,8 +10,8 @@
     "commit": "530ed17e46dbd82916eef0d59f1b07e448c737f8"
   },
   "selectionCounts": {
-    "evaluated": 17,
-    "select": 16,
+    "evaluated": 18,
+    "select": 17,
     "doNotSelect": 1
   },
   "select": [
@@ -25,6 +25,7 @@
     "Photos and videos / Photos",
     "Messages / Other in-app messages",
     "Other / Other user-generated content",
+    "Health and fitness / Health info",
     "Financial info / Purchase history",
     "Financial info / Other financial info",
     "Device or other IDs / Device or other IDs",
@@ -66,10 +67,6 @@
     {
       "dataType": "Calendar / Calendar events",
       "reason": "no-calendar-permission-or-upload"
-    },
-    {
-      "dataType": "Health and fitness / Health info",
-      "reason": "no-health-functionality"
     }
   ],
   "openBeforeStepFour": {

@@ -19,9 +19,9 @@
   "currentSources": {
     "privacyDisclosuresRef": "store/privacy-disclosures.json",
     "binaryPrivacyEvidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081509.json",
-    "selectedDataTypeProjectionSha256": "4c311ae39cfc70509e2f32567994e26971cb82394cdb97b18a95eddf27954389",
-    "selectedDataTypeCount": 16,
-    "declaredDataTypeCount": 17
+    "selectedDataTypeProjectionSha256": "a064bad0799a9d6e984d9c4c390eebf3c6da3e8f42797cbf318806000e47e32a",
+    "selectedDataTypeCount": 17,
+    "declaredDataTypeCount": 18
   },
   "review": {
     "baselineAnswerProjectionMatchesCurrent": true,

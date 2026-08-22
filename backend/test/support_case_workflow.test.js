@@ -49,6 +49,9 @@ function caseRow(overrides = {}) {
     dsa_notice_evidence: null,
     dsa_notice_locator_status: null,
     dsa_notice_locator_kind: null,
+    product_safety_notice_number: null,
+    product_safety_evidence: null,
+    product_safety_triage_due_at: null,
     case_type: 'general_help',
     case_subtype: 'general_how_to',
     status: 'received',
@@ -256,6 +259,140 @@ test('create validates linked-entity access and records case, event and audit', 
   assert.equal(result.supportCase.priority, 'p1');
   assert.equal(result.supportCase.operatingMode, 'internal_testing');
   assert.equal('severity' in result.supportCase, false);
+  client.done();
+});
+
+test('product-safety creation snapshots bounded evidence and a rapid triage receipt', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /AS booking_allowed/,
+      result: {
+        rowCount: 1,
+        rows: [{
+          booking_allowed: true,
+          listing_exists: true,
+          payment_allowed: true,
+          refund_allowed: true,
+          payout_allowed: true,
+        }],
+      },
+    },
+    {
+      match: /INSERT INTO support_cases/,
+      check: ({ params }) => {
+        assert.equal(params[2], 'trust_safety');
+        assert.equal(params[3], 'dangerous_item_or_injury');
+        assert.equal(params[4], 'p1');
+        assert.equal(params[11], 'trust_safety_owner');
+        assert.equal(params[12], 'red_explicit_decision');
+        assert.equal(params[18], true);
+        assert.equal(params[21], true);
+        assert.match(params[37], /^SIT-P-[A-HJ-NP-Z2-9]{12}$/u);
+        assert.equal(params[39].toISOString(), '2026-08-21T11:00:00.000Z');
+        assert.deepEqual(JSON.parse(params[38]), {
+          version: 'sit_product_safety_intake_v1',
+          contactPointVersion: 'sit_product_safety_contact_point_v1',
+          issueKind: 'accident_or_injury',
+          productIdentification: 'Bohrmaschine Modell X',
+          riskDescription:
+              'Beim Einschalten trat Rauch aus und eine Hand wurde verletzt.',
+          injuryOccurred: true,
+          safetyGuidanceAcknowledged: true,
+          sourceChannel: 'app',
+          submittedAt: now.toISOString(),
+        });
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          id: params[0],
+          human_readable_case_number: params[1],
+          case_type: params[2],
+          case_subtype: params[3],
+          priority: params[4],
+          severity: params[5],
+          source_channel: params[6],
+          operating_mode: params[7],
+          reporter_user_id: params[9],
+          reporter_role: params[10],
+          current_owner_role: params[11],
+          approval_level: params[12],
+          waiting_on: params[13],
+          next_update_at: params[16],
+          user_facing_summary: params[17],
+          safety_flag: params[18],
+          authority_flag: params[21],
+          idempotency_key: params[30],
+          product_safety_notice_number: params[37],
+          product_safety_evidence: JSON.parse(params[38]),
+          product_safety_triage_due_at: params[39],
+          created_at: params[36],
+          updated_at: params[36],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        const payload = JSON.parse(params[3]);
+        assert.match(payload.productSafetyNotice.noticeNumber, /^SIT-P-/u);
+        assert.deepEqual(payload.productSafetyNotice, {
+          noticeNumber: payload.productSafetyNotice.noticeNumber,
+          version: 'sit_product_safety_intake_v1',
+          contactPointVersion: 'sit_product_safety_contact_point_v1',
+          issueKind: 'accident_or_injury',
+          triageDueAt: '2026-08-21T11:00:00.000Z',
+        });
+        assert.equal(params[3].includes('Bohrmaschine'), false);
+        assert.equal(params[3].includes('verletzt'), false);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        const metadata = JSON.parse(params[4]);
+        assert.match(metadata.productSafetyNoticeNumber, /^SIT-P-/u);
+        assert.equal(metadata.productSafetyTriageDueAt,
+          '2026-08-21T11:00:00.000Z');
+        assert.equal(params[4].includes('Bohrmaschine'), false);
+        assert.equal(params[4].includes('verletzt'), false);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+
+  const result = await createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: {
+      caseType: 'trust_safety',
+      caseSubType: 'dangerous_item_or_injury',
+      summary: 'Unfall oder Verletzung durch Produkt gesondert melden.',
+      safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
+      productSafetyNotice: {
+        version: 'sit_product_safety_intake_v1',
+        contactPointVersion: 'sit_product_safety_contact_point_v1',
+        issueKind: 'accident_or_injury',
+        productIdentification: 'Bohrmaschine Modell X',
+        riskDescription:
+            'Beim Einschalten trat Rauch aus und eine Hand wurde verletzt.',
+        injuryOccurred: true,
+        safetyGuidanceAcknowledged: true,
+      },
+    },
+    idempotencyKey: 'product-safety-key-1',
+    now,
+  });
+
+  assert.equal(result.supportCase.caseType, 'trust_safety');
+  assert.equal(result.supportCase.priority, 'p1');
+  assert.match(result.supportCase.productSafetyNoticeNumber, /^SIT-P-/u);
+  assert.equal(result.supportCase.productSafetyTriageDueAt,
+    '2026-08-21T11:00:00.000Z');
+  assert.match(result.supportCase.productSafetyTriageDueDisplay, /13:00/u);
+  assert.equal('productSafetyEvidence' in result.supportCase, false);
   client.done();
 });
 

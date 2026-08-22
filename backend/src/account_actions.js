@@ -76,15 +76,21 @@ function pageShell({ title, content, pageId = '', complianceStatus = '' }) {
 export function publicComplianceOverview({
   compliance = config.publicCompliance,
   consumerDispute = config.consumerDispute,
+  productSafety = config.productSafety,
 } = {}) {
-  const approved = compliance.approved && consumerDispute.isComplete;
+  const approved = compliance.approved
+    && consumerDispute.isComplete
+    && productSafety.isComplete;
   return {
     status: approved ? 'approved' : 'draft',
     submissionReady: approved,
     pages: {
-      support: approved ? 'approved' : 'draft',
+      support: compliance.approved && productSafety.isComplete
+        ? 'approved'
+        : 'draft',
       privacy: approved ? 'approved' : 'draft',
       consumerDispute: consumerDispute.isComplete ? 'approved' : 'draft',
+      productSafety: productSafety.isComplete ? 'approved' : 'draft',
       accountDeletion: 'operational',
     },
   };
@@ -92,19 +98,22 @@ export function publicComplianceOverview({
 
 export function publicSupportPage({
   compliance = config.publicCompliance,
+  productSafety = config.productSafety,
 } = {}) {
-  const { approved, supportEmail } = compliance;
+  const approved = compliance.approved && productSafety.isComplete;
+  const { supportEmail } = compliance;
   const status = approved ? 'approved' : 'draft';
   const content = approved
     ? `<h1>Support</h1><p>Wir helfen bei Fragen zu Konten, Inseraten, Buchungen, Zahlungen, Sicherheit und Meldungen.</p>
 <h2>Kontakt</h2><p><a href="mailto:${escapeHtml(supportEmail)}">${escapeHtml(supportEmail)}</a></p>
 <p>In der App findest du außerdem unter Profil → Hilfe den Hilfebereich und die geschützten Supportwege zu einer Buchung.</p>
+<h2>Produktsicherheit melden</h2><p>Möglicherweise gefährliche Produkte, Unfälle oder Verletzungen kannst du direkt und schnell an <a href="mailto:${escapeHtml(productSafety.consumerContactEmail)}">${escapeHtml(productSafety.consumerContactEmail)}</a> melden. Nenne möglichst Produkt, Hersteller oder Modell, das betroffene Inserat, die Art der Gefahr sowie Datum und vorhandene Nachweise. Nutze das Produkt nicht weiter und gib es nicht weiter. Bei akuter Gefahr oder Verletzung rufe 112; dieser Kontakt ist kein Notruf und ersetzt keine medizinische oder technische Beurteilung.</p>
 <h2>Rechtswidrige Inhalte melden</h2><p>Auch ohne Konto kannst du möglicherweise rechtswidrige Anzeigen, Profile, Bewertungen oder andere Inhalte elektronisch an die oben genannte Adresse melden. Verwende möglichst den Betreff „Meldung rechtswidriger Inhalt“ und nenne den direkten Link oder eine eindeutige Beschreibung des Inhalts, den Grund der Meldung, die betroffene Rechtsposition und vorhandene Nachweise. Erkläre bitte außerdem, dass du die Angaben nach bestem Wissen für richtig und vollständig hältst.</p>
 <p>Wir bestätigen den Eingang, prüfen hinreichend konkrete Meldungen sorgfältig und informieren über die Entscheidung, soweit eine Kontaktadresse angegeben wurde und keine rechtlichen Gründe entgegenstehen.</p>
 <h2>Beschwerde zu einer Moderationsentscheidung</h2><p>Wenn dein Inhalt oder Konto eingeschränkt wurde oder du mit dem Ergebnis einer Meldung nicht einverstanden bist, kannst du über dieselbe Adresse eine erneute Prüfung verlangen. Nenne dafür die betroffene Anzeige, das Profil oder die Fallreferenz und erläutere, weshalb die Entscheidung geändert werden sollte.</p>
 <p class="hint">Bei unmittelbarer Gefahr für Personen wende dich bitte an Polizei oder Rettungsdienst. Dieser Kontakt ist kein Notruf.</p>`
-    : `<h1>Support</h1><p class="draft">Diese öffentliche Supportseite ist technisch vorbereitet, aber der verbindliche Supportkontakt wurde noch nicht geschäftlich freigegeben.</p>
-<p>Vor einer Store-Einreichung werden Kontaktadresse, Zustellung und Verantwortlichkeit bestätigt. Bis dahin darf diese Seite nicht als freigegebene Store-URL verwendet werden.</p>`;
+    : `<h1>Support</h1><p class="draft">Diese öffentliche Supportseite ist technisch vorbereitet, aber die verbindlichen Support- und Produktsicherheits-Kontaktpunkte wurden noch nicht geschäftlich freigegeben.</p>
+<p>Vor einer Store-Einreichung werden Kontaktadressen, Produktsicherheitsprozess, Safety-Gate-Registrierung, Zustellung und Verantwortlichkeit bestätigt. Bis dahin darf diese Seite nicht als freigegebene Store-URL verwendet werden.</p>`;
   return pageShell({
     title: 'Support',
     pageId: 'support',
@@ -121,7 +130,7 @@ export function publicPrivacyPage({
     ? `<h1>Datenschutz</h1><p class="meta">Stand: ${escapeHtml(compliance.effectiveDate)}</p>
 <h2>Verantwortlicher</h2><p>${escapeHtml(compliance.providerName)}<br>${escapeHtml(compliance.providerAddress)}<br><a href="mailto:${escapeHtml(compliance.privacyEmail)}">${escapeHtml(compliance.privacyEmail)}</a></p>
 <h2>Geltungsbereich</h2><p>Diese Datenschutzerklärung gilt für die ShareItToo-App und die zugehörigen öffentlichen Konto-, Support- und Löschseiten. ShareItToo vermittelt die zeitweise Nutzung physischer Gegenstände zwischen Nutzern.</p>
-<h2>Welche Daten verarbeitet werden</h2><p>Je nach Nutzung verarbeitet ShareItToo Konto- und Kontaktdaten, Alters- und Einwilligungsstatus, Profilangaben, Inserats- und Bilddaten, Adressen sowie ungefähre oder präzise Standortdaten, Buchungsbeträge und Buchungsstatus, Nachrichten, Bewertungen, Meldungen, Geräte- und Push-Kennungen sowie Sicherheits-, Audit-, Sitzungs- und Crashdiagnosedaten. Der aktuelle Store-Kandidat bietet keine Ausweisprüfung und keinen Upload von Identitätsdokumenten an. Er erhebt außerdem keine Karten- oder Bankdaten und überträgt kein Echtgeld an Stripe.</p>
+<h2>Welche Daten verarbeitet werden</h2><p>Je nach Nutzung verarbeitet ShareItToo Konto- und Kontaktdaten, Alters- und Einwilligungsstatus, Profilangaben, Inserats- und Bilddaten, Adressen sowie ungefähre oder präzise Standortdaten, Buchungsbeträge und Buchungsstatus, Nachrichten, Bewertungen, Meldungen, Geräte- und Push-Kennungen sowie Sicherheits-, Audit-, Sitzungs- und Crashdiagnosedaten. Eine freiwillige Produktsicherheitsmeldung kann außerdem Angaben zum Produkt, zu Gefahren, Unfällen oder Verletzungen enthalten. Der aktuelle Store-Kandidat bietet keine Ausweisprüfung und keinen Upload von Identitätsdokumenten an. Er erhebt außerdem keine Karten- oder Bankdaten und überträgt kein Echtgeld an Stripe.</p>
 <h2>Private Zustandsnachweise</h2><p>Bei der Übergabe hinterlegt der Vermieter mindestens vier aktuelle Zustandsfotos; der Mieter bestätigt den Fotosatz oder dokumentiert eine Abweichung mit mindestens einem eigenen Foto. Bei der Rückgabe gelten dieselben Schritte mit vertauschten Rollen. Die Nachweise sind an Buchung, Rolle, geschützten Upload und Chatnachricht gebunden, nicht öffentlich und werden nicht an eine KI übermittelt.</p>
 <h2>Zwecke und Rechtsgrundlagen</h2><p>Die Verarbeitung dient – abhängig vom jeweiligen Vorgang – der Vertragsanbahnung und Kontoführung, der Vermittlung und Abwicklung physischer Mietvorgänge, Kommunikation, Sicherheit und Missbrauchsabwehr, Support, gesetzlichen Nachweisen oder einer ausdrücklich gestarteten beziehungsweise eingewilligten Funktion. Als Rechtsgrundlagen kommen insbesondere Art. 6 Abs. 1 Buchst. a, b, c und f DSGVO in Betracht.</p>
 <h2>Standort und Google Maps Platform</h2><p>Adressvorschläge und Ortsdetails werden nur bei Nutzung der entsprechenden Eingabefunktion an Google Maps Platform übertragen. Dabei können die eingegebene Adresse beziehungsweise Ortskennung, die IP-Adresse des Geräts und technische Anfrageinformationen verarbeitet werden. Einen präzisen aktuellen Gerätestandort fragt die App nur ab, wenn du „Standort prüfen“ selbst startest. Es findet keine dauerhafte Hintergrund- oder Live-Ortung statt. Weitere Informationen enthalten die <a href="https://policies.google.com/privacy">Datenschutzhinweise von Google</a>.</p>

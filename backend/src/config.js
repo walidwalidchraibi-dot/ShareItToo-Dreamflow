@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { validateFirebaseServiceAccount } from './firebase_service_account.js';
 import { readConsumerDisputeConfiguration } from './consumer_dispute_config.js';
+import { readProductSafetyConfiguration } from './product_safety_config.js';
 import { evaluateGoogleMapsActivation } from './google_maps_activation.js';
 import { evaluateOperatorReadiness } from './operator_readiness.js';
 import { normalizePrivatePilotRegion } from './private_pilot_domain.js';
@@ -205,6 +206,7 @@ const publicCompliance = {
   effectiveDate: process.env.PUBLIC_PRIVACY_EFFECTIVE_DATE?.trim() ?? '',
 };
 const consumerDispute = readConsumerDisputeConfiguration(process.env);
+const productSafety = readProductSafetyConfiguration(process.env);
 const financialDocumentsLiveIssuanceApproved =
   (process.env.FINANCIAL_DOCUMENTS_LIVE_ISSUANCE_APPROVED ?? 'false')
     .trim()
@@ -236,6 +238,11 @@ if (publicComplianceApproved && !operatorReadiness.activationAllowed) {
 if (publicComplianceApproved && !consumerDispute.isComplete) {
   throw new Error(
     'PUBLIC_COMPLIANCE_APPROVED requires a complete approved VSBG configuration',
+  );
+}
+if (publicComplianceApproved && !productSafety.isComplete) {
+  throw new Error(
+    'PUBLIC_COMPLIANCE_APPROVED requires a complete approved product-safety contact and process configuration',
   );
 }
 if (financialDocumentsLiveIssuanceApproved) {
@@ -322,6 +329,7 @@ export const config = Object.freeze({
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
   publicCompliance: Object.freeze(publicCompliance),
   consumerDispute,
+  productSafety,
   operatorReadiness,
   financialDocuments: Object.freeze({
     liveIssuanceApproved: financialDocumentsLiveIssuanceApproved,

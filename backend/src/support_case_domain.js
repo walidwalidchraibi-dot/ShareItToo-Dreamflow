@@ -164,6 +164,9 @@ export const supportOwnerRoles = Object.freeze([
 export const supportSafetyTriageVersion = 'sit_support_safety_triage_v1';
 export const supportIntakeScopeVersion = 'sit_support_single_issue_scope_v1';
 export const supportDsaNoticeIntakeVersion = 'sit_dsa_notice_intake_v1';
+export const supportProductSafetyIntakeVersion = 'sit_product_safety_intake_v1';
+export const supportProductSafetyContactPointVersion =
+  'sit_product_safety_contact_point_v1';
 export const supportDsaNoticeLocatorStatuses = Object.freeze([
   'complete',
   'needs_clarification',
@@ -180,6 +183,10 @@ const dsaNoticeContentTypes = new Set([
   'review',
   'message',
   'other',
+]);
+const productSafetyIssueKinds = new Set([
+  'dangerous_product',
+  'accident_or_injury',
 ]);
 const dsaNoticeReferencePatterns = Object.freeze({
   listing: /^listing:[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/u,
@@ -308,6 +315,17 @@ export function newHumanReadableDsaNoticeNumber(randomBytes = crypto.randomBytes
   return result;
 }
 
+export function newHumanReadableProductSafetyNoticeNumber(
+  randomBytes = crypto.randomBytes(9),
+) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = 'SIT-P-';
+  for (let index = 0; index < 12; index += 1) {
+    result += alphabet[randomBytes[index % randomBytes.length] % alphabet.length];
+  }
+  return result;
+}
+
 export function supportRouteFor(caseType, caseSubType, signals = {}) {
   const family = supportCaseFamilies[caseType];
   if (!family) throw new SupportCaseError(400, 'support_case_type_invalid');
@@ -321,8 +339,11 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     || signals.imminentAuthorityDeadline === true;
   const article18CandidateFlag = caseType === 'trust_safety'
     && article18CandidateSubtypes.has(caseSubType);
+  const productSafetyCandidate = caseType === 'trust_safety'
+    && caseSubType === 'dangerous_item_or_injury';
   let priority = 'p3';
   if (explicitP0Signal || p0Subtypes.has(caseSubType)) priority = 'p0';
+  else if (productSafetyCandidate) priority = 'p1';
   else if (p1Families.has(caseType)) priority = 'p1';
   else if (p2Families.has(caseType)) priority = 'p2';
 
@@ -347,7 +368,8 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
   const redDecisionBoundary = priority === 'p0'
     || ['money_case', 'privacy_security', 'legal_authority'].includes(caseType)
     || caseSubType === 'illegal_content_notice'
-    || caseSubType === 'account_takeover';
+    || caseSubType === 'account_takeover'
+    || productSafetyCandidate;
   const approvalLevel = redDecisionBoundary
     ? 'red_explicit_decision'
     : (['general_help', 'listing_quality'].includes(caseType) && priority === 'p3'
@@ -371,10 +393,87 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     dsaFlag: caseType === 'moderation_content',
     authorityFlag: caseType === 'legal_authority'
       || signals.imminentAuthorityDeadline === true
-      || article18CandidateFlag,
+      || article18CandidateFlag
+      || productSafetyCandidate,
     article18CandidateFlag,
     moneyFlag: caseType === 'money_case',
     accountTakeoverFlag: caseSubType === 'account_takeover' || signals.accountTakeover === true,
+  });
+}
+
+function normalizeProductSafetyNotice(raw, { required }) {
+  if (!required) {
+    if (raw !== undefined && raw !== null) {
+      throw new SupportCaseError(400, 'support_product_safety_notice_not_applicable');
+    }
+    return null;
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new SupportCaseError(400, 'support_product_safety_notice_required');
+  }
+  const allowedKeys = new Set([
+    'version',
+    'contactPointVersion',
+    'issueKind',
+    'productIdentification',
+    'riskDescription',
+    'injuryOccurred',
+    'safetyGuidanceAcknowledged',
+  ]);
+  if (Object.keys(raw).some((key) => !allowedKeys.has(key))) {
+    throw new SupportCaseError(400, 'support_product_safety_notice_invalid');
+  }
+  const version = requiredText(
+    raw.version,
+    80,
+    'support_product_safety_version_invalid',
+  );
+  if (version !== supportProductSafetyIntakeVersion) {
+    throw new SupportCaseError(400, 'support_product_safety_version_invalid');
+  }
+  const contactPointVersion = requiredText(
+    raw.contactPointVersion,
+    80,
+    'support_product_safety_contact_point_version_invalid',
+  );
+  if (contactPointVersion !== supportProductSafetyContactPointVersion) {
+    throw new SupportCaseError(
+      400,
+      'support_product_safety_contact_point_version_invalid',
+    );
+  }
+  const issueKind = requiredText(
+    raw.issueKind,
+    60,
+    'support_product_safety_issue_kind_invalid',
+  ).toLowerCase();
+  if (!productSafetyIssueKinds.has(issueKind)) {
+    throw new SupportCaseError(400, 'support_product_safety_issue_kind_invalid');
+  }
+  if (typeof raw.injuryOccurred !== 'boolean') {
+    throw new SupportCaseError(400, 'support_product_safety_injury_state_invalid');
+  }
+  if (raw.safetyGuidanceAcknowledged !== true) {
+    throw new SupportCaseError(400, 'support_product_safety_guidance_required');
+  }
+  return Object.freeze({
+    version,
+    contactPointVersion,
+    issueKind,
+    productIdentification: requiredText(
+      raw.productIdentification,
+      300,
+      'support_product_safety_product_identification_required',
+      3,
+    ),
+    riskDescription: requiredText(
+      raw.riskDescription,
+      2000,
+      'support_product_safety_risk_description_required',
+      20,
+    ),
+    injuryOccurred: raw.injuryOccurred,
+    safetyGuidanceAcknowledged: true,
   });
 }
 
@@ -615,6 +714,13 @@ export function normalizeSupportCaseInput(raw, {
     required: caseType === 'moderation_content'
       && caseSubType === 'illegal_content_notice',
   });
+  const productSafetyNotice = normalizeProductSafetyNotice(
+    raw.productSafetyNotice,
+    {
+      required: caseType === 'trust_safety'
+        && caseSubType === 'dangerous_item_or_injury',
+    },
+  );
   const internalCheckpointMinutes = {
     p0: 15,
     p1: 60,
@@ -641,6 +747,7 @@ export function normalizeSupportCaseInput(raw, {
     safetyTriage,
     issueScope,
     dsaNotice,
+    productSafetyNotice,
     waitingReason: 'Der Eingang wartet auf die fachliche Übernahme.',
     nextAction: route.priority === 'p0'
       ? 'Sicherheitsroute unverzüglich prüfen und einem verantwortlichen Owner zuweisen.'

@@ -131,6 +131,7 @@ if (!databaseUrl) {
         '046_support_article18_authority_referral_guard.up.sql',
         '047_support_privacy_rights_control_plane.up.sql',
         '048_support_privacy_incident_control_plane.up.sql',
+        '049_support_product_safety_intake.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -1377,6 +1378,87 @@ if (!databaseUrl) {
         safetyGuidanceShown: false,
         issueScopeVersion: 'sit_support_single_issue_scope_v1',
         separationGuidanceShown: true,
+      });
+      const productSafetyIntakeResponse = await fetch(
+        `${baseUrl}/v1/support/cases`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'Idempotency-Key': 's3v-product-safety-intake',
+          },
+          body: JSON.stringify({
+            caseType: 'trust_safety',
+            caseSubType: 'dangerous_item_or_injury',
+            summary: 'Gefährliches Produkt im gesonderten Weg melden.',
+            linkedListingId: 'listing-1',
+            immediateDanger: false,
+            safetyTriage: {
+              version: 'sit_support_safety_triage_v1',
+              packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+              guidanceVersion: 'T-003@1.0.0',
+              immediateDanger: false,
+              guidanceShown: false,
+            },
+            issueScope: {
+              version: 'sit_support_single_issue_scope_v1',
+              singleIssueConfirmed: true,
+              separationGuidanceShown: false,
+            },
+            productSafetyNotice: {
+              version: 'sit_product_safety_intake_v1',
+              contactPointVersion: 'sit_product_safety_contact_point_v1',
+              issueKind: 'dangerous_product',
+              productIdentification: 'Bohrmaschine Modell X',
+              riskDescription:
+                'Das Gehäuse wird beim Betrieb sehr heiß und riecht verschmort.',
+              injuryOccurred: false,
+              safetyGuidanceAcknowledged: true,
+            },
+          }),
+        },
+      );
+      assert.equal(productSafetyIntakeResponse.status, 201);
+      const productSafetyIntake = await productSafetyIntakeResponse.json();
+      assert.match(
+        productSafetyIntake.supportCase.productSafetyNoticeNumber,
+        /^SIT-P-[A-HJ-NP-Z2-9]{12}$/u,
+      );
+      assert.equal(productSafetyIntake.supportCase.priority, 'p1');
+      assert.equal(productSafetyIntake.supportCase.waitingOn,
+        'trust_safety_owner');
+      assert.ok(productSafetyIntake.supportCase.productSafetyTriageDueAt);
+      assert.ok(productSafetyIntake.supportCase.productSafetyTriageDueDisplay);
+      assert.equal('productSafetyEvidence' in productSafetyIntake.supportCase,
+        false);
+      const productSafetyStored = await setupPool.query(
+        `SELECT current_owner_role, approval_level, safety_flag,
+                authority_flag, product_safety_evidence,
+                product_safety_triage_due_at <= created_at + INTERVAL '60 minutes'
+                  AS rapid_triage
+           FROM support_cases
+          WHERE id = $1`,
+        [productSafetyIntake.supportCase.id],
+      );
+      assert.deepEqual(productSafetyStored.rows[0], {
+        current_owner_role: 'trust_safety_owner',
+        approval_level: 'red_explicit_decision',
+        safety_flag: true,
+        authority_flag: true,
+        product_safety_evidence: {
+          version: 'sit_product_safety_intake_v1',
+          contactPointVersion: 'sit_product_safety_contact_point_v1',
+          issueKind: 'dangerous_product',
+          productIdentification: 'Bohrmaschine Modell X',
+          riskDescription:
+            'Das Gehäuse wird beim Betrieb sehr heiß und riecht verschmort.',
+          injuryOccurred: false,
+          safetyGuidanceAcknowledged: true,
+          sourceChannel: 'app',
+          submittedAt: productSafetyStored.rows[0]
+            .product_safety_evidence.submittedAt,
+        },
+        rapid_triage: true,
       });
       const privacyIntakeResponse = await fetch(`${baseUrl}/v1/support/cases`, {
         method: 'POST',
@@ -5625,6 +5707,7 @@ if (!databaseUrl) {
           support: 'draft',
           privacy: 'draft',
           consumerDispute: 'draft',
+          productSafety: 'draft',
           accountDeletion: 'operational',
         },
       });
