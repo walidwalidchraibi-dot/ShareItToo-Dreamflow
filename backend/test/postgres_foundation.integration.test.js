@@ -1644,7 +1644,7 @@ if (!databaseUrl) {
       const socialClaims = new Map();
       const phoneClaims = new Map();
       const deletedPhoneIdentities = [];
-      server = http.createServer(createApp({
+      const applicationOptions = {
         verifySocialToken: async (token) => {
           const identity = socialClaims.get(token);
           if (!identity) {
@@ -1668,9 +1668,19 @@ if (!databaseUrl) {
         deletePhoneIdentity: async (identity) => {
           deletedPhoneIdentities.push(identity.firebaseUserId);
         },
-      }));
-      await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-      const baseUrl = `http://127.0.0.1:${server.address().port}`;
+      };
+      let baseUrl;
+      const restartApplicationServer = async () => {
+        if (server) {
+          await new Promise((resolve, reject) => server.close((error) => (
+            error ? reject(error) : resolve()
+          )));
+        }
+        server = http.createServer(createApp(applicationOptions));
+        await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+        baseUrl = `http://127.0.0.1:${server.address().port}`;
+      };
+      await restartApplicationServer();
       const tokenFor = (id) => signAccessToken(
         { id, email: `${id}@example.com` },
         { sessionId: sessionIds[id] },
@@ -2520,11 +2530,11 @@ if (!databaseUrl) {
         (error) => error?.code === '23514'
           && error?.message === 'support_dsa_notice_required',
       );
+      await restartApplicationServer();
       const createDsaNotice = () => fetch(`${baseUrl}/v1/support/cases`, {
         method: 'POST',
         headers: {
           ...renterAHeaders,
-          'X-Forwarded-For': '198.51.100.27',
           'Idempotency-Key': 's3n-dsa-notice-integration',
         },
         body: JSON.stringify({
@@ -2639,7 +2649,6 @@ if (!databaseUrl) {
         method: 'POST',
         headers: {
           ...renterAHeaders,
-          'X-Forwarded-For': '198.51.100.28',
           'Idempotency-Key': 's3o-incomplete-dsa-notice-integration',
         },
         body: JSON.stringify({
@@ -2693,7 +2702,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...renterBHeaders,
-            'X-Forwarded-For': '198.51.100.29',
             'Idempotency-Key': 's3o-locator-other-reporter-integration',
           },
           body: JSON.stringify({
@@ -2710,7 +2718,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...renterAHeaders,
-            'X-Forwarded-For': '198.51.100.28',
             'Idempotency-Key': 's3o-locator-inexact-integration',
           },
           body: JSON.stringify({
@@ -2731,7 +2738,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...renterAHeaders,
-            'X-Forwarded-For': '198.51.100.28',
             'Idempotency-Key': 's3o-locator-complete-integration',
           },
           body: JSON.stringify({
@@ -5420,7 +5426,7 @@ if (!databaseUrl) {
           background: { r: 24, g: 90, b: 180 },
         },
       }).jpeg({ quality: 95 }).toBuffer();
-      const evidenceRequestIp = { 'X-Forwarded-For': '203.0.113.90' };
+      await restartApplicationServer();
       const createEvidenceUpload = ({
         idempotencyKey,
         bytes = validEvidenceBytes,
@@ -5439,7 +5445,6 @@ if (!databaseUrl) {
           {
             method: 'POST',
             headers: {
-              ...evidenceRequestIp,
               Authorization: renterAHeaders.Authorization,
               'Idempotency-Key': idempotencyKey,
             },
@@ -5518,7 +5523,7 @@ if (!databaseUrl) {
         `${baseUrl}/v1/support/evidence/${quarantined.evidence.id}/access-grants`,
         {
           method: 'POST',
-          headers: { ...renterAHeaders, ...evidenceRequestIp },
+          headers: renterAHeaders,
         },
       );
       assert.equal(quarantinedGrant.status, 409);
@@ -5533,7 +5538,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...adminHeaders,
-            ...evidenceRequestIp,
             'Idempotency-Key': 's4a-support-evidence-clean-scan',
           },
           body: JSON.stringify({
@@ -5552,7 +5556,7 @@ if (!databaseUrl) {
 
       const listedEvidenceResponse = await fetch(
         `${baseUrl}/v1/support/cases/${supportIntake.supportCase.id}/evidence`,
-        { headers: { ...renterAHeaders, ...evidenceRequestIp } },
+        { headers: renterAHeaders },
       );
       assert.equal(listedEvidenceResponse.status, 200);
       const listedEvidence = await listedEvidenceResponse.json();
@@ -5564,7 +5568,7 @@ if (!databaseUrl) {
       assert.equal(Object.hasOwn(listedCleanEvidence, 'fileName'), false);
       const outsiderEvidenceList = await fetch(
         `${baseUrl}/v1/support/cases/${supportIntake.supportCase.id}/evidence`,
-        { headers: { ...renterBHeaders, ...evidenceRequestIp } },
+        { headers: renterBHeaders },
       );
       assert.equal(outsiderEvidenceList.status, 404);
 
@@ -5572,7 +5576,7 @@ if (!databaseUrl) {
         `${baseUrl}/v1/support/evidence/${evidenceUpload.evidence.id}/access-grants`,
         {
           method: 'POST',
-          headers: { ...renterAHeaders, ...evidenceRequestIp },
+          headers: renterAHeaders,
         },
       );
       const firstEvidenceGrantResponse = await issueEvidenceGrant();
@@ -5585,7 +5589,6 @@ if (!databaseUrl) {
         {
           headers: {
             ...renterBHeaders,
-            ...evidenceRequestIp,
             'X-Support-Evidence-Grant': firstEvidenceGrant.accessToken,
           },
         },
@@ -5606,7 +5609,6 @@ if (!databaseUrl) {
         {
           headers: {
             ...renterAHeaders,
-            ...evidenceRequestIp,
             'X-Support-Evidence-Grant': firstEvidenceGrant.accessToken,
           },
         },
@@ -5621,7 +5623,6 @@ if (!databaseUrl) {
         {
           headers: {
             ...renterAHeaders,
-            ...evidenceRequestIp,
             'X-Support-Evidence-Grant': freshEvidenceGrant.accessToken,
           },
         },
@@ -5664,7 +5665,7 @@ if (!databaseUrl) {
       );
       const evidenceRetentionResponse = await fetch(
         `${baseUrl}/v1/admin/privacy/retention-inventory`,
-        { headers: { ...adminHeaders, ...evidenceRequestIp } },
+        { headers: adminHeaders },
       );
       assert.equal(evidenceRetentionResponse.status, 200);
       const evidenceRetentionInventory = (await evidenceRetentionResponse.json()).inventory;
@@ -5690,7 +5691,7 @@ if (!databaseUrl) {
       assert.equal(supportTemplates.find((entry) => entry.id === 'T-035').genericDraftAvailable, false);
       assert.ok(supportTemplates.every((entry) => !Object.hasOwn(entry, 'body')));
 
-      const accountRecoveryRequestIp = { 'X-Forwarded-For': '203.0.113.91' };
+      await restartApplicationServer();
       const compromisedEmailResetToken =
         'compromised-email-reset-token-that-must-be-invalidated-1234567890';
       const preexistingResetToken = await setupPool.query(
@@ -5707,7 +5708,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...renterAHeaders,
-            ...accountRecoveryRequestIp,
             'Idempotency-Key': 's4f-account-takeover-intake',
           },
           body: JSON.stringify({
@@ -5745,7 +5745,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...accountRecoveryRequestIp,
           },
           body: JSON.stringify({
             token: compromisedEmailResetToken,
@@ -5760,7 +5759,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...accountRecoveryRequestIp,
           },
           body: JSON.stringify({ email: 'renter-a@example.com' }),
         },
@@ -5803,7 +5801,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...supportHeaders,
-            ...accountRecoveryRequestIp,
             'Idempotency-Key': 'http-account-recovery-bypass',
           },
           body: JSON.stringify({
@@ -5829,7 +5826,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...supportHeaders,
-            ...accountRecoveryRequestIp,
             'Idempotency-Key': 'http-account-recovery-guidance',
           },
           body: JSON.stringify({ recipientUserId: 'renter-a' }),
@@ -5895,7 +5891,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...adminHeaders,
-            ...accountRecoveryRequestIp,
             'Idempotency-Key': 'http-account-recovery-review',
           },
           body: JSON.stringify({
@@ -5916,7 +5911,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             ...supportHeaders,
-            ...accountRecoveryRequestIp,
             'Idempotency-Key': 'http-account-recovery-publication',
           },
           body: JSON.stringify({
@@ -7372,22 +7366,17 @@ if (!databaseUrl) {
         headers: ownerHeaders,
       });
       assert.equal(legacyGetExport.status, 404);
+      await restartApplicationServer();
       const forgedExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
         method: 'POST',
-        headers: {
-          ...ownerHeaders,
-          'X-Forwarded-For': '203.0.113.60',
-        },
+        headers: ownerHeaders,
         body: JSON.stringify({ currentPassword: ownerPassword, userId: 'renter-a' }),
       });
       assert.equal(forgedExportResponse.status, 400);
       assert.equal((await forgedExportResponse.json()).error, 'account_export_request_invalid');
       const wrongPasswordExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
         method: 'POST',
-        headers: {
-          ...ownerHeaders,
-          'X-Forwarded-For': '203.0.113.60',
-        },
+        headers: ownerHeaders,
         body: JSON.stringify({
           currentPassword: createEphemeralAcceptancePassword(),
         }),
@@ -7399,7 +7388,6 @@ if (!databaseUrl) {
         headers: {
           ...ownerHeaders,
           'X-Request-ID': 'b10-owner-export',
-          'X-Forwarded-For': '203.0.113.60',
         },
         body: JSON.stringify({ currentPassword: ownerPassword }),
       });
@@ -7454,12 +7442,12 @@ if (!databaseUrl) {
         entry.action === 'account.data_exported'
           && entry.request_id === 'b10-owner-export'
       )));
+      await restartApplicationServer();
       const renterExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
         method: 'POST',
         headers: {
           ...renterAHeaders,
           'X-Request-ID': 'b10-renter-export',
-          'X-Forwarded-For': '203.0.113.61',
         },
         body: JSON.stringify({ currentPassword: renterAPassword }),
       });
@@ -7579,6 +7567,7 @@ if (!databaseUrl) {
       assert.equal(suspendedResponse.status, 401);
       assert.equal((await suspendedResponse.json()).error, 'account_not_active');
 
+      await restartApplicationServer();
       const initialPassword = createEphemeralAcceptancePassword();
       const nextPassword = createEphemeralAcceptancePassword();
       const emailChangePassword = createEphemeralAcceptancePassword();
@@ -7617,25 +7606,19 @@ if (!databaseUrl) {
         ],
       );
 
-      const login = (password, forwardedFor = '203.0.113.10') => fetch(`${baseUrl}/v1/auth/login`, {
+      const login = (password) => fetch(`${baseUrl}/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Forwarded-For': forwardedFor,
           'User-Agent': 'SIT integration test',
         },
         body: JSON.stringify({ email: 'auth-user@example.com', password }),
       });
 
-      const loginRecoveryAccount = (
-        email,
-        password,
-        forwardedFor,
-      ) => fetch(`${baseUrl}/v1/auth/login`, {
+      const loginRecoveryAccount = (email, password) => fetch(`${baseUrl}/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Forwarded-For': forwardedFor,
           'User-Agent': 'SIT S4G account recovery integration test',
         },
         body: JSON.stringify({ email, password }),
@@ -7644,21 +7627,18 @@ if (!databaseUrl) {
       const recoveryLoginOneResponse = await loginRecoveryAccount(
         'recovery-user@example.com',
         recoveryPassword,
-        '203.0.113.41',
       );
       assert.equal(recoveryLoginOneResponse.status, 200);
       const recoverySessionOne = await recoveryLoginOneResponse.json();
       const recoveryLoginTwoResponse = await loginRecoveryAccount(
         'recovery-user@example.com',
         recoveryPassword,
-        '203.0.113.42',
       );
       assert.equal(recoveryLoginTwoResponse.status, 200);
       const recoverySessionTwo = await recoveryLoginTwoResponse.json();
       const recoveryPeerLoginResponse = await loginRecoveryAccount(
         'recovery-peer@example.com',
         recoveryPeerPassword,
-        '203.0.113.43',
       );
       assert.equal(recoveryPeerLoginResponse.status, 200);
       const recoveryPeerSession = await recoveryPeerLoginResponse.json();
@@ -7672,9 +7652,6 @@ if (!databaseUrl) {
           headers: {
             Authorization: `Bearer ${session.accessToken}`,
             'Content-Type': 'application/json',
-            'X-Forwarded-For': tokenSuffix === 'one'
-              ? '203.0.113.50'
-              : '203.0.113.51',
           },
           body: JSON.stringify({
             token: `synthetic-s4g-push-${tokenSuffix}`,
@@ -7696,7 +7673,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Forwarded-For': '203.0.113.44',
           },
           body: JSON.stringify({
             token: recoveryToken,
@@ -7713,7 +7689,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Forwarded-For': '203.0.113.45',
           },
           body: JSON.stringify({
             token: recoveryToken,
@@ -7724,14 +7699,10 @@ if (!databaseUrl) {
       assert.equal(recoveryReuse.status, 400);
       assert.equal((await recoveryReuse.json()).error, 'invalid_or_expired_reset_link');
 
-      for (const [oldSession, forwardedFor] of [
-        [recoverySessionOne, '203.0.113.52'],
-        [recoverySessionTwo, '203.0.113.53'],
-      ]) {
+      for (const oldSession of [recoverySessionOne, recoverySessionTwo]) {
         const oldAccess = await fetch(`${baseUrl}/v1/auth/me`, {
           headers: {
             Authorization: `Bearer ${oldSession.accessToken}`,
-            'X-Forwarded-For': forwardedFor,
           },
         });
         assert.equal(oldAccess.status, 401);
@@ -7739,7 +7710,6 @@ if (!databaseUrl) {
       const unaffectedPeerAccess = await fetch(`${baseUrl}/v1/auth/me`, {
         headers: {
           Authorization: `Bearer ${recoveryPeerSession.accessToken}`,
-          'X-Forwarded-For': '203.0.113.54',
         },
       });
       assert.equal(unaffectedPeerAccess.status, 200);
@@ -7795,12 +7765,10 @@ if (!databaseUrl) {
       assert.equal((await loginRecoveryAccount(
         'recovery-user@example.com',
         recoveryPassword,
-        '203.0.113.46',
       )).status, 401);
       const recoveryFreshLoginResponse = await loginRecoveryAccount(
         'recovery-user@example.com',
         recoveryNextPassword,
-        '203.0.113.47',
       );
       assert.equal(recoveryFreshLoginResponse.status, 200);
       const recoveryFreshSession = await recoveryFreshLoginResponse.json();
@@ -7824,7 +7792,6 @@ if (!databaseUrl) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Forwarded-For': '203.0.113.48',
           },
           body: JSON.stringify({
             token: expiredRecoveryToken,
@@ -7842,6 +7809,7 @@ if (!databaseUrl) {
           && error?.message === 'auth_action_token_identity_immutable',
       );
 
+      await restartApplicationServer();
       const firstLogin = await login(initialPassword);
       assert.equal(firstLogin.status, 200);
       const firstSession = await firstLogin.json();
@@ -7878,11 +7846,11 @@ if (!databaseUrl) {
       });
       assert.equal(revokedAccess.status, 401);
 
-      const emailLogin = (email, password, forwardedFor) => fetch(`${baseUrl}/v1/auth/login`, {
+      await restartApplicationServer();
+      const emailLogin = (email, password) => fetch(`${baseUrl}/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Forwarded-For': forwardedFor,
           'User-Agent': 'SIT email lifecycle test',
         },
         body: JSON.stringify({ email, password }),
@@ -7890,7 +7858,6 @@ if (!databaseUrl) {
       const emailLoginResponse = await emailLogin(
         'email-old@example.com',
         emailChangePassword,
-        '203.0.113.30',
       );
       assert.equal(emailLoginResponse.status, 200);
       const emailSession = await emailLoginResponse.json();
@@ -7899,7 +7866,6 @@ if (!databaseUrl) {
         headers: {
           Authorization: `Bearer ${emailSession.accessToken}`,
           'Content-Type': 'application/json',
-          'X-Forwarded-For': '203.0.113.31',
         },
         body: JSON.stringify({
           newEmail: 'email-new@example.com',
@@ -7921,7 +7887,6 @@ if (!databaseUrl) {
       );
       const emailChangeConfirm = await fetch(
         `${baseUrl}/v1/auth/email-change/confirm?token=${encodeURIComponent(knownEmailChangeToken)}`,
-        { headers: { 'X-Forwarded-For': '203.0.113.32' } },
       );
       assert.equal(emailChangeConfirm.status, 200);
       assert.match(await emailChangeConfirm.text(), /E-Mail-Adresse geändert/);
@@ -7932,12 +7897,10 @@ if (!databaseUrl) {
       assert.equal((await emailLogin(
         'email-old@example.com',
         emailChangePassword,
-        '203.0.113.33',
       )).status, 401);
       const newEmailLogin = await emailLogin(
         'email-new@example.com',
         emailChangePassword,
-        '203.0.113.34',
       );
       assert.equal(newEmailLogin.status, 200);
       const changedEmailUser = await setupPool.query(
@@ -7953,8 +7916,22 @@ if (!databaseUrl) {
       assert.match(emailAudit.rows[0].metadata.newEmailHash, /^[0-9a-f]{64}$/);
       assert.doesNotMatch(JSON.stringify(emailAudit.rows[0].metadata), /email-new@example\.com/);
 
+      const distributedEmailLogin = (email, password, sourceAddress) => fetch(
+        `${baseUrl}/v1/auth/login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': sourceAddress,
+            'User-Agent': 'SIT distributed credential attack integration test',
+          },
+          body: JSON.stringify({ email, password }),
+        },
+      );
       for (let attempt = 0; attempt < 10; attempt += 1) {
-        const failure = await emailLogin(
+        // Distinct sources are the security scenario here: account lockout must
+        // still stop a distributed attack that cannot be contained by one IP bucket.
+        const failure = await distributedEmailLogin(
           'email-new@example.com',
           createEphemeralAcceptancePassword(),
           `203.0.114.${attempt + 1}`,
@@ -7979,6 +7956,7 @@ if (!databaseUrl) {
          WHERE id = 'email-user'`,
       );
 
+      await restartApplicationServer();
       const secondLogin = await login(initialPassword);
       assert.equal(secondLogin.status, 200);
       const passwordSession = await secondLogin.json();
@@ -7987,7 +7965,6 @@ if (!databaseUrl) {
         headers: {
           Authorization: `Bearer ${passwordSession.accessToken}`,
           'Content-Type': 'application/json',
-          'X-Forwarded-For': '203.0.113.49',
         },
         body: JSON.stringify({
           currentPassword: initialPassword,
@@ -8270,6 +8247,7 @@ if (!databaseUrl) {
       assert.equal(unknownDeletionRequest.status, 202);
       assert.match(await unknownDeletionRequest.text(), /Anfrage erhalten/);
 
+      await restartApplicationServer();
       const registrationBody = {
         email: 'new-account@example.com',
         password: createEphemeralAcceptancePassword(),
@@ -8282,7 +8260,6 @@ if (!databaseUrl) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Forwarded-For': '203.0.113.20',
         },
         body: JSON.stringify(registrationBody),
       });
@@ -8296,7 +8273,6 @@ if (!databaseUrl) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Forwarded-For': '203.0.113.21',
         },
         body: JSON.stringify({
           email: registrationBody.email,
@@ -8306,12 +8282,11 @@ if (!databaseUrl) {
       assert.equal(unverifiedLogin.status, 403);
       assert.equal((await unverifiedLogin.json()).error, 'email_verification_required');
 
-      const socialRequest = (token, consents = false, forwardedFor = '203.0.113.80') =>
+      const socialRequest = (token, consents = false) =>
         fetch(`${baseUrl}/v1/auth/social`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Forwarded-For': forwardedFor,
             'User-Agent': 'SIT social auth integration test',
           },
           body: JSON.stringify({
@@ -8338,7 +8313,6 @@ if (!databaseUrl) {
       const socialRegistration = await socialRequest(
         'google-new',
         true,
-        '203.0.113.81',
       );
       assert.equal(socialRegistration.status, 200);
       const socialSession = await socialRegistration.json();
@@ -8350,7 +8324,6 @@ if (!databaseUrl) {
         headers: {
           Authorization: `Bearer ${socialSession.accessToken}`,
           'Content-Type': 'application/json',
-          'X-Forwarded-For': '203.0.113.62',
         },
         body: JSON.stringify({
           currentPassword: createEphemeralAcceptancePassword(),
@@ -8375,7 +8348,6 @@ if (!databaseUrl) {
       const repeatSocialLogin = await socialRequest(
         'google-new',
         false,
-        '203.0.113.82',
       );
       assert.equal(repeatSocialLogin.status, 200);
       assert.equal((await repeatSocialLogin.json()).user.id, socialSession.user.id);
@@ -8391,7 +8363,6 @@ if (!databaseUrl) {
       const unsafeFacebookLink = await socialRequest(
         'facebook-existing',
         true,
-        '203.0.113.83',
       );
       assert.equal(unsafeFacebookLink.status, 409);
       assert.equal(
@@ -8410,7 +8381,6 @@ if (!databaseUrl) {
       const facebookRegistration = await socialRequest(
         'facebook-new',
         true,
-        '203.0.113.84',
       );
       assert.equal(facebookRegistration.status, 202);
       assert.deepEqual(await facebookRegistration.json(), {
@@ -8437,7 +8407,6 @@ if (!databaseUrl) {
       const verifiedFacebookLogin = await socialRequest(
         'facebook-new',
         false,
-        '203.0.113.85',
       );
       assert.equal(verifiedFacebookLogin.status, 200);
       assert.equal(
@@ -8843,13 +8812,13 @@ if (!databaseUrl) {
             )`,
       )).rows[0].count, 3);
 
+      await restartApplicationServer();
       const limitedAttempts = [];
       for (let attempt = 0; attempt < 9; attempt += 1) {
         limitedAttempts.push(await fetch(`${baseUrl}/v1/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Forwarded-For': '203.0.113.77',
           },
           body: JSON.stringify({ email: 'unknown@example.com', password: createEphemeralAcceptancePassword() }),
         }));
