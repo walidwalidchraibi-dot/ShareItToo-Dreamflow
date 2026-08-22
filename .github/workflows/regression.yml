@@ -16,6 +16,11 @@ on:
         required: true
         default: false
         type: boolean
+      run_flutter_parallel_stress:
+        description: Run five complete standard-parallel Flutter suites
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: regression-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -152,6 +157,10 @@ jobs:
         env:
           SIT_ALLOW_CANDIDATE_ROLLOVER: '1'
         run: bash scripts/technical_regression_check.sh
+
+      - name: Run explicit Flutter parallel stability proof
+        if: github.event_name == 'workflow_dispatch' && inputs.run_flutter_parallel_stress
+        run: bash scripts/test_flutter_parallel_stability.sh
 
       - name: Build a signed, commit-bound Android release candidate
         if: github.event_name == 'workflow_dispatch' && inputs.build_release_candidate

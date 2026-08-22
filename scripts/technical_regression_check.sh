@@ -404,6 +404,7 @@ node --test test/tool/validate_p0b_invited_synthetic_pilot_readiness.test.mjs
 node tool/validate_p0b_invited_synthetic_pilot_readiness.mjs
 node --test test/tool/g5b_listing_sets_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
+node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 
 analyze_log="$(mktemp)"
 trap 'rm -f "$analyze_log"' EXIT
