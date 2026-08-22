@@ -1637,3 +1637,30 @@ This package does not close `TD-RR-010`; the remaining ten item-overlay context
 findings require a further reviewed reduction to zero plus exact-commit CI.
 P0B remains `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS,
 deployment, signing, merge or public activation is enabled.
+
+## S4AT item-details secondary async-context ratchet
+
+`S4AT_ITEM_DETAILS_SECONDARY_ASYNC_CONTEXT_RATCHET` delivers the final
+`use_build_context_synchronously` source ratchet at commit `1a41bc4`.
+Item-sheet sharing, range selection and Wishlist management, full-page sharing,
+the listing overflow/support path and express feedback now prove their owning
+State or exact callback context after asynchronous work.
+
+The exact debt snapshot moves `132 -> 122`, and only the intended item-overlay
+context bucket changes from `10 -> 0`. Fifty-four focused
+source/analyzer/privacy contracts, 96 focused Flutter tests and all exact
+privacy, retention and analyzer validators pass. The privacy inventory is
+rebound without changing disclosure or release state.
+
+The standard-parallel clean-head gate reproducibly stopped after 293 green
+Flutter results and was terminated after more than six minutes without a test
+worker. A diagnostic-only serial run passed all 384 tests plus one documented
+skip; it is not an acceptance gate and no permanent accommodation was added.
+Exact-commit CI and the retained five-run default-parallel proof remain open
+under `TD-RR-003`.
+
+This package clears every async-context analyzer finding but does not close
+`TD-RR-010`; 122 diagnostics in the remaining categories still require
+reviewed downward ratchets to zero plus exact-commit CI. P0B remains `HOLD` /
+`NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment, signing,
+merge or public activation is enabled.

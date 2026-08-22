@@ -2174,3 +2174,30 @@ and fail-closed.
 `TD-RR-010` remains open for the final ten item-overlay context findings, a
 reviewed ratchet to zero and exact-commit CI. P0B remains `HOLD` / `NO-GO`, with
 no live boundary changed.
+
+## S4AT item-details secondary async-context ratchet
+
+`S4AT_ITEM_DETAILS_SECONDARY_ASYNC_CONTEXT_RATCHET` is locally verified at
+commit `1a41bc4`. Sharing, availability/range selection, Wishlist management,
+listing overflow, support intake and express feedback now prove their owning
+State or exact callback context after every asynchronous boundary. Existing
+Wishlist, availability, support, Payment, privacy and `needsReview` behavior is
+unchanged.
+
+The exact analyzer snapshot ratcheted `132 -> 122`, with
+`use_build_context_synchronously` `10 -> 0` and the item-overlay context bucket
+`10 -> 0`; all other buckets remained identical. Fifty-four focused
+source/analyzer/privacy contracts, 96 focused Flutter tests and the privacy,
+retention and analyzer validators pass.
+
+The exact standard-parallel clean-head gate stopped after 293 green Flutter
+results with no remaining test worker and was terminated after more than six
+silent minutes; it is a failed run, not evidence. A diagnostic-only serial run
+then passed 384 tests plus one documented skip without interruption. No
+permanent concurrency or timing accommodation was introduced. S4AS exact CI
+run `32600284183` is green; exact S4AT CI and retained default-parallel stress
+evidence remain required under `TD-RR-003`.
+
+The entire async-context lint category is zero, but `TD-RR-010` remains open
+for the remaining 122 reviewed analyzer diagnostics and exact-commit CI. P0B
+remains `HOLD` / `NO-GO`, with no live boundary changed.
