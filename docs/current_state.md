@@ -915,10 +915,11 @@ evidence/history, not permission to reopen a closed launch boundary.
 
 ## S3U external-AI and consumer-dispute gates
 
-`S3U_SUPPORT_AI_VSBG_LAUNCH_GATES` is locally verified as a non-live package on
-22.08.2026; exact implementation commit and CI run are added only after the
-pushed Draft-PR head is green. Drive scenarios `SUP-132` through `SUP-136` are
-implemented conservatively: direct/external AI has no runtime transport and
+`S3U_SUPPORT_AI_VSBG_LAUNCH_GATES` is locally and CI-verified as a non-live
+package at exact implementation commit
+`4366a1b84d795d6c68a686284d9ae0ee74107b49` and successful GitHub Actions run
+`32556439261`. Drive scenarios `SUP-132` through `SUP-136` are implemented
+conservatively: direct/external AI has no runtime transport and
 cannot be enabled; incomplete consumer-dispute facts keep app, Backend public
 imprint and Store preflight in draft/HOLD; only exact T-053 may enter the
 Administrator-only RED review path with server-bound data and in-app-only
@@ -931,6 +932,9 @@ baseline; Web build/smoke and Android debug APK passed. Privacy/Retention,
 Legal and affected P0B hold validators remain green and fail closed. No
 professional approval, production configuration, AI activation, external
 message, payment, Store, signed artifact, deployment, merge or live action was
-performed. Detailed records:
+performed. CI tested PR merge snapshot
+`4b8ba3ca718dfbea8c9a658a0ccff31eb764c3e3`; signed-candidate construction and
+API-image publication remained skipped, and Draft PR #7 remained open and
+unmerged. Detailed records:
 `docs/architecture/s3u-support-ai-vsbg-launch-gates-2026-08-22.md` and
 `docs/compliance/s3u-support-ai-vsbg-launch-gates-2026-08-22.md`.

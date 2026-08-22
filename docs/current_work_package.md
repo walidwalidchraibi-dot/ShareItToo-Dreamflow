@@ -453,9 +453,10 @@ unchanged.
 
 ## S3U support AI and VSBG launch gates
 
-`S3U_SUPPORT_AI_VSBG_LAUNCH_GATES` is locally verified on 22.08.2026 and
-awaits exact pushed-commit/CI evidence. It addresses Drive matrix scenarios
-`SUP-132` through `SUP-136` without opening a live lane:
+`S3U_SUPPORT_AI_VSBG_LAUNCH_GATES` is locally and CI-verified at exact
+implementation commit `4366a1b84d795d6c68a686284d9ae0ee74107b49` and
+successful GitHub Actions run `32556439261`. It addresses Drive matrix
+scenarios `SUP-132` through `SUP-136` without opening a live lane:
 
 - direct and external AI remain unavailable and transport-free;
 - any future direct AI chat requires a separate transparency/privacy/provider
@@ -470,9 +471,10 @@ awaits exact pushed-commit/CI evidence. It addresses Drive matrix scenarios
 Local final gates passed: 482 Backend/PostgreSQL tests through migration `048`,
 361 Flutter tests plus one documented skip, the Google-only test, accepted
 220-issue analyzer baseline, 58 Privacy/Retention protection tests, Legal/P0B
-hold checks, Web debug/smoke and Android debug APK. Exact CI evidence will be
-recorded after the implementation head is pushed and green. Professional legal
-review, operator facts, competent-body approval, real support staffing,
-external delivery, production, payment, Store, signed-candidate and every live
-path remain closed. Autonomous work continues next with `SUP-137` only after
-S3U commit/CI evidence is complete.
+hold checks, Web debug/smoke and Android debug APK. CI repeated those gates for
+PR merge snapshot `4b8ba3ca718dfbea8c9a658a0ccff31eb764c3e3`, passed all 482
+Backend tests without skips and kept signed-candidate construction and API-image
+publication skipped. Professional legal review, operator facts,
+competent-body approval, real support staffing, external delivery, production,
+payment, Store, signed-candidate and every live path remain closed. Autonomous
+work continues next with `SUP-137` after the evidence-only head is green.

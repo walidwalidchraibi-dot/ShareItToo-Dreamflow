@@ -1,8 +1,9 @@
 # S3U external-AI and VSBG gates - technical compliance record
 
-Status: locally verified non-live package on 22.08.2026. Exact commit and CI
-evidence remain pending until the pushed Draft-PR head is independently green.
-This record is technical evidence, not legal advice or professional approval.
+Status: locally and CI-verified non-live package on 22.08.2026 at exact
+implementation commit `4366a1b84d795d6c68a686284d9ae0ee74107b49` and
+successful GitHub Actions run `32556439261`. This record is technical evidence,
+not legal advice or professional approval.
 
 ## Scenario result
 
@@ -61,6 +62,12 @@ is not evidence that production facts have been approved.
 - Legal and affected P0B hold validators passed without changing their open
   legal/provider/operations truth.
 - Web debug build, loopback smoke and Android debug APK passed.
+- Exact-head GitHub run `32556439261` passed 482 Backend tests without skips on
+  PostgreSQL 16.14 and the complete Flutter technical regression for PR merge
+  snapshot `4b8ba3ca718dfbea8c9a658a0ccff31eb764c3e3`. Dependency/history audit,
+  Compose and commit-labelled API image build passed. Signed-candidate
+  construction and API-image publication were skipped; Draft PR #7 remained
+  open and unmerged.
 
 Production configuration values, a public page approval, actual T-053 message,
 external AI, external delivery, provider communication, payment, Store action,

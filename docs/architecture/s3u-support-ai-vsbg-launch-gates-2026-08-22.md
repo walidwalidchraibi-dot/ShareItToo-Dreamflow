@@ -1,9 +1,9 @@
 # S3U external-AI and consumer-dispute launch gates - architecture
 
-Status: locally verified non-live package on 22.08.2026. Exact implementation
-commit and GitHub Actions evidence are recorded only after the pushed Draft-PR
-head has completed CI. No production, Store, payment, external-message or
-public-release path is enabled.
+Status: locally and CI-verified non-live package on 22.08.2026 at exact
+implementation commit `4366a1b84d795d6c68a686284d9ae0ee74107b49` and
+successful GitHub Actions run `32556439261`. No production, Store, payment,
+external-message or public-release path is enabled.
 
 ## Source basis
 
@@ -113,6 +113,15 @@ Cloud/VPS/DNS, signing and Store behavior are unchanged.
 - Default parallel Flutter execution was locally nondeterministic in unrelated
   animated widget tests; the regression script now defaults to concurrency one
   and allows only an explicit positive-integer override.
+- GitHub regression `32556439261` is green for exact implementation head
+  `4366a1b84d795d6c68a686284d9ae0ee74107b49` and PR merge snapshot
+  `4b8ba3ca718dfbea8c9a658a0ccff31eb764c3e3`. Backend passed all 482 tests
+  without skips on PostgreSQL 16.14, dependency/history audit, Compose and the
+  commit-labelled API image build. Flutter passed the accepted 220-issue
+  analyzer baseline, all 361 tests with one documented skip, the separate
+  Google-only test, Web smoke/build and Android debug APK. Signed-candidate
+  construction and API-image publication remained skipped; Draft PR #7 stayed
+  open and unmerged.
 
 ## Residual gates
 
