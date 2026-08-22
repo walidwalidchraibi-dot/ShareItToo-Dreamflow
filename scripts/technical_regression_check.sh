@@ -352,6 +352,7 @@ node tool/verify_brand_assets.mjs
 node --test test/tool/messages_screen_dead_ui_cleanup_wiring.test.mjs
 node --test test/tool/request_detail_dead_message_card_cleanup_wiring.test.mjs
 node --test test/tool/explore_listing_card_dead_verification_getter_cleanup_wiring.test.mjs
+node --test test/tool/explore_dead_code_ratchet_wiring.test.mjs
 node --test test/tool/booking_detail_dead_collapsible_hint_state_cleanup_wiring.test.mjs
 node --test test/tool/ongoing_owner_detail_dead_manual_handover_state_cleanup_wiring.test.mjs
 node --test test/tool/ongoing_owner_detail_dead_start_handover_gate_cleanup_wiring.test.mjs

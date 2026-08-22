@@ -14,8 +14,6 @@ import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/search_header.dart';
 import 'package:lendify/widgets/category_icon_row.dart';
 import 'package:lendify/widgets/search_overlay.dart';
-import 'package:lendify/widgets/all_categories_overlay.dart';
-import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:lendify/screens/my_listings_screen.dart';
@@ -63,55 +61,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<Item> _extraTopBooked = [];
 
   Map<String, dynamic>? _filters;
-
-  IconData _iconFromName(String name) {
-    switch (name) {
-      case 'devices':
-        return Icons.devices;
-      case 'computer':
-        return Icons.computer;
-      case 'camera_alt':
-        return Icons.camera_alt;
-      case 'sports_esports':
-        return Icons.sports_esports;
-      case 'kitchen':
-        return Icons.kitchen;
-      case 'weekend':
-        return Icons.weekend;
-      case 'grass':
-        return Icons.grass;
-      case 'construction':
-        return Icons.construction;
-      case 'pedal_bike':
-        return Icons.pedal_bike;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'sports_soccer':
-        return Icons.sports_soccer;
-      case 'checkroom':
-        return Icons.checkroom;
-      case 'child_friendly':
-        return Icons.child_friendly;
-      case 'music_note':
-        return Icons.music_note;
-      case 'menu_book':
-        return Icons.menu_book;
-      case 'watch':
-        return Icons.watch;
-      case 'palette':
-        return Icons.palette;
-      case 'spa':
-        return Icons.spa;
-      case 'pets':
-        return Icons.pets;
-      case 'business_center':
-        return Icons.business_center;
-      case 'more_horiz':
-        return Icons.more_horiz;
-      default:
-        return Icons.category;
-    }
-  }
 
 // Coarse/top-level category icon mapping
   IconData _coarseIconForGroup(String group) {
@@ -359,95 +308,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Future<void> _showFilters() async {
-    final result = await FiltersOverlay.show(context, initial: _filters);
-    if (result != null) setState(() => _filters = result);
-  }
-
   void _openSearch() => SearchOverlay.show(context);
-
-  void _openAllCategories() {
-    final l10n = context.read<LocalizationController>();
-    final cats = _homeCategories
-        .map((e) =>
-            CategoryChipData(id: e.id, label: l10n.t(e.label), icon: e.icon))
-        .toList();
-    AllCategoriesOverlay.show(context, cats);
-  }
-
-  Future<bool?> _showCategoryConfirm(String label) {
-    final l10n = context.read<LocalizationController>();
-    return showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: false,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) {
-        return SafeArea(
-          top: false,
-          child: Center(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.34),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 12),
-                Row(children: [
-                  Container(
-                    decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        shape: BoxShape.circle),
-                    padding: const EdgeInsets.all(10),
-                    child: const Icon(Icons.category, color: Colors.white),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: Text(l10n.t('Kategorie auswählen'),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16))),
-                  IconButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      icon: const Icon(Icons.close, color: Colors.white70))
-                ]),
-                const SizedBox(height: 8),
-                Text('${l10n.t('Gefiltert nach:')} $label',
-                    style: const TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(
-                      child: OutlinedButton.icon(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          icon: const Icon(Icons.arrow_back),
-                          label: Text(l10n.t('Abbrechen')))),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: FilledButton.icon(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          icon: const Icon(Icons.check_circle),
-                          label: Text(l10n.t('Bestätigen')))),
-                ])
-              ]),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Future<void> _openLocationUpdate() async {
     final list = DataService.getCities().keys.toList();
@@ -1549,53 +1410,18 @@ class _SquareItemCard extends StatefulWidget {
   final Item item;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
-  final bool showFavorite;
-  final bool showInfo;
   const _SquareItemCard(
       {required this.item,
       required this.isFavorite,
-      required this.onFavoriteToggle,
-      this.showFavorite = true,
-      this.showInfo = true});
+      required this.onFavoriteToggle});
   @override
   State<_SquareItemCard> createState() => _SquareItemCardState();
 }
 
 class _SquareItemCardState extends State<_SquareItemCard> {
-  final GlobalKey _key = GlobalKey();
-  Timer? _pressTimer;
-  final bool _pointerDown = false;
   bool get _isVerified =>
       widget.item.verificationStatus == 'approved' ||
       widget.item.verificationStatus == 'verified';
-
-  void _startPressTimer() {
-    _pressTimer?.cancel();
-    _pressTimer = Timer(const Duration(seconds: 1), () {
-      if (!_pointerDown) return;
-      final ctx = _key.currentContext;
-      if (ctx != null) {
-        final box = ctx.findRenderObject() as RenderBox;
-        final pos = box.localToGlobal(Offset.zero);
-        final size = box.size;
-        _OverlayPresenter.showEnlarged(context, widget.item,
-            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height),
-            isFavorite: widget.isFavorite,
-            onFavoriteToggle: widget.onFavoriteToggle);
-      }
-    });
-  }
-
-  void _cancelTimer() {
-    _pressTimer?.cancel();
-    _pressTimer = null;
-  }
-
-  @override
-  void dispose() {
-    _cancelTimer();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1603,7 +1429,6 @@ class _SquareItemCardState extends State<_SquareItemCard> {
       cursor: SystemMouseCursors.basic,
       child: LongPressFeedbackWrapper(
         child: GestureDetector(
-          key: _key,
           onTap: () => ItemDetailsOverlay.showFullPage(context,
               item: widget.item, fresh: true),
           onLongPress: () => showListingOptionsDialog(context,
@@ -1634,79 +1459,76 @@ class _SquareItemCardState extends State<_SquareItemCard> {
                   ),
                 ),
               ),
-              if (widget.showInfo)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.0),
-                            Colors.black.withValues(alpha: 0.55),
-                          ]),
-                    ),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(widget.item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white)),
-                          const SizedBox(height: 2),
-                          Row(children: [
-                            Expanded(child: Builder(builder: (context) {
-                              final unit = widget.item.priceUnit;
-                              final perDay = widget.item.pricePerDay;
-                              final price =
-                                  unit == 'week' ? perDay * 7 : perDay;
-                              return Text(
-                                  '${listingCustomerPriceText(price, currency: widget.item.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(color: Colors.white));
-                            })),
-                          ]),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.0),
+                          Colors.black.withValues(alpha: 0.55),
                         ]),
                   ),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(widget.item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white)),
+                        const SizedBox(height: 2),
+                        Row(children: [
+                          Expanded(child: Builder(builder: (context) {
+                            final unit = widget.item.priceUnit;
+                            final perDay = widget.item.pricePerDay;
+                            final price = unit == 'week' ? perDay * 7 : perDay;
+                            return Text(
+                                '${listingCustomerPriceText(price, currency: widget.item.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(color: Colors.white));
+                          })),
+                        ]),
+                      ]),
                 ),
-              if (widget.showFavorite)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: InkWell(
-                    onTap: widget.onFavoriteToggle,
-                    borderRadius: BorderRadius.circular(16),
-                    mouseCursor: SystemMouseCursors.basic,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          shape: BoxShape.circle),
-                      child: Icon(
-                          widget.isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          size: 14,
-                          color: widget.isFavorite
-                              ? Colors.pinkAccent
-                              : Colors.black54),
-                    ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: InkWell(
+                  onTap: widget.onFavoriteToggle,
+                  borderRadius: BorderRadius.circular(16),
+                  mouseCursor: SystemMouseCursors.basic,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        shape: BoxShape.circle),
+                    child: Icon(
+                        widget.isFavorite
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        size: 14,
+                        color: widget.isFavorite
+                            ? Colors.pinkAccent
+                            : Colors.black54),
                   ),
                 ),
+              ),
               Positioned(
                 top: 8,
                 left: 8,
@@ -1735,40 +1557,11 @@ class _SmallScrollCard extends StatefulWidget {
 }
 
 class _SmallScrollCardState extends State<_SmallScrollCard> {
-  final GlobalKey _key = GlobalKey();
-  Timer? _pressTimer;
-  final bool _pointerDown = false;
   bool get _isVerified =>
       widget.item.verificationStatus == 'approved' ||
       widget.item.verificationStatus == 'verified';
 
   double _iconSizeFor(double width) => (width * 0.10).clamp(14.0, 20.0);
-
-  void _startPressTimer() {
-    _pressTimer?.cancel();
-    _pressTimer = Timer(const Duration(seconds: 1), () {
-      if (!_pointerDown) return;
-      final ctx = _key.currentContext;
-      if (ctx != null) {
-        final box = ctx.findRenderObject() as RenderBox;
-        final pos = box.localToGlobal(Offset.zero);
-        final size = box.size;
-        _OverlayPresenter.showEnlarged(context, widget.item,
-            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
-      }
-    });
-  }
-
-  void _cancelTimer() {
-    _pressTimer?.cancel();
-    _pressTimer = null;
-  }
-
-  @override
-  void dispose() {
-    _cancelTimer();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1776,7 +1569,6 @@ class _SmallScrollCardState extends State<_SmallScrollCard> {
       cursor: SystemMouseCursors.basic,
       child: LongPressFeedbackWrapper(
         child: GestureDetector(
-          key: _key,
           onTap: () => ItemDetailsOverlay.showFullPage(context,
               item: widget.item, fresh: true),
           onLongPress: () => showListingOptionsDialog(context,
@@ -1899,56 +1691,20 @@ class _SmallGridCard extends StatefulWidget {
   final Item item;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
-  final bool compact;
   const _SmallGridCard(
       {required this.item,
       required this.isFavorite,
-      required this.onFavoriteToggle,
-      this.compact = false});
+      required this.onFavoriteToggle});
   @override
   State<_SmallGridCard> createState() => _SmallGridCardState();
 }
 
 class _SmallGridCardState extends State<_SmallGridCard> {
-  final GlobalKey _key = GlobalKey();
-  Timer? _pressTimer;
-  final bool _pointerDown = false;
   bool get _isVerified =>
       widget.item.verificationStatus == 'approved' ||
       widget.item.verificationStatus == 'verified';
 
-  double _iconSizeFor(double width) {
-    final base = widget.compact ? 0.08 : 0.10;
-    final min = widget.compact ? 12.0 : 14.0;
-    final max = widget.compact ? 18.0 : 20.0;
-    return (width * base).clamp(min, max);
-  }
-
-  void _startPressTimer() {
-    _pressTimer?.cancel();
-    _pressTimer = Timer(const Duration(seconds: 1), () {
-      if (!_pointerDown) return;
-      final ctx = _key.currentContext;
-      if (ctx != null) {
-        final box = ctx.findRenderObject() as RenderBox;
-        final pos = box.localToGlobal(Offset.zero);
-        final size = box.size;
-        _OverlayPresenter.showEnlarged(context, widget.item,
-            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
-      }
-    });
-  }
-
-  void _cancelTimer() {
-    _pressTimer?.cancel();
-    _pressTimer = null;
-  }
-
-  @override
-  void dispose() {
-    _cancelTimer();
-    super.dispose();
-  }
+  double _iconSizeFor(double width) => (width * 0.10).clamp(14.0, 20.0);
 
   @override
   Widget build(BuildContext context) {
@@ -1956,7 +1712,6 @@ class _SmallGridCardState extends State<_SmallGridCard> {
       cursor: SystemMouseCursors.basic,
       child: LongPressFeedbackWrapper(
         child: GestureDetector(
-          key: _key,
           onTap: () => ItemDetailsOverlay.showFullPage(context,
               item: widget.item, fresh: true),
           onLongPress: () => showListingOptionsDialog(context,
@@ -2402,10 +2157,7 @@ class _ExploreListingCardContent extends StatelessWidget {
 
 class _SquareTitleOnlyCard extends StatefulWidget {
   final Item item;
-  final bool isFavorite;
-  final VoidCallback? onFavoriteToggle;
-  const _SquareTitleOnlyCard(
-      {required this.item, this.isFavorite = false, this.onFavoriteToggle});
+  const _SquareTitleOnlyCard({required this.item});
   @override
   State<_SquareTitleOnlyCard> createState() => _SquareTitleOnlyCardState();
 }
@@ -2520,31 +2272,6 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
                   ),
                 ),
               ),
-// Favorite heart (top-right)
-              if (widget.onFavoriteToggle != null)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: InkWell(
-                    onTap: widget.onFavoriteToggle,
-                    borderRadius: BorderRadius.circular(16),
-                    mouseCursor: SystemMouseCursors.basic,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          shape: BoxShape.circle),
-                      child: Icon(
-                          widget.isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          size: 16,
-                          color: widget.isFavorite
-                              ? Colors.pinkAccent
-                              : Colors.black54),
-                    ),
-                  ),
-                ),
               Positioned(
                 top: 8,
                 left: 8,
