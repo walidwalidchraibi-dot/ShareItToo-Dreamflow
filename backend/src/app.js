@@ -202,6 +202,7 @@ import {
   listSupportOperationalAlerts,
   supportDeadlineHealth,
 } from './support_deadline_watchdog.js';
+import { getSupportOperationalMetrics } from './support_operational_metrics.js';
 import {
   getPrivacyRightsRequestForCase,
   listPrivacyRightsQueue,
@@ -4459,6 +4460,15 @@ export function createApp({
       alerts,
       externalNotificationsSent: 0,
     });
+  }));
+
+  app.get('/v1/admin/support/operational-metrics', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const metrics = await getSupportOperationalMetrics(pool, {
+      actor: req.actor,
+      from: req.query.from ?? null,
+      to: req.query.to ?? null,
+    });
+    res.set('Cache-Control', 'private, no-store').json({ metrics });
   }));
 
   app.get('/v1/admin/support/article-18/candidates', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {

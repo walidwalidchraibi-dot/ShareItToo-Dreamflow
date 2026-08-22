@@ -184,7 +184,12 @@ function validateRepositoryScaffold(root, overrides) {
   requireIncludes(runtime, 'getAPNSToken', 'Firebase runtime');
   requireIncludes(
     runtime,
-    'kReleaseMode && _crashDiagnosticsEnabled',
+    'crashDiagnosticsCollectionAllowed(',
+    'Firebase runtime',
+  );
+  requireIncludes(
+    runtime,
+    'userEnabled: _crashDiagnosticsEnabled',
     'Firebase runtime',
   );
   requireIncludes(

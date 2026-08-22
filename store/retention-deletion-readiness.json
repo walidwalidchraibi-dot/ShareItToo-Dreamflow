@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "89581dc1e99139963a1cb33c7a91778bd20aed17a98cfd7989c44cc9396635b6"
+      "sha256": "13e60ea5e714a12db13cac3979db116797e0659f709e401feb6329cb919c45c9"
     },
     {
       "path": "backend/src/server.js",
@@ -130,6 +130,10 @@
     {
       "path": "backend/src/support_deadline_watchdog.js",
       "sha256": "8292ed06c11c50250fb7da6d21ddb458e6acb7f3c49c071fedf3ed3375817df9"
+    },
+    {
+      "path": "backend/src/support_operational_metrics.js",
+      "sha256": "538011825f9ea7aa5847b072094c7ed9533eaecc35b8f5221dfcadb97b5bdc4e"
     },
     {
       "path": "backend/src/rental_cart_workflow.js",
@@ -405,7 +409,7 @@
     },
     {
       "path": "lib/services/firebase_runtime.dart",
-      "sha256": "f2d16d24a92017e318b04be80710c54e4c2c1f4608d9fab7887ddb545a32b5ac"
+      "sha256": "11d08d0c91d71210172844db9566aa3c8c285d1afd38bdbc814b9cfa16aa3d81"
     },
     {
       "path": "lib/services/firebase_service_preferences.dart",

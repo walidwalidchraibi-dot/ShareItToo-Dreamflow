@@ -38,6 +38,7 @@ const sourcePaths = [
   'backend/src/support_notifications.js',
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
+  'backend/src/support_operational_metrics.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -544,6 +545,20 @@ function assertSourceContracts(root, sourceTexts) {
   if (!inventory.includes("'securityAudit', 'support_deadline_watchdog_state'")) {
     fail('Retention inventory is missing operational dataset support_deadline_watchdog_state.');
   }
+  const supportOperationalMetrics = text(
+    root,
+    sourceTexts,
+    'backend/src/support_operational_metrics.js',
+  );
+  for (const marker of [
+    'aggregateOnly: true',
+    'containsPersonalData: false',
+    'externalAnalyticsSent: false',
+  ]) {
+    if (!supportOperationalMetrics.includes(marker)) {
+      fail(`Support operational metrics are missing the no-new-retention boundary: ${marker}.`);
+    }
+  }
   for (const dataset of [
     'support_privacy_incidents',
     'support_privacy_incident_containment_actions',
@@ -607,7 +622,9 @@ function assertSourceContracts(root, sourceTexts) {
   const firebaseRuntime = text(root, sourceTexts, 'lib/services/firebase_runtime.dart');
   for (const marker of [
     'setAutoInitEnabled(_pushEnabled)',
-    'kReleaseMode && _crashDiagnosticsEnabled',
+    'crashDiagnosticsCollectionAllowed(',
+    'releaseMode: kReleaseMode',
+    'userEnabled: _crashDiagnosticsEnabled',
     'FirebaseMessaging.instance.deleteToken()',
     'FirebaseCrashlytics.instance.deleteUnsentReports()',
     'FirebaseInstallations.instance.delete()',

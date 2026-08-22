@@ -1024,3 +1024,22 @@ and unmerged.
 Automated checks are not represented as a manual TalkBack or VoiceOver pass;
 signed-device evidence and every live, Store, production, payment, deployment
 and merge action remain closed.
+
+## S3Y support operational metrics and crash privacy
+
+`S3Y_SUPPORT_OPERATIONAL_METRICS_CRASH_PRIVACY_GUARDS` is locally verified for
+Drive scenarios `SUP-165` through `SUP-167`. The new elevated
+Administrator route returns only aggregate cohort/snapshot counts and integer
+basis points. Reopen rate is limited to cases closed inside the bounded window;
+late-update rate is explicitly a current active-case snapshot. No row ID,
+user field, case text or external analytics event is returned or sent.
+
+Crashlytics collection now shares one release-plus-independent-user-opt-in
+predicate, and the controlled internal diagnostic has one exact four-key
+release-mapping allowlist with no Firebase user identifier. The Backend unit
+run passes 496 tests with one expected PostgreSQL-environment skip. The full
+technical regression passes the accepted analyzer baseline, 369 Flutter tests
+with one documented skip, separate Google-only test, Web smoke and Android
+debug build. Exact implementation commit and CI evidence are pending.
+Production, Firebase Console/provider traffic, real support operations,
+payment, Store, signed candidate, deployment and merge remain closed.

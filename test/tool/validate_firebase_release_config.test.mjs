@@ -241,13 +241,13 @@ test('rejects Crashlytics collection without the persisted opt-in gate', () => {
   assert.throws(
     () => validate({
       sourceOverrides: {
-        'lib/services/firebase_runtime.dart': currentRuntime.replace(
-          'kReleaseMode && _crashDiagnosticsEnabled',
-          'kReleaseMode',
+        'lib/services/firebase_runtime.dart': currentRuntime.replaceAll(
+          'userEnabled: _crashDiagnosticsEnabled',
+          'userEnabled: true',
         ),
       },
     }),
-    /kReleaseMode && _crashDiagnosticsEnabled/,
+    /userEnabled: _crashDiagnosticsEnabled/,
   );
 });
 

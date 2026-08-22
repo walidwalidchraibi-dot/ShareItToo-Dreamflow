@@ -4403,6 +4403,29 @@ if (!databaseUrl) {
         && alert.externalNotificationSent === false
         && !Object.hasOwn(alert, 'structuredPayload')
       )));
+      const supportMetricsForbidden = await fetch(
+        `${baseUrl}/v1/admin/support/operational-metrics`,
+        { headers: supportHeaders },
+      );
+      assert.equal(supportMetricsForbidden.status, 403);
+      const supportMetricsResponse = await fetch(
+        `${baseUrl}/v1/admin/support/operational-metrics`,
+        { headers: adminHeaders },
+      );
+      assert.equal(supportMetricsResponse.status, 200);
+      assert.match(supportMetricsResponse.headers.get('cache-control'), /no-store/u);
+      const supportMetrics = (await supportMetricsResponse.json()).metrics;
+      assert.equal(supportMetrics.definitionVersion, 'support-operational-metrics-v1');
+      assert.equal(supportMetrics.privacy.aggregateOnly, true);
+      assert.equal(supportMetrics.privacy.containsPersonalData, false);
+      assert.equal(supportMetrics.privacy.externalAnalyticsSent, false);
+      assert.ok(supportMetrics.lateUpdateRate.activeCases >= 1);
+      assert.ok(
+        supportMetrics.lateUpdateRate.activeCases
+          >= supportMetrics.lateUpdateRate.overdueActiveCases,
+      );
+      assert.equal(JSON.stringify(supportMetrics).includes('caseNumber'), false);
+      assert.equal(JSON.stringify(supportMetrics).includes('userId'), false);
       const unassignedP0WithoutGrant = await fetch(
         `${baseUrl}/v1/admin/support/cases/${p0BreakGlassCase.rows[0].id}`,
         { headers: supportHeaders },

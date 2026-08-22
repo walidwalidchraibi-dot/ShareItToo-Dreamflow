@@ -37,6 +37,7 @@ const sourcePaths = [
   'backend/src/support_notifications.js',
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
+  'backend/src/support_operational_metrics.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -484,6 +485,22 @@ function assertSourceContracts({ root, sourceTexts }) {
   ]) {
     if (!supportDeadlineWatchdog.includes(marker)) {
       fail(`Support-deadline privacy boundary is missing ${marker}.`);
+    }
+  }
+  const supportOperationalMetrics = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_operational_metrics.js',
+  );
+  for (const marker of [
+    "operating_mode IN ('simulation', 'internal_testing')",
+    'aggregateOnly: true',
+    'containsPersonalData: false',
+    'externalAnalyticsSent: false',
+    'support_operational_metrics_forbidden',
+  ]) {
+    if (!supportOperationalMetrics.includes(marker)) {
+      fail(`Support operational-metrics privacy boundary is missing ${marker}.`);
     }
   }
   const privacyIncidentWorkflow = sourceText(

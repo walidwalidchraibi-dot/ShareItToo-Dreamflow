@@ -22,8 +22,8 @@ test('native Firebase auto collection is fail-closed on Android and iOS', () => 
 test('runtime gates push and crash collection on persisted user decisions', () => {
   assert.match(runtime, /FirebaseServicePreferencesStore\.read\(\)/);
   assert.match(runtime, /setAutoInitEnabled\(_pushEnabled\)/);
-  assert.match(runtime, /kReleaseMode && _crashDiagnosticsEnabled/);
-  assert.match(runtime, /!_crashDiagnosticsEnabled\) return/);
+  assert.match(runtime, /releaseMode && userEnabled/);
+  assert.match(runtime, /userEnabled: _crashDiagnosticsEnabled/);
   assert.match(runtime, /setPushEnabled\(bool enabled\)/);
   assert.match(runtime, /setCrashDiagnosticsEnabled\(bool enabled\)/);
   assert.match(runtime, /deleteUnsentReports\(\)/);

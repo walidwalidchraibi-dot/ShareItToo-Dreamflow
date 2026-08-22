@@ -82,6 +82,101 @@ void main() {
   });
 
   group('controlled Crashlytics diagnostic gate', () {
+    test('permits collection only in release mode after explicit opt-in', () {
+      expect(
+        crashDiagnosticsCollectionAllowed(
+          releaseMode: true,
+          userEnabled: true,
+        ),
+        isTrue,
+      );
+      expect(
+        crashDiagnosticsCollectionAllowed(
+          releaseMode: false,
+          userEnabled: true,
+        ),
+        isFalse,
+      );
+      expect(
+        crashDiagnosticsCollectionAllowed(
+          releaseMode: true,
+          userEnabled: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('allows only non-personal release mapping custom keys', () {
+      expect(
+        controlledCrashDiagnosticCustomKeys,
+        {
+          'sit_release_commit',
+          'sit_build_number',
+          'sit_release_channel',
+          'sit_diagnostic_run_id',
+        },
+      );
+      for (final key in controlledCrashDiagnosticCustomKeys) {
+        expect(controlledCrashDiagnosticCustomKeyAllowed(key), isTrue);
+      }
+      for (final forbidden in [
+        'user_id',
+        'case_id',
+        'account_id',
+        'email',
+        'phone_number',
+      ]) {
+        expect(controlledCrashDiagnosticCustomKeyAllowed(forbidden), isFalse);
+      }
+      expect(
+        controlledCrashDiagnosticCustomValueAllowed(
+          'sit_release_commit',
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        ),
+        isTrue,
+      );
+      expect(
+        controlledCrashDiagnosticCustomValueAllowed(
+          'sit_build_number',
+          '2026082201',
+        ),
+        isTrue,
+      );
+      expect(
+        controlledCrashDiagnosticCustomValueAllowed(
+          'sit_release_channel',
+          'internal',
+        ),
+        isTrue,
+      );
+      expect(
+        controlledCrashDiagnosticCustomValueAllowed(
+          'sit_diagnostic_run_id',
+          'b11-android-2026082201',
+        ),
+        isTrue,
+      );
+      expect(
+        controlledCrashDiagnosticCustomValueAllowed(
+          'sit_diagnostic_run_id',
+          '',
+        ),
+        isTrue,
+      );
+      for (final value in [
+        'person@example.com',
+        'case-11111111-1111-4111-8111-111111111111',
+        'internal/user-1',
+      ]) {
+        for (final key in controlledCrashDiagnosticCustomKeys) {
+          expect(
+            controlledCrashDiagnosticCustomValueAllowed(key, value),
+            isFalse,
+          );
+        }
+      }
+    });
+
     test('allows only the exact internal staging release run', () {
       expect(
         controlledCrashDiagnosticAllowed(
@@ -195,7 +290,8 @@ void main() {
       );
     });
 
-    test('drops empty notifications and refuses legacy or expanded push data', () {
+    test('drops empty notifications and refuses legacy or expanded push data',
+        () {
       expect(parseForegroundPushMessage(), isNull);
 
       final message = parseForegroundPushMessage(

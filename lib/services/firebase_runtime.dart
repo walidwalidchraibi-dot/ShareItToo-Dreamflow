@@ -14,6 +14,49 @@ import 'firebase_service_preferences.dart';
 import 'release_identity.dart';
 import 'shared_persistence_sync.dart';
 
+const controlledCrashDiagnosticCustomKeys = <String>{
+  'sit_release_commit',
+  'sit_build_number',
+  'sit_release_channel',
+  'sit_diagnostic_run_id',
+};
+
+@visibleForTesting
+bool controlledCrashDiagnosticCustomKeyAllowed(String key) =>
+    controlledCrashDiagnosticCustomKeys.contains(key);
+
+@visibleForTesting
+bool controlledCrashDiagnosticCustomValueAllowed(String key, Object value) {
+  if (!controlledCrashDiagnosticCustomKeyAllowed(key)) return false;
+  final text = value.toString();
+  return switch (key) {
+    'sit_release_commit' => RegExp(r'^[0-9a-f]{40}$').hasMatch(text),
+    'sit_build_number' => RegExp(r'^\d{10}$').hasMatch(text),
+    'sit_release_channel' => text == 'internal',
+    'sit_diagnostic_run_id' =>
+      text.isEmpty || RegExp(r'^b11-[a-z0-9-]{6,64}$').hasMatch(text),
+    _ => false,
+  };
+}
+
+@visibleForTesting
+bool crashDiagnosticsCollectionAllowed({
+  required bool releaseMode,
+  required bool userEnabled,
+}) =>
+    releaseMode && userEnabled;
+
+Future<void> _setControlledCrashDiagnosticCustomKey(
+  FirebaseCrashlytics crashlytics,
+  String key,
+  Object value,
+) async {
+  if (!controlledCrashDiagnosticCustomValueAllowed(key, value)) {
+    throw ArgumentError('Crash diagnostic key or value is not allowed');
+  }
+  await crashlytics.setCustomKey(key, value);
+}
+
 bool controlledCrashDiagnosticAllowed({
   required bool releaseMode,
   required bool enabled,
@@ -276,10 +319,14 @@ class FirebaseRuntime {
       }
       _pushEnabled = preferences.pushEnabled;
       _crashDiagnosticsEnabled = preferences.crashDiagnosticsEnabled;
-      await FirebaseMessaging.instance.setDeliveryMetricsExportToBigQuery(false);
+      await FirebaseMessaging.instance
+          .setDeliveryMetricsExportToBigQuery(false);
       await FirebaseMessaging.instance.setAutoInitEnabled(_pushEnabled);
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
-        kReleaseMode && _crashDiagnosticsEnabled,
+        crashDiagnosticsCollectionAllowed(
+          releaseMode: kReleaseMode,
+          userEnabled: _crashDiagnosticsEnabled,
+        ),
       );
       FirebaseMessaging.onBackgroundMessage(
         firebaseMessagingBackgroundHandler,
@@ -305,7 +352,13 @@ class FirebaseRuntime {
   }
 
   static void recordFlutterFatalError(FlutterErrorDetails details) {
-    if (!_initialized || !kReleaseMode || !_crashDiagnosticsEnabled) return;
+    if (!_initialized ||
+        !crashDiagnosticsCollectionAllowed(
+          releaseMode: kReleaseMode,
+          userEnabled: _crashDiagnosticsEnabled,
+        )) {
+      return;
+    }
     if (!shouldRecordUnhandledErrorAsFatal(details.exception)) {
       unawaited(
         FirebaseCrashlytics.instance.recordError(
@@ -323,7 +376,13 @@ class FirebaseRuntime {
   }
 
   static void recordUnhandledError(Object error, StackTrace stack) {
-    if (!_initialized || !kReleaseMode || !_crashDiagnosticsEnabled) return;
+    if (!_initialized ||
+        !crashDiagnosticsCollectionAllowed(
+          releaseMode: kReleaseMode,
+          userEnabled: _crashDiagnosticsEnabled,
+        )) {
+      return;
+    }
     unawaited(
       FirebaseCrashlytics.instance.recordError(
         error,
@@ -377,19 +436,23 @@ class FirebaseRuntime {
       if (!await preferences.setBool(attemptKey, true)) return false;
 
       final crashlytics = FirebaseCrashlytics.instance;
-      await crashlytics.setCustomKey(
+      await _setControlledCrashDiagnosticCustomKey(
+        crashlytics,
         'sit_release_commit',
         ReleaseIdentity.appCommit,
       );
-      await crashlytics.setCustomKey(
+      await _setControlledCrashDiagnosticCustomKey(
+        crashlytics,
         'sit_build_number',
         ReleaseIdentity.buildNumber,
       );
-      await crashlytics.setCustomKey(
+      await _setControlledCrashDiagnosticCustomKey(
+        crashlytics,
         'sit_release_channel',
         ReleaseIdentity.releaseChannel,
       );
-      await crashlytics.setCustomKey(
+      await _setControlledCrashDiagnosticCustomKey(
+        crashlytics,
         'sit_diagnostic_run_id',
         requestedRunId,
       );
@@ -400,7 +463,11 @@ class FirebaseRuntime {
         fatal: false,
       );
       await crashlytics.sendUnsentReports();
-      await crashlytics.setCustomKey('sit_diagnostic_run_id', '');
+      await _setControlledCrashDiagnosticCustomKey(
+        crashlytics,
+        'sit_diagnostic_run_id',
+        '',
+      );
       return true;
     } catch (_) {
       debugPrint('[FirebaseRuntime] controlled crash diagnostic unavailable');
@@ -526,7 +593,10 @@ class FirebaseRuntime {
     await FirebaseServicePreferencesStore.setCrashDiagnosticsEnabled(enabled);
     try {
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
-        kReleaseMode && enabled,
+        crashDiagnosticsCollectionAllowed(
+          releaseMode: kReleaseMode,
+          userEnabled: enabled,
+        ),
       );
       if (!enabled) {
         await FirebaseCrashlytics.instance.deleteUnsentReports();
