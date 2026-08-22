@@ -18,7 +18,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 | `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
-| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive `<= 220` ceiling with an exact total and normalized diagnostic fingerprint. Seven focused tests and the complete local gate pass at `5a1aba9`; all 220 known findings are contained but still unresolved. | Reduce the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y then guards all Wishlist selector async gaps and ratchets the exact backlog `220 -> 214` at `1958248`, with only `use_build_context_synchronously` decreasing `98 -> 92`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
 
 ## Observation log
 
@@ -222,6 +222,15 @@ claimed until every item below has reproducible evidence and is closed.
   `5a1aba962aa4047b938af4415882a7834681d894`. This contains `TD-RR-010` but
   does not close it; reviewed source ratchets to zero plus exact-commit CI remain
   mandatory.
+- 22.08.2026, S4Y: four mounted checks now stop Wishlist add/move selectors
+  immediately after either async lookup when the caller was disposed. No delay,
+  retry or lint suppression was introduced. The analyzer ratcheted exactly
+  `220 -> 214`, `use_build_context_synchronously` `98 -> 92`, and the Wishlist
+  path bucket `6 -> 0`; every other bucket stayed unchanged. Nine focused tests,
+  five saved-item tests and the complete clean implementation-head local
+  metadata gate passed at `195824802b5edaf2c65d8b8ab611abfccae4b707`.
+  `TD-RR-010` remains open for further reviewed reductions to zero and
+  exact-commit CI.
 
 ## Closure rule
 

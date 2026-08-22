@@ -1215,3 +1215,21 @@ raising it, lint suppression or non-fatal analyzer configuration is forbidden.
 `TD-RR-010` remains open for those ratchets and exact-commit CI. P0B remains
 `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
 signing, merge or public activation is enabled.
+
+## S4Y Wishlist async-context ratchet
+
+`S4Y_WISHLIST_ASYNC_CONTEXT_RATCHET` delivers the first downward
+`TD-RR-010` source ratchet at commit `1958248`. Both Wishlist selector entry
+points now fail closed after either async lookup if the original context was
+disposed. The change uses no delay, retry or lint suppression and creates no
+saved-item side effect on that path.
+
+The exact debt snapshot moves `220 -> 214`, and only the intended
+`use_build_context_synchronously` Wishlist bucket changes. Nine focused tests,
+five related Flutter tests and the complete clean implementation-head local
+metadata gate pass with the new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.

@@ -1738,3 +1738,22 @@ This contains but does not close `TD-RR-010`. The snapshot must ratchet downward
 only with reviewed source fixes and reach zero before release readiness, then
 pass exact-commit CI. It cannot be raised or refreshed merely to accept drift.
 P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4Y Wishlist async-context ratchet
+
+`S4Y_WISHLIST_ASYNC_CONTEXT_RATCHET` is locally verified at implementation
+commit `1958248`. Wishlist add and move selection now check their caller's
+mounted state after each of the two asynchronous data lookups. A disposed
+caller receives `null`; no popup, navigator access or saved-item mutation is
+attempted.
+
+The exact analyzer snapshot ratcheted `220 -> 214`, with
+`use_build_context_synchronously` `98 -> 92` and the Wishlist file's bucket
+`6 -> 0`; all other buckets remained identical. Nine focused Ratchet/Wishlist
+tests, five saved-item tests and the complete clean implementation-head local
+metadata gate passed at `195824802b5edaf2c65d8b8ab611abfccae4b707` with 379
+Flutter tests plus one documented skip, Google-only, Web build/smoke and Android
+debug. SIT temp roots remained zero.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
