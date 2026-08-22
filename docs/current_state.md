@@ -1003,8 +1003,9 @@ payment, Store, signed candidate, deployment or merge occurred.
 
 ## S3X support case UI accessibility
 
-`S3X_SUPPORT_CASE_UI_ACCESSIBILITY` is the current locally verified non-live
-candidate for Drive scenarios `SUP-143` through `SUP-152`. It preserves the
+`S3X_SUPPORT_CASE_UI_ACCESSIBILITY` is locally and CI-verified at exact
+implementation commit `3f96e93e721dcf5daef948ca7370856511293829` for Drive
+scenarios `SUP-143` through `SUP-152`. It preserves the
 canonical support truth while strengthening German status/action/decision
 copy, semantic heading and card order, text-only status meaning, keyboard
 activation, two-times text layout, minimum case-card target size and the
@@ -1015,7 +1016,11 @@ technical regression passes the accepted 220-issue analyzer baseline, 367
 Flutter tests with one documented Google-profile skip, the separate
 Google-only test, Web build/loopback smoke and Android debug APK.
 
-Commit and exact GitHub CI evidence remain pending.
+GitHub regression run `32561101446` passed the same gates, including 493
+Backend/PostgreSQL tests without skips, for PR merge snapshot
+`051f0da94e4a7b81900b54429628ce3a489687c5`. Signed-candidate construction
+and API-image publication were skipped; Draft PR #7 remained open, mergeable
+and unmerged.
 Automated checks are not represented as a manual TalkBack or VoiceOver pass;
 signed-device evidence and every live, Store, production, payment, deployment
 and merge action remain closed.

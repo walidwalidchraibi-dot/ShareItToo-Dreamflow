@@ -1,7 +1,9 @@
 # S3X support case UI accessibility - technical compliance record
 
-Status: locally verified, non-live candidate on 22.08.2026. Commit and exact CI
-evidence remain pending.
+Status: locally and CI-verified non-live implementation on 22.08.2026 at exact
+commit `3f96e93e721dcf5daef948ca7370856511293829`. GitHub regression run
+`32561101446` passed for PR merge snapshot
+`051f0da94e4a7b81900b54429628ce3a489687c5`.
 
 ## Matrix result
 
@@ -35,6 +37,11 @@ evidence remain pending.
   367 Flutter tests passed with one documented Google-profile skip, the
   separate Google-only test passed, Web build/loopback smoke passed and the
   Android debug APK built.
+- Exact GitHub CI: 493 Backend/PostgreSQL tests passed without skips; the
+  accepted 220-issue analyzer baseline, 367 Flutter tests with one documented
+  skip, separate Google-only test, Web build/loopback smoke and Android debug
+  APK passed again. Signed-candidate construction and API-image publication
+  were skipped; Draft PR #7 stayed open, mergeable and unmerged.
 
 No professional accessibility audit, manual screen-reader/device pass, Store
 action, signed build, production mutation, payment, deployment, PR merge or

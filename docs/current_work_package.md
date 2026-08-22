@@ -539,7 +539,8 @@ payment, Store, signed candidate, deployment, merge or public pilot is enabled.
 
 ## S3X support case UI accessibility
 
-`S3X_SUPPORT_CASE_UI_ACCESSIBILITY` is the active non-live candidate for Drive
+`S3X_SUPPORT_CASE_UI_ACCESSIBILITY` is locally and CI-verified at exact
+implementation commit `3f96e93e721dcf5daef948ca7370856511293829` for Drive
 scenarios `SUP-143` through `SUP-152`. The existing canonical list/detail,
 waiting-user deadline, published decision, appeal path and blocked-user filter
 are retained. The UI now binds readable German status text, prominent action,
@@ -552,6 +553,9 @@ tests; 58 Privacy/Retention protection tests and both source validators are
 green. The complete local technical regression passes the accepted 220-issue
 analyzer baseline, 367 Flutter tests with one documented Google-profile skip,
 the separate Google-only test, Web build/loopback smoke and Android debug APK.
-Commit and exact GitHub CI evidence remain pending. No manual
-TalkBack/VoiceOver device pass, signed candidate, Store, production, payment,
-deployment, merge or public action is claimed or enabled.
+GitHub run `32561101446` repeated those gates for PR merge snapshot
+`051f0da94e4a7b81900b54429628ce3a489687c5` and passed 493
+Backend/PostgreSQL tests without skips. Signed-candidate construction and
+API-image publication were skipped; Draft PR #7 stayed open, mergeable and
+unmerged. No manual TalkBack/VoiceOver device pass, signed candidate, Store,
+production, payment, deployment, merge or public action is claimed or enabled.

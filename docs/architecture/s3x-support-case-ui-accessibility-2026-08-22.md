@@ -1,7 +1,9 @@
 # S3X support case UI accessibility - architecture
 
-Status: locally verified, non-live candidate on 22.08.2026. Commit and exact
-GitHub CI evidence remain pending. This package changes no
+Status: locally and CI-verified non-live implementation on 22.08.2026 at exact
+commit `3f96e93e721dcf5daef948ca7370856511293829`; GitHub regression run
+`32561101446` is green for PR merge snapshot
+`051f0da94e4a7b81900b54429628ce3a489687c5`. This package changes no
 Backend workflow, production setting, payment, Store, Cloud/VPS/DNS state or
 public rollout.
 
@@ -49,7 +51,10 @@ empty-blocked-filter assertions. Privacy/Retention validation passes with the
 new source hash. The complete local technical regression also passes: the
 accepted 220-issue analyzer baseline, 367 Flutter tests with one documented
 Google-profile skip, the separate Google-only profile test, Web build/loopback
-smoke and Android debug APK build are green.
+smoke and Android debug APK build are green. GitHub repeated those gates and
+passed all 493 Backend/PostgreSQL tests without skips. The signed-candidate
+step and API-image publication were skipped; Draft PR #7 remained open,
+mergeable and unmerged.
 
 Automated semantics and layout checks do not replace a manual TalkBack or
 VoiceOver pass on a signed physical-device candidate. That evidence remains a
