@@ -145,6 +145,7 @@ if (!databaseUrl) {
         '056_support_account_recovery_guard.up.sql',
         '057_account_recovery_session_integrity.up.sql',
         '058_moderation_account_measure_approval.up.sql',
+        '059_support_message_content_block_audit.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -5828,9 +5829,107 @@ if (!databaseUrl) {
         },
       );
       assert.equal(sensitiveMessage.status, 400);
+      const sensitiveRequestId = sensitiveMessage.headers.get('x-request-id');
       assert.equal(
         (await sensitiveMessage.json()).error,
         'support_message_sensitive_content_blocked',
+      );
+      const sensitiveMessageAudit = await setupPool.query(
+        `SELECT actor_id, actor_role, resource_type, resource_id, request_id,
+                metadata
+           FROM audit_log
+          WHERE action = 'support.message_content_blocked'
+            AND request_id = $1`,
+        [sensitiveRequestId],
+      );
+      assert.deepEqual(sensitiveMessageAudit.rows, [{
+        actor_id: 'support',
+        actor_role: 'support',
+        resource_type: 'support_case',
+        resource_id: supportIntake.supportCase.id,
+        request_id: sensitiveRequestId,
+        metadata: {
+          reasonCode: 'support_message_sensitive_content_blocked',
+          contentClass: 'secret',
+          blockedField: 'evidence_request_list',
+          templateId: 'T-007',
+          detectionVersion: 'sit_support_content_guard_v1',
+          inputStored: false,
+          messageCreated: false,
+          externalMessageSent: false,
+        },
+      }]);
+      assert.doesNotMatch(
+        JSON.stringify(sensitiveMessageAudit.rows[0]),
+        /sk_live_1234567890/u,
+      );
+      const personalDataMessage = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-personal-data-message',
+          },
+          body: JSON.stringify({
+            templateId: 'T-007',
+            recipientUserId: 'renter-a',
+            variables: {
+              first_name: 'Walid',
+              evidence_request_list: 'Kontakt: gegenpartei@example.test',
+            },
+          }),
+        },
+      );
+      assert.equal(personalDataMessage.status, 400);
+      const personalDataRequestId = personalDataMessage.headers.get('x-request-id');
+      assert.equal(
+        (await personalDataMessage.json()).error,
+        'support_message_sensitive_content_blocked',
+      );
+      const personalDataMessageAudit = await setupPool.query(
+        `SELECT metadata
+           FROM audit_log
+          WHERE action = 'support.message_content_blocked'
+            AND request_id = $1`,
+        [personalDataRequestId],
+      );
+      assert.equal(personalDataMessageAudit.rowCount, 1);
+      assert.equal(
+        personalDataMessageAudit.rows[0].metadata.contentClass,
+        'personal_data',
+      );
+      assert.equal(personalDataMessageAudit.rows[0].metadata.inputStored, false);
+      assert.doesNotMatch(
+        JSON.stringify(personalDataMessageAudit.rows[0]),
+        /gegenpartei@example\.test/u,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO audit_log (
+             actor_id, actor_role, action, resource_type, resource_id,
+             request_id, metadata
+           ) VALUES (
+             'support', 'support', 'support.message_content_blocked',
+             'support_case', $1, 'forged-sensitive-audit',
+             $2::jsonb
+           )`,
+          [
+            supportIntake.supportCase.id,
+            JSON.stringify({
+              reasonCode: 'support_message_sensitive_content_blocked',
+              contentClass: 'secret',
+              blockedField: 'evidence_request_list',
+              templateId: 'T-007',
+              detectionVersion: 'sit_support_content_guard_v1',
+              inputStored: true,
+              messageCreated: false,
+              externalMessageSent: false,
+              rawValue: 'must-never-be-stored',
+            }),
+          ],
+        ),
+        (error) => error?.code === '23514',
       );
 
       const redMessage = await fetch(
@@ -8031,6 +8130,20 @@ if (!databaseUrl) {
         (error) => error?.code === 'P0001'
           && error?.message
             === 'Cannot roll back account recovery session integrity while reset-token evidence exists',
+      );
+
+      const supportMessageContentBlockAuditDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/059_support_message_content_block_audit.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(supportMessageContentBlockAuditDown),
+        (error) => error?.code === 'P0001'
+          && error?.message
+            === 'cannot roll back support message content-block guard while audit evidence exists',
       );
 
       const g3bDown = await fs.readFile(

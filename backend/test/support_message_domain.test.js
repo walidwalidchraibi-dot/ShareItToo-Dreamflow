@@ -7,6 +7,8 @@ import {
   normalizeSupportMessageDraft,
   normalizeSupportMessagePublication,
   normalizeSupportMessageReview,
+  supportMessageContentBlockAuditMetadata,
+  supportMessageContentGuardVersion,
   supportMessageTemplateSource,
 } from '../src/support_message_domain.js';
 
@@ -168,6 +170,39 @@ test('sensitive data and unsafe decision claims are blocked in variables', () =>
       /support_message_(?:sensitive_content|policy_claim)_blocked/u,
     );
   }
+});
+
+test('content guard classifies blocked input without retaining the input value', () => {
+  for (const [confirmed_fact, contentClass] of [
+    ['API-Key: sk_live_1234567890', 'secret'],
+    ['Kontakt: gegenpartei@example.test', 'personal_data'],
+  ]) {
+    let blocked;
+    try {
+      normalizeSupportMessageDraft({
+        templateId: 'T-001',
+        variables: intakeVariables({ confirmed_fact }),
+      }, activeSupportCaseContext);
+    } catch (error) {
+      blocked = error;
+    }
+    const metadata = supportMessageContentBlockAuditMetadata(blocked);
+    assert.deepEqual(metadata, {
+      reasonCode: 'support_message_sensitive_content_blocked',
+      contentClass,
+      blockedField: 'confirmed_fact',
+      templateId: 'T-001',
+      detectionVersion: supportMessageContentGuardVersion,
+      inputStored: false,
+      messageCreated: false,
+      externalMessageSent: false,
+    });
+    assert.doesNotMatch(JSON.stringify(metadata), /sk_live|example\.test/u);
+  }
+  assert.equal(
+    supportMessageContentBlockAuditMetadata(new Error('unrelated')),
+    null,
+  );
 });
 
 test('support cannot request passwords PINs or recovery codes in free variables', () => {

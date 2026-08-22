@@ -204,7 +204,10 @@ import {
   recordSupportDecisionImplementation,
   reviewSupportDecision,
 } from './support_decision_workflow.js';
-import { listSupportMessageTemplates } from './support_message_domain.js';
+import {
+  listSupportMessageTemplates,
+  supportMessageContentBlockAuditMetadata,
+} from './support_message_domain.js';
 import {
   createSupportMessage,
   publishSupportMessage,
@@ -548,6 +551,25 @@ async function writeAudit(client, {
       JSON.stringify(metadata),
     ],
   );
+}
+
+async function runSupportMessageOperationWithContentAudit(req, caseId, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    const metadata = supportMessageContentBlockAuditMetadata(error);
+    if (metadata) {
+      await writeAudit(pool, {
+        actor: req.actor,
+        action: 'support.message_content_blocked',
+        resourceType: 'support_case',
+        resourceId: caseId,
+        requestId: req.requestId,
+        metadata,
+      });
+    }
+    throw error;
+  }
 }
 
 async function writePrivatePilotDeclaration(client, {
@@ -4954,12 +4976,17 @@ export function createApp({
   }));
 
   app.post('/v1/admin/support/cases/:id/progress-updates', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter, asyncRoute(async (req, res) => {
-    const result = await inTransaction((client) => proposeSupportProgressUpdate(client, {
-      actor: req.actor,
-      caseId: safeText(req.params.id, 80),
-      raw: req.body,
-      idempotencyKey: req.get('Idempotency-Key'),
-    }));
+    const caseId = safeText(req.params.id, 80);
+    const result = await runSupportMessageOperationWithContentAudit(
+      req,
+      caseId,
+      () => inTransaction((client) => proposeSupportProgressUpdate(client, {
+        actor: req.actor,
+        caseId,
+        raw: req.body,
+        idempotencyKey: req.get('Idempotency-Key'),
+      })),
+    );
     res.set('Cache-Control', 'private, no-store');
     res.status(result.replayed ? 200 : 201).json(result);
   }));
@@ -4992,12 +5019,17 @@ export function createApp({
   }));
 
   app.post('/v1/admin/support/cases/:id/messages', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter, asyncRoute(async (req, res) => {
-    const result = await inTransaction((client) => createSupportMessage(client, {
-      actor: req.actor,
-      caseId: safeText(req.params.id, 80),
-      raw: req.body,
-      idempotencyKey: req.get('Idempotency-Key'),
-    }));
+    const caseId = safeText(req.params.id, 80);
+    const result = await runSupportMessageOperationWithContentAudit(
+      req,
+      caseId,
+      () => inTransaction((client) => createSupportMessage(client, {
+        actor: req.actor,
+        caseId,
+        raw: req.body,
+        idempotencyKey: req.get('Idempotency-Key'),
+      })),
+    );
     res.set('Cache-Control', 'private, no-store');
     res.status(result.replayed ? 200 : 201).json(result);
   }));

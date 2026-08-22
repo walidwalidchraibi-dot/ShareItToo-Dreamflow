@@ -137,6 +137,8 @@ const sourcePaths = [
   'backend/sql/migrations/057_account_recovery_session_integrity.down.sql',
   'backend/sql/migrations/058_moderation_account_measure_approval.up.sql',
   'backend/sql/migrations/058_moderation_account_measure_approval.down.sql',
+  'backend/sql/migrations/059_support_message_content_block_audit.up.sql',
+  'backend/sql/migrations/059_support_message_content_block_audit.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -861,6 +863,26 @@ function assertSourceContracts(root, sourceTexts) {
     if (!supportMessageMigration.includes(marker)) {
       fail(`Support-message retention boundary is missing ${marker}.`);
     }
+  }
+  const supportMessageContentAuditMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/059_support_message_content_block_audit.up.sql',
+  );
+  for (const marker of [
+    'support.message_content_blocked',
+    'audit_log_support_message_content_block_guard',
+    'inputStored',
+    'messageCreated',
+    'externalMessageSent',
+  ]) {
+    if (!supportMessageContentAuditMigration.includes(marker)) {
+      fail(`Support-message blocked-content retention boundary is missing ${marker}.`);
+    }
+  }
+  if (!app.includes('runSupportMessageOperationWithContentAudit')
+      || !app.includes("action: 'support.message_content_blocked'")) {
+    fail('Support-message blocked-content audit wiring is missing.');
   }
   if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
     fail('Retention inventory must remain read-only.');

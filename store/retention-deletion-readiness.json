@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "59929d7da5e345648659f139d1280e082a3c7d424a33383c0cda6cbf088b2738"
+      "sha256": "d9c9779813a739d62dbd4bda66acf68778f3e0361ce273ae4bcb499523088fad"
     },
     {
       "path": "backend/src/server.js",
@@ -137,7 +137,7 @@
     },
     {
       "path": "backend/src/support_message_domain.js",
-      "sha256": "46a8dc4ad1f5cce86a68f50cd7628371ecdff3994fd48081945522e306897f36"
+      "sha256": "639897816b3943986a4c409142088ec56da70b104ef04de37cebd2d13a03e6d4"
     },
     {
       "path": "backend/src/support_message_workflow.js",
@@ -526,6 +526,14 @@
     {
       "path": "backend/sql/migrations/058_moderation_account_measure_approval.down.sql",
       "sha256": "ef7478901ef26b51add8ce79dff918e28a43ab21e80be5212515e915f51b37df"
+    },
+    {
+      "path": "backend/sql/migrations/059_support_message_content_block_audit.up.sql",
+      "sha256": "55a48017584420e09238178725d6825912553ba86b2058a17ec4ad9a751b035d"
+    },
+    {
+      "path": "backend/sql/migrations/059_support_message_content_block_audit.down.sql",
+      "sha256": "59ef1b083202afa2067bb6f74264ea47b387215d73ea6843ea2e55a1a5ef2ee0"
     },
     {
       "path": "backend/ops/backup.sh",

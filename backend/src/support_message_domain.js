@@ -55,6 +55,7 @@ const accountRecoveryServerBindings = new Set([
   'secure_recovery_channel',
   'temporary_account_effect',
 ]);
+export const supportMessageContentGuardVersion = 'sit_support_content_guard_v1';
 const automaticTemplateStatuses = Object.freeze({
   'T-001': new Set(['received', 'acknowledged']),
   'T-003': new Set(['received', 'acknowledged', 'under_review', 'escalated']),
@@ -66,10 +67,12 @@ const automaticTemplateStatuses = Object.freeze({
     'implementation_pending', 'resolved', 'closed', 'reopened',
   ]),
 });
-const unsafeValuePatterns = Object.freeze([
+const secretValuePatterns = Object.freeze([
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/u,
   /\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{8,}\b/u,
   /\b(?:api[_ -]?key|passwort|password|pin|otp|recovery[_ -]?code)\s*[:=]\s*\S+/iu,
+]);
+const personalDataValuePatterns = Object.freeze([
   /\bDE\d{20}\b/u,
   /\b(?:\d[ -]*?){13,19}\b/u,
   /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/iu,
@@ -85,6 +88,7 @@ const credentialSolicitationPatterns = Object.freeze([
   /(?:^|[^\p{L}])(?:sende|schicke|teile|nenne|uebermittle|übermittle|gib)(?![^.!?]{0,100}(?:kein(?:e|en|er|es)?|nicht|niemals))[^.!?]{0,100}(?:passwort|pin|otp|tan|einmalcode|wiederherstellungscode|recovery[ _-]?code|karten(?:zugangs)?daten|kontozugangsdaten)(?:$|[^\p{L}])/iu,
   /(?:^|[^\p{L}])(?:wir|der support)\s+(?:brauchen|benoetigen|benötigen|verlangen|fordern)(?![^.!?]{0,100}(?:kein(?:e|en|er|es)?|nicht|niemals))[^.!?]{0,100}(?:passwort|pin|otp|tan|einmalcode|wiederherstellungscode|recovery[ _-]?code|karten(?:zugangs)?daten|kontozugangsdaten)(?:$|[^\p{L}])/iu,
 ]);
+const supportMessageContentClasses = new Set(['secret', 'personal_data']);
 
 function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -179,14 +183,54 @@ function validateTemplateCatalog() {
 
 const templateCatalog = validateTemplateCatalog();
 
-function safeVariable(key, value) {
+function sensitiveContentClass(value) {
+  if (secretValuePatterns.some((pattern) => pattern.test(value))) return 'secret';
+  if (personalDataValuePatterns.some((pattern) => pattern.test(value))) {
+    return 'personal_data';
+  }
+  return null;
+}
+
+export function supportMessageContentBlockAuditMetadata(error) {
+  if (error?.code !== 'support_message_sensitive_content_blocked') return null;
+  const contentClass = error?.details?.contentClass;
+  const blockedField = error?.details?.key;
+  const templateId = error?.details?.templateId;
+  const detectionVersion = error?.details?.detectionVersion;
+  if (!supportMessageContentClasses.has(contentClass)
+      || typeof blockedField !== 'string'
+      || !/^[a-z0-9_]{1,80}$/u.test(blockedField)
+      || typeof templateId !== 'string'
+      || !/^T-\d{3}$/u.test(templateId)
+      || detectionVersion !== supportMessageContentGuardVersion) {
+    return null;
+  }
+  return Object.freeze({
+    reasonCode: error.code,
+    contentClass,
+    blockedField,
+    templateId,
+    detectionVersion,
+    inputStored: false,
+    messageCreated: false,
+    externalMessageSent: false,
+  });
+}
+
+function safeVariable(key, value, { templateId }) {
   const result = requiredText(value, 2000, 'support_message_variable_invalid');
   if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(result)
       || /\{\{|\}\}/u.test(result)) {
     throw new SupportCaseError(400, 'support_message_variable_unsafe', { key });
   }
-  if (unsafeValuePatterns.some((pattern) => pattern.test(result))) {
-    throw new SupportCaseError(400, 'support_message_sensitive_content_blocked', { key });
+  const contentClass = sensitiveContentClass(result);
+  if (contentClass) {
+    throw new SupportCaseError(400, 'support_message_sensitive_content_blocked', {
+      key,
+      templateId,
+      contentClass,
+      detectionVersion: supportMessageContentGuardVersion,
+    });
   }
   if (credentialSolicitationPatterns.some((pattern) => pattern.test(result))) {
     throw new SupportCaseError(400, 'support_message_credential_request_blocked', { key });
@@ -264,7 +308,7 @@ function renderTemplate(template, rawVariables, bindings, { serverOnly = new Set
       throw new SupportCaseError(409, 'support_message_server_binding_unavailable', { key });
     }
     if (!(key in source)) throw new SupportCaseError(400, 'support_message_placeholder_missing', { key });
-    variables[key] = safeVariable(key, source[key]);
+    variables[key] = safeVariable(key, source[key], { templateId: template.id });
   }
   const rendered = template.body.replace(placeholderPattern, (_match, key) => variables[key]);
   if (/\{\{[a-z0-9_]+\}\}/u.test(rendered)) {

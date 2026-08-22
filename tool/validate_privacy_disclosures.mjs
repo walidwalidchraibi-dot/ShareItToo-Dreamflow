@@ -124,6 +124,8 @@ const sourcePaths = [
   'backend/sql/migrations/057_account_recovery_session_integrity.down.sql',
   'backend/sql/migrations/058_moderation_account_measure_approval.up.sql',
   'backend/sql/migrations/058_moderation_account_measure_approval.down.sql',
+  'backend/sql/migrations/059_support_message_content_block_audit.up.sql',
+  'backend/sql/migrations/059_support_message_content_block_audit.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -459,6 +461,8 @@ function assertSourceContracts({ root, sourceTexts }) {
   for (const marker of [
     '947f307e7919eed543c28e36af4d2b364d87dcde52025649d0d4620d64baaaa5',
     'support_message_sensitive_content_blocked',
+    'supportMessageContentBlockAuditMetadata',
+    'inputStored: false',
     'support_message_red_template_requires_decision_workflow',
     'support_message_money_template_requires_snapshot_workflow',
     'support_message_server_binding_mismatch',
@@ -473,6 +477,22 @@ function assertSourceContracts({ root, sourceTexts }) {
     sourceTexts,
     'backend/src/support_message_workflow.js',
   );
+  const supportMessageContentAuditMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/059_support_message_content_block_audit.up.sql',
+  );
+  for (const marker of [
+    'support.message_content_blocked',
+    'sit_support_content_guard_v1',
+    "NEW.metadata -> 'inputStored' <> 'false'::jsonb",
+    "NEW.metadata -> 'messageCreated' <> 'false'::jsonb",
+    "NEW.metadata -> 'externalMessageSent' <> 'false'::jsonb",
+  ]) {
+    if (!supportMessageContentAuditMigration.includes(marker)) {
+      fail(`Support-message content audit privacy boundary is missing ${marker}.`);
+    }
+  }
   for (const marker of [
     'support_message_live_delivery_forbidden',
     'support_message_recipient_forbidden',
