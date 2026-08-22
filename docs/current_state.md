@@ -1914,3 +1914,23 @@ direct 448-task Android debug build.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AH request-detail async-navigation ratchet
+
+`S4AH_REQUEST_DETAIL_ASYNC_NAVIGATION_RATCHET` is locally verified at commit
+`c8c2a56`. Owner acceptance now rechecks the exact request-detail context after
+the acceptance commit before navigating away. Decline does the same after its
+status mutation. Contract, quote, declaration, deadline, status and notification
+behavior are unchanged.
+
+The exact analyzer snapshot ratcheted `200 -> 198`, with
+`use_build_context_synchronously` `78 -> 76` and the request-detail bucket
+`2 -> 0`; all other buckets remained identical. Twenty combined
+request-detail/acceptance source-contract assertions, nine focused pricing and
+checkout Flutter tests and the complete clean local metadata gate passed at
+`c8c2a56087b330c67a6e1374905222ae1cc73606` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

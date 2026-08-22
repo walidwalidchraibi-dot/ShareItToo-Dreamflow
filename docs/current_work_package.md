@@ -1378,3 +1378,22 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AH request-detail async-navigation ratchet
+
+`S4AH_REQUEST_DETAIL_ASYNC_NAVIGATION_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `c8c2a56`. Owner acceptance and decline
+now prove the exact request-detail context after their respective asynchronous
+mutation before navigating away. Contract, quote, declaration, deadline,
+status and notification behavior are unchanged.
+
+The exact debt snapshot moves `200 -> 198`, and only the intended
+`use_build_context_synchronously` request-detail bucket changes. Twenty combined
+request-detail/acceptance source-contract assertions, nine focused pricing and
+checkout Flutter tests and the complete clean local metadata gate pass with the
+new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
