@@ -110,6 +110,7 @@ test('routing is deterministic and fails closed at money, privacy, authority and
       privacyFlag: false,
       dsaFlag: false,
       authorityFlag: false,
+      article18CandidateFlag: false,
       moneyFlag: false,
       accountTakeoverFlag: false,
     },
@@ -132,6 +133,8 @@ test('routing is deterministic and fails closed at money, privacy, authority and
   assert.equal(danger.severity, 'critical');
   assert.equal(danger.approvalLevel, 'red_explicit_decision');
   assert.equal(danger.safetyFlag, true);
+  assert.equal(danger.authorityFlag, true);
+  assert.equal(danger.article18CandidateFlag, true);
   const dangerSignal = supportRouteFor('active_handover', 'unsafe_handover', {
     immediateDanger: true,
   });

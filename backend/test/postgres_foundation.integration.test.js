@@ -128,6 +128,7 @@ if (!databaseUrl) {
         '043_support_dsa_notice_locator_completion.up.sql',
         '044_moderation_statement_of_reasons.up.sql',
         '045_independent_moderation_review_resolution.up.sql',
+        '046_support_article18_authority_referral_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -194,6 +195,7 @@ if (!databaseUrl) {
             AND table_name = ANY($1::text[])
           ORDER BY table_name`,
         [[
+          'support_article18_assessments',
           'support_appeals',
           'support_break_glass_grants',
           'support_case_events',
@@ -207,6 +209,7 @@ if (!databaseUrl) {
         ]],
       );
       assert.deepEqual(supportCaseTables.rows, [
+        { table_name: 'support_article18_assessments' },
         { table_name: 'support_appeals' },
         { table_name: 'support_break_glass_grants' },
         { table_name: 'support_case_events' },
@@ -230,6 +233,17 @@ if (!databaseUrl) {
         data_type: 'jsonb',
         is_nullable: 'YES',
       }]);
+      const supportArticle18CandidateColumn = await setupPool.query(
+        `SELECT column_name, data_type, is_nullable, column_default
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'support_cases'
+            AND column_name = 'article18_candidate_flag'`,
+      );
+      assert.equal(supportArticle18CandidateColumn.rows[0].column_name, 'article18_candidate_flag');
+      assert.equal(supportArticle18CandidateColumn.rows[0].data_type, 'boolean');
+      assert.equal(supportArticle18CandidateColumn.rows[0].is_nullable, 'NO');
+      assert.match(supportArticle18CandidateColumn.rows[0].column_default, /false/u);
       const supportDsaNoticeColumns = await setupPool.query(
         `SELECT column_name, data_type, is_nullable
            FROM information_schema.columns
@@ -1345,6 +1359,46 @@ if (!databaseUrl) {
         safetyGuidanceShown: false,
         issueScopeVersion: 'sit_support_single_issue_scope_v1',
         separationGuidanceShown: true,
+      });
+      const article18IntakeResponse = await fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 's3r-article18-candidate-intake',
+        },
+        body: JSON.stringify({
+          caseType: 'trust_safety',
+          caseSubType: 'threat_or_violence',
+          summary: 'Konkrete Drohung gegen Leben oder körperliche Sicherheit prüfen.',
+          immediateDanger: true,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: true,
+            guidanceShown: true,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+        }),
+      });
+      assert.equal(article18IntakeResponse.status, 201);
+      const article18Intake = await article18IntakeResponse.json();
+      assert.equal(article18Intake.supportCase.priority, 'p0');
+      assert.equal(article18Intake.supportCase.operatingMode, 'simulation');
+      assert.equal('flags' in article18Intake.supportCase, false);
+      const article18CandidateState = await setupPool.query(
+        `SELECT safety_flag, authority_flag, article18_candidate_flag
+           FROM support_cases WHERE id = $1`,
+        [article18Intake.supportCase.id],
+      );
+      assert.deepEqual(article18CandidateState.rows[0], {
+        safety_flag: true,
+        authority_flag: true,
+        article18_candidate_flag: true,
       });
       await assert.rejects(
         setupPool.query(
@@ -3557,6 +3611,116 @@ if (!databaseUrl) {
       });
       assert.equal(supportElevation.status, 200);
       supportHeaders['X-Admin-Step-Up'] = (await supportElevation.json()).elevation.token;
+      const supportCannotListArticle18Candidates = await fetch(
+        `${baseUrl}/v1/admin/support/article-18/candidates`,
+        { headers: supportHeaders },
+      );
+      assert.equal(supportCannotListArticle18Candidates.status, 403);
+      assert.equal(
+        (await supportCannotListArticle18Candidates.json()).error,
+        'admin_role_required',
+      );
+      const article18CandidateQueue = await fetch(
+        `${baseUrl}/v1/admin/support/article-18/candidates`,
+        { headers: adminHeaders },
+      );
+      assert.equal(article18CandidateQueue.status, 200);
+      assert.match(article18CandidateQueue.headers.get('cache-control'), /no-store/u);
+      const article18QueuePayload = await article18CandidateQueue.json();
+      assert.equal(article18QueuePayload.externalDeliveryEnabled, false);
+      assert.ok(article18QueuePayload.candidates.some((entry) => (
+        entry.caseId === article18Intake.supportCase.id
+        && entry.article18Candidate === true
+        && entry.priority === 'p0'
+        && entry.latestAssessment === null
+      )));
+
+      const createArticle18Assessment = () => fetch(
+        `${baseUrl}/v1/admin/support/cases/${article18Intake.supportCase.id}/article-18-assessments`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's3r-article18-assessment-integration',
+          },
+          body: JSON.stringify({
+            determination: 'reporting_path_required',
+            routingBasis: 'concerned_member_state_identified',
+            factualBasis:
+              'Verified synthetic integration facts require guarded authority-path preparation.',
+            evidenceReferences: ['support-evidence:synthetic-article18-1'],
+            concernedMemberStates: ['DE'],
+            informationScope: ['case_reference', 'evidence_digest'],
+            reviewerAuthorizationEvidenceRef:
+              'integration:qualified-owner-evidence',
+            humanReviewed: true,
+            automationRole: 'none',
+            noAutomatedDispatchConfirmed: true,
+          }),
+        },
+      );
+      const article18AssessmentResponse = await createArticle18Assessment();
+      assert.equal(article18AssessmentResponse.status, 201);
+      assert.match(article18AssessmentResponse.headers.get('cache-control'), /no-store/u);
+      const article18Assessment = await article18AssessmentResponse.json();
+      assert.equal(article18Assessment.assessment.humanReviewed, true);
+      assert.equal(article18Assessment.assessment.automationRole, 'none');
+      assert.equal(article18Assessment.assessment.externalDeliveryAllowed, false);
+      assert.equal(
+        article18Assessment.assessment.externalDeliveryStatus,
+        'disabled_not_configured',
+      );
+      const article18AssessmentReplay = await createArticle18Assessment();
+      assert.equal(article18AssessmentReplay.status, 200);
+      assert.equal((await article18AssessmentReplay.json()).replayed, true);
+
+      const supportCannotDispatchArticle18 = await fetch(
+        `${baseUrl}/v1/admin/support/article-18-assessments/${article18Assessment.assessment.id}/dispatch`,
+        {
+          method: 'POST',
+          headers: supportHeaders,
+          body: '{}',
+        },
+      );
+      assert.equal(supportCannotDispatchArticle18.status, 403);
+      assert.equal(
+        (await supportCannotDispatchArticle18.json()).error,
+        'admin_role_required',
+      );
+      const adminCannotDispatchArticle18 = await fetch(
+        `${baseUrl}/v1/admin/support/article-18-assessments/${article18Assessment.assessment.id}/dispatch`,
+        {
+          method: 'POST',
+          headers: adminHeaders,
+          body: '{}',
+        },
+      );
+      assert.equal(adminCannotDispatchArticle18.status, 503);
+      assert.equal(
+        (await adminCannotDispatchArticle18.json()).error,
+        'support_article18_external_dispatch_disabled',
+      );
+      const article18Event = await setupPool.query(
+        `SELECT structured_payload FROM support_case_events
+          WHERE case_id = $1
+            AND event_type = 'support.article18_assessment_recorded'`,
+        [article18Intake.supportCase.id],
+      );
+      assert.equal(article18Event.rowCount, 1);
+      assert.equal(article18Event.rows[0].structured_payload.externalDeliveryAllowed, false);
+      assert.equal(
+        Object.hasOwn(article18Event.rows[0].structured_payload, 'factualBasis'),
+        false,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_article18_assessments
+              SET factual_basis = 'Forbidden mutation of restricted evidence.'
+            WHERE id = $1`,
+          [article18Assessment.assessment.id],
+        ),
+        (error) => error?.code === '55000',
+      );
       await setupPool.query(
         `UPDATE support_cases
             SET current_owner_id = 'support',

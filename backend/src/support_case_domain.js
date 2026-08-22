@@ -223,6 +223,10 @@ const p0Subtypes = new Set([
   'unauthorized_data_exposure',
   'law_enforcement_or_court_request',
 ]);
+const article18CandidateSubtypes = new Set([
+  'threat_or_violence',
+  'immediate_physical_danger',
+]);
 const p1Families = new Set(['active_handover', 'active_rental', 'active_return']);
 const p2Families = new Set([
   'booking_pre_start',
@@ -315,6 +319,8 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     || signals.accountTakeover === true
     || signals.possibleHighRiskDataExposure === true
     || signals.imminentAuthorityDeadline === true;
+  const article18CandidateFlag = caseType === 'trust_safety'
+    && article18CandidateSubtypes.has(caseSubType);
   let priority = 'p3';
   if (explicitP0Signal || p0Subtypes.has(caseSubType)) priority = 'p0';
   else if (p1Families.has(caseType)) priority = 'p1';
@@ -363,7 +369,10 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     safetyFlag: caseType === 'trust_safety' || explicitP0Signal,
     privacyFlag: caseType === 'privacy_security' || signals.possibleHighRiskDataExposure === true,
     dsaFlag: caseType === 'moderation_content',
-    authorityFlag: caseType === 'legal_authority' || signals.imminentAuthorityDeadline === true,
+    authorityFlag: caseType === 'legal_authority'
+      || signals.imminentAuthorityDeadline === true
+      || article18CandidateFlag,
+    article18CandidateFlag,
     moneyFlag: caseType === 'money_case',
     accountTakeoverFlag: caseSubType === 'account_takeover' || signals.accountTakeover === true,
   });

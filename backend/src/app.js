@@ -181,6 +181,11 @@ import {
   reviewSupportBreakGlassGrant,
 } from './support_break_glass_workflow.js';
 import {
+  listSupportArticle18Candidates,
+  recordSupportArticle18Assessment,
+  rejectSupportArticle18ExternalDispatch,
+} from './support_article18_workflow.js';
+import {
   createSupportDecisionDraft,
   listSupportDecisions,
   recordSupportDecisionCommunication,
@@ -4386,6 +4391,38 @@ export function createApp({
     res.set('Cache-Control', 'private, no-store').json({
       alerts,
       externalNotificationsSent: 0,
+    });
+  }));
+
+  app.get('/v1/admin/support/article-18/candidates', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const candidates = await listSupportArticle18Candidates(pool, {
+      actor: req.actor,
+      limit: req.query.limit ?? 100,
+    });
+    res.set('Cache-Control', 'private, no-store').json({
+      candidates,
+      externalDeliveryEnabled: false,
+    });
+  }));
+
+  app.post('/v1/admin/support/cases/:id/article-18-assessments', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, actionLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordSupportArticle18Assessment(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      staffElevationId: req.staffElevation.id,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store')
+      .status(result.replayed ? 200 : 201)
+      .json(result);
+  }));
+
+  app.post('/v1/admin/support/article-18-assessments/:id/dispatch', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, actionLimiter, asyncRoute(async (req) => {
+    rejectSupportArticle18ExternalDispatch({
+      actor: req.actor,
+      assessmentId: safeText(req.params.id, 80),
     });
   }));
 

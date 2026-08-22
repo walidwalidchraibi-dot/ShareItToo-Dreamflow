@@ -81,6 +81,7 @@ node --test test/tool/support_dsa_notice_intake_wiring.test.mjs
 node --test test/tool/support_dsa_notice_locator_completion_wiring.test.mjs
 node --test test/tool/s3p_statement_of_reasons_wiring.test.mjs
 node --test test/tool/s3q_independent_moderation_review_wiring.test.mjs
+node --test test/tool/support_article18_guard_wiring.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
 

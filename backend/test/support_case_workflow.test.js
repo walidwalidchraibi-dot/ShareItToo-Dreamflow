@@ -81,6 +81,7 @@ function caseRow(overrides = {}) {
     privacy_flag: false,
     dsa_flag: false,
     authority_flag: false,
+    article18_candidate_flag: false,
     money_flag: false,
     account_takeover_flag: false,
     policy_snapshot_id: null,
@@ -180,7 +181,7 @@ test('create validates linked-entity access and records case, event and audit', 
         assert.equal(params[2], 'active_handover');
         assert.equal(params[4], 'p1');
         assert.equal(params[7], 'internal_testing');
-        assert.equal(params[24], 'booking-1');
+        assert.equal(params[25], 'booking-1');
       },
       result: ({ params }) => ({
         rowCount: 1,
@@ -202,14 +203,14 @@ test('create validates linked-entity access and records case, event and audit', 
           next_action: params[15],
           next_update_at: params[16],
           user_facing_summary: params[17],
-          linked_booking_id: params[24],
-          linked_listing_id: params[25],
-          idempotency_key: params[29],
-          intake_scope_evidence: JSON.parse(params[30]),
-          dsa_notice_number: params[31],
-          dsa_notice_evidence: params[32] == null ? null : JSON.parse(params[32]),
-          created_at: params[33],
-          updated_at: params[33],
+          linked_booking_id: params[25],
+          linked_listing_id: params[26],
+          idempotency_key: params[30],
+          intake_scope_evidence: JSON.parse(params[31]),
+          dsa_notice_number: params[32],
+          dsa_notice_evidence: params[33] == null ? null : JSON.parse(params[33]),
+          created_at: params[36],
+          updated_at: params[36],
         })],
       }),
     },
@@ -285,11 +286,11 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
     {
       match: /INSERT INTO support_cases/,
       check: ({ params }) => {
-        assert.match(params[31], /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u);
+        assert.match(params[32], /^SIT-N-[A-HJ-NP-Z2-9]{12}$/u);
         assert.equal(params[12], 'red_explicit_decision');
-        assert.equal(params[33], 'complete');
-        assert.equal(params[34], 'listing_reference');
-        const evidence = JSON.parse(params[32]);
+        assert.equal(params[34], 'complete');
+        assert.equal(params[35], 'listing_reference');
+        const evidence = JSON.parse(params[33]);
         assert.deepEqual(evidence, {
           version: 'sit_dsa_notice_intake_v1',
           contentType: 'listing',
@@ -309,10 +310,10 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
         rows: [caseRow({
           id: params[0],
           human_readable_case_number: params[1],
-          dsa_notice_number: params[31],
-          dsa_notice_evidence: JSON.parse(params[32]),
-          dsa_notice_locator_status: params[33],
-          dsa_notice_locator_kind: params[34],
+          dsa_notice_number: params[32],
+          dsa_notice_evidence: JSON.parse(params[33]),
+          dsa_notice_locator_status: params[34],
+          dsa_notice_locator_kind: params[35],
           case_type: params[2],
           case_subtype: params[3],
           priority: params[4],
@@ -321,8 +322,8 @@ test('DSA notice creation snapshots server-side reporter identity and exposes on
           approval_level: params[12],
           waiting_on: params[13],
           dsa_flag: params[20],
-          created_at: params[35],
-          updated_at: params[35],
+          created_at: params[36],
+          updated_at: params[36],
         })],
       }),
     },

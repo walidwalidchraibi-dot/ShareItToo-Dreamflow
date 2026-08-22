@@ -137,6 +137,7 @@ function shapeSupportCase(row, { staff = false, actorId = null, now = new Date()
       privacy: row.privacy_flag === true,
       dsa: row.dsa_flag === true,
       authority: row.authority_flag === true,
+      article18Candidate: row.article18_candidate_flag === true,
       money: row.money_flag === true,
       accountTakeover: row.account_takeover_flag === true,
     }),
@@ -327,7 +328,8 @@ export async function createSupportCase(client, {
        reporter_user_id, reporter_role, current_owner_role, approval_level,
        waiting_on, waiting_reason, next_action, next_update_at,
        user_facing_summary, safety_flag, privacy_flag, dsa_flag,
-       authority_flag, money_flag, account_takeover_flag,
+       authority_flag, article18_candidate_flag, money_flag,
+       account_takeover_flag,
        linked_booking_id, linked_listing_id, linked_payment_id,
        linked_refund_id, linked_payout_id, idempotency_key,
        intake_scope_evidence, dsa_notice_number, dsa_notice_evidence,
@@ -339,12 +341,12 @@ export async function createSupportCase(client, {
        $10, $11, $12, $13,
        $14, $15, $16, $17,
        $18, $19, $20, $21,
-       $22, $23, $24,
-       $25, $26, $27,
-       $28, $29, $30,
-       $31::jsonb, $32, $33::jsonb,
-       $34, $35,
-       $36, $36
+       $22, $23, $24, $25,
+       $26, $27, $28,
+       $29, $30, $31,
+       $32::jsonb, $33, $34::jsonb,
+       $35, $36,
+       $37, $37
      ) ON CONFLICT (reporter_user_id, idempotency_key) DO NOTHING
      RETURNING *`,
     [
@@ -376,6 +378,7 @@ export async function createSupportCase(client, {
       normalized.privacyFlag,
       normalized.dsaFlag,
       normalized.authorityFlag,
+      normalized.article18CandidateFlag,
       normalized.moneyFlag,
       normalized.accountTakeoverFlag,
       normalized.linkedBookingId,
@@ -456,6 +459,7 @@ export async function createSupportCase(client, {
       operatingMode: normalized.operatingMode,
       safetyTriageVersion: normalized.safetyTriage.version,
       safetyGuidanceShown: normalized.safetyTriage.guidanceShown,
+      ...(normalized.article18CandidateFlag ? { article18Candidate: true } : {}),
       issueScopeVersion: normalized.issueScope.version,
       separationGuidanceShown: normalized.issueScope.separationGuidanceShown,
       ...(dsaNoticeEvidence == null ? {} : {

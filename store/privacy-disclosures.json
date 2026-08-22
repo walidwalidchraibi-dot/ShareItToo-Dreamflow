@@ -52,11 +52,19 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "3cff8cd8dcce4d8d729e9b97b4810fcb32af498d4fe8594451b2bc4b0c46b896"
+      "sha256": "f00487ee4da5a2cff14cfe06fa2fda181be422db093cff74afa1146ed059be75"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "10d006166b8cfdca6a7977eff5d9a8c4ffc17b70ddff3d73279fc4562a811804"
+      "sha256": "ed6eac777a87fdb6ee74095413b154be422ec36c9337a25b96e1eea08b458f76"
+    },
+    {
+      "path": "backend/src/support_article18_domain.js",
+      "sha256": "6c162aeb2a439229d57ca8927e319c27a758cd974a3cbb81b5f85c7ec0b4b2f3"
+    },
+    {
+      "path": "backend/src/support_article18_workflow.js",
+      "sha256": "bca6b9dab19542b186071e2d71491db932cf91094cad53fef3870d77acd6da19"
     },
     {
       "path": "backend/src/support_appeal_domain.js",
@@ -279,6 +287,10 @@
       "sha256": "611c603fcc3114455c38ec801fc0d386254d1af9e5c435ebb3dd4663e30e9ea9"
     },
     {
+      "path": "backend/sql/migrations/046_support_article18_authority_referral_guard.up.sql",
+      "sha256": "6236fff1c0bac47682811b5cdfee291ffdce6411d77d6722222a512ad6090799"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -296,7 +308,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "55c44321c303c703f1260da9bc7cc3e994a6cd2a83266f23ba7498ae99395a8f"
+      "sha256": "f547e94e88e99ed6b1e079896d13d0038e4b2751d0ba79d5d3347b852faa7f5d"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -552,7 +564,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "80e12ed1e598a6d9a376dc265c510c527004d9e3920abca30e2b00a07c54f54e"
+      "sha256": "c9e586ddfb16386b420f209f1d26161af365040bf70edc6b1bf51bb8aa91e56e"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
