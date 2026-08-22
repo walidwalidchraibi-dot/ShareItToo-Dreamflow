@@ -571,6 +571,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Future<void> _toggleFavorite(String id) async {
     final current = await DataService.getWishlistForItem(id);
+    if (!mounted) return;
     if (current == null) {
       final sel = await WishlistSelectionSheet.showAdd(context);
       if (sel != null && sel.isNotEmpty) {
@@ -578,6 +579,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       }
     } else {
       final choice = await WishlistSelectionSheet.showManageOptions(context);
+      if (!mounted) return;
       if (choice == 'move') {
         final sel = await WishlistSelectionSheet.showMove(context,
             currentListId: current);

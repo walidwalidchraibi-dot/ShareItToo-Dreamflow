@@ -681,7 +681,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "b5ac8da1c3263f488204b4d0854031fa14e3d8c3c14b89d31fec706b7d7449a7"
+      "sha256": "e0287abb078a13901e72b52c75e9dc40cca4977313122ca6c2b5ade5a5c28be8"
     },
     {
       "path": "lib/widgets/supply_enrichment_dialog.dart",
