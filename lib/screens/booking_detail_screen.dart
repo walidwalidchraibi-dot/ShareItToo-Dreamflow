@@ -25,7 +25,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
-import 'dart:convert';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
@@ -2989,65 +2988,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
-  void _call(String phone) async {
-    final tel = Uri.parse('tel:$phone');
-    try {
-      await launchUrl(tel, mode: LaunchMode.platformDefault);
-    } catch (_) {
-      _toast('Anruf nicht möglich');
-    }
-  }
-
-  Future<void> _addToCalendar({required bool isPickup}) async {
-    final (start, end) = _parseDateRange();
-    final when = isPickup ? start : end;
-    if (when == null) {
-      _toast('Termin fehlt');
-      return;
-    }
-    final title = (widget.booking['title'] as String?) ?? 'ShareItToo Buchung';
-    final location = (widget.booking['location'] as String?) ?? '';
-    final summary = isPickup ? 'Abholung: $title' : 'Rückgabe: $title';
-    final uid =
-        '${_computeBookingId()}-${isPickup ? 'pickup' : 'return'}@shareittoo';
-
-    String fmt(DateTime dt) {
-      final z = dt.toUtc();
-      String two(int x) => x.toString().padLeft(2, '0');
-      return '${z.year}${two(z.month)}${two(z.day)}T${two(z.hour)}${two(z.minute)}${two(z.second)}Z';
-    }
-
-    final ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//ShareItToo//Booking//DE',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VEVENT',
-      'UID:$uid',
-      'DTSTAMP:${fmt(DateTime.now())}',
-      'SUMMARY:$summary',
-      if (location.isNotEmpty) 'LOCATION:$location',
-      'DTSTART:${fmt(when)}',
-      // Use 1-hour default duration
-      'DTEND:${fmt(when.add(const Duration(hours: 1)))}',
-      'DESCRIPTION:Buchungs-ID ${_computeBookingId()}',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\n');
-
-    final dataUri = Uri.dataFromString(
-      ics,
-      mimeType: 'text/calendar',
-      encoding: utf8,
-    );
-    try {
-      await launchUrl(dataUri, mode: LaunchMode.platformDefault);
-    } catch (_) {
-      _toast('Kalendereintrag konnte nicht erstellt werden');
-    }
-  }
-
   String _computeBookingId() {
     final itemId = (widget.booking['itemId'] as String?) ?? '';
     final requestId = (widget.booking['requestId'] as String?) ?? '';
@@ -3138,14 +3078,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
-  String _handoverCode() {
-    final title = (widget.booking['title'] as String?) ?? '';
-    return HandoverCodeService.codeFromTitleAndStart(
-      title: title,
-      start: _handoverCodeStart(),
-    );
-  }
-
   double _parseEuro(String s) {
     if (s.isEmpty) return 0.0;
     final cleaned = s
@@ -3205,26 +3137,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
     if (d.inDays == 1) return '$modeLabel in 1 Tag';
     return '$modeLabel in ${d.inDays} Tagen';
-  }
-
-  String _formatDeadline(DateTime dt) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mär',
-      'Apr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Dez',
-    ];
-    final m = months[(dt.month - 1).clamp(0, 11)];
-    final dd = dt.day.toString().padLeft(2, '0');
-    return '$dd. $m';
   }
 
   void _showQrOverlay(BuildContext context, String data) {
@@ -4927,26 +4839,6 @@ class _CancellationPolicyCardState extends State<_CancellationPolicyCard> {
     _open = widget.initiallyOpen;
   }
 
-  String _formatDeadline(DateTime dt) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mär',
-      'Apr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Dez',
-    ];
-    final m = months[(dt.month - 1).clamp(0, 11)];
-    final dd = dt.day.toString().padLeft(2, '0');
-    return '$dd. $m';
-  }
-
   @override
   Widget build(BuildContext context) {
     // Unified policy text from central helper
@@ -5193,14 +5085,6 @@ class _CompletionSummaryCard extends StatelessWidget {
     // Dates: use end as return date fallback
     final returnedAt = end;
     final payoutAt = end?.add(const Duration(days: 1));
-
-    Text line(String label, String value, {IconData? icon}) => Text(
-          value.isEmpty ? '' : value,
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        );
 
     List<Widget> rows = [];
     if (status == 'Storniert') {
