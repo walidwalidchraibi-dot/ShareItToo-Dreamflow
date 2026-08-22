@@ -1086,3 +1086,31 @@ and API-image publication were skipped. Draft PR #7 remained open, mergeable
 and unmerged. Production, real-history import, external messaging, Payment,
 Store, Firebase Console, Cloud/VPS/DNS, deployment, merge and public activation
 remain closed.
+
+## S4A private support evidence security
+
+`S4A_SUPPORT_EVIDENCE_SECURITY` is locally verified at exact implementation
+commit `06cef70fda31e2f83e621fc367909366b7277390` for Support Matrix scenarios
+`SUP-099` through `SUP-105`. Migration `051` stores immutable original and
+separate preview identity, permits only one terminal scan transition and refuses
+rollback after retained evidence exists. The server uses magic-byte detection,
+generated storage names, bounded metadata, deterministic quarantine and
+participant/idempotency guards; it never exposes an original retrieval route.
+
+Only a clean preview can receive a short digest-only user/session-bound grant.
+Authorization rechecks the active session, account, case participant, expiry and
+scan status, then verifies preview size/hash before a private no-store response.
+Forwarded and expired grants fail. Privacy export exposes safe submitting-user
+metadata only, Retention inventory counts both datasets without a purge period,
+and external AI/scanner network traffic remains false.
+
+Local verification passed 12 focused tests, Privacy/Retention validators and
+58 protection tests, a fresh PostgreSQL 16 integration through migration `051`,
+the complete backend/unit gate, accepted analyzer baseline, 369 Flutter tests
+with one documented skip, separate Google-only test, Web build/smoke, Android
+debug build and secret scan. The feature remains default-off and production
+startup rejects enablement. GitHub push and CI are pending solely because the
+stored GitHub CLI HTTPS credential expired after the local commit; no new access
+was created automatically. Draft PR #7 is not merged. Real scanner/provider,
+approved upload/Retention policy, signed candidate and every live, Store,
+Payment, production or public path remain closed.

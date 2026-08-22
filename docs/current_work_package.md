@@ -618,3 +618,29 @@ and API-image publication were skipped; Draft PR #7 remained open, mergeable
 and unmerged. No production data, external message, Payment, Store, Firebase
 Console, Cloud/VPS/DNS, deployment, PR merge or public activation is authorized
 or performed.
+
+## S4A private support evidence security
+
+`S4A_SUPPORT_EVIDENCE_SECURITY` is locally verified at exact implementation
+commit `06cef70fda31e2f83e621fc367909366b7277390` for Drive scenarios
+`SUP-099` through `SUP-105`. It accepts only magic-byte-detected JPEG/PNG/WebP,
+ignores client filenames, rejects active markup, quarantines the deterministic
+malware fixture and keeps an immutable hashed original separate from its
+re-encoded WebP preview. Original bytes have no retrieval route.
+
+Preview access requires one terminal clean result plus a digest-only token bound
+to the exact active user/session, current case participation and a schema-capped
+five-minute lifetime. Expired and forwarded tokens fail closed; every response
+rechecks the preview bytes and SHA-256. Privacy export and Retention inventory
+cover safe metadata without paths, filenames, tokens or invented purge periods.
+External AI and external scanner traffic are structurally absent.
+
+The intake flag defaults off and is rejected in production. Twelve focused
+tests, 17 Privacy tests, 41 Retention tests, fresh PostgreSQL 16 migration/route
+integration, the full backend unit run, accepted 220-issue analyzer baseline,
+369 Flutter tests with one documented skip, the separate Google-only test, Web
+build/smoke, Android debug build and secret scan are green locally. GitHub push
+and CI are pending because the stored GitHub CLI HTTPS credential expired; no
+new OAuth credential or SSH trust was created. Draft PR #7 remains unmerged and
+no production, real scanner, external AI, Payment, Store, Firebase Console,
+Cloud/VPS/DNS, signed candidate or public action was performed.
