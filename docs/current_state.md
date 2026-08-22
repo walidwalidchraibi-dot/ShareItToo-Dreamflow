@@ -1896,3 +1896,21 @@ fail-closed.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AG public-profile async-context ratchet
+
+`S4AG_PUBLIC_PROFILE_ASYNC_CONTEXT_RATCHET` is locally verified at commit
+`4f8a150`. Profile sharing now rechecks the exact screen context after
+clipboard access before showing success. Profile blocking proves the same
+context immediately before entering its asynchronous confirmation flow.
+
+The exact analyzer snapshot ratcheted `202 -> 200`, with
+`use_build_context_synchronously` `80 -> 78` and the public-profile bucket
+`2 -> 0`; all other buckets remained identical. Three focused source contracts,
+16 public-profile/blocking/large-text Flutter tests and the complete clean local
+metadata gate passed at `4f8a150f7ca4e8e7fff9b0e8c2f2307633c50d6f` with 384
+Flutter tests plus one documented skip, Google-only, Web build/smoke and one
+direct 448-task Android debug build.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

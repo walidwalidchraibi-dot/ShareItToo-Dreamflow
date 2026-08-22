@@ -1360,3 +1360,21 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AG public-profile async-context ratchet
+
+`S4AG_PUBLIC_PROFILE_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `4f8a150`. Profile sharing now proves its
+exact screen context after clipboard access before opening a toast. The block
+action proves the same context immediately before entering its asynchronous
+confirmation flow.
+
+The exact debt snapshot moves `202 -> 200`, and only the intended
+`use_build_context_synchronously` public-profile bucket changes. Three focused
+source contracts, 16 public-profile/blocking/large-text Flutter tests and the
+complete clean local metadata gate pass with the new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
