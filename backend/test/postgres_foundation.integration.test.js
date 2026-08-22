@@ -3724,7 +3724,7 @@ if (!databaseUrl) {
       await setupPool.query(
         `UPDATE support_cases
             SET current_owner_id = 'admin',
-                current_owner_role = 'trust_safety_lead',
+                current_owner_role = 'trust_safety_owner',
                 lock_version = lock_version + 1,
                 updated_at = now()
           WHERE id = $1`,
