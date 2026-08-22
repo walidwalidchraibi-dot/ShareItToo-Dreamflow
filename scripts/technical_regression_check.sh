@@ -414,6 +414,7 @@ node --test test/tool/create_listing_photo_async_lifecycle_wiring.test.mjs
 node --test test/tool/public_profile_async_context_wiring.test.mjs
 node --test test/tool/request_detail_async_context_wiring.test.mjs
 node --test test/tool/bookings_async_context_wiring.test.mjs
+node --test test/tool/owner_requests_async_context_wiring.test.mjs
 node --test test/tool/android_debug_single_attempt_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs

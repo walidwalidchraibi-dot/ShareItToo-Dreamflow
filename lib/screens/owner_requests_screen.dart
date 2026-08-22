@@ -1047,6 +1047,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
                           requestId: e.r.id, status: 'declined');
                       if (!mounted) return;
                       await _load();
+                      if (!mounted) return;
                       // Auto-close after 3 seconds
                       Future.delayed(const Duration(seconds: 3), () {
                         if (mounted) {
@@ -1102,6 +1103,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
             onPressed: () async {
               final owner = await DataService.getCurrentUser();
               if (owner == null) return;
+              if (!mounted) return;
               final ok = await ReviewPromptSheet.show(
                 context,
                 requestId: e.r.id,
