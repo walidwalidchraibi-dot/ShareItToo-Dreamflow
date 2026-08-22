@@ -1,7 +1,7 @@
 # S3Y support operational metrics and crash privacy - technical compliance record
 
-Status: complete local verification passed on 22.08.2026; exact implementation
-commit and exact-head CI evidence are pending. This is technical non-live evidence,
+Status: locally and CI verified on 22.08.2026 at exact implementation commit
+`c4a02ec441e85137187352c71a479f6ad3462bd2`. This is technical non-live evidence,
 not a claim that Firebase, production analytics or real support operations ran.
 
 ## Matrix result
@@ -47,7 +47,13 @@ not a claim that Firebase, production analytics or real support operations ran.
   369 Flutter tests passed with one documented Google-profile skip, the
   separate Google-only test passed, Web build/loopback smoke passed and the
   Android debug APK built.
-- Exact implementation commit and GitHub CI remain pending.
+- Exact-head GitHub run `32562949550` passed all 497 Backend/PostgreSQL tests
+  without skips and repeated the Flutter regression at PR merge snapshot
+  `92c6737e87b2dbdb4540002bf272c66153f7c61e`: accepted 220-issue analyzer
+  baseline, 369 Flutter passes with one documented Google-profile skip,
+  separate Google-only pass, Web build/loopback smoke and Android debug APK.
+- Signed-candidate construction and API-image publication were skipped; Draft
+  PR #7 remained open, mergeable and unmerged.
 
 No external analytics, Firebase Console change, live Crashlytics collection,
 production data access, Store action, payment, signed build, deployment, PR

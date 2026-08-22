@@ -562,8 +562,10 @@ production, payment, deployment, merge or public action is claimed or enabled.
 
 ## S3Y support operational metrics and crash privacy
 
-`S3Y_SUPPORT_OPERATIONAL_METRICS_CRASH_PRIVACY_GUARDS` is locally verified for
-Drive scenarios `SUP-165` through `SUP-167`. A new
+`S3Y_SUPPORT_OPERATIONAL_METRICS_CRASH_PRIVACY_GUARDS` is locally and CI-verified
+at exact implementation commit
+`c4a02ec441e85137187352c71a479f6ad3462bd2` for Drive scenarios `SUP-165`
+through `SUP-167`. A new
 Administrator/Staff-Step-up route computes only aggregate simulation/internal
 testing metrics. Reopen rate uses the distinct closed-case cohort in a bounded
 window; late-update rate is a labelled current active-case snapshot. The
@@ -576,6 +578,10 @@ release-mapping keys through one allowlist helper, and Firebase user identifiers
 remain absent. The Backend unit suite passes 496 tests with one expected
 PostgreSQL-environment skip. The complete technical regression passes the
 accepted analyzer baseline, 369 Flutter tests with one documented skip,
-separate Google-only test, Web smoke and Android debug build. Exact commit and
-CI evidence remain pending. No live Firebase, production, payment, Store, signed candidate,
+separate Google-only test, Web smoke and Android debug build. GitHub run
+`32562949550` repeated those gates for PR merge snapshot
+`92c6737e87b2dbdb4540002bf272c66153f7c61e` and passed all 497
+Backend/PostgreSQL tests without skips. Signed-candidate construction and
+API-image publication were skipped; Draft PR #7 remained open, mergeable and
+unmerged. No live Firebase, production, payment, Store, signed candidate,
 deployment, merge or public action is enabled.

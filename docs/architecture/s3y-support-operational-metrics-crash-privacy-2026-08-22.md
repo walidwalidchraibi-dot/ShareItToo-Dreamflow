@@ -1,7 +1,7 @@
 # S3Y support operational metrics and crash privacy - architecture
 
-Status: complete local verification passed on 22.08.2026; exact implementation
-commit and exact-head CI evidence are pending. This is a non-live implementation for
+Status: locally and CI verified on 22.08.2026 at exact implementation commit
+`c4a02ec441e85137187352c71a479f6ad3462bd2`. This is a non-live implementation for
 Drive scenarios `SUP-165` through `SUP-167` and changes no production,
 Firebase Console, Store, payment, Cloud/VPS/DNS or public rollout state.
 
@@ -61,12 +61,17 @@ single helper rejects every other key before the SDK call. No
 Focused Backend/domain/wiring and Flutter Firebase-runtime tests pass. Privacy,
 Retention and Firebase release validators bind the new aggregate source and
 the strengthened consent helper while the manifests remain draft and
-fail-closed. The complete Backend unit run passes 496 tests with one expected
-PostgreSQL-environment skip. The complete technical regression passes the
+fail-closed. The complete local Backend unit run passes 496 tests with one expected
+PostgreSQL-environment skip. The complete local technical regression passes the
 accepted 220-issue analyzer baseline, 369 Flutter tests with one documented
 Google-profile skip, the separate Google-only test, Web build/loopback smoke
-and Android debug APK. Exact implementation commit and CI evidence remain
-pending.
+and Android debug APK. Exact-head GitHub run `32562949550` passed all 497
+Backend/PostgreSQL tests without skips and repeated the Flutter regression for
+PR merge snapshot `92c6737e87b2dbdb4540002bf272c66153f7c61e` with the same
+220-issue accepted analyzer baseline, 369 Flutter passes plus one documented
+skip, separate Google-only pass, Web build/loopback smoke and Android debug
+APK. Signed-candidate construction and API-image publication were skipped;
+Draft PR #7 remained open, mergeable and unmerged.
 
 No live Firebase traffic, Crashlytics report, external analytics event, real
 support case, production read, Store action, signed artifact, deployment,
