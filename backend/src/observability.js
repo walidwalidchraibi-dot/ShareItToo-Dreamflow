@@ -3,10 +3,20 @@ import crypto from 'node:crypto';
 import { releaseMetadata } from './release.js';
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/u;
+const OPERATIONAL_ERROR_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/u;
 
 export function normalizeRequestId(value) {
   const candidate = typeof value === 'string' ? value.trim() : '';
   return REQUEST_ID_PATTERN.test(candidate) ? candidate : crypto.randomUUID();
+}
+
+export function safeOperationalErrorCode(error, fallback = 'operation_failed') {
+  const candidate = typeof error?.code === 'string' ? error.code.trim() : '';
+  if (OPERATIONAL_ERROR_CODE_PATTERN.test(candidate)) return candidate;
+  const safeFallback = typeof fallback === 'string' ? fallback.trim() : '';
+  return OPERATIONAL_ERROR_CODE_PATTERN.test(safeFallback)
+    ? safeFallback
+    : 'operation_failed';
 }
 
 function routeTemplate(req) {

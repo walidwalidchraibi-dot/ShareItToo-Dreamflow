@@ -5,6 +5,7 @@ import pg from 'pg';
 
 import { config } from './config.js';
 import { runMigrations } from './migrations.js';
+import { safeOperationalErrorCode } from './observability.js';
 
 const { Pool } = pg;
 
@@ -16,7 +17,7 @@ export const pool = new Pool({
 });
 
 pool.on('error', (error) => {
-  console.error('[database] idle client error', error);
+  console.error('[database] idle client error', safeOperationalErrorCode(error, 'database_idle_client_error'));
 });
 
 export async function initializeDatabase() {

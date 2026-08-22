@@ -1,3 +1,5 @@
+import { safeOperationalErrorCode } from './observability.js';
+
 export const firebaseIdentityCleanupIntervalMs = 5 * 60 * 1000;
 
 const allowedProviders = new Set(['google', 'apple', 'facebook']);
@@ -155,7 +157,7 @@ export function startFirebaseIdentityCleanupWorker({
   authClientFactory = defaultAuthClientFactory,
   onError = (error) => console.error(
     '[privacy] Firebase identity cleanup failed',
-    error?.code ?? error?.message ?? 'cleanup_failed',
+    safeOperationalErrorCode(error, 'cleanup_failed'),
   ),
 } = {}) {
   if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 24 * 60 * 60 * 1000) {

@@ -1016,6 +1016,7 @@ export async function buildAccountExport(client, userId) {
         submittedEvidenceFiles: supportEvidenceFiles,
         evidenceOriginalsAreNeverPublic: true,
         evidenceExternalAiUsed: false,
+        internalSafetyImpactReviewsExcluded: true,
         internalNotesExcluded: true,
         restrictedEvidenceExcluded: true,
         internalEmergencyAccessReasonsExcluded: true,

@@ -174,6 +174,11 @@ import {
   SupportCaseError,
   transitionSupportCase,
 } from './support_case_workflow.js';
+import { isProtectedSupportSafetyIntake } from './support_safety_impact_domain.js';
+import {
+  listSupportSafetyImpactReviews,
+  recordSupportSafetyImpactReview,
+} from './support_safety_impact_workflow.js';
 import { submitSupportAppeal } from './support_appeal_workflow.js';
 import {
   createSupportBreakGlassGrant,
@@ -270,7 +275,12 @@ import {
   evaluateReturnTimeline,
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
-import { errorPayload, requestContext, safeErrorLog } from './observability.js';
+import {
+  errorPayload,
+  requestContext,
+  safeErrorLog,
+  safeOperationalErrorCode,
+} from './observability.js';
 import { buildAccountExport } from './privacy_export.js';
 import { createMapsProxy, MapsProxyError } from './maps_proxy.js';
 import {
@@ -398,7 +408,10 @@ function paymentCheckoutExecutionAllowed(userId) {
 
 function kickNotificationWorker() {
   void drainNotificationOutbox().catch((error) => {
-    console.error('[notifications] background drain failed', error?.message ?? error);
+    console.error(
+      '[notifications] background drain failed',
+      safeOperationalErrorCode(error, 'notification_drain_failed'),
+    );
   });
 }
 
@@ -1376,7 +1389,9 @@ async function removeErasedUploadFiles(storageNames) {
     }
   }
   if (failures.length) {
-    console.error('[account] erased upload file cleanup failed', failures);
+    console.error('[account] erased upload file cleanup failed', {
+      failureCount: failures.length,
+    });
   }
   return failures;
 }
@@ -1449,7 +1464,7 @@ export function createApp({
     } catch (error) {
       console.error(
         '[privacy] immediate Firebase identity cleanup failed; durable retry remains queued',
-        error?.code ?? error?.message ?? 'cleanup_failed',
+        safeOperationalErrorCode(error, 'cleanup_failed'),
       );
     }
   };
@@ -1459,7 +1474,7 @@ export function createApp({
     } catch (error) {
       console.error(
         '[privacy] immediate Crashlytics report cleanup failed; durable retry remains queued',
-        error?.code ?? 'cleanup_failed',
+        safeOperationalErrorCode(error, 'cleanup_failed'),
       );
     }
   };
@@ -1519,10 +1534,17 @@ export function createApp({
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportSafetyIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportIntakeRateLimiter = (req, res, next) => (
+    isProtectedSupportSafetyIntake(req.body)
+      ? supportSafetyIntakeLimiter(req, res, next)
+      : supportIntakeLimiter(req, res, next)
+  );
   const supportLegacyMigrationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceUploadLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceAccessLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceScanLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportSafetyImpactLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportPrivacyIdentityLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const supportPrivacyExtensionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -1678,7 +1700,7 @@ export function createApp({
       try {
         await createAndSendVerification(verificationUser);
       } catch (error) {
-        console.error('[auth] registration verification delivery failed', error?.code ?? error?.message ?? error);
+        console.error('[auth] registration verification delivery failed', safeOperationalErrorCode(error, 'verification_delivery_failed'));
       }
     }
     res.status(202).json({ accepted: true });
@@ -1908,7 +1930,7 @@ export function createApp({
       try {
         await createAndSendVerification(outcome.verificationUser);
       } catch (error) {
-        console.error('[auth] social verification delivery failed', error?.code ?? error?.message ?? error);
+        console.error('[auth] social verification delivery failed', safeOperationalErrorCode(error, 'verification_delivery_failed'));
       }
       return res.status(202).json({
         accepted: true,
@@ -2156,7 +2178,7 @@ export function createApp({
       try {
         await createAndSendVerification(user);
       } catch (error) {
-        console.error('[auth] verification delivery failed', error?.code ?? error?.message ?? error);
+        console.error('[auth] verification delivery failed', safeOperationalErrorCode(error, 'verification_delivery_failed'));
       }
     }
     return res.status(202).json({ accepted: true });
@@ -2317,7 +2339,7 @@ export function createApp({
         displayName: user.profile?.displayName,
       });
     } catch (error) {
-      console.error('[auth] old-address email change alert failed', error?.code ?? error?.message ?? error);
+      console.error('[auth] old-address email change alert failed', safeOperationalErrorCode(error, 'email_change_alert_failed'));
     }
     res.status(202).json({ accepted: true });
   }));
@@ -2420,7 +2442,7 @@ export function createApp({
             token,
           });
         } catch (error) {
-          console.error('[auth] password reset delivery failed', error?.code ?? error?.message ?? error);
+          console.error('[auth] password reset delivery failed', safeOperationalErrorCode(error, 'password_reset_delivery_failed'));
         }
       }
     }
@@ -2798,7 +2820,7 @@ export function createApp({
           token,
         });
       } catch (error) {
-        console.error('[account] deletion link delivery failed', error?.code ?? error?.message ?? error);
+        console.error('[account] deletion link delivery failed', safeOperationalErrorCode(error, 'deletion_link_delivery_failed'));
       }
     }
     sendHtml(res, 202, accountDeletionRequestForm({ submitted: true }));
@@ -4073,7 +4095,7 @@ export function createApp({
     res.json({ reports: await listMyReports(pool, req.auth.userId) });
   }));
 
-  app.post('/v1/support/cases', requireAuth, requireActiveAccount, supportIntakeLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/support/cases', requireAuth, requireActiveAccount, supportIntakeRateLimiter, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => createSupportCase(client, {
       actor: req.actor,
       raw: req.body,
@@ -4672,6 +4694,32 @@ export function createApp({
     const result = await inTransaction((client) => recordSupportEvidenceScanResult(client, {
       actor: req.actor,
       evidenceId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store')
+      .status(result.replayed ? 200 : 201)
+      .json(result);
+  }));
+
+  app.get('/v1/admin/support/cases/:id/safety-impact-reviews', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const reviews = await listSupportSafetyImpactReviews(pool, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json({
+      reviews,
+      actionExecutionEnabled: false,
+      externalDeliveryEnabled: false,
+    });
+  }));
+
+  app.post('/v1/admin/support/cases/:id/safety-impact-reviews', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportSafetyImpactLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordSupportSafetyImpactReview(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      staffElevationId: req.staffElevation.id,
+      caseId: safeText(req.params.id, 80),
       raw: req.body,
       idempotencyKey: req.get('Idempotency-Key'),
     }));

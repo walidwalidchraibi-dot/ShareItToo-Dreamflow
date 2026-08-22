@@ -16,6 +16,11 @@ const sourcePaths = [
   'lib/screens/privacy_info_screen.dart',
   'backend/src/account_actions.js',
   'backend/src/privacy_export.js',
+  'backend/src/observability.js',
+  'backend/src/server.js',
+  'backend/src/credential_cleanup.js',
+  'backend/src/db.js',
+  'backend/src/mailer.js',
   'backend/src/support_case_domain.js',
   'backend/src/support_case_workflow.js',
   'backend/src/support_privacy_rights_domain.js',
@@ -40,6 +45,8 @@ const sourcePaths = [
   'backend/src/support_operational_metrics.js',
   'backend/src/support_legacy_migration.js',
   'backend/src/support_evidence_workflow.js',
+  'backend/src/support_safety_impact_domain.js',
+  'backend/src/support_safety_impact_workflow.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -95,6 +102,8 @@ const sourcePaths = [
   'backend/sql/migrations/050_support_legacy_history_import.down.sql',
   'backend/sql/migrations/051_support_evidence_security.up.sql',
   'backend/sql/migrations/051_support_evidence_security.down.sql',
+  'backend/sql/migrations/052_support_safety_impact_review.up.sql',
+  'backend/sql/migrations/052_support_safety_impact_review.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -399,6 +408,7 @@ function assertSourceContracts({ root, sourceTexts }) {
     'privacyExportMinimization',
     'THIRD_PARTY_EXACT_LOCATION_OMITTED',
     'privacyIncidents: supportPrivacyIncidents',
+    'internalSafetyImpactReviewsExcluded: true',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
   }
@@ -589,6 +599,54 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
   if (!supportEvidenceMigrationDown.includes('rollback would lose retained evidence')) {
     fail('Support-evidence rollback must refuse stored evidence.');
+  }
+  const supportSafetyImpactWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_safety_impact_workflow.js',
+  );
+  const supportSafetyImpactMigrationUp = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/052_support_safety_impact_review.up.sql',
+  );
+  const supportSafetyImpactMigrationDown = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/052_support_safety_impact_review.down.sql',
+  );
+  for (const marker of [
+    'decisionBoundary: \'red_human_decision_required\'',
+    'proportionalityRequired: true',
+    'automaticActionAllowed: false',
+    'externalDeliveryAllowed: false',
+  ]) {
+    if (!supportSafetyImpactWorkflow.includes(marker)) {
+      fail(`Support safety-impact privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (/fetch\s*\(|https?:\/\//u.test(supportSafetyImpactWorkflow)) {
+    fail('Support safety-impact review must not have an external network path.');
+  }
+  for (const marker of [
+    'support_safety_impact_reviews_append_only',
+    'CHECK (NOT action_executed)',
+    'CHECK (NOT external_delivery_enabled)',
+  ]) {
+    if (!supportSafetyImpactMigrationUp.includes(marker)) {
+      fail(`Support safety-impact schema privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportSafetyImpactMigrationDown.includes(
+    'rollback blocked: support safety impact reviews exist',
+  )) {
+    fail('Support safety-impact rollback must refuse stored reviews.');
+  }
+  const observability = sourceText(root, sourceTexts, 'backend/src/observability.js');
+  if (!observability.includes('safeOperationalErrorCode')
+      || !observability.includes("error?.code")
+      || observability.includes('error?.message')) {
+    fail('Operational logging must expose bounded codes without exception messages.');
   }
   const privacyIncidentWorkflow = sourceText(
     root,

@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 
 import { config } from './config.js';
+import { safeOperationalErrorCode } from './observability.js';
 import { buildTransactionalEmail } from './transactional_mail_templates.js';
 
 export { buildTransactionalEmail } from './transactional_mail_templates.js';
@@ -59,7 +60,7 @@ export async function verifyMailer() {
     status = 'ok';
   } catch (error) {
     status = 'error';
-    console.error('[mail] SMTP verification failed', error?.message ?? error);
+    console.error('[mail] SMTP verification failed', safeOperationalErrorCode(error, 'smtp_verification_failed'));
   }
   return status;
 }

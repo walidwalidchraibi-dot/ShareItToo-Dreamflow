@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { SupportCaseError } from './support_case_domain.js';
+import { isSupportSafetyImpactCase } from './support_safety_impact_domain.js';
 import {
   normalizeSupportDecisionCommunication,
   normalizeSupportDecisionImplementation,
@@ -114,6 +115,64 @@ async function event(client, {
   );
 }
 
+async function assertCurrentSafetyImpactScope(client, { caseRow, input }) {
+  if (!isSupportSafetyImpactCase(caseRow)) return;
+  const latest = await client.query(
+    `SELECT * FROM support_safety_impact_reviews
+      WHERE case_id = $1
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1`,
+    [caseRow.id],
+  );
+  const review = latest.rows[0];
+  if (!review
+      || Number(review.case_version) !== Number(caseRow.lock_version)
+      || input.recommendationId !== review.id) {
+    throw new SupportCaseError(409, 'support_safety_impact_review_required');
+  }
+  const currentListing = await client.query(
+    `SELECT status, is_active, moderation_status
+       FROM listings
+      WHERE id = $1`,
+    [caseRow.linked_listing_id],
+  );
+  const listingSnapshot = review.impact_snapshot?.listing;
+  const listingRow = currentListing.rows[0];
+  if (!listingRow
+      || listingSnapshot?.status !== listingRow.status
+      || listingSnapshot?.isActive !== (listingRow.is_active === true)
+      || listingSnapshot?.moderationStatus !== listingRow.moderation_status) {
+    throw new SupportCaseError(409, 'support_safety_impact_review_stale');
+  }
+  const currentBookings = await client.query(
+    `SELECT id FROM bookings
+      WHERE listing_id = $1
+        AND workflow_status IN (
+          'requested', 'accepted', 'payment_pending', 'confirmed', 'active',
+          'withdrawalReturnRequired', 'returned', 'disputed'
+        )
+      ORDER BY id`,
+    [caseRow.linked_listing_id],
+  );
+  const currentBookingIds = currentBookings.rows
+    .map((row) => row.id)
+    .sort((left, right) => left.localeCompare(right));
+  if (JSON.stringify(currentBookingIds)
+      !== JSON.stringify(review.action_relevant_booking_ids ?? [])) {
+    throw new SupportCaseError(409, 'support_safety_impact_review_stale');
+  }
+  const requiredEntities = [
+    `listing:${caseRow.linked_listing_id}`,
+    ...currentBookingIds.map((id) => `booking:${id}`),
+  ];
+  if (requiredEntities.some((id) => !input.affectedEntityIds.includes(id))
+      || input.unaffectedAreas.length < 1
+      || !['temporary_safety_review', 'moderation_review', 'no_measure']
+        .includes(input.measureType)) {
+    throw new SupportCaseError(409, 'support_safety_impact_proportional_scope_required');
+  }
+}
+
 export async function createSupportDecisionDraft(client, {
   actor,
   caseId,
@@ -157,6 +216,7 @@ export async function createSupportDecisionDraft(client, {
   if (caseRow.approval_level === 'green_automatic') {
     throw new SupportCaseError(409, 'support_decision_not_required_for_green_case');
   }
+  await assertCurrentSafetyImpactScope(client, { caseRow, input });
   const concurrentReplay = await client.query(
     'SELECT * FROM support_decisions WHERE idempotency_key = $1',
     [key],

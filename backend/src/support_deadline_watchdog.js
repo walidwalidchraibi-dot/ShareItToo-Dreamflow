@@ -1,5 +1,6 @@
 import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
+import { safeOperationalErrorCode } from './observability.js';
 import { SupportCaseError } from './support_case_domain.js';
 import { reconcilePrivacyIncidentDeadlinesWithClient } from './support_privacy_incident_workflow.js';
 import { reconcilePrivacyRightsDeadlinesWithClient } from './support_privacy_rights_workflow.js';
@@ -24,9 +25,7 @@ function safeLimit(value) {
 }
 
 function errorCode(error) {
-  return String(error?.code ?? error?.message ?? 'support_deadline_watchdog_failed')
-    .replace(/[^A-Za-z0-9_.:-]/gu, '_')
-    .slice(0, 240);
+  return safeOperationalErrorCode(error, 'support_deadline_watchdog_failed');
 }
 
 function alertKey(type, row) {

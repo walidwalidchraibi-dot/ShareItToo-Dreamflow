@@ -136,6 +136,7 @@ if (!databaseUrl) {
         '049_support_product_safety_intake.up.sql',
         '050_support_legacy_history_import.up.sql',
         '051_support_evidence_security.up.sql',
+        '052_support_safety_impact_review.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -1641,6 +1642,22 @@ if (!databaseUrl) {
         issueScopeVersion: 'sit_support_single_issue_scope_v1',
         separationGuidanceShown: true,
       });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE audit_log SET action = 'forbidden.audit.rewrite'
+            WHERE action = 'support.case_created' AND resource_id = $1`,
+          [supportIntake.supportCase.id],
+        ),
+        /audit_log is append-only/u,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `DELETE FROM audit_log
+            WHERE action = 'support.case_created' AND resource_id = $1`,
+          [supportIntake.supportCase.id],
+        ),
+        /audit_log is append-only/u,
+      );
       const productSafetyIntakeResponse = await fetch(
         `${baseUrl}/v1/support/cases`,
         {
@@ -3781,6 +3798,38 @@ if (!databaseUrl) {
       );
       assert.equal(blockedMessage.status, 403);
       assert.equal((await blockedMessage.json()).error, 'contact_blocked');
+      const blockedSafetySupport = await fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...acceptedRenterHeaders,
+          'Idempotency-Key': 's4b-blocked-user-safety-support',
+        },
+        body: JSON.stringify({
+          caseType: 'active_rental',
+          caseSubType: 'unsafe_product_or_injury',
+          summary: 'Sicherheitskanal bleibt trotz gesperrtem Direktkontakt erreichbar.',
+          linkedBookingId: acceptedBookingId,
+          linkedListingId: 'listing-1',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+        }),
+      });
+      assert.equal(blockedSafetySupport.status, 201);
+      assert.equal(
+        (await blockedSafetySupport.json()).supportCase.caseSubType,
+        'unsafe_product_or_injury',
+      );
       assert.equal((await fetch(`${baseUrl}/v1/user-blocks/${acceptedRenterId}`, {
         method: 'DELETE',
         headers: ownerHeaders,
@@ -3849,6 +3898,66 @@ if (!databaseUrl) {
       });
       assert.equal(adminElevation.status, 200);
       adminHeaders['X-Admin-Step-Up'] = (await adminElevation.json()).elevation.token;
+      const safetyListingBefore = await setupPool.query(
+        `SELECT status, is_active, moderation_status
+           FROM listings WHERE id = 'listing-1'`,
+      );
+      const safetyImpactResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${productSafetyIntake.supportCase.id}/safety-impact-reviews`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's4b-product-safety-impact-review',
+          },
+          body: JSON.stringify({
+            expectedVersion: productSafetyIntake.supportCase.version,
+            scopeReviewed: true,
+            proportionalityBoundaryConfirmed: true,
+            noAutomatedActionConfirmed: true,
+          }),
+        },
+      );
+      assert.equal(safetyImpactResponse.status, 201);
+      const safetyImpact = await safetyImpactResponse.json();
+      assert.equal(safetyImpact.review.humanReviewed, true);
+      assert.equal(safetyImpact.review.decisionRequired, true);
+      assert.equal(safetyImpact.review.proportionalityRequired, true);
+      assert.equal(safetyImpact.review.actionExecuted, false);
+      assert.equal(safetyImpact.review.externalDeliveryEnabled, false);
+      assert.match(safetyImpact.review.snapshotSha256, /^[0-9a-f]{64}$/u);
+      const safetyImpactStored = await setupPool.query(
+        `SELECT impact_snapshot, action_executed, external_delivery_enabled
+           FROM support_safety_impact_reviews WHERE id = $1`,
+        [safetyImpact.review.id],
+      );
+      assert.equal(safetyImpactStored.rows[0].action_executed, false);
+      assert.equal(safetyImpactStored.rows[0].external_delivery_enabled, false);
+      assert.doesNotMatch(
+        JSON.stringify(safetyImpactStored.rows[0].impact_snapshot),
+        /owner|renter|address|amount/iu,
+      );
+      assert.deepEqual(
+        (await setupPool.query(
+          `SELECT status, is_active, moderation_status
+             FROM listings WHERE id = 'listing-1'`,
+        )).rows,
+        safetyListingBefore.rows,
+      );
+      await assert.rejects(
+        setupPool.query(
+          'UPDATE support_safety_impact_reviews SET action_executed = true WHERE id = $1',
+          [safetyImpact.review.id],
+        ),
+        /append-only/u,
+      );
+      await assert.rejects(
+        setupPool.query(
+          'DELETE FROM support_safety_impact_reviews WHERE id = $1',
+          [safetyImpact.review.id],
+        ),
+        /append-only/u,
+      );
       const legacyRollbackPreviewResponse = await fetch(
         `${baseUrl}/v1/admin/support/legacy-migrations/${legacyImport.migration.importId}/rollback-preview`,
         { headers: adminHeaders },

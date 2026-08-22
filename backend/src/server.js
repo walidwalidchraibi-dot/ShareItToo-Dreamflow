@@ -12,6 +12,7 @@ import { initializeDatabase, pool } from './db.js';
 import { attachRealtime } from './realtime.js';
 import { verifyMailer } from './mailer.js';
 import { drainNotificationOutbox } from './notifications.js';
+import { safeOperationalErrorCode } from './observability.js';
 import { reconcilePaymentLifecycle } from './payment_workflow.js';
 import { reconcileReturnLifecycle } from './return_lifecycle_workflow.js';
 import { reconcileSupportDeadlines } from './support_deadline_watchdog.js';
@@ -29,39 +30,39 @@ async function main() {
   });
   const notificationTimer = setInterval(() => {
     void drainNotificationOutbox().catch((error) => {
-      console.error('[notifications] worker failed', error?.message ?? error);
+      console.error('[notifications] worker failed', safeOperationalErrorCode(error, 'notification_worker_failed'));
     });
   }, config.notifications.workerIntervalMs);
   notificationTimer.unref();
   void drainNotificationOutbox().catch((error) => {
-    console.error('[notifications] startup drain failed', error?.message ?? error);
+    console.error('[notifications] startup drain failed', safeOperationalErrorCode(error, 'notification_startup_failed'));
   });
   const returnLifecycleTimer = setInterval(() => {
     void reconcileReturnLifecycle().then(() => drainNotificationOutbox()).catch((error) => {
-      console.error('[return-lifecycle] reconciliation failed', error?.code ?? error?.message ?? error);
+      console.error('[return-lifecycle] reconciliation failed', safeOperationalErrorCode(error, 'return_reconciliation_failed'));
     });
   }, config.returnLifecycle.workerIntervalMs);
   returnLifecycleTimer.unref();
   void reconcileReturnLifecycle().then(() => drainNotificationOutbox()).catch((error) => {
-    console.error('[return-lifecycle] startup reconciliation failed', error?.code ?? error?.message ?? error);
+    console.error('[return-lifecycle] startup reconciliation failed', safeOperationalErrorCode(error, 'return_startup_failed'));
   });
   const supportDeadlineTimer = setInterval(() => {
     void reconcileSupportDeadlines().catch((error) => {
-      console.error('[support-deadline-watchdog] reconciliation failed', error?.code ?? error?.message ?? error);
+      console.error('[support-deadline-watchdog] reconciliation failed', safeOperationalErrorCode(error, 'support_deadline_reconciliation_failed'));
     });
   }, config.supportDeadlines.workerIntervalMs);
   supportDeadlineTimer.unref();
   void reconcileSupportDeadlines().catch((error) => {
-    console.error('[support-deadline-watchdog] startup reconciliation failed', error?.code ?? error?.message ?? error);
+    console.error('[support-deadline-watchdog] startup reconciliation failed', safeOperationalErrorCode(error, 'support_deadline_startup_failed'));
   });
   const paymentTimer = setInterval(() => {
     void reconcilePaymentLifecycle().catch((error) => {
-      console.error('[payments] reconciliation failed', error?.code ?? error?.message ?? error);
+      console.error('[payments] reconciliation failed', safeOperationalErrorCode(error, 'payment_reconciliation_failed'));
     });
   }, 30_000);
   paymentTimer.unref();
   void reconcilePaymentLifecycle().catch((error) => {
-    console.error('[payments] startup reconciliation failed', error?.code ?? error?.message ?? error);
+    console.error('[payments] startup reconciliation failed', safeOperationalErrorCode(error, 'payment_startup_failed'));
   });
   const stopCredentialCleanup = startCredentialCleanupWorker({ client: pool });
   const stopFirebaseIdentityCleanup = startFirebaseIdentityCleanupWorker({
@@ -98,6 +99,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('[shareittoo-api] startup failed', error);
+  console.error('[shareittoo-api] startup failed', safeOperationalErrorCode(error, 'api_startup_failed'));
   process.exit(1);
 });

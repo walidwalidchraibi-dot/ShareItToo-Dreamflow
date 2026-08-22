@@ -48,7 +48,27 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "185a03ff39830b4025bded2c208358bf38a05d802cb47f040ec1e8c150961cae"
+      "sha256": "0e4c2f51a62ef3634350ae055d6be5e889778f2ffda5b0e9871f2660fbe8b4cf"
+    },
+    {
+      "path": "backend/src/observability.js",
+      "sha256": "b971c321aaaadad49da7400280cd74ce8499fc9b5e582e34e5c5a5ab651042d8"
+    },
+    {
+      "path": "backend/src/server.js",
+      "sha256": "daf423035b9fa3280ad5fd90d0a6da585314bbf13a48f387640fbc557a89a42c"
+    },
+    {
+      "path": "backend/src/credential_cleanup.js",
+      "sha256": "c8258b5aaf1db215852dd5ad17025091fefe1e481dfe7ecb90aed185ad9fe1e1"
+    },
+    {
+      "path": "backend/src/db.js",
+      "sha256": "c2f2fb197053056ea9d6fd891b04370fbb6cca1af7af3426011fb9c09bbd6740"
+    },
+    {
+      "path": "backend/src/mailer.js",
+      "sha256": "aac114b2fa788b90961d711347398fe5a8f05df0633697e75db6098b4c883550"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -96,7 +116,7 @@
     },
     {
       "path": "backend/src/support_decision_workflow.js",
-      "sha256": "b03178bb51da2381d1c4457ae437f38dcf5b4ce8b594fd092c6487e8277acd28"
+      "sha256": "79e7e3375298cde4aeaf1935b9827d70b71beec8715b182f37ff6d886654be83"
     },
     {
       "path": "backend/src/support_break_glass_domain.js",
@@ -132,7 +152,7 @@
     },
     {
       "path": "backend/src/support_deadline_watchdog.js",
-      "sha256": "8292ed06c11c50250fb7da6d21ddb458e6acb7f3c49c071fedf3ed3375817df9"
+      "sha256": "99bfe2f20d49f928bf79e10f8d45b2f7ac235b3cfc95e79f5a18400cab4244f1"
     },
     {
       "path": "backend/src/support_operational_metrics.js",
@@ -145,6 +165,14 @@
     {
       "path": "backend/src/support_evidence_workflow.js",
       "sha256": "c01965e7f59229a8c445338c455c34cbf2d41932ae6c4d6e91d9c4ac6c4cbc7e"
+    },
+    {
+      "path": "backend/src/support_safety_impact_domain.js",
+      "sha256": "7b022c639acb2c809b588699c9e80ce9feae3e3ddf8c71d6003ec4429633c824"
+    },
+    {
+      "path": "backend/src/support_safety_impact_workflow.js",
+      "sha256": "988cba60ebc4209e12583483a75968f16435abe7a429abc5fd79f4b4ce86754b"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -367,6 +395,14 @@
       "sha256": "9e5d0481b3e624d261a010fbfccff47938c14e6cbb8e6844be10df2a11381c9c"
     },
     {
+      "path": "backend/sql/migrations/052_support_safety_impact_review.up.sql",
+      "sha256": "eab90a28de2b71a33f0c76a8f4421ae139467cd1d62ade0302a265373fcd5002"
+    },
+    {
+      "path": "backend/sql/migrations/052_support_safety_impact_review.down.sql",
+      "sha256": "24a37e07a74b4ad01dbd8414fd9ca61cac3222db2cd0fc2ba3f7cc6edae7f95c"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -384,7 +420,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "ac8292bb81ac2fd6487c54b2745c8b2f056178dbc9a303b350701f2e72dca639"
+      "sha256": "a9dbad9e70f9a474f1a72bc5f58499519d7b5036cdb72716c5dfd4e4dc2d0d26"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -436,7 +472,7 @@
     },
     {
       "path": "backend/src/firebase_identity_cleanup.js",
-      "sha256": "92055ce98dac3037b2fe0cbfa09c04f4717664fe5665a906b6048558403b4f03"
+      "sha256": "3dc65da07da53276c5759f86856f91a87360c55ee77defed88ecc6510e2561e0"
     },
     {
       "path": "backend/src/crashlytics_cleanup.js",
@@ -640,7 +676,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "0bb9cb477a3074e83046689e7916d983b8ea282ce52a922b283a1af957bff6cc"
+      "sha256": "0fcbbd00a9dbeeb936b9d0ce13bc8f757772af86c34b26714e59944d51d356ba"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

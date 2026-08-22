@@ -1,3 +1,5 @@
+import { safeOperationalErrorCode } from './observability.js';
+
 export const credentialCleanupIntervalMs = 6 * 60 * 60 * 1000;
 
 const cleanupStatement = `
@@ -52,7 +54,7 @@ export function startCredentialCleanupWorker({
   intervalMs = credentialCleanupIntervalMs,
   onError = (error) => console.error(
     '[security] expired credential cleanup failed',
-    error?.code ?? error?.message ?? error,
+    safeOperationalErrorCode(error, 'credential_cleanup_failed'),
   ),
 } = {}) {
   if (!Number.isSafeInteger(intervalMs) || intervalMs < 60_000 || intervalMs > 24 * 60 * 60 * 1000) {

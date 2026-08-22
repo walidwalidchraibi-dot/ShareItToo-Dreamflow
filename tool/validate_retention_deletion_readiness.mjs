@@ -17,6 +17,9 @@ const sourcePaths = [
   'backend/src/operator_readiness.js',
   'backend/src/retention_inventory.js',
   'backend/src/privacy_export.js',
+  'backend/src/observability.js',
+  'backend/src/db.js',
+  'backend/src/mailer.js',
   'backend/src/support_case_domain.js',
   'backend/src/support_case_workflow.js',
   'backend/src/support_privacy_rights_domain.js',
@@ -41,6 +44,8 @@ const sourcePaths = [
   'backend/src/support_operational_metrics.js',
   'backend/src/support_legacy_migration.js',
   'backend/src/support_evidence_workflow.js',
+  'backend/src/support_safety_impact_domain.js',
+  'backend/src/support_safety_impact_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -110,6 +115,8 @@ const sourcePaths = [
   'backend/sql/migrations/050_support_legacy_history_import.down.sql',
   'backend/sql/migrations/051_support_evidence_security.up.sql',
   'backend/sql/migrations/051_support_evidence_security.down.sql',
+  'backend/sql/migrations/052_support_safety_impact_review.up.sql',
+  'backend/sql/migrations/052_support_safety_impact_review.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -663,6 +670,46 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!supportEvidenceMigrationDown.includes('rollback would lose retained evidence')) {
     fail('Support-evidence rollback must refuse deletion of retained evidence.');
+  }
+  if (!inventory.includes("'securityAudit', 'support_safety_impact_reviews'")) {
+    fail('Retention inventory is missing immutable dataset support_safety_impact_reviews.');
+  }
+  const supportSafetyImpactWorkflow = text(
+    root,
+    sourceTexts,
+    'backend/src/support_safety_impact_workflow.js',
+  );
+  const supportSafetyImpactMigrationUp = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/052_support_safety_impact_review.up.sql',
+  );
+  const supportSafetyImpactMigrationDown = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/052_support_safety_impact_review.down.sql',
+  );
+  for (const marker of [
+    'snapshotSha256',
+    'actionExecuted: false',
+    'externalDeliveryEnabled: false',
+  ]) {
+    if (!supportSafetyImpactWorkflow.includes(marker)) {
+      fail(`Support safety-impact retention boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'support_safety_impact_reviews_append_only',
+    'snapshot_sha256 CHAR(64) GENERATED ALWAYS',
+  ]) {
+    if (!supportSafetyImpactMigrationUp.includes(marker)) {
+      fail(`Support safety-impact schema retention boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportSafetyImpactMigrationDown.includes(
+    'rollback blocked: support safety impact reviews exist',
+  )) {
+    fail('Support safety-impact rollback must refuse deletion of retained reviews.');
   }
   if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
     fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');
