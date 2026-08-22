@@ -1479,3 +1479,26 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AM message-thread async-context ratchet
+
+`S4AM_MESSAGE_THREAD_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `d481515`. Chat owner acceptance now uses
+the owning State lifecycle after declaration selection. Booking-detail routing,
+time proposals and other-party profile navigation each stop after their
+asynchronous data lookup if the chat screen was disposed. Chat state,
+acceptance, quote, appointment, handover/return, profile and navigation rules
+are unchanged.
+
+The exact debt snapshot moves `188 -> 182`, and only the intended
+`use_build_context_synchronously` message-thread bucket changes. Eighteen
+focused message-thread/acceptance source contracts, 17 privacy contracts, 96
+focused chat/booking/acceptance/handover Flutter tests and the complete clean
+local metadata gate pass with the new exact fingerprint. The privacy inventory
+is rebound to the reviewed message-thread source without changing any
+disclosure or release state.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.

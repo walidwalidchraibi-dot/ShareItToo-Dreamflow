@@ -2016,3 +2016,25 @@ fail-closed.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AM message-thread async-context ratchet
+
+`S4AM_MESSAGE_THREAD_ASYNC_CONTEXT_RATCHET` is locally verified at commit
+`d481515`. Owner acceptance now checks the owning State after declaration
+selection. Booking-detail routing checks it after request/item/owner hydration
+and again after delivery selection. Time proposals check it after flow-state
+lookup, and profile navigation checks it immediately after resolving the other
+party. Chat state, acceptance, quote, appointment, handover/return, profile and
+navigation behavior are unchanged.
+
+The exact analyzer snapshot ratcheted `188 -> 182`, with
+`use_build_context_synchronously` `66 -> 60` and the message-thread context
+bucket `6 -> 0`; all other buckets remained identical. Eighteen focused
+message-thread/acceptance source contracts, 17 privacy contracts, 96 focused
+Flutter tests and the complete clean local metadata gate passed at
+`d481515b71ec065fe1d80cc1bcaca3a2b8707acf` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build. Privacy remains honestly draft and fail-closed.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
