@@ -1299,9 +1299,13 @@ gate pass locally. Exact GitHub run `32593274378` also passed without rerun,
 wrote its cold PR-scoped Basic Cache (`0 restored, 1 saved`) and executed one
 direct `:app:assembleDebug` with no Flutter APK retry path.
 
-`TD-RR-011` remains open only for the later restored-cache proof. P0B remains
-`HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
-signing, merge or public activation is enabled.
+Exact later GitHub run `32594060058` then restored that same PR-scoped entry
+(`1 restored, 0 saved`) and passed without rerun. Its log again contains one
+direct `:app:assembleDebug`, zero `flutter build apk` and zero
+`Retrying Gradle Build`. This closes `TD-RR-011` without a sleep, retry loop,
+alternate mirror, manual cache injection or paid provider. P0B remains `HOLD` /
+`NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment, signing,
+merge or public activation is enabled.
 
 ## S4AD listing-options async-context ratchet
 
@@ -1331,6 +1335,26 @@ The exact debt snapshot moves `204 -> 203`, and only the intended
 `use_build_context_synchronously` profile-info bucket changes. Three focused
 contracts, 15 related Flutter tests and the complete clean implementation gate
 pass with the new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
+
+## S4AF listing-photo async-lifecycle ratchet
+
+`S4AF_LISTING_PHOTO_ASYNC_LIFECYCLE_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at implementation commit `a2d0ac1`, with the exact
+privacy/retention source binding at `eb413d1`. The picked-photo preview now
+rechecks its own `BuildContext` after asynchronous file access and stops before
+opening a dialog when the thumbnail has been removed.
+
+The exact debt snapshot moves `203 -> 202`, and only the intended
+`use_build_context_synchronously` create-listing bucket changes. Four focused
+photo/lifecycle contracts and the complete clean local metadata gate pass with
+the new exact fingerprint. The privacy and retention source inventories were
+rebound to the changed reviewed source without changing any disclosure,
+retention decision or release state.
 
 This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no

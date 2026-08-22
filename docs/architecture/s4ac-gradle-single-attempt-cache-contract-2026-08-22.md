@@ -1,7 +1,8 @@
 # S4AC Gradle single-attempt cache contract - architecture
 
-Status: locally verified on 22.08.2026 at implementation commit `1d9816e`;
-first clean GitHub cache write verified at run `32593274378`.
+Status: closed on 22.08.2026; locally verified at implementation commit
+`1d9816e`, first clean GitHub cache write verified at run `32593274378`, and
+exact cache restore verified at run `32594060058`.
 This is a non-live CI reliability package for `TD-RR-011`; it changes no app
 behavior, production, Payment, Store, Cloud/VPS/DNS or pilot state.
 
@@ -56,6 +57,12 @@ PR-scoped Gradle entry, and its log contained exactly one
 `> Task :app:assembleDebug`, zero `flutter build apk` and zero
 `Retrying Gradle Build` lines.
 
-`TD-RR-011` remains open only for a later run that restores this PR-scoped
-entry and passes with the same single-attempt contract. P0B remains `HOLD` /
+Exact later run `32594060058` passed on head `e715af5` without rerun. Basic
+Caching reported `1 restored, 0 saved` for the same PR-scoped entry. Its log
+again contained exactly one direct `> Task :app:assembleDebug`, zero
+`flutter build apk` and zero `Retrying Gradle Build` lines. No sleep, retry
+loop, alternate mirror, manual cache injection or paid provider was used.
+
+That reproducible cold-write/restore sequence closes `TD-RR-011`. The
+single-attempt contract remains permanently enforced. P0B remains `HOLD` /
 `NO-GO`.

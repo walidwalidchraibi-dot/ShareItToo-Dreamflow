@@ -18,8 +18,8 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 | `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
-| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4AE guard Wishlist selector, popup navigator, gallery callback, item-card state, listing-options callback and profile-screen lifetimes, ratcheting the backlog `220 -> 214 -> 212 -> 210 -> 207 -> 204 -> 203`; `use_build_context_synchronously` decreases `98 -> 92 -> 90 -> 88 -> 85 -> 82 -> 81`, most recently at `42a2982`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
-| `TD-RR-011` | Exact run `32592388940` restored/saved zero Gradle entries, hit Maven `403` and exposed Flutter CLI's automatic APK retry. S4AC replaces that path with one direct wrapper `assembleDebug`. Exact post-remediation run `32593274378` passed without rerun, executed exactly one direct build and wrote the cold PR-scoped Basic Cache (`0 restored, 1 saved`). | Retain a later green run that restores this PR-scoped entry with exactly one direct Android debug build. A rerun after failure, sleep, retry loop, alternate mirror, manual cache injection or paid provider is not closure evidence. |
+| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4AF guard Wishlist selector, popup navigator, gallery callback, item-card state, listing-options callback, profile-screen and listing-photo lifetimes, ratcheting the backlog `220 -> 214 -> 212 -> 210 -> 207 -> 204 -> 203 -> 202`; `use_build_context_synchronously` decreases `98 -> 92 -> 90 -> 88 -> 85 -> 82 -> 81 -> 80`, most recently at `a2d0ac1`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-011` | **CLOSED 22.08.2026.** Failed run `32592388940` exposed a cold-cache Maven `403` and Flutter's hidden APK retry. S4AC replaced it with one direct wrapper `assembleDebug`. Run `32593274378` passed without rerun and wrote the cold PR-scoped Basic Cache (`0 restored, 1 saved`); later exact run `32594060058` restored it (`1 restored, 0 saved`) and passed with one direct build, zero Flutter APK commands and zero retries. | Closed by a reproducible open-source Basic Cache write/restore sequence. Permanently retain the single-attempt contract; no rerun-after-failure, sleep, retry loop, alternate mirror, manual cache injection or paid provider may reappear. |
 
 ## Observation log
 
@@ -276,8 +276,8 @@ claimed until every item below has reproducible evidence and is closed.
   Exact post-remediation run `32593274378` then passed on head `5f58368`
   without rerun. Basic Cache reported `0 restored, 1 saved`; log counts were
   one direct `> Task :app:assembleDebug`, zero `flutter build apk` and zero
-  `Retrying Gradle Build`. `TD-RR-011` remains open only for a later green
-  restored-cache run with the same single-attempt contract.
+  `Retrying Gradle Build`. At that point `TD-RR-011` stayed open only for a
+  later green restored-cache run with the same single-attempt contract.
 - 22.08.2026, S4AD: listing-option add, move and removal callbacks now check
   their exact caller context after every relevant selector, lookup and
   persistence boundary before later callback, navigator or toast access. Ten
@@ -296,6 +296,22 @@ claimed until every item below has reproducible evidence and is closed.
   and the profile-info path bucket `1 -> 0`; every other bucket stayed
   unchanged. No delay, retry or lint suppression was introduced. `TD-RR-010`
   remains open.
+- 22.08.2026, S4AC closure: exact later GitHub run `32594060058` passed on
+  head `e715af5` without rerun and restored the PR-scoped open-source Basic
+  Cache (`1 restored, 0 saved`). The log contained one direct
+  `> Task :app:assembleDebug`, zero `flutter build apk` and zero
+  `Retrying Gradle Build`. No paid provider, mirror, manual injection, sleep or
+  retry was used. The cold-write/restore sequence closes `TD-RR-011`; its
+  single-attempt source contract remains permanent.
+- 22.08.2026, S4AF: the picked-photo preview now rechecks its exact thumbnail
+  context after asynchronous file access before opening a dialog. Four focused
+  photo/lifecycle contracts and the complete clean local metadata gate passed
+  at `eb413d1e61e05c3e2e001a0a73bf02c6aafafb8d`. The analyzer ratcheted
+  exactly `203 -> 202`, `use_build_context_synchronously` `81 -> 80`, and the
+  create-listing path bucket `1 -> 0`; every other bucket stayed unchanged.
+  Privacy and retention source hashes were refreshed and both fail-closed
+  validators passed without changing a disclosure or retention decision. No
+  delay, retry or lint suppression was introduced. `TD-RR-010` remains open.
 
 ## Closure rule
 

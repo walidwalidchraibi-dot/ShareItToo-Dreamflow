@@ -1832,9 +1832,12 @@ without a rerun. Its Basic Cache reported `0 restored, 1 saved`, and its log
 contained exactly one direct `:app:assembleDebug`, zero `flutter build apk` and
 zero `Retrying Gradle Build` lines.
 
-`TD-RR-011` remains open only for a later restored-cache GitHub proof with the
-same single-attempt contract. P0B remains `HOLD` / `NO-GO`, with no live
-boundary changed.
+Exact later GitHub run `32594060058` passed on head `e715af5` without rerun. It
+restored the same PR-scoped Basic Cache (`1 restored, 0 saved`), ran exactly one
+direct `:app:assembleDebug`, and logged zero `flutter build apk` and zero
+`Retrying Gradle Build` lines. This closes `TD-RR-011`; no paid provider,
+alternate mirror, manual injection, sleep or retry was used. P0B remains
+`HOLD` / `NO-GO`, with no live boundary changed.
 
 ## S4AD listing-options async-context ratchet
 
@@ -1870,6 +1873,26 @@ related Flutter tests and the complete clean implementation-head local metadata
 gate passed at `42a2982109db3b7a9c784f74ed82f9caa7a247cc` with 384 Flutter
 tests plus one documented skip, Google-only, Web build/smoke and one direct
 448-task Android debug build.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AF listing-photo async-lifecycle ratchet
+
+`S4AF_LISTING_PHOTO_ASYNC_LIFECYCLE_RATCHET` is locally verified at
+implementation commit `a2d0ac1`, with refreshed privacy/retention source hashes
+and the complete gate at `eb413d1`. The picked-photo preview now stops after
+asynchronous file access if its exact thumbnail context was disposed, so a
+removed thumbnail cannot open a late dialog.
+
+The exact analyzer snapshot ratcheted `203 -> 202`, with
+`use_build_context_synchronously` `81 -> 80` and the create-listing bucket
+`1 -> 0`; all other buckets remained identical. Four focused photo/lifecycle
+contracts and the complete clean local metadata gate passed at
+`eb413d1e61e05c3e2e001a0a73bf02c6aafafb8d` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build. Privacy and retention validators remain honestly draft and
+fail-closed.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

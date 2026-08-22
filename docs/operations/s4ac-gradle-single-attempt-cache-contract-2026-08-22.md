@@ -1,6 +1,6 @@
 # S4AC Gradle single-attempt cache contract
 
-Status: locally verified; cold GitHub cache write passed, restore pending.
+Status: closed; cold GitHub cache write and later exact restore passed.
 
 ## Canonical checks
 
@@ -25,9 +25,11 @@ without rerun, reported `0 restored, 1 saved`, and executed exactly one direct
 `:app:assembleDebug`; the log contained neither `flutter build apk` nor
 `Retrying Gradle Build`.
 
-Retain a later run that restores this PR-scoped entry. It may not depend on a
-sleep, loop, automatic retry, alternate Maven mirror, manual cache injection or
-paid cache provider.
+Exact later run `32594060058` passed on head `e715af5` without rerun, restored
+the same entry (`1 restored, 0 saved`) and again executed exactly one direct
+`:app:assembleDebug`; the log contained neither `flutter build apk` nor
+`Retrying Gradle Build`.
 
-This package does not close `TD-RR-011`; restored-cache proof is still pending.
+This closes `TD-RR-011`. Keep the permanent contract: no sleep, loop, automatic
+retry, alternate Maven mirror, manual cache injection or paid cache provider.
 P0B remains `HOLD` / `NO-GO`.
