@@ -1027,3 +1027,24 @@ No fixed port, sleep, reused database, skipped migration or manual cleanup is a
 prerequisite. `TD-RR-004` remains open only for exact-commit CI evidence under
 the register closure rule; normal Node/pnpm resolution remains open under
 `TD-RR-001`. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4P normal Mac regression toolchain
+
+`S4P_NORMAL_MAC_REGRESSION_TOOLCHAIN` replaces all copied/explicit local
+runtime paths with repository-pinned normal-shell setup. Node 22 and exact pnpm
+11.16.0 are implemented at `427232e`; Flutter 3.41.7, Dart 3.11.5 and Java 17
+normal-shell setup at `0e65de3`; exact verified package head is
+`3a2543118782429de38c7f81c63cf09449d90a17`.
+
+A new login shell passes frozen install, full Backend, syntax, moderate audit,
+secret scan, repository PostgreSQL and the complete technical regression with
+standard Flutter parallelism and no PATH/JAVA_HOME override. The unused
+Firebase Storage/Firestore optional trees are excluded, removing 123 packages
+and the only moderate audit finding; runtime Auth/Messaging contracts remain
+green.
+
+No temporary Node copy, Codex pnpm fallback, skipped audit, serial Flutter mode,
+fixed port or reused database is accepted. `TD-RR-001`, `TD-RR-003` and
+`TD-RR-004` remain formally open for exact-commit CI evidence. P0B remains
+`HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
+merge or public activation is enabled.

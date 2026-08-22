@@ -1530,3 +1530,30 @@ is retained. `TD-RR-001` also remains open because local verification still
 used the temporary Node-compatible runtime. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, merge or public
 activation occurred.
+
+## S4P normal Mac regression toolchain
+
+`S4P_NORMAL_MAC_REGRESSION_TOOLCHAIN` is locally verified at exact package
+head `3a2543118782429de38c7f81c63cf09449d90a17`. Commits `427232e` and
+`0e65de3` add repository-pinned normal-shell bootstraps for Node 22, exact pnpm
+11.16.0, Flutter 3.41.7, Dart 3.11.5 and Java 17. A new login shell now resolves
+all tools under normal Homebrew/FVM links; no copied Node runtime, Codex pnpm
+fallback, PATH prefix or `JAVA_HOME` override is required.
+
+The first normal-shell audit found one moderate advisory only in the unused
+Firebase Storage optional tree. Commit `3a25431` excludes exactly Storage and
+Firestore, which are not imported by Backend runtime, removes 123 packages and
+makes CI audit fail from moderate severity. Focused Firebase tests passed 22/22
+and the production audit now reports zero known vulnerabilities.
+
+At the exact head, frozen install, 600 Backend tests plus one expected skip,
+syntax, moderate audit, secret scan, repository PostgreSQL 16 runner and the
+complete technical gate passed. Analyzer stayed at 220; Flutter passed 379
+tests plus one documented skip at standard parallelism; Google-only,
+Web/loopback smoke and Android debug passed.
+
+The local portions of `TD-RR-001` and `TD-RR-004` are implemented and repeatedly
+proven. They remain formally open only because the register also requires green
+exact-commit CI, which cannot be claimed while GitHub CLI auth is expired.
+`TD-RR-003` likewise remains open for exact CI/stress evidence. P0B remains
+`HOLD` / `NO-GO`; no live boundary changed.
