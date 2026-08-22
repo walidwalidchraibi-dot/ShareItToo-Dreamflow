@@ -637,7 +637,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "62239fea2c32bc8ba85dd9a5ee816fd36db75ca3e14f7ad0e4589ecff6d1d252"
+      "sha256": "8685e197925feb985816ced1c4bfc5828bcbe1088071187dc801f7ce5842e954"
     },
     {
       "path": "lib/services/maps_service.dart",

@@ -82,7 +82,6 @@ class DataService {
   static const String _projectCartKey = 'project_cart_v1';
   static const String _rentalCartSyncOwnerKey = 'rental_cart_sync_owner_v1';
   static const String _messageThreadsKey = 'message_threads_v1';
-  static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
@@ -1030,11 +1029,11 @@ class DataService {
     }
 
     // Load needed references
-    final categories = await getCategories();
+    await getCategories();
     final users = await getUsers();
 
     // Build five curated items
-    final five = _buildFiveShowcaseItems(users, categories);
+    final five = _buildFiveShowcaseItems(users);
 
     await prefs.setString(
       _itemsKey,
@@ -1279,100 +1278,6 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('$_qaMessagesAndNotifsSeedFlagPrefix${me.id}');
     await _ensureQaMessagesAndNotificationsForUserOnce(me.id);
-  }
-
-  static Future<void> _ensureDemoNotificationsForUserOnce(String userId) async {
-    if (userId.isEmpty) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final key = '$_demoNotifSeedFlagPrefix$userId';
-      final done = prefs.getBool(key) ?? false;
-      if (done) return;
-
-      final now = DateTime.now();
-      // A small, realistic starter feed covering the MVP categories.
-      await addStructuredNotification(
-        userId: userId,
-        category: 'platform',
-        priority: 5,
-        title: 'Willkommen bei ShareItToo',
-        body:
-            'Hier findest du alle Updates zu Buchungen, Chats, Bewertungen und Zahlungen.',
-        entityType: 'system',
-        entityId: 'welcome_${now.microsecondsSinceEpoch}',
-        ctaLabel: '',
-        critical: false,
-        timestamp: now,
-      );
-      await addStructuredNotification(
-        userId: userId,
-        category: 'security',
-        priority: 1,
-        title: 'Sicherheits‑Check',
-        body:
-            'Aktiviere bei Gelegenheit deine Verifizierung, um mehr Vertrauen zu schaffen.',
-        entityType: 'system',
-        entityId: 'security_tip_${now.microsecondsSinceEpoch}',
-        ctaLabel: '',
-        critical: false,
-        timestamp: now.subtract(const Duration(hours: 3)),
-      );
-      await addStructuredNotification(
-        userId: userId,
-        category: 'payments',
-        priority: 2,
-        title: 'Zahlungsmethode hinzufügen',
-        body:
-            'Hinterlege eine Zahlungsmethode, damit Buchungen später schneller gehen.',
-        entityType: 'payment',
-        entityId: 'payment_methods',
-        ctaLabel: 'Öffnen',
-        timestamp: now.subtract(const Duration(days: 1, hours: 1)),
-      );
-      await addStructuredNotification(
-        userId: userId,
-        category: 'reviews',
-        priority: 4,
-        title: 'Bewertungen sammeln',
-        body:
-            'Nach jeder abgeschlossenen Miete kannst du eine Bewertung abgeben.',
-        entityType: 'system',
-        entityId: 'review_tip_${now.microsecondsSinceEpoch}',
-        ctaLabel: '',
-        timestamp: now.subtract(const Duration(days: 3, hours: 2)),
-      );
-      await addStructuredNotification(
-        userId: userId,
-        category: 'messages',
-        priority: 3,
-        title: 'Tipp: Schnelle Abstimmung',
-        body: 'Nutze Chats, um Übergabe und Rückgabe effizient zu planen.',
-        entityType: 'system',
-        entityId: 'chat_tip_${now.microsecondsSinceEpoch}',
-        ctaLabel: '',
-        timestamp: now.subtract(const Duration(days: 12, hours: 5)),
-      );
-
-      await addStructuredNotification(
-        userId: userId,
-        category: 'messages',
-        priority: 3,
-        title: 'Neue Nachricht',
-        body: 'Du hast eine neue Nachricht – antworte direkt aus dem Feed.',
-        entityType: 'system',
-        entityId: 'demo_message_${now.microsecondsSinceEpoch}',
-        actions: const [
-          {'id': 'reply', 'label': 'Antworten'},
-        ],
-        timestamp: now.subtract(const Duration(minutes: 18)),
-      );
-
-      await prefs.setBool(key, true);
-    } catch (e) {
-      debugPrint(
-        '[DataService] _ensureDemoNotificationsForUserOnce failed: $e',
-      );
-    }
   }
 
   static const bool _launchQaSeedingEnabled = true;
@@ -4802,7 +4707,6 @@ class DataService {
 
   static List<Item> _buildFiveShowcaseItems(
     List<User> users,
-    List<Category> categories,
   ) {
     final now = DateTime.now();
     // Pick a stable owner and cities
@@ -4825,11 +4729,6 @@ class DataService {
             languages: const ['Deutsch'],
           );
     final berlin = _cities['Berlin'] ?? (52.52, 13.405);
-    Category cat(String id) => categories.firstWhere(
-          (c) => c.id == id,
-          orElse: () => categories.first,
-        );
-
     String gh(int i) => 'u${i}3${i}h$i';
 
     List<Item> items = [
@@ -7252,14 +7151,6 @@ class DataService {
     }
   }
 
-  static Future<void> _ensureDemoRentalRequests() async {
-    // Deprecated: keep for backward compatibility; now we intentionally do not seed demos.
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(_rentalRequestsKey) == null) {
-      await prefs.setString(_rentalRequestsKey, jsonEncode([]));
-    }
-  }
-
   // New: requests where the current viewer is the renter
   static Future<List<RentalRequest>> getRentalRequestsForRenter(
     String renterId, {
@@ -9259,185 +9150,6 @@ class DataService {
       debugPrint('[DataService] getUnreadThreadCountForUser error: $e');
       return 0;
     }
-  }
-
-  static List<MessageThread> _buildDemoMessageThreadsForUser(String userId) {
-    final now = DateTime.now();
-    final otherUsers = <String>['u2', 'u3', 'u6', 'u10', 'u14']..remove(userId);
-    final picks = otherUsers.take(3).toList();
-    if (picks.isEmpty) picks.add('u2');
-
-    Message msg({
-      required String senderId,
-      required String text,
-      required DateTime at,
-      bool isRead = true,
-    }) =>
-        Message(
-          id: 'msg_${at.microsecondsSinceEpoch}_${senderId == userId ? 'me' : 'them'}',
-          senderId: senderId,
-          text: text,
-          timestamp: at,
-          isRead: isRead,
-        );
-
-    MessageThread thread({
-      required String threadId,
-      required String otherUserId,
-      required String itemTitle,
-      String? bookingStatus,
-      DateTime? handoverAt,
-      DateTime? returnAt,
-      String? threadType,
-      required List<Message> messages,
-      required DateTime createdAt,
-      DateTime? lastAt,
-    }) =>
-        MessageThread(
-          id: threadId,
-          requestId: 'demo_req_$threadId',
-          itemId: 'demo_item_$threadId',
-          itemTitle: itemTitle,
-          user1Id: userId,
-          user2Id: otherUserId,
-          threadType: threadType,
-          bookingStatus: bookingStatus,
-          handoverAt: handoverAt,
-          returnAt: returnAt,
-          otherUserOnline: threadType == 'support' ? true : null,
-          otherUserLastActive: now.subtract(const Duration(minutes: 6)),
-          archivedForUserIds: const <String>[],
-          messages: messages,
-          createdAt: createdAt,
-          lastMessageAt: lastAt,
-        );
-
-    final t1Time = now.subtract(const Duration(hours: 2, minutes: 12));
-    final t2Time = now.subtract(const Duration(days: 1, hours: 3));
-    final t3Time = now.subtract(const Duration(days: 5, hours: 1));
-
-    final th1 = thread(
-      threadId: 'thread_demo_1',
-      otherUserId: picks[0],
-      itemTitle: 'Canon EOS R5 – Kamera',
-      createdAt: t1Time.subtract(const Duration(minutes: 20)),
-      lastAt: t1Time,
-      bookingStatus: 'accepted',
-      handoverAt: DateTime(now.year, now.month, now.day, 18, 0),
-      messages: [
-        msg(
-          senderId: 'system',
-          text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
-          at: t1Time.subtract(const Duration(minutes: 20)),
-          isRead: true,
-        ),
-        msg(
-          senderId: picks[0],
-          text: 'Hi! Passt dir heute 18:30 für die Übergabe?',
-          at: t1Time.subtract(const Duration(minutes: 7)),
-          isRead: false,
-        ),
-        msg(
-          senderId: userId,
-          text: 'Ja, 18:30 ist perfekt. Ich bin pünktlich da.',
-          at: t1Time.subtract(const Duration(minutes: 4)),
-          isRead: true,
-        ),
-        msg(
-          senderId: picks[0],
-          text: 'Super — ich schicke dir gleich die genaue Adresse.',
-          at: t1Time,
-          isRead: false,
-        ),
-      ],
-    );
-
-    final th2 = thread(
-      threadId: 'thread_demo_2',
-      otherUserId: picks.length > 1 ? picks[1] : picks[0],
-      itemTitle: 'Bosch Bohrmaschine',
-      createdAt: t2Time.subtract(const Duration(hours: 1)),
-      lastAt: t2Time,
-      bookingStatus: 'pending',
-      messages: [
-        msg(
-          senderId: 'system',
-          text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
-          at: t2Time.subtract(const Duration(hours: 1)),
-          isRead: true,
-        ),
-        msg(
-          senderId: userId,
-          text:
-              'Hey! Ist die Bohrmaschine auch mit 10mm Steinbohrer verfügbar?',
-          at: t2Time.subtract(const Duration(minutes: 18)),
-          isRead: true,
-        ),
-        msg(
-          senderId: picks.length > 1 ? picks[1] : picks[0],
-          text: 'Ja, ist dabei. Akku ist voll geladen 👍',
-          at: t2Time,
-          isRead: true,
-        ),
-      ],
-    );
-
-    final th3 = thread(
-      threadId: 'thread_demo_3',
-      otherUserId: picks.length > 2 ? picks[2] : picks[0],
-      itemTitle: 'E‑Scooter (City)',
-      createdAt: t3Time.subtract(const Duration(hours: 2)),
-      lastAt: t3Time,
-      bookingStatus: 'completed',
-      returnAt: DateTime(now.year, now.month, now.day + 1, 12, 0),
-      messages: [
-        msg(
-          senderId: 'system',
-          text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
-          at: t3Time.subtract(const Duration(hours: 2)),
-          isRead: true,
-        ),
-        msg(
-          senderId: picks.length > 2 ? picks[2] : picks[0],
-          text: 'Wenn du willst, kann ich dir noch ein Schloss mitgeben.',
-          at: t3Time.subtract(const Duration(minutes: 35)),
-          isRead: true,
-        ),
-        msg(
-          senderId: userId,
-          text: 'Mega, danke! Dann fühle ich mich sicherer.',
-          at: t3Time,
-          isRead: true,
-        ),
-      ],
-    );
-
-    final supportTime = now.subtract(const Duration(minutes: 40));
-    final support = thread(
-      threadId: 'thread_support_1',
-      otherUserId: 'support',
-      threadType: 'support',
-      itemTitle: 'SIT Support',
-      bookingStatus: null,
-      createdAt: supportTime.subtract(const Duration(minutes: 2)),
-      lastAt: supportTime,
-      messages: [
-        msg(
-          senderId: 'support',
-          text: 'Hallo! Wie können wir helfen?',
-          at: supportTime.subtract(const Duration(minutes: 2)),
-          isRead: false,
-        ),
-        msg(
-          senderId: userId,
-          text: 'Kurze Frage zur Rückgabe: kann ich auch früher abgeben?',
-          at: supportTime,
-          isRead: true,
-        ),
-      ],
-    );
-
-    return [th1, th2, support, th3];
   }
 
   /// Opens the local, read-only presentation for a server-confirmed case.
