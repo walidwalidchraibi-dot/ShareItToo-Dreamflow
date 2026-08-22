@@ -1174,3 +1174,24 @@ port, startup wait, retry, pass-on-rerun or external server is accepted.
 `TD-RR-008` remains formally open only for exact-commit CI evidence. P0B remains
 `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
 signing, merge or public activation is enabled.
+
+## S4W CDP reload event boundary
+
+`S4W_CDP_RELOAD_EVENT_BOUNDARY` implements the automated local `TD-RR-009`
+exit path at commit `8bc4fed`. The booking-QA CDP helper no longer uses a
+50-millisecond JavaScript timer, a two-second Python sleep or a reconnect to
+guess that reload completed.
+
+The tool now guards the current main-frame loader, preserves early CDP events,
+accepts only a correlated new-loader `load` lifecycle event for that frame and
+then verifies complete document state plus exact targeted storage equality.
+WebSocket frames are assembled across split reads, and success output does not
+echo stored values. The four-test contract passed five consecutive times; the
+complete clean implementation-head local metadata gate also passed.
+
+No real browser seed was applied. Sleep, timer, automatic reconnect/retry,
+uncorrelated events and value-bearing verification output are not accepted.
+`TD-RR-009` remains open for exact-commit CI and one controlled local-browser
+observation in a dedicated QA profile. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.

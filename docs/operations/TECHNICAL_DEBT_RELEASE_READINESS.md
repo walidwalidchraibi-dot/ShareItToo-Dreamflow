@@ -17,6 +17,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-006` | S4U retains a clean-head proof of the single persisted issuance clock, exact 30-minute derived expiry and independently validated database bound. Five focused units and two fresh PostgreSQL 16 integrations passed at `db92a8c` with temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-commit PostgreSQL 16 CI with the same source, exact-lifetime unit and migration/API constraint. No sleep, retry, clock wait, relaxed bound, reused database or manual schema may appear in the evidence. |
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
+| `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
 
 ## Observation log
 
@@ -199,6 +200,17 @@ claimed until every item below has reproducible evidence and is closed.
   `1d6aeda04a272648ae5fdea98f7b8a94f5a85a9f`. The ten-second request timeout
   fails closed and cannot retry. This implements the local deterministic part
   of `TD-RR-008`; exact-commit CI remains required for formal closure.
+- 22.08.2026, S4W: the local booking-QA CDP seed's scheduled 50-millisecond
+  reload, two-second sleep and target reconnect were removed. The tool now
+  guards the current main-frame loader, queues events received before command
+  responses, waits for the same frame's new-loader `load` lifecycle event and
+  fails on any post-reload storage mismatch without printing stored values.
+  Four focused tests, five consecutive repetitions and the complete clean
+  implementation-head local metadata gate passed at
+  `8bc4feddc4fed87c4614c1c20df0776dfec04571`; cache and SIT temp-root counts
+  remained zero. No browser seed was applied. This implements the automated
+  portion of `TD-RR-009`; exact-commit CI and one controlled local-browser
+  observation remain required for formal closure.
 
 ## Closure rule
 

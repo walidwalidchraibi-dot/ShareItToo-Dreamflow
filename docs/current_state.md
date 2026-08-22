@@ -1692,3 +1692,28 @@ The local deterministic portion of `TD-RR-008` is implemented. Formal closure
 still requires retained green exact-commit CI. P0B remains `HOLD` / `NO-GO`,
 and no production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or
 public activation occurred.
+
+## S4W CDP reload event boundary
+
+`S4W_CDP_RELOAD_EVENT_BOUNDARY` is locally verified at implementation commit
+`8bc4fed`. The local booking-QA seed no longer schedules a 50-millisecond
+JavaScript reload, sleeps for two seconds or reconnects optimistically. It
+guards the exact current main-frame loader through CDP and accepts only that
+frame's correlated `load` lifecycle event with a new loader identity.
+
+Early lifecycle events are queued across command responses and fragmented
+WebSocket frames are assembled exactly. After reload, the tool fails unless the
+document is complete and every targeted localStorage key equals the requested
+payload; success output contains no stored values. The timeout is fail-closed
+and cannot retry.
+
+Four focused tests passed five consecutive times, and the complete clean
+implementation-head local metadata gate passed at
+`8bc4feddc4fed87c4614c1c20df0776dfec04571` with analyzer baseline 220, 379
+Flutter tests plus one documented skip, Google-only, Web build/smoke and Android
+debug. Python cache and SIT temp-root counts remained zero. No actual browser
+seed or local QA/user-state change occurred.
+
+The automated local portion of `TD-RR-009` is implemented. Formal closure still
+requires exact-commit CI plus one controlled observation in a dedicated local
+QA browser profile. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
