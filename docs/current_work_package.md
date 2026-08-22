@@ -1776,3 +1776,34 @@ screen-only unused-code categories still require reviewed downward ratchets to
 zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production,
 Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
 is enabled.
+
+## S4AY owner-detail dead-code ratchet
+
+`S4AY_OWNER_DETAIL_DEAD_CODE_RATCHET` delivers the next downward `TD-RR-010`
+source ratchet at implementation commit `a61cb4d`. It removes the seven
+analyzer-confirmed unreferenced owner-detail elements and the private toast
+wrapper exposed as their transitive orphan. Active server-issued pickup
+challenges, return challenge verification, four-photo evidence, authenticated
+return transition, cancellation and owner-to-renter review behavior remain
+permanently guarded.
+
+The exact debt snapshot moves `55 -> 48`: `unused_element` changes `32 -> 26`,
+`unused_element_parameter` remains `17`, `unused_field` changes `6 -> 5`, and
+the owner-detail analyzer bucket reaches zero. One hundred fifty-four focused
+source/analyzer/privacy/retention/data-integrity contracts, 125 focused Flutter
+tests and all exact privacy, retention, G2 lifecycle and analyzer validators
+pass. The complete standard-parallel gate passed in one execution on
+`a61cb4d` with 384 Flutter tests plus one documented skip, the separate
+Google-only test, Web build/smoke and one direct 448-task Android debug build.
+The privacy inventory is rebound to the exact source without changing its
+draft or release state.
+
+The complete S4AY gate passed with the unchanged command, no retry or cleanup
+and 979 MiB to 978 MiB available capacity. This does not close `TD-RR-012`:
+deterministic release-host capacity and bounded-growth evidence remain open.
+
+This package does not close `TD-RR-010`; 48 diagnostics in booking-detail and
+message-thread unused-code categories still require reviewed downward ratchets
+to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
+is enabled.
