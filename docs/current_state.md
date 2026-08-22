@@ -1166,3 +1166,31 @@ coverage, Web build/smoke and Android debug APK. P0B PSP and invited-pilot gates
 remain HOLD/NO-GO. GitHub push/CI is not claimed here; Draft PR #7 is unmerged.
 No production, real support merge, external message, Payment, Store, signed
 candidate, deployment or public activation occurred.
+
+## S4D support feedback priority
+
+`S4D_SUPPORT_FEEDBACK_PRIORITY` is locally verified at exact implementation
+commit `523d987480c96c7f9cb2338057880680994282a7` for Support Matrix scenario
+`SUP-030`. The new `general_help/feedback_or_improvement` route accepts only an
+exact versioned non-urgent feedback kind and controlled product area. It is
+fixed to P4, low severity, the general-support owner and a 24-hour internal
+checkpoint.
+
+Urgent danger, account takeover, high-risk exposure and imminent authority
+deadline signals reject this route. Booking, listing, payment, refund and payout
+links are prohibited. The user receipt confirms capture and product-area
+assignment without artificial escalation or an automatic product decision.
+Migration `054` enforces exact JSON shape, route exclusivity, immutability and
+guarded rollback. Bounded audit, reporter export and Retention inventory cover
+the evidence; no external product-system or delivery adapter exists.
+
+Local verification passed 59 focused Backend/wiring tests, 19 focused Flutter
+tests, 61 Privacy/Retention protection tests and validators, a fresh PostgreSQL
+16 integration through migration `054`, and 524 Backend tests with one expected
+no-database skip. The complete technical regression passed the accepted
+analyzer baseline, 370 Flutter tests with one documented skip, separate
+Google-only coverage, Web build/smoke and Android debug APK. P0B PSP and
+invited-pilot gates remain HOLD/NO-GO. GitHub push/CI is not claimed here;
+Draft PR #7 remains unmerged. No production, real support action, external
+message, Payment, Store, signed candidate, deployment or public activation
+occurred.

@@ -696,3 +696,30 @@ skip, separate Google-only coverage, Web build/smoke and Android debug APK.
 P0B PSP and invited-pilot evidence remains HOLD/NO-GO. GitHub push/CI is not
 claimed here. No real merge, external message, production, Payment, Store,
 signed candidate, deployment, PR merge or public activation is enabled.
+
+## S4D support feedback priority
+
+`S4D_SUPPORT_FEEDBACK_PRIORITY` implements the non-live portion of Drive
+scenario `SUP-030` at exact commit
+`523d987480c96c7f9cb2338057880680994282a7`. Explicitly non-urgent improvement
+suggestions, explanations and general feedback use the canonical
+`general_help/feedback_or_improvement` route with an exact versioned product
+area context, P4, low severity and a 24-hour internal checkpoint.
+
+Flutter presents ten bounded choices and verifies the exact server receipt.
+Urgent risk signals fail closed into a dedicated route, while booking, listing,
+payment, refund and payout links are prohibited. The receipt confirms capture
+without promising escalation or a product decision. Migration `054` makes the
+context immutable and database-enforced; audit, reporter export, Retention
+inventory and guarded rollback preserve the evidence without an external
+delivery or product-system adapter.
+
+Local verification passes 59 focused Backend/wiring tests, 19 focused Flutter
+tests, 61 Privacy/Retention protection tests and validators, fresh PostgreSQL
+16 integration through migration `054`, and the complete Backend run with 524
+passes plus one expected no-database skip. The full technical regression passes
+the accepted 220-issue analyzer baseline, 370 Flutter tests with one documented
+skip, separate Google-only coverage, Web build/loopback smoke and Android debug
+APK. P0B PSP and invited-pilot gates remain HOLD/NO-GO. GitHub push/CI is not
+claimed here. No live support, production, Payment, Store, Cloud/VPS/DNS,
+signed candidate, deployment, PR merge or public activation is enabled.
