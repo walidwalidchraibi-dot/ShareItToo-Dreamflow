@@ -1719,3 +1719,31 @@ This package does not close `TD-RR-010`; 71 diagnostics in the remaining
 unused-code categories still require reviewed downward ratchets to zero plus
 exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
 Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.
+
+## S4AW Explore dead-code ratchet
+
+`S4AW_EXPLORE_DEAD_CODE_RATCHET` delivers the next downward `TD-RR-010`
+source ratchet at implementation commit `3df03c0`. It removes unreferenced
+Explore helpers, never-started timer machinery and default-only presentation
+branches. Active long-press owners, search/category filtering, item details,
+listing options, Wishlist/favorite behavior and G5A enrichment remain
+permanently guarded.
+
+The exact debt snapshot moves `71 -> 59`: `unused_element` changes `43 -> 36`,
+`unused_element_parameter` changes `22 -> 17`, `unused_field` remains `6`, and
+Explore findings reach zero. Seventy-nine focused
+source/analyzer/privacy/retention contracts, 125 focused Flutter tests and all
+exact privacy, retention, G2 lifecycle and analyzer validators pass. The
+complete standard-parallel gate passed in one execution on `3df03c0` with 384
+Flutter tests plus one documented skip, Google-only, Web build/smoke and one
+direct 448-task Android debug build. Both release inventories are rebound to
+the exact Explore source without changing disclosure or release state.
+
+The complete S4AW gate passed with the unchanged command, no retry or cleanup
+and 999 MiB to 994 MiB available capacity. This does not close `TD-RR-012`:
+deterministic release-host capacity and bounded-growth evidence remain open.
+
+This package does not close `TD-RR-010`; 59 diagnostics in the remaining
+unused-code categories still require reviewed downward ratchets to zero plus
+exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
+Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.

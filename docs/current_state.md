@@ -2254,3 +2254,30 @@ become a permanent prerequisite.
 
 `TD-RR-010` remains open for the remaining 71 unused-code diagnostics and
 exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AW Explore dead-code ratchet
+
+`S4AW_EXPLORE_DEAD_CODE_RATCHET` is locally verified at implementation commit
+`3df03c0`. Analyzer-confirmed unreferenced Explore helpers, never-started timer
+machinery and default-only presentation branches are removed. Active
+long-press owners, search, category-header filtering, item details, listing
+options, Wishlist/favorite behavior and G5A enrichment remain guarded. Quote,
+Payment, refund, support, privacy, retention, audit and `needsReview` behavior
+are unchanged.
+
+The exact analyzer snapshot ratcheted `71 -> 59`: `unused_element` moved
+`43 -> 36`, `unused_element_parameter` moved `22 -> 17`, `unused_field`
+remained `6`, and the Explore analyzer buckets are now zero. Seventy-nine
+focused source/analyzer/privacy/retention contracts, 125 focused Flutter tests
+and the privacy, retention, G2 lifecycle and analyzer validators pass. The
+complete standard-parallel gate passed in one execution at `3df03c0` with 384
+Flutter tests plus one documented skip, Google-only, Web build/smoke and one
+direct 448-task Android debug build. S4AV exact CI run `32602922839` is green.
+
+The S4AW gate used no retry, cleanup, alternate temp root or changed
+parallelism; free data-volume capacity measured 999 MiB before and 994 MiB
+after. `TD-RR-012` remains open because a warm-tree pass does not replace the
+required deterministic release-host capacity evidence.
+
+`TD-RR-010` remains open for the remaining 59 unused-code diagnostics and
+exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
