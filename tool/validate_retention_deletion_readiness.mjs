@@ -12,6 +12,7 @@ const sourcePaths = [
   'backend/src/moderation_workflow.js',
   'backend/src/moderation_domain.js',
   'backend/src/moderation_decision_workflow.js',
+  'backend/src/moderation_review_correction_workflow.js',
   'backend/src/compliance_review.js',
   'backend/src/operator_readiness.js',
   'backend/src/retention_inventory.js',
@@ -83,6 +84,8 @@ const sourcePaths = [
   'backend/sql/migrations/043_support_dsa_notice_locator_completion.up.sql',
   'backend/sql/migrations/044_moderation_statement_of_reasons.up.sql',
   'backend/sql/migrations/044_moderation_statement_of_reasons.down.sql',
+  'backend/sql/migrations/045_independent_moderation_review_resolution.up.sql',
+  'backend/sql/migrations/045_independent_moderation_review_resolution.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -451,6 +454,16 @@ function assertSourceContracts(root, sourceTexts) {
     sourceTexts,
     'backend/sql/migrations/044_moderation_statement_of_reasons.down.sql',
   );
+  const reviewResolutionMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/045_independent_moderation_review_resolution.up.sql',
+  );
+  const reviewResolutionRollback = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/045_independent_moderation_review_resolution.down.sql',
+  );
   for (const marker of [
     'moderation_statements_of_reasons_append_only',
     'moderation_decisions_statement_required',
@@ -463,6 +476,12 @@ function assertSourceContracts(root, sourceTexts) {
   if (!statementRollback.includes('rollback refused: moderation Statement of Reasons evidence exists')
       || !moderationDecision.includes('LEFT JOIN moderation_statements_of_reasons AS statement')) {
     fail('Moderation Statement evidence must be append-only, exportable and rollback-protected.');
+  }
+  if (!reviewResolutionMigration.includes('moderation_review_resolutions_append_only')
+      || !reviewResolutionMigration.includes('moderation_review_requests_resolution_required')
+      || !reviewResolutionRollback.includes('rollback refused: independent moderation review evidence exists')
+      || !moderationDecision.includes('LEFT JOIN moderation_review_resolutions AS resolution')) {
+    fail('Independent moderation review evidence must be append-only, exportable and rollback-protected.');
   }
   const legalHoldMigration = text(root, sourceTexts, 'backend/sql/migrations/014_account_legal_holds.up.sql');
   for (const marker of [
@@ -512,6 +531,9 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
     fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');
+  }
+  if (!inventory.includes("'moderation', 'moderation_review_resolutions'")) {
+    fail('Retention inventory is missing immutable dataset moderation_review_resolutions.');
   }
   const supportMessageMigration = text(
     root,

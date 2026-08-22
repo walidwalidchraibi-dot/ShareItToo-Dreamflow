@@ -137,4 +137,68 @@ void main() {
     expect(find.text('Community-Regel 4.2'), findsOneWidget);
     expect(find.text('Entscheidung zu einer Meldung'), findsOneWidget);
   });
+
+  testWidgets('shows only a verified independent human review resolution', (
+    tester,
+  ) async {
+    final reviewRequest = <String, dynamic>{
+      'id': 'review-1',
+      'status': 'reversed',
+      'submittedAt': '2026-08-22T10:30:00.000Z',
+      'resolvedAt': '2026-08-22T11:00:00.000Z',
+      'resolution': 'Die Anzeige wurde wiederhergestellt.',
+      'resolutionDetails': {
+        'outcome': 'reversed',
+        'userFacingReason': 'Die Anzeige wurde wiederhergestellt.',
+        'humanReviewed': true,
+        'independent': true,
+        'automationRole': 'none',
+        'measureChanged': true,
+        'communicatedAt': '2026-08-22T11:00:00.000Z',
+      },
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ModerationDecisionsScreen(
+          loader: () async => [
+            _decision(
+              statement: _statement(),
+              reviewRequest: reviewRequest,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Entscheidung aufgehoben'), findsOneWidget);
+    expect(find.text('Die Anzeige wurde wiederhergestellt.'), findsOneWidget);
+    expect(find.textContaining('ausschließlich menschlich geprüft'),
+        findsOneWidget);
+    expect(find.textContaining('technisch umgesetzt'), findsOneWidget);
+
+    reviewRequest['resolutionDetails'] = {
+      ...reviewRequest['resolutionDetails'] as Map<String, dynamic>,
+      'independent': false,
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ModerationDecisionsScreen(
+          loader: () async => [
+            _decision(
+              statement: _statement(),
+              reviewRequest: reviewRequest,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Prüfergebnis noch nicht vollständig bestätigt'),
+      findsOneWidget,
+    );
+    expect(find.text('Die Anzeige wurde wiederhergestellt.'), findsNothing);
+  });
 }

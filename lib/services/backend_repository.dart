@@ -1206,6 +1206,39 @@ class BackendRepository {
     return _maps(response['reports']);
   }
 
+  static Future<List<Map<String, dynamic>>> getStaffModerationReviews() async {
+    final response =
+        await _staff(method: 'GET', path: '/admin/moderation/reviews');
+    return _maps(response['reviewRequests']);
+  }
+
+  static Future<Map<String, dynamic>> claimStaffModerationReview(
+    String reviewRequestId,
+  ) async {
+    final response = await _staff(
+      method: 'POST',
+      path:
+          '/admin/moderation/reviews/${Uri.encodeComponent(reviewRequestId)}/claim',
+      idempotencyKey:
+          'moderation_review_claim_${DateTime.now().microsecondsSinceEpoch}',
+    );
+    return Map<String, dynamic>.from(response['reviewRequest'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> resolveStaffModerationReview({
+    required String reviewRequestId,
+    required Map<String, dynamic> resolution,
+  }) async {
+    return _staff(
+      method: 'POST',
+      path:
+          '/admin/moderation/reviews/${Uri.encodeComponent(reviewRequestId)}/resolve',
+      body: resolution,
+      idempotencyKey:
+          'moderation_review_resolve_${DateTime.now().microsecondsSinceEpoch}',
+    );
+  }
+
   static Future<Map<String, dynamic>> getStaffReport(String reportId) async {
     final response = await _staff(
       method: 'GET',

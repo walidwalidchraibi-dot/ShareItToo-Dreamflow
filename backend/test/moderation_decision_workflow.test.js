@@ -8,9 +8,12 @@ import {
   normalizeModerationDecisionInput,
 } from '../src/moderation_domain.js';
 import {
+  claimModerationReviewRequest,
+  resolveModerationReviewRequest,
   setPrivateMarketplaceReviewStatus,
   submitModerationReviewRequest,
 } from '../src/moderation_decision_workflow.js';
+import { applyModerationReviewCorrection } from '../src/moderation_review_correction_workflow.js';
 
 test('moderation review deadline is six calendar months with end-of-month clamping', () => {
   assert.equal(
@@ -131,7 +134,7 @@ test('moderation persistence is user-bound, append-only and never auto-mutates a
   }
   assert.match(migration, /recipient_user_id TEXT NOT NULL/u);
   assert.match(migration, /review_deadline_at TIMESTAMPTZ/u);
-  assert.match(workflow, /measureChanged: false/u);
+  assert.match(workflow, /moderation_review_correction_not_applied/u);
   assert.match(workflow, /WHERE decision\.recipient_user_id = \$1/u);
 });
 
@@ -164,4 +167,205 @@ test('private marketplace review replay returns the status recorded by the idemp
     status: 'blocked',
     replayed: true,
   });
+});
+
+test('an admin may claim a review only independently from the original issuer', async () => {
+  const submittedAt = new Date('2026-08-22T01:00:00Z');
+  const client = scriptedClient([
+    {
+      pattern: /FOR UPDATE OF review/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: 'review-1',
+          decision_id: 'decision-1',
+          status: 'submitted',
+          assigned_to: null,
+          original_issued_by: 'admin-original',
+          reason: 'Bitte neu prüfen.',
+          submitted_at: submittedAt,
+          resolved_at: null,
+          resolution: null,
+        }],
+      },
+    },
+    { pattern: /FROM moderation_review_events/u, result: { rowCount: 0, rows: [] } },
+    {
+      pattern: /UPDATE moderation_review_requests/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: 'review-1',
+          decision_id: 'decision-1',
+          status: 'in_review',
+          assigned_to: 'admin-reviewer',
+          reason: 'Bitte neu prüfen.',
+          submitted_at: submittedAt,
+          resolved_at: null,
+          resolution: null,
+        }],
+      },
+    },
+    { pattern: /INSERT INTO moderation_review_events/u, result: { rowCount: 1, rows: [] } },
+    { pattern: /INSERT INTO audit_log/u, result: { rowCount: 1, rows: [] } },
+  ]);
+  const result = await claimModerationReviewRequest(client, {
+    actor: { id: 'admin-reviewer', role: 'admin' },
+    reviewRequestId: 'review-1',
+    idempotencyKey: 'claim-1',
+  });
+  assert.equal(result.reviewRequest.status, 'in_review');
+  assert.equal(result.replayed, false);
+
+  const forbidden = scriptedClient([
+    {
+      pattern: /FOR UPDATE OF review/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: 'review-2',
+          decision_id: 'decision-2',
+          status: 'submitted',
+          assigned_to: null,
+          original_issued_by: 'admin-original',
+          reason: 'Bitte neu prüfen.',
+          submitted_at: submittedAt,
+          resolved_at: null,
+          resolution: null,
+        }],
+      },
+    },
+    { pattern: /FROM moderation_review_events/u, result: { rowCount: 0, rows: [] } },
+  ]);
+  await assert.rejects(
+    claimModerationReviewRequest(forbidden, {
+      actor: { id: 'admin-original', role: 'admin' },
+      reviewRequestId: 'review-2',
+      idempotencyKey: 'claim-2',
+    }),
+    (error) => error.code === 'moderation_review_independent_reviewer_required',
+  );
+});
+
+test('independent human resolution records evidence and requires a real correction', async () => {
+  const submittedAt = new Date('2026-08-22T01:00:00Z');
+  const resolvedAt = new Date('2026-08-22T02:00:00Z');
+  const lockedRow = {
+    id: 'review-1',
+    decision_id: 'decision-1',
+    status: 'in_review',
+    assigned_to: 'admin-reviewer',
+    original_issued_by: 'admin-original',
+    recipient_user_id: 'user-1',
+    target_type: 'listing',
+    target_id: 'listing-1',
+    measure_type: 'listing_restriction',
+    measure_state: 'hidden',
+    original_idempotency_key: 'moderation.decision:listing.moderation:one:decision',
+    decision_created_at: new Date('2026-08-21T23:00:00Z'),
+    reason: 'Bitte neu prüfen.',
+    submitted_at: submittedAt,
+    resolved_at: null,
+    resolution: null,
+  };
+  const client = scriptedClient([
+    { pattern: /FROM moderation_review_resolutions AS resolution/u, result: { rowCount: 0, rows: [] } },
+    { pattern: /FOR UPDATE OF review/u, result: { rowCount: 1, rows: [lockedRow] } },
+    {
+      pattern: /INSERT INTO moderation_review_resolutions/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          id: 'resolution-1',
+          outcome: 'reversed',
+          user_facing_reason: 'Die Anzeige wurde nach erneuter Prüfung wiederhergestellt.',
+          human_reviewed: true,
+          independence_verified: true,
+          automation_role: 'none',
+          measure_changed: true,
+          communicated_at: resolvedAt,
+        }],
+      },
+    },
+    {
+      pattern: /UPDATE moderation_review_requests/u,
+      result: {
+        rowCount: 1,
+        rows: [{
+          ...lockedRow,
+          status: 'reversed',
+          resolution: 'Die Anzeige wurde nach erneuter Prüfung wiederhergestellt.',
+          resolved_at: resolvedAt,
+        }],
+      },
+    },
+    { pattern: /INSERT INTO moderation_review_events/u, result: { rowCount: 1, rows: [] } },
+    { pattern: /INSERT INTO audit_log/u, result: { rowCount: 1, rows: [] } },
+  ]);
+  let correctionCalls = 0;
+  const result = await resolveModerationReviewRequest(client, {
+    actor: { id: 'admin-reviewer', role: 'admin' },
+    reviewRequestId: 'review-1',
+    raw: {
+      status: 'reversed',
+      userFacingReason:
+        'Die Anzeige wurde nach erneuter Prüfung wiederhergestellt.',
+      correction: { targetStatus: 'active' },
+    },
+    idempotencyKey: 'resolve-1',
+    now: resolvedAt,
+    applyCorrection: async (_client, correction) => {
+      correctionCalls += 1;
+      assert.equal(correction.originalDecision.id, 'decision-1');
+      return {
+        correctionDecisionId: 'decision-correction-1',
+        measureChanged: true,
+        targetType: 'listing',
+        targetId: 'listing-1',
+        targetState: 'active',
+      };
+    },
+  });
+  assert.equal(correctionCalls, 1);
+  assert.equal(result.reviewRequest.resolutionDetails.independent, true);
+  assert.equal(result.reviewRequest.resolutionDetails.automationRole, 'none');
+  assert.equal(result.measureChanged, true);
+  assert.equal(result.correction.targetState, 'active');
+});
+
+test('a superseded restriction cannot be corrected through a stale review', async () => {
+  const client = scriptedClient([
+    {
+      pattern: /SELECT moderation_status FROM listings/u,
+      result: { rowCount: 1, rows: [{ moderation_status: 'hidden' }] },
+    },
+    {
+      pattern: /SELECT newer\.id/u,
+      result: { rowCount: 1, rows: [{ id: 'newer-decision' }] },
+    },
+  ]);
+  await assert.rejects(
+    applyModerationReviewCorrection(client, {
+      actor: { id: 'admin-reviewer', role: 'admin' },
+      outcome: 'reversed',
+      originalDecision: {
+        id: 'original-decision',
+        targetType: 'listing',
+        targetId: 'listing-1',
+        measureType: 'listing_restriction',
+        measureState: 'hidden',
+      },
+      raw: {
+        targetStatus: 'active',
+        decision: {
+          detectionMethod: 'human',
+          automatedMeans: null,
+          statementOfReasons: { automationRole: 'none' },
+        },
+      },
+      idempotencyKey: 'moderation.review.resolve:stale:correction',
+      issuedAt: new Date('2026-08-22T02:00:00Z'),
+    }),
+    (error) => error.code === 'moderation_review_measure_state_changed',
+  );
 });

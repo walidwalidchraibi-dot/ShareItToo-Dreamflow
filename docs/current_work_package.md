@@ -246,6 +246,22 @@ not invented; independent review assignment, correction workflow,
 legal/operator approval, external transparency reporting, production, payment,
 Store, signed candidate and live operation remain closed.
 
+`S3Q_INDEPENDENT_MODERATION_REVIEW_CORRECTION` is implemented and locally
+verified; exact commit and GitHub Actions/PostgreSQL evidence are pending. It
+addresses Drive scenarios `SUP-119` and `SUP-120`: only an active Administrator
+other than the original decision issuer may claim and resolve a review, every
+outcome is explicitly human-only and append-only, and `modified` or `reversed`
+requires an applied correction plus a new S3P-complete decision and Statement
+of Reasons in the same transaction. The affected user receives the exact
+outcome, reason and implementation truth without reviewer identity. The local
+Backend run passed 458 of 458 executable tests with only the unavailable
+PostgreSQL integration skipped; pinned Flutter 3.41.7 passed 359 tests with one
+documented skip. Listing and private-marketplace corrections support bounded
+modification or reversal; active suspensions support reversal only. Suspension
+modification and report-resolution correction fail closed. Legal/operator
+approval, real staffing, external delivery, production, payment, Store, signed
+candidate and live operation remain closed.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress

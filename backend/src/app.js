@@ -152,12 +152,14 @@ import {
   verifyStaffElevation,
 } from './moderation_workflow.js';
 import {
+  claimModerationReviewRequest,
   listMyModerationDecisions,
   listStaffModerationReviewRequests,
   resolveModerationReviewRequest,
   setPrivateMarketplaceReviewStatus,
   submitModerationReviewRequest,
 } from './moderation_decision_workflow.js';
+import { applyModerationReviewCorrection } from './moderation_review_correction_workflow.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import {
   inspectRetentionInventory,
@@ -4675,21 +4677,41 @@ export function createApp({
     res.json(result);
   }));
 
-  app.get('/v1/admin/moderation/reviews', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+  app.get('/v1/admin/moderation/reviews', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
     res.json({
       reviewRequests: await listStaffModerationReviewRequests(pool, {
+        actor: req.actor,
         status: req.query.status,
       }),
     });
   }));
 
-  app.post('/v1/admin/moderation/reviews/:id/resolve', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+  app.post('/v1/admin/moderation/reviews/:id/claim', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => claimModerationReviewRequest(client, {
+      actor: req.actor,
+      reviewRequestId: safeText(req.params.id, 80),
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/moderation/reviews/:id/resolve', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => resolveModerationReviewRequest(client, {
       actor: req.actor,
       reviewRequestId: safeText(req.params.id, 80),
       raw: req.body,
       idempotencyKey: req.get('Idempotency-Key'),
+      applyCorrection: applyModerationReviewCorrection,
     }));
+    if (result.affectedUserId) {
+      publishToUsers([result.affectedUserId], {
+        type: 'changed',
+        resource: 'moderation_decisions',
+      });
+    }
+    if (result.correction?.targetType === 'listing') {
+      publishToAll({ type: 'changed', resource: 'listings' });
+    }
     res.json(result);
   }));
 

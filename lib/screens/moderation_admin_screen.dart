@@ -19,6 +19,7 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
   String? _error;
   Map<String, dynamic> _overview = const {};
   List<Map<String, dynamic>> _reports = const [];
+  List<Map<String, dynamic>> _moderationReviews = const [];
   List<Map<String, dynamic>> _users = const [];
   List<Map<String, dynamic>> _listings = const [];
   List<Map<String, dynamic>> _bookings = const [];
@@ -70,6 +71,7 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
         BackendRepository.getStaffBookings(),
         BackendRepository.getStaffPayments(),
         BackendRepository.getStaffAudit(),
+        if (_isAdmin) BackendRepository.getStaffModerationReviews(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -80,6 +82,8 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
         _bookings = values[4] as List<Map<String, dynamic>>;
         _payments = values[5] as List<Map<String, dynamic>>;
         _audit = values[6] as List<Map<String, dynamic>>;
+        _moderationReviews =
+            _isAdmin ? values[7] as List<Map<String, dynamic>> : const [];
       });
     } catch (_) {
       if (!mounted) return;
@@ -92,6 +96,266 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _claimModerationReview(Map<String, dynamic> review) async {
+    try {
+      await BackendRepository.claimStaffModerationReview(
+        review['id'].toString(),
+      );
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+      AppPopup.error(
+        context,
+        title: 'Prüfung nicht übernommen',
+        message: 'Die unabhängige Zuordnung konnte nicht bestätigt werden.',
+      );
+    }
+  }
+
+  Future<void> _resolveModerationReview(
+    Map<String, dynamic> review,
+    String outcome,
+  ) async {
+    final original = review['originalDecision'] is Map
+        ? Map<String, dynamic>.from(review['originalDecision'] as Map)
+        : const <String, dynamic>{};
+    final measureType = original['measureType']?.toString() ?? '';
+    final formKey = GlobalKey<FormState>();
+    final reason = TextEditingController();
+    var targetStatus = switch (measureType) {
+      'listing_restriction' => outcome == 'reversed'
+          ? 'active'
+          : original['measureState'] == 'hidden'
+              ? 'removed'
+              : 'hidden',
+      'private_marketplace_review' => outcome == 'reversed'
+          ? 'clear'
+          : original['measureState'] == 'review_required'
+              ? 'blocked'
+              : 'review_required',
+      _ => '',
+    };
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Menschliche Prüfung abschließen'),
+          content: SizedBox(
+            width: 520,
+            child: Form(
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Nur selbst menschlich geprüfte Tatsachen verwenden. '
+                      'Der Text wird der betroffenen Person angezeigt.',
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      key: const ValueKey('moderation-review-resolution'),
+                      controller: reason,
+                      maxLength: 8000,
+                      maxLines: 6,
+                      validator: (value) => (value ?? '').trim().length < 3
+                          ? 'Bitte die Entscheidung konkret begründen.'
+                          : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Nutzerseitige Begründung',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    if (outcome == 'modified' &&
+                        measureType == 'listing_restriction')
+                      DropdownButtonFormField<String>(
+                        initialValue: targetStatus,
+                        decoration:
+                            const InputDecoration(labelText: 'Neuer Status'),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'hidden', child: Text('Ausgeblendet')),
+                          DropdownMenuItem(
+                              value: 'removed', child: Text('Entfernt')),
+                        ],
+                        onChanged: (value) => setDialogState(
+                          () => targetStatus = value ?? targetStatus,
+                        ),
+                      ),
+                    if (outcome == 'modified' &&
+                        measureType == 'private_marketplace_review')
+                      DropdownButtonFormField<String>(
+                        initialValue: targetStatus,
+                        decoration:
+                            const InputDecoration(labelText: 'Neuer Status'),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'review_required',
+                            child: Text('Weitere Prüfung erforderlich'),
+                          ),
+                          DropdownMenuItem(
+                              value: 'blocked', child: Text('Gesperrt')),
+                        ],
+                        onChanged: (value) => setDialogState(
+                          () => targetStatus = value ?? targetStatus,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Weiter'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (accepted != true || !mounted) {
+      reason.dispose();
+      return;
+    }
+    Map<String, dynamic>? correction;
+    if (outcome != 'upheld') {
+      final decision = await _collectDecision(
+        includeStatementOfReasons: true,
+        durationType:
+            outcome == 'reversed' ? 'not_applicable' : 'until_reversed',
+      );
+      if (decision == null || !mounted) {
+        reason.dispose();
+        return;
+      }
+      correction = {
+        if (targetStatus.isNotEmpty) 'targetStatus': targetStatus,
+        'reasonCode': 'moderation_review_correction',
+        'note': 'Unabhängige menschliche Überprüfung.',
+        'decision': decision,
+      };
+    }
+    try {
+      await BackendRepository.resolveStaffModerationReview(
+        reviewRequestId: review['id'].toString(),
+        resolution: {
+          'status': outcome,
+          'userFacingReason': reason.text.trim(),
+          if (correction != null) 'correction': correction,
+        },
+      );
+      await _load();
+    } catch (_) {
+      if (!mounted) return;
+      AppPopup.error(
+        context,
+        title: 'Prüfung nicht abgeschlossen',
+        message: 'Ohne vollständige unabhängige Evidenz bleibt sie offen.',
+      );
+    } finally {
+      reason.dispose();
+    }
+  }
+
+  Future<void> _openModerationReview(Map<String, dynamic> review) async {
+    final original = review['originalDecision'] is Map
+        ? Map<String, dynamic>.from(review['originalDecision'] as Map)
+        : const <String, dynamic>{};
+    final status = review['status']?.toString() ?? '';
+    final measureType = original['measureType']?.toString() ?? '';
+    final canReverse = const {
+      'listing_restriction',
+      'private_marketplace_review',
+      'account_suspension',
+      'scope_suspension',
+    }.contains(measureType);
+    final canModify = const {
+      'listing_restriction',
+      'private_marketplace_review',
+    }.contains(measureType);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Unabhängige Moderationsprüfung',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              Text('Status: $status'),
+              Text('Maßnahme: $measureType'),
+              Text('Zielzustand: ${original['measureState'] ?? ''}'),
+              const SizedBox(height: 12),
+              Text('Antrag: ${review['reason'] ?? ''}'),
+              const SizedBox(height: 8),
+              Text('Geprüfte Tatsachen: ${original['facts'] ?? ''}'),
+              Text('Grundlage: ${original['basis'] ?? ''}'),
+              Text('Ursprüngliche Begründung: ${original['reasoning'] ?? ''}'),
+              const SizedBox(height: 16),
+              if (status == 'submitted' && review['canClaim'] == true)
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    _claimModerationReview(review);
+                  },
+                  icon: const Icon(Icons.assignment_ind_outlined),
+                  label: const Text('Unabhängig übernehmen'),
+                )
+              else if (status == 'submitted')
+                const Text(
+                  'Der ursprüngliche Entscheider darf diese Prüfung nicht '
+                  'selbst übernehmen.',
+                )
+              else if (status == 'in_review' &&
+                  review['assignedToMe'] == true) ...[
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    _resolveModerationReview(review, 'upheld');
+                  },
+                  child: const Text('Entscheidung bestätigen'),
+                ),
+                if (canModify)
+                  OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _resolveModerationReview(review, 'modified');
+                    },
+                    child: const Text('Maßnahme ändern'),
+                  ),
+                if (canReverse)
+                  OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _resolveModerationReview(review, 'reversed');
+                    },
+                    child: const Text('Maßnahme aufheben'),
+                  ),
+              ] else if (status == 'in_review')
+                const Text('Diese Prüfung ist einem anderen Admin zugeordnet.')
+              else
+                Text('Abschluss: ${review['resolution'] ?? ''}'),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _transition(Map<String, dynamic> report, String status) async {
@@ -573,6 +837,23 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
                     ))
                 .toList(),
           ),
+          if (_isAdmin)
+            _Section(
+              title: 'Unabhängige Prüfungen',
+              children: _moderationReviews
+                  .map((review) => ListTile(
+                        leading: const Icon(Icons.fact_check_outlined),
+                        title: Text(
+                          review['originalDecision'] is Map
+                              ? '${(review['originalDecision'] as Map)['measureType']}'
+                              : 'Moderationsprüfung',
+                        ),
+                        subtitle: Text('${review['status']}'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _openModerationReview(review),
+                      ))
+                  .toList(),
+            ),
           _DataSection(
               title: 'Nutzer',
               count: _users.length,

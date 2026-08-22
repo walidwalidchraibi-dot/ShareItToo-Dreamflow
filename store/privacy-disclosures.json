@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "3721416bbf6ea6e235ef62dd2c236324062cc8dc7e8b2c77d9e09e78b728dad8"
+      "sha256": "5edf51a1dfccb96210ee75b2612c5b545e85cd93161d62aefc96cb0681d90351"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -136,11 +136,15 @@
     },
     {
       "path": "backend/src/moderation_workflow.js",
-      "sha256": "6c9a119ac1df4f21caf244069d11ea4bea74d6080cada1eacdd6655a8007c539"
+      "sha256": "b993784cbece7156a2d7608ff3e467dca623ade1aae14d69bbb2b1c69ea62128"
     },
     {
       "path": "backend/src/moderation_decision_workflow.js",
-      "sha256": "0cf3ead37a6a332c0bd4c56cc6ce2c6fbfd30639c0cd607616f4f969ab419a3c"
+      "sha256": "f877616e9c88c393072d7db01b17e89fe5d3e7e032042054b32a6d88e6393ca4"
+    },
+    {
+      "path": "backend/src/moderation_review_correction_workflow.js",
+      "sha256": "28fefb4e50ead0ca634b02b82c17b45135b0a06d98f5842873845cd2681ded24"
     },
     {
       "path": "backend/src/compliance_review.js",
@@ -271,6 +275,10 @@
       "sha256": "16f8f394056171ec735d007dde3d3f2b03c0babd0a21c370a6e61cf935727403"
     },
     {
+      "path": "backend/sql/migrations/045_independent_moderation_review_resolution.up.sql",
+      "sha256": "be97151f3992e9822cc5dffe51158209e8f98d4418e9bae19117de5385815446"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -288,7 +296,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "402d09b7e52a4b785be4688b2bd8e8ec1ee8529d469c67fbb46cda225d723a27"
+      "sha256": "55c44321c303c703f1260da9bc7cc3e994a6cd2a83266f23ba7498ae99395a8f"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -392,7 +400,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "e959bee5cf09a33a8c3d9d12c52f4eda5d7c33c9ba67a983c88f56fc79a0d376"
+      "sha256": "97d3bae970f244a6b34d67b092fabb3e9e1c7a06b22769fa90139112219fb81c"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
@@ -400,11 +408,11 @@
     },
     {
       "path": "lib/screens/moderation_admin_screen.dart",
-      "sha256": "e2efd0c17964f39f2eebd1dd7fe981288a938ecaba2572feb169b695ea57ef79"
+      "sha256": "79797c86064137ac8f84f7dfc21e217c25d062725de9878c319ae45984adf425"
     },
     {
       "path": "lib/screens/moderation_decisions_screen.dart",
-      "sha256": "4abc7de8fa46ae7c074f33d7736f24590db4cb53b6c886793c0102b2fb92a433"
+      "sha256": "2a1b30c443a6765b7b3c5cde4fc7e646ab6187db5d0798e589489afd0fd0d836"
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
@@ -544,7 +552,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "c6b71aa13281503ff682eafe7d0f9269a2ef0473c92772a3237b6d09620d511d"
+      "sha256": "80e12ed1e598a6d9a376dc265c510c527004d9e3920abca30e2b00a07c54f54e"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

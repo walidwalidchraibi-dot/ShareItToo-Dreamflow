@@ -67,8 +67,8 @@ Verified: 2026-08-22 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `044`. Migration
-  `044` is locally verified and awaiting exact GitHub PostgreSQL evidence. The
+- Node/Express backend with PostgreSQL migrations through `045`. Migration
+  `045` is locally verified and awaiting exact GitHub PostgreSQL evidence. The
   backend provides deterministic server quotes, immutable legal/acceptance
   evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -218,6 +218,19 @@ Verified: 2026-08-22 on the Mac mini.
   assignment, correction, professional legal approval, external transparency
   reporting and every production, payment, Store, signed-candidate or live path
   remain separate closed gates.
+- S3Q is implemented and locally verified; its exact commit and GitHub
+  PostgreSQL evidence are pending. It adds an Administrator-only, Staff-Step-up
+  protected review queue in which the original decision issuer cannot claim or
+  resolve the review. Migration `045` requires append-only, human-only and
+  independently assigned resolution evidence before terminal review state.
+  `modified` and `reversed` outcomes apply a guarded correction and create a new
+  S3P-complete moderation decision in the same transaction; users receive the
+  exact result, reason and implementation truth without staff identity. The
+  complete local Backend run passed 458 executable tests with only PostgreSQL
+  skipped for unavailable local infrastructure; pinned Flutter 3.41.7 passed
+  359 tests with one documented skip. Unsupported correction semantics fail
+  closed, and legal/operator approval, external delivery, production, payment,
+  Store, signed-candidate and live paths remain separate gates.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

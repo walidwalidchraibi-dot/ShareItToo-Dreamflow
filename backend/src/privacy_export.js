@@ -732,8 +732,16 @@ export async function buildAccountExport(client, userId) {
     rows(client,
       `SELECT request.id, request.decision_id, request.reason, request.status,
               request.resolution, request.submitted_at, request.updated_at,
-              request.resolved_at
+              request.resolved_at, resolution.outcome,
+              resolution.user_facing_reason,
+              resolution.human_reviewed,
+              resolution.independence_verified,
+              resolution.automation_role,
+              resolution.measure_changed,
+              resolution.communicated_at
        FROM moderation_review_requests AS request
+       LEFT JOIN moderation_review_resolutions AS resolution
+         ON resolution.review_request_id = request.id
        WHERE request.requester_id = $1 ORDER BY request.submitted_at, request.id`, userId),
     rows(client,
       `SELECT id, blocked_id, reason_code, created_at, unblocked_at

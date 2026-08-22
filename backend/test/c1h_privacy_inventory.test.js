@@ -24,6 +24,7 @@ test('C1H moderation and professional-review evidence is retention-inventoried',
     'moderation_decisions',
     'moderation_review_requests',
     'moderation_review_events',
+    'moderation_review_resolutions',
     'compliance_reserve_attestations',
     'compliance_professional_review_incidents',
   ]) assert.match(retention, new RegExp(`'${dataset}'`, 'u'));

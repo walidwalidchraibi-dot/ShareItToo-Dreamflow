@@ -39,6 +39,7 @@ const sourcePaths = [
   'backend/src/moderation_domain.js',
   'backend/src/moderation_workflow.js',
   'backend/src/moderation_decision_workflow.js',
+  'backend/src/moderation_review_correction_workflow.js',
   'backend/src/compliance_review.js',
   'backend/src/operator_readiness.js',
   'backend/src/v51_contract_workflow.js',
@@ -71,6 +72,7 @@ const sourcePaths = [
   'backend/sql/migrations/042_support_dsa_notice_intake.up.sql',
   'backend/sql/migrations/043_support_dsa_notice_locator_completion.up.sql',
   'backend/sql/migrations/044_moderation_statement_of_reasons.up.sql',
+  'backend/sql/migrations/045_independent_moderation_review_resolution.up.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -789,6 +791,16 @@ function assertSourceContracts({ root, sourceTexts }) {
     sourceTexts,
     'backend/sql/migrations/044_moderation_statement_of_reasons.up.sql',
   );
+  const moderationReviewMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/045_independent_moderation_review_resolution.up.sql',
+  );
+  const moderationReviewCorrection = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/moderation_review_correction_workflow.js',
+  );
   const moderationDecisionWorkflow = sourceText(
     root,
     sourceTexts,
@@ -834,6 +846,21 @@ function assertSourceContracts({ root, sourceTexts }) {
       || moderationAdminScreen.includes("value: 'automated'")
       || !backendRepository.includes("path: '/moderation/decisions'")) {
     fail('Moderation reasons must stay exact, user-bound, reviewable and human-reviewed.');
+  }
+  for (const marker of [
+    'moderation_review_resolutions_append_only',
+    'moderation_review_independent_reviewer_required',
+    'moderation_review_requests_resolution_required',
+  ]) {
+    if (!moderationReviewMigration.includes(marker)) {
+      fail(`Independent moderation review migration is missing ${marker}.`);
+    }
+  }
+  if (!moderationReviewCorrection.includes('moderation_review_correction_human_only')
+      || !moderationReviewCorrection.includes('moderation_review_measure_state_changed')
+      || !moderationDecisionWorkflow.includes('resolutionDetails: reviewResolution')
+      || !moderationDecisionsScreen.includes('Unabhängig und ausschließlich menschlich geprüft')) {
+    fail('Moderation review must remain independent, human-only, corrected and user-visible.');
   }
   const listingUpload = sourceText(root, sourceTexts, 'lib/screens/create_listing_screen.dart');
   const chatUpload = sourceText(root, sourceTexts, 'lib/screens/message_thread_screen.dart');

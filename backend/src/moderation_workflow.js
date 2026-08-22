@@ -585,7 +585,13 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
   return { suspension: inserted.rows[0], decision: decision.decision, replayed: false };
 }
 
-export async function liftUserSuspension(client, { actor, suspensionId, raw, idempotencyKey }) {
+export async function liftUserSuspension(client, {
+  actor,
+  suspensionId,
+  raw,
+  idempotencyKey,
+  issuedAt = new Date(),
+}) {
   if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
   const candidate = object(raw ?? {}, 'invalid_suspension_lift');
   const key = moderationIdempotencyKey(idempotencyKey, 'user.suspension.lift');
@@ -643,6 +649,7 @@ export async function liftUserSuspension(client, { actor, suspensionId, raw, ide
     measureState: `suspension_lifted:${row.scope}`,
     raw: candidate.decision,
     idempotencyKey: `${key}:decision`,
+    issuedAt,
     expectedStatement: { durationType: 'not_applicable', endsAt: null },
   });
   await audit(client, {
@@ -767,7 +774,13 @@ export async function listAccountLegalHolds(client, { actor, userId = null, acti
   return result.rows.map(legalHoldShape);
 }
 
-export async function setListingModeration(client, { actor, listingId, raw, idempotencyKey }) {
+export async function setListingModeration(client, {
+  actor,
+  listingId,
+  raw,
+  idempotencyKey,
+  issuedAt = new Date(),
+}) {
   if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
   const candidate = object(raw, 'invalid_listing_moderation');
   const status = text(candidate.status, 30);
@@ -797,6 +810,7 @@ export async function setListingModeration(client, { actor, listingId, raw, idem
     measureState: status,
     raw: candidate.decision,
     idempotencyKey: `${key}:decision`,
+    issuedAt,
     expectedStatement: {
       durationType: status === 'active' ? 'not_applicable' : 'until_reversed',
       endsAt: null,

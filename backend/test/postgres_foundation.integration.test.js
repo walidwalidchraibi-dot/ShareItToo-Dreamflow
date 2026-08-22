@@ -127,6 +127,7 @@ if (!databaseUrl) {
         '042_support_dsa_notice_intake.up.sql',
         '043_support_dsa_notice_locator_completion.up.sql',
         '044_moderation_statement_of_reasons.up.sql',
+        '045_independent_moderation_review_resolution.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -441,6 +442,7 @@ if (!databaseUrl) {
            ('renter-b', 'renter-b@example.com', '{}'::jsonb, 'user', 'active'),
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
            ('admin', 'admin@example.com', '{}'::jsonb, 'admin', 'active'),
+           ('admin-reviewer', 'admin-reviewer@example.com', '{}'::jsonb, 'admin', 'active'),
            ('support', 'support@example.com', '{}'::jsonb, 'support', 'active'),
            ('suspended', 'suspended@example.com', '{}'::jsonb, 'user', 'suspended')`,
       );
@@ -900,6 +902,7 @@ if (!databaseUrl) {
         outsider: '44444444-4444-4444-8444-444444444444',
         suspended: '55555555-5555-4555-8555-555555555555',
         admin: '66666666-6666-4666-8666-666666666666',
+        'admin-reviewer': '88888888-8888-4888-8888-888888888888',
         support: '77777777-7777-4777-8777-777777777777',
       };
       await setupPool.query(
@@ -911,7 +914,8 @@ if (!databaseUrl) {
            ($4, 'outsider', 'Outsider test'),
            ($5, 'suspended', 'Suspended test'),
            ($6, 'admin', 'Admin test'),
-           ($7, 'support', 'Support test')`,
+           ($7, 'admin-reviewer', 'Independent reviewer test'),
+           ($8, 'support', 'Support test')`,
         Object.values(sessionIds),
       );
       const databaseSupportElevation = await setupPool.query(
@@ -1190,12 +1194,21 @@ if (!databaseUrl) {
       const { hashActionToken, hashPassword, signAccessToken } = await import('../src/security.js');
       applicationPool = pool;
       const adminPassword = createEphemeralAcceptancePassword();
+      const reviewerPassword = createEphemeralAcceptancePassword();
       const supportPassword = createEphemeralAcceptancePassword();
       await setupPool.query(
-        `UPDATE users SET password_hash = CASE id WHEN 'admin' THEN $1 ELSE $2 END,
+        `UPDATE users SET password_hash = CASE id
+                            WHEN 'admin' THEN $1
+                            WHEN 'admin-reviewer' THEN $2
+                            ELSE $3
+                          END,
                           email_verified_at = now()
-         WHERE id IN ('admin', 'support')`,
-        [await hashPassword(adminPassword), await hashPassword(supportPassword)],
+         WHERE id IN ('admin', 'admin-reviewer', 'support')`,
+        [
+          await hashPassword(adminPassword),
+          await hashPassword(reviewerPassword),
+          await hashPassword(supportPassword),
+        ],
       );
       const socialClaims = new Map();
       const phoneClaims = new Map();
@@ -4206,6 +4219,171 @@ if (!databaseUrl) {
       assert.equal(
         (await requestDecisionReview.json()).reviewRequest.status,
         'submitted',
+      );
+
+      const hideForIndependentReview = await fetch(
+        `${baseUrl}/v1/admin/listings/listing-1/moderation`,
+        {
+          method: 'PATCH',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's3q-hide-listing-for-review',
+          },
+          body: JSON.stringify({
+            status: 'hidden',
+            reasonCode: 'controlled_independent_review_probe',
+            note: 'Controlled restriction for independent review.',
+            decision: humanStatementDecision({
+              facts: 'Controlled listing evidence triggered the independent-review fixture.',
+              basis: 'Controlled independent-review integration fixture.',
+              reasoning: 'The fixture temporarily hides the listing for a reversible review test.',
+            }),
+          }),
+        },
+      );
+      assert.equal(hideForIndependentReview.status, 200);
+      const restrictedDecision = (await hideForIndependentReview.json()).decision;
+      const requestListingReview = await fetch(
+        `${baseUrl}/v1/moderation/decisions/${restrictedDecision.id}/review`,
+        {
+          method: 'POST',
+          headers: {
+            ...ownerHeaders,
+            'Idempotency-Key': 's3q-review-listing-decision',
+          },
+          body: JSON.stringify({
+            reason: 'Controlled request to verify and reverse the fixture restriction.',
+          }),
+        },
+      );
+      assert.equal(requestListingReview.status, 201);
+      const listingReview = (await requestListingReview.json()).reviewRequest;
+
+      const supportReviewQueue = await fetch(
+        `${baseUrl}/v1/admin/moderation/reviews`,
+        { headers: supportHeaders },
+      );
+      assert.equal(supportReviewQueue.status, 403);
+      assert.equal((await supportReviewQueue.json()).error, 'admin_role_required');
+      const issuerClaim = await fetch(
+        `${baseUrl}/v1/admin/moderation/reviews/${listingReview.id}/claim`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's3q-issuer-claim-forbidden',
+          },
+        },
+      );
+      assert.equal(issuerClaim.status, 409);
+      assert.equal(
+        (await issuerClaim.json()).error,
+        'moderation_review_independent_reviewer_required',
+      );
+
+      const reviewerHeaders = {
+        Authorization: `Bearer ${tokenFor('admin-reviewer')}`,
+        'Content-Type': 'application/json',
+      };
+      const reviewerElevation = await fetch(`${baseUrl}/v1/admin/step-up`, {
+        method: 'POST',
+        headers: reviewerHeaders,
+        body: JSON.stringify({ currentPassword: reviewerPassword }),
+      });
+      assert.equal(reviewerElevation.status, 200);
+      reviewerHeaders['X-Admin-Step-Up'] =
+        (await reviewerElevation.json()).elevation.token;
+      const reviewerQueue = await fetch(
+        `${baseUrl}/v1/admin/moderation/reviews`,
+        { headers: reviewerHeaders },
+      );
+      assert.equal(reviewerQueue.status, 200);
+      const queuedListingReview = (await reviewerQueue.json()).reviewRequests
+        .find((review) => review.id === listingReview.id);
+      assert.equal(queuedListingReview.canClaim, true);
+      assert.equal(
+        queuedListingReview.originalDecision.measureState,
+        'hidden',
+      );
+      const claimListingReview = await fetch(
+        `${baseUrl}/v1/admin/moderation/reviews/${listingReview.id}/claim`,
+        {
+          method: 'POST',
+          headers: {
+            ...reviewerHeaders,
+            'Idempotency-Key': 's3q-independent-claim',
+          },
+        },
+      );
+      assert.equal(claimListingReview.status, 201);
+      assert.equal(
+        (await claimListingReview.json()).reviewRequest.status,
+        'in_review',
+      );
+      const resolveListingReview = await fetch(
+        `${baseUrl}/v1/admin/moderation/reviews/${listingReview.id}/resolve`,
+        {
+          method: 'POST',
+          headers: {
+            ...reviewerHeaders,
+            'Idempotency-Key': 's3q-independent-resolution',
+          },
+          body: JSON.stringify({
+            status: 'reversed',
+            userFacingReason:
+              'Die erneute menschliche Prüfung bestätigt die Wiederherstellung der Anzeige.',
+            correction: {
+              targetStatus: 'active',
+              reasonCode: 'controlled_independent_review_correction',
+              note: 'Controlled independent correction.',
+              decision: humanStatementDecision({
+                facts: 'The independent human review found the fixture restriction unsupported.',
+                basis: 'Controlled independent-review integration fixture.',
+                reasoning: 'The listing must be restored because the controlled restriction was intentionally reversible.',
+                durationType: 'not_applicable',
+              }),
+            },
+          }),
+        },
+      );
+      assert.equal(resolveListingReview.status, 200);
+      const resolvedListingReview = await resolveListingReview.json();
+      assert.equal(resolvedListingReview.measureChanged, true);
+      assert.equal(resolvedListingReview.correction.targetState, 'active');
+      assert.equal(
+        resolvedListingReview.reviewRequest.resolutionDetails.independent,
+        true,
+      );
+      assert.equal(
+        resolvedListingReview.reviewRequest.resolutionDetails.automationRole,
+        'none',
+      );
+      assert.equal(
+        (await setupPool.query(
+          `SELECT moderation_status FROM listings WHERE id = 'listing-1'`,
+        )).rows[0].moderation_status,
+        'active',
+      );
+      const ownerReviewedDecisions = await fetch(
+        `${baseUrl}/v1/moderation/decisions`,
+        { headers: ownerHeaders },
+      );
+      const reviewedOriginalDecision =
+        (await ownerReviewedDecisions.json()).decisions
+          .find((decision) => decision.id === restrictedDecision.id);
+      assert.equal(reviewedOriginalDecision.reviewRequest.status, 'reversed');
+      assert.equal(
+        reviewedOriginalDecision.reviewRequest.resolutionDetails.measureChanged,
+        true,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE moderation_review_resolutions
+              SET user_facing_reason = 'Mutated resolution'
+            WHERE review_request_id = $1`,
+          [listingReview.id],
+        ),
+        /append-only/u,
       );
 
       await assert.rejects(

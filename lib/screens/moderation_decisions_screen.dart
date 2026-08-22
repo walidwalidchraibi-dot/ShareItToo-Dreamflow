@@ -334,6 +334,32 @@ class _DecisionCard extends StatelessWidget {
     return deadline != null && deadline.isAfter(DateTime.now());
   }
 
+  Map<String, dynamic>? get _reviewResolutionDetails {
+    final rawReview = decision['reviewRequest'];
+    if (rawReview is! Map) return null;
+    final review = Map<String, dynamic>.from(rawReview);
+    final status = _text(review['status']);
+    if (!const {'upheld', 'modified', 'reversed'}.contains(status)) {
+      return null;
+    }
+    final rawDetails = review['resolutionDetails'];
+    if (rawDetails is! Map) return null;
+    final details = Map<String, dynamic>.from(rawDetails);
+    final measureChanged = details['measureChanged'] == true;
+    if (_text(details['outcome']) != status ||
+        _text(details['userFacingReason']).length < 3 ||
+        _text(review['resolution']) != _text(details['userFacingReason']) ||
+        details['humanReviewed'] != true ||
+        details['independent'] != true ||
+        _text(details['automationRole']) != 'none' ||
+        _date(details['communicatedAt']) == null ||
+        (status == 'upheld' && measureChanged) ||
+        (status != 'upheld' && !measureChanged)) {
+      return null;
+    }
+    return details;
+  }
+
   String get _reviewStatus {
     if (locallySubmitted) return 'Prüfung eingereicht';
     final raw = decision['reviewRequest'];
@@ -344,11 +370,17 @@ class _DecisionCard extends StatelessWidget {
       case 'in_review':
         return 'Prüfung läuft';
       case 'upheld':
-        return 'Entscheidung bestätigt';
+        return _reviewResolutionDetails == null
+            ? 'Prüfergebnis noch nicht vollständig bestätigt'
+            : 'Entscheidung bestätigt';
       case 'modified':
-        return 'Entscheidung geändert';
+        return _reviewResolutionDetails == null
+            ? 'Prüfergebnis noch nicht vollständig bestätigt'
+            : 'Entscheidung geändert';
       case 'reversed':
-        return 'Entscheidung aufgehoben';
+        return _reviewResolutionDetails == null
+            ? 'Prüfergebnis noch nicht vollständig bestätigt'
+            : 'Entscheidung aufgehoben';
       default:
         return 'Prüfstatus nicht eindeutig';
     }
@@ -357,6 +389,7 @@ class _DecisionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statement = _statement;
+    final reviewResolution = _reviewResolutionDetails;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -423,6 +456,29 @@ class _DecisionCard extends StatelessWidget {
             if (_reviewStatus.isNotEmpty) ...[
               const SizedBox(height: 12),
               _Notice(icon: Icons.fact_check_outlined, text: _reviewStatus),
+              if (reviewResolution != null) ...[
+                const SizedBox(height: 12),
+                _ReasonLine(
+                  label: 'Begründung der unabhängigen Prüfung',
+                  value: _text(reviewResolution['userFacingReason']),
+                ),
+                _ReasonLine(
+                  label: 'Prüfart',
+                  value: 'Unabhängig und ausschließlich menschlich geprüft; '
+                      'keine automatisierte Entscheidung.',
+                ),
+                _ReasonLine(
+                  label: 'Korrektur',
+                  value: reviewResolution['measureChanged'] == true
+                      ? 'Die geänderte oder aufgehobene Maßnahme wurde '
+                          'technisch umgesetzt.'
+                      : 'Die ursprüngliche Maßnahme bleibt bestehen.',
+                ),
+                Text(
+                  'Mitgeteilt am '
+                  '${_dateText(reviewResolution['communicatedAt'])}',
+                ),
+              ],
             ] else if (_reviewMayBeRequested) ...[
               const SizedBox(height: 12),
               FilledButton.icon(
