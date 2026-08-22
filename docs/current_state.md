@@ -2201,3 +2201,28 @@ evidence remain required under `TD-RR-003`.
 The entire async-context lint category is zero, but `TD-RR-010` remains open
 for the remaining 122 reviewed analyzer diagnostics and exact-commit CI. P0B
 remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AU item-details RadioGroup ratchet
+
+`S4AU_ITEM_DETAILS_RADIO_GROUP_RATCHET` is locally verified at commit
+`618916e`. Both delivery layouts now use distinct typed owners for dropoff and
+return selection; unavailable Vermieter choices remain explicitly disabled.
+The express fallback independently owns rebook/cancel, dropoff and return
+selection. Persistence, availability, delivery entitlement, quote, Payment,
+cancellation and `needsReview` behavior are unchanged.
+
+The exact analyzer snapshot ratcheted `122 -> 86`, with
+`deprecated_member_use` `36 -> 0`; every other bucket remained identical.
+Fifty-nine focused source/analyzer/privacy contracts, 96 focused Flutter tests
+and the privacy, retention and analyzer validators pass.
+
+The exact standard-parallel clean-head gate stopped after 192 green Flutter
+results with no remaining test worker and was terminated after more than six
+silent minutes; it is a failed run, not evidence. No retry, serial replacement
+or permanent concurrency/timing accommodation was introduced. S4AT exact CI
+run `32600955120` is green; exact S4AU CI and retained default-parallel stress
+evidence remain required under `TD-RR-003`.
+
+Both the async-context and deprecation categories are zero, but `TD-RR-010`
+remains open for 86 reviewed unused-code diagnostics and exact-commit CI. P0B
+remains `HOLD` / `NO-GO`, with no live boundary changed.

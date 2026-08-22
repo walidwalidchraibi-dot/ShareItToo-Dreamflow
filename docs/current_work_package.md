@@ -1664,3 +1664,29 @@ This package clears every async-context analyzer finding but does not close
 reviewed downward ratchets to zero plus exact-commit CI. P0B remains `HOLD` /
 `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment, signing,
 merge or public activation is enabled.
+
+## S4AU item-details RadioGroup ratchet
+
+`S4AU_ITEM_DETAILS_RADIO_GROUP_RATCHET` delivers the complete deprecation
+ratchet at commit `618916e`. Seven typed group owners replace all deprecated
+per-tile value/change ownership across both delivery layouts and the express
+fallback. Four unavailable Vermieter choices remain explicitly disabled and
+all four delivery-group callbacks retain local selection persistence.
+
+The exact debt snapshot moves `122 -> 86`, and only
+`deprecated_member_use` changes from `36 -> 0`. Fifty-nine focused
+source/analyzer/privacy contracts, 96 focused Flutter tests and all exact
+privacy, retention and analyzer validators pass. The privacy inventory is
+rebound without changing disclosure or release state.
+
+The standard-parallel clean-head gate stopped after 192 green Flutter results
+and was terminated after more than six minutes without a test worker. It is not
+an acceptance gate; no retry, serial replacement or permanent accommodation
+was added. Exact-commit CI and the retained five-run default-parallel proof
+remain open under `TD-RR-003`.
+
+This package clears every analyzer deprecation but does not close `TD-RR-010`;
+86 diagnostics in the remaining unused-code categories still require reviewed
+downward ratchets to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`;
+no production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or
+public activation is enabled.
