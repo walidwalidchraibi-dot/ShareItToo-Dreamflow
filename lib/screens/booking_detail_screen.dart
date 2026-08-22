@@ -559,6 +559,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final current = await DataService.getCurrentUser();
     if (current == null) return;
     final thread = await DataService.createOrGetThreadForRequest(requestId);
+    if (!mounted) return;
     if (thread == null) {
       AppPopup.toast(
         context,
@@ -568,6 +569,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       return;
     }
     final state = await DataService.getHandoverReturnState(requestId);
+    if (!mounted) return;
     final key = isReturn ? 'return' : 'handover';
     final requestedLabel =
         ((state['${key}TimeRequested'] as String?) ?? '').trim();
@@ -618,6 +620,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           text:
               '${isReturn ? '🔄' : '📦'} $flowLabel bestätigt: $requestedLabel Uhr',
         );
+        if (!mounted) return;
         AppPopup.toast(
           context,
           icon: Icons.check_circle_outline,
@@ -626,6 +629,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         return;
       }
     }
+    if (!mounted) return;
     final (start, end) = _parseDateRange();
     final initial = isReturn
         ? (end ?? DateTime.now().add(const Duration(days: 1)))
@@ -724,7 +728,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   Future<void> _viewListing() async {
-    final ctx = context;
     final title = (widget.booking['title'] as String?)?.toLowerCase() ?? '';
     final tokens = title
         .split(RegExp(r'[^a-z0-9äöüß]+'))
@@ -747,7 +750,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     if (!mounted) return;
     if (bestItem == null) {
       await showDialog<void>(
-        context: ctx,
+        context: context,
         builder: (dCtx) => AlertDialog(
           title: const Text('Hinweis'),
           content: const Text('Anzeige wurde gelöscht'),
@@ -761,7 +764,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       );
       return;
     }
-    await ItemDetailsOverlay.showFullPage(ctx, item: bestItem);
+    await ItemDetailsOverlay.showFullPage(context, item: bestItem);
   }
 
   String _pageTitle() {
@@ -1045,6 +1048,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 context,
                 options: opts,
               );
+              if (!context.mounted) return;
               switch (picked) {
                 case 'view':
                   await _viewListing();
@@ -1072,7 +1076,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 case 'payment':
                   final requestId =
                       (widget.booking['requestId'] as String?) ?? '';
-                  if (requestId.isNotEmpty && mounted) {
+                  if (requestId.isNotEmpty) {
                     await Navigator.of(context).push<void>(
                       MaterialPageRoute(
                         builder: (_) =>
@@ -1120,6 +1124,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             listerId == null) {
                           return;
                         }
+                        if (!mounted || !context.mounted) return;
                         final ok = await ReviewPromptSheet.show(
                           context,
                           requestId: requestId,
@@ -1128,7 +1133,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                           reviewedUserId: listerId,
                           direction: 'renter_to_owner',
                         );
-                        if (ok == true && mounted) {
+                        if (!mounted || !context.mounted) return;
+                        if (ok == true) {
                           setState(() => _reviewAlreadySubmitted = true);
                           await AppPopup.toast(
                             context,
@@ -1136,7 +1142,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                             title: 'Danke für deine Bewertung!',
                           );
                           await _viewListing();
-                        } else if (ok == false && mounted) {
+                        } else if (ok == false) {
                           setState(() => _reviewAlreadySubmitted = true);
                           await AppPopup.toast(
                             context,

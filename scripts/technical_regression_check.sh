@@ -421,6 +421,7 @@ node --test test/tool/message_thread_async_context_wiring.test.mjs
 node --test test/tool/ongoing_owner_time_overflow_async_context_wiring.test.mjs
 node --test test/tool/ongoing_owner_request_decision_async_context_wiring.test.mjs
 node --test test/tool/ongoing_owner_handover_maps_async_context_wiring.test.mjs
+node --test test/tool/booking_detail_primary_async_context_wiring.test.mjs
 node --test test/tool/android_debug_single_attempt_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs
