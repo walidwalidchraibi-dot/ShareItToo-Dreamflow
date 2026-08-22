@@ -188,49 +188,54 @@ Future<List<_ListingOption>> _buildOptions(
   }
 
   Future<void> addToWishlist() async {
-    final selected = currentWishlistId == null
-        ? await WishlistSelectionSheet.showAdd(context)
-        : await WishlistSelectionSheet.showMove(context,
-            currentListId: currentWishlistId);
+    String? selected;
+    if (currentWishlistId == null) {
+      if (!context.mounted) return;
+      selected = await WishlistSelectionSheet.showAdd(context);
+    } else {
+      if (!context.mounted) return;
+      selected = await WishlistSelectionSheet.showMove(context,
+          currentListId: currentWishlistId);
+    }
+    if (!context.mounted) return;
     if (selected != null && selected.isNotEmpty) {
       await DataService.setItemWishlist(item.id, selected);
+      if (!context.mounted) return;
       onWishlistChanged?.call();
-      if (context.mounted) {
-        await AppPopup.toast(context,
-            icon: Icons.favorite,
-            title: currentWishlistId == null
-                ? 'Unter Gemerkt gespeichert'
-                : 'In Merkliste verschoben');
-      }
+      await AppPopup.toast(context,
+          icon: Icons.favorite,
+          title: currentWishlistId == null
+              ? 'Unter Gemerkt gespeichert'
+              : 'In Merkliste verschoben');
     }
   }
 
   Future<void> removeFromWishlist() async {
     await DataService.removeItemFromWishlist(item.id);
+    if (!context.mounted) return;
     onWishlistChanged?.call();
-    if (context.mounted) {
-      await AppPopup.toast(context,
-          icon: Icons.delete_outline, title: 'Aus Gemerkt entfernt');
-    }
+    await AppPopup.toast(context,
+        icon: Icons.delete_outline, title: 'Aus Gemerkt entfernt');
   }
 
   Future<void> moveToAnotherWishlist() async {
     final current =
         currentWishlistId ?? await DataService.getWishlistForItem(item.id);
+    if (!context.mounted) return;
     if (current == null || current.isEmpty) {
       await addToWishlist();
       return;
     }
     final selected =
         await WishlistSelectionSheet.showMove(context, currentListId: current);
+    if (!context.mounted) return;
     if (selected != null && selected.isNotEmpty) {
       await DataService.setItemWishlist(item.id, selected);
+      if (!context.mounted) return;
       onWishlistChanged?.call();
-      if (context.mounted) {
-        await AppPopup.toast(context,
-            icon: Icons.drive_file_move_outline,
-            title: 'In Merkliste verschoben');
-      }
+      await AppPopup.toast(context,
+          icon: Icons.drive_file_move_outline,
+          title: 'In Merkliste verschoben');
     }
   }
 
