@@ -209,6 +209,10 @@ import {
   verifyPrivacyRightsRequestIdentity,
 } from './support_privacy_rights_workflow.js';
 import {
+  listPrivacyIncidentQueue,
+  recordPrivacyIncidentContainmentAction,
+} from './support_privacy_incident_workflow.js';
+import {
   getPilotCockpitSnapshot,
   PilotCockpitError,
 } from './pilot_cockpit.js';
@@ -1496,6 +1500,7 @@ export function createApp({
   const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportPrivacyIdentityLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const supportPrivacyExtensionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportPrivacyIncidentLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const moderationReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const phoneVerificationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -2647,7 +2652,24 @@ export function createApp({
     res.json(await accountDeletionPreflight(pool, req.auth.userId));
   }));
 
-  app.get('/v1/account/export', requireAuth, requireActiveAccount, exportLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/account/export', requireAuth, requireActiveAccount, exportLimiter, asyncRoute(async (req, res) => {
+    const raw = ensureObject(req.body, 'account_export_request_invalid');
+    if (Object.keys(raw).length !== 1
+        || !Object.hasOwn(raw, 'currentPassword')
+        || typeof raw.currentPassword !== 'string'
+        || raw.currentPassword.length < 1) {
+      throw new HttpError(400, 'account_export_request_invalid');
+    }
+    const account = await pool.query(
+      'SELECT password_hash FROM users WHERE id = $1',
+      [req.auth.userId],
+    );
+    if (!account.rows[0]?.password_hash) {
+      throw new HttpError(409, 'account_export_password_verification_unavailable');
+    }
+    if (!(await verifyPassword(raw.currentPassword, account.rows[0].password_hash))) {
+      throw new HttpError(401, 'invalid_credentials');
+    }
     const document = await inTransaction(async (client) => {
       await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
       await writeAudit(client, {
@@ -4458,6 +4480,32 @@ export function createApp({
       erasureExecutionEnabled: false,
       externalDeliveryEnabled: false,
     });
+  }));
+
+  app.get('/v1/admin/support/privacy-incidents', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const privacyIncidents = await listPrivacyIncidentQueue(pool, {
+      actor: req.actor,
+      limit: req.query.limit ?? 100,
+    });
+    res.set('Cache-Control', 'private, no-store').json({
+      privacyIncidents,
+      humanAssessmentRequired: true,
+      externalNotificationEnabled: false,
+    });
+  }));
+
+  app.post('/v1/admin/support/cases/:id/privacy-incident/containment-actions', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportPrivacyIncidentLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordPrivacyIncidentContainmentAction(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      staffElevationId: req.staffElevation.id,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store')
+      .status(result.replayed ? 200 : 201)
+      .json(result);
   }));
 
   app.post('/v1/admin/support/cases/:id/privacy-rights/deadline-extension', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportPrivacyExtensionLimiter, asyncRoute(async (req, res) => {

@@ -81,6 +81,9 @@ test('passes report, temporary block cleanup and private export without leaking 
   assert.doesNotMatch(serialized, /owner-id|renter-id|report-safe|listing-safe|thread-safe|example\.test|owner-x|renter-y/);
   assert.ok(calls.some((entry) => entry.path === '/user-blocks/owner-id' && entry.method === 'DELETE'));
   assert.ok(calls.some((entry) => entry.path === '/message-threads/thread-safe' && entry.method === 'PATCH'));
+  const exportCall = calls.find((entry) => entry.path === '/account/export');
+  assert.equal(exportCall.method, 'POST');
+  assert.deepEqual(exportCall.body, { currentPassword: `renter-${'y'.repeat(24)}` });
 });
 
 test('rejects an incomplete or cacheable account export before moderation mutations', async () => {

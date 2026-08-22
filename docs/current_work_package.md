@@ -322,6 +322,29 @@ Actual rights execution and delivery, scoped Legal Hold
 resolution, professional review, and `SUP-128` through `SUP-131` remain
 separate gates; production, payment, Store and every live path remain closed.
 
+`S3T_SUPPORT_PRIVACY_INCIDENT_EXPORT_GUARD` is a locally verified non-live
+candidate for the technical core of Drive scenarios `SUP-128` through
+`SUP-131`; exact implementation commit and GitHub Actions evidence remain to
+be recorded after the guarded push. Migration `048` creates an immutable
+awareness-bound incident record for three exact Privacy subtypes, fixes the
+internal decision deadline to awareness plus 72 hours and allows only
+Administrator/active-session/Staff-Step-up-bound non-live containment evidence.
+The watchdog creates idempotent internal near/overdue alarms but has no external
+transport or notification state. Account export is now an exact POST requiring
+current-password re-authentication, takes its subject only from the active
+session and minimizes inbound third-party structured exact locations while
+retaining the subject's own structured location. Safe incident metadata is
+exported; containment actions and internal identifiers are not. All 473
+Backend tests passed without skips against isolated PostgreSQL 16.15 through
+migration `048`; Privacy/Retention protections, the accepted analyzer baseline,
+359 Flutter tests with one documented skip, the separate Google-only test, Web
+smoke/build and Android debug build passed. The prior internal AAB `2026081509`
+is absent from this Mac mini's private archive, so only CI-metadata validation
+was performed; no artifact was created or changed. Human breach assessment,
+legal/controller notification decisions, authority and recipient channels,
+professional review, real staffing, production, payment, Store and every live
+path remain closed.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress

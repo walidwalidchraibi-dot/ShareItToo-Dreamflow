@@ -282,6 +282,24 @@ Verified: 2026-08-22 on the Mac mini.
   and API-image publication remained skipped. No
   rights execution, disclosure, erasure, external delivery,
   production, payment, Store, signed candidate or live path is enabled.
+- S3T is a locally verified non-live candidate for the technical core of Drive
+  scenarios `SUP-128` through `SUP-131`; exact implementation commit and
+  GitHub Actions evidence remain pending the guarded push. Migration `048`
+  binds three exact Privacy incident subtypes to immutable awareness time,
+  an exact 72-hour human decision deadline, idempotent internal alarms and
+  append-only Administrator containment evidence behind active session and
+  Staff Step-up. The account export now requires exact current-password
+  re-authentication, derives its subject only from the authenticated session
+  and minimizes inbound third-party structured exact locations. No assessment,
+  authority/affected-person decision, external notification or live adapter is
+  implemented. All 473 Backend tests passed without skips against isolated
+  PostgreSQL 16.15 through migration `048`; the accepted analyzer baseline,
+  359 Flutter tests with one documented skip, the separate Google-only test,
+  Web smoke/build and Android debug build passed. Historical internal AAB
+  `2026081509` is not present in this Mac mini's private archive, so no local
+  byte-verification claim or signed artifact action is made. Professional
+  legal review, real staffing, production, payment, Store and every live path
+  remain closed.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

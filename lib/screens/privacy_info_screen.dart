@@ -18,12 +18,73 @@ class PrivacyInfoScreen extends StatefulWidget {
 class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
   bool _exporting = false;
 
+  Future<String?> _requestCurrentPassword() async {
+    final passwordController = TextEditingController();
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Datenexport bestätigen'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Gib aus Sicherheitsgründen dein aktuelles Passwort ein. Der Export wird ausschließlich für dein angemeldetes Konto erstellt.',
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                key: const ValueKey('privacy-data-export-password'),
+                controller: passwordController,
+                obscureText: true,
+                autofocus: true,
+                enableSuggestions: false,
+                autocorrect: false,
+                decoration: const InputDecoration(
+                  labelText: 'Aktuelles Passwort',
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+                onSubmitted: (value) {
+                  if (value.isNotEmpty) {
+                    Navigator.of(dialogContext).pop(value);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              key: const ValueKey('privacy-data-export-confirm'),
+              onPressed: () {
+                final password = passwordController.text;
+                if (password.isNotEmpty) {
+                  Navigator.of(dialogContext).pop(password);
+                }
+              },
+              child: const Text('Export erstellen'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      passwordController.dispose();
+    }
+  }
+
   Future<void> _exportData() async {
     if (_exporting) return;
+    final currentPassword = await _requestCurrentPassword();
+    if (!mounted || currentPassword == null) return;
     setState(() => _exporting = true);
     try {
       final export = Map<String, dynamic>.from(
-        await BackendRepository.exportAccountData(),
+        await BackendRepository.exportAccountData(
+          currentPassword: currentPassword,
+        ),
       );
       export['localDevice'] = <String, dynamic>{
         'savedItems': await DataService.exportSavedItemsForPrivacy(),

@@ -128,7 +128,11 @@ export async function diagnoseStoreReviewSafetyActions({
   const renterId = safeIdentifier(renterMe.value?.user?.id, 'renter account');
   if (ownerId === renterId) fail('The synthetic review roles are not distinct.');
 
-  const accountExport = await request(fetchImpl, '/account/export', { token: renterToken });
+  const accountExport = await request(fetchImpl, '/account/export', {
+    method: 'POST',
+    token: renterToken,
+    body: { currentPassword: selected.accounts.get('renter').password },
+  });
   assertPrivateExport(accountExport, renterId);
 
   const report = await request(fetchImpl, '/reports', {

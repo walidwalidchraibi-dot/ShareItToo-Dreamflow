@@ -21,6 +21,8 @@ const sourcePaths = [
   'backend/src/support_case_workflow.js',
   'backend/src/support_privacy_rights_domain.js',
   'backend/src/support_privacy_rights_workflow.js',
+  'backend/src/support_privacy_incident_domain.js',
+  'backend/src/support_privacy_incident_workflow.js',
   'backend/src/support_article18_domain.js',
   'backend/src/support_article18_workflow.js',
   'backend/src/support_appeal_domain.js',
@@ -94,6 +96,8 @@ const sourcePaths = [
   'backend/sql/migrations/046_support_article18_authority_referral_guard.down.sql',
   'backend/sql/migrations/047_support_privacy_rights_control_plane.up.sql',
   'backend/sql/migrations/047_support_privacy_rights_control_plane.down.sql',
+  'backend/sql/migrations/048_support_privacy_incident_control_plane.up.sql',
+  'backend/sql/migrations/048_support_privacy_incident_control_plane.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -534,6 +538,14 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!inventory.includes("'securityAudit', 'support_deadline_watchdog_state'")) {
     fail('Retention inventory is missing operational dataset support_deadline_watchdog_state.');
+  }
+  for (const dataset of [
+    'support_privacy_incidents',
+    'support_privacy_incident_containment_actions',
+  ]) {
+    if (!inventory.includes(`'privacyRights', '${dataset}'`)) {
+      fail(`Retention inventory is missing privacy-incident dataset ${dataset}.`);
+    }
   }
   if (!inventory.includes("'communications', 'support_messages'")) {
     fail('Retention inventory is missing immutable dataset support_messages.');

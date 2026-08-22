@@ -1,6 +1,7 @@
 import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
 import { SupportCaseError } from './support_case_domain.js';
+import { reconcilePrivacyIncidentDeadlinesWithClient } from './support_privacy_incident_workflow.js';
 import { reconcilePrivacyRightsDeadlinesWithClient } from './support_privacy_rights_workflow.js';
 
 export const supportDeadlineWatchdogVersion = 'support-deadline-watchdog-v1';
@@ -10,6 +11,8 @@ const alertTypes = Object.freeze({
   nextUpdateOverdue: 'support.operational_alert.next_update_overdue',
   privacyDeadlineNear: 'support.privacy_rights.deadline_near',
   privacyDeadlineOverdue: 'support.privacy_rights.deadline_overdue',
+  privacyIncidentDeadlineNear: 'support.privacy_incident.notification_decision_deadline_near',
+  privacyIncidentDeadlineOverdue: 'support.privacy_incident.notification_decision_deadline_overdue',
 });
 
 function iso(value) {
@@ -115,6 +118,12 @@ export async function reconcileSupportDeadlinesWithClient(client, {
     limit,
   });
   alertsCreated += privacy.alertsCreated;
+  const privacyIncidents = await reconcilePrivacyIncidentDeadlinesWithClient(client, {
+    now: current,
+    limit,
+  });
+  alertsCreated += privacyIncidents.alertsCreated;
+  const inspected = candidates.rowCount + privacy.inspected + privacyIncidents.inspected;
   await client.query(
     `INSERT INTO support_deadline_watchdog_state (
        singleton, worker_version, last_started_at, last_succeeded_at,
@@ -133,15 +142,17 @@ export async function reconcileSupportDeadlinesWithClient(client, {
        attempt_count = support_deadline_watchdog_state.attempt_count + 1,
        success_count = support_deadline_watchdog_state.success_count + 1,
        updated_at = EXCLUDED.updated_at`,
-    [supportDeadlineWatchdogVersion, startedAt, candidates.rowCount, alertsCreated],
+    [supportDeadlineWatchdogVersion, startedAt, inspected, alertsCreated],
   );
   return Object.freeze({
-    inspected: candidates.rowCount,
+    inspected,
     alertsCreated,
     p0WithoutOwner,
     nextUpdateOverdue,
     privacyDeadlineNear: privacy.deadlineNear,
     privacyDeadlineOverdue: privacy.deadlineOverdue,
+    privacyIncidentDeadlineNear: privacyIncidents.deadlineNear,
+    privacyIncidentDeadlineOverdue: privacyIncidents.deadlineOverdue,
     externalNotificationsSent: 0,
   });
 }
@@ -223,7 +234,24 @@ export async function supportDeadlineHealth(client = pool, {
          WHERE privacy_request.processing_status <> 'completed'
            AND support_case.status NOT IN ('resolved', 'closed')
            AND support_case.operating_mode IN ('simulation', 'internal_testing')
-           AND privacy_request.response_due_at < $1) AS privacy_deadline_overdue
+           AND privacy_request.response_due_at < $1) AS privacy_deadline_overdue,
+       (SELECT count(*)::int
+          FROM support_privacy_incidents AS incident
+          JOIN support_cases AS support_case ON support_case.id = incident.case_id
+         WHERE incident.authority_notification_status = 'not_decided'
+           AND support_case.status NOT IN ('resolved', 'closed')
+           AND support_case.operating_mode IN ('simulation', 'internal_testing')
+           AND incident.reminder_at <= $1
+           AND incident.notification_deadline_at >= $1)
+         AS privacy_incident_deadline_near,
+       (SELECT count(*)::int
+          FROM support_privacy_incidents AS incident
+          JOIN support_cases AS support_case ON support_case.id = incident.case_id
+         WHERE incident.authority_notification_status = 'not_decided'
+           AND support_case.status NOT IN ('resolved', 'closed')
+           AND support_case.operating_mode IN ('simulation', 'internal_testing')
+           AND incident.notification_deadline_at < $1)
+         AS privacy_incident_deadline_overdue
      FROM (SELECT 1) AS singleton
      LEFT JOIN support_deadline_watchdog_state AS state ON state.singleton`,
     [now],
@@ -236,10 +264,13 @@ export async function supportDeadlineHealth(client = pool, {
   const nextUpdateOverdue = Number(row.next_update_overdue ?? 0);
   const privacyDeadlineNear = Number(row.privacy_deadline_near ?? 0);
   const privacyDeadlineOverdue = Number(row.privacy_deadline_overdue ?? 0);
+  const privacyIncidentDeadlineNear = Number(row.privacy_incident_deadline_near ?? 0);
+  const privacyIncidentDeadlineOverdue = Number(row.privacy_incident_deadline_overdue ?? 0);
   return Object.freeze({
     status: stale || row.last_error_code || p0WithoutOwner > 0
       || nextUpdateOverdue > 0 || privacyDeadlineNear > 0
-      || privacyDeadlineOverdue > 0
+      || privacyDeadlineOverdue > 0 || privacyIncidentDeadlineNear > 0
+      || privacyIncidentDeadlineOverdue > 0
       ? 'degraded'
       : 'ok',
     workerVersion: supportDeadlineWatchdogVersion,
@@ -255,6 +286,8 @@ export async function supportDeadlineHealth(client = pool, {
     nextUpdateOverdue,
     privacyDeadlineNear,
     privacyDeadlineOverdue,
+    privacyIncidentDeadlineNear,
+    privacyIncidentDeadlineOverdue,
   });
 }
 
@@ -277,14 +310,14 @@ export async function listSupportOperationalAlerts(client, {
             support_case.next_update_at
        FROM support_case_events AS event
        JOIN support_cases AS support_case ON support_case.id = event.case_id
-      WHERE event.event_type IN ($1, $2, $3, $4)
+      WHERE event.event_type IN ($1, $2, $3, $4, $5, $6)
         AND support_case.operating_mode IN ('simulation', 'internal_testing')
         AND support_case.status NOT IN ('resolved', 'closed')
         AND (
           (event.event_type = $1 AND support_case.priority = 'p0'
             AND support_case.current_owner_id IS NULL)
           OR
-          (event.event_type = $2 AND support_case.next_update_at <= $5
+          (event.event_type = $2 AND support_case.next_update_at <= $7
             AND event.structured_payload->>'dueAt' =
               to_char(support_case.next_update_at AT TIME ZONE 'UTC',
                 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))
@@ -293,24 +326,40 @@ export async function listSupportOperationalAlerts(client, {
             SELECT 1 FROM support_privacy_rights_requests AS privacy_request
              WHERE privacy_request.case_id = support_case.id
                AND privacy_request.processing_status <> 'completed'
-               AND privacy_request.reminder_at <= $5
+               AND privacy_request.reminder_at <= $7
                AND event.structured_payload->>'responseDueAt' =
                  to_char(privacy_request.response_due_at AT TIME ZONE 'UTC',
                    'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                AND (
-                 (event.event_type = $3 AND privacy_request.response_due_at >= $5)
-                 OR (event.event_type = $4 AND privacy_request.response_due_at < $5)
+                 (event.event_type = $3 AND privacy_request.response_due_at >= $7)
+                 OR (event.event_type = $4 AND privacy_request.response_due_at < $7)
+               )
+          ))
+          OR
+          (event.event_type IN ($5, $6) AND EXISTS (
+            SELECT 1 FROM support_privacy_incidents AS incident
+             WHERE incident.case_id = support_case.id
+               AND incident.authority_notification_status = 'not_decided'
+               AND incident.reminder_at <= $7
+               AND event.structured_payload->>'notificationDeadlineAt' =
+                 to_char(incident.notification_deadline_at AT TIME ZONE 'UTC',
+                   'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+               AND (
+                 (event.event_type = $5 AND incident.notification_deadline_at >= $7)
+                 OR (event.event_type = $6 AND incident.notification_deadline_at < $7)
                )
           ))
         )
       ORDER BY support_case.priority, support_case.next_update_at NULLS LAST,
                event.created_at, event.id
-      LIMIT $6`,
+      LIMIT $8`,
     [
       alertTypes.p0WithoutOwner,
       alertTypes.nextUpdateOverdue,
       alertTypes.privacyDeadlineNear,
       alertTypes.privacyDeadlineOverdue,
+      alertTypes.privacyIncidentDeadlineNear,
+      alertTypes.privacyIncidentDeadlineOverdue,
       now,
       safeLimit(limit),
     ],

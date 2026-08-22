@@ -109,6 +109,8 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'privacyRights', 'support_privacy_rights_requests', count(*)::bigint, min(received_at), max(updated_at) FROM support_privacy_rights_requests
        UNION ALL SELECT 'privacyRights', 'support_privacy_identity_verifications', count(*)::bigint, min(verified_at), max(verified_at) FROM support_privacy_identity_verifications
        UNION ALL SELECT 'privacyRights', 'support_privacy_deadline_extensions', count(*)::bigint, min(recorded_at), max(recorded_at) FROM support_privacy_deadline_extensions
+       UNION ALL SELECT 'privacyRights', 'support_privacy_incidents', count(*)::bigint, min(breach_awareness_at), max(updated_at) FROM support_privacy_incidents
+       UNION ALL SELECT 'privacyRights', 'support_privacy_incident_containment_actions', count(*)::bigint, min(recorded_at), max(recorded_at) FROM support_privacy_incident_containment_actions
        UNION ALL SELECT 'communications', 'message_attachments', count(*)::bigint, min(created_at), max(created_at)
          FROM uploads WHERE purpose = 'message_attachment'
        UNION ALL SELECT 'handoverEvidence', 'handover_return_evidence', count(*)::bigint, min(created_at), max(created_at)

@@ -20,6 +20,8 @@ const sourcePaths = [
   'backend/src/support_case_workflow.js',
   'backend/src/support_privacy_rights_domain.js',
   'backend/src/support_privacy_rights_workflow.js',
+  'backend/src/support_privacy_incident_domain.js',
+  'backend/src/support_privacy_incident_workflow.js',
   'backend/src/support_article18_domain.js',
   'backend/src/support_article18_workflow.js',
   'backend/src/support_appeal_domain.js',
@@ -79,6 +81,8 @@ const sourcePaths = [
   'backend/sql/migrations/045_independent_moderation_review_resolution.up.sql',
   'backend/sql/migrations/046_support_article18_authority_referral_guard.up.sql',
   'backend/sql/migrations/047_support_privacy_rights_control_plane.up.sql',
+  'backend/sql/migrations/048_support_privacy_incident_control_plane.up.sql',
+  'backend/sql/migrations/048_support_privacy_incident_control_plane.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -379,6 +383,9 @@ function assertSourceContracts({ root, sourceTexts }) {
     'internalEmergencyAccessReasonsExcluded: true', 'message.message_title',
     'message.corrects_message_id',
     'staffIdentifiersExcluded: true',
+    'privacyExportMinimization',
+    'THIRD_PARTY_EXACT_LOCATION_OMITTED',
+    'privacyIncidents: supportPrivacyIncidents',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
   }
@@ -473,6 +480,42 @@ function assertSourceContracts({ root, sourceTexts }) {
       fail(`Support-deadline privacy boundary is missing ${marker}.`);
     }
   }
+  const privacyIncidentWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_privacy_incident_workflow.js',
+  );
+  const privacyIncidentMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/048_support_privacy_incident_control_plane.up.sql',
+  );
+  for (const marker of [
+    'gdpr-art33-awareness-72h-v1',
+    'support.privacy_incident.awareness_recorded',
+    'externalNotificationSent: false',
+    'externalNotificationsSent: 0',
+  ]) {
+    if (!privacyIncidentWorkflow.includes(marker)) {
+      fail(`Privacy-incident workflow is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    "notification_deadline_at = breach_awareness_at + INTERVAL '72 hours'",
+    'support_privacy_incident_action_append_only',
+    "target_case.operating_mode NOT IN ('simulation', 'internal_testing')",
+    'NOT external_notifications_sent',
+  ]) {
+    if (!privacyIncidentMigration.includes(marker)) {
+      fail(`Privacy-incident database boundary is missing ${marker}.`);
+    }
+  }
+  const rentalCartApp = sourceText(root, sourceTexts, 'backend/src/app.js');
+  if (!rentalCartApp.includes("app.post('/v1/account/export'")
+      || !rentalCartApp.includes('account_export_request_invalid')
+      || !rentalCartApp.includes('verifyPassword(raw.currentPassword')) {
+    fail('Account privacy export must be password re-authenticated and account-bound.');
+  }
   const rentalCartWorkflow = sourceText(
     root,
     sourceTexts,
@@ -484,7 +527,6 @@ function assertSourceContracts({ root, sourceTexts }) {
     'backend/sql/migrations/027_g2_persistent_rental_cart.up.sql',
   );
   const dataService = sourceText(root, sourceTexts, 'lib/services/data_service.dart');
-  const rentalCartApp = sourceText(root, sourceTexts, 'backend/src/app.js');
   for (const marker of [
     'reservationCreated: false',
     'persist: false',

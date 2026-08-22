@@ -77,6 +77,11 @@ test('watchdog creates one durable internal alert per exact overdue condition', 
       result: { rowCount: 0, rows: [] },
     },
     {
+      match: /FROM support_privacy_incidents AS incident/u,
+      check: ({ params }) => assert.deepEqual(params, [now, 100]),
+      result: { rowCount: 0, rows: [] },
+    },
+    {
       match: /support_deadline_watchdog_state/u,
       check: ({ params }) => {
         assert.deepEqual(params, [supportDeadlineWatchdogVersion, now, 1, 2]);
@@ -92,6 +97,8 @@ test('watchdog creates one durable internal alert per exact overdue condition', 
     nextUpdateOverdue: 1,
     privacyDeadlineNear: 0,
     privacyDeadlineOverdue: 0,
+    privacyIncidentDeadlineNear: 0,
+    privacyIncidentDeadlineOverdue: 0,
     externalNotificationsSent: 0,
   });
   client.done();
@@ -103,6 +110,7 @@ test('duplicate scheduler evaluation records no duplicate alert', async () => {
     { match: /ON CONFLICT \(case_id, idempotency_key\) DO NOTHING/u, result: { rowCount: 0, rows: [] } },
     { match: /ON CONFLICT \(case_id, idempotency_key\) DO NOTHING/u, result: { rowCount: 0, rows: [] } },
     { match: /FROM support_privacy_rights_requests AS privacy_request/u, result: { rowCount: 0, rows: [] } },
+    { match: /FROM support_privacy_incidents AS incident/u, result: { rowCount: 0, rows: [] } },
     { match: /support_deadline_watchdog_state/u, result: { rowCount: 1, rows: [] } },
   ]);
   const result = await reconcileSupportDeadlinesWithClient(client, { now });

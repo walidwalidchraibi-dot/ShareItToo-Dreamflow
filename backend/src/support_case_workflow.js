@@ -14,6 +14,7 @@ import {
 } from './support_case_domain.js';
 import { normalizeSupportPrivacyRightsRequest } from './support_privacy_rights_domain.js';
 import { createPrivacyRightsRequestForCase } from './support_privacy_rights_workflow.js';
+import { createPrivacyIncidentForCase } from './support_privacy_incident_workflow.js';
 import { getSupportAppealForCase } from './support_appeal_workflow.js';
 import { verifySupportBreakGlassGrant } from './support_break_glass_workflow.js';
 import { shapeSupportMessage } from './support_message_workflow.js';
@@ -426,6 +427,10 @@ export async function createSupportCase(client, {
     caseRecord: inserted.rows[0],
     privacyRightsRequest,
     subjectUserId: actor.id,
+    now,
+  });
+  await createPrivacyIncidentForCase(client, {
+    caseRecord: inserted.rows[0],
     now,
   });
   await client.query(

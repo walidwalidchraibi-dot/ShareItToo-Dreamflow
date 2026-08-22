@@ -519,9 +519,36 @@ void main() {
     expect(find.text('Meine Daten exportieren'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
+    final exportButton = find.widgetWithText(
+      FilledButton,
+      'Meine Daten exportieren',
+    );
+    await tester.ensureVisible(exportButton);
+    await tester.drag(
+      find.byType(Scrollable).last,
+      const Offset(0, 120),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(exportButton);
+    await tester.pumpAndSettle();
+    final passwordField = find.byKey(
+      const ValueKey('privacy-data-export-password'),
+    );
+    expect(passwordField, findsOneWidget);
+    final passwordWidget = tester.widget<TextField>(passwordField);
+    expect(passwordWidget.obscureText, isTrue);
+    expect(passwordWidget.enableSuggestions, isFalse);
+    expect(passwordWidget.autocorrect, isFalse);
+    expect(
+      find.textContaining('ausschließlich für dein angemeldetes Konto'),
+      findsOneWidget,
+    );
+
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pump();
     expect(FocusManager.instance.primaryFocus, isNotNull);
+    await tester.tap(find.text('Abbrechen'));
+    await tester.pumpAndSettle();
     semantics.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));

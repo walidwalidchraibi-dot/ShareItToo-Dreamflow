@@ -130,6 +130,7 @@ if (!databaseUrl) {
         '045_independent_moderation_review_resolution.up.sql',
         '046_support_article18_authority_referral_guard.up.sql',
         '047_support_privacy_rights_control_plane.up.sql',
+        '048_support_privacy_incident_control_plane.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -207,6 +208,8 @@ if (!databaseUrl) {
           'support_dsa_notice_locator_amendments',
           'support_messages',
           'support_policy_snapshots',
+          'support_privacy_incident_containment_actions',
+          'support_privacy_incidents',
         ]],
       );
       assert.deepEqual(supportCaseTables.rows, [
@@ -221,6 +224,8 @@ if (!databaseUrl) {
         { table_name: 'support_evidence' },
         { table_name: 'support_messages' },
         { table_name: 'support_policy_snapshots' },
+        { table_name: 'support_privacy_incident_containment_actions' },
+        { table_name: 'support_privacy_incidents' },
       ]);
       const supportIntakeScopeColumn = await setupPool.query(
         `SELECT column_name, data_type, is_nullable
@@ -1207,6 +1212,9 @@ if (!databaseUrl) {
       const { reconcilePrivacyRightsDeadlinesWithClient } = await import(
         '../src/support_privacy_rights_workflow.js'
       );
+      const { reconcilePrivacyIncidentDeadlinesWithClient } = await import(
+        '../src/support_privacy_incident_workflow.js'
+      );
       const { drainNotificationOutbox } = await import('../src/notifications.js');
       const { applyProviderEvent } = await import('../src/payment_workflow.js');
       const { hashActionToken, hashPassword, signAccessToken } = await import('../src/security.js');
@@ -1215,20 +1223,23 @@ if (!databaseUrl) {
       const reviewerPassword = createEphemeralAcceptancePassword();
       const supportPassword = createEphemeralAcceptancePassword();
       const renterAPassword = createEphemeralAcceptancePassword();
+      const ownerPassword = createEphemeralAcceptancePassword();
       await setupPool.query(
         `UPDATE users SET password_hash = CASE id
                             WHEN 'admin' THEN $1
                             WHEN 'admin-reviewer' THEN $2
                             WHEN 'support' THEN $3
-                            ELSE $4
+                            WHEN 'renter-a' THEN $4
+                            ELSE $5
                           END,
                           email_verified_at = now()
-         WHERE id IN ('admin', 'admin-reviewer', 'support', 'renter-a')`,
+         WHERE id IN ('admin', 'admin-reviewer', 'support', 'renter-a', 'owner')`,
         [
           await hashPassword(adminPassword),
           await hashPassword(reviewerPassword),
           await hashPassword(supportPassword),
           await hashPassword(renterAPassword),
+          await hashPassword(ownerPassword),
         ],
       );
       const socialClaims = new Map();
@@ -1482,6 +1493,79 @@ if (!databaseUrl) {
         reconcilePrivacyRightsDeadlinesWithClient(client, { now: privacyNearAt })
       ));
       assert.equal(privacyDeadlineReplay.alertsCreated, 0);
+      const privacyIncidentIntakeResponse = await fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 's3t-wrong-recipient-incident-intake',
+        },
+        body: JSON.stringify({
+          caseType: 'privacy_security',
+          caseSubType: 'wrong_recipient_or_wrong_account',
+          summary: 'Kontrollierten Versand an das falsche Testkonto als Datenschutzvorfall prüfen.',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+        }),
+      });
+      assert.equal(privacyIncidentIntakeResponse.status, 201);
+      const privacyIncidentIntake = await privacyIncidentIntakeResponse.json();
+      const privacyIncidentStored = await setupPool.query(
+        `SELECT * FROM support_privacy_incidents WHERE case_id = $1`,
+        [privacyIncidentIntake.supportCase.id],
+      );
+      assert.equal(privacyIncidentStored.rowCount, 1);
+      const privacyIncidentBeforeContainment = privacyIncidentStored.rows[0];
+      assert.equal(privacyIncidentBeforeContainment.incident_version, 'sit_privacy_incident_v1');
+      assert.equal(privacyIncidentBeforeContainment.containment_status, 'pending');
+      assert.equal(privacyIncidentBeforeContainment.assessment_status, 'pending_human_assessment');
+      assert.equal(privacyIncidentBeforeContainment.authority_notification_status, 'not_decided');
+      assert.equal(privacyIncidentBeforeContainment.external_notifications_sent, false);
+      assert.equal(
+        new Date(privacyIncidentBeforeContainment.notification_deadline_at).getTime()
+          - new Date(privacyIncidentBeforeContainment.breach_awareness_at).getTime(),
+        72 * 60 * 60 * 1000,
+      );
+      assert.equal(
+        new Date(privacyIncidentBeforeContainment.notification_deadline_at).getTime()
+          - new Date(privacyIncidentBeforeContainment.reminder_at).getTime(),
+        12 * 60 * 60 * 1000,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_privacy_incidents
+              SET notification_deadline_at = notification_deadline_at + interval '1 hour',
+                  lock_version = lock_version + 1,
+                  updated_at = updated_at + interval '1 second'
+            WHERE id = $1`,
+          [privacyIncidentBeforeContainment.id],
+        ),
+        (error) => error?.code === '55000',
+      );
+      const privacyIncidentNearAt = new Date(
+        new Date(privacyIncidentBeforeContainment.notification_deadline_at).getTime()
+          - (6 * 60 * 60 * 1000),
+      );
+      const privacyIncidentDeadlineRun = await inTransaction((client) => (
+        reconcilePrivacyIncidentDeadlinesWithClient(client, { now: privacyIncidentNearAt })
+      ));
+      assert.equal(privacyIncidentDeadlineRun.deadlineNear, 1);
+      assert.equal(privacyIncidentDeadlineRun.deadlineOverdue, 0);
+      assert.equal(privacyIncidentDeadlineRun.externalNotificationsSent, 0);
+      const privacyIncidentDeadlineReplay = await inTransaction((client) => (
+        reconcilePrivacyIncidentDeadlinesWithClient(client, { now: privacyIncidentNearAt })
+      ));
+      assert.equal(privacyIncidentDeadlineReplay.alertsCreated, 0);
       const article18IntakeResponse = await fetch(`${baseUrl}/v1/support/cases`, {
         method: 'POST',
         headers: {
@@ -3435,6 +3519,70 @@ if (!databaseUrl) {
           && entry.activeLegalHoldCount === 0
           && entry.identityStatus === 'verified',
       ));
+      const privacyIncidentQueueResponse = await fetch(
+        `${baseUrl}/v1/admin/support/privacy-incidents`,
+        { headers: adminHeaders },
+      );
+      assert.equal(privacyIncidentQueueResponse.status, 200);
+      const privacyIncidentQueue = await privacyIncidentQueueResponse.json();
+      assert.equal(privacyIncidentQueue.humanAssessmentRequired, true);
+      assert.equal(privacyIncidentQueue.externalNotificationEnabled, false);
+      assert.ok(privacyIncidentQueue.privacyIncidents.some((entry) => (
+        entry.id === privacyIncidentBeforeContainment.id
+          && entry.breachAwarenessAt
+          && entry.notificationDeadlineAt
+          && entry.externalNotificationsSent === false
+      )));
+      const privacyContainmentResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${privacyIncidentIntake.supportCase.id}/privacy-incident/containment-actions`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's3t-privacy-incident-contained',
+          },
+          body: JSON.stringify({
+            expectedVersion: 1,
+            actionCode: 'test_recipient_access_restricted',
+            outcome: 'successful',
+            containmentStatus: 'contained',
+            actionReference: 'test-access-control-incident-001',
+          }),
+        },
+      );
+      assert.equal(privacyContainmentResponse.status, 201);
+      const privacyContainment = await privacyContainmentResponse.json();
+      assert.equal(privacyContainment.incident.containmentStatus, 'contained');
+      assert.equal(privacyContainment.incident.version, 2);
+      assert.equal(privacyContainment.incident.externalNotificationsSent, false);
+      const privacyContainmentReplay = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${privacyIncidentIntake.supportCase.id}/privacy-incident/containment-actions`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's3t-privacy-incident-contained',
+          },
+          body: JSON.stringify({
+            expectedVersion: 1,
+            actionCode: 'test_recipient_access_restricted',
+            outcome: 'successful',
+            containmentStatus: 'contained',
+            actionReference: 'test-access-control-incident-001',
+          }),
+        },
+      );
+      assert.equal(privacyContainmentReplay.status, 200);
+      assert.equal((await privacyContainmentReplay.json()).replayed, true);
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_privacy_incident_containment_actions
+              SET action_reference = 'tampered-reference'
+            WHERE incident_id = $1`,
+          [privacyIncidentBeforeContainment.id],
+        ),
+        (error) => error?.code === '55000',
+      );
       const forbiddenPrivacyExtension = await fetch(
         `${baseUrl}/v1/admin/support/cases/${privacyIntake.supportCase.id}/privacy-rights/deadline-extension`,
         {
@@ -4872,11 +5020,52 @@ if (!databaseUrl) {
         (error) => error?.code === '55000',
       );
 
+      await setupPool.query(
+        `INSERT INTO messages (
+           id, thread_id, sender_id, sender_type, body, is_read, created_at
+         ) VALUES
+           ('s3t-location-owner', 'thread-1', 'owner', 'user', $1, false, now()),
+           ('s3t-location-renter', 'thread-1', 'renter-a', 'user', $2, false,
+             now() + interval '1 millisecond')`,
+        [
+          '📍 LOCATION_SHARE|Übergabe|52.501|13.401|https://maps.example/owner|handover|Eigenweg 7, 10115 Berlin|Owner',
+          '📍 LOCATION_SHARE|Rückgabe|52.502|13.402|https://maps.example/renter|return|Fremdweg 9, 10117 Berlin|Renter A',
+        ],
+      );
+      const legacyGetExport = await fetch(`${baseUrl}/v1/account/export`, {
+        headers: ownerHeaders,
+      });
+      assert.equal(legacyGetExport.status, 404);
+      const forgedExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
+        method: 'POST',
+        headers: {
+          ...ownerHeaders,
+          'X-Forwarded-For': '203.0.113.60',
+        },
+        body: JSON.stringify({ currentPassword: ownerPassword, userId: 'renter-a' }),
+      });
+      assert.equal(forgedExportResponse.status, 400);
+      assert.equal((await forgedExportResponse.json()).error, 'account_export_request_invalid');
+      const wrongPasswordExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
+        method: 'POST',
+        headers: {
+          ...ownerHeaders,
+          'X-Forwarded-For': '203.0.113.60',
+        },
+        body: JSON.stringify({
+          currentPassword: createEphemeralAcceptancePassword(),
+        }),
+      });
+      assert.equal(wrongPasswordExportResponse.status, 401);
+      assert.equal((await wrongPasswordExportResponse.json()).error, 'invalid_credentials');
       const exportResponse = await fetch(`${baseUrl}/v1/account/export`, {
+        method: 'POST',
         headers: {
           ...ownerHeaders,
           'X-Request-ID': 'b10-owner-export',
+          'X-Forwarded-For': '203.0.113.60',
         },
+        body: JSON.stringify({ currentPassword: ownerPassword }),
       });
       assert.equal(exportResponse.status, 200);
       assert.equal(exportResponse.headers.get('x-request-id'), 'b10-owner-export');
@@ -4907,16 +5096,36 @@ if (!databaseUrl) {
         false,
       );
       assert.ok(accountExport.data.communication.messageThreads.some((entry) => entry.id === b7Thread.id));
+      const ownerLocationMessages = accountExport.data.communication.messages.filter(
+        (entry) => entry.id.startsWith('s3t-location-'),
+      );
+      assert.match(
+        ownerLocationMessages.find((entry) => entry.id === 's3t-location-owner').body,
+        /Eigenweg 7/u,
+      );
+      const ownerReceivedLocation = ownerLocationMessages.find(
+        (entry) => entry.id === 's3t-location-renter',
+      ).body;
+      assert.match(ownerReceivedLocation, /THIRD_PARTY_EXACT_LOCATION_OMITTED/u);
+      assert.doesNotMatch(ownerReceivedLocation, /Fremdweg|52\.502|13\.402|maps\.example/u);
+      assert.equal(
+        accountExport.data.communication.privacyExportMinimization
+          .thirdPartyStructuredLocationsOmitted,
+        1,
+      );
       assert.ok(accountExport.data.trustAndSafety.reviews.some((entry) => entry.relationship === 'submitted'));
       assert.ok(accountExport.data.auditEvents.some((entry) => (
         entry.action === 'account.data_exported'
           && entry.request_id === 'b10-owner-export'
       )));
       const renterExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
+        method: 'POST',
         headers: {
           ...renterAHeaders,
           'X-Request-ID': 'b10-renter-export',
+          'X-Forwarded-For': '203.0.113.61',
         },
+        body: JSON.stringify({ currentPassword: renterAPassword }),
       });
       assert.equal(renterExportResponse.status, 200);
       const renterExport = await renterExportResponse.json();
@@ -4928,6 +5137,17 @@ if (!databaseUrl) {
         renterExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId),
       );
       assert.equal(renterExport.data.marketplace.rentalCart.reservationCreated, false);
+      const renterOwnerLocation = renterExport.data.communication.messages.find(
+        (entry) => entry.id === 's3t-location-owner',
+      ).body;
+      assert.match(renterOwnerLocation, /THIRD_PARTY_EXACT_LOCATION_OMITTED/u);
+      assert.doesNotMatch(renterOwnerLocation, /Eigenweg|52\.501|13\.401|maps\.example/u);
+      assert.match(
+        renterExport.data.communication.messages.find(
+          (entry) => entry.id === 's3t-location-renter',
+        ).body,
+        /Fremdweg 9/u,
+      );
       assert.equal(
         renterExport.data.marketplace.rentalCart.items[0].client_item_id,
         'cartitem_move_1',
@@ -5496,6 +5716,22 @@ if (!databaseUrl) {
       assert.equal(socialSession.user.email, 'social-google@example.com');
       assert.equal(socialSession.user.emailVerified, true);
       assert.match(socialSession.sessionId, /^[0-9a-f-]{36}$/);
+      const passwordlessExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${socialSession.accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Forwarded-For': '203.0.113.62',
+        },
+        body: JSON.stringify({
+          currentPassword: createEphemeralAcceptancePassword(),
+        }),
+      });
+      assert.equal(passwordlessExportResponse.status, 409);
+      assert.equal(
+        (await passwordlessExportResponse.json()).error,
+        'account_export_password_verification_unavailable',
+      );
       const socialIdentity = await setupPool.query(
         `SELECT provider, provider_subject, firebase_user_id, email_verified
          FROM auth_identities WHERE user_id = $1`,

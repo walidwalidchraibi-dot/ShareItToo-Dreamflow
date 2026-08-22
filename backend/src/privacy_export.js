@@ -3,6 +3,26 @@ async function rows(client, sql, userId) {
   return result.rows;
 }
 
+const locationShareMarker = 'LOCATION_SHARE|';
+const thirdPartyLocationPlaceholder =
+  'LOCATION_SHARE|THIRD_PARTY_EXACT_LOCATION_OMITTED';
+
+export function minimizeThirdPartyStructuredLocations(messages) {
+  let omittedCount = 0;
+  const minimized = messages.map((message) => {
+    if (message.sent_by_me === true || typeof message.body !== 'string') return message;
+    const markerIndex = message.body.indexOf(locationShareMarker);
+    if (markerIndex < 0) return message;
+    omittedCount += 1;
+    const prefix = message.body.slice(0, markerIndex).trimEnd();
+    return {
+      ...message,
+      body: `${prefix ? `${prefix}\n` : ''}${thirdPartyLocationPlaceholder}`,
+    };
+  });
+  return Object.freeze({ messages: minimized, omittedCount });
+}
+
 export async function buildAccountExport(client, userId) {
   const accountResult = await client.query(
     `SELECT id, email, profile, role, account_status, phone_e164,
@@ -71,6 +91,7 @@ export async function buildAccountExport(client, userId) {
     supportPrivacyRightsRequests,
     supportPrivacyIdentityVerifications,
     supportPrivacyDeadlineExtensions,
+    supportPrivacyIncidents,
     supportDsaNoticeLocatorAmendments,
     supportCaseEvents,
     supportBreakGlassAccess,
@@ -643,6 +664,19 @@ export async function buildAccountExport(client, userId) {
         WHERE privacy_request.subject_user_id = $1
         ORDER BY extension.recorded_at, extension.id`, userId),
     rows(client,
+      `SELECT incident.id, incident.case_id, incident.incident_version,
+              incident.breach_awareness_at, incident.notification_deadline_at,
+              incident.reminder_at, incident.deadline_policy_version,
+              incident.containment_status, incident.assessment_status,
+              incident.authority_notification_status,
+              incident.affected_person_notification_status,
+              incident.created_at, incident.updated_at
+         FROM support_privacy_incidents AS incident
+         JOIN support_cases AS support_case ON support_case.id = incident.case_id
+        WHERE support_case.reporter_user_id = $1
+           OR $1 = ANY(support_case.affected_user_ids)
+        ORDER BY incident.breach_awareness_at, incident.id`, userId),
+    rows(client,
       `SELECT amendment.id, amendment.case_id,
               amendment.dsa_notice_number, amendment.content_locator,
               amendment.locator_kind, amendment.submitted_at
@@ -845,6 +879,8 @@ export async function buildAccountExport(client, userId) {
        FROM audit_log WHERE actor_id = $1 ORDER BY created_at`, userId),
   ]);
 
+  const privacySafeMessages = minimizeThirdPartyStructuredLocations(messages);
+
   return {
     account,
     authentication: { sessions, identities, pushDevices },
@@ -892,7 +928,12 @@ export async function buildAccountExport(client, userId) {
     },
     communication: {
       messageThreads,
-      messages,
+      messages: privacySafeMessages.messages,
+      privacyExportMinimization: {
+        policyVersion: 'sit-third-party-structured-location-minimization-v1',
+        thirdPartyStructuredLocationsOmitted: privacySafeMessages.omittedCount,
+        ownStructuredLocationsIncluded: true,
+      },
       bookingConditionEvidence,
       bookingConditionConfirmations,
       v52ConditionEvidenceBindings,
@@ -907,6 +948,7 @@ export async function buildAccountExport(client, userId) {
         privacyRightsRequests: supportPrivacyRightsRequests,
         privacyIdentityVerifications: supportPrivacyIdentityVerifications,
         privacyDeadlineExtensions: supportPrivacyDeadlineExtensions,
+        privacyIncidents: supportPrivacyIncidents,
         dsaNoticeLocatorAmendments: supportDsaNoticeLocatorAmendments,
         events: supportCaseEvents,
         emergencyAccess: supportBreakGlassAccess,

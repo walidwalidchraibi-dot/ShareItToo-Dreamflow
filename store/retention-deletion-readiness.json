@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "866901f7a3cd1794306032a7e2a0ac6abc4d39a5131200f484e557c1c48e508d"
+      "sha256": "890404b4706c1943a773d7eda7b88a928728b561ba579ba897abfe8e5cf4a5a2"
     },
     {
       "path": "backend/src/server.js",
@@ -41,11 +41,11 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "e161c599001f0129c95c918bc53db0eda379f836663dad1a64371f4f29909e95"
+      "sha256": "a0d0fdba3f11c1b9679fd8cdb75087793dc44b6df20d62ff8473e388d13ea15f"
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "70e8b500310f80770ff0d97e0420f31363f5dd82d20e3a2a4c07caa9e70b0845"
+      "sha256": "8509b3b00852792f4595cb4c581d2de2aca25bb360f2d4d6a1363dea2f05f0d1"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -53,7 +53,7 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "b2f83bd291e2e5b6f06ba2728b13d8b2dd740b9c208365c3814ebb246fe70ee7"
+      "sha256": "23055bdf83414507f47e78408beed6aafd8b297e6229919b20a3a95f5cc01f97"
     },
     {
       "path": "backend/src/support_privacy_rights_domain.js",
@@ -62,6 +62,14 @@
     {
       "path": "backend/src/support_privacy_rights_workflow.js",
       "sha256": "fe21456dd0bfc158682b6f908ed8d8a463668ff827c4cc4d645ec46a34d08173"
+    },
+    {
+      "path": "backend/src/support_privacy_incident_domain.js",
+      "sha256": "33229a6e5ff5f9a51f73c2b9bfa25d62f3dcf07dc4d4114627a5ec0803241942"
+    },
+    {
+      "path": "backend/src/support_privacy_incident_workflow.js",
+      "sha256": "351695c5de7df747fb35ff96f7ee4b1063d87a4d8d0a0147e5e70d2dbd921603"
     },
     {
       "path": "backend/src/support_article18_domain.js",
@@ -109,7 +117,7 @@
     },
     {
       "path": "backend/src/support_deadline_watchdog.js",
-      "sha256": "5cafc3bcb51f6e32ac4e64c0274417f70580c9d83bbb4fd5d7ec49d76f1eddfc"
+      "sha256": "8292ed06c11c50250fb7da6d21ddb458e6acb7f3c49c071fedf3ed3375817df9"
     },
     {
       "path": "backend/src/rental_cart_workflow.js",
@@ -356,6 +364,14 @@
       "sha256": "5daa50ab3bfc1540cdee5684d6daadc758b75154b17d2861db36b86c7b0d9ece"
     },
     {
+      "path": "backend/sql/migrations/048_support_privacy_incident_control_plane.up.sql",
+      "sha256": "cba09e89973669f73b50b0379eeb0b66191306793ffe14cc3c246d00d3ef5356"
+    },
+    {
+      "path": "backend/sql/migrations/048_support_privacy_incident_control_plane.down.sql",
+      "sha256": "ceafc1cf1e51660f4dcec9b8034e7a46df74f55704a5f5a22a3dd090702fe74c"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -401,7 +417,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "97d3bae970f244a6b34d67b092fabb3e9e1c7a06b22769fa90139112219fb81c"
+      "sha256": "b91f496d1e49f10d7ec6be95ad4dafc002ca37dfcaf9d54110350d8ffc3a4b9c"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
@@ -473,7 +489,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "60323e13c1c740f5700c29d9d812041899f245fded46e007eff14d4e65db3b6b"
+      "sha256": "2775949ee47077ccd2f7f240ae4f739cf535908f858addaa0fe8a4a66998f2be"
     },
     {
       "path": "store/g2-data-lifecycle.json",
