@@ -2060,3 +2060,24 @@ debug build. Privacy remains honestly draft and fail-closed.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AO owner-request result async-context ratchet
+
+`S4AO_OWNER_REQUEST_RESULT_ASYNC_CONTEXT_RATCHET` is locally verified at
+commit `5c09b02`. Owner-detail decline and acceptance now prove their exact body
+context after refresh and before result UI. The existing product auto-close
+callbacks prove the same exact context before root-navigator access.
+Acceptance, decline, timeline, refresh, popup destinations and timer durations
+are unchanged.
+
+The exact analyzer snapshot ratcheted `175 -> 171`, with
+`use_build_context_synchronously` `53 -> 49` and the owner-detail context bucket
+`10 -> 6`; all other buckets remained identical. Twenty-nine focused
+source/analyzer/privacy contracts, 96 focused Flutter tests, the privacy and
+retention validators and the complete clean local metadata gate passed at
+`5c09b025009e43c88b8d66a5cbc831c40227fff4` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build. Privacy remains honestly draft and fail-closed.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

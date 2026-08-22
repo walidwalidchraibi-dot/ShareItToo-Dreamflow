@@ -1524,3 +1524,24 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AO owner-request result async-context ratchet
+
+`S4AO_OWNER_REQUEST_RESULT_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `5c09b02`. Owner-detail decline and
+acceptance now prove their exact body context after screen refresh and before
+result UI. The existing product auto-close callbacks prove the same exact
+context before root-navigator access. Acceptance, decline, timeline, refresh,
+popup destinations and timer durations are unchanged.
+
+The exact debt snapshot moves `175 -> 171`, and only the intended
+`use_build_context_synchronously` owner-detail bucket changes. Twenty-nine
+focused source/analyzer/privacy contracts, 96 focused Flutter tests, the
+privacy and retention validators and the complete clean local metadata gate
+pass with the new exact fingerprint. The privacy inventory is rebound to the
+reviewed owner-detail source without changing any disclosure or release state.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
