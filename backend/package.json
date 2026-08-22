@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test",
+    "test": "node --import ./test_setup.js --test",
     "check": "for file in src/*.js ops/*.mjs; do node --check \"$file\"; done && for file in ops/*.sh; do bash -n \"$file\"; done",
     "security:secrets": "node ops/scan_git_secrets.mjs"
   },

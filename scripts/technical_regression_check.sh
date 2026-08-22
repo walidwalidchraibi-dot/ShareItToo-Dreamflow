@@ -448,12 +448,19 @@ if (( analyze_status != 0 )) && (( issue_count == 0 )); then
   exit 1
 fi
 
-flutter_test_concurrency="${SIT_FLUTTER_TEST_CONCURRENCY:-1}"
-if [[ ! "$flutter_test_concurrency" =~ ^[1-9][0-9]*$ ]]; then
-  echo "ERROR: SIT_FLUTTER_TEST_CONCURRENCY must be a positive integer." >&2
-  exit 1
+flutter_test_concurrency="${SIT_FLUTTER_TEST_CONCURRENCY:-}"
+if [[ -n "$flutter_test_concurrency" ]]; then
+  if [[ ! "$flutter_test_concurrency" =~ ^[1-9][0-9]*$ ]]; then
+    echo "ERROR: SIT_FLUTTER_TEST_CONCURRENCY must be a positive integer." >&2
+    exit 1
+  fi
+  flutter test --reporter expanded --concurrency "$flutter_test_concurrency"
+else
+  # Standard Flutter parallelism is the release-readiness path. A caller may
+  # still select a positive value for diagnostics, but serial execution is not
+  # the repository default and cannot establish release readiness.
+  flutter test --reporter expanded
 fi
-flutter test --reporter expanded --concurrency "$flutter_test_concurrency"
 
 # Compile and execute the exact next social-auth profile without producing a
 # release artifact: Google is opt-in, while Apple and Facebook remain closed.

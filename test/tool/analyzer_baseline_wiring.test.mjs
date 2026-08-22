@@ -23,3 +23,10 @@ test('rejects reintroduction of cleared correctness analyzer codes', () => {
   }
   assert.match(script, /Analyzer correctness regression detected/);
 });
+
+test('uses standard Flutter parallelism unless diagnostics explicitly override it', () => {
+  assert.match(script, /SIT_FLUTTER_TEST_CONCURRENCY:-}/);
+  assert.match(script, /flutter test --reporter expanded\nfi/);
+  assert.doesNotMatch(script, /SIT_FLUTTER_TEST_CONCURRENCY:-1/);
+  assert.match(script, /serial execution is not[\s\S]*release readiness/);
+});
