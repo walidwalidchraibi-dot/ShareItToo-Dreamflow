@@ -52,6 +52,7 @@ function caseRow(overrides = {}) {
     product_safety_notice_number: null,
     product_safety_evidence: null,
     product_safety_triage_due_at: null,
+    feedback_context: null,
     case_type: 'general_help',
     case_subtype: 'general_how_to',
     status: 'received',
@@ -259,6 +260,107 @@ test('create validates linked-entity access and records case, event and audit', 
   assert.equal(result.supportCase.priority, 'p1');
   assert.equal(result.supportCase.operatingMode, 'internal_testing');
   assert.equal('severity' in result.supportCase, false);
+  client.done();
+});
+
+test('create persists controlled P4 feedback without linked entities or escalation', async () => {
+  const feedbackContext = {
+    version: 'sit_support_feedback_context_v1',
+    feedbackKind: 'improvement_suggestion',
+    productArea: 'app_experience',
+    nonUrgentConfirmed: true,
+  };
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /AS booking_allowed/,
+      check: ({ params }) => assert.deepEqual(params, [
+        'user-1', null, null, null, null, null,
+      ]),
+      result: {
+        rowCount: 1,
+        rows: [{
+          booking_allowed: true,
+          listing_exists: true,
+          payment_allowed: true,
+          refund_allowed: true,
+          payout_allowed: true,
+        }],
+      },
+    },
+    {
+      match: /INSERT INTO support_cases/,
+      check: ({ sql, params }) => {
+        assert.match(sql, /feedback_context/u);
+        assert.equal(params[2], 'general_help');
+        assert.equal(params[3], 'feedback_or_improvement');
+        assert.equal(params[4], 'p4');
+        assert.equal(params[5], 'low');
+        assert.equal(params[11], 'general_support_owner');
+        assert.equal(params[12], 'green_automatic');
+        assert.deepEqual(params.slice(25, 30), [null, null, null, null, null]);
+        assert.deepEqual(JSON.parse(params[40]), feedbackContext);
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          id: params[0],
+          human_readable_case_number: params[1],
+          case_type: params[2],
+          case_subtype: params[3],
+          priority: params[4],
+          severity: params[5],
+          current_owner_role: params[11],
+          approval_level: params[12],
+          next_action: params[15],
+          next_update_at: params[16],
+          feedback_context: JSON.parse(params[40]),
+          created_at: params[36],
+          updated_at: params[36],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        const payload = JSON.parse(params[3]);
+        assert.equal(payload.priority, 'p4');
+        assert.deepEqual(payload.feedbackContext, feedbackContext);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        const metadata = JSON.parse(params[4]);
+        assert.equal(metadata.priority, 'p4');
+        assert.equal(metadata.feedbackContextVersion, feedbackContext.version);
+        assert.equal(metadata.feedbackKind, feedbackContext.feedbackKind);
+        assert.equal(metadata.feedbackProductArea, feedbackContext.productArea);
+        assert.equal(metadata.feedbackNonUrgentConfirmed, true);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+
+  const result = await createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: {
+      caseType: 'general_help',
+      caseSubType: 'feedback_or_improvement',
+      summary: 'Nicht dringende Verbesserung für die App vorschlagen.',
+      safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
+      feedbackContext,
+    },
+    idempotencyKey: 'feedback-key-1',
+    now,
+  });
+
+  assert.equal(result.supportCase.priority, 'p4');
+  assert.deepEqual(result.supportCase.feedbackContext, feedbackContext);
+  assert.equal(result.supportCase.linkedBookingId, null);
+  assert.equal(result.supportCase.linkedListingId, null);
   client.done();
 });
 
@@ -1570,6 +1672,10 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     path.resolve(currentDir, '../sql/migrations/038_support_message_template_guard.down.sql'),
     'utf8',
   );
+  const feedbackPriorityUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/054_support_feedback_priority.up.sql'),
+    'utf8',
+  );
   for (const table of [
     'support_policy_snapshots',
     'support_cases',
@@ -1590,7 +1696,12 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
   assert.match(privacyRightsDown, /Privacy-rights rollback blocked: request data exists/);
   for (const [family, subtypes] of Object.entries(supportCaseFamilies)) {
     assert.match(up, new RegExp(`case_type = '${family}'`));
-    for (const subtype of subtypes) assert.ok(up.includes(`'${subtype}'`), `${family}/${subtype}`);
+    for (const subtype of subtypes) {
+      assert.ok(
+        up.includes(`'${subtype}'`) || feedbackPriorityUp.includes(`'${subtype}'`),
+        `${family}/${subtype}`,
+      );
+    }
   }
   assert.doesNotMatch(up, /'paused'/);
   assert.match(up, /support_case_events_append_only/);

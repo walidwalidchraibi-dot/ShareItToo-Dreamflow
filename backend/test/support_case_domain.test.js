@@ -15,6 +15,7 @@ import {
   supportCaseStatuses,
   supportIntakeScopeVersion,
   supportDsaNoticeIntakeVersion,
+  supportFeedbackContextVersion,
   supportProductSafetyContactPointVersion,
   supportProductSafetyIntakeVersion,
   supportPacketVersion,
@@ -88,7 +89,7 @@ test('support taxonomy and controlled vocabularies stay canonical and exclude pa
     'reopened',
   ]);
   assert.equal(supportCaseStatuses.includes('paused'), false);
-  assert.deepEqual(supportPriorities, ['p0', 'p1', 'p2', 'p3']);
+  assert.deepEqual(supportPriorities, ['p0', 'p1', 'p2', 'p3', 'p4']);
   assert.deepEqual(supportApprovalLevels, [
     'green_automatic',
     'yellow_human_review',
@@ -154,6 +155,110 @@ test('routing rejects unknown or mismatched taxonomy values', () => {
   assert.throws(
     () => supportRouteFor('general_help', 'refund_request_or_review'),
     /support_case_subtype_invalid/,
+  );
+});
+
+test('non-urgent feedback is routed to P4 without artificial escalation', () => {
+  const route = supportRouteFor('general_help', 'feedback_or_improvement');
+  assert.deepEqual(route, {
+    priority: 'p4',
+    severity: 'low',
+    ownerRole: 'general_support_owner',
+    approvalLevel: 'green_automatic',
+    waitingOn: 'support_owner',
+    safetyFlag: false,
+    privacyFlag: false,
+    dsaFlag: false,
+    authorityFlag: false,
+    article18CandidateFlag: false,
+    moneyFlag: false,
+    accountTakeoverFlag: false,
+  });
+
+  const result = normalizeSupportCaseInput({
+    caseType: 'general_help',
+    caseSubType: 'feedback_or_improvement',
+    summary: 'Nicht dringendes Feedback zur Bedienung der App.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+    feedbackContext: {
+      version: supportFeedbackContextVersion,
+      feedbackKind: 'improvement_suggestion',
+      productArea: 'app_experience',
+      nonUrgentConfirmed: true,
+    },
+  }, { now });
+
+  assert.equal(result.priority, 'p4');
+  assert.equal(result.nextUpdateAt.toISOString(), '2026-08-22T10:00:00.000Z');
+  assert.equal(result.nextAction,
+    'Feedback beantworten und dem bestätigten Produktbereich zuordnen.');
+  assert.deepEqual(result.feedbackContext, {
+    version: supportFeedbackContextVersion,
+    feedbackKind: 'improvement_suggestion',
+    productArea: 'app_experience',
+    nonUrgentConfirmed: true,
+  });
+  assert.equal(result.linkedBookingId, null);
+  assert.equal(result.linkedListingId, null);
+});
+
+test('feedback intake fails closed on missing scope, urgency and entity links', () => {
+  const base = {
+    caseType: 'general_help',
+    caseSubType: 'feedback_or_improvement',
+    summary: 'Nicht dringendes Feedback zur Bedienung der App.',
+    safetyTriage: safetyTriage(),
+    issueScope: issueScope(),
+    feedbackContext: {
+      version: supportFeedbackContextVersion,
+      feedbackKind: 'general_feedback',
+      productArea: 'app_experience',
+      nonUrgentConfirmed: true,
+    },
+  };
+  assert.throws(
+    () => normalizeSupportCaseInput({ ...base, feedbackContext: undefined }, { now }),
+    /support_feedback_context_required/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      feedbackContext: { ...base.feedbackContext, nonUrgentConfirmed: false },
+    }, { now }),
+    /support_feedback_non_urgent_confirmation_required/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      safetyTriage: safetyTriage(true),
+    }, { now }),
+    /support_feedback_urgent_route_required/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({ ...base, linkedBookingId: 'booking-1' }, { now }),
+    /support_feedback_entity_link_not_allowed/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      feedbackContext: { ...base.feedbackContext, feedbackKind: 'complaint' },
+    }, { now }),
+    /support_feedback_kind_invalid/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      feedbackContext: { ...base.feedbackContext, productArea: 'live_payments' },
+    }, { now }),
+    /support_feedback_product_area_invalid/u,
+  );
+  assert.throws(
+    () => normalizeSupportCaseInput({
+      ...base,
+      caseSubType: 'general_how_to',
+    }, { now }),
+    /support_feedback_context_not_applicable/u,
   );
 });
 

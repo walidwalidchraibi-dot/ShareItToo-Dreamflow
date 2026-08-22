@@ -45,7 +45,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "af2eefff3c2e3b98275909a0a68334dd6383e5e72c587edcb5f02bb3230ebbf4"
+      "sha256": "ca8002fa2a8c9c503c85f6e8ea8bed91a68a954859cf3617145cf26867c31445"
     },
     {
       "path": "backend/src/observability.js",
@@ -61,11 +61,11 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "021bd9b96e67670749b77ac0d211a29bdf056c178b2efe98cca9d6d66719444e"
+      "sha256": "d525cafe2895a0bc26028d33ef4b2d925a79965ecf11e0b2119fd50ebad636a1"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "fef5b26932a9717e038b2a1903acdb0af02feaccbe806c575d5e92f0033bc128"
+      "sha256": "c4d8648193a0f989513c94d7707f15febf4fee72fbbb2e1d8d0f12cdd40121e4"
     },
     {
       "path": "backend/src/support_privacy_rights_domain.js",
@@ -93,7 +93,7 @@
     },
     {
       "path": "backend/src/support_appeal_domain.js",
-      "sha256": "7b3c059d5e14c71866338510dee75dfdfac52d19215355ccde25a3a5714ba57c"
+      "sha256": "756c4b6a9a39257b5dbebe695fd48e11f8b495723939d484c12f0249a9977687"
     },
     {
       "path": "backend/src/support_appeal_workflow.js",
@@ -464,6 +464,14 @@
       "sha256": "5f0d7b78b06feaa775c1929a3914363e1b22a3a2fcaf27ffa5d17b6871f9d5c2"
     },
     {
+      "path": "backend/sql/migrations/054_support_feedback_priority.up.sql",
+      "sha256": "24bce7023f004d0a8bef5e69b22c3a2b83840fc053a47ce7211ae048e40996ae"
+    },
+    {
+      "path": "backend/sql/migrations/054_support_feedback_priority.down.sql",
+      "sha256": "3dc4c13c1c63c60de4540d9faad450829d803c0f93ed667d752486e31ae8ea42"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -529,7 +537,7 @@
     },
     {
       "path": "lib/screens/support_flow_screen.dart",
-      "sha256": "cb3f0345f8a0331c0c194dfde5d4a81b4293471f6fcb4912bd343e0e9ccce9d2"
+      "sha256": "ec1f72c66fcde7e6bf9eb914424b7e4d72fa02e600156db70c90bb4d62ac132b"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",

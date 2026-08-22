@@ -17,6 +17,7 @@ Map<String, dynamic> _canonicalCase({
   String? dsaNoticeNumber,
   String dsaNoticeLocatorStatus = 'complete',
   String? productSafetyNoticeNumber,
+  Map<String, dynamic>? feedbackContext,
 }) =>
     {
       'id': 'case-1',
@@ -38,6 +39,7 @@ Map<String, dynamic> _canonicalCase({
         'productSafetyTriageDueAt': '2026-08-21T15:00:00.000Z',
       if (productSafetyNoticeNumber != null)
         'productSafetyTriageDueDisplay': '21.08.2026, 17:00',
+      if (feedbackContext != null) 'feedbackContext': feedbackContext,
       'status': 'received',
       'nextUpdateAt': '2026-08-21T16:00:00.000Z',
       'nextUpdateDisplay': '21.08.2026, 18:00',
@@ -196,6 +198,52 @@ void main() {
       'linkedBookingId': 'booking-1',
       'linkedListingId': 'listing-1',
     });
+  });
+
+  test('non-urgent feedback uses exact P4 context and suppresses entity links',
+      () {
+    const result = SupportFlowResult(
+      mainCategory: 'feedback',
+      subCategory: 'Verbesserung für App und Bedienung',
+      userDescription: 'Die Navigation könnte einen kürzeren Weg anbieten.',
+      context: _context,
+      safetyTriage: SupportSafetyTriage(
+        immediateDanger: false,
+        guidanceShown: false,
+      ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
+      ),
+    );
+    const feedbackContext = {
+      'version': 'sit_support_feedback_context_v1',
+      'feedbackKind': 'improvement_suggestion',
+      'productArea': 'app_experience',
+      'nonUrgentConfirmed': true,
+    };
+
+    final intake = result.toBackendInput();
+    expect(intake['caseType'], 'general_help');
+    expect(intake['caseSubType'], 'feedback_or_improvement');
+    expect(intake['feedbackContext'], feedbackContext);
+    expect(intake.containsKey('linkedBookingId'), isFalse);
+    expect(intake.containsKey('linkedListingId'), isFalse);
+
+    final confirmed = result.withCanonicalCase(_canonicalCase(
+      caseType: 'general_help',
+      caseSubType: 'feedback_or_improvement',
+      feedbackContext: feedbackContext,
+    ));
+    expect(confirmed.canonicalReceiptMessage,
+        contains('keine künstliche Eskalation'));
+    expect(
+      () => result.withCanonicalCase(_canonicalCase(
+        caseType: 'general_help',
+        caseSubType: 'feedback_or_improvement',
+      )),
+      throwsFormatException,
+    );
   });
 
   test('immediate danger overrides the normal category route', () {

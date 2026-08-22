@@ -253,6 +253,26 @@ class SupportPrivacyRightsRequest {
       };
 }
 
+/// Kontrollierte Einordnung eines ausdrücklich nicht dringenden Feedbacks.
+class SupportFeedbackContext {
+  static const version = 'sit_support_feedback_context_v1';
+
+  final String feedbackKind;
+  final String productArea;
+
+  const SupportFeedbackContext({
+    required this.feedbackKind,
+    required this.productArea,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'version': version,
+        'feedbackKind': feedbackKind,
+        'productArea': productArea,
+        'nonUrgentConfirmed': true,
+      };
+}
+
 class SupportCaseRoute {
   final String caseType;
   final String caseSubType;
@@ -299,6 +319,49 @@ class SupportFlowResult {
     'Daten löschen': SupportPrivacyRightsRequest('erasure'),
     'Verarbeitung widersprechen': SupportPrivacyRightsRequest('objection'),
     'Verarbeitung einschränken': SupportPrivacyRightsRequest('restriction'),
+  };
+
+  static const _feedbackContexts = <String, SupportFeedbackContext>{
+    'Verbesserung für App und Bedienung': SupportFeedbackContext(
+      feedbackKind: 'improvement_suggestion',
+      productArea: 'app_experience',
+    ),
+    'Feedback zu Anzeigen und Katalog': SupportFeedbackContext(
+      feedbackKind: 'general_feedback',
+      productArea: 'listing_and_catalog',
+    ),
+    'Feedback zu Buchung und Terminen': SupportFeedbackContext(
+      feedbackKind: 'general_feedback',
+      productArea: 'booking_and_schedule',
+    ),
+    'Feedback zu Übergabe und Rückgabe': SupportFeedbackContext(
+      feedbackKind: 'general_feedback',
+      productArea: 'handover_and_return',
+    ),
+    'Feedback zu Zahlung und Dokumenten': SupportFeedbackContext(
+      feedbackKind: 'general_feedback',
+      productArea: 'payments_and_documents',
+    ),
+    'Feedback zu Nachrichten und Benachrichtigungen': SupportFeedbackContext(
+      feedbackKind: 'general_feedback',
+      productArea: 'messages_and_notifications',
+    ),
+    'Feedback zu Profil und Konto': SupportFeedbackContext(
+      feedbackKind: 'general_feedback',
+      productArea: 'profile_and_account',
+    ),
+    'Feedback zur Barrierefreiheit': SupportFeedbackContext(
+      feedbackKind: 'improvement_suggestion',
+      productArea: 'accessibility',
+    ),
+    'Nicht dringende Erklärung gewünscht': SupportFeedbackContext(
+      feedbackKind: 'non_urgent_explanation',
+      productArea: 'other',
+    ),
+    'Anderes nicht dringendes Feedback': SupportFeedbackContext(
+      feedbackKind: 'general_feedback',
+      productArea: 'other',
+    ),
   };
 
   static const _backendRoutes = <String, Map<String, SupportCaseRoute>>{
@@ -428,6 +491,28 @@ class SupportFlowResult {
       'Sonstiges technisches Problem':
           SupportCaseRoute('general_help', 'app_error_or_display'),
     },
+    'feedback': {
+      'Verbesserung für App und Bedienung':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Feedback zu Anzeigen und Katalog':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Feedback zu Buchung und Terminen':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Feedback zu Übergabe und Rückgabe':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Feedback zu Zahlung und Dokumenten':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Feedback zu Nachrichten und Benachrichtigungen':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Feedback zu Profil und Konto':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Feedback zur Barrierefreiheit':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Nicht dringende Erklärung gewünscht':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+      'Anderes nicht dringendes Feedback':
+          SupportCaseRoute('general_help', 'feedback_or_improvement'),
+    },
     'privacy': {
       'Auskunft oder Kopie meiner Daten':
           SupportCaseRoute('privacy_security', 'access_or_copy_request'),
@@ -510,6 +595,9 @@ class SupportFlowResult {
         route.caseSubType == 'illegal_content_notice';
     final isProductSafetyNotice = route.caseType == 'trust_safety' &&
         route.caseSubType == 'dangerous_item_or_injury';
+    final isFeedback = route.caseType == 'general_help' &&
+        route.caseSubType == 'feedback_or_improvement';
+    final feedbackContext = _feedbackContexts[subCategory];
     final expectedDsaContentType = _dsaContentTypes[subCategory];
     final privacyRightsRequest = _privacyRightsRequests[subCategory];
     if (isDsaNotice &&
@@ -534,6 +622,9 @@ class SupportFlowResult {
     if (!isProductSafetyNotice && productSafetyNotice != null) {
       throw const FormatException('unexpected_product_safety_intake');
     }
+    if (isFeedback && feedbackContext == null) {
+      throw const FormatException('invalid_feedback_intake');
+    }
     final description = userDescription.trim();
     final summary = '$mainCategoryLabel: $subCategory.'
         '${description.isEmpty ? '' : ' $description'}';
@@ -554,9 +645,16 @@ class SupportFlowResult {
         'productSafetyNotice': productSafetyNotice!.toMap(),
       if (privacyRightsRequest != null)
         'privacyRightsRequest': privacyRightsRequest.toMap(),
-      if (!profileContext && !listingContext && requestId.isNotEmpty)
+      if (isFeedback) 'feedbackContext': feedbackContext!.toMap(),
+      if (!isFeedback &&
+          !profileContext &&
+          !listingContext &&
+          requestId.isNotEmpty)
         'linkedBookingId': requestId,
-      if (!profileContext && itemId.isNotEmpty && !itemId.contains(':'))
+      if (!isFeedback &&
+          !profileContext &&
+          itemId.isNotEmpty &&
+          !itemId.contains(':'))
         'linkedListingId': itemId,
     };
   }
@@ -567,6 +665,10 @@ class SupportFlowResult {
         route.caseSubType == 'illegal_content_notice';
     final isProductSafetyNotice = route.caseType == 'trust_safety' &&
         route.caseSubType == 'dangerous_item_or_injury';
+    final isFeedback = route.caseType == 'general_help' &&
+        route.caseSubType == 'feedback_or_improvement';
+    final expectedFeedbackContext = _feedbackContexts[subCategory]?.toMap();
+    final receivedFeedbackContext = value['feedbackContext'];
     final dsaNoticeNumber = value['dsaNoticeNumber']?.toString().trim();
     final dsaLocatorStatus = value['dsaNoticeLocatorStatus']?.toString().trim();
     final dsaLocatorPrompt = value['dsaNoticeLocatorPrompt']?.toString().trim();
@@ -616,6 +718,13 @@ class SupportFlowResult {
             : (productSafetyNoticeNumber ?? '').isNotEmpty ||
                 (productSafetyTriageDueAt ?? '').isNotEmpty ||
                 (productSafetyTriageDueDisplay ?? '').isNotEmpty) ||
+        (isFeedback
+            ? receivedFeedbackContext is! Map ||
+                receivedFeedbackContext.length !=
+                    expectedFeedbackContext!.length ||
+                expectedFeedbackContext.entries.any((entry) =>
+                    receivedFeedbackContext[entry.key] != entry.value)
+            : receivedFeedbackContext != null) ||
         !RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
             .hasMatch(value['caseNumber'].toString()) ||
         DateTime.tryParse(value['nextUpdateAt'].toString()) == null) {
@@ -641,6 +750,8 @@ class SupportFlowResult {
         backendRoute.caseSubType == 'illegal_content_notice';
     final isProductSafetyNotice = backendRoute.caseType == 'trust_safety' &&
         backendRoute.caseSubType == 'dangerous_item_or_injury';
+    final isFeedback = backendRoute.caseType == 'general_help' &&
+        backendRoute.caseSubType == 'feedback_or_improvement';
     final routingLine = backendRoute.caseType == 'privacy_security'
         ? 'Deine Anfrage ist als eigener Datenschutz-Fall im '
             'Datenschutz-Prüfweg erfasst.'
@@ -656,8 +767,13 @@ class SupportFlowResult {
                     'den Gegenstand bis zur Prüfung nicht weiter. Die '
                     'Eingangsbestätigung ist noch keine technische oder '
                     'rechtliche Bewertung.'
-                : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
-                    'noch nicht entschieden.';
+                : isFeedback
+                    ? 'Dein nicht dringendes Feedback wurde erfasst und dem '
+                        'gewählten Produktbereich zugeordnet. Es löst keine '
+                        'künstliche Eskalation und keine automatische '
+                        'Produktentscheidung aus.'
+                    : 'Der Fall ist serverseitig eingegangen. Ein finales Ergebnis ist '
+                        'noch nicht entschieden.';
     final safetyLine = safetyTriage.immediateDanger
         ? 'Sicherheit geht vor: Bleib an einem sicheren Ort und nutze bei unmittelbarer Gefahr 110 oder 112. SIT ist kein Notfalldienst.'
         : routingLine;
@@ -705,6 +821,8 @@ class SupportFlowResult {
         return 'Problem mit anderer Person';
       case 'technical':
         return 'Technisches Problem';
+      case 'feedback':
+        return 'Feedback & Verbesserung';
       case 'privacy':
         return 'Datenschutz & Daten';
       case 'dsa_notice':
@@ -857,6 +975,11 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       'subline':
           'Wähle, was nicht funktioniert. So können wir den Fehler schneller finden.',
     },
+    'feedback': {
+      'title': 'Möchtest du nicht dringendes Feedback geben?',
+      'subline': 'Wähle den Produktbereich. Dringende Probleme und Risiken '
+          'gehören in die jeweilige Problem- oder Sicherheitskategorie.',
+    },
     'privacy': {
       'title': 'Geht es um Datenschutz oder deine Daten?',
       'subline': 'Wähle den genauen Anlass. Die Anfrage wird als eigener '
@@ -972,6 +1095,22 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         'App lädt nicht',
         'Button reagiert nicht',
         'Sonstiges technisches Problem',
+      ],
+    ),
+    'feedback': _SupportCategory(
+      icon: Icons.lightbulb_outline,
+      label: 'Feedback & Verbesserung',
+      subcategories: [
+        'Verbesserung für App und Bedienung',
+        'Feedback zu Anzeigen und Katalog',
+        'Feedback zu Buchung und Terminen',
+        'Feedback zu Übergabe und Rückgabe',
+        'Feedback zu Zahlung und Dokumenten',
+        'Feedback zu Nachrichten und Benachrichtigungen',
+        'Feedback zu Profil und Konto',
+        'Feedback zur Barrierefreiheit',
+        'Nicht dringende Erklärung gewünscht',
+        'Anderes nicht dringendes Feedback',
       ],
     ),
     'privacy': _SupportCategory(

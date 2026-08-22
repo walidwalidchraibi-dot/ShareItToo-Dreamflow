@@ -88,6 +88,7 @@ node --test test/tool/support_legacy_migration_wiring.test.mjs
 node --test test/tool/support_evidence_security_wiring.test.mjs
 node --test test/tool/support_safety_impact_wiring.test.mjs
 node --test test/tool/support_duplicate_case_linking_wiring.test.mjs
+node --test test/tool/support_feedback_priority_wiring.test.mjs
 node --test test/tool/support_single_issue_intake_wiring.test.mjs
 node --test test/tool/support_privacy_intake_wiring.test.mjs
 node --test test/tool/support_account_deletion_retention_wiring.test.mjs

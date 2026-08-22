@@ -121,6 +121,8 @@ const sourcePaths = [
   'backend/sql/migrations/052_support_safety_impact_review.down.sql',
   'backend/sql/migrations/053_support_duplicate_case_linking.up.sql',
   'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
+  'backend/sql/migrations/054_support_feedback_priority.up.sql',
+  'backend/sql/migrations/054_support_feedback_priority.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -755,6 +757,33 @@ function assertSourceContracts(root, sourceTexts) {
     'Refusing to drop retained support duplicate-case links',
   )) {
     fail('Support duplicate-case rollback must refuse deletion of retained links.');
+  }
+  if (!inventory.includes("'communications', 'support_cases'")) {
+    fail('Retention inventory is missing the existing support_cases dataset.');
+  }
+  const supportFeedbackMigrationUp = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/054_support_feedback_priority.up.sql',
+  );
+  const supportFeedbackMigrationDown = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/054_support_feedback_priority.down.sql',
+  );
+  for (const marker of [
+    'feedback_context JSONB',
+    'support_cases_feedback_context_guard',
+    'support_feedback_context_immutable',
+  ]) {
+    if (!supportFeedbackMigrationUp.includes(marker)) {
+      fail(`Support feedback retention boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportFeedbackMigrationDown.includes(
+    'Refusing to drop retained support feedback context',
+  )) {
+    fail('Support feedback rollback must refuse deletion of retained context.');
   }
   if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
     fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');

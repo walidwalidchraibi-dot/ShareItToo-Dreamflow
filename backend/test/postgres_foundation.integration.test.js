@@ -138,6 +138,7 @@ if (!databaseUrl) {
         '051_support_evidence_security.up.sql',
         '052_support_safety_impact_review.up.sql',
         '053_support_duplicate_case_linking.up.sql',
+        '054_support_feedback_priority.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -253,6 +254,18 @@ if (!databaseUrl) {
       );
       assert.deepEqual(supportIntakeScopeColumn.rows, [{
         column_name: 'intake_scope_evidence',
+        data_type: 'jsonb',
+        is_nullable: 'YES',
+      }]);
+      const supportFeedbackContextColumn = await setupPool.query(
+        `SELECT column_name, data_type, is_nullable
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'support_cases'
+            AND column_name = 'feedback_context'`,
+      );
+      assert.deepEqual(supportFeedbackContextColumn.rows, [{
+        column_name: 'feedback_context',
         data_type: 'jsonb',
         is_nullable: 'YES',
       }]);
@@ -1369,6 +1382,152 @@ if (!databaseUrl) {
       const supportIntakeReplay = await createSupportIntake();
       assert.equal(supportIntakeReplay.status, 200);
       assert.equal((await supportIntakeReplay.json()).replayed, true);
+
+      const feedbackContext = {
+        version: 'sit_support_feedback_context_v1',
+        feedbackKind: 'improvement_suggestion',
+        productArea: 'app_experience',
+        nonUrgentConfirmed: true,
+      };
+      const feedbackIntakeResponse = await fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 's4d-feedback-intake-integration',
+        },
+        body: JSON.stringify({
+          caseType: 'general_help',
+          caseSubType: 'feedback_or_improvement',
+          summary: 'Nicht dringende Verbesserung für die App vorschlagen.',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+          feedbackContext,
+        }),
+      });
+      assert.equal(feedbackIntakeResponse.status, 201);
+      const feedbackIntake = await feedbackIntakeResponse.json();
+      assert.equal(feedbackIntake.supportCase.caseType, 'general_help');
+      assert.equal(feedbackIntake.supportCase.caseSubType, 'feedback_or_improvement');
+      assert.equal(feedbackIntake.supportCase.priority, 'p4');
+      assert.equal(feedbackIntake.supportCase.linkedBookingId, null);
+      assert.equal(feedbackIntake.supportCase.linkedListingId, null);
+      assert.deepEqual(feedbackIntake.supportCase.feedbackContext, feedbackContext);
+      assert.match(feedbackIntake.supportCase.nextAction, /Produktbereich/u);
+
+      const persistedFeedback = await setupPool.query(
+        `SELECT priority, severity, current_owner_role, approval_level,
+                feedback_context, linked_booking_id, linked_listing_id,
+                linked_payment_id, linked_refund_id, linked_payout_id,
+                safety_flag, privacy_flag, dsa_flag, authority_flag,
+                article18_candidate_flag, money_flag, account_takeover_flag
+           FROM support_cases
+          WHERE id = $1`,
+        [feedbackIntake.supportCase.id],
+      );
+      assert.deepEqual(persistedFeedback.rows, [{
+        priority: 'p4',
+        severity: 'low',
+        current_owner_role: 'general_support_owner',
+        approval_level: 'green_automatic',
+        feedback_context: feedbackContext,
+        linked_booking_id: null,
+        linked_listing_id: null,
+        linked_payment_id: null,
+        linked_refund_id: null,
+        linked_payout_id: null,
+        safety_flag: false,
+        privacy_flag: false,
+        dsa_flag: false,
+        authority_flag: false,
+        article18_candidate_flag: false,
+        money_flag: false,
+        account_takeover_flag: false,
+      }]);
+      const feedbackAudit = await setupPool.query(
+        `SELECT metadata
+           FROM audit_log
+          WHERE action = 'support.case_created' AND resource_id = $1`,
+        [feedbackIntake.supportCase.id],
+      );
+      assert.equal(feedbackAudit.rowCount, 1);
+      assert.deepEqual(feedbackAudit.rows[0].metadata, {
+        caseType: 'general_help',
+        caseSubType: 'feedback_or_improvement',
+        priority: 'p4',
+        operatingMode: 'simulation',
+        safetyTriageVersion: 'sit_support_safety_triage_v1',
+        safetyGuidanceShown: false,
+        issueScopeVersion: 'sit_support_single_issue_scope_v1',
+        separationGuidanceShown: false,
+        feedbackContextVersion: 'sit_support_feedback_context_v1',
+        feedbackKind: 'improvement_suggestion',
+        feedbackProductArea: 'app_experience',
+        feedbackNonUrgentConfirmed: true,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases
+              SET feedback_context = jsonb_set(
+                feedback_context,
+                '{productArea}',
+                '"other"'::jsonb
+              )
+            WHERE id = $1`,
+          [feedbackIntake.supportCase.id],
+        ),
+        (error) => error?.code === '55000'
+          && error?.message === 'support_feedback_context_immutable',
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_cases SET priority = 'p4' WHERE id = $1`,
+          [supportIntake.supportCase.id],
+        ),
+        (error) => error?.code === '23514',
+      );
+
+      const linkedFeedbackResponse = await fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 's4d-feedback-linked-rejection',
+        },
+        body: JSON.stringify({
+          caseType: 'general_help',
+          caseSubType: 'feedback_or_improvement',
+          summary: 'Feedback darf keine Buchung als Fallobjekt verknüpfen.',
+          linkedBookingId: 'booking-a',
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+          feedbackContext,
+        }),
+      });
+      assert.equal(linkedFeedbackResponse.status, 400);
+      assert.equal(
+        (await linkedFeedbackResponse.json()).error,
+        'support_feedback_entity_link_not_allowed',
+      );
 
       const legacyMigrationPayload = {
         schemaVersion: 1,
@@ -6111,6 +6270,12 @@ if (!databaseUrl) {
         renterExport.data.communication.support.legacyHistoryUsableAsDecisionEvidence,
         false,
       );
+      const exportedFeedbackCase =
+        renterExport.data.communication.support.cases.find(
+          (entry) => entry.id === feedbackIntake.supportCase.id,
+        );
+      assert.deepEqual(exportedFeedbackCase.feedback_context, feedbackContext);
+      assert.equal(exportedFeedbackCase.priority, 'p4');
       assert.ok(renterExport.data.communication.support.duplicateCaseLinks.some(
         (entry) => entry.duplicate_case_number === duplicateCase.human_readable_case_number
           && entry.leading_case_number === leadingCase.human_readable_case_number
@@ -6833,6 +6998,19 @@ if (!databaseUrl) {
         setupPool.query(supportDuplicateCaseDown),
         (error) => error?.code === 'P0001'
           && error?.message === 'Refusing to drop retained support duplicate-case links',
+      );
+
+      const supportFeedbackPriorityDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/054_support_feedback_priority.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(supportFeedbackPriorityDown),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'Refusing to drop retained support feedback context',
       );
 
       const g3bDown = await fs.readFile(

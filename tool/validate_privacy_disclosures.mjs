@@ -108,6 +108,8 @@ const sourcePaths = [
   'backend/sql/migrations/052_support_safety_impact_review.down.sql',
   'backend/sql/migrations/053_support_duplicate_case_linking.up.sql',
   'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
+  'backend/sql/migrations/054_support_feedback_priority.up.sql',
+  'backend/sql/migrations/054_support_feedback_priority.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -414,6 +416,7 @@ function assertSourceContracts({ root, sourceTexts }) {
     'privacyIncidents: supportPrivacyIncidents',
     'internalSafetyImpactReviewsExcluded: true',
     'duplicateCaseLinks: supportDuplicateCaseLinks',
+    'support_case.feedback_context',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
   }
@@ -691,6 +694,46 @@ function assertSourceContracts({ root, sourceTexts }) {
     'Refusing to drop retained support duplicate-case links',
   )) {
     fail('Support duplicate-case rollback must refuse stored links.');
+  }
+  const supportFeedbackDomain = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_case_domain.js',
+  );
+  const supportFeedbackMigrationUp = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/054_support_feedback_priority.up.sql',
+  );
+  const supportFeedbackMigrationDown = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/054_support_feedback_priority.down.sql',
+  );
+  for (const marker of [
+    'sit_support_feedback_context_v1',
+    'support_feedback_urgent_route_required',
+    'support_feedback_entity_link_not_allowed',
+  ]) {
+    if (!supportFeedbackDomain.includes(marker)) {
+      fail(`Support feedback privacy boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'support_cases_feedback_context_shape_check',
+    'support_cases_feedback_route_check',
+    'support_feedback_context_immutable',
+    'linked_payment_id IS NULL',
+    'NOT privacy_flag',
+  ]) {
+    if (!supportFeedbackMigrationUp.includes(marker)) {
+      fail(`Support feedback schema privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportFeedbackMigrationDown.includes(
+    'Refusing to drop retained support feedback context',
+  )) {
+    fail('Support feedback rollback must refuse stored context.');
   }
   const observability = sourceText(root, sourceTexts, 'backend/src/observability.js');
   if (!observability.includes('safeOperationalErrorCode')

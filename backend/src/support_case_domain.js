@@ -9,6 +9,7 @@ export const supportCaseFamilies = Object.freeze({
     'app_error_or_display',
     'accessibility_or_usability',
     'general_how_to',
+    'feedback_or_improvement',
   ]),
   booking_pre_start: Object.freeze([
     'booking_request_or_acceptance',
@@ -132,7 +133,7 @@ export const supportCaseStatuses = Object.freeze([
   'reopened',
 ]);
 
-export const supportPriorities = Object.freeze(['p0', 'p1', 'p2', 'p3']);
+export const supportPriorities = Object.freeze(['p0', 'p1', 'p2', 'p3', 'p4']);
 export const supportApprovalLevels = Object.freeze([
   'green_automatic',
   'yellow_human_review',
@@ -167,6 +168,7 @@ export const supportDsaNoticeIntakeVersion = 'sit_dsa_notice_intake_v1';
 export const supportProductSafetyIntakeVersion = 'sit_product_safety_intake_v1';
 export const supportProductSafetyContactPointVersion =
   'sit_product_safety_contact_point_v1';
+export const supportFeedbackContextVersion = 'sit_support_feedback_context_v1';
 export const supportDsaNoticeLocatorStatuses = Object.freeze([
   'complete',
   'needs_clarification',
@@ -187,6 +189,22 @@ const dsaNoticeContentTypes = new Set([
 const productSafetyIssueKinds = new Set([
   'dangerous_product',
   'accident_or_injury',
+]);
+const supportFeedbackKinds = new Set([
+  'improvement_suggestion',
+  'non_urgent_explanation',
+  'general_feedback',
+]);
+const supportFeedbackProductAreas = new Set([
+  'app_experience',
+  'listing_and_catalog',
+  'booking_and_schedule',
+  'handover_and_return',
+  'payments_and_documents',
+  'messages_and_notifications',
+  'profile_and_account',
+  'accessibility',
+  'other',
 ]);
 const dsaNoticeReferencePatterns = Object.freeze({
   listing: /^listing:[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$/u,
@@ -343,6 +361,8 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     && caseSubType === 'dangerous_item_or_injury';
   let priority = 'p3';
   if (explicitP0Signal || p0Subtypes.has(caseSubType)) priority = 'p0';
+  else if (caseType === 'general_help'
+      && caseSubType === 'feedback_or_improvement') priority = 'p4';
   else if (productSafetyCandidate) priority = 'p1';
   else if (p1Families.has(caseType)) priority = 'p1';
   else if (p2Families.has(caseType)) priority = 'p2';
@@ -372,7 +392,8 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
     || productSafetyCandidate;
   const approvalLevel = redDecisionBoundary
     ? 'red_explicit_decision'
-    : (['general_help', 'listing_quality'].includes(caseType) && priority === 'p3'
+    : (['general_help', 'listing_quality'].includes(caseType)
+        && ['p3', 'p4'].includes(priority)
       ? 'green_automatic'
       : 'yellow_human_review');
   const waitingOn = {
@@ -547,6 +568,62 @@ function normalizeSupportIssueScope(raw) {
   });
 }
 
+function normalizeSupportFeedbackContext(raw, { required }) {
+  if (!required) {
+    if (raw !== undefined && raw !== null) {
+      throw new SupportCaseError(400, 'support_feedback_context_not_applicable');
+    }
+    return null;
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new SupportCaseError(400, 'support_feedback_context_required');
+  }
+  const allowedKeys = new Set([
+    'version',
+    'feedbackKind',
+    'productArea',
+    'nonUrgentConfirmed',
+  ]);
+  const keys = Object.keys(raw);
+  if (keys.length !== allowedKeys.size
+      || keys.some((key) => !allowedKeys.has(key))) {
+    throw new SupportCaseError(400, 'support_feedback_context_shape_invalid');
+  }
+  const version = requiredText(
+    raw.version,
+    80,
+    'support_feedback_context_version_invalid',
+  );
+  if (version !== supportFeedbackContextVersion) {
+    throw new SupportCaseError(400, 'support_feedback_context_version_invalid');
+  }
+  const feedbackKind = requiredText(
+    raw.feedbackKind,
+    60,
+    'support_feedback_kind_invalid',
+  ).toLowerCase();
+  if (!supportFeedbackKinds.has(feedbackKind)) {
+    throw new SupportCaseError(400, 'support_feedback_kind_invalid');
+  }
+  const productArea = requiredText(
+    raw.productArea,
+    80,
+    'support_feedback_product_area_invalid',
+  ).toLowerCase();
+  if (!supportFeedbackProductAreas.has(productArea)) {
+    throw new SupportCaseError(400, 'support_feedback_product_area_invalid');
+  }
+  if (raw.nonUrgentConfirmed !== true) {
+    throw new SupportCaseError(400, 'support_feedback_non_urgent_confirmation_required');
+  }
+  return Object.freeze({
+    version,
+    feedbackKind,
+    productArea,
+    nonUrgentConfirmed: true,
+  });
+}
+
 function normalizeDsaNotice(raw, { required }) {
   if (!required) {
     if (raw !== undefined && raw !== null) {
@@ -704,6 +781,19 @@ export function normalizeSupportCaseInput(raw, {
       && raw.immediateDanger !== safetyTriage.immediateDanger) {
     throw new SupportCaseError(400, 'support_safety_triage_conflict');
   }
+  const feedbackCase = caseType === 'general_help'
+    && caseSubType === 'feedback_or_improvement';
+  const feedbackContext = normalizeSupportFeedbackContext(raw.feedbackContext, {
+    required: feedbackCase,
+  });
+  if (feedbackCase && (
+    safetyTriage.immediateDanger === true
+    || raw.accountTakeover === true
+    || raw.possibleHighRiskDataExposure === true
+    || raw.imminentAuthorityDeadline === true
+  )) {
+    throw new SupportCaseError(400, 'support_feedback_urgent_route_required');
+  }
   const route = supportRouteFor(caseType, caseSubType, {
     immediateDanger: safetyTriage.immediateDanger,
     accountTakeover: raw.accountTakeover,
@@ -726,10 +816,28 @@ export function normalizeSupportCaseInput(raw, {
     p1: 60,
     p2: 240,
     p3: 1440,
+    p4: 1440,
   }[route.priority];
   const deadline = nextUpdateAt === undefined
     ? new Date(now.getTime() + (internalCheckpointMinutes * 60 * 1000))
     : requiredFutureDate(nextUpdateAt, now, 'support_next_update_at_required');
+
+  const links = Object.freeze({
+    linkedBookingId: optionalIdentifier(
+      raw.linkedBookingId,
+      'support_linked_booking_invalid',
+    ),
+    linkedListingId: optionalIdentifier(
+      raw.linkedListingId,
+      'support_linked_listing_invalid',
+    ),
+    linkedPaymentId: optionalUuid(raw.linkedPaymentId, 'support_linked_payment_invalid'),
+    linkedRefundId: optionalUuid(raw.linkedRefundId, 'support_linked_refund_invalid'),
+    linkedPayoutId: optionalUuid(raw.linkedPayoutId, 'support_linked_payout_invalid'),
+  });
+  if (feedbackCase && Object.values(links).some((value) => value !== null)) {
+    throw new SupportCaseError(400, 'support_feedback_entity_link_not_allowed');
+  }
 
   return Object.freeze({
     caseType,
@@ -739,19 +847,18 @@ export function normalizeSupportCaseInput(raw, {
     sourceChannel,
     operatingMode,
     locale: 'de-DE',
-    linkedBookingId: optionalIdentifier(raw.linkedBookingId, 'support_linked_booking_invalid'),
-    linkedListingId: optionalIdentifier(raw.linkedListingId, 'support_linked_listing_invalid'),
-    linkedPaymentId: optionalUuid(raw.linkedPaymentId, 'support_linked_payment_invalid'),
-    linkedRefundId: optionalUuid(raw.linkedRefundId, 'support_linked_refund_invalid'),
-    linkedPayoutId: optionalUuid(raw.linkedPayoutId, 'support_linked_payout_invalid'),
+    ...links,
     safetyTriage,
     issueScope,
     dsaNotice,
     productSafetyNotice,
+    feedbackContext,
     waitingReason: 'Der Eingang wartet auf die fachliche Übernahme.',
     nextAction: route.priority === 'p0'
       ? 'Sicherheitsroute unverzüglich prüfen und einem verantwortlichen Owner zuweisen.'
-      : 'Eingang fachlich prüfen und einem verantwortlichen Owner zuweisen.',
+      : (feedbackCase
+        ? 'Feedback beantworten und dem bestätigten Produktbereich zuordnen.'
+        : 'Eingang fachlich prüfen und einem verantwortlichen Owner zuweisen.'),
     nextUpdateAt: deadline,
     userFacingSummary: requiredText(raw.summary, 2000, 'support_summary_required', 3),
   });

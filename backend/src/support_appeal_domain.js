@@ -56,6 +56,7 @@ export function supportAppealNextUpdateAt(priority, now = new Date()) {
     p1: 60,
     p2: 240,
     p3: 1440,
+    p4: 1440,
   }[priority];
   return new Date(now.getTime() + (checkpointMinutes * 60 * 1000));
 }

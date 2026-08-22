@@ -36,6 +36,10 @@ test('appeal references and checkpoints are deterministic and ambiguity-safe', (
     supportAppealNextUpdateAt('p3', now).toISOString(),
     '2026-08-22T10:00:00.000Z',
   );
+  assert.equal(
+    supportAppealNextUpdateAt('p4', now).toISOString(),
+    '2026-08-22T10:00:00.000Z',
+  );
   assert.throws(() => supportAppealNextUpdateAt('urgent', now), /support_appeal_priority_invalid/u);
   assert.equal(
     supportAppealIdempotencyKey('appeal-1'),

@@ -99,6 +99,7 @@ function shapeSupportCase(row, { staff = false, actorId = null, now = new Date()
     locale: row.locale,
     linkedBookingId: row.linked_booking_id ?? null,
     linkedListingId: row.linked_listing_id ?? null,
+    feedbackContext: row.feedback_context ?? null,
     waitingOn: row.waiting_on,
     nextAction: row.next_action ?? null,
     nextUpdateAt: iso(row.next_update_at),
@@ -365,7 +366,8 @@ export async function createSupportCase(client, {
        intake_scope_evidence, dsa_notice_number, dsa_notice_evidence,
        dsa_notice_locator_status, dsa_notice_locator_kind,
        created_at, updated_at, product_safety_notice_number,
-       product_safety_evidence, product_safety_triage_due_at
+       product_safety_evidence, product_safety_triage_due_at,
+       feedback_context
      ) VALUES (
        $1, $2, $3, $4, 'received',
        $5, $6, $7, $8, $9,
@@ -377,7 +379,8 @@ export async function createSupportCase(client, {
        $29, $30, $31,
        $32::jsonb, $33, $34::jsonb,
        $35, $36,
-       $37, $37, $38, $39::jsonb, $40
+       $37, $37, $38, $39::jsonb, $40,
+       $41::jsonb
      ) ON CONFLICT (reporter_user_id, idempotency_key) DO NOTHING
      RETURNING *`,
     [
@@ -427,6 +430,9 @@ export async function createSupportCase(client, {
       productSafetyNoticeNumber,
       productSafetyEvidence == null ? null : JSON.stringify(productSafetyEvidence),
       productSafetyTriageDueAt,
+      normalized.feedbackContext == null
+        ? null
+        : JSON.stringify(normalized.feedbackContext),
     ],
   );
   if (!inserted.rowCount) {
@@ -496,6 +502,9 @@ export async function createSupportCase(client, {
             triageDueAt: productSafetyTriageDueAt.toISOString(),
           },
         }),
+        ...(normalized.feedbackContext == null ? {} : {
+          feedbackContext: normalized.feedbackContext,
+        }),
         ...(privacyRightsRequest == null ? {} : {
           privacyRightsRequest: {
             version: privacyRightsRequest.version,
@@ -538,6 +547,12 @@ export async function createSupportCase(client, {
         productSafetyContactPointVersion: productSafetyEvidence.contactPointVersion,
         productSafetyIssueKind: productSafetyEvidence.issueKind,
         productSafetyTriageDueAt: productSafetyTriageDueAt.toISOString(),
+      }),
+      ...(normalized.feedbackContext == null ? {} : {
+        feedbackContextVersion: normalized.feedbackContext.version,
+        feedbackKind: normalized.feedbackContext.feedbackKind,
+        feedbackProductArea: normalized.feedbackContext.productArea,
+        feedbackNonUrgentConfirmed: true,
       }),
       ...(privacyRightsRequest == null ? {} : {
         privacyRightsRequestVersion: privacyRightsRequest.version,
