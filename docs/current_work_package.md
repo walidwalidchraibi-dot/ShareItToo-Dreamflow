@@ -748,3 +748,17 @@ and Android debug APK are green locally. P0B remains HOLD/NO-GO. GitHub push/CI
 is pending because the stored CLI credential is expired. No live support,
 production, Payment, Store, Cloud/VPS/DNS, signed candidate, deployment, PR
 merge or public activation is enabled.
+
+## V2.4 portfolio checkpoint before the next gap
+
+`docs/architecture/v2-4-portfolio-checkpoint-2026-08-22.md` is the authoritative
+post-S4E portfolio audit. All twelve requested packages are `DONE` for their
+bounded repository deliverables, with exact implementation and close commits.
+The classification is deliberately separate from live readiness: G3L legal
+approval, FI1 real assignments/delegates/absence tests, P0A external readiness
+and P0B's ten `NO-GO` blockers remain open gates.
+
+Because no Growth-Core package is `PARTIAL` or `OPEN`, the next package is the
+highest-risk uncovered Support Matrix scenario that can be completed locally
+without inventing an external fact or crossing a live boundary. Any newly
+detected P0/P1 security, legal or data-integrity defect preempts that work.

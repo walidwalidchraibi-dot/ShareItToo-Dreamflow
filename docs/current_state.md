@@ -1218,3 +1218,20 @@ build/smoke and Android debug APK are green locally. P0B remains PSP `HOLD` and
 pilot `0/4` / `NO-GO`. GitHub push/CI is not claimed because the stored CLI
 credential is expired; Draft PR #7 is unmerged. No production, Payment, Store,
 Cloud/VPS/DNS, signed candidate or public activation occurred.
+
+## V2.4 portfolio checkpoint after S4E
+
+The commit-bound checkpoint in
+`docs/architecture/v2-4-portfolio-checkpoint-2026-08-22.md` records G3B, G3C,
+G3D, G3E, G3L, G4A, G4B, G5A, G5B, FI1, P0A and P0B as `DONE` for their exact
+authorized non-live deliverables. `DONE` does not override the truthful result:
+G3L remains an unapproved draft, FI1 retains missing real operational evidence,
+P0A remains technical `HOLD`, and P0B remains `NO-GO now`.
+
+No Growth-Core repository package is `PARTIAL` or `OPEN`. Professional legal
+approval, marketplace-PSP/provider evidence, real role/delegate/absence proof,
+signed iOS/device evidence and explicit pilot/Store/Privacy/Retention decisions
+remain higher-priority external gates. Their post-P0B fail-closed repository
+packages are already at maximum safe local state; no fact or approval is
+inferred. The next package may therefore be selected from still-uncovered,
+locally solvable Support Matrix risk, subject to immediate P0/P1 preemption.
