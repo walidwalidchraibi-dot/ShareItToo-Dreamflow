@@ -609,6 +609,53 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+      'support notification destination reloads the authorized case from the backend',
+      (tester) async {
+    String? requestedCaseId;
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCaseNotificationDestinationScreen(
+        caseId: '11111111-1111-4111-8111-111111111111',
+        detailLoader: (caseId) async {
+          requestedCaseId = caseId;
+          return _detail();
+        },
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(requestedCaseId, '11111111-1111-4111-8111-111111111111');
+    expect(find.text('Allgemeine Hilfe'), findsOneWidget);
+    expect(find.text('Antwort von dir nötig'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('support_notification_unavailable')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'support notification destination exposes no data after authorization loss',
+      (tester) async {
+    const caseId = '11111111-1111-4111-8111-111111111111';
+    await tester.pumpWidget(MaterialApp(
+      home: SupportCaseNotificationDestinationScreen(
+        caseId: caseId,
+        detailLoader: (_) async =>
+            throw Exception('forbidden private support summary'),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('support_notification_unavailable')),
+      findsOneWidget,
+    );
+    expect(find.text('Support-Fall nicht verfügbar'), findsOneWidget);
+    expect(find.textContaining(caseId), findsNothing);
+    expect(find.textContaining('private support summary'), findsNothing);
+    expect(find.text('Meine Support-Fälle'), findsOneWidget);
+  });
+
   testWidgets('help center opens the authenticated case list', (tester) async {
     tester.view.physicalSize = const Size(900, 1600);
     tester.view.devicePixelRatio = 1;

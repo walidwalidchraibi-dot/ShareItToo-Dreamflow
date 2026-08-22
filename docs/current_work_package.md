@@ -511,3 +511,24 @@ skips and the complete Flutter regression for PR merge snapshot
 `bdfea22d35d2cf6b39486318563d8fbd0f2ddaae`; signed-candidate construction
 and API-image publication remained skipped, and Draft PR #7 stayed open,
 mergeable and unmerged.
+
+## S3W support notification and authenticated routing
+
+`S3W_SUPPORT_NOTIFICATION_AUTHENTICATED_ROUTING` is the active non-live package
+for Drive scenarios `SUP-138` through `SUP-142`. Local focused verification is
+green: published support messages schedule one generic in-app and Push update,
+the external payload contains no identifier or sensitive case content, the
+Push opens only the authenticated notification feed, and the case is then
+re-fetched through the canonical user-bound endpoint. Lost access produces a
+single generic fallback without cached data. Duplicate evaluation is absorbed
+by the existing outbox uniqueness constraint.
+
+The complete Backend unit run passes 492 tests with one expected
+PostgreSQL-environment skip. Privacy/Retention validators and focused Flutter
+tests are green. The complete local technical regression is also green: the
+accepted 220-issue analyzer baseline, 365 Flutter tests with one documented
+Google-profile skip, the separate Google-only profile test, Web build/loopback
+smoke and Android debug APK build all pass. Exact implementation commit and
+GitHub CI evidence are still being recorded. No live FCM, provider call,
+production, payment, Store, signed candidate, deployment, merge or public pilot
+is enabled.

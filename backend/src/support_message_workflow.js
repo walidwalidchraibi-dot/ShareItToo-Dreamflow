@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { SupportCaseError } from './support_case_domain.js';
+import { enqueueSupportCaseUpdateNotification } from './support_notifications.js';
 import {
   assertSupportMessageDeadlineCurrent,
   normalizeSupportMessageDraft,
@@ -279,6 +280,13 @@ export async function createSupportMessage(client, {
       externalMessageSent: false,
     },
   });
+  if (draft.publishNow) {
+    await enqueueSupportCaseUpdateNotification(client, {
+      caseId: supportCase.id,
+      recipientUserId,
+      eventKey: `${eventKey}:notification`,
+    });
+  }
   return { message: shapeSupportMessage(inserted.rows[0], { staff: true }), replayed: false };
 }
 
@@ -510,6 +518,11 @@ export async function publishSupportMessage(client, {
       inAppMessageRecorded: true,
       externalMessageSent: false,
     },
+  });
+  await enqueueSupportCaseUpdateNotification(client, {
+    caseId: row.case_id,
+    recipientUserId: row.recipient_user_id,
+    eventKey: `${key}:notification`,
   });
   return { message: shapeSupportMessage(updated.rows[0], { staff: true }), replayed: false };
 }

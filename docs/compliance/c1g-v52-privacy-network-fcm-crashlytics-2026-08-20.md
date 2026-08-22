@@ -51,7 +51,9 @@ Datenfeld-, Regionen-, Transfer- und DPA-Fakten eingeschaltet werden.
   derzeit produzierten transaktionalen Ereignisarten. Eine unbekannte,
   fehlerhafte oder Marketing-Art endet mit `push_kind_not_allowlisted`.
 - Jeder FCM-Request zeigt exakt den neutralen Titel
-  `Neue Buchungsaktualisierung` und den Text `In der App ansehen.`.
+  `Neue ShareItToo-Aktualisierung` und den Text `In der App ansehen.`. Der
+  breitere Titel deckt auch sichere Support-Updates ab, ohne die Art des
+  Vorgangs auf dem Sperrbildschirm offenzulegen.
 - Der Datenbereich enthaelt exakt `contract=v52` und
   `route=notifications`. Artikeltext, Chattext, Adresse, Zahlungsdaten,
   Fotos, Schadensnachweise, Action-URL und fachliche IDs werden nicht an FCM

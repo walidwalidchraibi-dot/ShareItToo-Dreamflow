@@ -973,3 +973,25 @@ mergeable and unmerged. Detailed records:
 `docs/architecture/s3v-support-product-safety-contact-triage-2026-08-22.md`,
 `docs/compliance/s3v-support-product-safety-contact-triage-2026-08-22.md` and
 `docs/decisions/ADR-059-product-safety-contact-and-external-action-separation.md`.
+
+## S3W support notification and authenticated routing
+
+`S3W_SUPPORT_NOTIFICATION_AUTHENTICATED_ROUTING` is locally verified for Drive
+scenarios `SUP-138` through `SUP-142`. The implementation
+adds a duplicate-safe `support_case_update` outbox schedule only after a
+user-visible support-message publication. FCM receives only the one-hour
+allowlisted generic contract: `Neue ShareItToo-Aktualisierung`, `In der App
+ansehen.`, `contract=v52` and `route=notifications`; it receives no case ID,
+address, amount, damage detail, message text or action URL.
+
+After login and authenticated feed retrieval, the support CTA re-fetches the
+case from the canonical endpoint and requires the exact requested identity.
+Revoked access, missing/malformed data and backend unavailability all render a
+generic data-free fallback. Local focused tests, Privacy/Retention validators
+and all 492 Backend unit tests pass; one PostgreSQL-environment test is the
+intentional local skip. The complete local technical regression passes the
+accepted 220-issue analyzer baseline, 365 Flutter tests with one documented
+Google-profile skip, the separate Google-only profile test, Web build/loopback
+smoke and Android debug APK build. Exact commit and CI evidence are not yet
+recorded. No live Push, provider traffic, production, payment, Store, signed
+candidate, deployment or merge occurred.

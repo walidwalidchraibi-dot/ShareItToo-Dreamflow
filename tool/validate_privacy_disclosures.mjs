@@ -34,6 +34,7 @@ const sourcePaths = [
   'backend/src/product_safety_config.js',
   'backend/src/support_message_domain.js',
   'backend/src/support_message_workflow.js',
+  'backend/src/support_notifications.js',
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
   'backend/src/booking_workflow.js',
@@ -796,7 +797,7 @@ function assertSourceContracts({ root, sourceTexts }) {
   const pushSender = sourceText(root, sourceTexts, 'backend/src/push_sender.js');
   const notifications = sourceText(root, sourceTexts, 'backend/src/notifications.js');
   for (const marker of [
-    "V52_PUSH_TITLE = 'Neue Buchungsaktualisierung'",
+    "V52_PUSH_TITLE = 'Neue ShareItToo-Aktualisierung'",
     "V52_PUSH_BODY = 'In der App ansehen.'",
     "route: 'notifications'",
     'ttl: payload.ttlSeconds * 1000',
@@ -1113,7 +1114,7 @@ export function validatePrivacyDisclosures({
   );
   if (push.payloadContractVersion !== 'v52'
       || push.neutralLockscreenCopy !==
-        'Neue Buchungsaktualisierung – in der App ansehen.'
+        'Neue ShareItToo-Aktualisierung – in der App ansehen.'
       || push.authenticatedDetailRetrieval !== true
       || push.eventSpecificTtlImplemented !== true
       || push.bigQueryDeliveryMetricsExportEnabled !== false

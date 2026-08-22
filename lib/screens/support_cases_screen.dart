@@ -238,8 +238,7 @@ class SupportCaseViewData {
       dsaNoticeNumber: dsaNoticeNumber,
       dsaNoticeLocatorStatus: dsaNoticeLocatorStatus,
       dsaNoticeLocatorPrompt: dsaNoticeLocatorPrompt,
-      dsaNoticeLocatorMaySubmit:
-          value['dsaNoticeLocatorMaySubmit'] == true,
+      dsaNoticeLocatorMaySubmit: value['dsaNoticeLocatorMaySubmit'] == true,
       status: status,
       operatingMode: operatingMode,
       userFacingSummary: userFacingSummary,
@@ -682,6 +681,133 @@ class SupportCaseDetailScreen extends StatefulWidget {
       _SupportCaseDetailScreenState();
 }
 
+class SupportCaseNotificationDestinationScreen extends StatefulWidget {
+  final String caseId;
+  final SupportCaseDetailLoader? detailLoader;
+
+  const SupportCaseNotificationDestinationScreen({
+    super.key,
+    required this.caseId,
+    this.detailLoader,
+  });
+
+  @override
+  State<SupportCaseNotificationDestinationScreen> createState() =>
+      _SupportCaseNotificationDestinationScreenState();
+}
+
+class _SupportCaseNotificationDestinationScreenState
+    extends State<SupportCaseNotificationDestinationScreen> {
+  late Future<SupportCaseDetailViewData> _detail;
+
+  @override
+  void initState() {
+    super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    final loader = widget.detailLoader ?? BackendRepository.getSupportCase;
+    _detail = loader(widget.caseId).then((value) {
+      final detail = SupportCaseDetailViewData.fromMap(value);
+      if (detail.supportCase.id != widget.caseId) {
+        throw const FormatException('support_case_identity_mismatch');
+      }
+      return detail;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF101820),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Support-Fall'),
+      ),
+      body: FutureBuilder<SupportCaseDetailViewData>(
+        future: _detail,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || snapshot.data == null) {
+            return _SupportNotificationUnavailable(
+              onRetry: () => setState(_reload),
+              onOpenCases: () => Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const SupportCasesScreen()),
+              ),
+            );
+          }
+          return _SupportCaseDetailBody(
+            detail: snapshot.data!,
+            appealSubmitter: null,
+            dsaLocatorSubmitter: null,
+            onAppealSubmitted: () => setState(_reload),
+            onDsaLocatorSubmitted: () => setState(_reload),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SupportNotificationUnavailable extends StatelessWidget {
+  final VoidCallback onRetry;
+  final VoidCallback onOpenCases;
+
+  const _SupportNotificationUnavailable({
+    required this.onRetry,
+    required this.onOpenCases,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.shield_outlined, size: 48, color: Colors.white70),
+            const SizedBox(height: 16),
+            const Text(
+              'Support-Fall nicht verfügbar',
+              key: ValueKey('support_notification_unavailable'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Der Fall wurde entfernt, ist für dieses Konto nicht freigegeben oder kann gerade nicht sicher geladen werden. Es werden keine Falldaten angezeigt.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, height: 1.45),
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              key: const ValueKey('support_notification_retry'),
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Erneut prüfen'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              key: const ValueKey('support_notification_open_cases'),
+              onPressed: onOpenCases,
+              child: const Text('Meine Support-Fälle'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
   late Future<SupportCaseDetailViewData> _detail;
 
@@ -1065,8 +1191,7 @@ class _SupportDsaLocatorCard extends StatefulWidget {
   });
 
   @override
-  State<_SupportDsaLocatorCard> createState() =>
-      _SupportDsaLocatorCardState();
+  State<_SupportDsaLocatorCard> createState() => _SupportDsaLocatorCardState();
 }
 
 class _SupportDsaLocatorCardState extends State<_SupportDsaLocatorCard> {
@@ -1115,8 +1240,7 @@ class _SupportDsaLocatorCardState extends State<_SupportDsaLocatorCard> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error =
-            'Der Fundort konnte nicht sicher bestätigt werden. Nutze '
+        _error = 'Der Fundort konnte nicht sicher bestätigt werden. Nutze '
             'eine vollständige http(s)-URL oder eine passende Referenz.';
         _submitting = false;
       });
@@ -1159,9 +1283,8 @@ class _SupportDsaLocatorCardState extends State<_SupportDsaLocatorCard> {
           const SizedBox(height: 8),
           FilledButton.icon(
             key: const ValueKey('support_dsa_locator_submit'),
-            onPressed: _submitting || _locator.text.trim().length < 3
-                ? null
-                : _submit,
+            onPressed:
+                _submitting || _locator.text.trim().length < 3 ? null : _submit,
             icon: _submitting
                 ? const SizedBox(
                     width: 16,

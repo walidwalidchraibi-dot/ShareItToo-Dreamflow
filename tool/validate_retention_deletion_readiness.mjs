@@ -35,6 +35,7 @@ const sourcePaths = [
   'backend/src/product_safety_config.js',
   'backend/src/support_message_domain.js',
   'backend/src/support_message_workflow.js',
+  'backend/src/support_notifications.js',
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
   'backend/src/rental_cart_workflow.js',

@@ -117,7 +117,11 @@
     },
     {
       "path": "backend/src/support_message_workflow.js",
-      "sha256": "2a32d9b620eb1ff497220937a327d5c929b46b57e29767ee9b552293be184738"
+      "sha256": "f5da923f7b1b5e5fb6e4fb0f02857889fd592c9f5f16b6a5ac072810056a3cce"
+    },
+    {
+      "path": "backend/src/support_notifications.js",
+      "sha256": "22bd79f42bbb80af26f8678f5fedd1303543f1123b0061db2c8edf568764238d"
     },
     {
       "path": "backend/src/support_message_templates_v1.json",
@@ -157,7 +161,7 @@
     },
     {
       "path": "backend/src/push_sender.js",
-      "sha256": "456fa1ea54ec3f90f3cfa35c101443d01405b870aadcef3639427ac7750e5e11"
+      "sha256": "326324be4aa203d2e3776e9704738f0457072c0c7cf34a9a6fef0c41d88f42d4"
     },
     {
       "path": "backend/src/transactional_mail_templates.js",
@@ -449,7 +453,7 @@
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "760e4419b984f509b96324cf0670a97424b9d5f4c1f023c8bd2c113153c2fe58"
+      "sha256": "5cde7d4fedba357e4ef8acda2a05587ebd0a391a5a2871d6377a9996d2425f76"
     },
     {
       "path": "lib/screens/support_flow_screen.dart",

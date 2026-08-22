@@ -47,6 +47,7 @@ test('FCM messages expose only the neutral V5.2 lock-screen contract', () => {
 test('transactional push kinds use short event-specific TTLs', () => {
   assert.equal(transactionalPushContractForTest('message_received').ttlSeconds, 15 * 60);
   assert.equal(transactionalPushContractForTest('booking_requested').ttlSeconds, 60 * 60);
+  assert.equal(transactionalPushContractForTest('support_case_update').ttlSeconds, 60 * 60);
   assert.equal(transactionalPushContractForTest('return_case_opened').ttlSeconds, 6 * 60 * 60);
   assert.equal(transactionalPushContractForTest('booking_completed').ttlSeconds, 24 * 60 * 60);
 });
@@ -70,6 +71,7 @@ test('every notification producer kind is allowlisted and marketing fails closed
     'return_case_opened',
     'return_case_response_due',
     'return_case_status_update',
+    'support_case_update',
     'message_received',
     'payment_confirmed',
     'payout_sent',
@@ -81,6 +83,31 @@ test('every notification producer kind is allowlisted and marketing fails closed
     () => transactionalPushContractForTest('marketing_campaign'),
     (error) => error?.code === 'push_kind_not_allowlisted',
   );
+});
+
+test('support push contains no case identifier, address, amount or damage detail', () => {
+  const message = buildFcmMessageForTest(
+    { token: 'device-token' },
+    'support_case_update',
+    { nowMs: Date.UTC(2026, 7, 22, 8, 0, 0) },
+  );
+  assert.deepEqual(message.data, {
+    contract: V52_PUSH_CONTRACT_VERSION,
+    route: 'notifications',
+  });
+  assert.deepEqual(message.notification, {
+    title: 'Neue ShareItToo-Aktualisierung',
+    body: 'In der App ansehen.',
+  });
+  const serialized = JSON.stringify(message);
+  for (const sensitive of [
+    '11111111-1111-4111-8111-111111111111',
+    'Musterstraße',
+    '99,99',
+    'Schadensdetail',
+  ]) {
+    assert.doesNotMatch(serialized, new RegExp(sensitive, 'u'));
+  }
 });
 
 test('disabled delivery still reports the exact TTL contract without provider traffic', async () => {

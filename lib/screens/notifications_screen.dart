@@ -9,8 +9,8 @@ import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/notification_detail_screen.dart';
 import 'package:lendify/screens/notification_settings_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
+import 'package:lendify/screens/support_cases_screen.dart';
 import 'package:lendify/models/item.dart';
-import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
@@ -441,32 +441,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
 
       if (sitCategory == 'support') {
-        final threads = await DataService.getMessageThreadsForUser(uid);
-        MessageThread? supportThread =
-            threads.cast<MessageThread?>().firstWhere(
-                  (t) =>
-                      t != null &&
-                      ((t.threadType ?? '').toLowerCase() == 'support' ||
-                          t.user1Id == 'support' ||
-                          t.user2Id == 'support'),
-                  orElse: () => null,
-                );
-        supportThread ??= await DataService.createSupportThread(userId: uid);
-        if (supportThread != null && mounted) {
+        if (!mounted) return;
+        if (entityType == 'support' &&
+            entityId.isNotEmpty &&
+            !entityId.startsWith('mock')) {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => MessageThreadScreen(
-                threadId: supportThread!.id,
-                participantName: 'SIT Support',
-                itemTitle: 'Support',
+              builder: (_) => SupportCaseNotificationDestinationScreen(
+                caseId: entityId,
               ),
             ),
           );
           return;
         }
         if (!mounted) return;
-        await Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
+        await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SupportCasesScreen()));
         return;
       }
 

@@ -20,7 +20,7 @@ function safePushText(value, maxLength) {
 }
 
 export const V52_PUSH_CONTRACT_VERSION = 'v52';
-export const V52_PUSH_TITLE = 'Neue Buchungsaktualisierung';
+export const V52_PUSH_TITLE = 'Neue ShareItToo-Aktualisierung';
 export const V52_PUSH_BODY = 'In der App ansehen.';
 
 // TTLs are intentionally short and event-specific. No approved event may fall
@@ -36,6 +36,7 @@ const TRANSACTIONAL_PUSH_TTL_SECONDS = Object.freeze({
   payment_failed: 60 * 60,
   return_confirmation_reminder: 60 * 60,
   return_case_response_due: 60 * 60,
+  support_case_update: 60 * 60,
   platform_withdrawal_received: 6 * 60 * 60,
   return_case_opened: 6 * 60 * 60,
   booking_completed: 24 * 60 * 60,

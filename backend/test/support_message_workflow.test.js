@@ -92,6 +92,33 @@ function intakeVariables() {
   };
 }
 
+function supportNotificationSteps() {
+  return [
+    {
+      match: /SELECT id, reporter_user_id, affected_user_ids[\s\S]*FROM support_cases/u,
+      result: { rowCount: 1, rows: [caseRow()] },
+    },
+    {
+      match: /INSERT INTO notification_outbox/u,
+      check: ({ sql, params }) => {
+        assert.equal(params[1], 'user-1');
+        assert.equal(params[2], 'in_app');
+        assert.match(sql, /'support_case_update'/u);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO notification_outbox/u,
+      check: ({ sql, params }) => {
+        assert.equal(params[1], 'user-1');
+        assert.equal(params[2], 'push');
+        assert.match(sql, /'support_case_update'/u);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ];
+}
+
 const approvedConsumerDisputeEnvironment = Object.freeze({
   SIT_CONSUMER_DISPUTE_APPROVED: 'true',
   SIT_CONSUMER_DISPUTE_CONFIGURATION_VERSION: 'VSBG-REVIEW-1',
@@ -173,6 +200,7 @@ test('green template publication records an in-app message without external deli
       },
       result: noRows,
     },
+    ...supportNotificationSteps(),
   ]);
   const result = await createSupportMessage(client, {
     actor: { id: 'support-1', role: 'support' },
@@ -477,6 +505,7 @@ test('configured T-053 red draft requires independent review before in-app publi
       result: noRows,
     },
     { match: /INSERT INTO audit_log/u, result: noRows },
+    ...supportNotificationSteps(),
   ]);
   const published = await publishSupportMessage(publishClient, {
     actor: { id: 'admin-1', role: 'admin' },
@@ -630,6 +659,7 @@ test('reviewed yellow message publishes only into the authenticated in-app recor
       result: noRows,
     },
     { match: /INSERT INTO audit_log/u, result: noRows },
+    ...supportNotificationSteps(),
   ]);
   const result = await publishSupportMessage(client, {
     actor: { id: 'support-1', role: 'support' },
