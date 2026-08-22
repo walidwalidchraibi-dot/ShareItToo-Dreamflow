@@ -961,3 +961,28 @@ P0B remains `HOLD` / `NO-GO`. No production, Payment, Store, Cloud/VPS/DNS,
 signed candidate, deployment, merge or public activation is enabled. Shared
 limiter isolation, exact-commit CI and the remaining deterministic
 release-readiness debt stay open.
+
+## S4M server-owned return calendar deadlines
+
+`S4M_RETURN_CALENDAR_DEADLINES` implements Drive Support Matrix scenarios
+`SUP-055` through `SUP-065` at commit
+`1f6481f2ce76febb38340cd8a4e49b480af2306f`. The server owns booking-timezone
+calendar arithmetic for five/seven-day clarification, response and update
+deadlines; exact T0+48h report semantics stay unchanged.
+
+Changed T0 now requires complete distinct-participant proposal/confirmation
+truth. Direct chat closes after the inclusive 48-hour window unless a
+substantiated active return case remains open. Migration `063` versions and
+enforces new calendar-bound V5.2 rows while grandfathering historical fixed-
+duration evidence. Client local/QA projection mirrors Berlin DST only and does
+not replace the server for backend-enabled operation.
+
+Focused, Privacy/Retention, P0B, fresh PostgreSQL, full Backend,
+standard-parallel Flutter, Google-only, analyzer, Web smoke, Android debug,
+syntax and secret checks pass locally. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, signed candidate, deployment, merge
+or public activation is enabled.
+
+No new workaround became a prerequisite. Exact-commit CI, normal Node/pnpm
+resolution, isolated limiter thresholds, automatic PostgreSQL lifecycle,
+bounded fixture proof and the remaining release-readiness debt stay open.

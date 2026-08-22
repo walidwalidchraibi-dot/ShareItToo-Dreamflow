@@ -83,6 +83,18 @@ claimed until every item below has reproducible evidence and is closed.
   through `062`, all three handover exceptions, forged-audit rejection and
   rollback refusal. Its lifecycle was still manually orchestrated, so
   `TD-RR-004` remains open.
+- 22.08.2026, S4M: spring and autumn DST, the inclusive 48-hour boundary and
+  seven-calendar-day recurrence are covered by injected fixed instants in both
+  server and client policy tests. The complete Flutter suite passed at standard
+  parallelism with 379 passes and one documented skip. No sleep, clock-bound
+  retry, concurrency override, limiter change or IP rotation was introduced.
+  This is further local evidence for `TD-RR-003`, not closure without retained
+  stress evidence and exact-commit CI.
+- 22.08.2026, S4M: fresh PostgreSQL 16 applied migration `063` and verified the
+  versioned calendar constraints. The database lifecycle was still assembled
+  manually and local Backend checks still used the temporary Node runtime, so
+  `TD-RR-004` and `TD-RR-001` remain open. The temporary database was stopped
+  and moved to Trash; neither accommodation is a release prerequisite.
 
 ## Closure rule
 

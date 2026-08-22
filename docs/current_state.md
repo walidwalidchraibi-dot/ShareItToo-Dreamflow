@@ -1445,3 +1445,33 @@ defaults to serial Flutter tests and Backend module loading has repository-owned
 non-secret test defaults. Exact-commit CI, isolated limiter thresholds,
 automatic PostgreSQL lifecycle, normal Node/pnpm resolution and bounded fixture
 proof remain required by the release-debt register.
+
+## S4M server-owned return calendar deadlines
+
+`S4M_RETURN_CALENDAR_DEADLINES` is locally verified at exact implementation
+commit `1f6481f2ce76febb38340cd8a4e49b480af2306f` for Drive scenarios
+`SUP-055` through `SUP-065`. Five- and seven-day return deadlines now preserve
+the booking-local wall time through DST, while T0+48h remains an exact inclusive
+duration. New V5.2 cases persist the validated IANA timezone and policy version
+2; migration `063` independently enforces the calendar calculation and keeps
+historical fixed-duration rows under policy version 1.
+
+A changed T0 requires complete proposal evidence and confirmation by the other
+booking participant. Missing confirmation stays neutral but no longer extends
+direct chat beyond 48 hours; new issues afterward use Support unless an active
+substantiated return case keeps the thread open until closure. No additional
+charge, new Payment state, refund/payout action or broader `needsReview` route
+was added.
+
+Local verification passed 44 focused Backend and 13 focused Flutter checks, 58
+Privacy/Retention tests, 37 P0B tests, fresh PostgreSQL 16 through migration
+`063`, 581 Backend tests plus one expected skip, analyzer baseline 220, 379
+standard-parallel Flutter tests plus one documented skip, separate Google-only,
+Web/loopback smoke, Android debug APK, syntax and secret checks. P0B remains PSP
+`0/8 HOLD` and pilot `0/4 HOLD` / `NO-GO`. GitHub push/CI is not claimed; no
+live boundary changed.
+
+No timing, rate-limit, request-source or serial-test workaround was introduced.
+Temporary Node resolution and manual PostgreSQL orchestration remain open under
+`TD-RR-001` and `TD-RR-004`; exact-commit CI and every remaining deterministic
+exit criterion are still mandatory before release readiness.
