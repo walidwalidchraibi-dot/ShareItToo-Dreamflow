@@ -1690,3 +1690,32 @@ This package clears every analyzer deprecation but does not close `TD-RR-010`;
 downward ratchets to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`;
 no production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or
 public activation is enabled.
+
+## S4AV item-details dead-code ratchet
+
+`S4AV_ITEM_DETAILS_DEAD_CODE_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at implementation commit `4632aac`. It removes the
+uncalled sheet request duplicate and twelve analyzer-confirmed unreferenced
+private item-detail helpers. The active page and bottom reservation paths,
+delivery entitlements, no-delivery presentation, category/profile/Wishlist
+actions and booking cancellation card remain permanently guarded.
+
+The exact debt snapshot moves `86 -> 71`: `unused_element` changes
+`56 -> 43`, `unused_element_parameter` changes `24 -> 22`, `unused_field`
+remains `6`, and item-overlay findings reach zero. Seventy-seven focused
+source/analyzer/privacy contracts, 96 focused Flutter tests and all exact
+privacy, retention, G2 lifecycle and analyzer validators pass. The complete
+standard-parallel gate passed in one execution on `4632aac` with 384 Flutter
+tests plus one documented skip, Google-only, Web build/smoke and one direct
+448-task Android debug build. The privacy inventory is rebound without changing
+disclosure or release state.
+
+The first focused Flutter selection failed with a full data volume after 15
+tests. Only regenerable caches were cleared; the identical selection then
+passed. `TD-RR-012` prevents this cleanup from becoming an undocumented
+standing prerequisite and requires deterministic release-host capacity proof.
+
+This package does not close `TD-RR-010`; 71 diagnostics in the remaining
+unused-code categories still require reviewed downward ratchets to zero plus
+exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
+Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.

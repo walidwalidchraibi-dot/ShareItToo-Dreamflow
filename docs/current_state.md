@@ -2226,3 +2226,31 @@ evidence remain required under `TD-RR-003`.
 Both the async-context and deprecation categories are zero, but `TD-RR-010`
 remains open for 86 reviewed unused-code diagnostics and exact-commit CI. P0B
 remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AV item-details dead-code ratchet
+
+`S4AV_ITEM_DETAILS_DEAD_CODE_RATCHET` is locally verified at implementation
+commit `4632aac`. The uncalled sheet request duplicate and twelve private,
+analyzer-confirmed unreferenced item-detail helpers are removed. The active
+page and bottom reservation paths, delivery entitlements, no-delivery copy,
+category/profile/Wishlist actions and booking cancellation card remain guarded.
+Quote, Payment, refund, support, privacy, audit and `needsReview` behavior are
+unchanged.
+
+The exact analyzer snapshot ratcheted `86 -> 71`: `unused_element` moved
+`56 -> 43`, `unused_element_parameter` moved `24 -> 22`, `unused_field`
+remained `6`, and the item-overlay analyzer buckets are now zero. Seventy-seven
+focused source/analyzer/privacy contracts, 96 focused Flutter tests and the
+privacy, retention, G2 lifecycle and analyzer validators pass. The complete
+standard-parallel gate passed in one execution at `4632aac` with 384 Flutter
+tests plus one documented skip, Google-only, Web build/smoke and one direct
+448-task Android debug build. S4AU exact CI run `32602031632` is green.
+
+An earlier focused Flutter selection failed after 15 tests because the macOS
+data volume had only 238 MiB free. Only regenerable build/package caches were
+removed; the identical command then passed. No test workaround was introduced,
+and `TD-RR-012` keeps release-host capacity evidence open so cleanup cannot
+become a permanent prerequisite.
+
+`TD-RR-010` remains open for the remaining 71 unused-code diagnostics and
+exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
