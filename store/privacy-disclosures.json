@@ -564,7 +564,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "75243410390c5fdf6efd6f912035e5a7d01f15d7647e3d109d8faac3a2e04f7f"
+      "sha256": "984717c47e83a575600fc7e6406f2821e5fe1f5a1373df96f3424a1c866efb4a"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

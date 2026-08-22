@@ -1486,6 +1486,7 @@ export function createApp({
   const socialAuthLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const moderationReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const phoneVerificationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
@@ -4009,7 +4010,7 @@ export function createApp({
     res.json({ reports: await listMyReports(pool, req.auth.userId) });
   }));
 
-  app.post('/v1/support/cases', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/support/cases', requireAuth, requireActiveAccount, supportIntakeLimiter, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => createSupportCase(client, {
       actor: req.actor,
       raw: req.body,

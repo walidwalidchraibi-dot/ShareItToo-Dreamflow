@@ -1414,11 +1414,15 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
     fs.readFile(path.resolve(currentDir, '../src/retention_inventory.js'), 'utf8'),
   ]);
   for (const route of [
-    "app.post('/v1/support/cases', requireAuth, requireActiveAccount, actionLimiter",
+    "app.post('/v1/support/cases', requireAuth, requireActiveAccount, supportIntakeLimiter",
     "app.get('/v1/support/cases', requireAuth, requireActiveAccount",
     "app.get('/v1/support/cases/:id', requireAuth, requireActiveAccount",
     "app.post('/v1/support/cases/:id/appeals', requireAuth, requireActiveAccount, actionLimiter",
   ]) assert.ok(app.includes(route), route);
+  assert.match(
+    app,
+    /const supportIntakeLimiter = rateLimit\(\{ windowMs: 15 \* 60_000, limit: 10,/u,
+  );
   for (const route of [
     "app.get('/v1/admin/support/message-templates', requireAuth, requireActiveAccount, requireStaffElevation",
     "app.post('/v1/admin/support/cases/:id/messages', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter",
