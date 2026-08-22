@@ -1262,3 +1262,33 @@ PSP `0/8 HOLD` and pilot `0/4 HOLD` / `NO-GO`. GitHub push/CI is not claimed
 because the stored CLI credential is expired; Draft PR #7 remains unmerged. No
 live recovery, external message, production, Payment, Store, Cloud/VPS/DNS,
 signed candidate or public activation occurred.
+
+## S4G account-recovery session integrity
+
+`S4G_ACCOUNT_RECOVERY_SESSION_INTEGRITY` is locally verified at exact
+implementation commit `8e982a3dfb9032e69e61c78a0a6bbc25b023a842` for Drive
+scenarios `SUP-097` and `SUP-098`. Reset issuance and P0 account-takeover intake
+serialize on the exact account. An active case consumes prior reset tokens and
+blocks new email-reset issuance while preserving the enumeration-safe response.
+
+Reset tokens are SHA-256 stored, single-use, maximum 30 minutes, one live token
+per account/kind and database-immutable. One issuance timestamp removes the
+transaction/process clock race found during final verification. Successful
+password reset or password change revokes only active target sessions and
+refresh tokens, removes target push registrations, creates no replacement
+session and records exact bounded audit counts. Peer accounts remain unchanged.
+
+Local verification passed 120 focused protection tests, fresh PostgreSQL 16
+integration through migration `057`, 546 Backend tests plus one expected skip,
+the accepted 220-issue analyzer baseline, 370 Flutter tests with one documented
+skip, separate Google-only coverage, Web build/smoke and Android debug APK.
+P0B remains PSP `0/8 HOLD` and pilot `0/4 HOLD` / `NO-GO`. GitHub push/CI is not
+claimed because the stored CLI credential is expired; Draft PR #7 remains
+unmerged. No live recovery, external message, production, Payment, Store,
+Cloud/VPS/DNS, signed candidate or public activation occurred.
+
+Local verification accommodations are not release prerequisites. The open
+exit criteria for toolchain, rate-limit isolation, test parallelism, temporary
+PostgreSQL orchestration, fixture cleanup and timing evidence are recorded in
+`docs/operations/TECHNICAL_DEBT_RELEASE_READINESS.md` and must close before a
+release-readiness claim.

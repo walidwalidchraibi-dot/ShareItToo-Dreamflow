@@ -789,3 +789,32 @@ remains `HOLD` / `NO-GO`; GitHub push and CI are not claimed because the stored
 CLI credential is expired. No live account action, external message,
 production, Payment, Store, Cloud/VPS/DNS, signed candidate, deployment, PR
 merge or public activation is enabled.
+
+## S4G account-recovery session integrity
+
+`S4G_ACCOUNT_RECOVERY_SESSION_INTEGRITY` implements the non-live portion of
+Drive scenarios `SUP-097` and `SUP-098` at exact commit
+`8e982a3dfb9032e69e61c78a0a6bbc25b023a842`. Shared target-account locking
+serializes reset issuance and P0 account-takeover intake. The takeover path
+invalidates prior live reset tokens; later email reset requests issue neither a
+token nor an external message and preserve the enumeration-safe response.
+
+Migration `057` enforces hashed, single-use, expiring and immutable reset-token
+evidence and refuses destructive rollback. Password reset and authenticated
+password change revoke only active target sessions/refresh tokens and delete
+only target push registrations. Audit metadata records bounded effect counts,
+target-only scope and no replacement session without raw credentials or tokens.
+
+Focused coverage, fresh PostgreSQL 16 integration, 546 Backend passes plus one
+expected skip, accepted analyzer baseline, 370 Flutter tests with one documented
+skip, Google-only coverage, Web build/smoke and Android debug APK pass locally.
+P0B remains `HOLD` / `NO-GO`; GitHub push and CI are not claimed because the
+stored CLI credential is expired. No live recovery, production, Payment, Store,
+Cloud/VPS/DNS, signed candidate, deployment, PR merge or public activation is
+enabled.
+
+`docs/operations/TECHNICAL_DEBT_RELEASE_READINESS.md` is now the mandatory open
+register for local toolchain, test-parallelism, rate-limit isolation, timing,
+temporary PostgreSQL and fixture-cleanup accommodations. These may support
+development only and must be replaced by committed reproducible test paths
+before release readiness is claimed.
