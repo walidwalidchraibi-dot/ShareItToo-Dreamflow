@@ -25,7 +25,8 @@ test('independent review is claim-bound, human-only and correction-backed', () =
     'moderation_review_requests_resolution_required',
     "automation_role TEXT NOT NULL CHECK (automation_role = 'none')",
     'correction_decision_id UUID UNIQUE',
-    "correction_row.idempotency_key IS DISTINCT FROM CASE",
+    "expected_correction_idempotency_key TEXT",
+    "correction_row.idempotency_key IS DISTINCT FROM\n            expected_correction_idempotency_key",
   ]) {
     assert.match(migration, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
   }

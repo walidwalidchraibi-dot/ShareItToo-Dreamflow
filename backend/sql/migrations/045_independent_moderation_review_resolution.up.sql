@@ -40,6 +40,7 @@ DECLARE
   request_row moderation_review_requests%ROWTYPE;
   original_row moderation_decisions%ROWTYPE;
   correction_row moderation_decisions%ROWTYPE;
+  expected_correction_idempotency_key TEXT;
 BEGIN
   SELECT * INTO request_row
     FROM moderation_review_requests
@@ -72,6 +73,18 @@ BEGIN
       USING ERRCODE = '23514';
   END IF;
   IF NEW.correction_decision_id IS NOT NULL THEN
+    expected_correction_idempotency_key := CASE
+      WHEN original_row.measure_type = 'listing_restriction' THEN
+        'moderation.decision:listing.moderation:'
+          || NEW.idempotency_key || ':correction:decision'
+      WHEN original_row.measure_type = 'private_marketplace_review' THEN
+        'moderation.decision:private.marketplace.review:'
+          || NEW.idempotency_key || ':correction:decision'
+      WHEN original_row.measure_type IN ('account_suspension', 'scope_suspension') THEN
+        'moderation.decision:user.suspension.lift:'
+          || NEW.idempotency_key || ':correction:decision'
+      ELSE NULL
+    END;
     SELECT * INTO correction_row
       FROM moderation_decisions
      WHERE id = NEW.correction_decision_id;
@@ -81,18 +94,8 @@ BEGIN
        OR correction_row.target_type IS DISTINCT FROM original_row.target_type
        OR correction_row.target_id IS DISTINCT FROM original_row.target_id
        OR correction_row.created_at < request_row.submitted_at
-       OR correction_row.idempotency_key IS DISTINCT FROM CASE
-            WHEN original_row.measure_type = 'listing_restriction' THEN
-              'moderation.decision:listing.moderation:'
-                || NEW.idempotency_key || ':correction:decision'
-            WHEN original_row.measure_type = 'private_marketplace_review' THEN
-              'moderation.decision:private.marketplace.review:'
-                || NEW.idempotency_key || ':correction:decision'
-            WHEN original_row.measure_type IN ('account_suspension', 'scope_suspension') THEN
-              'moderation.decision:user.suspension.lift:'
-                || NEW.idempotency_key || ':correction:decision'
-            ELSE NULL
-          END
+       OR correction_row.idempotency_key IS DISTINCT FROM
+            expected_correction_idempotency_key
        OR (NEW.outcome = 'reversed' AND correction_row.measure_type <> 'measure_reversal')
        OR (NEW.outcome = 'modified' AND (
             original_row.measure_type NOT IN (

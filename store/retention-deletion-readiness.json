@@ -317,7 +317,7 @@
     },
     {
       "path": "backend/sql/migrations/045_independent_moderation_review_resolution.up.sql",
-      "sha256": "be97151f3992e9822cc5dffe51158209e8f98d4418e9bae19117de5385815446"
+      "sha256": "611c603fcc3114455c38ec801fc0d386254d1af9e5c435ebb3dd4663e30e9ea9"
     },
     {
       "path": "backend/sql/migrations/045_independent_moderation_review_resolution.down.sql",
