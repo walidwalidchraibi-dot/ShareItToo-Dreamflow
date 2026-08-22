@@ -1,9 +1,10 @@
 # S3W support notification and authenticated routing - architecture
 
-Status: locally verified non-live implementation candidate on 22.08.2026;
-exact implementation commit and GitHub CI evidence are pending. The complete
-local technical regression is green. No live FCM, production, Store, payment,
-Cloud/VPS/DNS or public rollout change is enabled.
+Status: locally and CI-verified non-live implementation on 22.08.2026 at exact
+commit `452575c1c06aaf2502573fb1bf7d95724c9b024d`; GitHub regression run
+`32559993743` is green for PR merge snapshot
+`5f60270857e8417b59ed9a5b5b4a777f72128ad2`. No live FCM, production, Store,
+payment, Cloud/VPS/DNS or public rollout change is enabled.
 
 ## Source basis
 
@@ -72,7 +73,10 @@ message workflow, generic Push contract and safe support destination. The
 complete local technical regression also passes the accepted 220-issue
 analyzer baseline, 365 Flutter tests with one documented Google-profile skip,
 the separate Google-only profile test, Web build/loopback smoke and Android
-debug APK build. GitHub exact-head CI remains to be recorded.
+debug APK build. GitHub repeated those gates, passed all 493 Backend/PostgreSQL
+tests without skips and produced the same Flutter results. The signed Android
+candidate and API-image publication jobs were skipped; the Backend job built
+only an unpublished commit-labelled CI image.
 
 No external provider call, live Push, Store save/submission, signed candidate,
 production configuration, deployment, payment, PR merge or public pilot is

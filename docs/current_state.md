@@ -976,8 +976,9 @@ mergeable and unmerged. Detailed records:
 
 ## S3W support notification and authenticated routing
 
-`S3W_SUPPORT_NOTIFICATION_AUTHENTICATED_ROUTING` is locally verified for Drive
-scenarios `SUP-138` through `SUP-142`. The implementation
+`S3W_SUPPORT_NOTIFICATION_AUTHENTICATED_ROUTING` is locally and CI-verified for
+Drive scenarios `SUP-138` through `SUP-142` at exact implementation commit
+`452575c1c06aaf2502573fb1bf7d95724c9b024d`. The implementation
 adds a duplicate-safe `support_case_update` outbox schedule only after a
 user-visible support-message publication. FCM receives only the one-hour
 allowlisted generic contract: `Neue ShareItToo-Aktualisierung`, `In der App
@@ -992,6 +993,10 @@ and all 492 Backend unit tests pass; one PostgreSQL-environment test is the
 intentional local skip. The complete local technical regression passes the
 accepted 220-issue analyzer baseline, 365 Flutter tests with one documented
 Google-profile skip, the separate Google-only profile test, Web build/loopback
-smoke and Android debug APK build. Exact commit and CI evidence are not yet
-recorded. No live Push, provider traffic, production, payment, Store, signed
-candidate, deployment or merge occurred.
+smoke and Android debug APK build. GitHub run `32559993743` repeated these
+gates for PR merge snapshot
+`5f60270857e8417b59ed9a5b5b4a777f72128ad2`, including 493
+Backend/PostgreSQL tests without skips. GitGuardian passed; the signed
+candidate and API-image publication jobs were skipped. Draft PR #7 remained
+open, mergeable and unmerged. No live Push, provider traffic, production,
+payment, Store, signed candidate, deployment or merge occurred.

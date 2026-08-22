@@ -514,9 +514,10 @@ mergeable and unmerged.
 
 ## S3W support notification and authenticated routing
 
-`S3W_SUPPORT_NOTIFICATION_AUTHENTICATED_ROUTING` is the active non-live package
-for Drive scenarios `SUP-138` through `SUP-142`. Local focused verification is
-green: published support messages schedule one generic in-app and Push update,
+`S3W_SUPPORT_NOTIFICATION_AUTHENTICATED_ROUTING` is a locally and CI-verified
+non-live package for Drive scenarios `SUP-138` through `SUP-142` at exact
+implementation commit `452575c1c06aaf2502573fb1bf7d95724c9b024d`. Published
+support messages schedule one generic in-app and Push update,
 the external payload contains no identifier or sensitive case content, the
 Push opens only the authenticated notification feed, and the case is then
 re-fetched through the canonical user-bound endpoint. Lost access produces a
@@ -529,6 +530,9 @@ tests are green. The complete local technical regression is also green: the
 accepted 220-issue analyzer baseline, 365 Flutter tests with one documented
 Google-profile skip, the separate Google-only profile test, Web build/loopback
 smoke and Android debug APK build all pass. Exact implementation commit and
-GitHub CI evidence are still being recorded. No live FCM, provider call,
-production, payment, Store, signed candidate, deployment, merge or public pilot
-is enabled.
+GitHub CI evidence are recorded by green run `32559993743` for PR merge
+snapshot `5f60270857e8417b59ed9a5b5b4a777f72128ad2`: all 493
+Backend/PostgreSQL tests passed without skips and the Flutter results repeated.
+The signed candidate and API-image publication jobs were skipped; Draft PR #7
+remained open, mergeable and unmerged. No live FCM, provider call, production,
+payment, Store, signed candidate, deployment, merge or public pilot is enabled.
