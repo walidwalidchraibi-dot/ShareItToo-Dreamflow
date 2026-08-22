@@ -16,7 +16,10 @@ test('account action tokens are random and only their hash is stored', async () 
   const client = {
     async query(sql, parameters) {
       calls.push({ sql, parameters });
-      return { rows: [], rowCount: 0 };
+      if (/SELECT id FROM users/u.test(sql)) {
+        return { rows: [{ id: 'user-1' }], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 1 };
     },
   };
 
@@ -31,8 +34,81 @@ test('account action tokens are random and only their hash is stored', async () 
 
   assert.notEqual(first, second);
   assert.ok(first.length >= 64);
-  assert.equal(calls[1].parameters[2], security.hashActionToken(first));
-  assert.equal(calls[1].parameters.includes(first), false);
+  assert.match(calls[0].sql, /FROM users[\s\S]*FOR UPDATE/u);
+  assert.equal(calls[2].parameters[2], security.hashActionToken(first));
+  assert.equal(calls[2].parameters.includes(first), false);
+  assert.ok(calls[2].parameters[3] instanceof Date);
+  assert.ok(calls[2].parameters[5] instanceof Date);
+  assert.ok(calls[2].parameters[3].getTime() > calls[2].parameters[5].getTime());
+  assert.match(calls[3].sql, /FROM users[\s\S]*FOR UPDATE/u);
+  assert.equal(calls[5].parameters[2], security.hashActionToken(second));
+  assert.equal(calls[5].parameters.includes(second), false);
+});
+
+test('account action consumption succeeds exactly once', async () => {
+  const rowCounts = [1, 0];
+  const client = {
+    async query(sql, parameters) {
+      assert.match(sql, /consumed_at IS NULL[\s\S]*RETURNING id/u);
+      assert.deepEqual(parameters, ['action-token-1']);
+      return { rows: [], rowCount: rowCounts.shift() };
+    },
+  };
+
+  assert.equal(await accountActions.consumeActionToken(client, 'action-token-1'), true);
+  assert.equal(await accountActions.consumeActionToken(client, 'action-token-1'), false);
+});
+
+test('password-reset token issuance locks the account and fails closed for active takeover cases', async () => {
+  const calls = [];
+  const client = {
+    async query(sql, parameters) {
+      calls.push({ sql, parameters });
+      if (calls.length === 1) {
+        return { rows: [{ id: 'user-1' }], rowCount: 1 };
+      }
+      if (calls.length === 2) {
+        return { rows: [{ '?column?': 1 }], rowCount: 1 };
+      }
+      assert.fail(`unexpected query: ${sql}`);
+    },
+  };
+
+  await assert.rejects(
+    accountActions.createActionToken(client, {
+      userId: 'user-1',
+      kind: 'reset_password',
+    }),
+    new RegExp(accountActions.ACCOUNT_RECOVERY_EMAIL_BLOCKED, 'u'),
+  );
+  assert.match(calls[0].sql, /FROM users[\s\S]*FOR UPDATE/u);
+  assert.match(calls[1].sql, /case_subtype = 'account_takeover'/u);
+  assert.equal(calls.some((call) => /INSERT INTO auth_action_tokens/u.test(call.sql)), false);
+});
+
+test('password-reset lifetime uses one deterministic issuance timestamp', async () => {
+  const calls = [];
+  const client = {
+    async query(sql, parameters) {
+      calls.push({ sql, parameters });
+      if (calls.length === 1) return { rows: [{ id: 'user-1' }], rowCount: 1 };
+      if (calls.length === 2) return { rows: [], rowCount: 0 };
+      return { rows: [], rowCount: 1 };
+    },
+  };
+
+  await accountActions.createActionToken(client, {
+    userId: 'user-1',
+    kind: 'reset_password',
+  });
+
+  const insert = calls.find((call) => /INSERT INTO auth_action_tokens/u.test(call.sql));
+  assert.ok(insert);
+  assert.match(insert.sql, /payload, created_at/u);
+  assert.equal(
+    insert.parameters[3].getTime() - insert.parameters[5].getTime(),
+    30 * 60 * 1000,
+  );
 });
 
 test('malformed account tokens are rejected without a database lookup', async () => {

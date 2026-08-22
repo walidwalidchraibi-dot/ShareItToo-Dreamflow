@@ -10,6 +10,7 @@ import helmet from 'helmet';
 import multer from 'multer';
 
 import {
+  ACCOUNT_RECOVERY_EMAIL_BLOCKED,
   accountDeletionConfirmForm,
   accountDeletionRequestForm,
   consumeActionToken,
@@ -24,6 +25,7 @@ import {
 } from './account_actions.js';
 import {
   deletePushDevicesForSession,
+  revokeAllSessionsForCredentialChange,
   revokeSessionByRefreshToken,
 } from './auth_session_actions.js';
 import { config } from './config.js';
@@ -1133,28 +1135,32 @@ async function resetPasswordWithToken(token, password) {
        WHERE id = $1`,
       [row.id, passwordHash],
     );
-    await consumeActionToken(client, row.action_token_id);
+    if (!(await consumeActionToken(client, row.action_token_id))) {
+      throw new HttpError(400, 'invalid_or_expired_reset_link');
+    }
     await client.query(
       `UPDATE auth_action_tokens
        SET consumed_at = COALESCE(consumed_at, now())
        WHERE user_id = $1 AND kind = 'reset_password'`,
       [row.id],
     );
-    await client.query(
-      'UPDATE refresh_tokens SET revoked_at = COALESCE(revoked_at, now()) WHERE user_id = $1',
-      [row.id],
-    );
-    await client.query(
-      `UPDATE auth_sessions
-       SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'password_reset')
-       WHERE user_id = $1`,
-      [row.id],
-    );
+    const containment = await revokeAllSessionsForCredentialChange(client, {
+      userId: row.id,
+      reason: 'password_reset',
+    });
     await writeAudit(client, {
       actor: { id: row.id, role: row.role ?? 'user' },
       action: 'auth.password_reset',
       resourceType: 'user',
       resourceId: row.id,
+      metadata: {
+        scope: 'target_account_only',
+        actionTokenId: row.action_token_id,
+        revokedSessionCount: containment.revokedSessionCount,
+        revokedRefreshTokenCount: containment.revokedRefreshTokenCount,
+        deletedPushDeviceCount: containment.deletedPushDeviceCount,
+        replacementSessionIssued: false,
+      },
     });
     return row;
   });
@@ -2430,26 +2436,53 @@ export function createApp({
   app.post('/v1/auth/password-reset/request', actionLimiter, asyncRoute(async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     if (isValidEmail(email)) {
-      const result = await pool.query(
-        `SELECT * FROM users
-         WHERE email = $1 AND deactivated_at IS NULL AND account_status = 'active'`,
-        [email],
-      );
-      const user = result.rows[0];
-      if (user?.password_hash) {
-        try {
-          const token = await inTransaction((client) => createActionToken(client, {
-            userId: user.id,
-            kind: 'reset_password',
-          }));
+      try {
+        const prepared = await inTransaction(async (client) => {
+          const result = await client.query(
+            `SELECT * FROM users
+              WHERE email = $1
+                AND deactivated_at IS NULL
+                AND account_status = 'active'`,
+            [email],
+          );
+          const user = result.rows[0];
+          if (!user?.password_hash) return null;
+          try {
+            const token = await createActionToken(client, {
+              userId: user.id,
+              kind: 'reset_password',
+            });
+            return {
+              token,
+              email: user.email,
+              displayName: user.profile?.displayName,
+            };
+          } catch (error) {
+            if (error?.message !== ACCOUNT_RECOVERY_EMAIL_BLOCKED) throw error;
+            await writeAudit(client, {
+              action: 'auth.password_reset_email_blocked_account_takeover',
+              resourceType: 'user',
+              resourceId: user.id,
+              requestId: req.requestId,
+              metadata: {
+                channel: 'email',
+                reason: 'active_p0_account_takeover_case',
+                resetTokenIssued: false,
+                externalMessageSent: false,
+              },
+            });
+            return null;
+          }
+        });
+        if (prepared) {
           await sendPasswordResetEmail({
-            email: user.email,
-            displayName: user.profile?.displayName,
-            token,
+            email: prepared.email,
+            displayName: prepared.displayName,
+            token: prepared.token,
           });
-        } catch (error) {
-          console.error('[auth] password reset delivery failed', safeOperationalErrorCode(error, 'password_reset_delivery_failed'));
         }
+      } catch (error) {
+        console.error('[auth] password reset delivery failed', safeOperationalErrorCode(error, 'password_reset_delivery_failed'));
       }
     }
     res.status(202).json({ accepted: true });
@@ -2588,13 +2621,21 @@ export function createApp({
     const nextPassword = req.body?.newPassword;
     const policyError = passwordPolicyError(nextPassword);
     if (policyError) throw new HttpError(400, policyError);
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.auth.userId]);
-    const user = result.rows[0];
-    if (!user?.password_hash || !(await verifyPassword(currentPassword, user.password_hash))) {
-      throw new HttpError(401, 'invalid_credentials');
-    }
     const passwordHash = await hashPassword(nextPassword);
     await inTransaction(async (client) => {
+      const result = await client.query(
+        `SELECT password_hash FROM users
+          WHERE id = $1
+            AND deactivated_at IS NULL
+            AND account_status = 'active'
+          FOR UPDATE`,
+        [req.auth.userId],
+      );
+      const user = result.rows[0];
+      if (!user?.password_hash
+          || !(await verifyPassword(currentPassword, user.password_hash))) {
+        throw new HttpError(401, 'invalid_credentials');
+      }
       await client.query(
         `UPDATE users
          SET password_hash = $2, password_changed_at = now(),
@@ -2602,23 +2643,22 @@ export function createApp({
          WHERE id = $1`,
         [req.auth.userId, passwordHash],
       );
-      await client.query(
-        `UPDATE auth_sessions
-         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'password_changed')
-         WHERE user_id = $1`,
-        [req.auth.userId],
-      );
-      await client.query(
-        `UPDATE refresh_tokens
-         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'password_changed')
-         WHERE user_id = $1`,
-        [req.auth.userId],
-      );
+      const containment = await revokeAllSessionsForCredentialChange(client, {
+        userId: req.auth.userId,
+        reason: 'password_changed',
+      });
       await writeAudit(client, {
         actor: req.actor,
         action: 'auth.password_changed',
         resourceType: 'user',
         resourceId: req.auth.userId,
+        metadata: {
+          scope: 'target_account_only',
+          revokedSessionCount: containment.revokedSessionCount,
+          revokedRefreshTokenCount: containment.revokedRefreshTokenCount,
+          deletedPushDeviceCount: containment.deletedPushDeviceCount,
+          replacementSessionIssued: false,
+        },
       });
     });
     res.status(204).end();

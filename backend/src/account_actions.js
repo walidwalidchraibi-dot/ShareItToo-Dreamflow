@@ -1,14 +1,41 @@
 import { config } from './config.js';
 import { hashActionToken, newActionToken } from './security.js';
 
+export const ACCOUNT_RECOVERY_EMAIL_BLOCKED = 'account_recovery_email_blocked';
+
 export async function createActionToken(client, { userId, kind, payload = {} }) {
+  const target = await client.query(
+    `SELECT id FROM users
+     WHERE id = $1 AND deactivated_at IS NULL
+     FOR UPDATE`,
+    [userId],
+  );
+  if (!target.rowCount) throw new Error('account_action_target_unavailable');
+  if (kind === 'reset_password') {
+    const activeTakeoverCase = await client.query(
+      `SELECT 1
+         FROM support_cases
+        WHERE reporter_user_id = $1
+          AND case_type = 'trust_safety'
+          AND case_subtype = 'account_takeover'
+          AND priority = 'p0'
+          AND account_takeover_flag = true
+          AND status NOT IN ('resolved', 'closed')
+        LIMIT 1`,
+      [userId],
+    );
+    if (activeTakeoverCase.rowCount) {
+      throw new Error(ACCOUNT_RECOVERY_EMAIL_BLOCKED);
+    }
+  }
   const token = newActionToken();
+  const createdAt = new Date();
   const lifetimeMs = ['verify_email', 'change_email'].includes(kind)
     ? config.emailVerificationLifetimeHours * 60 * 60 * 1000
     : (kind === 'delete_account'
       ? config.accountDeletionLifetimeMinutes
       : config.passwordResetLifetimeMinutes) * 60 * 1000;
-  const expiresAt = new Date(Date.now() + lifetimeMs);
+  const expiresAt = new Date(createdAt.getTime() + lifetimeMs);
   await client.query(
     `UPDATE auth_action_tokens
      SET consumed_at = COALESCE(consumed_at, now())
@@ -16,9 +43,17 @@ export async function createActionToken(client, { userId, kind, payload = {} }) 
     [userId, kind],
   );
   await client.query(
-    `INSERT INTO auth_action_tokens (user_id, kind, token_hash, expires_at, payload)
-     VALUES ($1, $2, $3, $4, $5::jsonb)`,
-    [userId, kind, hashActionToken(token), expiresAt, JSON.stringify(payload)],
+    `INSERT INTO auth_action_tokens (
+       user_id, kind, token_hash, expires_at, payload, created_at
+     ) VALUES ($1, $2, $3, $4, $5::jsonb, $6)`,
+    [
+      userId,
+      kind,
+      hashActionToken(token),
+      expiresAt,
+      JSON.stringify(payload),
+      createdAt,
+    ],
   );
   return token;
 }
@@ -44,10 +79,14 @@ export async function lockValidActionToken(client, { token, kind }) {
 }
 
 export async function consumeActionToken(client, actionTokenId) {
-  await client.query(
-    'UPDATE auth_action_tokens SET consumed_at = now() WHERE id = $1 AND consumed_at IS NULL',
+  const result = await client.query(
+    `UPDATE auth_action_tokens
+     SET consumed_at = now()
+     WHERE id = $1 AND consumed_at IS NULL
+     RETURNING id`,
     [actionTokenId],
   );
+  return result.rowCount === 1;
 }
 
 function escapeHtml(value) {

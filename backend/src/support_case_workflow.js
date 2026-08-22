@@ -299,6 +299,17 @@ export async function createSupportCase(client, {
     },
   );
   await validateSupportLinks(client, actor.id, normalized);
+  if (normalized.accountTakeoverFlag) {
+    const target = await client.query(
+      `SELECT id FROM users
+        WHERE id = $1 AND deactivated_at IS NULL
+        FOR UPDATE`,
+      [actor.id],
+    );
+    if (!target.rowCount) {
+      throw new SupportCaseError(409, 'support_case_reporter_account_unavailable');
+    }
+  }
 
   let dsaNoticeNumber = null;
   let dsaNoticeEvidence = null;
@@ -453,6 +464,19 @@ export async function createSupportCase(client, {
       replayed: true,
     };
   }
+  let invalidatedEmailResetTokens = 0;
+  if (normalized.accountTakeoverFlag) {
+    const invalidated = await client.query(
+      `UPDATE auth_action_tokens
+       SET consumed_at = COALESCE(consumed_at, $2)
+       WHERE user_id = $1
+         AND kind = 'reset_password'
+         AND consumed_at IS NULL
+       RETURNING id`,
+      [actor.id, now],
+    );
+    invalidatedEmailResetTokens = invalidated.rowCount;
+  }
   await createPrivacyRightsRequestForCase(client, {
     caseRecord: inserted.rows[0],
     privacyRightsRequest,
@@ -561,6 +585,10 @@ export async function createSupportCase(client, {
         disclosureAllowed: false,
         erasureExecutionAllowed: false,
       }),
+      ...(normalized.accountTakeoverFlag ? {
+        compromisedEmailResetBlocked: true,
+        invalidatedEmailResetTokens,
+      } : {}),
     },
   });
   return {

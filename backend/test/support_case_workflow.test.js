@@ -777,6 +777,85 @@ test('concurrent DSA locator replay is rechecked after the case lock', async () 
   client.done();
 });
 
+test('account-takeover intake invalidates live email-reset tokens and audits the count', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_cases/, result: noRows },
+    {
+      match: /AS booking_allowed/,
+      result: {
+        rowCount: 1,
+        rows: [{
+          booking_allowed: true,
+          listing_exists: true,
+          payment_allowed: true,
+          refund_allowed: true,
+          payout_allowed: true,
+        }],
+      },
+    },
+    {
+      match: /SELECT id FROM users[\s\S]*FOR UPDATE/u,
+      check: ({ params }) => assert.deepEqual(params, ['user-1']),
+      result: { rowCount: 1, rows: [{ id: 'user-1' }] },
+    },
+    {
+      match: /INSERT INTO support_cases/,
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [caseRow({
+          id: params[0],
+          human_readable_case_number: params[1],
+          case_type: params[2],
+          case_subtype: params[3],
+          priority: params[4],
+          severity: params[5],
+          current_owner_role: params[11],
+          approval_level: params[12],
+          next_update_at: params[16],
+          safety_flag: params[18],
+          account_takeover_flag: params[24],
+          created_at: params[36],
+          updated_at: params[36],
+        })],
+      }),
+    },
+    {
+      match: /UPDATE auth_action_tokens[\s\S]*kind = 'reset_password'/u,
+      check: ({ params }) => assert.deepEqual(params, ['user-1', now]),
+      result: { rowCount: 2, rows: [{ id: 'token-1' }, { id: 'token-2' }] },
+    },
+    { match: /INSERT INTO support_case_events/, result: { rowCount: 1, rows: [] } },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => {
+        const metadata = JSON.parse(params[4]);
+        assert.equal(metadata.compromisedEmailResetBlocked, true);
+        assert.equal(metadata.invalidatedEmailResetTokens, 2);
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+
+  const result = await createSupportCase(client, {
+    actor: { id: 'user-1', role: 'user' },
+    raw: {
+      caseType: 'trust_safety',
+      caseSubType: 'account_takeover',
+      summary: 'Moegliche Kontouebernahme sicher pruefen.',
+      accountTakeover: true,
+      immediateDanger: false,
+      safetyTriage: safetyTriage(),
+      issueScope: issueScope(),
+    },
+    idempotencyKey: 'account-takeover-token-invalidation',
+    now,
+  });
+
+  assert.equal(result.supportCase.caseSubType, 'account_takeover');
+  assert.equal(result.supportCase.priority, 'p0');
+  client.done();
+});
+
 test('create rejects an inaccessible linked booking before any write', async () => {
   const client = new ScriptedClient([
     { match: /FROM support_cases/, result: noRows },

@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "9498a0670746a34fd5538166a49efb5bc7bdcb5f301c185bfbe03552ae7309de"
+      "sha256": "4aed213e18a54621d16abb73a43ee7fd7b3f5f04492e8d7119c2afd7fdc26b61"
     },
     {
       "path": "backend/src/server.js",
@@ -41,7 +41,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "79fdf1bbb9d45f42f53ac98847e02e932688e0b737ba636ecbf08218f72c60b9"
+      "sha256": "fe15a7dc6aa6d90e05f93827f6e3ba139a8f6963643c67fd7e1195830e245ac8"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -65,7 +65,7 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "a4f114abfe8c0d3e4f2afad01b2ac3dc87fddff8c77feb3e3f843f81e2275fba"
+      "sha256": "0ba3a1390b31c25ae0b9b1514bc69124f2d356acc6430d57dfefc229c008a384"
     },
     {
       "path": "backend/src/support_privacy_rights_domain.js",
@@ -201,7 +201,11 @@
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "a8af9f80a75eba98d3a49754aa12a75a40fa2148db582c3f80619d09727addbd"
+      "sha256": "f2a75244a53c91aad4036691f840e2e1d17d1ba1427fe416d4ddc2899d214cb6"
+    },
+    {
+      "path": "backend/src/auth_session_actions.js",
+      "sha256": "ee5cbd3051ae8868c9a914c50470ca83556ee937c3ef580a7631091e0ffbf9b5"
     },
     {
       "path": "backend/src/config.js",
@@ -498,6 +502,14 @@
     {
       "path": "backend/sql/migrations/056_support_account_recovery_guard.down.sql",
       "sha256": "3b5683bdc7fa1dfed4ac2dc54b19b6eaa2d2eca84d4e60c7c2a2744c09955b5f"
+    },
+    {
+      "path": "backend/sql/migrations/057_account_recovery_session_integrity.up.sql",
+      "sha256": "c578bc656aaf489baad1a458ce11125e33bce6b45ba99787dbd5e51f11973b86"
+    },
+    {
+      "path": "backend/sql/migrations/057_account_recovery_session_integrity.down.sql",
+      "sha256": "ce2e626d5ab9f5be3654b6f2387d24e381817af31178e5da11f41a9c5f118105"
     },
     {
       "path": "backend/ops/backup.sh",

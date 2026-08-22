@@ -141,6 +141,7 @@ if (!databaseUrl) {
         '054_support_feedback_priority.up.sql',
         '055_support_progress_updates.up.sql',
         '056_support_account_recovery_guard.up.sql',
+        '057_account_recovery_session_integrity.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -5208,6 +5209,16 @@ if (!databaseUrl) {
       assert.ok(supportTemplates.every((entry) => !Object.hasOwn(entry, 'body')));
 
       const accountRecoveryRequestIp = { 'X-Forwarded-For': '203.0.113.91' };
+      const compromisedEmailResetToken =
+        'compromised-email-reset-token-that-must-be-invalidated-1234567890';
+      const preexistingResetToken = await setupPool.query(
+        `INSERT INTO auth_action_tokens (
+           user_id, kind, token_hash, expires_at
+         ) VALUES (
+           'renter-a', 'reset_password', $1, now() + interval '30 minutes'
+         ) RETURNING id`,
+        [hashActionToken(compromisedEmailResetToken)],
+      );
       const accountTakeoverIntakeResponse = await fetch(
         `${baseUrl}/v1/support/cases`,
         {
@@ -5241,6 +5252,60 @@ if (!databaseUrl) {
       assert.equal(accountTakeoverIntakeResponse.status, 201);
       const accountTakeoverIntake = await accountTakeoverIntakeResponse.json();
       assert.equal(accountTakeoverIntake.supportCase.priority, 'p0');
+      const invalidatedResetToken = await setupPool.query(
+        `SELECT consumed_at FROM auth_action_tokens WHERE id = $1`,
+        [preexistingResetToken.rows[0].id],
+      );
+      assert.ok(invalidatedResetToken.rows[0].consumed_at);
+      const compromisedResetReuse = await fetch(
+        `${baseUrl}/v1/auth/password-reset/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...accountRecoveryRequestIp,
+          },
+          body: JSON.stringify({
+            token: compromisedEmailResetToken,
+            password: createEphemeralAcceptancePassword(),
+          }),
+        },
+      );
+      assert.equal(compromisedResetReuse.status, 400);
+      const compromisedEmailResetRequest = await fetch(
+        `${baseUrl}/v1/auth/password-reset/request`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...accountRecoveryRequestIp,
+          },
+          body: JSON.stringify({ email: 'renter-a@example.com' }),
+        },
+      );
+      assert.equal(compromisedEmailResetRequest.status, 202);
+      assert.deepEqual(await compromisedEmailResetRequest.json(), { accepted: true });
+      const activeCompromisedEmailResetTokens = await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM auth_action_tokens
+          WHERE user_id = 'renter-a'
+            AND kind = 'reset_password'
+            AND consumed_at IS NULL`,
+      );
+      assert.equal(activeCompromisedEmailResetTokens.rows[0].count, 0);
+      const blockedCompromisedEmailAudit = await setupPool.query(
+        `SELECT metadata
+           FROM audit_log
+          WHERE action = 'auth.password_reset_email_blocked_account_takeover'
+            AND resource_id = 'renter-a'
+          ORDER BY id DESC LIMIT 1`,
+      );
+      assert.deepEqual(blockedCompromisedEmailAudit.rows[0].metadata, {
+        channel: 'email',
+        reason: 'active_p0_account_takeover_case',
+        resetTokenIssued: false,
+        externalMessageSent: false,
+      });
       await setupPool.query(
         `UPDATE support_cases
             SET current_owner_id = 'support',
@@ -6706,6 +6771,9 @@ if (!databaseUrl) {
       const initialPassword = createEphemeralAcceptancePassword();
       const nextPassword = createEphemeralAcceptancePassword();
       const emailChangePassword = createEphemeralAcceptancePassword();
+      const recoveryPassword = createEphemeralAcceptancePassword();
+      const recoveryNextPassword = createEphemeralAcceptancePassword();
+      const recoveryPeerPassword = createEphemeralAcceptancePassword();
       await setupPool.query(
         `INSERT INTO users (
            id, email, password_hash, profile, role, account_status,
@@ -6719,8 +6787,23 @@ if (!databaseUrl) {
          (
            'email-user', 'email-old@example.com', $2, '{"displayName":"Email User"}'::jsonb,
            'user', 'active', now(), now(), now(), now()
+         ),
+         (
+           'recovery-user', 'recovery-user@example.com', $3,
+           '{"displayName":"Recovery User"}'::jsonb,
+           'user', 'active', now(), now(), now(), now()
+         ),
+         (
+           'recovery-peer', 'recovery-peer@example.com', $4,
+           '{"displayName":"Recovery Peer"}'::jsonb,
+           'user', 'active', now(), now(), now(), now()
          )`,
-        [await hashPassword(initialPassword), await hashPassword(emailChangePassword)],
+        [
+          await hashPassword(initialPassword),
+          await hashPassword(emailChangePassword),
+          await hashPassword(recoveryPassword),
+          await hashPassword(recoveryPeerPassword),
+        ],
       );
 
       const login = (password, forwardedFor = '203.0.113.10') => fetch(`${baseUrl}/v1/auth/login`, {
@@ -6732,6 +6815,221 @@ if (!databaseUrl) {
         },
         body: JSON.stringify({ email: 'auth-user@example.com', password }),
       });
+
+      const loginRecoveryAccount = (
+        email,
+        password,
+        forwardedFor,
+      ) => fetch(`${baseUrl}/v1/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Forwarded-For': forwardedFor,
+          'User-Agent': 'SIT S4G account recovery integration test',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const recoveryLoginOneResponse = await loginRecoveryAccount(
+        'recovery-user@example.com',
+        recoveryPassword,
+        '203.0.113.41',
+      );
+      assert.equal(recoveryLoginOneResponse.status, 200);
+      const recoverySessionOne = await recoveryLoginOneResponse.json();
+      const recoveryLoginTwoResponse = await loginRecoveryAccount(
+        'recovery-user@example.com',
+        recoveryPassword,
+        '203.0.113.42',
+      );
+      assert.equal(recoveryLoginTwoResponse.status, 200);
+      const recoverySessionTwo = await recoveryLoginTwoResponse.json();
+      const recoveryPeerLoginResponse = await loginRecoveryAccount(
+        'recovery-peer@example.com',
+        recoveryPeerPassword,
+        '203.0.113.43',
+      );
+      assert.equal(recoveryPeerLoginResponse.status, 200);
+      const recoveryPeerSession = await recoveryPeerLoginResponse.json();
+
+      for (const [session, tokenSuffix] of [
+        [recoverySessionOne, 'one'],
+        [recoverySessionTwo, 'two'],
+      ]) {
+        const pushRegistration = await fetch(`${baseUrl}/v1/auth/devices/push`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': tokenSuffix === 'one'
+              ? '203.0.113.50'
+              : '203.0.113.51',
+          },
+          body: JSON.stringify({
+            token: `synthetic-s4g-push-${tokenSuffix}`,
+            platform: 'android',
+            locale: 'de-DE',
+          }),
+        });
+        assert.equal(pushRegistration.status, 200);
+      }
+
+      const { createActionToken } = await import('../src/account_actions.js');
+      const recoveryToken = await inTransaction((client) => createActionToken(client, {
+        userId: 'recovery-user',
+        kind: 'reset_password',
+      }));
+      const recoveryConfirm = await fetch(
+        `${baseUrl}/v1/auth/password-reset/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': '203.0.113.44',
+          },
+          body: JSON.stringify({
+            token: recoveryToken,
+            password: recoveryNextPassword,
+          }),
+        },
+      );
+      assert.equal(recoveryConfirm.status, 200);
+      assert.deepEqual(await recoveryConfirm.json(), { changed: true });
+
+      const recoveryReuse = await fetch(
+        `${baseUrl}/v1/auth/password-reset/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': '203.0.113.45',
+          },
+          body: JSON.stringify({
+            token: recoveryToken,
+            password: createEphemeralAcceptancePassword(),
+          }),
+        },
+      );
+      assert.equal(recoveryReuse.status, 400);
+      assert.equal((await recoveryReuse.json()).error, 'invalid_or_expired_reset_link');
+
+      for (const [oldSession, forwardedFor] of [
+        [recoverySessionOne, '203.0.113.52'],
+        [recoverySessionTwo, '203.0.113.53'],
+      ]) {
+        const oldAccess = await fetch(`${baseUrl}/v1/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${oldSession.accessToken}`,
+            'X-Forwarded-For': forwardedFor,
+          },
+        });
+        assert.equal(oldAccess.status, 401);
+      }
+      const unaffectedPeerAccess = await fetch(`${baseUrl}/v1/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${recoveryPeerSession.accessToken}`,
+          'X-Forwarded-For': '203.0.113.54',
+        },
+      });
+      assert.equal(unaffectedPeerAccess.status, 200);
+
+      const recoverySessionState = await setupPool.query(
+        `SELECT revoked_reason, count(*)::int AS count
+           FROM auth_sessions
+          WHERE user_id = 'recovery-user'
+          GROUP BY revoked_reason`,
+      );
+      assert.deepEqual(recoverySessionState.rows, [{
+        revoked_reason: 'password_reset',
+        count: 2,
+      }]);
+      const recoveryRefreshState = await setupPool.query(
+        `SELECT revoked_reason, count(*)::int AS count
+           FROM refresh_tokens
+          WHERE user_id = 'recovery-user'
+          GROUP BY revoked_reason`,
+      );
+      assert.deepEqual(recoveryRefreshState.rows, [{
+        revoked_reason: 'password_reset',
+        count: 2,
+      }]);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM push_devices WHERE user_id = 'recovery-user'`,
+      )).rows[0].count, 0);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM auth_sessions
+          WHERE user_id = 'recovery-peer' AND revoked_at IS NULL`,
+      )).rows[0].count, 1);
+
+      const recoveryAudit = await setupPool.query(
+        `SELECT metadata
+           FROM audit_log
+          WHERE action = 'auth.password_reset'
+            AND resource_id = 'recovery-user'
+          ORDER BY id DESC LIMIT 1`,
+      );
+      assert.deepEqual(recoveryAudit.rows[0].metadata, {
+        scope: 'target_account_only',
+        actionTokenId: recoveryAudit.rows[0].metadata.actionTokenId,
+        revokedSessionCount: 2,
+        revokedRefreshTokenCount: 2,
+        deletedPushDeviceCount: 2,
+        replacementSessionIssued: false,
+      });
+      assert.match(recoveryAudit.rows[0].metadata.actionTokenId, /^[0-9a-f-]{36}$/u);
+      assert.equal(JSON.stringify(recoveryAudit.rows[0].metadata).includes(recoveryToken), false);
+
+      assert.equal((await loginRecoveryAccount(
+        'recovery-user@example.com',
+        recoveryPassword,
+        '203.0.113.46',
+      )).status, 401);
+      const recoveryFreshLoginResponse = await loginRecoveryAccount(
+        'recovery-user@example.com',
+        recoveryNextPassword,
+        '203.0.113.47',
+      );
+      assert.equal(recoveryFreshLoginResponse.status, 200);
+      const recoveryFreshSession = await recoveryFreshLoginResponse.json();
+      assert.notEqual(recoveryFreshSession.sessionId, recoverySessionOne.sessionId);
+      assert.notEqual(recoveryFreshSession.sessionId, recoverySessionTwo.sessionId);
+
+      const expiredRecoveryToken =
+        'expired-recovery-token-that-is-long-enough-for-s4g-testing-1234567890';
+      const expiredRecoveryRow = await setupPool.query(
+        `INSERT INTO auth_action_tokens (
+           user_id, kind, token_hash, created_at, expires_at
+         ) VALUES (
+           'recovery-user', 'reset_password', $1,
+           now() - interval '30 minutes', now() - interval '1 second'
+         ) RETURNING id`,
+        [hashActionToken(expiredRecoveryToken)],
+      );
+      const expiredRecoveryAttempt = await fetch(
+        `${baseUrl}/v1/auth/password-reset/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': '203.0.113.48',
+          },
+          body: JSON.stringify({
+            token: expiredRecoveryToken,
+            password: createEphemeralAcceptancePassword(),
+          }),
+        },
+      );
+      assert.equal(expiredRecoveryAttempt.status, 400);
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE auth_action_tokens SET token_hash = $2 WHERE id = $1`,
+          [expiredRecoveryRow.rows[0].id, 'f'.repeat(64)],
+        ),
+        (error) => error?.code === '55000'
+          && error?.message === 'auth_action_token_identity_immutable',
+      );
 
       const firstLogin = await login(initialPassword);
       assert.equal(firstLogin.status, 200);
@@ -6878,6 +7176,7 @@ if (!databaseUrl) {
         headers: {
           Authorization: `Bearer ${passwordSession.accessToken}`,
           'Content-Type': 'application/json',
+          'X-Forwarded-For': '203.0.113.49',
         },
         body: JSON.stringify({
           currentPassword: initialPassword,
@@ -7387,6 +7686,20 @@ if (!databaseUrl) {
         (error) => error?.code === 'P0001'
           && error?.message
             === 'Cannot roll back account recovery guidance while retained message evidence exists',
+      );
+
+      const accountRecoverySessionIntegrityDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/057_account_recovery_session_integrity.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(accountRecoverySessionIntegrityDown),
+        (error) => error?.code === 'P0001'
+          && error?.message
+            === 'Cannot roll back account recovery session integrity while reset-token evidence exists',
       );
 
       const g3bDown = await fs.readFile(

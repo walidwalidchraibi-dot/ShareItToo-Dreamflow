@@ -6,6 +6,7 @@ process.env.JWT_SECRET ??= 'test-secret-that-is-longer-than-thirty-two-character
 
 const {
   deletePushDevicesForSession,
+  revokeAllSessionsForCredentialChange,
   revokeSessionByRefreshToken,
 } = await import('../src/auth_session_actions.js');
 
@@ -73,4 +74,47 @@ test('unknown refresh tokens stay enumeration-safe and do not delete devices', a
   assert.equal(revoked, false);
   assert.equal(calls.length, 1);
   assert.match(calls[0].sql, /FOR UPDATE/);
+});
+
+test('credential recovery revokes only the target account and removes its push devices', async () => {
+  const calls = [];
+  const client = {
+    async query(sql, parameters) {
+      calls.push({ sql, parameters });
+      return { rows: [], rowCount: calls.length };
+    },
+  };
+
+  const result = await revokeAllSessionsForCredentialChange(client, {
+    userId: 'target-user',
+    reason: 'password_reset',
+  });
+
+  assert.deepEqual(result, {
+    userId: 'target-user',
+    reason: 'password_reset',
+    revokedSessionCount: 1,
+    revokedRefreshTokenCount: 2,
+    deletedPushDeviceCount: 3,
+  });
+  assert.equal(calls.length, 3);
+  assert.match(calls[0].sql, /UPDATE auth_sessions[\s\S]*WHERE user_id = \$1 AND revoked_at IS NULL/u);
+  assert.match(calls[1].sql, /UPDATE refresh_tokens[\s\S]*WHERE user_id = \$1 AND revoked_at IS NULL/u);
+  assert.match(calls[2].sql, /DELETE FROM push_devices[\s\S]*WHERE user_id = \$1/u);
+  assert.deepEqual(calls.map((call) => call.parameters), [
+    ['target-user', 'password_reset'],
+    ['target-user', 'password_reset'],
+    ['target-user'],
+  ]);
+  assert.ok(calls.every((call) => !call.sql.includes('email')));
+});
+
+test('credential recovery rejects caller-selected revocation reasons', async () => {
+  await assert.rejects(
+    revokeAllSessionsForCredentialChange({ query: async () => assert.fail() }, {
+      userId: 'target-user',
+      reason: 'support_override',
+    }),
+    /invalid_account_credential_change_scope/u,
+  );
 });
