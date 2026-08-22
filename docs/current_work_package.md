@@ -762,3 +762,30 @@ Because no Growth-Core package is `PARTIAL` or `OPEN`, the next package is the
 highest-risk uncovered Support Matrix scenario that can be completed locally
 without inventing an external fact or crossing a live boundary. Any newly
 detected P0/P1 security, legal or data-integrity defect preempts that work.
+
+## S4F support account-recovery guard
+
+`S4F_SUPPORT_ACCOUNT_RECOVERY_GUARD` implements the non-live portion of Drive
+scenarios `SUP-022` and `SUP-023` at exact commit
+`67861699bfe2ee068130786ce3eadbfbc2445fa9`. The only draft path for `T-035`
+is dedicated and server-bound. It requires the exact P0 account-takeover
+reporter, active account, refresh-backed authenticated session and available
+password reauthentication; client recovery instructions are not accepted.
+
+The reviewed message points only to the authenticated in-app security area,
+states that the reported email channel alone is not accepted and records no
+recovery, revocation or external-send effect. Publication rechecks current
+truth. Migration `056` mirrors the exact case, recipient, template, rendered
+content and non-action bindings and refuses rollback with retained evidence.
+Credential requests are blocked across support variables while protective
+warnings stay available. Privacy and Retention inventories are updated without
+approving a policy or destructive execution.
+
+Focused tests, 71 final manifest/gate protection tests, fresh PostgreSQL 16
+integration, the complete Backend run with 540 passes plus one expected skip,
+accepted analyzer baseline, 370 Flutter tests with one documented skip,
+Google-only coverage, Web build/smoke and Android debug APK pass locally. P0B
+remains `HOLD` / `NO-GO`; GitHub push and CI are not claimed because the stored
+CLI credential is expired. No live account action, external message,
+production, Payment, Store, Cloud/VPS/DNS, signed candidate, deployment, PR
+merge or public activation is enabled.

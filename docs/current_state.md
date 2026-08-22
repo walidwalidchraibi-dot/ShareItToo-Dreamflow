@@ -1235,3 +1235,30 @@ remain higher-priority external gates. Their post-P0B fail-closed repository
 packages are already at maximum safe local state; no fact or approval is
 inferred. The next package may therefore be selected from still-uncovered,
 locally solvable Support Matrix risk, subject to immediate P0/P1 preemption.
+
+## S4F support account-recovery guard
+
+`S4F_SUPPORT_ACCOUNT_RECOVERY_GUARD` is locally verified at exact implementation
+commit `67861699bfe2ee068130786ce3eadbfbc2445fa9` for Drive scenarios `SUP-022`
+and `SUP-023`. The generic message route cannot draft `T-035`. A dedicated
+elevated route accepts no recovery variables and requires the exact P0
+account-takeover reporter, active account, refresh-backed authenticated session
+and available password reauthentication path.
+
+The server binds the in-app `Konto > Sicherheit` route, rejects the reported
+email channel as sole recovery path and records that no recovery, revocation or
+external delivery occurred. Independent Administrator review and publication
+recheck immutable content and current account/case truth. Migration `056`
+enforces the exact rendered copy, 12-key control payload and false action flags;
+direct SQL forgery and destructive rollback with retained evidence fail closed.
+Free support variables cannot solicit passwords, PINs, OTPs, TANs, recovery
+codes or account/card access credentials.
+
+Focused coverage, 71 final Privacy/Retention/P0B protection tests, fresh
+PostgreSQL 16 integration, 540 Backend passes plus one expected skip, accepted
+analyzer baseline, 370 Flutter tests with one documented skip, Google-only
+coverage, Web build/smoke and Android debug APK are green locally. P0B remains
+PSP `0/8 HOLD` and pilot `0/4 HOLD` / `NO-GO`. GitHub push/CI is not claimed
+because the stored CLI credential is expired; Draft PR #7 remains unmerged. No
+live recovery, external message, production, Payment, Store, Cloud/VPS/DNS,
+signed candidate or public activation occurred.
