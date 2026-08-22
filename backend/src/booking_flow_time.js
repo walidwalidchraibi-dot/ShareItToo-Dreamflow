@@ -1,3 +1,5 @@
+import { bookingLocalDate } from './booking_address_reveal_domain.js';
+
 const allowedWorkflowStatuses = Object.freeze([
   'accepted',
   'payment_pending',
@@ -67,6 +69,9 @@ export function applyBookingFlowTimeAction({
   ownerId,
   renterId,
   workflowStatus,
+  rentalStartDate,
+  rentalEndDate,
+  rentalTimezone = 'Europe/Berlin',
   raw,
   now = new Date(),
 }) {
@@ -84,6 +89,11 @@ export function applyBookingFlowTimeAction({
     const parsed = Date.parse(timeIso);
     if (!label || !Number.isFinite(parsed)) {
       throw new BookingFlowTimeError(400, 'invalid_flow_time_proposal');
+    }
+    const expectedDate = segment === 'pickup' ? rentalStartDate : rentalEndDate;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(expectedDate ?? '')
+        || bookingLocalDate(new Date(parsed), rentalTimezone) !== expectedDate) {
+      throw new BookingFlowTimeError(400, 'flow_time_outside_booking_date');
     }
     state[`${prefix}TimeRequested`] = label;
     state[`${prefix}TimeIso`] = new Date(parsed).toISOString();
@@ -119,7 +129,10 @@ export function applyBookingFlowTimeAction({
 async function lockedBooking(client, bookingId) {
   const result = await client.query(
     `SELECT booking.id, booking.owner_id, booking.renter_id,
-            booking.workflow_status, booking.workflow_version, request.payload
+            booking.workflow_status, booking.workflow_version,
+            booking.rental_start_date::text AS rental_start_date_text,
+            booking.rental_end_date::text AS rental_end_date_text,
+            booking.rental_timezone, request.payload
      FROM bookings AS booking
      JOIN rental_requests AS request ON request.id = booking.id
      WHERE booking.id = $1
@@ -184,6 +197,9 @@ export async function updateBookingFlowTime(client, {
     ownerId: row.owner_id,
     renterId: row.renter_id,
     workflowStatus: row.workflow_status,
+    rentalStartDate: row.rental_start_date_text,
+    rentalEndDate: row.rental_end_date_text,
+    rentalTimezone: row.rental_timezone,
     raw,
   });
   await client.query(

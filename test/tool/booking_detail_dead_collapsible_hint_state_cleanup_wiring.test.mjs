@@ -47,7 +47,7 @@ test('active address privacy and fixed information cards stay wired', () => {
   );
   assert.match(
     upcoming.source,
-    /AddressPrivacy\.shouldRevealExactAddress\(\s*handoverAt: start,\s*isAccepted: isAccepted,\s*\)/,
+    /widget\.booking\['exactAddressRevealed'\] == true/,
   );
   assert.match(
     upcoming.source,
@@ -89,7 +89,11 @@ test('approximate location maps stay present for protected booking locations', (
   );
   assert.match(
     ongoing.source,
-    /final label = AddressPrivacy\.nearbyShort\(kindLabel: 'Rückgabe'\);[\s\S]*?ApproxLocationMap\([\s\S]*?label: label,[\s\S]*?_AddressInfoCard\(\s*icon: Icons\.place_outlined,\s*text: 'Rückgabeort: \$fullAddress',\s*\)/,
+    /final label = AddressPrivacy\.nearbyShort\(kindLabel: 'Rückgabe'\);[\s\S]*?widget\.booking\['exactAddressRevealed'\] == true[\s\S]*?ApproxLocationMap\([\s\S]*?label: label/,
+  );
+  assert.match(
+    ongoing.source,
+    /_AddressInfoCard\(\s*icon: exactAddressRevealed\s*\? Icons\.place_outlined\s*: Icons\.lock_outline,\s*text: exactAddressRevealed && fullAddress\.isNotEmpty\s*\? 'Rückgabeort: \$fullAddress'/,
   );
 });
 

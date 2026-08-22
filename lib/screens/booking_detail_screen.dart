@@ -1466,14 +1466,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           }(),
         ),
 
-        if (_confirmedLocationText(false) != null) ...[
+        if (widget.booking['exactAddressRevealed'] == true &&
+            _confirmedLocationText(false) != null) ...[
           const SizedBox(height: 12),
           _AddressInfoCard(
             icon: Icons.place_outlined,
             text: _confirmedLocationText(false)!,
           ),
         ],
-        if (_confirmedLocationMapsUrl(false).isNotEmpty) ...[
+        if (widget.booking['exactAddressRevealed'] == true &&
+            _confirmedLocationMapsUrl(false).isNotEmpty) ...[
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
@@ -1506,7 +1508,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           builder: (context) {
             final label = AddressPrivacy.nearbyShort(kindLabel: 'Rückgabe');
             final fullAddress = (widget.booking['location'] as String?) ?? '';
-            // For ongoing bookings, always show the exact address
+            final exactAddressRevealed =
+                widget.booking['exactAddressRevealed'] == true;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1520,8 +1523,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 _AddressInfoCard(
-                  icon: Icons.place_outlined,
-                  text: 'Rückgabeort: $fullAddress',
+                  icon: exactAddressRevealed
+                      ? Icons.place_outlined
+                      : Icons.lock_outline,
+                  text: exactAddressRevealed && fullAddress.isNotEmpty
+                      ? 'Rückgabeort: $fullAddress'
+                      : 'Die genaue Adresse ist nur im serverseitig freigegebenen Zeitfenster sichtbar.',
                 ),
               ],
             );
@@ -2353,18 +2360,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             builder: (context) {
               final label = AddressPrivacy.nearbyShort(kindLabel: 'Abholung');
               final fullAddress = (widget.booking['location'] as String?) ?? '';
-              final requestStatus = ((widget.booking['statusRaw'] as String?) ??
-                      (widget.booking['status'] as String?) ??
-                      '')
-                  .trim()
-                  .toLowerCase();
-              final isAccepted = requestStatus == 'accepted' ||
-                  requestStatus.contains('akzeptiert');
               final revealExactAddress =
-                  AddressPrivacy.shouldRevealExactAddress(
-                handoverAt: start,
-                isAccepted: isAccepted,
-              );
+                  widget.booking['exactAddressRevealed'] == true;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -2422,7 +2419,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             builder: (context) {
               final label = AddressPrivacy.nearbyShort(kindLabel: 'Rückgabe');
               final fullAddress = (widget.booking['location'] as String?) ?? '';
-              // For ongoing bookings, always show the exact address
+              final exactAddressRevealed =
+                  widget.booking['exactAddressRevealed'] == true;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -2436,8 +2434,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   _AddressInfoCard(
-                    icon: Icons.place_outlined,
-                    text: 'Rückgabeort: $fullAddress',
+                    icon: exactAddressRevealed
+                        ? Icons.place_outlined
+                        : Icons.lock_outline,
+                    text: exactAddressRevealed && fullAddress.isNotEmpty
+                        ? 'Rückgabeort: $fullAddress'
+                        : 'Die genaue Adresse ist nur im serverseitig freigegebenen Zeitfenster sichtbar.',
                   ),
                 ],
               );

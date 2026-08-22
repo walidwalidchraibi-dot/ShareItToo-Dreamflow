@@ -53,6 +53,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   User? _owner;
   final TextEditingController _manualCodeCtrl = TextEditingController();
   Map<String, dynamic> _flowState = const {};
+  Map<String, dynamic> _addressVisibility = const {};
   bool _reviewAlreadySubmitted = false;
   Timer? _acceptanceDeadlineTimer;
   StreamSubscription<String>? _sharedPersistenceSub;
@@ -79,6 +80,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final renter = await DataService.getUserById(req.renterId);
     final owner = await DataService.getUserById(req.ownerId);
     final flowState = await DataService.getHandoverReturnState(req.id);
+    final addressVisibility = item == null
+        ? const <String, dynamic>{}
+        : await DataService.getBookingAddressReveal(
+            request: req,
+            localExactAddress: item.locationText,
+            segment: 'return',
+          );
     final alreadyReviewed = owner != null
         ? await DataService.hasSubmittedReview(
             requestId: req.id,
@@ -92,6 +100,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       _renter = renter;
       _owner = owner;
       _flowState = flowState;
+      _addressVisibility = addressVisibility;
       _reviewAlreadySubmitted = alreadyReviewed;
     });
     _scheduleAcceptanceDeadlineRefresh(req);
@@ -1283,14 +1292,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           ),
         ),
 
-        if (_confirmedLocationText(false) != null) ...[
+        if (_addressVisibility['result'] == 'revealed' &&
+            _confirmedLocationText(false) != null) ...[
           const SizedBox(height: 12),
           _AddressInfoCardInline(
             icon: Icons.place_outlined,
             text: _confirmedLocationText(false)!,
           ),
         ],
-        if (_confirmedLocationMapsUrl(false).isNotEmpty) ...[
+        if (_addressVisibility['result'] == 'revealed' &&
+            _confirmedLocationMapsUrl(false).isNotEmpty) ...[
           const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerLeft,

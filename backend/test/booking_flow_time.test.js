@@ -12,6 +12,9 @@ const base = Object.freeze({
   ownerId: 'owner-1',
   renterId: 'renter-1',
   workflowStatus: 'accepted',
+  rentalStartDate: '2026-10-14',
+  rentalEndDate: '2026-10-16',
+  rentalTimezone: 'Europe/Berlin',
 });
 
 test('counterparties share one authoritative pickup proposal and confirmation', () => {
@@ -22,7 +25,7 @@ test('counterparties share one authoritative pickup proposal and confirmation', 
       action: 'propose',
       segment: 'pickup',
       label: 'Samstag, 22:00',
-      timeIso: '2026-10-14T22:00:00.000Z',
+      timeIso: '2026-10-14T20:00:00.000Z',
     },
   });
   assert.equal(proposal.state.handoverTimeRequested, 'Samstag, 22:00');
@@ -56,6 +59,23 @@ test('requester cannot confirm their own proposal', () => {
     }),
     (error) => error instanceof BookingFlowTimeError
       && error.code === 'flow_time_counterparty_confirmation_required',
+  );
+});
+
+test('flow-time proposal must stay on the booking segment date', () => {
+  assert.throws(
+    () => applyBookingFlowTimeAction({
+      ...base,
+      actorId: 'owner-1',
+      raw: {
+        action: 'propose',
+        segment: 'pickup',
+        label: 'Dienstag, 22:00',
+        timeIso: '2026-10-13T20:00:00.000Z',
+      },
+    }),
+    (error) => error instanceof BookingFlowTimeError
+      && error.code === 'flow_time_outside_booking_date',
   );
 });
 

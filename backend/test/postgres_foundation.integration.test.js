@@ -148,6 +148,7 @@ if (!databaseUrl) {
         '058_moderation_account_measure_approval.up.sql',
         '059_support_message_content_block_audit.up.sql',
         '060_harassment_block_report_guard.up.sql',
+        '061_booking_exact_address_reveal_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -3876,6 +3877,119 @@ if (!databaseUrl) {
       });
       assert.equal(acceptB6.status, 200);
       assert.equal((await acceptB6.json()).booking.workflowStatus, 'accepted');
+
+      const { getBookingAddressReveal } = await import(
+        '../src/booking_address_reveal_workflow.js'
+      );
+      const deniedAddress = await getBookingAddressReveal(setupPool, {
+        actor: { id: 'outsider', role: 'user' },
+        bookingId: 'b6-flow',
+        segment: 'pickup',
+        requestId: 'integration-address-denied',
+      });
+      assert.equal(deniedAddress.denied, true);
+      await setupPool.query(
+        `UPDATE rental_requests
+            SET payload = payload || jsonb_build_object(
+              'handoverTimeRequested', 'Donnerstag, 18:00',
+              'handoverTimeIso', '2026-10-01T16:00:00.000Z',
+              'handoverTimeRequestedByUserId', 'owner',
+              'handoverTimeConfirmed', true,
+              'handoverTimeConfirmedByUserId', 'renter-a',
+              'handoverTimeConfirmedAt', now()::text
+            )
+          WHERE id = 'b6-flow'`,
+      );
+      const earlyAddress = await getBookingAddressReveal(setupPool, {
+        actor: { id: 'renter-a', role: 'user' },
+        bookingId: 'b6-flow',
+        segment: 'pickup',
+        requestId: 'integration-address-early',
+      });
+      assert.equal(earlyAddress.visibility.result, 'hidden');
+      assert.equal(earlyAddress.visibility.reason, 'safety_review_required');
+      assert.equal(Object.hasOwn(earlyAddress.visibility, 'exactAddress'), false);
+      await setupPool.query(
+        `UPDATE bookings SET listing_id = 'g3b-listing-2' WHERE id = 'b6-flow'`,
+      );
+      await setupPool.query(
+        `UPDATE rental_requests
+            SET item_id = 'g3b-listing-2',
+                payload = payload || '{"itemId":"g3b-listing-2"}'::jsonb
+          WHERE id = 'b6-flow'`,
+      );
+      const earlyWindowAddress = await getBookingAddressReveal(setupPool, {
+        actor: { id: 'renter-a', role: 'user' },
+        bookingId: 'b6-flow',
+        segment: 'pickup',
+        requestId: 'integration-address-early-window',
+      });
+      assert.equal(earlyWindowAddress.visibility.reason, 'reveal_window_not_open');
+
+      const nearAppointment = new Date(Date.now() + (60 * 60 * 1000));
+      await setupPool.query(
+        `UPDATE bookings
+            SET rental_start_date = ($2::timestamptz AT TIME ZONE rental_timezone)::date
+          WHERE id = $1`,
+        ['b6-flow', nearAppointment.toISOString()],
+      );
+      await setupPool.query(
+        `UPDATE rental_requests
+            SET payload = payload || jsonb_build_object(
+              'handoverTimeIso', $2::text,
+              'handoverTimeConfirmedAt', now()::text
+            )
+          WHERE id = $1`,
+        ['b6-flow', nearAppointment.toISOString()],
+      );
+      const revealedAddress = await getBookingAddressReveal(setupPool, {
+        actor: { id: 'renter-a', role: 'user' },
+        bookingId: 'b6-flow',
+        segment: 'pickup',
+        requestId: 'integration-address-revealed',
+      });
+      assert.equal(revealedAddress.visibility.result, 'revealed');
+      assert.equal(revealedAddress.visibility.exactAddress, 'Owner exact address');
+      const addressAudit = await setupPool.query(
+        `SELECT action, metadata
+           FROM audit_log
+          WHERE request_id LIKE 'integration-address-%'
+          ORDER BY request_id`,
+      );
+      assert.deepEqual(addressAudit.rows.map((row) => row.action).sort(), [
+        'booking.exact_address_access_denied',
+        'booking.exact_address_access_hidden',
+        'booking.exact_address_access_hidden',
+        'booking.exact_address_revealed',
+      ].sort());
+      assert.equal(
+        addressAudit.rows.some((row) => JSON.stringify(row.metadata).includes('Owner exact address')),
+        false,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO audit_log (
+             actor_id, actor_role, action, resource_type, resource_id,
+             request_id, metadata
+           ) VALUES (
+             'renter-a', 'user', 'booking.exact_address_revealed',
+             'booking', 'b6-flow', 'integration-address-forged',
+             '{"version":"v52_booking_address_reveal_v1","segment":"pickup","result":"revealed","reason":"counterparty_confirmed_window_open","workflowStatus":"accepted","appointmentAt":null,"revealFromAt":null,"safetyHold":false,"exactAddressReturned":true,"exactAddress":"forbidden"}'::jsonb
+           )`,
+        ),
+        (error) => error?.code === '23514',
+      );
+      await setupPool.query(
+        `UPDATE bookings
+            SET listing_id = 'listing-1', rental_start_date = '2026-10-01'
+          WHERE id = 'b6-flow'`,
+      );
+      await setupPool.query(
+        `UPDATE rental_requests
+            SET item_id = 'listing-1',
+                payload = payload || '{"itemId":"listing-1"}'::jsonb
+          WHERE id = 'b6-flow'`,
+      );
 
       const conflictingAcceptance = await fetch(`${baseUrl}/v1/bookings/b6-conflict/transitions`, {
         method: 'POST',
@@ -8391,6 +8505,20 @@ if (!databaseUrl) {
         (error) => error?.code === 'P0001'
           && error?.message
             === 'cannot roll back harassment block-report guard while audit evidence exists',
+      );
+
+      const bookingAddressRevealDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/061_booking_exact_address_reveal_guard.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(bookingAddressRevealDown),
+        (error) => error?.code === 'P0001'
+          && error?.message
+            === 'cannot roll back booking address reveal guard while audit evidence exists',
       );
 
       const g3bDown = await fs.readFile(

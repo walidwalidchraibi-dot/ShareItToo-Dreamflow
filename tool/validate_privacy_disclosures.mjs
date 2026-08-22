@@ -54,6 +54,9 @@ const sourcePaths = [
   'backend/src/support_duplicate_case_domain.js',
   'backend/src/support_duplicate_case_workflow.js',
   'backend/src/booking_workflow.js',
+  'backend/src/booking_flow_time.js',
+  'backend/src/booking_address_reveal_domain.js',
+  'backend/src/booking_address_reveal_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
   'backend/src/planner_inventory_workflow.js',
@@ -128,6 +131,8 @@ const sourcePaths = [
   'backend/sql/migrations/059_support_message_content_block_audit.down.sql',
   'backend/sql/migrations/060_harassment_block_report_guard.up.sql',
   'backend/sql/migrations/060_harassment_block_report_guard.down.sql',
+  'backend/sql/migrations/061_booking_exact_address_reveal_guard.up.sql',
+  'backend/sql/migrations/061_booking_exact_address_reveal_guard.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -157,6 +162,7 @@ const sourcePaths = [
   'lib/screens/app_link_destination_screen.dart',
   'android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt',
   'lib/widgets/app_image.dart',
+  'lib/services/address_privacy.dart',
   'lib/services/data_service.dart',
   'lib/services/backend_repository.dart',
   'lib/screens/help_center_screen.dart',
@@ -406,6 +412,24 @@ function assertSourceContracts({ root, sourceTexts }) {
   ]) {
     if (!harassmentBlockReportAuditMigration.includes(marker)) {
       fail(`Harassment block-report privacy boundary is missing ${marker}.`);
+    }
+  }
+  const bookingAddressAuditMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/061_booking_exact_address_reveal_guard.up.sql',
+  );
+  for (const marker of [
+    'audit_log_booking_address_request_idx',
+    'audit_log_booking_address_access_guard',
+    'booking.exact_address_revealed',
+    'booking.exact_address_access_hidden',
+    'booking.exact_address_access_denied',
+    "INTERVAL '6 hours'",
+    "'address', 'exactAddress', 'locationText', 'latitude', 'longitude'",
+  ]) {
+    if (!bookingAddressAuditMigration.includes(marker)) {
+      fail(`Booking-address privacy boundary is missing ${marker}.`);
     }
   }
 

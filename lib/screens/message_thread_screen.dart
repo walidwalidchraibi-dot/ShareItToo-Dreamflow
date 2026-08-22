@@ -2735,7 +2735,26 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     VoidCallback? onBackToPreview,
   }) async {
     final me = _currentUser;
-    if (me == null) return;
+    final req = _request;
+    final item = _item;
+    if (me == null || req == null || item == null) return;
+    final intent = setAs ?? _locationIntentForCurrentContext();
+    final visibility = await DataService.getBookingAddressReveal(
+      request: req,
+      localExactAddress: item.locationText,
+      segment: intent == _LocationIntent.returnTrip ? 'return' : 'pickup',
+    );
+    if (visibility['result'] != 'revealed') {
+      if (!mounted) return;
+      AppPopup.toast(
+        context,
+        icon: Icons.lock_outline,
+        title: 'Standortfreigabe noch gesperrt',
+        message:
+            'Ein genauer Ort kann erst im serverseitig freigegebenen Zeitfenster nach beidseitiger Terminbestätigung geteilt werden.',
+      );
+      return;
+    }
     await _sendLocationShareData(data);
     if (setAs == null) return;
     await _acceptSharedLocation(

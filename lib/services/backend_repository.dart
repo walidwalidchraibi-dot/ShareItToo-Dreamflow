@@ -601,6 +601,18 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['state'] as Map);
   }
 
+  static Future<Map<String, dynamic>> getBookingAddressReveal({
+    required String bookingId,
+    String segment = 'pickup',
+  }) async {
+    final response = await _authorized(
+      method: 'GET',
+      path:
+          '/bookings/${Uri.encodeComponent(bookingId)}/address-reveal?segment=${Uri.encodeQueryComponent(segment)}',
+    );
+    return Map<String, dynamic>.from(response['visibility'] as Map);
+  }
+
   static Future<Map<String, dynamic>> updateBookingFlowTime({
     required String bookingId,
     required String action,

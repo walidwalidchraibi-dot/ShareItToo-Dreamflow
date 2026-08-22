@@ -81,6 +81,7 @@ import {
   getBookingFlowTime,
   updateBookingFlowTime,
 } from './booking_flow_time.js';
+import { getBookingAddressReveal } from './booking_address_reveal_workflow.js';
 import { BookingConfirmationError } from './booking_confirmation_domain.js';
 import {
   getConditionEvidenceSummary,
@@ -3630,6 +3631,21 @@ export function createApp({
       bookingId: safeText(req.params.id, 120),
     });
     res.json({ state });
+  }));
+
+  app.get('/v1/bookings/:id/address-reveal', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const segment = safeText(req.query.segment, 16);
+    if (!['pickup', 'return'].includes(segment)) {
+      throw new HttpError(400, 'booking_address_segment_invalid');
+    }
+    const result = await inTransaction((client) => getBookingAddressReveal(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      segment,
+      requestId: req.requestId,
+    }));
+    if (result.denied) throw new HttpError(404, 'booking_not_found');
+    res.set('Cache-Control', 'private, no-store').json({ visibility: result.visibility });
   }));
 
   app.get('/v1/platform-contracts/:id/receipt', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {

@@ -68,6 +68,9 @@ const sourcePaths = [
   'backend/src/v51_contract_receipt.js',
   'backend/src/v51_withdrawal_workflow.js',
   'backend/src/booking_workflow.js',
+  'backend/src/booking_flow_time.js',
+  'backend/src/booking_address_reveal_domain.js',
+  'backend/src/booking_address_reveal_workflow.js',
   'backend/src/v51_termination_domain.js',
   'backend/src/v52_actual_loss_workflow.js',
   'backend/src/v52_handover_return_workflow.js',
@@ -141,6 +144,8 @@ const sourcePaths = [
   'backend/sql/migrations/059_support_message_content_block_audit.down.sql',
   'backend/sql/migrations/060_harassment_block_report_guard.up.sql',
   'backend/sql/migrations/060_harassment_block_report_guard.down.sql',
+  'backend/sql/migrations/061_booking_exact_address_reveal_guard.up.sql',
+  'backend/sql/migrations/061_booking_exact_address_reveal_guard.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -901,6 +906,32 @@ function assertSourceContracts(root, sourceTexts) {
     if (!harassmentBlockReportAuditMigration.includes(marker)) {
       fail(`Harassment block-report retention boundary is missing ${marker}.`);
     }
+  }
+  const bookingAddressAuditMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/061_booking_exact_address_reveal_guard.up.sql',
+  );
+  for (const marker of [
+    'audit_log_booking_address_request_idx',
+    'audit_log_booking_address_access_guard',
+    'booking.exact_address_revealed',
+    'booking.exact_address_access_hidden',
+    'booking.exact_address_access_denied',
+  ]) {
+    if (!bookingAddressAuditMigration.includes(marker)) {
+      fail(`Booking-address retention boundary is missing ${marker}.`);
+    }
+  }
+  const bookingAddressRollbackMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/061_booking_exact_address_reveal_guard.down.sql',
+  );
+  if (!bookingAddressRollbackMigration.includes(
+    'cannot roll back booking address reveal guard while audit evidence exists',
+  )) {
+    fail('Booking-address retention boundary is missing rollback refusal.');
   }
   if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
     fail('Retention inventory must remain read-only.');

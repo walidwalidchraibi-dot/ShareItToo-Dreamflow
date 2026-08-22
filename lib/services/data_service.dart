@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/services/handover_code.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/blocked_users_service.dart';
@@ -8157,6 +8158,13 @@ class DataService {
             (e['returnTimeRequestedByUserId'] as String?) ?? '',
         'handoverTimeConfirmed': e['handoverTimeConfirmed'] == true,
         'returnTimeConfirmed': e['returnTimeConfirmed'] == true,
+        'handoverTimeConfirmedByUserId':
+            (e['handoverTimeConfirmedByUserId'] as String?) ?? '',
+        'returnTimeConfirmedByUserId':
+            (e['returnTimeConfirmedByUserId'] as String?) ?? '',
+        'handoverTimeConfirmedAt':
+            (e['handoverTimeConfirmedAt'] as String?) ?? '',
+        'returnTimeConfirmedAt': (e['returnTimeConfirmedAt'] as String?) ?? '',
         'handoverLocationLat': (e['handoverLocationLat'] as String?) ?? '',
         'handoverLocationLng': (e['handoverLocationLng'] as String?) ?? '',
         'handoverLocationLabel': (e['handoverLocationLabel'] as String?) ?? '',
@@ -8207,6 +8215,10 @@ class DataService {
       'returnTimeRequestedByUserId': '',
       'handoverTimeConfirmed': false,
       'returnTimeConfirmed': false,
+      'handoverTimeConfirmedByUserId': '',
+      'returnTimeConfirmedByUserId': '',
+      'handoverTimeConfirmedAt': '',
+      'returnTimeConfirmedAt': '',
       'handoverLocationLat': '',
       'handoverLocationLng': '',
       'handoverLocationLabel': '',
@@ -8224,6 +8236,79 @@ class DataService {
       'returnLocationSharedByRole': '',
       'returnLocationAcceptedAs': 'returnLocation',
       'returnLocationReusePromptDismissed': false,
+    };
+  }
+
+  /// Server-authoritative exact-address visibility. A configured backend
+  /// fails closed; the local branch exists only for demo/QA runtimes.
+  static Future<Map<String, dynamic>> getBookingAddressReveal({
+    required RentalRequest request,
+    required String localExactAddress,
+    String segment = 'pickup',
+    DateTime? now,
+  }) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      try {
+        return await BackendRepository.getBookingAddressReveal(
+          bookingId: request.id,
+          segment: segment,
+        );
+      } catch (error) {
+        debugPrint(
+            '[DataService] booking address reveal failed closed: $error');
+        return {
+          'version': 'v52_booking_address_reveal_v1',
+          'segment': segment,
+          'result': 'hidden',
+          'reason': 'server_authority_unavailable',
+          'exactAddressReturned': false,
+        };
+      }
+    }
+
+    final state = await getHandoverReturnState(request.id);
+    final prefix = segment == 'return' ? 'return' : 'handover';
+    final appointment = DateTime.tryParse(
+      (state['${prefix}TimeIso'] as String?) ?? '',
+    );
+    final requestedBy =
+        ((state['${prefix}TimeRequestedByUserId'] as String?) ?? '').trim();
+    final confirmedBy =
+        ((state['${prefix}TimeConfirmedByUserId'] as String?) ?? '').trim();
+    final participants = {request.ownerId, request.renterId};
+    final counterpartyConfirmed = state['${prefix}TimeConfirmed'] == true &&
+        participants.contains(requestedBy) &&
+        participants.contains(confirmedBy) &&
+        requestedBy != confirmedBy;
+    final expectedDate =
+        segment == 'return' ? request.endDate : request.startDate;
+    final appointmentMatches = appointment != null &&
+        _rentalDate(appointment.toLocal()) == expectedDate;
+    final eligible = const {
+      'accepted',
+      'payment_pending',
+      'confirmed',
+      'active',
+      'running',
+      'returned',
+    }.contains(request.workflowStatus ?? request.status);
+    final reveal = counterpartyConfirmed &&
+        appointmentMatches &&
+        eligible &&
+        AddressPrivacy.shouldRevealExactAddressForLocalDemoOrQa(
+          handoverAt: appointment,
+          now: now,
+        );
+    return {
+      'version': 'v52_booking_address_reveal_v1',
+      'segment': segment,
+      'result': reveal ? 'revealed' : 'hidden',
+      'reason': reveal
+          ? 'local_qa_counterparty_confirmed_window_open'
+          : 'local_qa_fail_closed',
+      'exactAddressReturned': reveal,
+      if (reveal) 'exactAddress': localExactAddress.trim(),
+      'source': 'local_demo_or_qa_only',
     };
   }
 

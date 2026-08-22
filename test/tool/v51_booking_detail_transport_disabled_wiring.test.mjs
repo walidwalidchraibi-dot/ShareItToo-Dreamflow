@@ -43,7 +43,8 @@ test('booking detail consistently presents self pickup and self return', () => {
 
 test('pickup and return maps keep the exact-address privacy boundary', () => {
   assert.ok((detail.match(/ApproxLocationMap\(/gu) ?? []).length >= 3);
-  assert.match(detail, /AddressPrivacy\.shouldRevealExactAddress\(/u);
+  assert.doesNotMatch(detail, /AddressPrivacy\.shouldRevealExactAddress\(/u);
+  assert.match(detail, /widget\.booking\['exactAddressRevealed'\] == true/u);
   assert.match(detail, /AddressPrivacy\.privacyNoticePickup\(\)/u);
   assert.match(detail, /_confirmedLocationText\(false\)/u);
   assert.match(detail, /_confirmedLocationText\(true\)/u);

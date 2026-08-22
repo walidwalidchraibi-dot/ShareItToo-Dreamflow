@@ -271,13 +271,26 @@ class _BookingsScreenState extends State<BookingsScreen>
     );
     final int days = breakdown.days;
     final double total = (r.quotedTotalRenter ?? breakdown.totalRenter);
-    // Address privacy: hide exact house number until 6h before pickup
-    final now = DateTime.now();
-    final hideHouseNumber =
-        now.isBefore(r.start.subtract(const Duration(hours: 6)));
-    final displayLocation = hideHouseNumber
-        ? _approximateAddress(it.locationText, seed: r.id)
-        : it.locationText;
+    final addressSegment = const {
+      'active',
+      'running',
+      'withdrawalReturnRequired',
+      'returned',
+    }.contains(r.workflowStatus ?? r.status)
+        ? 'return'
+        : 'pickup';
+    final addressVisibility = await DataService.getBookingAddressReveal(
+      request: r,
+      localExactAddress: it.locationText,
+      segment: addressSegment,
+    );
+    final exactAddressRevealed = addressVisibility['result'] == 'revealed' &&
+        addressVisibility['exactAddressReturned'] == true;
+    final revealedAddress =
+        (addressVisibility['exactAddress'] as String?)?.trim() ?? '';
+    final displayLocation = exactAddressRevealed && revealedAddress.isNotEmpty
+        ? revealedAddress
+        : _approximateAddress(it.locationText, seed: r.id);
 
     final flowState = await DataService.getHandoverReturnState(r.id);
     final reviewSubmitted = await DataService.hasSubmittedReview(
@@ -297,6 +310,9 @@ class _BookingsScreenState extends State<BookingsScreen>
       'title': it.title,
       'dates': '${fmt(r.start)} – ${fmt(r.end)}',
       'location': displayLocation,
+      'exactAddressRevealed': exactAddressRevealed,
+      'addressVisibilitySegment': addressSegment,
+      'addressVisibilityReason': addressVisibility['reason'],
       'status': _statusLabel(r),
       'image': (it.photos.isNotEmpty ? it.photos.first : null),
       'images': it.photos,

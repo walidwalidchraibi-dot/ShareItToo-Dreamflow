@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "2230bca27ed2362e44af2b6c06f3279207fa1d5405b96799ccf857b3d247d319"
+      "sha256": "c236cf1208d995086fe2e0d15e02d12b54c978315c54488de9b97d5e063171e8"
     },
     {
       "path": "backend/src/server.js",
@@ -250,6 +250,18 @@
     {
       "path": "backend/src/booking_workflow.js",
       "sha256": "fb9c8b68c06d26638c4a85388d75e729a17f699569a552590c2f533d2e4993be"
+    },
+    {
+      "path": "backend/src/booking_flow_time.js",
+      "sha256": "48c8ebf79d41117c51e34abc1e6483c1321b44db38be93e35228eeb01eed2091"
+    },
+    {
+      "path": "backend/src/booking_address_reveal_domain.js",
+      "sha256": "ead004b2750d176b3ec2fef78dee22514a37e54d33071c045434815767b1d448"
+    },
+    {
+      "path": "backend/src/booking_address_reveal_workflow.js",
+      "sha256": "56d9bb6f2c4c3918f9615c24bbacc027e9564c99a0fc7ce207c3ca424cc1ad29"
     },
     {
       "path": "backend/src/v51_termination_domain.js",
@@ -544,6 +556,14 @@
       "sha256": "5bd24011a25dbfcd1cc7fca5d1936be04ae2f61752012daf310e9aa2ecf2dab2"
     },
     {
+      "path": "backend/sql/migrations/061_booking_exact_address_reveal_guard.up.sql",
+      "sha256": "d55cb2fdfdb077ebdd1c189f85759821427dbd0eeec3263749c1c30776c855a4"
+    },
+    {
+      "path": "backend/sql/migrations/061_booking_exact_address_reveal_guard.down.sql",
+      "sha256": "b486c7bb67b24e5853c07db0d3ccdd29903c33126db069ae218e1bf4d98f18d7"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -581,7 +601,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "ac4c5ce7118f8c1bceacef928c323226310b4f99119bb96ff7abbf10adf8d6dc"
+      "sha256": "62239fea2c32bc8ba85dd9a5ee816fd36db75ca3e14f7ad0e4589ecff6d1d252"
     },
     {
       "path": "lib/services/maps_service.dart",
@@ -589,7 +609,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "bca3fef34e7485af0473c5c13a5b530f8d9280abbbf0046e09a2ba21ce0f2988"
+      "sha256": "394c35a1e13849a067fc97412454ecce6dceaf13b8013703f46c49e17e215204"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
