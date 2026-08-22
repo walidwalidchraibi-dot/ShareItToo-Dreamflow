@@ -1252,7 +1252,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               request: r,
             );
             if (declarations == null) return;
-            if (!context.mounted) return;
+            if (!mounted) return;
             final accepted = await commitPrivatePilotOwnerAcceptance(
               context,
               request: r,
@@ -3310,6 +3310,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
       final owner =
           req != null ? await DataService.getUserById(req.ownerId) : null;
+      if (!mounted) return;
       final viewerIsOwner = _isViewerOwnerFor(req, thread, me);
 
       final resolvedReq = req;
@@ -3337,6 +3338,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final deliverySel = item != null
           ? await DataService.getSavedDeliverySelection(item.id)
           : null;
+      if (!mounted) return;
       final booking = _buildBookingMapForRenter(
         req: resolvedReq,
         item: item,
@@ -3655,6 +3657,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     final initialTime = isReturn ? (req.end) : (req.start);
     final state = await DataService.getHandoverReturnState(req.id);
+    if (!mounted) return;
     final requestedLabel =
         ((state[isReturn ? 'returnTimeRequested' : 'handoverTimeRequested']
                     as String?) ??
@@ -3777,6 +3780,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Future<void> _viewProfile() async {
     final otherId = await _resolveOtherPartyUserId();
+    if (!mounted) return;
     if (otherId == null) {
       AppPopup.toast(
         context,
@@ -3786,7 +3790,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return;
     }
 
-    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: otherId)),
     );
