@@ -69,5 +69,6 @@ test('user, admin, export and retention surfaces carry exact review evidence', (
   assert.match(repository, /claimStaffModerationReview/u);
   assert.match(repository, /resolveStaffModerationReview/u);
   assert.match(privacyExport, /LEFT JOIN moderation_review_resolutions/u);
+  assert.doesNotMatch(privacyExport, /request\.resolution[ ,]/u);
   assert.match(retention, /moderation_review_resolutions/u);
 });

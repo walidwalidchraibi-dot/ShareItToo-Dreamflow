@@ -731,7 +731,7 @@ export async function buildAccountExport(client, userId) {
        ORDER BY decision.created_at, decision.id`, userId),
     rows(client,
       `SELECT request.id, request.decision_id, request.reason, request.status,
-              request.resolution, request.submitted_at, request.updated_at,
+              request.submitted_at, request.updated_at,
               request.resolved_at, resolution.outcome,
               resolution.user_facing_reason,
               resolution.human_reviewed,

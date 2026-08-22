@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "5edf51a1dfccb96210ee75b2612c5b545e85cd93161d62aefc96cb0681d90351"
+      "sha256": "4c6c831206c403ed9d2d1e37340d0abe3362092da34bca854ebd76d6ebdf801e"
     },
     {
       "path": "backend/src/support_case_domain.js",
