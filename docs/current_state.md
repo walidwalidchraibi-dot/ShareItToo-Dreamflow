@@ -2081,3 +2081,25 @@ debug build. Privacy remains honestly draft and fail-closed.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AP owner handover/maps async-context ratchet
+
+`S4AP_OWNER_HANDOVER_MAPS_ASYNC_CONTEXT_RATCHET` is locally verified at commit
+`921d185`. Pickup and return starters, Maps failure feedback, return completion
+and pickup-challenge handoff now prove their exact State or caller context after
+asynchronous work. Time confirmation, Maps destination, challenge, stepper,
+completion and `needsReview` behavior are unchanged.
+
+The exact analyzer snapshot ratcheted `171 -> 165`, with
+`use_build_context_synchronously` `49 -> 43` and the owner-detail context bucket
+`6 -> 0`; all other buckets remained identical. Thirty-four focused
+source/analyzer/privacy contracts, 96 focused Flutter tests, the privacy and
+retention validators and the complete clean local metadata gate passed at
+`921d18510f4fb328fd60856060825358b4f678b9` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build. Privacy remains honestly draft and fail-closed.
+
+The owner-detail context bucket is cleared, but `TD-RR-010` remains open for the
+booking-detail and item-overlay context findings, further reviewed ratchets to
+zero and exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live boundary
+changed.
