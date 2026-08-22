@@ -282,9 +282,9 @@ Verified: 2026-08-22 on the Mac mini.
   and API-image publication remained skipped. No
   rights execution, disclosure, erasure, external delivery,
   production, payment, Store, signed candidate or live path is enabled.
-- S3T is a locally verified non-live candidate for the technical core of Drive
-  scenarios `SUP-128` through `SUP-131`; exact implementation commit and
-  GitHub Actions evidence remain pending the guarded push. Migration `048`
+- S3T is a locally and CI-verified non-live package for the technical core of
+  Drive scenarios `SUP-128` through `SUP-131` at exact implementation commit
+  `cb8d378acf6cc2617386ed945e128aab41de5bff`. Migration `048`
   binds three exact Privacy incident subtypes to immutable awareness time,
   an exact 72-hour human decision deadline, idempotent internal alarms and
   append-only Administrator containment evidence behind active session and
@@ -297,9 +297,12 @@ Verified: 2026-08-22 on the Mac mini.
   359 Flutter tests with one documented skip, the separate Google-only test,
   Web smoke/build and Android debug build passed. Historical internal AAB
   `2026081509` is not present in this Mac mini's private archive, so no local
-  byte-verification claim or signed artifact action is made. Professional
-  legal review, real staffing, production, payment, Store and every live path
-  remain closed.
+  byte-verification claim or signed artifact action is made. GitHub regression
+  `32553740248` is green for the exact implementation head and PR merge
+  snapshot `990015e391d38a26fe8e1f6682db3d219d4d0ae5`; the signed-candidate and
+  API-publication stages remained skipped, and Draft PR #7 remained open and
+  unmerged. Professional legal review, real staffing, production, payment,
+  Store and every live path remain closed.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

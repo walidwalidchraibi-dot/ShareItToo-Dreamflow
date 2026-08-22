@@ -1,8 +1,10 @@
 # S3T privacy-incident and account-export guard - technical compliance record
 
-Status: locally verified non-live candidate on 22.08.2026. This record is
-technical evidence, not legal advice, a breach finding, a notification
-decision, legal approval or authority to contact any person or authority.
+Status: locally and CI-verified non-live package on 22.08.2026 at exact
+implementation commit `cb8d378acf6cc2617386ed945e128aab41de5bff` and
+successful GitHub Actions run `32553740248`. This record is technical evidence,
+not legal advice, a breach finding, a notification decision, legal approval or
+authority to contact any person or authority.
 
 ## Scenario coverage
 
@@ -75,6 +77,13 @@ facts remains a blocker for its dependent live lane only.
 - Historical internal AAB `2026081509` is absent from this Mac mini's private
   archive. Its repository metadata passed the CI-mode validator, but no local
   byte-level claim is made and no signed artifact action was taken.
+- GitHub regression `32553740248` is green for exact implementation head
+  `cb8d378acf6cc2617386ed945e128aab41de5bff` and PR merge snapshot
+  `990015e391d38a26fe8e1f6682db3d219d4d0ae5`. Backend passed 473 tests,
+  migrations through `048`, dependency/history audit, Compose and the
+  commit-labelled API image build. Flutter passed the complete technical
+  regression. Signed-candidate construction and API-image publication remained
+  skipped; Draft PR #7 remained open and unmerged.
 
 No production, external notification, public pilot, real payment, payout,
 Store, Cloud/VPS/DNS, signed release, publication, PR merge or live data action

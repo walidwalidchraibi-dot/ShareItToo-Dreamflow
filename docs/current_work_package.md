@@ -322,10 +322,10 @@ Actual rights execution and delivery, scoped Legal Hold
 resolution, professional review, and `SUP-128` through `SUP-131` remain
 separate gates; production, payment, Store and every live path remain closed.
 
-`S3T_SUPPORT_PRIVACY_INCIDENT_EXPORT_GUARD` is a locally verified non-live
-candidate for the technical core of Drive scenarios `SUP-128` through
-`SUP-131`; exact implementation commit and GitHub Actions evidence remain to
-be recorded after the guarded push. Migration `048` creates an immutable
+`S3T_SUPPORT_PRIVACY_INCIDENT_EXPORT_GUARD` is a locally and CI-verified
+non-live package for the technical core of Drive scenarios `SUP-128` through
+`SUP-131` at exact implementation commit
+`cb8d378acf6cc2617386ed945e128aab41de5bff`. Migration `048` creates an immutable
 awareness-bound incident record for three exact Privacy subtypes, fixes the
 internal decision deadline to awareness plus 72 hours and allows only
 Administrator/active-session/Staff-Step-up-bound non-live containment evidence.
@@ -340,7 +340,13 @@ migration `048`; Privacy/Retention protections, the accepted analyzer baseline,
 359 Flutter tests with one documented skip, the separate Google-only test, Web
 smoke/build and Android debug build passed. The prior internal AAB `2026081509`
 is absent from this Mac mini's private archive, so only CI-metadata validation
-was performed; no artifact was created or changed. Human breach assessment,
+was performed; no artifact was created or changed. GitHub regression
+`32553740248` is green for that exact implementation head and PR merge snapshot
+`990015e391d38a26fe8e1f6682db3d219d4d0ae5`. Backend passed all 473 tests,
+migrations through `048`, dependency/history audit, Compose and the
+commit-labelled API image build; Flutter passed the complete technical script.
+Signed-candidate construction and API-image publication remained skipped, and
+Draft PR #7 remained open and unmerged. Human breach assessment,
 legal/controller notification decisions, authority and recipient channels,
 professional review, real staffing, production, payment, Store and every live
 path remain closed.

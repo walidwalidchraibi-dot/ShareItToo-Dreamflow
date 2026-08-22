@@ -1,9 +1,10 @@
 # S3T privacy-incident and account-export guard - architecture
 
-Status: locally verified non-live candidate on 22.08.2026. Exact implementation
-commit and GitHub Actions evidence remain to be recorded after the guarded
-push. No authority or affected-person notification, production operation,
-public pilot, Store action or real-money flow is enabled.
+Status: locally and CI-verified non-live package on 22.08.2026 at exact
+implementation commit `cb8d378acf6cc2617386ed945e128aab41de5bff` and
+successful GitHub Actions run `32553740248`. No authority or affected-person
+notification, production operation, public pilot, Store action or real-money
+flow is enabled.
 
 ## Source basis
 
@@ -120,3 +121,12 @@ S3T.
   mini's private archive, so local byte re-verification of that historical
   artifact remains unavailable. CI-metadata validation passed and no artifact
   was generated, signed, uploaded or replaced for S3T.
+- GitHub regression `32553740248` is green for exact head
+  `cb8d378acf6cc2617386ed945e128aab41de5bff`; Actions tested PR merge snapshot
+  `990015e391d38a26fe8e1f6682db3d219d4d0ae5`. Backend regression passed all
+  473 tests, migrations through `048`, syntax, dependency/history audit,
+  Compose validation and the commit-labelled API image build. Flutter
+  regression passed the full technical script, including all 359 Flutter tests
+  with one documented skip, the separate Google-only test, Web smoke/build and
+  Android debug build. Signed-candidate construction and API-image publication
+  remained skipped; Draft PR #7 remained open and unmerged.
