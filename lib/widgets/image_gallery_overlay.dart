@@ -177,7 +177,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                 child: Row(children: [
                   _TopIcon(
                     icon: Icons.arrow_back_rounded,
-                    semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
+                    semanticLabel:
+                        MaterialLocalizations.of(context).backButtonTooltip,
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
                   const Spacer(),
@@ -192,9 +193,11 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                     onTap: () async {
                       try {
                         await widget.onWishlistPressed();
+                        if (!mounted) return;
                         setState(() {}); // reflect updated status
                       } catch (e) {
                         f.debugPrint('[gallery] wishlist failed: $e');
+                        if (!context.mounted) return;
                         await AppPopup.toast(context,
                             icon: Icons.error_outline,
                             title: 'Fehler beim Aktualisieren');
@@ -226,6 +229,7 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                         }
                       } catch (e) {
                         f.debugPrint('[share] failed in gallery: $e');
+                        if (!context.mounted) return;
                         await AppPopup.toast(context,
                             icon: Icons.error_outline,
                             title: 'Teilen fehlgeschlagen');
@@ -247,7 +251,11 @@ class _TopIcon extends StatelessWidget {
   final String semanticLabel;
   final VoidCallback onTap;
   final double iconSize;
-  const _TopIcon({required this.icon, required this.semanticLabel, required this.onTap, this.iconSize = 24});
+  const _TopIcon(
+      {required this.icon,
+      required this.semanticLabel,
+      required this.onTap,
+      this.iconSize = 24});
   @override
   Widget build(BuildContext context) {
     return Semantics(
