@@ -1269,3 +1269,35 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AB item-card async-state ratchet
+
+`S4AB_ITEM_CARD_ASYNC_STATE_RATCHET` delivers the next downward `TD-RR-010`
+source ratchet at commit `84dcc07`. Every asynchronous Wishlist continuation in
+the listing card now proves that its State remains mounted before later UI or
+context access. The Move path validates a captured nullable list ID.
+
+The exact debt snapshot moves `210 -> 207`, and only the intended
+`use_build_context_synchronously` ItemCard bucket changes. Four focused
+contracts, five related Flutter tests and the complete clean implementation
+gate pass with the new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+live boundary changed.
+
+## S4AC Gradle single-attempt cache contract
+
+`S4AC_GRADLE_SINGLE_ATTEMPT_CACHE_CONTRACT` implements the local deterministic
+path for `TD-RR-011` at commit `1d9816e`. It keeps failed GitHub run
+`32592388940` as failure evidence, permits the draft PR to write only its scoped
+open-source Basic Cache, and replaces Flutter's retrying APK command with one
+direct checksum-bound Gradle `assembleDebug` invocation.
+
+Ten focused contracts, the direct build and the complete clean implementation
+gate pass locally. GitHub must still prove a cold PR cache write and later
+restore without rerun-after-failure, sleep, retry or alternate mirror.
+
+`TD-RR-011` remains open. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
+is enabled.

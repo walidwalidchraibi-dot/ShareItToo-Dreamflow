@@ -1794,3 +1794,39 @@ remained zero.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AB item-card async-state ratchet
+
+`S4AB_ITEM_CARD_ASYNC_STATE_RATCHET` is locally verified at implementation
+commit `84dcc07`. Wishlist loading and every add/manage/move/remove continuation
+now stop before later card State or context access if the card was disposed.
+The Move path no longer force-unwraps mutable post-dialog list State.
+
+The exact analyzer snapshot ratcheted `210 -> 207`, with
+`use_build_context_synchronously` `88 -> 85` and the ItemCard bucket `3 -> 0`;
+all other buckets remained identical. Four focused contracts, five related
+Flutter tests and the complete clean implementation-head local metadata gate
+passed at `84dcc078bbd0d1f32d19b2a1ec83f7eb7504e561` with 384 Flutter tests plus
+one documented skip, Google-only, Web build/smoke and Android debug. SIT temp
+roots remained zero.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AC Gradle single-attempt cache contract
+
+`S4AC_GRADLE_SINGLE_ATTEMPT_CACHE_CONTRACT` is locally verified at
+implementation commit `1d9816e`. Failed GitHub run `32592388940` remains failed:
+its cold PR runner had no Gradle cache, Maven returned `403`, and Flutter retried
+the APK build internally. The remediation enables only the PR-scoped free Basic
+Cache write and performs one direct Gradle Android debug build instead.
+
+Ten focused contracts, a direct 448-task build and the complete clean
+implementation-head local metadata gate passed at
+`1d9816e41304fd4f3d5ba3b95a8a14f3200312ee` with analyzer baseline 207, 384
+Flutter tests plus one documented skip, Google-only, Web build/smoke and one
+direct Android debug build. SIT temp roots remained zero.
+
+`TD-RR-011` remains open for exact GitHub cold-cache-write and restored-cache
+proof without retry or pass-on-rerun. P0B remains `HOLD` / `NO-GO`, with no
+live boundary changed.

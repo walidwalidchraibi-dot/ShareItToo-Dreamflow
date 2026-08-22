@@ -18,7 +18,8 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 | `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
-| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y, S4Z and S4AA then guard Wishlist selector, popup navigator and gallery callback lifetimes, ratcheting the exact backlog `220 -> 214 -> 212 -> 210`; `use_build_context_synchronously` alone decreases `98 -> 92 -> 90 -> 88`, most recently at `4522bb2`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4AB guard Wishlist selector, popup navigator, gallery callback and item-card state lifetimes, ratcheting the backlog `220 -> 214 -> 212 -> 210 -> 207`; `use_build_context_synchronously` decreases `98 -> 92 -> 90 -> 88 -> 85`, most recently at `84dcc07`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-011` | Exact run `32592388940` restored/saved zero Gradle entries, hit Maven `403` on a cold PR build and exposed Flutter CLI's automatic one-time APK retry. S4AC enables only the PR-scoped Basic Cache write and replaces that path with one direct wrapper `assembleDebug`; focused and complete local gates pass at `1d9816e`. | Retain a green exact-commit GitHub run that writes the cold PR-scoped cache and a later run that restores it, each with exactly one direct Android debug build. A rerun after failure, sleep, retry loop, alternate mirror, manual cache injection or paid provider is not closure evidence. |
 
 ## Observation log
 
@@ -255,6 +256,24 @@ claimed until every item below has reproducible evidence and is closed.
   path bucket `2 -> 0`; every other bucket stayed unchanged. No delay, retry or
   lint suppression was introduced. `TD-RR-010` remains open for further
   reviewed reductions to zero and exact-commit CI.
+- 22.08.2026, S4AB: initial ItemCard Wishlist loading and every selection,
+  assignment, move and removal continuation now stop before later State/context
+  access when the card is disposed. The Move path snapshots a nullable list ID
+  instead of force-unwrapping mutable post-dialog State. Four focused contracts,
+  five Gemerkt/Mietkorb tests and the complete clean implementation-head local
+  metadata gate passed at `84dcc078bbd0d1f32d19b2a1ec83f7eb7504e561`.
+  The analyzer ratcheted exactly `210 -> 207`,
+  `use_build_context_synchronously` `88 -> 85`, and the ItemCard path bucket
+  `3 -> 0`; every other bucket stayed unchanged. `TD-RR-010` remains open.
+- 22.08.2026, S4AC: exact GitHub run `32592388940` was kept failed after its
+  cold PR runner restored/saved zero Gradle cache entries, received Maven
+  `403 Forbidden` for Kotlin dependencies and exposed Flutter CLI's automatic
+  100-millisecond APK retry. No manual rerun was used. The PR now writes only
+  its GitHub-scoped open-source Basic Cache, while the technical gate executes
+  one direct checksum-bound `:app:assembleDebug --no-daemon`. Ten focused
+  contracts, a direct 448-task build and the complete clean implementation-head
+  local gate passed at `1d9816e41304fd4f3d5ba3b95a8a14f3200312ee`.
+  `TD-RR-011` remains open for cold-write and restored-cache GitHub evidence.
 
 ## Closure rule
 
