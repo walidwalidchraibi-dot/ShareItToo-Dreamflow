@@ -796,7 +796,7 @@
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "6e88530e81875c06f5dab8abca39dce650a859d14de89831c7226da3d5bbf37f"
+      "sha256": "eb26c0c55c64f89da66d1358582a782431b9706829f3b0c382001f387dc6b50e"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",

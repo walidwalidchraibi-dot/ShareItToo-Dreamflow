@@ -1036,9 +1036,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             );
                             if (!mounted) return;
                             await _load();
+                            if (!context.mounted) return;
                             // Auto-close after 3 seconds
                             Future.delayed(const Duration(seconds: 3), () {
-                              if (mounted) {
+                              if (context.mounted) {
                                 Navigator.of(
                                   context,
                                   rootNavigator: true,
@@ -1120,9 +1121,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                           );
                           if (!mounted) return;
                           await _load();
+                          if (!context.mounted) return;
                           // Auto-close after 3 seconds
                           Future.delayed(const Duration(seconds: 3), () {
-                            if (mounted) {
+                            if (context.mounted) {
                               Navigator.of(context, rootNavigator: true)
                                   .maybePop();
                             }
