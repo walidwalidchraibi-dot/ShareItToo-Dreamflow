@@ -1995,3 +1995,24 @@ debug build.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AL explore async-context ratchet
+
+`S4AL_EXPLORE_ASYNC_CONTEXT_RATCHET` is locally verified at commit `79b0a1e`.
+Explore Wishlist actions now recheck their owning State after the initial
+Wishlist lookup and after manage-option selection before later context access.
+Wishlist data, catalog filtering, listing display, supply enrichment and
+navigation behavior are unchanged.
+
+The exact analyzer snapshot ratcheted `191 -> 188`, with
+`use_build_context_synchronously` `69 -> 66` and the Explore bucket `3 -> 0`;
+all other buckets remained identical. Eleven focused
+Wishlist/Explore/display/supply source contracts, 21 focused Flutter tests, the
+privacy and retention validators and the complete clean local metadata gate
+passed at `79b0a1ebba1b2478deac6eb5b37196d9cad167b9` with 384 Flutter tests
+plus one documented skip, Google-only, Web build/smoke and one direct 448-task
+Android debug build. Privacy and retention remain honestly draft/open and
+fail-closed.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

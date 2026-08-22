@@ -1457,3 +1457,25 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AL explore async-context ratchet
+
+`S4AL_EXPLORE_ASYNC_CONTEXT_RATCHET` delivers the next downward `TD-RR-010`
+source ratchet at commit `79b0a1e`. Explore Wishlist actions now recheck their
+screen lifecycle after the initial Wishlist lookup and after manage-option
+selection before opening add, manage or move UI. Wishlist data, catalog
+filtering, listing display, supply enrichment and navigation behavior are
+unchanged.
+
+The exact debt snapshot moves `191 -> 188`, and only the intended
+`use_build_context_synchronously` Explore bucket changes. Eleven focused
+Wishlist/Explore/display/supply source contracts, 21 focused catalog,
+saved-item, display, accessibility and navigation Flutter tests, the privacy and
+retention validators and the complete clean local metadata gate pass with the
+new exact fingerprint. Both source inventories are rebound to the reviewed
+Explore source without changing any disclosure, retention or release state.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
