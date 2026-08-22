@@ -1008,3 +1008,22 @@ accepted. `TD-RR-002` remains open for the historical monolithic integration
 cleanup and exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production,
 Payment, Store, Cloud/VPS/DNS, deployment, signed candidate, merge or public
 activation is enabled.
+
+## S4O repository-owned PostgreSQL integration runner
+
+`S4O_REPOSITORY_POSTGRES_RUNNER` replaces manual local database lifecycle work
+with `pnpm run test:postgres:local`. Implementation commit
+`ed0f94cc3e5378ee38abfde0e03269a9b818e85e` owns PostgreSQL 16 pinning, unique
+cluster/database creation, an OS-selected loopback port, readiness, canonical
+integration and guarded success/failure cleanup. The complete gate is green at
+`b4194411779163f41197cd3d8325fcdb7a61847b`.
+
+Six runner tests and two consecutive real fresh-cluster runs pass with zero
+runner temp roots before and after. Full Backend and technical regressions,
+standard-parallel Flutter, analyzer, Privacy/Retention/P0B validators,
+Google-only, Web smoke, Android debug, syntax, diff and secret checks pass.
+
+No fixed port, sleep, reused database, skipped migration or manual cleanup is a
+prerequisite. `TD-RR-004` remains open only for exact-commit CI evidence under
+the register closure rule; normal Node/pnpm resolution remains open under
+`TD-RR-001`. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

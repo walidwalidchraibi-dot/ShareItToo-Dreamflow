@@ -12,7 +12,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-001` | Backend module loading now has repository-owned non-secret test defaults, but local verification still prepends a temporary signed Node-compatible runtime; `pnpm` is not available as a normal shell command. | A clean documented Mac setup and CI both resolve the pinned Node and pnpm versions without a copied temp runtime; `pnpm install --frozen-lockfile`, Backend tests, syntax checks and secret scan pass from a fresh shell. |
 | `TD-RR-002` | S4N added repository-owned fresh limiter stores and twice-repeated real 10/30/240 threshold tests with one fixed source. The historical monolithic PostgreSQL HTTP integration still gives some auth/recovery scenarios distinct reserved test IPs. | Remove every request-source accommodation from the monolithic integration, run two complete clean regressions without rotation/reset/wait, and retain green exact-commit CI together with the isolated threshold proof. |
 | `TD-RR-003` | The serial default was removed in S4L and two complete local standard-parallel runs passed, but exact-commit CI and a retained repeated stress result are still missing. | Remove timer/animation leakage, run the complete suite repeatedly at the standard supported parallelism, and retain a stress result with zero flakes in local and CI evidence; concurrency one must no longer be required for a green result. |
-| `TD-RR-004` | Local PostgreSQL verification is assembled manually with a temporary data directory and selected loopback port. | Add a version-pinned, repository-owned local integration runner using an available loopback port, readiness probe, isolated database and guaranteed trap/finally cleanup; two consecutive clean-machine runs must pass without manual intervention. |
+| `TD-RR-004` | S4O added a PostgreSQL-16-pinned repository runner with an OS-selected loopback port, readiness probe, isolated cluster/database and guarded `finally` cleanup. Six contract tests and two real consecutive fresh-cluster runs passed with runner temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-package CI for the runner contract and canonical PostgreSQL 16 integration, then repeat from a normal pinned Node/pnpm shell without caller-supplied port, database or lifecycle commands. |
 | `TD-RR-005` | Validator tests left 3,728 `sit-*` temp fixtures (about 2.84 GiB), eventually causing `ENOSPC`; manual removal was required. | Every fixture uses scoped temp roots and cleanup in success/failure paths. Run the complete technical regression twice and prove bounded disk delta with no orphaned `sit-*` fixture directories. |
 | `TD-RR-006` | The reset-token clock-boundary defect exposed by PostgreSQL used transaction time for `created_at` and a later process clock for `expires_at`. The product fix now supplies one timestamp and has focused coverage. | Keep the exact-lifetime unit test and run migration/API integration repeatedly on PostgreSQL 16. Release evidence must show no boundary flake and retain the database 30-minute upper-bound constraint. |
 
@@ -108,6 +108,20 @@ claimed until every item below has reproducible evidence and is closed.
   parallelism with 379 passes and one documented skip. Two fresh PostgreSQL 16
   integrations also passed, but their lifecycle was still manual. These are
   positive local results for `TD-RR-003` and `TD-RR-004`, not closure evidence.
+- 22.08.2026, S4O: the repository-owned local PostgreSQL runner now requires
+  major 16, creates a unique cluster and database on an OS-selected loopback
+  port, requires `pg_isready`, runs the canonical integration and performs
+  guarded `finally` cleanup on success and deliberate test-child failure. Six
+  contract tests and two real consecutive runs passed through migration `063`;
+  runner temp-root count was `0 -> 0`. No fixed port, sleep, reused database or
+  manual cleanup was used. `TD-RR-004` is locally implemented but remains open
+  until exact-commit CI and a normal pinned Node/pnpm shell satisfy the closure
+  rule.
+- 22.08.2026, S4O full gate: two stale static contracts were exposed rather
+  than bypassed. Safety wiring now checks the central bounded limiter policy,
+  and return lifecycle wiring checks seven booking-calendar days instead of
+  fixed 24-hour arithmetic. The complete gate then passed at standard Flutter
+  parallelism; neither correction changed product policy to fit a test.
 
 ## Closure rule
 

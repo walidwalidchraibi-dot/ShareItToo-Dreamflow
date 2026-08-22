@@ -1502,3 +1502,31 @@ remains open until historical request-source accommodations are removed from
 the monolithic integration and exact-commit CI passes. Temporary Node and
 manual PostgreSQL accommodations also remain open. No live boundary changed,
 and GitHub push/CI is not claimed.
+
+## S4O repository-owned PostgreSQL integration runner
+
+`S4O_REPOSITORY_POSTGRES_RUNNER` is locally verified with runner implementation
+commit `ed0f94cc3e5378ee38abfde0e03269a9b818e85e` and complete gate head
+`b4194411779163f41197cd3d8325fcdb7a61847b`. The stable Backend command now
+owns PostgreSQL 16 discovery/version rejection, fresh cluster initialization,
+OS-selected loopback port, explicit readiness, isolated synthetic database,
+canonical integration execution and guarded `finally` cleanup.
+
+Six focused runner tests cover success, deliberate child failure, unsafe
+cleanup refusal, live loopback allocation and version mismatch. Two consecutive
+real runs passed through migration `063`; scoped runner temp roots were zero
+before and zero after. The full Backend suite passed 593 tests with one expected
+skip, and the complete technical gate passed analyzer 220, 379
+standard-parallel Flutter tests plus one documented skip, Google-only,
+Web/loopback smoke and Android debug.
+
+That complete gate also exposed and corrected two stale static tests: Safety
+limiter wiring now binds the central bounded policy, and return lifecycle
+wiring binds seven booking-calendar days rather than fixed 24-hour intervals.
+No production behavior was weakened or changed for the tests.
+
+`TD-RR-004` is locally implemented but remains open until green exact-commit CI
+is retained. `TD-RR-001` also remains open because local verification still
+used the temporary Node-compatible runtime. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, merge or public
+activation occurred.
