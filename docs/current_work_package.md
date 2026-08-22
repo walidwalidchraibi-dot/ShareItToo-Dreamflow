@@ -671,3 +671,28 @@ build/smoke and Android debug APK. GitHub push/CI remains pending because the
 stored HTTPS credential expired; no new trust was created. Real measures,
 authority/external delivery, production, Payment, Store, signed candidate,
 deployment, merge and public activation remain closed.
+
+## S4C support duplicate-case linking
+
+`S4C_SUPPORT_DUPLICATE_CASE_LINKING` implements the non-live portion of Drive
+scenario `SUP-015` at exact commit
+`b0b5b77d4d793b82c71f40378eac7d0a9977753c`. An elevated Administrator must
+confirm five explicit duplicate conditions and exact current scope/version
+before migration `053` accepts one append-only `duplicate_of` relationship.
+Privacy, DSA/moderation and legal-authority cases remain separate.
+
+The link creates a user-visible leading-case reference and an internal reverse
+reference but updates neither case, transfers no history and executes no action
+or external delivery. `duplicate_merged` closure is guarded by the immutable
+link and visible event; the leading case stays unchanged. Privacy export,
+Retention inventory, SHA evidence, append-only triggers and rollback refusal
+cover the durable relationship.
+
+Local verification passes 35 focused tests, 58 Privacy/Retention protection
+tests plus three S4C wiring tests, 521 backend tests with one expected
+no-database skip, fresh PostgreSQL 16 migration/HTTP integration through `053`,
+the accepted 220-issue analyzer baseline, 369 Flutter tests with one documented
+skip, separate Google-only coverage, Web build/smoke and Android debug APK.
+P0B PSP and invited-pilot evidence remains HOLD/NO-GO. GitHub push/CI is not
+claimed here. No real merge, external message, production, Payment, Store,
+signed candidate, deployment, PR merge or public activation is enabled.

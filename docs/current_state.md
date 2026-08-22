@@ -1139,3 +1139,30 @@ because the stored HTTPS credential expired; Draft PR #7 is unmerged. All real
 measures, professional/legal decisions, authority/external delivery,
 production, Payment, Store, signed candidate, deployment and public activation
 remain closed.
+
+## S4C support duplicate-case linking
+
+`S4C_SUPPORT_DUPLICATE_CASE_LINKING` is locally verified at exact implementation
+commit `b0b5b77d4d793b82c71f40378eac7d0a9977753c` for Support Matrix scenario
+`SUP-015`. Migration `053` records one immutable, SHA-bound `duplicate_of`
+relationship only after an elevated Administrator confirms the same core facts,
+participants/objects and decision question, no lost separate deadline and
+preserved Privacy/DSA separation.
+
+Both cases must share exact non-live scope and current versions. Privacy,
+DSA/moderation and legal-authority lanes are excluded. Creating the link changes
+no case row, moves no evidence/message and enables no automatic action or
+external delivery. The duplicate receives a user-visible leading-case number;
+closure as `duplicate_merged` is accepted only after that link and event exist.
+The leading case remains unchanged. Privacy export and Retention inventory cover
+the append-only record; destructive rollback refuses retained links.
+
+Local verification passed 35 focused tests, 58 Privacy/Retention protection
+tests plus three permanent S4C wiring tests, 521 backend tests with one expected
+no-database skip and a separate fresh PostgreSQL 16 integration through
+migration `053`. The complete technical regression passed the accepted analyzer
+baseline, 369 Flutter tests with one documented skip, separate Google-only
+coverage, Web build/smoke and Android debug APK. P0B PSP and invited-pilot gates
+remain HOLD/NO-GO. GitHub push/CI is not claimed here; Draft PR #7 is unmerged.
+No production, real support merge, external message, Payment, Store, signed
+candidate, deployment or public activation occurred.
