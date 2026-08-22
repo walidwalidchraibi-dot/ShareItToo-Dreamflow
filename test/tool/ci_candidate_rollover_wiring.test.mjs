@@ -110,12 +110,20 @@ test('Android packaging exposes a preflight-only path before either binary build
   assert.ok(preflightOnly < androidBuild.indexOf('flutter build apk'));
 });
 
-test('CI provisions and caches the checksum-verified Gradle wrapper before Flutter builds', () => {
+test('CI validates the cached checksum-bound Gradle wrapper once before Flutter builds', () => {
   assert.match(workflow, /uses: gradle\/actions\/setup-gradle@v6/);
   assert.match(workflow, /cache-provider: basic/);
   assert.match(
     workflow,
-    /name: Provision the verified Gradle wrapper[\s\S]*?for attempt in 1 2 3; do[\s\S]*?\.\/android\/gradlew --version/,
+    /name: Verify the checksum-bound Gradle wrapper once\n\s+run: \.\/android\/gradlew --version/,
+  );
+  assert.equal(workflow.match(/\.\/android\/gradlew --version/g)?.length, 1);
+  const wrapperStep = workflow.indexOf('name: Verify the checksum-bound Gradle wrapper once');
+  assert.ok(wrapperStep > workflow.indexOf('uses: gradle/actions/setup-gradle@v6'));
+  assert.ok(wrapperStep < workflow.indexOf('name: Run regression script'));
+  assert.doesNotMatch(
+    workflow.slice(wrapperStep, workflow.indexOf('name: Run regression script')),
+    /for attempt|sleep|retry/,
   );
   assert.match(
     wrapperProperties,
