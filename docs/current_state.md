@@ -1557,3 +1557,26 @@ proven. They remain formally open only because the register also requires green
 exact-commit CI, which cannot be claimed while GitHub CLI auth is expired.
 `TD-RR-003` likewise remains open for exact CI/stress evidence. P0B remains
 `HOLD` / `NO-GO`; no live boundary changed.
+
+## S4Q deterministic test temporary fixtures
+
+`S4Q_DETERMINISTIC_TEST_TEMP_FIXTURES` is locally verified at implementation
+commit `6b15aac`. The twelve suites responsible for the current orphan set now
+use one repository-owned safe-prefix tracker whose registered test hook removes
+every scoped fixture and fails visibly on cleanup errors. A committed
+boundedness guard runs those suites together twice at standard Node test
+parallelism and is part of every complete technical regression.
+
+The pre-fix 1,605 known fixture directories used 731,460 KiB. The repaired
+suite first proved that set remained unchanged, after which it and the unused
+temporary Node runtime were moved recoverably to Trash. From a clean temp root,
+the focused guard and two consecutive full technical regressions passed with
+`0/0 KiB -> 0/0 KiB`. Backend passed 600 tests plus one expected skip; analyzer
+baseline 220, 379 standard-parallel Flutter tests plus one documented skip,
+Google-only, Web/loopback smoke and Android debug also remained green.
+
+The local `TD-RR-005` requirement is implemented without a disk, timing,
+parallelism or cleanup workaround. Formal closure still requires green CI on
+the exact commit. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
+Cloud/VPS/DNS, signed candidate, deployment, merge or public activation
+occurred.

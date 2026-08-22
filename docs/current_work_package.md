@@ -1048,3 +1048,24 @@ fixed port or reused database is accepted. `TD-RR-001`, `TD-RR-003` and
 `TD-RR-004` remain formally open for exact-commit CI evidence. P0B remains
 `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
 merge or public activation is enabled.
+
+## S4Q deterministic test temporary fixtures
+
+`S4Q_DETERMINISTIC_TEST_TEMP_FIXTURES` implements the local `TD-RR-005` exit
+path at commit `6b15aac`. Twelve formerly leaking tool-test files now allocate
+through one safe-prefix tracker with fail-closed `node:test` cleanup. The full
+technical regression invokes a committed guard that runs all affected suites
+together twice and rejects any tracked directory-count or KiB growth.
+
+Before cleanup, the guard proved the remaining 1,605 historical fixtures
+(731,460 KiB) no longer increased. They and the unused temporary Node copy were
+moved recoverably to Trash. The guard then passed clean at `0/0 KiB -> 0/0
+KiB`; full Backend passed 600 tests plus one expected skip, and two consecutive
+complete technical regressions passed at standard parallelism with the same
+zero-growth result.
+
+No manual deletion, larger disk, alternate temp root, reduced suite, sleep or
+serial execution is an acceptance condition. `TD-RR-005` remains formally open
+only for exact-commit CI evidence. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signed candidate, merge or public
+activation is enabled.

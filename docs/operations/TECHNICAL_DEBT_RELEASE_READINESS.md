@@ -13,7 +13,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-002` | S4N added repository-owned fresh limiter stores and twice-repeated real 10/30/240 threshold tests with one fixed source. The historical monolithic PostgreSQL HTTP integration still gives some auth/recovery scenarios distinct reserved test IPs. | Remove every request-source accommodation from the monolithic integration, run two complete clean regressions without rotation/reset/wait, and retain green exact-commit CI together with the isolated threshold proof. |
 | `TD-RR-003` | The serial default was removed in S4L and two complete local standard-parallel runs passed, but exact-commit CI and a retained repeated stress result are still missing. | Remove timer/animation leakage, run the complete suite repeatedly at the standard supported parallelism, and retain a stress result with zero flakes in local and CI evidence; concurrency one must no longer be required for a green result. |
 | `TD-RR-004` | S4O added the PostgreSQL-16-pinned repository runner; S4P repeated it from the normal pinned Node/pnpm shell. Consecutive fresh-cluster runs passed with runner temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-package CI for the runner contract and canonical PostgreSQL 16 integration without caller-supplied port, database or lifecycle commands. |
-| `TD-RR-005` | Validator tests left 3,728 `sit-*` temp fixtures (about 2.84 GiB), eventually causing `ENOSPC`; manual removal was required. | Every fixture uses scoped temp roots and cleanup in success/failure paths. Run the complete technical regression twice and prove bounded disk delta with no orphaned `sit-*` fixture directories. |
+| `TD-RR-005` | S4Q routes all twelve known leaking suites through scoped fail-closed cleanup and adds a twice-repeated parallel boundedness guard to the full gate. After recoverable historical cleanup, the focused guard and two complete technical regressions passed `0/0 KiB -> 0/0 KiB`; exact-commit CI is unavailable. | Retain green exact-commit CI running the same boundedness guard with no orphaned `sit-*` fixture directories. Manual cleanup, a larger disk, alternate temp root or serial execution cannot be acceptance evidence. |
 | `TD-RR-006` | The reset-token clock-boundary defect exposed by PostgreSQL used transaction time for `created_at` and a later process clock for `expires_at`. The product fix now supplies one timestamp and has focused coverage. | Keep the exact-lifetime unit test and run migration/API integration repeatedly on PostgreSQL 16. Release evidence must show no boundary flake and retain the database 30-minute upper-bound constraint. |
 
 ## Observation log
@@ -140,6 +140,16 @@ claimed until every item below has reproducible evidence and is closed.
 - 22.08.2026, S4P regression: another complete Flutter run passed at standard
   parallelism with 379 passes and one documented skip. This is retained local
   evidence for `TD-RR-003`; exact-commit CI/stress evidence remains missing.
+- 22.08.2026, S4Q: twelve tool-test files were proven to own all 1,605 current
+  orphan fixture directories (731,460 KiB). A shared safe-prefix tracker now
+  registers fail-closed `node:test` cleanup, and the full technical gate runs a
+  count-and-KiB boundedness guard over all affected suites twice at standard
+  Node parallelism. The guard first proved the historical set no longer grew;
+  those directories and the unused temporary Node copy were then moved to
+  Trash. A clean focused run and two consecutive complete technical regressions
+  passed `0/0 KiB -> 0/0 KiB`, without sleeps, serialization, alternate temp
+  roots or manual deletion between runs. This implements the local part of
+  `TD-RR-005`; exact-commit CI is still required for formal closure.
 
 ## Closure rule
 
