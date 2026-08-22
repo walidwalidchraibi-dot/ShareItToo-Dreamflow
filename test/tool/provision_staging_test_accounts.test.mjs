@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, statSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
@@ -9,6 +8,9 @@ import {
   provisionSyntheticAccounts,
   recordSyntheticAccountVerification,
 } from '../../tool/provision_staging_test_accounts.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 const fixedNow = new Date('2026-08-10T09:30:00.000Z');
 
@@ -32,7 +34,7 @@ test('builds distinct role aliases without retaining an existing plus tag', () =
 });
 
 test('provisions two accepted accounts into an owner-only vault and returns no credentials', async () => {
-  const vaultRoot = mkdtempSync(resolve(tmpdir(), 'sit-staging-account-test-'));
+  const vaultRoot = tempFixtures.makeSync('sit-staging-account-test-');
   const registrations = [];
   const summary = await provisionSyntheticAccounts({
     baseEmail: 'walid@example.com',
@@ -67,7 +69,7 @@ test('provisions two accepted accounts into an owner-only vault and returns no c
 });
 
 test('keeps recoverable private state and emits a role-only error after partial registration', async () => {
-  const vaultRoot = mkdtempSync(resolve(tmpdir(), 'sit-staging-account-partial-'));
+  const vaultRoot = tempFixtures.makeSync('sit-staging-account-partial-');
   let call = 0;
   await assert.rejects(
     provisionSyntheticAccounts({
@@ -112,7 +114,7 @@ test('refuses a vault inside the repository before registering accounts', async 
 });
 
 test('records fixture verification without exposing the private accounts', async () => {
-  const vaultRoot = mkdtempSync(resolve(tmpdir(), 'sit-staging-account-verified-'));
+  const vaultRoot = tempFixtures.makeSync('sit-staging-account-verified-');
   const provisioned = await provisionSyntheticAccounts({
     baseEmail: 'walid@example.com',
     vaultRoot,

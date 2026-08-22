@@ -39,6 +39,8 @@ flutter --version
 
 dart --version
 
+bash scripts/test_temp_fixture_boundedness.sh
+
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   dart run tool/validate_store_metadata.dart --allow-candidate-rollover
 else

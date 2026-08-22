@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 
@@ -11,6 +10,9 @@ import {
   selectSinglePhysicalDevice,
   validateCandidateArchive,
 } from '../../tool/prepare_android_device_test.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function digest(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -23,7 +25,7 @@ function privateFile(path, contents) {
 }
 
 function archiveFixture() {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-device-prep-'));
+  const root = tempFixtures.makeSync('sit-device-prep-');
   const candidateDirectory = resolve(root, 'candidate');
   const apk = Buffer.from('verified apk fixture');
   const aab = Buffer.from('verified aab fixture');

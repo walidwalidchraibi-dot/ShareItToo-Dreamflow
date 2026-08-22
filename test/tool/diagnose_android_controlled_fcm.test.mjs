@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { diagnoseAndroidControlledFcm } from '../../tool/diagnose_android_controlled_fcm.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 const apkBytes = Buffer.from('verified controlled FCM candidate');
 const apkSha256 = createHash('sha256').update(apkBytes).digest('hex');
@@ -86,7 +86,7 @@ function fakeRunner({ playSplit = false, playInstaller = 'com.android.vending', 
 async function run(fake) {
   return diagnoseAndroidControlledFcm({
     vaultFile: '/private/accounts.json',
-    privateArtifactDirectory: mkdtempSync(resolve(tmpdir(), 'sit-fcm-')),
+    privateArtifactDirectory: tempFixtures.makeSync('sit-fcm-'),
     commandRunner: fake.runner,
     adbPath: 'adb', device, deviceSummary, candidate, archive,
     capturedAt: '2026-08-14T10:00:00.000Z', wait: async () => {}, sender: fake.sender,

@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { diagnoseStoreReviewSafetyActions } from '../../tool/diagnose_store_review_safety_actions.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function fixture() {
-  const root = resolve(tmpdir(), `sit-review-safety-${process.pid}-${Date.now()}-${Math.random()}`);
-  mkdirSync(root, { recursive: true, mode: 0o700 });
+  const root = tempFixtures.makeSync('sit-review-safety-');
   chmodSync(root, 0o700);
   const path = resolve(root, 'accounts.json');
   writeFileSync(path, JSON.stringify({

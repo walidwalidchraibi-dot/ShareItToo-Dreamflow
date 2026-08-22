@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
@@ -9,9 +8,12 @@ import {
   prepareStoreScreenshotFixture,
   storeScreenshotListings,
 } from '../../tool/prepare_store_screenshot_fixture.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function privateVault() {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-store-screenshot-'));
+  const root = tempFixtures.makeSync('sit-store-screenshot-');
   chmodSync(root, 0o700);
   const vaultFile = resolve(root, 'accounts.json');
   const password = `Aa9!${crypto.randomBytes(24).toString('base64url')}`;

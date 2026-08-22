@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { validateDeviceEvidence } from '../../tool/validate_device_evidence.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 const baseDeviceManifest = JSON.parse(
@@ -67,7 +69,7 @@ function copyEvidenceTree(root, ref, visited = new Set()) {
 }
 
 function progressEvidenceRoot() {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-progress-evidence-'));
+  const root = tempFixtures.makeSync('sit-progress-evidence-');
   cpSync(
     resolve(repositoryRoot, 'docs/evidence/b11'),
     resolve(root, 'docs/evidence/b11'),
@@ -165,7 +167,7 @@ function safeBoundaries() {
 }
 
 function passedFixture() {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-device-evidence-'));
+  const root = tempFixtures.makeSync('sit-device-evidence-');
   const deviceManifest = clone(baseDeviceManifest);
   const submissionManifest = clone(baseSubmissionManifest);
   const pubspecText = basePubspec.replace(
@@ -289,7 +291,7 @@ function passedFixture() {
 }
 
 function progressFixture() {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-device-progress-'));
+  const root = tempFixtures.makeSync('sit-device-progress-');
   const deviceManifest = clone(baseDeviceManifest);
   delete deviceManifest.candidate.android.directAppLinks;
   delete deviceManifest.candidate.android.authenticatedSession;

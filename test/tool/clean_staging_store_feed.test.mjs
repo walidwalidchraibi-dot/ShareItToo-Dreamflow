@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 
 import { cleanStagingStoreFeed } from '../../tool/clean_staging_store_feed.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function writeVault(root, name, { owner, listingId, nested = false }) {
   const directory = join(root, name);
@@ -31,7 +33,7 @@ function writeVault(root, name, { owner, listingId, nested = false }) {
 }
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), 'sit-feed-clean-'));
+  const root = tempFixtures.makeSync('sit-feed-clean-');
   chmodSync(root, 0o700);
   const vaultFile = writeVault(root, 'one', { owner: 'one@example.invalid', listingId: 'protected-one' });
   writeVault(root, 'two', { owner: 'two@example.invalid', listingId: 'protected-two', nested: true });

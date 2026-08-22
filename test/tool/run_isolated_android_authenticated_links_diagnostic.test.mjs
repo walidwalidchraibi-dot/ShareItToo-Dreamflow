@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { runIsolatedAndroidAuthenticatedLinksDiagnostic } from '../../tool/run_isolated_android_authenticated_links_diagnostic.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
 function fixture({ completedHistory = false, archivedHistory = false, withoutBooking = false } = {}) {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-authenticated-links-'));
+  const root = tempFixtures.makeSync('sit-protected-authenticated-links-');
   const vaultFile = resolve(root, 'accounts.json');
   writeFileSync(vaultFile, `${JSON.stringify({
     schemaVersion: 1,

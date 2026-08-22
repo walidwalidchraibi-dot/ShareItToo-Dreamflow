@@ -1,18 +1,20 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { runIsolatedAndroidRoleBookingDiagnostic } from
   '../../tool/run_isolated_android_role_booking_diagnostic.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
 function fixture({ withoutBooking = false } = {}) {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-role-booking-'));
+  const root = tempFixtures.makeSync('sit-protected-role-booking-');
   chmodSync(root, 0o700);
   const vaultFile = resolve(root, 'accounts.json');
   writeFileSync(vaultFile, `${JSON.stringify({

@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { diagnoseStoreReviewDisposableDeletion } from '../../tool/diagnose_store_review_disposable_deletion.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function vaults() {
-  const root = resolve(tmpdir(), `sit-review-delete-${process.pid}-${Date.now()}-${Math.random()}`);
-  mkdirSync(root, { recursive: true, mode: 0o700 });
+  const root = tempFixtures.makeSync('sit-review-delete-');
   chmodSync(root, 0o700);
   const accounts = [
     { role: 'owner', registrationStatus: 'accepted', verificationStatus: 'email-link-verified', email: 'owner@example.test', password: `owner-${'x'.repeat(24)}` },

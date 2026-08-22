@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { diagnoseAndroidAuthenticatedLinks } from '../../tool/diagnose_android_authenticated_links.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 const apkBytes = Buffer.from('verified authenticated-link candidate bytes');
 const apkSha256 = createHash('sha256').update(apkBytes).digest('hex');
@@ -36,7 +38,7 @@ const candidate = {
 const archive = { apkSha256 };
 
 function privateVault({ status = 'synthetic-booking-completed', threadId = 'private-thread-id' } = {}) {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-authenticated-links-'));
+  const root = tempFixtures.makeSync('sit-authenticated-links-');
   chmodSync(root, 0o700);
   const vaultFile = resolve(root, 'accounts.json');
   writeFileSync(vaultFile, `${JSON.stringify({

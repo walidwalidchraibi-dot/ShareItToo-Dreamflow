@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import { chmodSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
 
@@ -16,13 +15,16 @@ import {
   sendSyntheticBookingDiagnosticMessage,
   transitionSyntheticBookingFixture,
 } from '../../tool/run_staging_synthetic_booking.mjs';
+import { createTestTempTracker } from './test_temp_fixtures.mjs';
+
+const tempFixtures = createTestTempTracker();
 
 function createEphemeralFixturePassword() {
   return `Aa9!${crypto.randomBytes(24).toString('base64url')}`;
 }
 
 function vaultFixture({ baseUrl = 'https://staging.shareittoo.com/api/v1' } = {}) {
-  const root = mkdtempSync(resolve(tmpdir(), 'sit-synthetic-booking-'));
+  const root = tempFixtures.makeSync('sit-synthetic-booking-');
   chmodSync(root, 0o700);
   const vaultFile = resolve(root, 'accounts.json');
   const imagePath = resolve(root, 'fixture.png');
