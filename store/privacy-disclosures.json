@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "adebd5752e57c2c2f89397db89c961e4d4f4e511ed0e96539dc14efec1b83636"
+      "sha256": "185a03ff39830b4025bded2c208358bf38a05d802cb47f040ec1e8c150961cae"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -141,6 +141,10 @@
     {
       "path": "backend/src/support_legacy_migration.js",
       "sha256": "c878853252bb4a7d3ca53bcb166ee4d955c4a752a84b4432b9cd395353c3c0ff"
+    },
+    {
+      "path": "backend/src/support_evidence_workflow.js",
+      "sha256": "c01965e7f59229a8c445338c455c34cbf2d41932ae6c4d6e91d9c4ac6c4cbc7e"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -355,6 +359,14 @@
       "sha256": "63aae15233fdce0515742312cf6e47a775f4f715824d98901f936cc643a54ace"
     },
     {
+      "path": "backend/sql/migrations/051_support_evidence_security.up.sql",
+      "sha256": "525fc8605daaa94127b58693c6dd6553259026ff297cd81cec384319f0829fdd"
+    },
+    {
+      "path": "backend/sql/migrations/051_support_evidence_security.down.sql",
+      "sha256": "9e5d0481b3e624d261a010fbfccff47938c14e6cbb8e6844be10df2a11381c9c"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -372,7 +384,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "e45ca6c2aa6b7aa53f51fd0b8d68facea0f85782de89f12c1f5fde81d376c641"
+      "sha256": "ac8292bb81ac2fd6487c54b2745c8b2f056178dbc9a303b350701f2e72dca639"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -396,7 +408,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "e9251d13c18199e54a648487382e0477f7f288b5a5441749f25d6b783dbf6467"
+      "sha256": "c7cb7ab07967559c0970b0ca4a56da0d6f0b424b9fcd3749b4459067276c34e0"
     },
     {
       "path": "backend/src/notifications.js",
@@ -628,7 +640,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "903dc48eea4a4d08b44656563c7690f6603d338fecfd54708b1c150c213aa5e8"
+      "sha256": "0bb9cb477a3074e83046689e7916d983b8ea282ce52a922b283a1af957bff6cc"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

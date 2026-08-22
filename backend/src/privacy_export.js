@@ -101,6 +101,7 @@ export async function buildAccountExport(client, userId) {
     supportDecisions,
     supportAppeals,
     supportEvidence,
+    supportEvidenceFiles,
     notificationPreferences,
     notifications,
     reviews,
@@ -794,6 +795,23 @@ export async function buildAccountExport(client, userId) {
           AND evidence.access_level = 'user_visible'
         ORDER BY evidence.received_at, evidence.id`, userId),
     rows(client,
+      `SELECT evidence_file.evidence_id, evidence_file.detected_mime_type,
+              evidence_file.original_byte_size,
+              evidence_file.original_sha256,
+              evidence_file.preview_mime_type,
+              evidence_file.preview_byte_size,
+              evidence_file.preview_sha256,
+              evidence_file.image_width, evidence_file.image_height,
+              evidence_file.scan_status, evidence_file.scan_engine,
+              evidence_file.quarantine_reason_code,
+              evidence_file.external_ai_used, evidence_file.created_at,
+              evidence_file.scanned_at
+         FROM support_evidence_files AS evidence_file
+         JOIN support_evidence AS evidence ON evidence.id = evidence_file.evidence_id
+        WHERE evidence.submitter_id = $1
+          AND evidence.access_level = 'user_visible'
+        ORDER BY evidence_file.created_at, evidence_file.id`, userId),
+    rows(client,
       `SELECT in_app_enabled, email_enabled, push_enabled,
               message_push_enabled, booking_push_enabled, locale, updated_at
        FROM notification_preferences WHERE user_id = $1`, userId),
@@ -995,6 +1013,9 @@ export async function buildAccountExport(client, userId) {
         decisions: supportDecisions,
         appeals: supportAppeals,
         submittedEvidence: supportEvidence,
+        submittedEvidenceFiles: supportEvidenceFiles,
+        evidenceOriginalsAreNeverPublic: true,
+        evidenceExternalAiUsed: false,
         internalNotesExcluded: true,
         restrictedEvidenceExcluded: true,
         internalEmergencyAccessReasonsExcluded: true,

@@ -26,11 +26,11 @@
       },
       {
         "path": "docs/evidence/p0b-next/psp-sandbox-e2e-evidence.json",
-        "sha256": "e06c5022bbcf5fc14e80be5cceabd77f7c8f68cbeda534c485e8b7401c3424ad"
+        "sha256": "de2dde497754c23af9e63bb6b3e08ac73dbafacae1535c83cbd1755abdacf06d"
       },
       {
         "path": "backend/src/config.js",
-        "sha256": "e9251d13c18199e54a648487382e0477f7f288b5a5441749f25d6b783dbf6467"
+        "sha256": "c7cb7ab07967559c0970b0ca4a56da0d6f0b424b9fcd3749b4459067276c34e0"
       },
       {
         "path": "backend/src/private_pilot_domain.js",

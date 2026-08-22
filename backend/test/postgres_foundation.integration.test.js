@@ -46,6 +46,7 @@ if (!databaseUrl) {
     process.env.PAYMENT_TRANSPORT = 'memory';
     process.env.FIREBASE_PHONE_VERIFICATION_ENABLED = 'true';
     process.env.SUPPORT_LEGACY_MIGRATION_ENABLED = 'true';
+    process.env.SUPPORT_EVIDENCE_INTAKE_ENABLED = 'true';
     process.env.PAYOUT_HOLD_HOURS = '0';
     const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sit-b3-uploads-'));
     process.env.UPLOAD_DIR = uploadDir;
@@ -134,6 +135,7 @@ if (!databaseUrl) {
         '048_support_privacy_incident_control_plane.up.sql',
         '049_support_product_safety_intake.up.sql',
         '050_support_legacy_history_import.up.sql',
+        '051_support_evidence_security.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -208,6 +210,8 @@ if (!databaseUrl) {
           'support_decisions',
           'support_deadline_watchdog_state',
           'support_evidence',
+          'support_evidence_access_grants',
+          'support_evidence_files',
           'support_dsa_notice_locator_amendments',
           'support_messages',
           'support_policy_snapshots',
@@ -227,6 +231,8 @@ if (!databaseUrl) {
         { table_name: 'support_decisions' },
         { table_name: 'support_dsa_notice_locator_amendments' },
         { table_name: 'support_evidence' },
+        { table_name: 'support_evidence_access_grants' },
+        { table_name: 'support_evidence_files' },
         { table_name: 'support_legacy_history_entries' },
         { table_name: 'support_legacy_imports' },
         { table_name: 'support_messages' },
@@ -4440,6 +4446,269 @@ if (!databaseUrl) {
           WHERE id = $1`,
         [supportIntake.supportCase.id],
       );
+      const validEvidenceBytes = await sharp({
+        create: {
+          width: 96,
+          height: 72,
+          channels: 3,
+          background: { r: 24, g: 90, b: 180 },
+        },
+      }).jpeg({ quality: 95 }).toBuffer();
+      const evidenceRequestIp = { 'X-Forwarded-For': '203.0.113.90' };
+      const createEvidenceUpload = ({
+        idempotencyKey,
+        bytes = validEvidenceBytes,
+        mimeType = 'image/jpeg',
+        fileName = 'synthetic-evidence.jpg',
+        description = 'Synthetischer Bildnachweis für den kontrollierten Integrationstest.',
+      }) => {
+        const form = new FormData();
+        form.append('description', description);
+        form.append('purpose', 'Dokumentation des gemeldeten synthetischen Zustands.');
+        form.append('claimedEventTime', '2026-08-20T12:30:00.000Z');
+        form.append('thirdPartyData', 'false');
+        form.append('file', new Blob([bytes], { type: mimeType }), fileName);
+        return fetch(
+          `${baseUrl}/v1/support/cases/${supportIntake.supportCase.id}/evidence`,
+          {
+            method: 'POST',
+            headers: {
+              ...evidenceRequestIp,
+              Authorization: renterAHeaders.Authorization,
+              'Idempotency-Key': idempotencyKey,
+            },
+            body: form,
+          },
+        );
+      };
+      const evidenceUploadResponse = await createEvidenceUpload({
+        idempotencyKey: 's4a-support-evidence-upload',
+        fileName: '\"><img src=x onerror=alert(1)>.jpg',
+      });
+      assert.equal(evidenceUploadResponse.status, 201);
+      assert.match(evidenceUploadResponse.headers.get('cache-control'), /no-store/u);
+      const evidenceUpload = await evidenceUploadResponse.json();
+      assert.equal(evidenceUpload.replayed, false);
+      assert.equal(evidenceUpload.evidence.scanStatus, 'pending');
+      assert.equal(evidenceUpload.evidence.previewAvailable, false);
+      assert.equal(evidenceUpload.externalScannerTraffic, false);
+      assert.equal(evidenceUpload.externalAiUsed, false);
+      assert.equal(Object.hasOwn(evidenceUpload.evidence, 'fileName'), false);
+      assert.equal(Object.hasOwn(evidenceUpload.evidence, 'originalStorageName'), false);
+      const evidenceReplayResponse = await createEvidenceUpload({
+        idempotencyKey: 's4a-support-evidence-upload',
+        fileName: 'ignored-replay-name.jpg',
+      });
+      assert.equal(evidenceReplayResponse.status, 200);
+      const evidenceReplay = await evidenceReplayResponse.json();
+      assert.equal(evidenceReplay.replayed, true);
+      assert.equal(evidenceReplay.evidence.id, evidenceUpload.evidence.id);
+      const evidenceRowsAfterReplay = await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM support_evidence_files
+          WHERE evidence_id = $1`,
+        [evidenceUpload.evidence.id],
+      );
+      assert.equal(evidenceRowsAfterReplay.rows[0].count, 1);
+
+      const executableBytes = Buffer.alloc(512);
+      executableBytes.write('MZ', 0, 'ascii');
+      executableBytes.write('This program cannot be run in DOS mode', 78, 'ascii');
+      const spoofedExecutableResponse = await createEvidenceUpload({
+        idempotencyKey: 's4a-support-evidence-executable',
+        bytes: executableBytes,
+        fileName: 'spoofed.jpg',
+      });
+      assert.equal(spoofedExecutableResponse.status, 415);
+      assert.equal(
+        (await spoofedExecutableResponse.json()).error,
+        'support_evidence_mime_not_allowed',
+      );
+      const xssDescriptionResponse = await createEvidenceUpload({
+        idempotencyKey: 's4a-support-evidence-xss',
+        description: '<img src=x onerror=alert(1)>',
+      });
+      assert.equal(xssDescriptionResponse.status, 400);
+      assert.equal(
+        (await xssDescriptionResponse.json()).error,
+        'support_evidence_description_invalid',
+      );
+
+      const malwareFixture = Buffer.from([
+        'X5O!P%@AP',
+        '[4\\PZX54(P^)7CC)7}$',
+        'EICAR-STANDARD-ANTIVIRUS-TEST-FILE',
+      ].join('-'), 'ascii');
+      const quarantinedResponse = await createEvidenceUpload({
+        idempotencyKey: 's4a-support-evidence-quarantine',
+        bytes: malwareFixture,
+        fileName: 'synthetic-malware-test.jpg',
+      });
+      assert.equal(quarantinedResponse.status, 201);
+      const quarantined = await quarantinedResponse.json();
+      assert.equal(quarantined.evidence.scanStatus, 'quarantined');
+      assert.equal(quarantined.evidence.previewAvailable, false);
+      const quarantinedGrant = await fetch(
+        `${baseUrl}/v1/support/evidence/${quarantined.evidence.id}/access-grants`,
+        {
+          method: 'POST',
+          headers: { ...renterAHeaders, ...evidenceRequestIp },
+        },
+      );
+      assert.equal(quarantinedGrant.status, 409);
+      assert.equal(
+        (await quarantinedGrant.json()).error,
+        'support_evidence_preview_unavailable',
+      );
+
+      const scanEvidence = () => fetch(
+        `${baseUrl}/v1/admin/support/evidence/${evidenceUpload.evidence.id}/scan-results`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            ...evidenceRequestIp,
+            'Idempotency-Key': 's4a-support-evidence-clean-scan',
+          },
+          body: JSON.stringify({
+            result: 'clean',
+            expectedOriginalSha256: evidenceUpload.evidence.originalSha256,
+            scanReference: 'internal-test-fixture-clean-001',
+          }),
+        },
+      );
+      const scanEvidenceResponse = await scanEvidence();
+      assert.equal(scanEvidenceResponse.status, 201);
+      assert.equal((await scanEvidenceResponse.json()).externalProviderTraffic, false);
+      const scanEvidenceReplay = await scanEvidence();
+      assert.equal(scanEvidenceReplay.status, 200);
+      assert.equal((await scanEvidenceReplay.json()).replayed, true);
+
+      const listedEvidenceResponse = await fetch(
+        `${baseUrl}/v1/support/cases/${supportIntake.supportCase.id}/evidence`,
+        { headers: { ...renterAHeaders, ...evidenceRequestIp } },
+      );
+      assert.equal(listedEvidenceResponse.status, 200);
+      const listedEvidence = await listedEvidenceResponse.json();
+      const listedCleanEvidence = listedEvidence.evidence.find(
+        (entry) => entry.id === evidenceUpload.evidence.id,
+      );
+      assert.equal(listedCleanEvidence.previewAvailable, true);
+      assert.equal(Object.hasOwn(listedCleanEvidence, 'previewStorageName'), false);
+      assert.equal(Object.hasOwn(listedCleanEvidence, 'fileName'), false);
+      const outsiderEvidenceList = await fetch(
+        `${baseUrl}/v1/support/cases/${supportIntake.supportCase.id}/evidence`,
+        { headers: { ...renterBHeaders, ...evidenceRequestIp } },
+      );
+      assert.equal(outsiderEvidenceList.status, 404);
+
+      const issueEvidenceGrant = () => fetch(
+        `${baseUrl}/v1/support/evidence/${evidenceUpload.evidence.id}/access-grants`,
+        {
+          method: 'POST',
+          headers: { ...renterAHeaders, ...evidenceRequestIp },
+        },
+      );
+      const firstEvidenceGrantResponse = await issueEvidenceGrant();
+      assert.equal(firstEvidenceGrantResponse.status, 201);
+      const firstEvidenceGrant = (await firstEvidenceGrantResponse.json()).grant;
+      assert.equal(firstEvidenceGrant.sessionBound, true);
+      assert.equal(firstEvidenceGrant.bearerTransferable, false);
+      const forwardedEvidenceGrant = await fetch(
+        `${baseUrl}/v1/support/evidence/${evidenceUpload.evidence.id}/preview`,
+        {
+          headers: {
+            ...renterBHeaders,
+            ...evidenceRequestIp,
+            'X-Support-Evidence-Grant': firstEvidenceGrant.accessToken,
+          },
+        },
+      );
+      assert.equal(forwardedEvidenceGrant.status, 403);
+      await setupPool.query(
+        `UPDATE support_evidence_access_grants AS access_grant
+            SET created_at = now() - interval '3 minutes',
+                expires_at = now() - interval '1 minute'
+           FROM support_evidence_files AS evidence_file
+          WHERE access_grant.evidence_file_id = evidence_file.id
+            AND evidence_file.evidence_id = $1
+            AND access_grant.subject_user_id = 'renter-a'`,
+        [evidenceUpload.evidence.id],
+      );
+      const expiredEvidenceGrant = await fetch(
+        `${baseUrl}/v1/support/evidence/${evidenceUpload.evidence.id}/preview`,
+        {
+          headers: {
+            ...renterAHeaders,
+            ...evidenceRequestIp,
+            'X-Support-Evidence-Grant': firstEvidenceGrant.accessToken,
+          },
+        },
+      );
+      assert.equal(expiredEvidenceGrant.status, 403);
+
+      const freshEvidenceGrantResponse = await issueEvidenceGrant();
+      assert.equal(freshEvidenceGrantResponse.status, 201);
+      const freshEvidenceGrant = (await freshEvidenceGrantResponse.json()).grant;
+      const evidencePreviewResponse = await fetch(
+        `${baseUrl}/v1/support/evidence/${evidenceUpload.evidence.id}/preview`,
+        {
+          headers: {
+            ...renterAHeaders,
+            ...evidenceRequestIp,
+            'X-Support-Evidence-Grant': freshEvidenceGrant.accessToken,
+          },
+        },
+      );
+      assert.equal(evidencePreviewResponse.status, 200);
+      assert.equal(evidencePreviewResponse.headers.get('content-type'), 'image/webp');
+      assert.match(evidencePreviewResponse.headers.get('cache-control'), /no-store/u);
+      assert.equal(evidencePreviewResponse.headers.get('x-content-type-options'), 'nosniff');
+      const evidencePreviewBytes = Buffer.from(await evidencePreviewResponse.arrayBuffer());
+      const evidenceFile = (await setupPool.query(
+        `SELECT original_storage_name, preview_storage_name,
+                original_sha256, preview_sha256
+           FROM support_evidence_files
+          WHERE evidence_id = $1`,
+        [evidenceUpload.evidence.id],
+      )).rows[0];
+      assert.equal(
+        crypto.createHash('sha256').update(evidencePreviewBytes).digest('hex'),
+        evidenceFile.preview_sha256,
+      );
+      assert.equal(
+        evidencePreviewResponse.headers.get('x-sit-evidence-sha256'),
+        evidenceFile.preview_sha256,
+      );
+      const storedOriginal = await fs.readFile(path.join(uploadDir, evidenceFile.original_storage_name));
+      assert.equal(
+        crypto.createHash('sha256').update(storedOriginal).digest('hex'),
+        evidenceFile.original_sha256,
+      );
+      assert.notEqual(evidenceFile.preview_sha256, evidenceFile.original_sha256);
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE support_evidence_files
+              SET original_sha256 = $2
+            WHERE evidence_id = $1`,
+          [evidenceUpload.evidence.id, '0'.repeat(64)],
+        ),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'support evidence source and preview are immutable',
+      );
+      const evidenceRetentionResponse = await fetch(
+        `${baseUrl}/v1/admin/privacy/retention-inventory`,
+        { headers: { ...adminHeaders, ...evidenceRequestIp } },
+      );
+      assert.equal(evidenceRetentionResponse.status, 200);
+      const evidenceRetentionInventory = (await evidenceRetentionResponse.json()).inventory;
+      assert.ok(evidenceRetentionInventory.categories
+        .find((entry) => entry.category === 'moderation')
+        .datasets.some((entry) => entry.dataset === 'support_evidence_files'));
+      assert.ok(evidenceRetentionInventory.categories
+        .find((entry) => entry.category === 'securityAudit')
+        .datasets.some((entry) => entry.dataset === 'support_evidence_access_grants'));
+
       const supportTemplateCatalog = await fetch(
         `${baseUrl}/v1/admin/support/message-templates`,
         { headers: supportHeaders },
@@ -5530,6 +5799,23 @@ if (!databaseUrl) {
       );
       assert.ok(renterExport.data.communication.support.legacyImports.some(
         (entry) => entry.id === legacyImport.migration.importId,
+      ));
+      assert.ok(renterExport.data.communication.support.submittedEvidenceFiles.some(
+        (entry) => entry.evidence_id === evidenceUpload.evidence.id
+          && entry.scan_status === 'clean'
+          && entry.external_ai_used === false,
+      ));
+      assert.equal(
+        renterExport.data.communication.support.evidenceOriginalsAreNeverPublic,
+        true,
+      );
+      assert.equal(
+        renterExport.data.communication.support.evidenceExternalAiUsed,
+        false,
+      );
+      assert.ok(renterExport.data.communication.support.submittedEvidenceFiles.every(
+        (entry) => !Object.hasOwn(entry, 'original_storage_name')
+          && !Object.hasOwn(entry, 'preview_storage_name'),
       ));
       assert.equal(
         renterExport.data.communication.support.legacyHistory.length,

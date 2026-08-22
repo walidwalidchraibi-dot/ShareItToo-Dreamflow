@@ -40,6 +40,7 @@ const sourcePaths = [
   'backend/src/support_deadline_watchdog.js',
   'backend/src/support_operational_metrics.js',
   'backend/src/support_legacy_migration.js',
+  'backend/src/support_evidence_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
   'backend/src/listing_supply_enrichment.js',
@@ -107,6 +108,8 @@ const sourcePaths = [
   'backend/sql/migrations/049_support_product_safety_intake.down.sql',
   'backend/sql/migrations/050_support_legacy_history_import.up.sql',
   'backend/sql/migrations/050_support_legacy_history_import.down.sql',
+  'backend/sql/migrations/051_support_evidence_security.up.sql',
+  'backend/sql/migrations/051_support_evidence_security.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -616,6 +619,50 @@ function assertSourceContracts(root, sourceTexts) {
   }
   if (!supportLegacyMigrationDown.includes('rollback would lose history')) {
     fail('Legacy-support rollback must refuse deletion of archived history.');
+  }
+  for (const [category, dataset] of [
+    ['moderation', 'support_evidence_files'],
+    ['securityAudit', 'support_evidence_access_grants'],
+  ]) {
+    if (!inventory.includes(`'${category}', '${dataset}'`)) {
+      fail(`Retention inventory is missing support-evidence dataset ${dataset}.`);
+    }
+  }
+  const supportEvidenceWorkflow = text(
+    root,
+    sourceTexts,
+    'backend/src/support_evidence_workflow.js',
+  );
+  const supportEvidenceMigrationUp = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/051_support_evidence_security.up.sql',
+  );
+  const supportEvidenceMigrationDown = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/051_support_evidence_security.down.sql',
+  );
+  for (const marker of [
+    'originalSha256',
+    'previewSha256',
+    'externalAiUsed: false',
+  ]) {
+    if (!supportEvidenceWorkflow.includes(marker)) {
+      fail(`Support-evidence retention boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'support evidence files are retained and immutable',
+    'support evidence source and preview are immutable',
+    'support evidence scan result is terminal',
+  ]) {
+    if (!supportEvidenceMigrationUp.includes(marker)) {
+      fail(`Support-evidence schema retention boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportEvidenceMigrationDown.includes('rollback would lose retained evidence')) {
+    fail('Support-evidence rollback must refuse deletion of retained evidence.');
   }
   if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
     fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');

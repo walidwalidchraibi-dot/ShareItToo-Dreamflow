@@ -147,11 +147,13 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'moderation', 'v52_return_case_events', count(*)::bigint, min(occurred_at), max(created_at) FROM v52_return_case_events
        UNION ALL SELECT 'moderation', 'support_decisions', count(*)::bigint, min(decided_at), max(COALESCE(communicated_at, decided_at)) FROM support_decisions
        UNION ALL SELECT 'moderation', 'support_evidence', count(*)::bigint, min(received_at), max(received_at) FROM support_evidence
+       UNION ALL SELECT 'moderation', 'support_evidence_files', count(*)::bigint, min(created_at), max(COALESCE(scanned_at, created_at)) FROM support_evidence_files
        UNION ALL SELECT 'moderation', 'support_appeals', count(*)::bigint, min(submitted_at), max(COALESCE(communicated_at, submitted_at)) FROM support_appeals
        UNION ALL SELECT 'securityAudit', 'audit_log', count(*)::bigint, min(created_at), max(created_at) FROM audit_log
        UNION ALL SELECT 'securityAudit', 'support_case_events', count(*)::bigint, min(created_at), max(created_at) FROM support_case_events
        UNION ALL SELECT 'securityAudit', 'support_policy_snapshots', count(*)::bigint, min(created_at), max(created_at) FROM support_policy_snapshots
        UNION ALL SELECT 'securityAudit', 'support_break_glass_grants', count(*)::bigint, min(created_at), max(COALESCE(reviewed_at, last_used_at, created_at)) FROM support_break_glass_grants
+       UNION ALL SELECT 'securityAudit', 'support_evidence_access_grants', count(*)::bigint, min(created_at), max(COALESCE(last_used_at, expires_at)) FROM support_evidence_access_grants
        UNION ALL SELECT 'securityAudit', 'support_article18_assessments', count(*)::bigint, min(created_at), max(created_at) FROM support_article18_assessments
        UNION ALL SELECT 'securityAudit', 'support_deadline_watchdog_state', count(*)::bigint, min(last_started_at), max(updated_at) FROM support_deadline_watchdog_state
        UNION ALL SELECT 'securityAudit', 'booking_events', count(*)::bigint, min(created_at), max(created_at) FROM booking_events

@@ -210,6 +210,14 @@ import {
   publicLegacyMigrationPreview,
 } from './support_legacy_migration.js';
 import {
+  authorizeSupportEvidencePreview,
+  createSupportEvidence,
+  issueSupportEvidenceAccessGrant,
+  listSupportEvidence,
+  prepareSupportEvidenceFile,
+  recordSupportEvidenceScanResult,
+} from './support_evidence_workflow.js';
+import {
   getPrivacyRightsRequestForCase,
   listPrivacyRightsQueue,
   recordPrivacyRightsDeadlineExtension,
@@ -1479,8 +1487,14 @@ export function createApp({
       'X-Admin-Step-Up',
       'X-Request-ID',
       'X-Support-Break-Glass',
+      'X-Support-Evidence-Grant',
     ],
-    exposedHeaders: ['X-Request-ID', 'Content-Disposition', 'X-SIT-Artifact-SHA256'],
+    exposedHeaders: [
+      'X-Request-ID',
+      'Content-Disposition',
+      'X-SIT-Artifact-SHA256',
+      'X-SIT-Evidence-SHA256',
+    ],
   }));
   const webhookLimiter = rateLimit({
     windowMs: 60_000,
@@ -1506,6 +1520,9 @@ export function createApp({
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportLegacyMigrationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportEvidenceUploadLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportEvidenceAccessLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportEvidenceScanLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportPrivacyIdentityLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const supportPrivacyExtensionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -1522,6 +1539,10 @@ export function createApp({
   const supportMessageDraftLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportMessageReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportMessagePublishLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportEvidenceUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: config.supportEvidence.maxFileBytes, files: 1, fields: 4 },
+  });
   app.use(generalLimiter);
 
   app.get('/v1/maps/places/autocomplete', requireAuth, requireActiveAccount, mapsLimiter, asyncRoute(async (req, res) => {
@@ -4099,6 +4120,133 @@ export function createApp({
     res.set('Cache-Control', 'private, no-store').json(result);
   }));
 
+  app.get('/v1/support/cases/:id/evidence', requireAuth, requireActiveAccount, supportEvidenceAccessLimiter, asyncRoute(async (req, res) => {
+    const evidence = await listSupportEvidence(pool, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json({
+      evidence,
+      externalAiUsed: false,
+      originalPublicAccessAllowed: false,
+    });
+  }));
+
+  app.post(
+    '/v1/support/cases/:id/evidence',
+    requireAuth,
+    requireActiveAccount,
+    supportEvidenceUploadLimiter,
+    (req, _res, next) => {
+      if (!config.supportEvidence.enabled) {
+        return next(new HttpError(503, 'support_evidence_intake_disabled'));
+      }
+      return next();
+    },
+    supportEvidenceUpload.single('file'),
+    asyncRoute(async (req, res) => {
+      if (!req.file?.buffer) throw new HttpError(400, 'support_evidence_file_required');
+      const preparedFile = await prepareSupportEvidenceFile(req.file.buffer, {
+        claimedMimeType: req.file.mimetype,
+      });
+      const evidenceId = crypto.randomUUID();
+      const fileId = crypto.randomUUID();
+      const originalStorageName = `support-evidence-${fileId}-original.${preparedFile.extension}`;
+      const previewStorageName = preparedFile.preview
+        ? `support-evidence-${fileId}-preview.webp`
+        : null;
+      const originalPath = path.join(config.uploadDir, originalStorageName);
+      const previewPath = previewStorageName
+        ? path.join(config.uploadDir, previewStorageName)
+        : null;
+      await fs.mkdir(config.uploadDir, { recursive: true });
+      let result;
+      try {
+        await fs.writeFile(originalPath, req.file.buffer, { flag: 'wx', mode: 0o640 });
+        if (previewPath) {
+          await fs.writeFile(previewPath, preparedFile.preview.bytes, {
+            flag: 'wx',
+            mode: 0o640,
+          });
+        }
+        result = await inTransaction((client) => createSupportEvidence(client, {
+          actor: req.actor,
+          caseId: safeText(req.params.id, 80),
+          rawMetadata: {
+            description: req.body?.description,
+            purpose: req.body?.purpose,
+            claimedEventTime: req.body?.claimedEventTime || null,
+            thirdPartyData: req.body?.thirdPartyData == null
+              ? undefined
+              : (req.body.thirdPartyData === 'true'
+                  ? true
+                  : (req.body.thirdPartyData === 'false'
+                      ? false
+                      : req.body.thirdPartyData)),
+          },
+          preparedFile,
+          evidenceId,
+          fileId,
+          originalStorageName,
+          previewStorageName,
+          idempotencyKey: req.get('Idempotency-Key'),
+        }));
+        if (result.replayed) {
+          await Promise.all([
+            fs.unlink(originalPath).catch(() => {}),
+            previewPath ? fs.unlink(previewPath).catch(() => {}) : Promise.resolve(),
+          ]);
+        }
+      } catch (error) {
+        await Promise.all([
+          fs.unlink(originalPath).catch(() => {}),
+          previewPath ? fs.unlink(previewPath).catch(() => {}) : Promise.resolve(),
+        ]);
+        throw error;
+      }
+      res.set('Cache-Control', 'private, no-store');
+      res.status(result.replayed ? 200 : 201).json({
+        ...result,
+        operatingMode: config.supportEvidence.operatingMode,
+        externalScannerTraffic: false,
+        externalAiUsed: false,
+      });
+    }),
+  );
+
+  app.post('/v1/support/evidence/:id/access-grants', requireAuth, requireActiveAccount, supportEvidenceAccessLimiter, asyncRoute(async (req, res) => {
+    const grant = await inTransaction((client) => issueSupportEvidenceAccessGrant(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      evidenceId: safeText(req.params.id, 80),
+      lifetimeSeconds: config.supportEvidence.accessGrantLifetimeSeconds,
+    }));
+    res.set('Cache-Control', 'private, no-store').status(201).json({ grant });
+  }));
+
+  app.get('/v1/support/evidence/:id/preview', requireAuth, requireActiveAccount, supportEvidenceAccessLimiter, asyncRoute(async (req, res) => {
+    const preview = await inTransaction((client) => authorizeSupportEvidencePreview(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      evidenceId: safeText(req.params.id, 80),
+      accessToken: req.get('X-Support-Evidence-Grant'),
+    }));
+    const contents = await fs.readFile(path.join(config.uploadDir, preview.storageName));
+    if (contents.length !== preview.byteSize
+        || crypto.createHash('sha256').update(contents).digest('hex') !== preview.sha256) {
+      throw new HttpError(409, 'support_evidence_preview_integrity_mismatch');
+    }
+    res.set({
+      'Content-Type': preview.mimeType,
+      'Content-Length': String(preview.byteSize),
+      'Cache-Control': 'private, no-store',
+      'Content-Disposition': 'inline',
+      'X-Content-Type-Options': 'nosniff',
+      'X-SIT-Evidence-SHA256': preview.sha256,
+    });
+    res.send(contents);
+  }));
+
   app.get('/v1/support/cases/:id/legacy-history', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const legacyHistory = await getLegacySupportHistory(pool, {
       actor: req.actor,
@@ -4515,6 +4663,21 @@ export function createApp({
       importId: safeText(req.params.id, 80),
     });
     res.set('Cache-Control', 'private, no-store').json({ rollback });
+  }));
+
+  app.post('/v1/admin/support/evidence/:id/scan-results', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportEvidenceScanLimiter, asyncRoute(async (req, res) => {
+    if (!config.supportEvidence.enabled) {
+      throw new HttpError(503, 'support_evidence_intake_disabled');
+    }
+    const result = await inTransaction((client) => recordSupportEvidenceScanResult(client, {
+      actor: req.actor,
+      evidenceId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store')
+      .status(result.replayed ? 200 : 201)
+      .json(result);
   }));
 
   app.get('/v1/admin/support/article-18/candidates', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {

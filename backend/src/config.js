@@ -284,6 +284,14 @@ if (supportLegacyMigrationEnabled && deploymentEnvironment === 'production') {
     'support legacy migration cannot be enabled in production before the migration gate',
   );
 }
+const supportEvidenceIntakeEnabled = (
+  process.env.SUPPORT_EVIDENCE_INTAKE_ENABLED ?? 'false'
+).trim().toLowerCase() === 'true';
+if (supportEvidenceIntakeEnabled && deploymentEnvironment === 'production') {
+  throw new Error(
+    'support evidence intake cannot be enabled in production before the evidence-security gate',
+  );
+}
 
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
@@ -386,6 +394,15 @@ export const config = Object.freeze({
     operatingMode: 'simulation',
     automaticImportAllowed: false,
     externalMessagesAllowed: false,
+  }),
+  supportEvidence: Object.freeze({
+    enabled: supportEvidenceIntakeEnabled,
+    operatingMode: 'simulation',
+    maxFileBytes: 8 * 1024 * 1024,
+    accessGrantLifetimeSeconds: 120,
+    scannerTransport: 'none',
+    externalAiAllowed: false,
+    originalPublicAccessAllowed: false,
   }),
   push: Object.freeze({
     transport: pushTransport,

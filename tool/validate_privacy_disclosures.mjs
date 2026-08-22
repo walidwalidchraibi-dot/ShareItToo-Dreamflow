@@ -39,6 +39,7 @@ const sourcePaths = [
   'backend/src/support_deadline_watchdog.js',
   'backend/src/support_operational_metrics.js',
   'backend/src/support_legacy_migration.js',
+  'backend/src/support_evidence_workflow.js',
   'backend/src/booking_workflow.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_core.js',
@@ -92,6 +93,8 @@ const sourcePaths = [
   'backend/sql/migrations/049_support_product_safety_intake.down.sql',
   'backend/sql/migrations/050_support_legacy_history_import.up.sql',
   'backend/sql/migrations/050_support_legacy_history_import.down.sql',
+  'backend/sql/migrations/051_support_evidence_security.up.sql',
+  'backend/sql/migrations/051_support_evidence_security.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -544,6 +547,48 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
   if (!supportLegacyMigrationDown.includes('rollback would lose history')) {
     fail('Legacy-support migration rollback must refuse stored history.');
+  }
+  const supportEvidenceWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_evidence_workflow.js',
+  );
+  const supportEvidenceMigrationUp = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/051_support_evidence_security.up.sql',
+  );
+  const supportEvidenceMigrationDown = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/051_support_evidence_security.down.sql',
+  );
+  for (const marker of [
+    'sourceTrust: \'user_submitted_unverified\'',
+    'usableAsDecisionEvidenceWithoutReview: false',
+    'externalAiUsed: false',
+    'access_grant.subject_user_id = $3',
+    'access_grant.session_id = $4',
+    'access_grant.expires_at > $5',
+  ]) {
+    if (!supportEvidenceWorkflow.includes(marker)) {
+      fail(`Support-evidence privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (/fetch\s*\(|https?:\/\//u.test(supportEvidenceWorkflow)) {
+    fail('Support evidence must not have an external network or AI path.');
+  }
+  for (const marker of [
+    'external_ai_used BOOLEAN NOT NULL DEFAULT false CHECK (external_ai_used = false)',
+    'support evidence source and preview are immutable',
+    "expires_at <= created_at + interval '5 minutes'",
+  ]) {
+    if (!supportEvidenceMigrationUp.includes(marker)) {
+      fail(`Support-evidence schema privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportEvidenceMigrationDown.includes('rollback would lose retained evidence')) {
+    fail('Support-evidence rollback must refuse stored evidence.');
   }
   const privacyIncidentWorkflow = sourceText(
     root,

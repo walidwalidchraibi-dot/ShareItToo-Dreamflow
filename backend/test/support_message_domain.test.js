@@ -19,6 +19,10 @@ const supportCase = Object.freeze({
   appeal_deadline: null,
   safety_flag: false,
 });
+const activeSupportCaseContext = Object.freeze({
+  supportCase,
+  now: new Date('2026-08-22T09:00:00.000Z'),
+});
 const consumerDisputeCase = Object.freeze({
   ...supportCase,
   case_type: 'legal_authority',
@@ -63,7 +67,7 @@ test('green template renders exact server case ID and can be recorded in app', (
     recipientUserId: 'user-1',
     variables: intakeVariables(),
     publishNow: true,
-  }, { supportCase });
+  }, activeSupportCaseContext);
   assert.equal(result.approvalLevel, 'green_automatic');
   assert.equal(result.sendStatus, 'sent');
   assert.equal(result.structuredVariables.case_id, caseNumber);
@@ -79,28 +83,28 @@ test('missing, unexpected and mismatched placeholders fail closed', () => {
     () => normalizeSupportMessageDraft({
       templateId: 'T-001',
       variables: intakeVariables({ confirmed_fact: undefined }),
-    }, { supportCase }),
+    }, activeSupportCaseContext),
     /support_message_variable_invalid/u,
   );
   assert.throws(
     () => normalizeSupportMessageDraft({
       templateId: 'T-001',
       variables: { ...intakeVariables(), internal_note: 'Nicht sichtbar' },
-    }, { supportCase }),
+    }, activeSupportCaseContext),
     /support_message_variable_unexpected/u,
   );
   assert.throws(
     () => normalizeSupportMessageDraft({
       templateId: 'T-001',
       variables: { ...intakeVariables(), case_id: 'SIT-ZZZZZZZZZZZZ' },
-    }, { supportCase }),
+    }, activeSupportCaseContext),
     /support_message_server_binding_mismatch/u,
   );
   assert.throws(
     () => normalizeSupportMessageDraft({
       templateId: 'T-001',
       variables: { ...intakeVariables(), next_update_time: '10:00' },
-    }, { supportCase }),
+    }, activeSupportCaseContext),
     /support_message_server_binding_mismatch/u,
   );
 });
@@ -140,7 +144,7 @@ test('sensitive data and unsafe decision claims are blocked in variables', () =>
       () => normalizeSupportMessageDraft({
         templateId: 'T-001',
         variables: intakeVariables({ confirmed_fact }),
-      }, { supportCase }),
+      }, activeSupportCaseContext),
       /support_message_(?:sensitive_content|policy_claim)_blocked/u,
     );
   }
