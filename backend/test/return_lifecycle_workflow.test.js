@@ -20,6 +20,7 @@ function row(overrides = {}) {
     return_report_deadline: new Date('2026-08-03T10:00:00.000Z'),
     return_clarification_deadline: new Date('2026-08-06T10:00:00.000Z'),
     payout_instruction_due_at: new Date('2026-08-06T10:00:00.000Z'),
+    rental_timezone: 'Europe/Berlin',
     booking_payload: {
       returnConfirmation: {
         renterConfirmedAt: '2026-08-01T10:00:00.000Z',
@@ -106,6 +107,25 @@ test('substantiated case reminds the other party and preserves seven-day cadence
   assert.equal(plan.nextCaseStatusUpdateDueAt, '2026-08-29T10:00:00.000Z');
 });
 
+test('seven-calendar-day cadence preserves local time across DST and advances once', () => {
+  const plan = planReturnLifecycle(row({
+    return_state: 'needsReview',
+    case_id: 'case-dst',
+    case_opened_by: 'owner-1',
+    case_opened_at: new Date('2026-03-20T11:00:00.000Z'),
+    case_response_due_at: new Date('2026-03-25T11:00:00.000Z'),
+    next_status_update_due_at: new Date('2026-03-27T11:00:00.000Z'),
+    case_deadline_timezone: 'Europe/Berlin',
+  }), {
+    now: new Date('2026-03-27T11:00:00.000Z'),
+  });
+  assert.equal(plan.nextCaseStatusUpdateDueAt, '2026-04-03T10:00:00.000Z');
+  assert.equal(
+    plan.actions.filter((action) => action.kind === 'return_case_status_update').length,
+    1,
+  );
+});
+
 test('database reconciliation is idempotent, role-bound and updates both projections', async () => {
   const statements = [];
   const notifications = [];
@@ -169,6 +189,7 @@ test('return lifecycle notification fans out idempotently to app email and push'
             listing_payload: { title: 'Kamera' },
             owner_profile: { displayName: 'Owner' },
             renter_profile: { displayName: 'Renter' },
+            rental_timezone: 'Europe/Berlin',
           }],
         };
       }

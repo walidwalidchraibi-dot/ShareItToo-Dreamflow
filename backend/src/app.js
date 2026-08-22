@@ -295,6 +295,7 @@ import {
   evaluateReturnTimeline,
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
+import { addReturnPolicyCalendarDays } from './return_calendar_policy.js';
 import {
   errorPayload,
   requestContext,
@@ -1018,6 +1019,7 @@ function existingRentalPayload(raw, existing, actorId) {
           ? merged.returnCaseOpenedAt
           : null,
         now,
+        timezone: existing.booking_rental_timezone ?? 'Europe/Berlin',
       });
       merged.returnState = timeline.state;
       merged.returnT0 = timeline.t0;
@@ -3906,6 +3908,7 @@ export function createApp({
           `SELECT request.*, booking.status AS booking_status,
                   booking.workflow_version AS booking_workflow_version,
                   booking.workflow_revision AS booking_workflow_revision,
+                  booking.rental_timezone AS booking_rental_timezone,
                   contract.contract_version AS platform_contract_version
            FROM rental_requests AS request
            LEFT JOIN bookings AS booking ON booking.id = request.id
@@ -4028,6 +4031,8 @@ export function createApp({
               ],
             );
             if (opensReturnCase) {
+              const caseOpenedAt = new Date(payload.returnCaseOpenedAt);
+              const deadlineTimezone = existing.booking_rental_timezone ?? 'Europe/Berlin';
               await client.query(
                 `INSERT INTO booking_cases (
                    booking_id, opened_by, opened_at, reason, substantiated,
@@ -4036,8 +4041,7 @@ export function createApp({
                    next_status_update_due_at, metadata
                  )
                  SELECT $1, $2, $3, $4, true, 'needsReview', $5, $6,
-                        $3::timestamptz + interval '5 days',
-                        $3::timestamptz + interval '7 days', $7::jsonb
+                        $7, $8, $9::jsonb
                  WHERE NOT EXISTS (
                    SELECT 1 FROM booking_cases
                    WHERE booking_id = $1 AND status <> 'closed'
@@ -4053,9 +4057,13 @@ export function createApp({
                     Number(payload.quotedTotalMinor ?? 0)
                       - Number(payload.contestedAuthorizedMinor ?? 0),
                   ),
+                  addReturnPolicyCalendarDays(caseOpenedAt, 5, deadlineTimezone),
+                  addReturnPolicyCalendarDays(caseOpenedAt, 7, deadlineTimezone),
                   JSON.stringify({
                     source: payload.reviewSource,
                     evidenceReferences: payload.reviewEvidenceReferences ?? [],
+                    deadlineTimezone,
+                    deadlinePolicyVersion: 2,
                   }),
                 ],
               );

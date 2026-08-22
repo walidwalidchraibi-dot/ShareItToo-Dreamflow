@@ -584,6 +584,8 @@ export async function buildAccountExport(client, userId) {
               return_case.reason_details, return_case.t0, return_case.t1,
               return_case.report_deadline, return_case.response_due_at,
               return_case.next_status_update_due_at,
+              return_case.deadline_timezone,
+              return_case.deadline_policy_version,
               return_case.authorized_booking_minor,
               return_case.contested_authorized_minor,
               return_case.undisputed_releasable_minor,

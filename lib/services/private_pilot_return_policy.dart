@@ -60,6 +60,48 @@ class PrivatePilotAmountSplit {
 class PrivatePilotReturnPolicy {
   PrivatePilotReturnPolicy._();
 
+  static DateTime _lastSundayUtc(int year, int month) {
+    final lastDay = DateTime.utc(year, month + 1, 0);
+    return DateTime.utc(year, month, lastDay.day - lastDay.weekday % 7, 1);
+  }
+
+  static Duration _berlinOffset(DateTime instant) {
+    final utc = instant.toUtc();
+    final daylightSavingStarts = _lastSundayUtc(utc.year, DateTime.march);
+    final daylightSavingEnds = _lastSundayUtc(utc.year, DateTime.october);
+    return !utc.isBefore(daylightSavingStarts) &&
+            utc.isBefore(daylightSavingEnds)
+        ? const Duration(hours: 2)
+        : const Duration(hours: 1);
+  }
+
+  static DateTime _addBerlinCalendarDays(DateTime instant, int days) {
+    final utc = instant.toUtc();
+    final local = utc.add(_berlinOffset(utc));
+    final targetLocal = DateTime.utc(
+      local.year,
+      local.month,
+      local.day + days,
+      local.hour,
+      local.minute,
+      local.second,
+      local.millisecond,
+      local.microsecond,
+    );
+    final candidates = <DateTime>[
+      targetLocal.subtract(const Duration(hours: 2)),
+      targetLocal.subtract(const Duration(hours: 1)),
+    ].where((candidate) {
+      final observed = candidate.add(_berlinOffset(candidate));
+      return observed == targetLocal;
+    }).toList()
+      ..sort();
+    if (candidates.isNotEmpty) return candidates.first;
+
+    // A nonexistent spring wall-clock time moves forward by the DST gap.
+    return targetLocal.subtract(const Duration(hours: 1));
+  }
+
   static DateTime resolveT0({
     required DateTime scheduledReturnAt,
     DateTime? mutuallyConfirmedChangedReturnAt,
@@ -87,8 +129,9 @@ class PrivatePilotReturnPolicy {
     final reportDeadline = t0.add(
       const Duration(hours: PrivatePilotConfig.returnReportWindowHours),
     );
-    final clarificationDeadline = t0.add(
-      const Duration(days: PrivatePilotConfig.missingReturnConfirmationDays),
+    final clarificationDeadline = _addBerlinCalendarDays(
+      t0,
+      PrivatePilotConfig.missingReturnConfirmationDays,
     );
 
     if (substantiatedCaseOpenedAt != null) {
@@ -98,9 +141,11 @@ class PrivatePilotReturnPolicy {
         reportDeadline: reportDeadline,
         clarificationDeadline: clarificationDeadline,
         caseOpenedAt: substantiatedCaseOpenedAt,
-        responseDueAt: substantiatedCaseOpenedAt.add(const Duration(days: 5)),
-        nextStatusUpdateDueAt:
-            substantiatedCaseOpenedAt.add(const Duration(days: 7)),
+        responseDueAt: _addBerlinCalendarDays(substantiatedCaseOpenedAt, 5),
+        nextStatusUpdateDueAt: _addBerlinCalendarDays(
+          substantiatedCaseOpenedAt,
+          7,
+        ),
       );
     }
 
@@ -168,10 +213,6 @@ class PrivatePilotReturnPolicy {
       return caseClosedAt == null;
     }
     final current = now ?? DateTime.now();
-    final deadline =
-        returnState == PrivatePilotReturnState.awaitingReturnConfirmation
-            ? clarificationDeadline
-            : reportDeadline;
-    return deadline != null && !current.isAfter(deadline);
+    return reportDeadline != null && !current.isAfter(reportDeadline);
   }
 }

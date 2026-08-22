@@ -193,11 +193,7 @@ bool isPrivatePilotBookingChatOpen({
   final state = returnState.trim();
   if (state == 'needsReview') return caseClosedAt == null;
   final current = now ?? DateTime.now();
-  if (state == 'awaitingReturnConfirmation') {
-    return clarificationDeadline != null &&
-        !current.isAfter(clarificationDeadline);
-  }
-  if (state == 'reportWindowOpen') {
+  if (state == 'awaitingReturnConfirmation' || state == 'reportWindowOpen') {
     return reportDeadline != null && !current.isAfter(reportDeadline);
   }
   return false;

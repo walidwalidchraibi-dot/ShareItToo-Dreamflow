@@ -150,10 +150,43 @@ if (!databaseUrl) {
         '060_harassment_block_report_guard.up.sql',
         '061_booking_exact_address_reveal_guard.up.sql',
         '062_handover_exception_guard.up.sql',
+        '063_return_calendar_deadline_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows.at(-1).checksum, /^[0-9a-f]{64}$/);
+      const returnCalendarColumns = await setupPool.query(
+        `SELECT column_name, column_default
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'v52_return_cases'
+            AND column_name IN ('deadline_timezone', 'deadline_policy_version')
+          ORDER BY column_name`,
+      );
+      assert.deepEqual(returnCalendarColumns.rows, [
+        { column_name: 'deadline_policy_version', column_default: '1' },
+        {
+          column_name: 'deadline_timezone',
+          column_default: "'Europe/Berlin'::text",
+        },
+      ]);
+      const returnCalendarConstraints = await setupPool.query(
+        `SELECT conname, pg_get_constraintdef(oid) AS definition
+           FROM pg_constraint
+          WHERE conrelid = 'v52_return_cases'::regclass
+            AND conname IN (
+              'v52_return_cases_response_calendar_check',
+              'v52_return_cases_update_calendar_check'
+            )
+          ORDER BY conname`,
+      );
+      assert.equal(returnCalendarConstraints.rowCount, 2);
+      assert.equal(
+        returnCalendarConstraints.rows.every((row) =>
+          row.definition.includes('deadline_policy_version')
+            && row.definition.includes('AT TIME ZONE deadline_timezone')),
+        true,
+      );
       const rentalCartTables = await setupPool.query(
         `SELECT table_name
            FROM information_schema.tables

@@ -15,6 +15,7 @@ function memoryClient({ workflowStatus = 'accepted', evidenceReady = true } = {}
       owner_id: 'owner-1',
       renter_id: 'renter-1',
       workflow_status: workflowStatus,
+      rental_timezone: 'Europe/Berlin',
       payload: {
         id: 'booking-1',
         start: '2026-09-01T10:00:00.000Z',
@@ -36,7 +37,7 @@ function memoryClient({ workflowStatus = 'accepted', evidenceReady = true } = {}
     state,
     async query(sql, values) {
       const compact = sql.replace(/\s+/g, ' ').trim();
-      if (compact.startsWith('SELECT booking.id, booking.owner_id, booking.renter_id, booking.workflow_status, request.payload FROM bookings AS booking JOIN rental_requests AS request ON request.id = booking.id')) {
+      if (compact.startsWith('SELECT booking.id, booking.owner_id, booking.renter_id, booking.workflow_status, booking.rental_timezone, request.payload FROM bookings AS booking JOIN rental_requests AS request ON request.id = booking.id')) {
         return { rowCount: 1, rows: [{ ...state.booking }] };
       }
       if (compact.includes('LEFT JOIN platform_contracts AS contract')) {

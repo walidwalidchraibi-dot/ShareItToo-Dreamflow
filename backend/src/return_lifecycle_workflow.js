@@ -1,8 +1,10 @@
 import { config } from './config.js';
 import { inTransaction } from './db.js';
 import { enqueueReturnLifecycleNotification } from './notifications.js';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import {
+  addReturnPolicyCalendarDays,
+  returnPolicyTimeZone,
+} from './return_calendar_policy.js';
 
 function instant(value, code) {
   const parsed = value instanceof Date ? new Date(value) : new Date(value);
@@ -28,10 +30,10 @@ function confirmationRoles(payload) {
   };
 }
 
-function cadenceAfter(dueAt, now) {
-  const elapsed = Math.max(0, now.getTime() - dueAt.getTime());
-  const intervals = Math.floor(elapsed / (7 * DAY_MS)) + 1;
-  return new Date(dueAt.getTime() + intervals * 7 * DAY_MS);
+function cadenceAfter(dueAt, now, timezone) {
+  let next = addReturnPolicyCalendarDays(dueAt, 7, timezone);
+  while (next <= now) next = addReturnPolicyCalendarDays(next, 7, timezone);
+  return next;
 }
 
 export function planReturnLifecycle(row, { now = new Date() } = {}) {
@@ -40,6 +42,9 @@ export function planReturnLifecycle(row, { now = new Date() } = {}) {
   const t0 = optionalInstant(row.return_t0);
   const reportDeadline = optionalInstant(row.return_report_deadline);
   const clarificationDeadline = optionalInstant(row.return_clarification_deadline);
+  const deadlineTimezone = returnPolicyTimeZone(
+    row.case_deadline_timezone ?? row.rental_timezone ?? 'Europe/Berlin',
+  );
   const actions = [];
   let nextState = state;
   let nextPayoutInstructionDueAt = optionalInstant(row.payout_instruction_due_at);
@@ -109,7 +114,7 @@ export function planReturnLifecycle(row, { now = new Date() } = {}) {
     }
     if (nextCaseStatusUpdateDueAt && current >= nextCaseStatusUpdateDueAt) {
       const due = nextCaseStatusUpdateDueAt;
-      nextCaseStatusUpdateDueAt = cadenceAfter(due, current);
+      nextCaseStatusUpdateDueAt = cadenceAfter(due, current, deadlineTimezone);
       actions.push({
         kind: 'return_case_status_update',
         recipientRoles: ['owner', 'renter'],
@@ -141,17 +146,21 @@ export async function reconcileReturnLifecycleWithClient(client, {
             booking.return_report_deadline,
             booking.return_clarification_deadline,
             booking.payout_instruction_due_at,
+            booking.rental_timezone,
             request.payload AS booking_payload,
             active_case.id AS case_id,
             active_case.opened_by AS case_opened_by,
             active_case.opened_at AS case_opened_at,
             active_case.response_due_at AS case_response_due_at,
-            active_case.next_status_update_due_at
+            active_case.next_status_update_due_at,
+            active_case.deadline_timezone AS case_deadline_timezone
        FROM bookings AS booking
        JOIN rental_requests AS request ON request.id = booking.id
        LEFT JOIN LATERAL (
-         SELECT booking_case.*
+         SELECT booking_case.*, return_case.deadline_timezone
            FROM booking_cases AS booking_case
+           LEFT JOIN v52_return_cases AS return_case
+             ON return_case.booking_case_id = booking_case.id
           WHERE booking_case.booking_id = booking.id
             AND booking_case.status <> 'closed'
           ORDER BY booking_case.opened_at DESC

@@ -12,6 +12,10 @@ const migration = readFileSync(
   new URL('../sql/migrations/025_v52_handover_return_evidence.up.sql', import.meta.url),
   'utf8',
 );
+const calendarMigration = readFileSync(
+  new URL('../sql/migrations/063_return_calendar_deadline_guard.up.sql', import.meta.url),
+  'utf8',
+);
 const privacyExport = readFileSync(
   new URL('../src/privacy_export.js', import.meta.url),
   'utf8',
@@ -47,6 +51,7 @@ function binding(overrides = {}) {
     return_t0: new Date('2026-08-20T10:00:00.000Z'),
     quoted_total_minor: 5000,
     currency: 'EUR',
+    rental_timezone: 'Europe/Berlin',
     booking_payload: {
       id: 'booking-1',
       end: '2026-08-20T10:00:00.000Z',
@@ -120,9 +125,11 @@ function returnCaseClient({ bindingRow = binding(), evidenceRows = null } = {}) 
             report_deadline: values[16],
             response_due_at: values[17],
             next_status_update_due_at: values[18],
-            authorized_booking_minor: values[19],
-            contested_authorized_minor: values[20],
-            undisputed_releasable_minor: values[21],
+            deadline_timezone: values[19],
+            deadline_policy_version: 2,
+            authorized_booking_minor: values[20],
+            contested_authorized_minor: values[21],
+            undisputed_releasable_minor: values[22],
           }],
         };
       }
@@ -150,6 +157,14 @@ test('migration keeps V5.1 rows and adds immutable V5.2 evidence and no-charge c
   assert.match(migration, /next_status_update_due_at = t1 \+ INTERVAL '7 days'/u);
   assert.match(migration, /upload_purpose TEXT NOT NULL CHECK \(upload_purpose = 'report_evidence'\)/u);
   assert.doesNotMatch(migration, /ALTER TABLE booking_condition_evidence\s+RENAME/u);
+});
+
+test('S4M migration preserves legacy rows and guards new calendar-bound deadlines', () => {
+  assert.match(calendarMigration, /deadline_policy_version SMALLINT NOT NULL DEFAULT 1/u);
+  assert.match(calendarMigration, /deadline_timezone TEXT NOT NULL DEFAULT 'Europe\/Berlin'/u);
+  assert.match(calendarMigration, /deadline_policy_version = 2[\s\S]*AT TIME ZONE deadline_timezone/u);
+  assert.match(calendarMigration, /INTERVAL '5 days'/u);
+  assert.match(calendarMigration, /INTERVAL '7 days'/u);
 });
 
 test('account export and retention inventory cover every new C1F dataset', () => {
@@ -294,9 +309,78 @@ test('exact T0+48h opens one substantiated case and cannot create an additional 
   assert.equal(result.returnCase.contestedAuthorizedMinor, 1200);
   assert.equal(result.returnCase.undisputedReleasableMinor, 3800);
   assert.equal(result.returnCase.additionalChargeMinor, 0);
+  assert.equal(result.returnCase.deadlineTimezone, 'Europe/Berlin');
+  assert.equal(result.returnCase.deadlinePolicyVersion, 2);
   assert.equal(result.returnCase.reportDeadline, '2026-08-22T10:00:00.000Z');
   assert.ok(client.state.writes.some((entry) => entry.compact.startsWith('INSERT INTO v52_return_case_events')));
   assert.ok(client.state.writes.some((entry) => entry.compact.includes("'booking.v52_return_case_opened'")));
+});
+
+test('V5.2 response and update deadlines use calendar days in the booking timezone', async () => {
+  const openedAt = new Date('2026-03-27T11:00:00.000Z');
+  const client = returnCaseClient({
+    bindingRow: binding({
+      ends_at: openedAt,
+      return_t0: openedAt,
+    }),
+  });
+  const result = await openV52ReturnCase(client, {
+    actor: { id: 'owner-1', role: 'user' },
+    bookingId: 'booking-1',
+    raw: raw(),
+    idempotencyKey: 'return-case-calendar-dst',
+    now: openedAt,
+  });
+  assert.equal(result.returnCase.responseDueAt, '2026-04-01T10:00:00.000Z');
+  assert.equal(result.returnCase.nextStatusUpdateDueAt, '2026-04-03T10:00:00.000Z');
+});
+
+test('changed return T0 requires distinct participant proposal and confirmation', async () => {
+  const client = returnCaseClient({
+    bindingRow: binding({
+      return_t0: null,
+      booking_payload: {
+        returnTimeConfirmed: true,
+        returnTimeRequested: '20.08.2026, 14:00',
+        returnTimeIso: '2026-08-20T12:00:00.000Z',
+        returnTimeRequestedByUserId: 'owner-1',
+        returnTimeConfirmedByUserId: 'owner-1',
+        returnTimeConfirmedAt: '2026-08-20T09:00:00.000Z',
+      },
+    }),
+  });
+  const result = await openV52ReturnCase(client, {
+    actor: { id: 'owner-1', role: 'user' },
+    bookingId: 'booking-1',
+    raw: raw(),
+    idempotencyKey: 'return-case-untrusted-reschedule',
+    now: new Date('2026-08-20T10:00:00.000Z'),
+  });
+  assert.equal(result.returnCase.t0, '2026-08-20T10:00:00.000Z');
+});
+
+test('changed return T0 accepts a complete distinct-participant confirmation', async () => {
+  const client = returnCaseClient({
+    bindingRow: binding({
+      return_t0: null,
+      booking_payload: {
+        returnTimeConfirmed: true,
+        returnTimeRequested: '20.08.2026, 14:00',
+        returnTimeIso: '2026-08-20T12:00:00.000Z',
+        returnTimeRequestedByUserId: 'owner-1',
+        returnTimeConfirmedByUserId: 'renter-1',
+        returnTimeConfirmedAt: '2026-08-20T09:00:00.000Z',
+      },
+    }),
+  });
+  const result = await openV52ReturnCase(client, {
+    actor: { id: 'owner-1', role: 'user' },
+    bookingId: 'booking-1',
+    raw: raw(),
+    idempotencyKey: 'return-case-trusted-reschedule',
+    now: new Date('2026-08-20T12:00:00.000Z'),
+  });
+  assert.equal(result.returnCase.t0, '2026-08-20T12:00:00.000Z');
 });
 
 test('return case rejects unowned evidence and amounts above the immutable quote', async () => {

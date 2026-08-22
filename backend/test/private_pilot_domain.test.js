@@ -231,6 +231,28 @@ test('only a substantiated case enters needsReview and keeps chat open', () => {
   }), false);
 });
 
+test('missing confirmation does not extend direct chat beyond T0 plus 48 hours', () => {
+  assert.equal(isBookingChatOpen({
+    returnState: 'awaitingReturnConfirmation',
+    now: '2026-09-03T10:00:00.001Z',
+    reportDeadline: '2026-09-03T10:00:00.000Z',
+    clarificationDeadline: '2026-09-06T10:00:00.000Z',
+  }), false);
+});
+
+test('return timeline uses booking calendar days across daylight-saving changes', () => {
+  const timeline = evaluateReturnTimeline({
+    scheduledReturnAt: '2026-03-27T11:00:00.000Z',
+    ownerConfirmed: true,
+    renterConfirmed: true,
+    substantiatedCaseOpenedAt: '2026-03-27T11:00:00.000Z',
+    now: '2026-03-27T11:00:00.000Z',
+    timezone: 'Europe/Berlin',
+  });
+  assert.equal(timeline.responseDueAt, '2026-04-01T10:00:00.000Z');
+  assert.equal(timeline.nextStatusUpdateDueAt, '2026-04-03T10:00:00.000Z');
+});
+
 test('alleged damage never creates a charge or blocks undisputed rent', () => {
   const result = splitAuthorizedBookingAmount({
     authorizedBookingMinor: 11_000,

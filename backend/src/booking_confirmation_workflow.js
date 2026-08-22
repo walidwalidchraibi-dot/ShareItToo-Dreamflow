@@ -26,7 +26,7 @@ import {
 async function lockedBooking(client, bookingId) {
   const result = await client.query(
     `SELECT booking.id, booking.owner_id, booking.renter_id,
-            booking.workflow_status, request.payload
+            booking.workflow_status, booking.rental_timezone, request.payload
        FROM bookings AS booking
        JOIN rental_requests AS request ON request.id = booking.id
       WHERE booking.id = $1
@@ -314,6 +314,7 @@ export async function verifyBookingConfirmationChallenge(client, {
       renterConfirmed: true,
       substantiatedCaseOpenedAt: payload.needsReview === true ? payload.returnCaseOpenedAt : null,
       now,
+      timezone: booking.rental_timezone,
     });
     payload.returnState = timeline.state;
     payload.returnT0 = timeline.t0;

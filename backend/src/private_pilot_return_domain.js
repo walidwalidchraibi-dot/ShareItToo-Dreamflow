@@ -1,7 +1,7 @@
 import { evaluateV51Cancellation } from './v51_termination_domain.js';
+import { addReturnPolicyCalendarDays } from './return_calendar_policy.js';
 
 const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
 
 function instant(value, code) {
   const result = value instanceof Date ? new Date(value) : new Date(value);
@@ -36,6 +36,7 @@ export function evaluateReturnTimeline({
   now = new Date(),
   reportWindowHours = 48,
   missingConfirmationDays = 5,
+  timezone = 'Europe/Berlin',
 }) {
   const t0 = resolveReturnT0({
     scheduledReturnAt,
@@ -44,8 +45,10 @@ export function evaluateReturnTimeline({
   });
   const current = instant(now, 'invalid_current_time');
   const reportDeadline = new Date(t0.getTime() + reportWindowHours * HOUR_MS);
-  const clarificationDeadline = new Date(
-    t0.getTime() + missingConfirmationDays * DAY_MS,
+  const clarificationDeadline = addReturnPolicyCalendarDays(
+    t0,
+    missingConfirmationDays,
+    timezone,
   );
   const bothConfirmed = ownerConfirmed && renterConfirmed;
 
@@ -57,8 +60,8 @@ export function evaluateReturnTimeline({
       t1: iso(t1),
       reportDeadline: iso(reportDeadline),
       clarificationDeadline: iso(clarificationDeadline),
-      responseDueAt: iso(new Date(t1.getTime() + 5 * DAY_MS)),
-      nextStatusUpdateDueAt: iso(new Date(t1.getTime() + 7 * DAY_MS)),
+      responseDueAt: iso(addReturnPolicyCalendarDays(t1, 5, timezone)),
+      nextStatusUpdateDueAt: iso(addReturnPolicyCalendarDays(t1, 7, timezone)),
       // Only the substantiated contested portion remains held. The undisputed
       // owner share becomes releasable after the ordinary report window.
       payoutInstructionDueAt: iso(reportDeadline),
@@ -201,8 +204,10 @@ export function isBookingChatOpen({
   if (bookingActive) return true;
   if (returnState === 'needsReview') return caseClosedAt == null;
   const current = instant(now, 'invalid_current_time');
-  const deadline = returnState === 'awaitingReturnConfirmation'
-    ? clarificationDeadline
-    : reportDeadline;
-  return deadline ? current <= instant(deadline, 'invalid_chat_deadline') : false;
+  // Missing confirmation remains neutral through its five-calendar-day
+  // clarification window, but it does not extend direct participant chat.
+  // New issues after the 48-hour report window belong in Support.
+  return reportDeadline
+    ? current <= instant(reportDeadline, 'invalid_chat_deadline')
+    : false;
 }

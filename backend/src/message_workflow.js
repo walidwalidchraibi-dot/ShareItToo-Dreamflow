@@ -77,10 +77,20 @@ async function lockedThread(client, threadId, actorId) {
   const result = await client.query(
     `SELECT thread.*, booking.workflow_status, booking.workflow_version,
             booking.owner_id, booking.renter_id,
+            booking.return_state, booking.return_report_deadline,
+            active_case.id AS active_return_case_id,
             listing.payload AS listing_payload
      FROM message_threads AS thread
      JOIN bookings AS booking ON booking.id = thread.booking_id
      JOIN listings AS listing ON listing.id = thread.item_id
+     LEFT JOIN LATERAL (
+       SELECT booking_case.id
+         FROM booking_cases AS booking_case
+        WHERE booking_case.booking_id = booking.id
+          AND booking_case.status <> 'closed'
+        ORDER BY booking_case.opened_at DESC
+        LIMIT 1
+     ) AS active_case ON true
      WHERE thread.id = $1
      FOR UPDATE OF thread`,
     [threadId],
@@ -96,8 +106,19 @@ async function lockedThread(client, threadId, actorId) {
   return row;
 }
 
+export function bookingMessagingAllowed(row, { now = new Date() } = {}) {
+  if (CHAT_ENABLED_STATUSES.includes(row.workflow_status)) return true;
+  if (row.workflow_status !== 'completed') return false;
+  if (row.return_state === 'needsReview') return Boolean(row.active_return_case_id);
+  const deadline = new Date(row.return_report_deadline ?? '');
+  const current = now instanceof Date ? now : new Date(now);
+  return Number.isFinite(deadline.getTime())
+    && Number.isFinite(current.getTime())
+    && current <= deadline;
+}
+
 async function assertMessagingAllowed(client, row, actorId) {
-  if (!CHAT_ENABLED_STATUSES.includes(row.workflow_status)) {
+  if (!bookingMessagingAllowed(row)) {
     throw new MessageWorkflowError(409, 'message_thread_closed', { status: row.workflow_status });
   }
   const recipientId = row.user1_id === actorId ? row.user2_id : row.user1_id;

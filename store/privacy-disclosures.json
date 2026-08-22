@@ -52,7 +52,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "1b1d621253d217f1d9801d657e5188c233600fc9af188393ff2d2dcebe8d402d"
+      "sha256": "a0fec813e8b8a624a3f8df41010e1c7ac655720b6e2cd21be0239a63fb22b659"
     },
     {
       "path": "backend/src/observability.js",
@@ -535,20 +535,28 @@
       "sha256": "7667960848a6a26c94fdb7931fd54ca4e333bfe95034ff9f81583914af264c22"
     },
     {
+      "path": "backend/sql/migrations/063_return_calendar_deadline_guard.up.sql",
+      "sha256": "85ba274607903d75df89c049a6686a8080b078e6b27e4a19797f3c7b126535ea"
+    },
+    {
+      "path": "backend/sql/migrations/063_return_calendar_deadline_guard.down.sql",
+      "sha256": "bf9c7866c6c3fe3b45bba87fac11be767872369ac680dd0d90c2d0815c1ce11c"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
     {
       "path": "backend/src/booking_confirmation_workflow.js",
-      "sha256": "24760566716f5d533a5b283f81cbc2370651a2d8221246ab3a33bf498f996be3"
+      "sha256": "881f0931c1206b6a40d20d1ff71578d7f3c3243a13bad5cb8039b210daca9c7e"
     },
     {
       "path": "backend/src/message_workflow.js",
-      "sha256": "060b224ffe28f243614e26c66a07ae7e1bae4541dd825507433271017d519d4f"
+      "sha256": "f77b3903442403119ec69067cdf8a9948b247e99beca4170cb625e925d488e94"
     },
     {
       "path": "backend/src/v52_handover_return_workflow.js",
-      "sha256": "e87bae45625e4f51138ac66b03f68aab7630d01aecb375230f760ebf99cbf76a"
+      "sha256": "618d7eaaa8abd23d604df35127fa23cd06704285748a739d6ee8458c83dc0bf6"
     },
     {
       "path": "backend/src/retention_inventory.js",
@@ -580,7 +588,7 @@
     },
     {
       "path": "backend/src/notifications.js",
-      "sha256": "c86ebfbbef94ee3696da207a11d7be8df57aa7aebed7d82fd8d032f8bec247d1"
+      "sha256": "1120cd63d76dd58df8abd41e0f3585d6405ccfdf701b2907834394a2a09f1e1a"
     },
     {
       "path": "backend/src/push_sender.js",
@@ -592,7 +600,15 @@
     },
     {
       "path": "backend/src/return_lifecycle_workflow.js",
-      "sha256": "2fe69aefcf3c4096754d258eda1c5f89da5b700fbf09ccd00447ff3f7dd783e7"
+      "sha256": "be2ab7a751d715bf6e3dd2dde6e7d25a5b609e0729890854579022d2e6c3dae2"
+    },
+    {
+      "path": "backend/src/private_pilot_return_domain.js",
+      "sha256": "2e9db752ad1fdf49db036530daa7414853652899440f7ab357acd1990db77517"
+    },
+    {
+      "path": "backend/src/return_calendar_policy.js",
+      "sha256": "e88efb92e99d31dbff06559e91c563e195e32eda68da424d76889f800cd6b993"
     },
     {
       "path": "backend/src/firebase_phone_verification.js",
@@ -812,7 +828,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "9311eddc13207b3deaa65decb3f64e34f197543ff1060e297dbf9d65c416b9ab"
+      "sha256": "30086e2b64189eac62982a1b5d0a788298dfbba3a06250ec2030050f0ce6a93e"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -832,7 +848,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "aef8fc15d9f0ec6a38bbaf01da0608ff1cfc3ee595acb6095f2facec5e69ef1e"
+      "sha256": "bcf275e06f605e4f9cfcf55d8f0afc9a0cc04eb547cb945897c3fd2e2deb1b7b"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",

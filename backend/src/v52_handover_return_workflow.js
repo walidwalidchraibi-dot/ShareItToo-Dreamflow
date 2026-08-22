@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { resolveReturnT0 } from './private_pilot_return_domain.js';
+import { addReturnPolicyCalendarDays, returnPolicyTimeZone } from './return_calendar_policy.js';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH_PATTERN = /^[0-9a-f]{64}$/;
@@ -86,7 +87,7 @@ async function bookingBinding(client, bookingId, { lock = false } = {}) {
   const result = await client.query(
     `SELECT booking.id, booking.owner_id, booking.renter_id,
             booking.workflow_status, booking.ends_at, booking.return_t0,
-            booking.quoted_total_minor, booking.currency,
+            booking.quoted_total_minor, booking.currency, booking.rental_timezone,
             request.payload AS booking_payload,
             contract.id AS platform_contract_id, contract.contract_version,
             contract.locale AS contract_locale, contract.quote_id,
@@ -432,7 +433,17 @@ function returnT0(row) {
   const payload = row.booking_payload && typeof row.booking_payload === 'object'
     ? row.booking_payload
     : {};
+  const requestedLabel = typeof payload.returnTimeRequested === 'string'
+    ? payload.returnTimeRequested.trim()
+    : '';
+  const requestedBy = payload.returnTimeRequestedByUserId;
+  const confirmedBy = payload.returnTimeConfirmedByUserId;
   const changedReturn = payload.returnTimeConfirmed === true
+    && requestedLabel.length > 0
+    && [row.owner_id, row.renter_id].includes(requestedBy)
+    && [row.owner_id, row.renter_id].includes(confirmedBy)
+    && requestedBy !== confirmedBy
+    && Number.isFinite(Date.parse(payload.returnTimeConfirmedAt ?? ''))
     ? payload.returnTimeIso
     : null;
   return resolveReturnT0({
@@ -456,6 +467,8 @@ function caseShape(row, evidenceUploadIds, { replayed }) {
       reportDeadline: new Date(row.report_deadline).toISOString(),
       responseDueAt: new Date(row.response_due_at).toISOString(),
       nextStatusUpdateDueAt: new Date(row.next_status_update_due_at).toISOString(),
+      deadlineTimezone: row.deadline_timezone,
+      deadlinePolicyVersion: Number(row.deadline_policy_version),
       authorizedBookingMinor: Number(row.authorized_booking_minor),
       contestedAuthorizedMinor: Number(row.contested_authorized_minor),
       undisputedReleasableMinor: Number(row.undisputed_releasable_minor),
@@ -541,6 +554,7 @@ export async function openV52ReturnCase(client, {
 
   const openedAt = instant(now, 'v52_return_case_time_invalid');
   const t0 = returnT0(binding);
+  const deadlineTimezone = returnPolicyTimeZone(binding.rental_timezone);
   const reportDeadline = new Date(t0.getTime() + 48 * 60 * 60 * 1000);
   if (openedAt < t0) {
     throw new V52HandoverReturnError(409, 'v52_return_report_window_not_open');
@@ -604,8 +618,8 @@ export async function openV52ReturnCase(client, {
   const reportId = crypto.randomUUID();
   const bookingCaseId = crypto.randomUUID();
   const returnCaseId = crypto.randomUUID();
-  const responseDueAt = new Date(openedAt.getTime() + 5 * 24 * 60 * 60 * 1000);
-  const nextStatusUpdateDueAt = new Date(openedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const responseDueAt = addReturnPolicyCalendarDays(openedAt, 5, deadlineTimezone);
+  const nextStatusUpdateDueAt = addReturnPolicyCalendarDays(openedAt, 7, deadlineTimezone);
   const undisputedReleasableMinor = authorizedBookingMinor - contestedAuthorizedMinor;
 
   await client.query(
@@ -660,12 +674,13 @@ export async function openV52ReturnCase(client, {
        handover_return_damage_snapshot_id, quote_id, quote_hash,
        contract_version, locale, opened_by, opened_by_role, reason_code,
        reason_details, t0, t1, report_deadline, response_due_at,
-       next_status_update_due_at, authorized_booking_minor,
+       next_status_update_due_at, deadline_timezone, deadline_policy_version,
+       authorized_booking_minor,
        contested_authorized_minor, undisputed_releasable_minor,
        additional_charge_minor, idempotency_key, command_sha256
      ) VALUES (
        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-       $15, $16, $17, $18, $19, $20, $21, $22, 0, $23, $24
+       $15, $16, $17, $18, $19, $20, 2, $21, $22, $23, 0, $24, $25
      ) RETURNING *`,
     [
       returnCaseId,
@@ -687,6 +702,7 @@ export async function openV52ReturnCase(client, {
       reportDeadline,
       responseDueAt,
       nextStatusUpdateDueAt,
+      deadlineTimezone,
       authorizedBookingMinor,
       contestedAuthorizedMinor,
       undisputedReleasableMinor,
@@ -735,7 +751,7 @@ export async function openV52ReturnCase(client, {
   payload.returnT0 = t0.toISOString();
   payload.returnReportDeadline = reportDeadline.toISOString();
   payload.returnClarificationDeadline = new Date(
-    t0.getTime() + 5 * 24 * 60 * 60 * 1000,
+    addReturnPolicyCalendarDays(t0, 5, deadlineTimezone),
   ).toISOString();
   payload.payoutInstructionDueAt = reportDeadline.toISOString();
   payload.contestedAuthorizedMinor = contestedAuthorizedMinor;

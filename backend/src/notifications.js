@@ -146,13 +146,13 @@ function paymentActionUrl(bookingId) {
   return `${config.publicBaseUrl}/open/payment/${encodeURIComponent(bookingId)}`;
 }
 
-function germanDeadlineLabel(value) {
+function germanDeadlineLabel(value, timezone = 'Europe/Berlin') {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime())) return '';
   return new Intl.DateTimeFormat('de-DE', {
     dateStyle: 'medium',
     timeStyle: 'short',
-    timeZone: 'Europe/Berlin',
+    timeZone: timezone,
   }).format(parsed);
 }
 
@@ -340,6 +340,7 @@ export async function enqueueReturnLifecycleNotification(client, {
   const result = await client.query(
     `SELECT booking.owner_id, booking.renter_id,
             booking.rental_start_date, booking.rental_end_date,
+            booking.rental_timezone,
             listing.payload AS listing_payload,
             owner.profile AS owner_profile,
             renter.profile AS renter_profile
@@ -354,7 +355,10 @@ export async function enqueueReturnLifecycleNotification(client, {
   const row = result.rows[0];
   const title = itemTitle(row.listing_payload);
   const actionUrl = bookingActionUrl(bookingId);
-  const deadlineLabel = germanDeadlineLabel(deadline);
+  const deadlineLabel = germanDeadlineLabel(
+    deadline,
+    row.rental_timezone ?? 'Europe/Berlin',
+  );
   let count = 0;
   for (const role of roles) {
     const userId = role === 'owner' ? row.owner_id : row.renter_id;

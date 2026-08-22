@@ -42,6 +42,42 @@ void main() {
     expect(timeline.responseDueAt, openedAt.add(const Duration(days: 5)));
   });
 
+  test('calendar deadlines preserve Berlin wall time across spring DST', () {
+    final openedAt = DateTime.parse('2026-03-27T11:00:00.000Z');
+    final timeline = PrivatePilotReturnPolicy.evaluate(
+      scheduledReturnAt: openedAt,
+      ownerConfirmed: true,
+      renterConfirmed: true,
+      substantiatedCaseOpenedAt: openedAt,
+    );
+    expect(
+      timeline.responseDueAt,
+      DateTime.parse('2026-04-01T10:00:00.000Z'),
+    );
+    expect(
+      timeline.nextStatusUpdateDueAt,
+      DateTime.parse('2026-04-03T10:00:00.000Z'),
+    );
+  });
+
+  test('calendar deadlines preserve Berlin wall time across autumn DST', () {
+    final openedAt = DateTime.parse('2026-10-23T10:00:00.000Z');
+    final timeline = PrivatePilotReturnPolicy.evaluate(
+      scheduledReturnAt: openedAt,
+      ownerConfirmed: true,
+      renterConfirmed: true,
+      substantiatedCaseOpenedAt: openedAt,
+    );
+    expect(
+      timeline.responseDueAt,
+      DateTime.parse('2026-10-28T11:00:00.000Z'),
+    );
+    expect(
+      timeline.nextStatusUpdateDueAt,
+      DateTime.parse('2026-10-30T11:00:00.000Z'),
+    );
+  });
+
   test('damage is recorded only and never creates an extra charge', () {
     final split = PrivatePilotReturnPolicy.splitAuthorizedAmount(
       authorizedBookingMinor: 11000,
