@@ -407,6 +407,7 @@ node --test test/tool/g5b_listing_sets_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
 node --test test/tool/validate_flutter_analyzer_debt.test.mjs
 node --test test/tool/wishlist_async_context_wiring.test.mjs
+node --test test/tool/item_card_async_context_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs
 

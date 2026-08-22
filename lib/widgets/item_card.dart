@@ -255,6 +255,7 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   Future<void> _load() async {
     try {
       final id = await DataService.getWishlistForItem(widget.itemId);
+      if (!mounted) return;
       setState(() {
         listId = id;
       });
@@ -274,8 +275,10 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
     if (listId == null) {
       // First time: ask which wishlist
       final sel = await WishlistSelectionSheet.showAdd(context);
+      if (!mounted) return;
       if (sel != null && sel.isNotEmpty) {
         await DataService.setItemWishlist(widget.itemId, sel);
+        if (!mounted) return;
         setState(() {
           listId = sel;
         });
@@ -288,24 +291,26 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
     // Already in a wishlist: show centered popup with the same design as
     // the wishlist selection (blurred background, glass card)
     final choice = await WishlistSelectionSheet.showManageOptions(context);
+    if (!mounted) return;
     if (choice == 'move') {
+      final currentListId = listId;
+      if (currentListId == null) return;
       final sel = await WishlistSelectionSheet.showMove(context,
-          currentListId: listId!);
+          currentListId: currentListId);
+      if (!mounted) return;
       if (sel != null && sel.isNotEmpty) {
         await DataService.setItemWishlist(widget.itemId, sel);
-        if (mounted) {
-          setState(() {
-            listId = sel;
-          });
-        }
+        if (!mounted) return;
+        setState(() {
+          listId = sel;
+        });
       }
     } else if (choice == 'remove') {
       await DataService.removeItemFromWishlist(widget.itemId);
-      if (mounted) {
-        setState(() {
-          listId = null;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        listId = null;
+      });
     }
   }
 
