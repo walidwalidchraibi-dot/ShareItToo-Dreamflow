@@ -4,7 +4,7 @@
   "status": "recommendations-prepared-owner-and-legal-approval-open",
   "preparedAt": "2026-08-17",
   "scope": {
-    "decisionCount": 9,
+    "decisionCount": 10,
     "closedDecisionCount": 0,
     "categoryPurgeEnabled": false,
     "productionChanged": false,
@@ -37,6 +37,15 @@
       "authorityRefs": [
         "https://www.bfdi.bund.de/SharedDocs/Downloads/DE/DokumenteBfDI/AccessForAll/2023/2021_Loeschkonzept-BfDI.pdf",
         "https://www.gesetze-im-internet.de/hgb/__257.html"
+      ]
+    },
+    "privacyRightsPeriod": {
+      "classification": "owner-and-legal-decision-required",
+      "recommendation": "Define a purpose-specific period for privacy-rights requests, identity-verification evidence, deadline extensions and completion records. Keep it separate from ordinary support communication, preserve only the minimum accountability and active-claim evidence, and let a legal hold block only the affected records.",
+      "implementationState": "privacy-rights-intake-deadline-and-identity-control-implemented-category-purge-not-implemented",
+      "authorityRefs": [
+        "https://eur-lex.europa.eu/eli/reg/2016/679/oj/",
+        "https://www.bfdi.bund.de/SharedDocs/Downloads/DE/DokumenteBfDI/AccessForAll/2023/2021_Loeschkonzept-BfDI.pdf"
       ]
     },
     "moderationEvidencePeriod": {
@@ -103,7 +112,7 @@
   "boundaries": {
     "recommendationsAreApproval": false,
     "legalPeriodsInvented": false,
-    "allNineDecisionsRemainOpen": true,
+    "allTenDecisionsRemainOpen": true,
     "categoryPurgeEnabled": false,
     "productionChanged": false,
     "storeSubmissionChanged": false,

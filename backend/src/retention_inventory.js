@@ -3,6 +3,7 @@ const CATEGORY_DECISIONS = Object.freeze({
   userIntent: 'inactiveAccountPeriod',
   transactions: 'transactionalRecordPeriod',
   communications: 'communicationPeriod',
+  privacyRights: 'privacyRightsPeriod',
   handoverEvidence: 'transactionalRecordPeriod',
   moderation: 'moderationEvidencePeriod',
   securityAudit: 'auditSecurityLogPeriod',
@@ -105,6 +106,9 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'communications', 'notification_outbox', count(*)::bigint, min(created_at), max(updated_at) FROM notification_outbox
        UNION ALL SELECT 'communications', 'support_cases', count(*)::bigint, min(created_at), max(updated_at) FROM support_cases
        UNION ALL SELECT 'communications', 'support_messages', count(*)::bigint, min(created_at), max(COALESCE(sent_at, created_at)) FROM support_messages
+       UNION ALL SELECT 'privacyRights', 'support_privacy_rights_requests', count(*)::bigint, min(received_at), max(updated_at) FROM support_privacy_rights_requests
+       UNION ALL SELECT 'privacyRights', 'support_privacy_identity_verifications', count(*)::bigint, min(verified_at), max(verified_at) FROM support_privacy_identity_verifications
+       UNION ALL SELECT 'privacyRights', 'support_privacy_deadline_extensions', count(*)::bigint, min(recorded_at), max(recorded_at) FROM support_privacy_deadline_extensions
        UNION ALL SELECT 'communications', 'message_attachments', count(*)::bigint, min(created_at), max(created_at)
          FROM uploads WHERE purpose = 'message_attachment'
        UNION ALL SELECT 'handoverEvidence', 'handover_return_evidence', count(*)::bigint, min(created_at), max(created_at)

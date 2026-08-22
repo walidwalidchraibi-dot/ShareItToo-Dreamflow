@@ -209,6 +209,20 @@ class SupportDsaNotice {
       };
 }
 
+/// Eindeutige, versionierte Art eines Betroffenenrechts.
+class SupportPrivacyRightsRequest {
+  static const version = 'sit_privacy_rights_request_v1';
+
+  final String requestKind;
+
+  const SupportPrivacyRightsRequest(this.requestKind);
+
+  Map<String, dynamic> toMap() => {
+        'version': version,
+        'requestKind': requestKind,
+      };
+}
+
 class SupportCaseRoute {
   final String caseType;
   final String caseSubType;
@@ -244,6 +258,16 @@ class SupportFlowResult {
     'Bewertung': 'review',
     'Nachricht / Chat': 'message',
     'Anderer Inhalt': 'other',
+  };
+
+  static const _privacyRightsRequests = <String, SupportPrivacyRightsRequest>{
+    'Auskunft oder Kopie meiner Daten':
+        SupportPrivacyRightsRequest('access'),
+    'Daten übertragen': SupportPrivacyRightsRequest('portability'),
+    'Daten berichtigen': SupportPrivacyRightsRequest('rectification'),
+    'Daten löschen': SupportPrivacyRightsRequest('erasure'),
+    'Verarbeitung widersprechen': SupportPrivacyRightsRequest('objection'),
+    'Verarbeitung einschränken': SupportPrivacyRightsRequest('restriction'),
   };
 
   static const _backendRoutes = <String, Map<String, SupportCaseRoute>>{
@@ -376,9 +400,15 @@ class SupportFlowResult {
     'privacy': {
       'Auskunft oder Kopie meiner Daten':
           SupportCaseRoute('privacy_security', 'access_or_copy_request'),
-      'Daten berichtigen oder löschen': SupportCaseRoute(
+      'Daten übertragen':
+          SupportCaseRoute('privacy_security', 'access_or_copy_request'),
+      'Daten berichtigen': SupportCaseRoute(
           'privacy_security', 'correction_or_deletion_request'),
-      'Verarbeitung widersprechen oder einschränken': SupportCaseRoute(
+      'Daten löschen': SupportCaseRoute(
+          'privacy_security', 'correction_or_deletion_request'),
+      'Verarbeitung widersprechen': SupportCaseRoute(
+          'privacy_security', 'objection_or_restriction_request'),
+      'Verarbeitung einschränken': SupportCaseRoute(
           'privacy_security', 'objection_or_restriction_request'),
       'Meine Daten wurden unbefugt offengelegt':
           SupportCaseRoute('privacy_security', 'unauthorized_data_exposure'),
@@ -442,6 +472,7 @@ class SupportFlowResult {
     final isDsaNotice = route.caseType == 'moderation_content' &&
         route.caseSubType == 'illegal_content_notice';
     final expectedDsaContentType = _dsaContentTypes[subCategory];
+    final privacyRightsRequest = _privacyRightsRequests[subCategory];
     if (isDsaNotice &&
         (dsaNotice == null ||
             dsaNotice!.contentType != expectedDsaContentType ||
@@ -468,6 +499,8 @@ class SupportFlowResult {
       'safetyTriage': safetyTriage.toMap(),
       'issueScope': issueScope.toMap(),
       if (isDsaNotice) 'dsaNotice': dsaNotice!.toMap(),
+      if (privacyRightsRequest != null)
+        'privacyRightsRequest': privacyRightsRequest.toMap(),
       if (!profileContext && !listingContext && requestId.isNotEmpty)
         'linkedBookingId': requestId,
       if (!profileContext && itemId.isNotEmpty && !itemId.contains(':'))
@@ -845,8 +878,11 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       label: 'Datenschutz & Daten',
       subcategories: [
         'Auskunft oder Kopie meiner Daten',
-        'Daten berichtigen oder löschen',
-        'Verarbeitung widersprechen oder einschränken',
+        'Daten übertragen',
+        'Daten berichtigen',
+        'Daten löschen',
+        'Verarbeitung widersprechen',
+        'Verarbeitung einschränken',
         'Meine Daten wurden unbefugt offengelegt',
         'Mögliche Datenschutzverletzung melden',
         'Daten gingen an falsches Konto oder falsche Person',

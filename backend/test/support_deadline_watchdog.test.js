@@ -72,6 +72,11 @@ test('watchdog creates one durable internal alert per exact overdue condition', 
       result: { rowCount: 1, rows: [{ id: 'alert-2' }] },
     },
     {
+      match: /FROM support_privacy_rights_requests AS privacy_request/u,
+      check: ({ params }) => assert.deepEqual(params, [now, 100]),
+      result: { rowCount: 0, rows: [] },
+    },
+    {
       match: /support_deadline_watchdog_state/u,
       check: ({ params }) => {
         assert.deepEqual(params, [supportDeadlineWatchdogVersion, now, 1, 2]);
@@ -85,6 +90,8 @@ test('watchdog creates one durable internal alert per exact overdue condition', 
     alertsCreated: 2,
     p0WithoutOwner: 1,
     nextUpdateOverdue: 1,
+    privacyDeadlineNear: 0,
+    privacyDeadlineOverdue: 0,
     externalNotificationsSent: 0,
   });
   client.done();
@@ -95,6 +102,7 @@ test('duplicate scheduler evaluation records no duplicate alert', async () => {
     { match: /FOR UPDATE SKIP LOCKED/u, result: { rowCount: 1, rows: [candidate()] } },
     { match: /ON CONFLICT \(case_id, idempotency_key\) DO NOTHING/u, result: { rowCount: 0, rows: [] } },
     { match: /ON CONFLICT \(case_id, idempotency_key\) DO NOTHING/u, result: { rowCount: 0, rows: [] } },
+    { match: /FROM support_privacy_rights_requests AS privacy_request/u, result: { rowCount: 0, rows: [] } },
     { match: /support_deadline_watchdog_state/u, result: { rowCount: 1, rows: [] } },
   ]);
   const result = await reconcileSupportDeadlinesWithClient(client, { now });
@@ -118,6 +126,8 @@ test('health fails closed for stale or unresolved operational conditions', async
         success_count: 5,
         p0_without_owner: 0,
         next_update_overdue: 1,
+        privacy_deadline_near: 0,
+        privacy_deadline_overdue: 0,
       }],
     },
   }]);

@@ -8,14 +8,14 @@
     "executionStatus": "blocked",
     "executionAllowed": false,
     "destructiveRouteExposed": false,
-    "currentBlockerCount": 20,
-    "openRetentionDecisions": 9,
+    "currentBlockerCount": 21,
+    "openRetentionDecisions": 10,
     "processorVerificationGatesOpen": 4,
     "unsafeDecisionValuesReflected": false
   },
   "requiredCombinedGates": [
     "owner-and-legal-policy-approval",
-    "all-nine-decisions-evidence-closed",
+    "all-ten-decisions-evidence-closed",
     "category-purge-staging-dry-run-verified",
     "retention-periods-applied",
     "eligible-rows-calculated",
@@ -26,7 +26,7 @@
   ],
   "verification": {
     "targetedRetentionTests": "passed-36",
-    "retentionValidator": "passed-draft-open-nine-decisions-execution-blocked-20",
+    "retentionValidator": "passed-draft-open-ten-decisions-execution-blocked-21",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
     "flutterTests": "passed-282-with-1-intentional-skip",
     "flutterAnalyzer": "229-findings-0-errors-baseline-accepted",

@@ -1,12 +1,15 @@
 import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
 import { SupportCaseError } from './support_case_domain.js';
+import { reconcilePrivacyRightsDeadlinesWithClient } from './support_privacy_rights_workflow.js';
 
 export const supportDeadlineWatchdogVersion = 'support-deadline-watchdog-v1';
 
 const alertTypes = Object.freeze({
   p0WithoutOwner: 'support.operational_alert.p0_without_owner',
   nextUpdateOverdue: 'support.operational_alert.next_update_overdue',
+  privacyDeadlineNear: 'support.privacy_rights.deadline_near',
+  privacyDeadlineOverdue: 'support.privacy_rights.deadline_overdue',
 });
 
 function iso(value) {
@@ -107,6 +110,11 @@ export async function reconcileSupportDeadlinesWithClient(client, {
       });
     }
   }
+  const privacy = await reconcilePrivacyRightsDeadlinesWithClient(client, {
+    now: current,
+    limit,
+  });
+  alertsCreated += privacy.alertsCreated;
   await client.query(
     `INSERT INTO support_deadline_watchdog_state (
        singleton, worker_version, last_started_at, last_succeeded_at,
@@ -132,6 +140,8 @@ export async function reconcileSupportDeadlinesWithClient(client, {
     alertsCreated,
     p0WithoutOwner,
     nextUpdateOverdue,
+    privacyDeadlineNear: privacy.deadlineNear,
+    privacyDeadlineOverdue: privacy.deadlineOverdue,
     externalNotificationsSent: 0,
   });
 }
@@ -198,7 +208,22 @@ export async function supportDeadlineHealth(client = pool, {
        (SELECT count(*)::int FROM support_cases
          WHERE operating_mode IN ('simulation', 'internal_testing')
            AND status NOT IN ('resolved', 'closed')
-           AND next_update_at <= $1) AS next_update_overdue
+           AND next_update_at <= $1) AS next_update_overdue,
+       (SELECT count(*)::int
+          FROM support_privacy_rights_requests AS privacy_request
+          JOIN support_cases AS support_case ON support_case.id = privacy_request.case_id
+         WHERE privacy_request.processing_status <> 'completed'
+           AND support_case.status NOT IN ('resolved', 'closed')
+           AND support_case.operating_mode IN ('simulation', 'internal_testing')
+           AND privacy_request.reminder_at <= $1
+           AND privacy_request.response_due_at >= $1) AS privacy_deadline_near,
+       (SELECT count(*)::int
+          FROM support_privacy_rights_requests AS privacy_request
+          JOIN support_cases AS support_case ON support_case.id = privacy_request.case_id
+         WHERE privacy_request.processing_status <> 'completed'
+           AND support_case.status NOT IN ('resolved', 'closed')
+           AND support_case.operating_mode IN ('simulation', 'internal_testing')
+           AND privacy_request.response_due_at < $1) AS privacy_deadline_overdue
      FROM (SELECT 1) AS singleton
      LEFT JOIN support_deadline_watchdog_state AS state ON state.singleton`,
     [now],
@@ -209,8 +234,12 @@ export async function supportDeadlineHealth(client = pool, {
     || now.getTime() - lastSucceededAt.getTime() > maxStalenessMs;
   const p0WithoutOwner = Number(row.p0_without_owner ?? 0);
   const nextUpdateOverdue = Number(row.next_update_overdue ?? 0);
+  const privacyDeadlineNear = Number(row.privacy_deadline_near ?? 0);
+  const privacyDeadlineOverdue = Number(row.privacy_deadline_overdue ?? 0);
   return Object.freeze({
-    status: stale || row.last_error_code || p0WithoutOwner > 0 || nextUpdateOverdue > 0
+    status: stale || row.last_error_code || p0WithoutOwner > 0
+      || nextUpdateOverdue > 0 || privacyDeadlineNear > 0
+      || privacyDeadlineOverdue > 0
       ? 'degraded'
       : 'ok',
     workerVersion: supportDeadlineWatchdogVersion,
@@ -224,6 +253,8 @@ export async function supportDeadlineHealth(client = pool, {
     successCount: Number(row.success_count ?? 0),
     p0WithoutOwner,
     nextUpdateOverdue,
+    privacyDeadlineNear,
+    privacyDeadlineOverdue,
   });
 }
 
@@ -246,22 +277,43 @@ export async function listSupportOperationalAlerts(client, {
             support_case.next_update_at
        FROM support_case_events AS event
        JOIN support_cases AS support_case ON support_case.id = event.case_id
-      WHERE event.event_type IN ($1, $2)
+      WHERE event.event_type IN ($1, $2, $3, $4)
         AND support_case.operating_mode IN ('simulation', 'internal_testing')
         AND support_case.status NOT IN ('resolved', 'closed')
         AND (
           (event.event_type = $1 AND support_case.priority = 'p0'
             AND support_case.current_owner_id IS NULL)
           OR
-          (event.event_type = $2 AND support_case.next_update_at <= $3
+          (event.event_type = $2 AND support_case.next_update_at <= $5
             AND event.structured_payload->>'dueAt' =
               to_char(support_case.next_update_at AT TIME ZONE 'UTC',
                 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))
+          OR
+          (event.event_type IN ($3, $4) AND EXISTS (
+            SELECT 1 FROM support_privacy_rights_requests AS privacy_request
+             WHERE privacy_request.case_id = support_case.id
+               AND privacy_request.processing_status <> 'completed'
+               AND privacy_request.reminder_at <= $5
+               AND event.structured_payload->>'responseDueAt' =
+                 to_char(privacy_request.response_due_at AT TIME ZONE 'UTC',
+                   'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+               AND (
+                 (event.event_type = $3 AND privacy_request.response_due_at >= $5)
+                 OR (event.event_type = $4 AND privacy_request.response_due_at < $5)
+               )
+          ))
         )
       ORDER BY support_case.priority, support_case.next_update_at NULLS LAST,
                event.created_at, event.id
-      LIMIT $4`,
-    [alertTypes.p0WithoutOwner, alertTypes.nextUpdateOverdue, now, safeLimit(limit)],
+      LIMIT $6`,
+    [
+      alertTypes.p0WithoutOwner,
+      alertTypes.nextUpdateOverdue,
+      alertTypes.privacyDeadlineNear,
+      alertTypes.privacyDeadlineOverdue,
+      now,
+      safeLimit(limit),
+    ],
   );
   return result.rows.map((row) => Object.freeze({
     id: row.id,

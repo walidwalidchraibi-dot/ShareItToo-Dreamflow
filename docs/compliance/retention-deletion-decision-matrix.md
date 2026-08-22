@@ -1,11 +1,11 @@
 # SIT Aufbewahrungs- und Löschmatrix – Entscheidungsentwurf
 
-Stand: 17. August 2026  
+Stand: 22. August 2026
 Status: **Entscheidungsvorbereitung; nicht freigegeben**
 
 ## Ergebnis
 
-Alle neun Entscheidungen bleiben formal offen. Dieses Dokument macht sie erstmals einzeln entscheidbar, ohne eine Rechtsfrist oder Freigabe vorzutäuschen. Solange eine Entscheidung offen ist, berechnet SIT dafür keine löschbaren Datensätze und führt keine kategorieweise Löschung aus.
+Alle zehn Entscheidungen bleiben formal offen. Dieses Dokument macht sie einzeln entscheidbar, ohne eine Rechtsfrist oder Freigabe vorzutäuschen. Solange eine Entscheidung offen ist, berechnet SIT dafür keine löschbaren Datensätze und führt keine kategorieweise Löschung aus.
 
 Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber keine vollständigen Aufbewahrungsfristen. Deshalb werden technische Tatsachen, Anbieterfristen und echte Betreiber-/Rechtsentscheidungen getrennt.
 
@@ -16,6 +16,7 @@ Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber ke
 | Inaktive Konten | Betreiber + Recht nötig | Im Privatpilot keine automatische Inaktivitätslöschung. Vor öffentlichem Start Auslöser, Vorwarnung, Widerspruch und Ausnahmen für offene Vorgänge beschließen. | Kontolöschung funktioniert; Inaktivitätsroutine fehlt bewusst. |
 | Transaktionsdaten | Rechtliche Klassifikation nötig | Buchungsbelege, Handelskorrespondenz, gewöhnliche Buchungsdaten und Anspruchsnachweise getrennt behandeln; keine pauschale Einheitsfrist. | Unveränderliche Vertrags-, Refund-, Nachweis- und Finanzdokumente vorhanden; Löschung gesperrt. |
 | Kommunikation | Betreiber + Recht nötig | Normalen Chat von rechtserheblichen Erklärungen, Support, Streitfällen und Handelskorrespondenz trennen. | Kontolöschung bereinigt direkte Inhalte; kategorieweise Löschung fehlt bewusst. |
+| Datenschutz-Betroffenenrechte | Betreiber + Recht nötig | Anfragen, Identitätsprüfungen, Fristverlängerungen und Abschlussnachweise zweckgebunden und getrennt von normaler Supportkommunikation behandeln; nur notwendige Rechenschafts- und Anspruchsnachweise erhalten. | Intake, Fristkontrolle und Identitätsprüfung vorhanden; Frist/Purge und fallgenaue Legal-Hold-Freigabe bleiben offen. |
 | Moderationsnachweise | Betreiber + Recht nötig | Nur für aktive Meldung, Beschwerde, Sicherheitsprüfung, Legal Hold oder Anspruchszweck; Nachprüfung nach Fallabschluss. | Moderation und Legal Hold vorhanden; Frist/Purge offen. |
 | Sicherheits-/Auditlogs | Risiko + Recht nötig | Auth-, Admin-, Buchungs-, Zustell- und Lösch-Audit getrennt bewerten; kürzeste zweckerfüllende Frist. | Append-only Nachweise vorhanden; Frist/Purge offen. |
 | Abgelaufene Zugangsdaten | Technisch entscheidungsreif | Bei Ablauf/Verbrauch löschen oder Challenge-Digest unbrauchbar machen; Startlauf + alle 6 Stunden, maximal 24 Stunden nach Löschreife. | Implementiert und getestet. |
@@ -40,7 +41,7 @@ Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber ke
 - **Firebase Authentication:** Die aktive Telefonprüfung entfernt die temporäre, ausschließlich telefongebundene Firebase-Identität nach sicherer Gegenprüfung. Persistente soziale Firebase-Identitäten werden vor der lokalen Kontolöschung transaktional in eine dauerhafte Anbieter-Löschwarteschlange aufgenommen, bei vorübergehenden Fehlern automatisch erneut angefragt und erst nach Provider-Erfolg oder `user-not-found` aus der Warteschlange entfernt. Google-, Apple- und Facebook-Anmeldung bleibt bis zu den getrennten Betreiber-, Vertrags-, Transfer- und Storefreigaben deaktiviert. Firebase nennt wenige Wochen für protokollierte IP-Adressen und bis zu 180 Tage nach kundenseitig ausgelöster Nutzerlöschung für andere Authentifizierungsdaten.
 - **Google Maps Platform:** Adressvorschläge und Ortsdetails laufen authentifiziert, begrenzt und ohne eingebetteten Client-Schlüssel über den SIT-Server. Erst bei Nutzung werden eingegebene Adresse beziehungsweise Ortskennung übertragen. Google nennt keinen einheitlichen festen Log-Aufbewahrungszeitraum; Vertrag, aktivierte APIs, Logging, Schlüsselrestriktion, Transfer und ein kontobezogener Löschweg bleiben offen.
 
-## Warum die neun Punkte noch nicht geschlossen werden
+## Warum die zehn Punkte noch nicht geschlossen werden
 
 § 257 HGB unterscheidet derzeit zehn Jahre für bestimmte Grundunterlagen, acht Jahre für Buchungsbelege und sechs Jahre für sonstige erfasste Handelsunterlagen. § 147 AO unterscheidet ebenfalls nach Dokumentart. Die regelmäßige Verjährung nach § 195 BGB beträgt drei Jahre; ihr Beginn richtet sich regelmäßig nach § 199 BGB. Diese Regeln erlauben keine pauschale Aussage wie „alle Buchungsdaten acht Jahre“.
 
@@ -64,7 +65,7 @@ Offizielle Grundlagen:
 6. Danach Cutoff-Berechnung implementieren, Staging trocken prüfen und erst mit separater Freigabe eine produktive Löschroutine ermöglichen.
 
 Die technische Ausführungsvorprüfung ist bereits fail-closed implementiert.
-Sie meldet im aktuellen Stand 20 ausschließlich symbolische Blocker und gibt
+Sie meldet im aktuellen Stand 21 ausschließlich symbolische Blocker und gibt
 weder Richtlinienwerte noch Kennungen aus. Selbst vollständig freigegebene
 Dokumente reichen nicht für eine Löschung: kategorieweiser Purge,
 Cutoff-Anwendung, Berechnung löschbarer Zeilen und Staging-Trockenlauf müssen

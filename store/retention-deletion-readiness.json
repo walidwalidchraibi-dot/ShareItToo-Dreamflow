@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "984717c47e83a575600fc7e6406f2821e5fe1f5a1373df96f3424a1c866efb4a"
+      "sha256": "866901f7a3cd1794306032a7e2a0ac6abc4d39a5131200f484e557c1c48e508d"
     },
     {
       "path": "backend/src/server.js",
@@ -41,11 +41,11 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "f547e94e88e99ed6b1e079896d13d0038e4b2751d0ba79d5d3347b852faa7f5d"
+      "sha256": "e161c599001f0129c95c918bc53db0eda379f836663dad1a64371f4f29909e95"
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "4c6c831206c403ed9d2d1e37340d0abe3362092da34bca854ebd76d6ebdf801e"
+      "sha256": "70e8b500310f80770ff0d97e0420f31363f5dd82d20e3a2a4c07caa9e70b0845"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -53,7 +53,15 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "ed6eac777a87fdb6ee74095413b154be422ec36c9337a25b96e1eea08b458f76"
+      "sha256": "b2f83bd291e2e5b6f06ba2728b13d8b2dd740b9c208365c3814ebb246fe70ee7"
+    },
+    {
+      "path": "backend/src/support_privacy_rights_domain.js",
+      "sha256": "ac0ba9f300be732ed97247a7d054abb4f0d67377b0480e43c3bd1ad1d02941dd"
+    },
+    {
+      "path": "backend/src/support_privacy_rights_workflow.js",
+      "sha256": "fe21456dd0bfc158682b6f908ed8d8a463668ff827c4cc4d645ec46a34d08173"
     },
     {
       "path": "backend/src/support_article18_domain.js",
@@ -101,7 +109,7 @@
     },
     {
       "path": "backend/src/support_deadline_watchdog.js",
-      "sha256": "b67db430a2c1782e81afafe0ca46ecbf3b39a62f2fd5bd0b0c57dd133e741175"
+      "sha256": "5cafc3bcb51f6e32ac4e64c0274417f70580c9d83bbb4fd5d7ec49d76f1eddfc"
     },
     {
       "path": "backend/src/rental_cart_workflow.js",
@@ -340,6 +348,14 @@
       "sha256": "4d886b350f11e6946c30adcf460711406c315c87d1d33e5ca3e0b6495e94aa20"
     },
     {
+      "path": "backend/sql/migrations/047_support_privacy_rights_control_plane.up.sql",
+      "sha256": "d652faf8b2832c23ab55e2b157c83a3665bd14574d5effd262da8215105fbea3"
+    },
+    {
+      "path": "backend/sql/migrations/047_support_privacy_rights_control_plane.down.sql",
+      "sha256": "5daa50ab3bfc1540cdee5684d6daadc758b75154b17d2861db36b86c7b0d9ece"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -405,7 +421,7 @@
     },
     {
       "path": "lib/screens/support_flow_screen.dart",
-      "sha256": "dc08d6ff8ece8f0c5339eb95223083ade74d9c915ee0a4eb941758eb0de5089f"
+      "sha256": "3f9a85cb507475f174bdc2fdce8f6fedd8bc38ca72a614d1774134a4b8bb1db8"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
@@ -571,6 +587,11 @@
       "value": null,
       "evidenceRef": null
     },
+    "privacyRightsPeriod": {
+      "status": "open",
+      "value": null,
+      "evidenceRef": null
+    },
     "moderationEvidencePeriod": {
       "status": "open",
       "value": null,
@@ -606,7 +627,7 @@
     "status": "recommendations-prepared-owner-and-legal-approval-open",
     "matrixRef": "docs/compliance/retention-deletion-decision-matrix.md",
     "evidenceRef": "docs/evidence/b11/retention-deletion-decision-preparation-20260817.json",
-    "preparedDecisionCount": 9,
+    "preparedDecisionCount": 10,
     "closedDecisionCount": 0,
     "categoryPurgeEnabled": false
   },

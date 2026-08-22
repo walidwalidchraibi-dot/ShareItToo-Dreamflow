@@ -21,7 +21,7 @@ function validate({ retentionManifest = clone(baseRetention), privacyManifest = 
 }
 
 test('accepts the honest fail-closed retention draft', () => {
-  assert.deepEqual(validate(), {state: 'draft', approvalAllowed: false, openDecisionCount: 9, storeGate: 'open'});
+  assert.deepEqual(validate(), {state: 'draft', approvalAllowed: false, openDecisionCount: 10, storeGate: 'open'});
 });
 
 test('rejects drift in the retained user support case display', () => {
@@ -41,7 +41,7 @@ test('execution preflight reports only stable blocker codes and exposes no destr
   assert.equal(result.status, 'blocked');
   assert.equal(result.executionAllowed, false);
   assert.equal(result.destructiveRouteExposed, false);
-  assert.equal(result.blockerCount, 20);
+  assert.equal(result.blockerCount, 21);
   assert.deepEqual(result.blockers.slice(0, 3), [
     'retention-policy-approval-open',
     'decision-open:inactiveAccountPeriod',
@@ -135,9 +135,9 @@ test('rejects preflight evidence that claims a destructive route was added', () 
   );
 });
 
-test('binds all nine prepared recommendations without pretending they are approved', () => {
+test('binds all ten prepared recommendations without pretending they are approved', () => {
   const preparation = baseRetention.decisionPreparation;
-  assert.equal(preparation.preparedDecisionCount, 9);
+  assert.equal(preparation.preparedDecisionCount, 10);
   assert.equal(preparation.closedDecisionCount, 0);
   assert.equal(preparation.categoryPurgeEnabled, false);
   for (const decision of Object.values(baseRetention.requiredDecisions)) {

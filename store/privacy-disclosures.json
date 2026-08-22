@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "4c6c831206c403ed9d2d1e37340d0abe3362092da34bca854ebd76d6ebdf801e"
+      "sha256": "70e8b500310f80770ff0d97e0420f31363f5dd82d20e3a2a4c07caa9e70b0845"
     },
     {
       "path": "backend/src/support_case_domain.js",
@@ -56,7 +56,15 @@
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "ed6eac777a87fdb6ee74095413b154be422ec36c9337a25b96e1eea08b458f76"
+      "sha256": "b2f83bd291e2e5b6f06ba2728b13d8b2dd740b9c208365c3814ebb246fe70ee7"
+    },
+    {
+      "path": "backend/src/support_privacy_rights_domain.js",
+      "sha256": "ac0ba9f300be732ed97247a7d054abb4f0d67377b0480e43c3bd1ad1d02941dd"
+    },
+    {
+      "path": "backend/src/support_privacy_rights_workflow.js",
+      "sha256": "fe21456dd0bfc158682b6f908ed8d8a463668ff827c4cc4d645ec46a34d08173"
     },
     {
       "path": "backend/src/support_article18_domain.js",
@@ -104,7 +112,7 @@
     },
     {
       "path": "backend/src/support_deadline_watchdog.js",
-      "sha256": "b67db430a2c1782e81afafe0ca46ecbf3b39a62f2fd5bd0b0c57dd133e741175"
+      "sha256": "5cafc3bcb51f6e32ac4e64c0274417f70580c9d83bbb4fd5d7ec49d76f1eddfc"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -291,6 +299,10 @@
       "sha256": "c3b36a9ff8b208a0fa5c0fb3b0567c7c09d0f99a69a0c429ab573973a720933d"
     },
     {
+      "path": "backend/sql/migrations/047_support_privacy_rights_control_plane.up.sql",
+      "sha256": "d652faf8b2832c23ab55e2b157c83a3665bd14574d5effd262da8215105fbea3"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -308,7 +320,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "f547e94e88e99ed6b1e079896d13d0038e4b2751d0ba79d5d3347b852faa7f5d"
+      "sha256": "e161c599001f0129c95c918bc53db0eda379f836663dad1a64371f4f29909e95"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -432,7 +444,7 @@
     },
     {
       "path": "lib/screens/support_flow_screen.dart",
-      "sha256": "dc08d6ff8ece8f0c5339eb95223083ade74d9c915ee0a4eb941758eb0de5089f"
+      "sha256": "3f9a85cb507475f174bdc2fdce8f6fedd8bc38ca72a614d1774134a4b8bb1db8"
     },
     {
       "path": "lib/models/rental_cart.dart",
@@ -564,7 +576,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "984717c47e83a575600fc7e6406f2821e5fe1f5a1373df96f3424a1c866efb4a"
+      "sha256": "866901f7a3cd1794306032a7e2a0ac6abc4d39a5131200f484e557c1c48e508d"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

@@ -1331,6 +1331,14 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     path.resolve(currentDir, '../sql/migrations/036_support_closed_case_appeal_submission.down.sql'),
     'utf8',
   );
+  const privacyRightsUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/047_support_privacy_rights_control_plane.up.sql'),
+    'utf8',
+  );
+  const privacyRightsDown = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/047_support_privacy_rights_control_plane.down.sql'),
+    'utf8',
+  );
   const messageGuardUp = await fs.readFile(
     path.resolve(currentDir, '../sql/migrations/038_support_message_template_guard.up.sql'),
     'utf8',
@@ -1348,6 +1356,15 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     'support_messages',
     'support_appeals',
   ]) assert.match(up, new RegExp(`CREATE TABLE ${table}\\b`));
+  for (const table of [
+    'support_privacy_rights_requests',
+    'support_privacy_identity_verifications',
+    'support_privacy_deadline_extensions',
+  ]) assert.match(privacyRightsUp, new RegExp(`CREATE TABLE ${table}\\b`));
+  assert.match(privacyRightsUp, /support_privacy_rights_requests_validate/);
+  assert.match(privacyRightsUp, /support_privacy_identity_verification_append_only/);
+  assert.match(privacyRightsUp, /support_privacy_extension_append_only/);
+  assert.match(privacyRightsDown, /Privacy-rights rollback blocked: request data exists/);
   for (const [family, subtypes] of Object.entries(supportCaseFamilies)) {
     assert.match(up, new RegExp(`case_type = '${family}'`));
     for (const subtype of subtypes) assert.ok(up.includes(`'${subtype}'`), `${family}/${subtype}`);
@@ -1479,6 +1496,9 @@ test('support routes and personal-data lifecycle stay authenticated, non-live an
   for (const marker of [
     "'communications', 'support_cases'",
     "'communications', 'support_messages'",
+    "'privacyRights', 'support_privacy_rights_requests'",
+    "'privacyRights', 'support_privacy_identity_verifications'",
+    "'privacyRights', 'support_privacy_deadline_extensions'",
     "'moderation', 'support_decisions'",
     "'moderation', 'support_evidence'",
     "'moderation', 'support_appeals'",

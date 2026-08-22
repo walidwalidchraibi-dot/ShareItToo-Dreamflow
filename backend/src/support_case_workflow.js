@@ -12,6 +12,8 @@ import {
   supportOwnerRoles,
   supportPriorities,
 } from './support_case_domain.js';
+import { normalizeSupportPrivacyRightsRequest } from './support_privacy_rights_domain.js';
+import { createPrivacyRightsRequestForCase } from './support_privacy_rights_workflow.js';
 import { getSupportAppealForCase } from './support_appeal_workflow.js';
 import { verifySupportBreakGlassGrant } from './support_break_glass_workflow.js';
 import { shapeSupportMessage } from './support_message_workflow.js';
@@ -280,6 +282,13 @@ export async function createSupportCase(client, {
     nextUpdateAt,
     now,
   });
+  const privacyRightsRequest = normalizeSupportPrivacyRightsRequest(
+    raw.privacyRightsRequest,
+    {
+      caseType: normalized.caseType,
+      caseSubType: normalized.caseSubType,
+    },
+  );
   await validateSupportLinks(client, actor.id, normalized);
 
   let dsaNoticeNumber = null;
@@ -413,6 +422,12 @@ export async function createSupportCase(client, {
       replayed: true,
     };
   }
+  await createPrivacyRightsRequestForCase(client, {
+    caseRecord: inserted.rows[0],
+    privacyRightsRequest,
+    subjectUserId: actor.id,
+    now,
+  });
   await client.query(
     `INSERT INTO support_case_events (
        case_id, event_type, actor_type, actor_id, to_status,
@@ -443,6 +458,16 @@ export async function createSupportCase(client, {
             locatorKind: dsaNoticeLocatorKind,
           },
         }),
+        ...(privacyRightsRequest == null ? {} : {
+          privacyRightsRequest: {
+            version: privacyRightsRequest.version,
+            requestKind: privacyRightsRequest.requestKind,
+            identityStatus: 'pending',
+            deadlineShiftedByIdentityVerification: false,
+            disclosureAllowed: false,
+            erasureExecutionAllowed: false,
+          },
+        }),
       }),
       `${key}:event`,
       now,
@@ -468,6 +493,13 @@ export async function createSupportCase(client, {
         dsaNoticeContentType: dsaNoticeEvidence.contentType,
         dsaNoticeLocatorStatus,
         dsaNoticeLocatorKind,
+      }),
+      ...(privacyRightsRequest == null ? {} : {
+        privacyRightsRequestVersion: privacyRightsRequest.version,
+        privacyRightsRequestKind: privacyRightsRequest.requestKind,
+        privacyRightsIdentityStatus: 'pending',
+        disclosureAllowed: false,
+        erasureExecutionAllowed: false,
       }),
     },
   });

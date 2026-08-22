@@ -232,6 +232,10 @@ void main() {
     final intake = result.toBackendInput();
     expect(intake['caseType'], 'privacy_security');
     expect(intake['caseSubType'], 'access_or_copy_request');
+    expect(intake['privacyRightsRequest'], {
+      'version': 'sit_privacy_rights_request_v1',
+      'requestKind': 'access',
+    });
     final confirmed = result.withCanonicalCase(_canonicalCase(
       caseType: 'privacy_security',
       caseSubType: 'access_or_copy_request',
@@ -553,7 +557,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Datenschutz & Daten'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Daten berichtigen oder löschen'));
+    await tester.tap(find.text('Daten berichtigen'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextField),
@@ -567,6 +571,10 @@ void main() {
       capturedIntake?['caseSubType'],
       'correction_or_deletion_request',
     );
+    expect(capturedIntake?['privacyRightsRequest'], {
+      'version': 'sit_privacy_rights_request_v1',
+      'requestKind': 'rectification',
+    });
     expect(find.byKey(const ValueKey('support_case_receipt')), findsOneWidget);
     expect(find.textContaining('eigener Datenschutz-Fall'), findsOneWidget);
   });

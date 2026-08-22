@@ -203,6 +203,12 @@ import {
   supportDeadlineHealth,
 } from './support_deadline_watchdog.js';
 import {
+  getPrivacyRightsRequestForCase,
+  listPrivacyRightsQueue,
+  recordPrivacyRightsDeadlineExtension,
+  verifyPrivacyRightsRequestIdentity,
+} from './support_privacy_rights_workflow.js';
+import {
   getPilotCockpitSnapshot,
   PilotCockpitError,
 } from './pilot_cockpit.js';
@@ -1488,6 +1494,8 @@ export function createApp({
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportArticle18Limiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const supportPrivacyIdentityLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
+  const supportPrivacyExtensionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const moderationReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const phoneVerificationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -4034,6 +4042,38 @@ export function createApp({
     res.set('Cache-Control', 'private, no-store').json(result);
   }));
 
+  app.get('/v1/support/cases/:id/privacy-rights', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const privacyRightsRequest = await getPrivacyRightsRequestForCase(pool, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+    });
+    res.set('Cache-Control', 'private, no-store').json({ privacyRightsRequest });
+  }));
+
+  app.post('/v1/support/cases/:id/privacy-rights/identity-verification', requireAuth, requireActiveAccount, supportPrivacyIdentityLimiter, asyncRoute(async (req, res) => {
+    const currentPassword = req.body?.currentPassword;
+    const account = await pool.query(
+      'SELECT password_hash FROM users WHERE id = $1',
+      [req.auth.userId],
+    );
+    if (!account.rows[0]?.password_hash) {
+      throw new HttpError(409, 'support_privacy_password_verification_unavailable');
+    }
+    if (!(await verifyPassword(currentPassword, account.rows[0].password_hash))) {
+      throw new HttpError(401, 'invalid_credentials');
+    }
+    const result = await inTransaction((client) => verifyPrivacyRightsRequestIdentity(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      caseId: safeText(req.params.id, 80),
+      raw: { expectedVersion: req.body?.expectedVersion },
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store')
+      .status(result.replayed ? 200 : 201)
+      .json(result);
+  }));
+
   app.post('/v1/support/cases/:id/dsa-locator', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => completeDsaNoticeLocator(client, {
       actor: req.actor,
@@ -4405,6 +4445,33 @@ export function createApp({
       candidates,
       externalDeliveryEnabled: false,
     });
+  }));
+
+  app.get('/v1/admin/support/privacy-rights', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const privacyRightsRequests = await listPrivacyRightsQueue(pool, {
+      actor: req.actor,
+      limit: req.query.limit ?? 100,
+    });
+    res.set('Cache-Control', 'private, no-store').json({
+      privacyRightsRequests,
+      disclosureEnabled: false,
+      erasureExecutionEnabled: false,
+      externalDeliveryEnabled: false,
+    });
+  }));
+
+  app.post('/v1/admin/support/cases/:id/privacy-rights/deadline-extension', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportPrivacyExtensionLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordPrivacyRightsDeadlineExtension(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      staffElevationId: req.staffElevation.id,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store')
+      .status(result.replayed ? 200 : 201)
+      .json(result);
   }));
 
   app.post('/v1/admin/support/cases/:id/article-18-assessments', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, supportArticle18Limiter, asyncRoute(async (req, res) => {

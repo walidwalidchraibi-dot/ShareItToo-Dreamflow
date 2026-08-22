@@ -19,6 +19,8 @@ const sourcePaths = [
   'backend/src/privacy_export.js',
   'backend/src/support_case_domain.js',
   'backend/src/support_case_workflow.js',
+  'backend/src/support_privacy_rights_domain.js',
+  'backend/src/support_privacy_rights_workflow.js',
   'backend/src/support_article18_domain.js',
   'backend/src/support_article18_workflow.js',
   'backend/src/support_appeal_domain.js',
@@ -90,6 +92,8 @@ const sourcePaths = [
   'backend/sql/migrations/045_independent_moderation_review_resolution.down.sql',
   'backend/sql/migrations/046_support_article18_authority_referral_guard.up.sql',
   'backend/sql/migrations/046_support_article18_authority_referral_guard.down.sql',
+  'backend/sql/migrations/047_support_privacy_rights_control_plane.up.sql',
+  'backend/sql/migrations/047_support_privacy_rights_control_plane.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -127,6 +131,7 @@ const decisionKeys = [
   'inactiveAccountPeriod',
   'transactionalRecordPeriod',
   'communicationPeriod',
+  'privacyRightsPeriod',
   'moderationEvidencePeriod',
   'auditSecurityLogPeriod',
   'expiredCredentialPurgePeriod',
@@ -354,7 +359,7 @@ function assertDecisionPreparation(root, evidenceTexts) {
   }
   if (evidence.boundaries?.recommendationsAreApproval !== false
       || evidence.boundaries?.legalPeriodsInvented !== false
-      || evidence.boundaries?.allNineDecisionsRemainOpen !== true
+      || evidence.boundaries?.allTenDecisionsRemainOpen !== true
       || evidence.boundaries?.categoryPurgeEnabled !== false
       || evidence.boundaries?.productionChanged !== false
       || evidence.boundaries?.storeSubmissionChanged !== false
@@ -365,7 +370,7 @@ function assertDecisionPreparation(root, evidenceTexts) {
   const matrix = text(root, evidenceTexts, decisionPreparationMatrixPath);
   for (const marker of [
     'Status: **Entscheidungsvorbereitung; nicht freigegeben**',
-    'Alle neun Entscheidungen bleiben formal offen.',
+    'Alle zehn Entscheidungen bleiben formal offen.',
     'Firebase Cloud Messaging bleibt Bestandteil von SIT',
     'Firebase Crashlytics bleibt Bestandteil von SIT',
     'Push darf Crashdiagnose niemals automatisch aktivieren.',
@@ -782,7 +787,7 @@ function assertRetentionExecutionPreflightEvidence(root, evidenceTexts) {
       || evidence.result?.executionStatus !== 'blocked'
       || evidence.result?.executionAllowed !== false
       || evidence.result?.destructiveRouteExposed !== false
-      || evidence.result?.currentBlockerCount !== 20
+      || evidence.result?.currentBlockerCount !== 21
       || evidence.result?.openRetentionDecisions !== decisionKeys.length
       || evidence.result?.processorVerificationGatesOpen !== externalProcessorKeys.length
       || evidence.result?.unsafeDecisionValuesReflected !== false
@@ -790,7 +795,7 @@ function assertRetentionExecutionPreflightEvidence(root, evidenceTexts) {
       || evidence.requiredCombinedGates.length !== 9
       || evidence.verification?.targetedRetentionTests !== 'passed-36'
       || evidence.verification?.retentionValidator
-        !== 'passed-draft-open-nine-decisions-execution-blocked-20'
+        !== 'passed-draft-open-ten-decisions-execution-blocked-21'
       || evidence.verification?.fullTechnicalRegression !== 'passed-candidate-rollover-mode'
       || evidence.verification?.flutterTests !== 'passed-282-with-1-intentional-skip'
       || evidence.verification?.flutterAnalyzer !== '229-findings-0-errors-baseline-accepted'
@@ -813,7 +818,7 @@ function assertRetentionExecutionPreflightEvidence(root, evidenceTexts) {
   }
   for (const requiredGate of [
     'owner-and-legal-policy-approval',
-    'all-nine-decisions-evidence-closed',
+    'all-ten-decisions-evidence-closed',
     'category-purge-staging-dry-run-verified',
     'retention-periods-applied',
     'eligible-rows-calculated',
@@ -1378,7 +1383,7 @@ export function validateRetentionDeletionReadiness({
       || preparation.preparedDecisionCount !== decisionKeys.length
       || preparation.closedDecisionCount !== 0
       || preparation.categoryPurgeEnabled !== false) {
-    fail('Retention decision preparation must bind all nine open decisions and remain fail closed.');
+    fail('Retention decision preparation must bind all ten open decisions and remain fail closed.');
   }
 
   const processors = object(retention.externalProcessors, 'externalProcessors');

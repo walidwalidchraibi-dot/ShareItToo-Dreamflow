@@ -67,7 +67,7 @@ Verified: 2026-08-22 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `046`. Migration
+- Node/Express backend with PostgreSQL migrations through `047`. Migration
   `046` is verified on PostgreSQL 16.14 at exact GitHub Actions run
   `32548790305`. The
   backend provides deterministic server quotes, immutable legal/acceptance
@@ -260,6 +260,21 @@ Verified: 2026-08-22 on the Mac mini.
   API-image publication were skipped. Legal approval, real role assignments,
   competent-recipient verification, approved disclosure scope, external
   reporting, production, payment, Store and every live path remain closed.
+- S3S is a locally verified non-live candidate for the technical core of Drive
+  scenarios `SUP-123` through `SUP-127`. It separates six exact
+  privacy-rights request kinds, starts a conservative response deadline at
+  receipt, keeps account-password identity verification deadline-neutral,
+  creates idempotent internal 72-hour deadline alerts and permits only one
+  reasoned pre-deadline extension behind Administrator Staff-Step-up.
+  Migration `047` makes request, verification and extension truth guarded and
+  rollback-protected. Privacy export is identifier-minimized, while the new
+  retention category binds to a tenth explicitly open policy decision. Local
+  focused tests, the complete Flutter/Web/Android regression and a
+  CI-equivalent Backend run pass. The Backend run executed all 471 tests
+  without skips against isolated PostgreSQL 16.15 and applied every migration
+  through `047`; exact-head GitHub CI remains pending the guarded push. No
+  rights execution, disclosure, erasure, external delivery,
+  production, payment, Store, signed candidate or live path is enabled.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

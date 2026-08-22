@@ -129,6 +129,7 @@ if (!databaseUrl) {
         '044_moderation_statement_of_reasons.up.sql',
         '045_independent_moderation_review_resolution.up.sql',
         '046_support_article18_authority_referral_guard.up.sql',
+        '047_support_privacy_rights_control_plane.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -1199,9 +1200,12 @@ if (!databaseUrl) {
       );
 
       const { createApp } = await import('../src/app.js');
-      const { pool, } = await import('../src/db.js');
+      const { inTransaction, pool } = await import('../src/db.js');
       const { reconcileSupportDeadlinesWithClient } = await import(
         '../src/support_deadline_watchdog.js'
+      );
+      const { reconcilePrivacyRightsDeadlinesWithClient } = await import(
+        '../src/support_privacy_rights_workflow.js'
       );
       const { drainNotificationOutbox } = await import('../src/notifications.js');
       const { applyProviderEvent } = await import('../src/payment_workflow.js');
@@ -1210,18 +1214,21 @@ if (!databaseUrl) {
       const adminPassword = createEphemeralAcceptancePassword();
       const reviewerPassword = createEphemeralAcceptancePassword();
       const supportPassword = createEphemeralAcceptancePassword();
+      const renterAPassword = createEphemeralAcceptancePassword();
       await setupPool.query(
         `UPDATE users SET password_hash = CASE id
                             WHEN 'admin' THEN $1
                             WHEN 'admin-reviewer' THEN $2
-                            ELSE $3
+                            WHEN 'support' THEN $3
+                            ELSE $4
                           END,
                           email_verified_at = now()
-         WHERE id IN ('admin', 'admin-reviewer', 'support')`,
+         WHERE id IN ('admin', 'admin-reviewer', 'support', 'renter-a')`,
         [
           await hashPassword(adminPassword),
           await hashPassword(reviewerPassword),
           await hashPassword(supportPassword),
+          await hashPassword(renterAPassword),
         ],
       );
       const socialClaims = new Map();
@@ -1360,6 +1367,121 @@ if (!databaseUrl) {
         issueScopeVersion: 'sit_support_single_issue_scope_v1',
         separationGuidanceShown: true,
       });
+      const privacyIntakeResponse = await fetch(`${baseUrl}/v1/support/cases`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 's3s-privacy-access-intake',
+        },
+        body: JSON.stringify({
+          caseType: 'privacy_security',
+          caseSubType: 'access_or_copy_request',
+          summary: 'Auskunft und sichere Kopie meiner Daten anfordern.',
+          immediateDanger: false,
+          safetyTriage: {
+            version: 'sit_support_safety_triage_v1',
+            packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+            guidanceVersion: 'T-003@1.0.0',
+            immediateDanger: false,
+            guidanceShown: false,
+          },
+          issueScope: {
+            version: 'sit_support_single_issue_scope_v1',
+            singleIssueConfirmed: true,
+            separationGuidanceShown: false,
+          },
+          privacyRightsRequest: {
+            version: 'sit_privacy_rights_request_v1',
+            requestKind: 'access',
+          },
+        }),
+      });
+      assert.equal(privacyIntakeResponse.status, 201);
+      const privacyIntake = await privacyIntakeResponse.json();
+      const privacyBeforeIdentityResponse = await fetch(
+        `${baseUrl}/v1/support/cases/${privacyIntake.supportCase.id}/privacy-rights`,
+        { headers: renterAHeaders },
+      );
+      assert.equal(privacyBeforeIdentityResponse.status, 200);
+      const privacyBeforeIdentity = (await privacyBeforeIdentityResponse.json())
+        .privacyRightsRequest;
+      assert.equal(privacyBeforeIdentity.requestKind, 'access');
+      assert.equal(privacyBeforeIdentity.identityStatus, 'pending');
+      assert.equal(privacyBeforeIdentity.disclosureAllowed, false);
+      assert.equal(privacyBeforeIdentity.erasureExecutionAllowed, false);
+      assert.equal(privacyBeforeIdentity.externalDeliveryEnabled, false);
+      assert.equal(
+        privacyBeforeIdentity.deadlinePolicyVersion,
+        'gdpr-art12-conservative-calendar-month-v1',
+      );
+      assert.ok(
+        new Date(privacyBeforeIdentity.responseDueAt)
+          > new Date(privacyBeforeIdentity.receivedAt),
+      );
+      const wrongPrivacyIdentity = await fetch(
+        `${baseUrl}/v1/support/cases/${privacyIntake.supportCase.id}/privacy-rights/identity-verification`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'Idempotency-Key': 's3s-privacy-identity-wrong',
+          },
+          body: JSON.stringify({
+            expectedVersion: privacyBeforeIdentity.version,
+            currentPassword: createEphemeralAcceptancePassword(),
+          }),
+        },
+      );
+      assert.equal(wrongPrivacyIdentity.status, 401);
+      const privacyIdentityResponse = await fetch(
+        `${baseUrl}/v1/support/cases/${privacyIntake.supportCase.id}/privacy-rights/identity-verification`,
+        {
+          method: 'POST',
+          headers: {
+            ...renterAHeaders,
+            'Idempotency-Key': 's3s-privacy-identity-correct',
+          },
+          body: JSON.stringify({
+            expectedVersion: privacyBeforeIdentity.version,
+            currentPassword: renterAPassword,
+          }),
+        },
+      );
+      assert.equal(privacyIdentityResponse.status, 201);
+      const privacyAfterIdentity = (await privacyIdentityResponse.json())
+        .privacyRightsRequest;
+      assert.equal(privacyAfterIdentity.identityStatus, 'verified');
+      assert.equal(privacyAfterIdentity.processingStatus, 'under_review');
+      assert.equal(
+        privacyAfterIdentity.responseDueAt,
+        privacyBeforeIdentity.responseDueAt,
+      );
+      const privacyIdentityStored = await setupPool.query(
+        `SELECT verification_method, session_id, idempotency_key
+           FROM support_privacy_identity_verifications
+          WHERE privacy_request_id = $1`,
+        [privacyAfterIdentity.id],
+      );
+      assert.equal(privacyIdentityStored.rowCount, 1);
+      assert.equal(privacyIdentityStored.rows[0].verification_method, 'account_password');
+      assert.equal(privacyIdentityStored.rows[0].session_id, sessionIds['renter-a']);
+      assert.equal(
+        privacyIdentityStored.rows[0].idempotency_key,
+        'support.privacy_rights.identity.verify:s3s-privacy-identity-correct',
+      );
+      const privacyNearAt = new Date(
+        new Date(privacyAfterIdentity.responseDueAt).getTime() - (24 * 60 * 60 * 1000),
+      );
+      const privacyDeadlineRun = await inTransaction((client) => (
+        reconcilePrivacyRightsDeadlinesWithClient(client, { now: privacyNearAt })
+      ));
+      assert.equal(privacyDeadlineRun.deadlineNear, 1);
+      assert.equal(privacyDeadlineRun.deadlineOverdue, 0);
+      assert.equal(privacyDeadlineRun.externalNotificationsSent, 0);
+      const privacyDeadlineReplay = await inTransaction((client) => (
+        reconcilePrivacyRightsDeadlinesWithClient(client, { now: privacyNearAt })
+      ));
+      assert.equal(privacyDeadlineReplay.alertsCreated, 0);
       const article18IntakeResponse = await fetch(`${baseUrl}/v1/support/cases`, {
         method: 'POST',
         headers: {
@@ -3299,6 +3421,77 @@ if (!databaseUrl) {
       });
       assert.equal(adminElevation.status, 200);
       adminHeaders['X-Admin-Step-Up'] = (await adminElevation.json()).elevation.token;
+      const privacyQueueResponse = await fetch(
+        `${baseUrl}/v1/admin/support/privacy-rights`,
+        { headers: adminHeaders },
+      );
+      assert.equal(privacyQueueResponse.status, 200);
+      const privacyQueuePayload = await privacyQueueResponse.json();
+      assert.equal(privacyQueuePayload.disclosureEnabled, false);
+      assert.equal(privacyQueuePayload.erasureExecutionEnabled, false);
+      assert.equal(privacyQueuePayload.externalDeliveryEnabled, false);
+      assert.ok(privacyQueuePayload.privacyRightsRequests.some(
+        (entry) => entry.id === privacyAfterIdentity.id
+          && entry.activeLegalHoldCount === 0
+          && entry.identityStatus === 'verified',
+      ));
+      const forbiddenPrivacyExtension = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${privacyIntake.supportCase.id}/privacy-rights/deadline-extension`,
+        {
+          method: 'POST',
+          headers: {
+            ...ownerHeaders,
+            'Idempotency-Key': 's3s-privacy-extension-forbidden',
+          },
+          body: JSON.stringify({
+            expectedVersion: privacyAfterIdentity.version,
+            userFacingReason:
+              'Diese nicht autorisierte Verlängerung darf nicht gespeichert werden.',
+          }),
+        },
+      );
+      assert.equal(forbiddenPrivacyExtension.status, 403);
+      const privacyExtensionResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${privacyIntake.supportCase.id}/privacy-rights/deadline-extension`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 's3s-privacy-extension-recorded',
+          },
+          body: JSON.stringify({
+            expectedVersion: privacyAfterIdentity.version,
+            userFacingReason:
+              'Die Anfrage umfasst mehrere getrennte Systeme; wir benötigen zusätzliche Prüfzeit.',
+          }),
+        },
+      );
+      assert.equal(privacyExtensionResponse.status, 201);
+      const privacyAfterExtension = (await privacyExtensionResponse.json())
+        .privacyRightsRequest;
+      assert.equal(privacyAfterExtension.extensionRecorded, true);
+      assert.ok(
+        new Date(privacyAfterExtension.responseDueAt)
+          > new Date(privacyAfterIdentity.responseDueAt),
+      );
+      assert.equal(privacyAfterExtension.disclosureAllowed, false);
+      const privacyExtensionEvent = await setupPool.query(
+        `SELECT visibility, transition_reason, structured_payload
+           FROM support_case_events
+          WHERE case_id = $1
+            AND event_type = 'support.privacy_rights.deadline_extended'`,
+        [privacyIntake.supportCase.id],
+      );
+      assert.equal(privacyExtensionEvent.rowCount, 1);
+      assert.equal(privacyExtensionEvent.rows[0].visibility, 'user_visible');
+      assert.match(
+        privacyExtensionEvent.rows[0].transition_reason,
+        /zusätzliche Prüfzeit/u,
+      );
+      assert.equal(
+        privacyExtensionEvent.rows[0].structured_payload.externalNotificationSent,
+        false,
+      );
       const ownerPilotCockpit = await fetch(
         `${baseUrl}/v1/admin/pilot-cockpit?from=2026-01-01&to=2027-01-01`,
         { headers: ownerHeaders },
@@ -3726,7 +3919,7 @@ if (!databaseUrl) {
             SET current_owner_id = 'admin',
                 current_owner_role = 'trust_safety_owner',
                 lock_version = lock_version + 1,
-                updated_at = now()
+                updated_at = GREATEST(now(), updated_at + interval '1 microsecond')
           WHERE id = $1`,
         [article18Intake.supportCase.id],
       );
@@ -3735,7 +3928,7 @@ if (!databaseUrl) {
             SET current_owner_id = 'support',
                 current_owner_role = 'general_support_owner',
                 lock_version = lock_version + 1,
-                updated_at = now()
+                updated_at = GREATEST(now(), updated_at + interval '1 microsecond')
           WHERE id = $1`,
         [supportIntake.supportCase.id],
       );

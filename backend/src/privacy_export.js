@@ -68,6 +68,9 @@ export async function buildAccountExport(client, userId) {
     v52ReturnCaseEvidence,
     v52ReturnCaseEvents,
     supportCases,
+    supportPrivacyRightsRequests,
+    supportPrivacyIdentityVerifications,
+    supportPrivacyDeadlineExtensions,
     supportDsaNoticeLocatorAmendments,
     supportCaseEvents,
     supportBreakGlassAccess,
@@ -609,6 +612,37 @@ export async function buildAccountExport(client, userId) {
            OR $1 = ANY(support_case.affected_user_ids)
         ORDER BY support_case.created_at`, userId),
     rows(client,
+      `SELECT privacy_request.id, privacy_request.case_id,
+              privacy_request.request_version, privacy_request.request_kind,
+              privacy_request.identity_status,
+              privacy_request.identity_verified_at,
+              privacy_request.processing_status,
+              privacy_request.received_at,
+              privacy_request.first_response_due_at,
+              privacy_request.response_due_at,
+              privacy_request.deadline_policy_version,
+              privacy_request.extension_count,
+              privacy_request.completed_at,
+              privacy_request.created_at, privacy_request.updated_at
+         FROM support_privacy_rights_requests AS privacy_request
+        WHERE privacy_request.subject_user_id = $1
+        ORDER BY privacy_request.received_at, privacy_request.id`, userId),
+    rows(client,
+      `SELECT verification.id, verification.privacy_request_id,
+              verification.verification_method, verification.verified_at
+         FROM support_privacy_identity_verifications AS verification
+        WHERE verification.subject_user_id = $1
+        ORDER BY verification.verified_at, verification.id`, userId),
+    rows(client,
+      `SELECT extension.id, extension.privacy_request_id,
+              extension.previous_due_at, extension.extended_due_at,
+              extension.user_facing_reason, extension.recorded_at
+         FROM support_privacy_deadline_extensions AS extension
+         JOIN support_privacy_rights_requests AS privacy_request
+           ON privacy_request.id = extension.privacy_request_id
+        WHERE privacy_request.subject_user_id = $1
+        ORDER BY extension.recorded_at, extension.id`, userId),
+    rows(client,
       `SELECT amendment.id, amendment.case_id,
               amendment.dsa_notice_number, amendment.content_locator,
               amendment.locator_kind, amendment.submitted_at
@@ -870,6 +904,9 @@ export async function buildAccountExport(client, userId) {
       v52ReturnCaseEvents,
       support: {
         cases: supportCases,
+        privacyRightsRequests: supportPrivacyRightsRequests,
+        privacyIdentityVerifications: supportPrivacyIdentityVerifications,
+        privacyDeadlineExtensions: supportPrivacyDeadlineExtensions,
         dsaNoticeLocatorAmendments: supportDsaNoticeLocatorAmendments,
         events: supportCaseEvents,
         emergencyAccess: supportBreakGlassAccess,

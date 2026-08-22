@@ -74,6 +74,7 @@ test('retention inventory is read-only, step-up routed and covers every local de
     "accounts: 'inactiveAccountPeriod'",
     "transactions: 'transactionalRecordPeriod'",
     "communications: 'communicationPeriod'",
+    "privacyRights: 'privacyRightsPeriod'",
     "moderation: 'moderationEvidencePeriod'",
     "securityAudit: 'auditSecurityLogPeriod'",
     "legalHold: 'legalHoldProcess'",
