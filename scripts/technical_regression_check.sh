@@ -410,6 +410,7 @@ node --test test/tool/wishlist_async_context_wiring.test.mjs
 node --test test/tool/item_card_async_context_wiring.test.mjs
 node --test test/tool/listing_options_async_context_wiring.test.mjs
 node --test test/tool/profile_info_async_lifecycle_wiring.test.mjs
+node --test test/tool/create_listing_photo_async_lifecycle_wiring.test.mjs
 node --test test/tool/android_debug_single_attempt_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs

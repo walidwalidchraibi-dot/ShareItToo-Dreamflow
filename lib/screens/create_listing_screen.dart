@@ -2200,6 +2200,7 @@ class _PickedThumb extends StatelessWidget {
       InkWell(
         onTap: () async {
           final bytes = await file.readAsBytes();
+          if (!context.mounted) return;
           showDialog(
               context: context,
               builder: (_) => Dialog(
