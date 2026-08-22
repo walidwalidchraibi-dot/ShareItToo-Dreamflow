@@ -122,6 +122,38 @@ void main() {
     expect(find.text('Problem mit Übergabe'), findsOneWidget);
   });
 
+  testWidgets('booking-bound handover exceptions stay hidden without a booking',
+      (tester) async {
+    const generalContext = SupportFlowContext(
+      itemTitle: '',
+      itemId: '',
+      requestId: '',
+      bookingStatus: 'general',
+      source: SupportFlowSource.helpCenter,
+      role: SupportFlowRole.renter,
+    );
+    tester.view.physicalSize = const Size(900, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      const MaterialApp(home: SupportFlowScreen(context: generalContext)),
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('support_safety_answer_no_danger')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Problem mit Übergabe'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('QR-Code funktioniert nicht'), findsOneWidget);
+    expect(find.text('Mieter ist nicht erschienen'), findsNothing);
+    expect(find.text('Artikel ist nicht wie beschrieben'), findsNothing);
+    expect(find.text('Kaution oder Sicherheitszahlung wird verlangt'),
+        findsNothing);
+  });
+
   testWidgets('multiple independent problems require separation first',
       (tester) async {
     await _pumpFlow(tester);
@@ -197,6 +229,38 @@ void main() {
       },
       'linkedBookingId': 'booking-1',
       'linkedListingId': 'listing-1',
+    });
+  });
+
+  test('handover exceptions produce only the exact specialized payload', () {
+    const result = SupportFlowResult(
+      mainCategory: 'handover',
+      subCategory: 'Kaution oder Sicherheitszahlung wird verlangt',
+      userDescription:
+          'Die Gegenpartei verlangt vor Ort eine zusätzliche Barzahlung.',
+      context: _context,
+      safetyTriage: SupportSafetyTriage(
+        immediateDanger: false,
+        guidanceShown: false,
+      ),
+      issueScope: SupportIssueScope(
+        singleIssueConfirmed: true,
+        separationGuidanceShown: false,
+      ),
+      handoverDoNotPayAcknowledged: true,
+    );
+
+    expect(result.handoverExceptionKind, 'offplatform_deposit_request');
+    expect(result.backendRoute.caseType, 'trust_safety');
+    expect(result.backendRoute.caseSubType, 'offplatform_deposit_request');
+    expect(result.toHandoverExceptionInput(), {
+      'kind': 'offplatform_deposit_request',
+      'details':
+          'Die Gegenpartei verlangt vor Ort eine zusätzliche Barzahlung.',
+      'immediateDanger': false,
+      'safeAbortGuidanceAcknowledged': false,
+      'doNotPayGuidanceAcknowledged': true,
+      'contactAttemptAcknowledged': false,
     });
   });
 
@@ -721,6 +785,67 @@ void main() {
     });
     expect(find.byKey(const ValueKey('support_case_receipt')), findsOneWidget);
     expect(find.textContaining('eigener Datenschutz-Fall'), findsOneWidget);
+  });
+
+  testWidgets(
+      'deposit request requires do-not-pay acknowledgement and uses dedicated endpoint',
+      (tester) async {
+    String? capturedBookingId;
+    Map<String, dynamic>? capturedIntake;
+    String? capturedKey;
+    await tester.pumpWidget(MaterialApp(
+      home: SupportFlowScreen(
+        context: _context,
+        handoverExceptionSubmitter: (bookingId, intake, idempotencyKey) async {
+          capturedBookingId = bookingId;
+          capturedIntake = intake;
+          capturedKey = idempotencyKey;
+          return _canonicalCase(
+            caseType: 'trust_safety',
+            caseSubType: 'offplatform_deposit_request',
+          );
+        },
+      ),
+    ));
+    tester.view.physicalSize = const Size(900, 1700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester
+        .tap(find.byKey(const ValueKey('support_safety_answer_no_danger')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('support_issue_scope_single')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Problem mit Übergabe'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.text('Kaution oder Sicherheitszahlung wird verlangt'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('support_handover_exception_fields')),
+        findsOneWidget);
+    expect(find.textContaining('keine automatische Sperre'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('support_handover_exception_details')),
+      'Die Gegenpartei verlangt vor Ort eine zusätzliche Barzahlung.',
+    );
+    await tester.pump();
+    await tester.tap(find.text('An Support schicken'));
+    await tester.pump();
+    expect(capturedIntake, isNull);
+    await tester.tap(
+        find.byKey(const ValueKey('support_handover_do_not_pay_acknowledged')));
+    await tester.pump();
+    await tester.tap(find.text('An Support schicken'));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(capturedBookingId, 'booking-1');
+    expect(capturedIntake?['kind'], 'offplatform_deposit_request');
+    expect(capturedIntake?['doNotPayGuidanceAcknowledged'], true);
+    expect(capturedIntake?.containsKey('caseType'), isFalse);
+    expect(capturedKey, startsWith('support_intake_'));
+    expect(find.byKey(const ValueKey('support_case_receipt')), findsOneWidget);
   });
 
   testWidgets('failed submission stays open and retry reuses the same key',

@@ -1755,6 +1755,10 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     path.resolve(currentDir, '../sql/migrations/054_support_feedback_priority.up.sql'),
     'utf8',
   );
+  const handoverExceptionUp = await fs.readFile(
+    path.resolve(currentDir, '../sql/migrations/062_handover_exception_guard.up.sql'),
+    'utf8',
+  );
   for (const table of [
     'support_policy_snapshots',
     'support_cases',
@@ -1777,7 +1781,9 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
     assert.match(up, new RegExp(`case_type = '${family}'`));
     for (const subtype of subtypes) {
       assert.ok(
-        up.includes(`'${subtype}'`) || feedbackPriorityUp.includes(`'${subtype}'`),
+        up.includes(`'${subtype}'`)
+          || feedbackPriorityUp.includes(`'${subtype}'`)
+          || handoverExceptionUp.includes(`'${subtype}'`),
         `${family}/${subtype}`,
       );
     }

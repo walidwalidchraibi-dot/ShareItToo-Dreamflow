@@ -223,6 +223,10 @@ import {
   listSupportOperationalAlerts,
   supportDeadlineHealth,
 } from './support_deadline_watchdog.js';
+import {
+  HandoverExceptionError,
+  reportHandoverException,
+} from './handover_exception_workflow.js';
 import { getSupportOperationalMetrics } from './support_operational_metrics.js';
 import {
   getLegacySupportHistory,
@@ -4206,6 +4210,17 @@ export function createApp({
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
+  app.post('/v1/bookings/:id/handover-exceptions', requireAuth, requireActiveAccount, supportSafetyIntakeLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => reportHandoverException(client, {
+      actor: req.actor,
+      bookingId: req.params.id,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
   app.post('/v1/support/legacy-migrations/preview', requireAuth, requireActiveAccount, supportLegacyMigrationLimiter, asyncRoute(async (req, res) => {
     if (!config.supportLegacyMigration.enabled) {
       throw new HttpError(503, 'support_legacy_migration_disabled');
@@ -5566,6 +5581,7 @@ export function createApp({
     const moderationWorkflowError = error instanceof ModerationDomainError;
     const retentionInventoryError = error instanceof RetentionInventoryError;
     const supportCaseError = error instanceof SupportCaseError;
+    const handoverExceptionError = error instanceof HandoverExceptionError;
     const pilotCockpitError = error instanceof PilotCockpitError;
     const mapsProxyError = error instanceof MapsProxyError;
     const bookingConfirmationError = error instanceof BookingConfirmationError;
@@ -5576,14 +5592,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || handoverExceptionError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || handoverExceptionError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

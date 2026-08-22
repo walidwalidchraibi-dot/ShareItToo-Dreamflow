@@ -77,6 +77,7 @@ export const supportCaseFamilies = Object.freeze({
     'threat_or_violence',
     'harassment_or_stalking',
     'suspected_fraud_or_impersonation',
+    'offplatform_deposit_request',
     'account_takeover',
     'dangerous_item_or_injury',
     'self_harm_or_harm_threat',
@@ -253,6 +254,10 @@ const article18CandidateSubtypes = new Set([
   'immediate_physical_danger',
 ]);
 const p1Families = new Set(['active_handover', 'active_rental', 'active_return']);
+const p1Subtypes = new Set([
+  'handover_no_show',
+  'offplatform_deposit_request',
+]);
 const p2Families = new Set([
   'booking_pre_start',
   'post_return_dispute',
@@ -262,6 +267,11 @@ const p2Families = new Set([
   'moderation_content',
   'privacy_security',
   'legal_authority',
+]);
+const specializedIntakeRoutes = new Set([
+  'active_handover:item_not_as_listed',
+  'cancellation_no_show:handover_no_show',
+  'trust_safety:offplatform_deposit_request',
 ]);
 
 export class SupportCaseError extends Error {
@@ -364,6 +374,7 @@ export function supportRouteFor(caseType, caseSubType, signals = {}) {
   else if (caseType === 'general_help'
       && caseSubType === 'feedback_or_improvement') priority = 'p4';
   else if (productSafetyCandidate) priority = 'p1';
+  else if (p1Subtypes.has(caseSubType)) priority = 'p1';
   else if (p1Families.has(caseType)) priority = 'p1';
   else if (p2Families.has(caseType)) priority = 'p2';
 
@@ -761,6 +772,7 @@ export function normalizeDsaNoticeLocatorCompletion(raw, { contentType }) {
 export function normalizeSupportCaseInput(raw, {
   sourceChannel = 'app',
   operatingMode = 'simulation',
+  specializedIntakeAuthority = null,
   nextUpdateAt,
   now = new Date(),
 } = {}) {
@@ -775,6 +787,10 @@ export function normalizeSupportCaseInput(raw, {
   }
   const caseType = requiredText(raw.caseType, 60, 'support_case_type_invalid').toLowerCase();
   const caseSubType = requiredText(raw.caseSubType, 100, 'support_case_subtype_invalid').toLowerCase();
+  if (specializedIntakeRoutes.has(`${caseType}:${caseSubType}`)
+      && specializedIntakeAuthority !== 'handover_exception_workflow') {
+    throw new SupportCaseError(409, 'support_specialized_intake_required');
+  }
   const safetyTriage = normalizeSupportSafetyTriage(raw.safetyTriage);
   const issueScope = normalizeSupportIssueScope(raw.issueScope);
   if (raw.immediateDanger !== undefined

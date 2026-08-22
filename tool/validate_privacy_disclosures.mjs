@@ -24,6 +24,8 @@ const sourcePaths = [
   'backend/src/mailer.js',
   'backend/src/support_case_domain.js',
   'backend/src/support_case_workflow.js',
+  'backend/src/handover_exception_domain.js',
+  'backend/src/handover_exception_workflow.js',
   'backend/src/support_privacy_rights_domain.js',
   'backend/src/support_privacy_rights_workflow.js',
   'backend/src/support_privacy_incident_domain.js',
@@ -133,6 +135,8 @@ const sourcePaths = [
   'backend/sql/migrations/060_harassment_block_report_guard.down.sql',
   'backend/sql/migrations/061_booking_exact_address_reveal_guard.up.sql',
   'backend/sql/migrations/061_booking_exact_address_reveal_guard.down.sql',
+  'backend/sql/migrations/062_handover_exception_guard.up.sql',
+  'backend/sql/migrations/062_handover_exception_guard.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -430,6 +434,23 @@ function assertSourceContracts({ root, sourceTexts }) {
   ]) {
     if (!bookingAddressAuditMigration.includes(marker)) {
       fail(`Booking-address privacy boundary is missing ${marker}.`);
+    }
+  }
+  const handoverExceptionAuditMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/062_handover_exception_guard.up.sql',
+  );
+  for (const marker of [
+    'audit_log_handover_exception_request_idx',
+    'booking.handover_exception_reported',
+    'requestFingerprint',
+    'moneyOutcomeDecided',
+    'guiltDetermined',
+    "'details', 'summary', 'messageBody', 'address', 'exactAddress'",
+  ]) {
+    if (!handoverExceptionAuditMigration.includes(marker)) {
+      fail(`Handover-exception privacy boundary is missing ${marker}.`);
     }
   }
 

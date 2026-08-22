@@ -264,6 +264,7 @@ export async function createSupportCase(client, {
   nextUpdateAt,
   sourceChannel = 'app',
   operatingMode = 'simulation',
+  specializedIntakeAuthority = null,
   now = new Date(),
 }) {
   if (!actor?.id || !['user', 'support', 'admin'].includes(actor.role)) {
@@ -288,6 +289,7 @@ export async function createSupportCase(client, {
   const normalized = normalizeSupportCaseInput(raw, {
     sourceChannel,
     operatingMode,
+    specializedIntakeAuthority,
     nextUpdateAt,
     now,
   });

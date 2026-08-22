@@ -149,6 +149,7 @@ if (!databaseUrl) {
         '059_support_message_content_block_audit.up.sql',
         '060_harassment_block_report_guard.up.sql',
         '061_booking_exact_address_reveal_guard.up.sql',
+        '062_handover_exception_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -8409,6 +8410,188 @@ if (!databaseUrl) {
       assert.equal(
         (await verifiedFacebookLogin.json()).user.id,
         facebookAccount.rows[0].id,
+      );
+
+      const s4lAppointment = new Date(Date.now() - (5 * 60 * 1000));
+      const s4lRentalStart = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Berlin',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(s4lAppointment);
+      const s4lRentalEnd = new Date(
+        new Date(`${s4lRentalStart}T12:00:00.000Z`).getTime()
+          + (24 * 60 * 60 * 1000),
+      ).toISOString().slice(0, 10);
+      await setupPool.query(
+        `INSERT INTO rental_requests (
+           id, item_id, owner_id, renter_id, status, payload
+         ) VALUES (
+           's4l-handover', 'listing-1', 'owner', 'renter-a', 'accepted',
+           jsonb_build_object(
+             'status', 'accepted',
+             'workflowStatus', 'accepted',
+             'itemId', 'listing-1',
+             'handoverTimeIso', $1::text,
+             'handoverTimeRequestedByUserId', 'owner',
+             'handoverTimeConfirmed', true,
+             'handoverTimeConfirmedByUserId', 'renter-a',
+             'handoverTimeConfirmedAt', ($1::timestamptz - interval '1 hour')::text
+           )
+         )`,
+        [s4lAppointment.toISOString()],
+      );
+      await setupPool.query(
+        `INSERT INTO bookings (
+           id, listing_id, owner_id, renter_id, status, starts_at, ends_at,
+           currency, quoted_total_minor, security_deposit_minor,
+           workflow_status, workflow_version, workflow_revision,
+           rental_start_date, rental_end_date, rental_timezone, quoted_days,
+           price_per_day_minor, base_rental_minor, discount_minor,
+           rental_subtotal_minor, platform_fee_minor, delivery_fee_minor,
+           pickup_fee_minor, express_fee_minor, owner_payout_minor,
+           quote_version, quote_breakdown, requested_at, accepted_at
+         ) VALUES (
+           's4l-handover', 'listing-1', 'owner', 'renter-a', 'accepted',
+           $1::timestamptz, $1::timestamptz + interval '1 day',
+           'EUR', 1000, 0, 'accepted', 1, 1,
+           $2::date, $3::date, 'Europe/Berlin', 1,
+           1000, 1000, 0, 1000, 0, 0, 0, 0, 1000,
+           1, '{"source":"s4l_integration"}'::jsonb, now(), now()
+         )`,
+        [s4lAppointment.toISOString(), s4lRentalStart, s4lRentalEnd],
+      );
+      await setupPool.query(
+        `INSERT INTO message_threads (
+           id, request_id, booking_id, item_id, user1_id, user2_id,
+           payload, communication_version
+         ) VALUES (
+           's4l-thread', 's4l-handover', 's4l-handover', 'listing-1',
+           'renter-a', 'owner', '{}'::jsonb, 1
+         )`,
+      );
+      await setupPool.query(
+        `INSERT INTO messages (
+           id, thread_id, sender_id, sender_type, body, created_at,
+           client_message_id, attachments, message_version
+         ) VALUES (
+           's4l-contact', 's4l-thread', 'renter-a', 'user',
+           'Ich bin am bestätigten Treffpunkt. Bist du unterwegs?',
+           $1::timestamptz + interval '1 minute',
+           's4l-contact-client', '[]'::jsonb, 1
+         )`,
+        [s4lAppointment.toISOString()],
+      );
+
+      const { reportHandoverException } = await import(
+        '../src/handover_exception_workflow.js'
+      );
+      const reportS4l = async (idempotencyKey, body) => {
+        const client = await setupPool.connect();
+        try {
+          await client.query('BEGIN');
+          const result = await reportHandoverException(client, {
+            actor: { id: 'renter-a', role: 'user' },
+            bookingId: 's4l-handover',
+            idempotencyKey,
+            raw: {
+            details: 'Kontrollierte beobachtbare Fakten für den S4L-Integrationstest.',
+            immediateDanger: false,
+            safeAbortGuidanceAcknowledged: false,
+            doNotPayGuidanceAcknowledged: false,
+            contactAttemptAcknowledged: false,
+            ...body,
+            },
+          });
+          await client.query('COMMIT');
+          return result;
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      };
+      const itemMismatch = await reportS4l('s4l-item-mismatch', {
+        kind: 'item_mismatch',
+        safeAbortGuidanceAcknowledged: true,
+      });
+      assert.equal(itemMismatch.supportCase.caseType, 'active_handover');
+      assert.equal(itemMismatch.supportCase.caseSubType, 'item_not_as_listed');
+      assert.equal(itemMismatch.supportCase.priority, 'p1');
+      assert.equal(itemMismatch.exceptionReceipt.moneyOutcomeDecided, false);
+      assert.equal(itemMismatch.exceptionReceipt.guiltDetermined, false);
+
+      const deposit = await reportS4l('s4l-deposit-request', {
+        kind: 'offplatform_deposit_request',
+        doNotPayGuidanceAcknowledged: true,
+      });
+      assert.equal(deposit.supportCase.caseType, 'trust_safety');
+      assert.equal(
+        deposit.supportCase.caseSubType,
+        'offplatform_deposit_request',
+      );
+      assert.equal(deposit.supportCase.priority, 'p1');
+      assert.equal(deposit.exceptionReceipt.trustSafetyReviewRequired, true);
+      assert.equal(deposit.exceptionReceipt.accountMeasureTaken, false);
+
+      const noShow = await reportS4l('s4l-party-no-show', {
+        kind: 'party_no_show',
+        contactAttemptAcknowledged: true,
+      });
+      assert.equal(noShow.supportCase.caseType, 'cancellation_no_show');
+      assert.equal(noShow.supportCase.caseSubType, 'handover_no_show');
+      assert.equal(noShow.supportCase.priority, 'p1');
+      assert.equal(noShow.exceptionReceipt.contactAttemptCount, 1);
+      assert.equal(noShow.exceptionReceipt.bookingStatusChanged, false);
+
+      const s4lBookingTruth = await setupPool.query(
+        `SELECT status, workflow_status FROM bookings WHERE id = 's4l-handover'`,
+      );
+      assert.deepEqual(s4lBookingTruth.rows[0], {
+        status: 'accepted',
+        workflow_status: 'accepted',
+      });
+      const s4lAudit = await setupPool.query(
+        `SELECT metadata FROM audit_log
+          WHERE action = 'booking.handover_exception_reported'
+          ORDER BY request_id`,
+      );
+      assert.equal(s4lAudit.rowCount, 3);
+      assert.equal(
+        s4lAudit.rows.some((row) => JSON.stringify(row.metadata).includes(
+          'Kontrollierte beobachtbare Fakten',
+        )),
+        false,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO audit_log (
+             actor_id, actor_role, action, resource_type, resource_id,
+             request_id, metadata
+           ) SELECT
+             'renter-a', 'user', 'booking.handover_exception_reported',
+             'booking', 's4l-handover', 'booking.handover_exception:s4l-forged',
+             metadata || '{"moneyOutcomeDecided":true}'::jsonb
+           FROM audit_log
+           WHERE action = 'booking.handover_exception_reported'
+           LIMIT 1`,
+        ),
+        (error) => error?.code === '23514',
+      );
+
+      const handoverExceptionDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/062_handover_exception_guard.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(handoverExceptionDown),
+        (error) => error?.code === 'P0001'
+          && error?.message
+            === '062 rollback refused: handover exception evidence exists',
       );
 
       const supportDuplicateCaseDown = await fs.readFile(

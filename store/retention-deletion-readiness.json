@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "c236cf1208d995086fe2e0d15e02d12b54c978315c54488de9b97d5e063171e8"
+      "sha256": "9311eddc13207b3deaa65decb3f64e34f197543ff1060e297dbf9d65c416b9ab"
     },
     {
       "path": "backend/src/server.js",
@@ -69,11 +69,19 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "d525cafe2895a0bc26028d33ef4b2d925a79965ecf11e0b2119fd50ebad636a1"
+      "sha256": "62e191d666b194defe4778ad63d4a8981d1c92a4f1c6bbf0ec4f102d081af1e6"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "0ba3a1390b31c25ae0b9b1514bc69124f2d356acc6430d57dfefc229c008a384"
+      "sha256": "34b44ea3dc23264a630545d89c2e8840857198804e84efe88142178747fc8cbd"
+    },
+    {
+      "path": "backend/src/handover_exception_domain.js",
+      "sha256": "8f147b1c6d9c5f79971fe110c612c13da6118adfe33e642b79ce907223092a6b"
+    },
+    {
+      "path": "backend/src/handover_exception_workflow.js",
+      "sha256": "6039e9e68353139e3cc8aae9ea1a96bfc962ac13851f1211209a94389029d907"
     },
     {
       "path": "backend/src/support_privacy_rights_domain.js",
@@ -564,6 +572,14 @@
       "sha256": "b486c7bb67b24e5853c07db0d3ccdd29903c33126db069ae218e1bf4d98f18d7"
     },
     {
+      "path": "backend/sql/migrations/062_handover_exception_guard.up.sql",
+      "sha256": "ad6b7d34f4f7057b97164f8807164c387871e4444eeb1f7bcf90f89646f9f078"
+    },
+    {
+      "path": "backend/sql/migrations/062_handover_exception_guard.down.sql",
+      "sha256": "7667960848a6a26c94fdb7931fd54ca4e333bfe95034ff9f81583914af264c22"
+    },
+    {
       "path": "backend/ops/backup.sh",
       "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"
     },
@@ -609,7 +625,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "394c35a1e13849a067fc97412454ecce6dceaf13b8013703f46c49e17e215204"
+      "sha256": "f8b0bebe4caa22cac53afa865894973af0bdfe4254ca78563b4b6e6c0bbfb189"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
@@ -629,7 +645,7 @@
     },
     {
       "path": "lib/screens/support_flow_screen.dart",
-      "sha256": "ec1f72c66fcde7e6bf9eb914424b7e4d72fa02e600156db70c90bb4d62ac132b"
+      "sha256": "1d4584a28d691b3300852eb802ea924dc1d134ee79e6d4e5cc33703728669df3"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",

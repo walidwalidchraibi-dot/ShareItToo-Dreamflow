@@ -24,6 +24,8 @@ const sourcePaths = [
   'backend/src/mailer.js',
   'backend/src/support_case_domain.js',
   'backend/src/support_case_workflow.js',
+  'backend/src/handover_exception_domain.js',
+  'backend/src/handover_exception_workflow.js',
   'backend/src/support_privacy_rights_domain.js',
   'backend/src/support_privacy_rights_workflow.js',
   'backend/src/support_privacy_incident_domain.js',
@@ -146,6 +148,8 @@ const sourcePaths = [
   'backend/sql/migrations/060_harassment_block_report_guard.down.sql',
   'backend/sql/migrations/061_booking_exact_address_reveal_guard.up.sql',
   'backend/sql/migrations/061_booking_exact_address_reveal_guard.down.sql',
+  'backend/sql/migrations/062_handover_exception_guard.up.sql',
+  'backend/sql/migrations/062_handover_exception_guard.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -932,6 +936,32 @@ function assertSourceContracts(root, sourceTexts) {
     'cannot roll back booking address reveal guard while audit evidence exists',
   )) {
     fail('Booking-address retention boundary is missing rollback refusal.');
+  }
+  const handoverExceptionAuditMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/062_handover_exception_guard.up.sql',
+  );
+  for (const marker of [
+    'audit_log_handover_exception_request_idx',
+    'booking.handover_exception_reported',
+    'requestFingerprint',
+    'contactAttemptCount',
+    'moneyOutcomeDecided',
+  ]) {
+    if (!handoverExceptionAuditMigration.includes(marker)) {
+      fail(`Handover-exception retention boundary is missing ${marker}.`);
+    }
+  }
+  const handoverExceptionRollbackMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/062_handover_exception_guard.down.sql',
+  );
+  if (!handoverExceptionRollbackMigration.includes(
+    '062 rollback refused: handover exception evidence exists',
+  )) {
+    fail('Handover-exception retention boundary is missing rollback refusal.');
   }
   if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
     fail('Retention inventory must remain read-only.');

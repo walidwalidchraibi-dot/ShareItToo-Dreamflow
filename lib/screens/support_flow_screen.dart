@@ -290,6 +290,9 @@ class SupportFlowResult {
   final SupportIssueScope issueScope;
   final SupportDsaNotice? dsaNotice;
   final SupportProductSafetyNotice? productSafetyNotice;
+  final bool handoverSafeAbortAcknowledged;
+  final bool handoverDoNotPayAcknowledged;
+  final bool handoverContactAttemptAcknowledged;
   final Map<String, dynamic>? canonicalCase;
 
   const SupportFlowResult({
@@ -301,6 +304,9 @@ class SupportFlowResult {
     required this.issueScope,
     this.dsaNotice,
     this.productSafetyNotice,
+    this.handoverSafeAbortAcknowledged = false,
+    this.handoverDoNotPayAcknowledged = false,
+    this.handoverContactAttemptAcknowledged = false,
     this.canonicalCase,
   });
 
@@ -367,17 +373,19 @@ class SupportFlowResult {
   static const _backendRoutes = <String, Map<String, SupportCaseRoute>>{
     'handover': {
       'Mieter ist nicht erschienen':
-          SupportCaseRoute('active_handover', 'party_not_present'),
+          SupportCaseRoute('cancellation_no_show', 'handover_no_show'),
       'Vermieter ist nicht erschienen':
-          SupportCaseRoute('active_handover', 'party_not_present'),
+          SupportCaseRoute('cancellation_no_show', 'handover_no_show'),
       'Gegenpartei öffnet nicht / reagiert nicht':
-          SupportCaseRoute('active_handover', 'party_not_present'),
+          SupportCaseRoute('cancellation_no_show', 'handover_no_show'),
       'Übergabeort ist unklar':
           SupportCaseRoute('booking_pre_start', 'address_reveal'),
       'Falsche Person ist erschienen':
           SupportCaseRoute('active_handover', 'identity_or_person_mismatch'),
       'Artikel ist nicht wie beschrieben':
           SupportCaseRoute('active_handover', 'item_not_as_listed'),
+      'Kaution oder Sicherheitszahlung wird verlangt':
+          SupportCaseRoute('trust_safety', 'offplatform_deposit_request'),
       'Vermieter verweigert Übergabe':
           SupportCaseRoute('active_handover', 'handover_confirmation_conflict'),
       'Mieter verweigert Bestätigung':
@@ -589,6 +597,52 @@ class SupportFlowResult {
     return route;
   }
 
+  String? get handoverExceptionKind {
+    if (safetyTriage.immediateDanger) return null;
+    if (mainCategory == 'handover' &&
+        const {
+          'Mieter ist nicht erschienen',
+          'Vermieter ist nicht erschienen',
+          'Gegenpartei öffnet nicht / reagiert nicht',
+        }.contains(subCategory)) {
+      return 'party_no_show';
+    }
+    if ((mainCategory == 'handover' &&
+            subCategory == 'Artikel ist nicht wie beschrieben') ||
+        (mainCategory == 'item_condition' &&
+            const {
+              'Artikel entspricht nicht der Beschreibung',
+              'Falscher Artikel übergeben',
+              'Schaden wurde schon vor Übergabe bemerkt',
+            }.contains(subCategory))) {
+      return 'item_mismatch';
+    }
+    if (mainCategory == 'handover' &&
+        subCategory == 'Kaution oder Sicherheitszahlung wird verlangt') {
+      return 'offplatform_deposit_request';
+    }
+    return null;
+  }
+
+  Map<String, dynamic> toHandoverExceptionInput() {
+    final kind = handoverExceptionKind;
+    if (kind == null || context.requestId.trim().isEmpty) {
+      throw const FormatException('invalid_handover_exception_context');
+    }
+    final details = userDescription.trim();
+    if (details.length < 10) {
+      throw const FormatException('handover_exception_details_required');
+    }
+    return <String, dynamic>{
+      'kind': kind,
+      'details': details,
+      'immediateDanger': false,
+      'safeAbortGuidanceAcknowledged': handoverSafeAbortAcknowledged,
+      'doNotPayGuidanceAcknowledged': handoverDoNotPayAcknowledged,
+      'contactAttemptAcknowledged': handoverContactAttemptAcknowledged,
+    };
+  }
+
   Map<String, dynamic> toBackendInput() {
     final route = backendRoute;
     final isDsaNotice = route.caseType == 'moderation_content' &&
@@ -739,6 +793,9 @@ class SupportFlowResult {
       issueScope: issueScope,
       dsaNotice: dsaNotice,
       productSafetyNotice: productSafetyNotice,
+      handoverSafeAbortAcknowledged: handoverSafeAbortAcknowledged,
+      handoverDoNotPayAcknowledged: handoverDoNotPayAcknowledged,
+      handoverContactAttemptAcknowledged: handoverContactAttemptAcknowledged,
       canonicalCase: Map<String, dynamic>.unmodifiable(value),
     );
   }
@@ -801,6 +858,8 @@ class SupportFlowResult {
       if (dsaNotice != null) 'dsaNotice': dsaNotice!.toMap(),
       if (productSafetyNotice != null)
         'productSafetyNotice': productSafetyNotice!.toMap(),
+      if (handoverExceptionKind != null)
+        'handoverException': toHandoverExceptionInput(),
       if (canonicalCase != null) 'supportCase': canonicalCase,
       ...context.toSupportContext(),
     };
@@ -844,17 +903,25 @@ typedef SupportCaseSubmitter = Future<Map<String, dynamic>> Function(
   String idempotencyKey,
 );
 
+typedef HandoverExceptionSubmitter = Future<Map<String, dynamic>> Function(
+  String bookingId,
+  Map<String, dynamic> intake,
+  String idempotencyKey,
+);
+
 /// Fullscreen Support-Kategorie-Auswahl-Seite
 /// Wiederverwendbar aus Chat-Menü und Buchungsdetails
 class SupportFlowScreen extends StatefulWidget {
   final SupportFlowContext context;
   final SupportCaseSubmitter? submitter;
+  final HandoverExceptionSubmitter? handoverExceptionSubmitter;
   final String initialDescription;
 
   const SupportFlowScreen({
     super.key,
     required this.context,
     this.submitter,
+    this.handoverExceptionSubmitter,
     this.initialDescription = '',
   });
 
@@ -896,6 +963,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   bool _dsaGoodFaithConfirmed = false;
   final _productIdentificationController = TextEditingController();
   bool _productSafetyGuidanceAcknowledged = false;
+  bool _handoverSafeAbortAcknowledged = false;
+  bool _handoverDoNotPayAcknowledged = false;
+  bool _handoverContactAttemptAcknowledged = false;
   bool _sendingSupport = false;
   bool _cardsHidden = false;
 
@@ -911,6 +981,51 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       _selectedMainCategory == 'dsa_notice' && _selectedSubCategory != null;
   bool get _isProductSafetySelection =>
       _selectedMainCategory == 'product_safety' && _selectedSubCategory != null;
+  bool get _hasBookingContext {
+    final requestId = widget.context.requestId.trim();
+    return requestId.isNotEmpty &&
+        !requestId.startsWith('profile:') &&
+        !requestId.startsWith('listing:');
+  }
+
+  bool get _isHandoverExceptionSelection {
+    if (_immediateDanger == true || !_hasBookingContext) return false;
+    if (_selectedMainCategory == 'handover' &&
+        const {
+          'Mieter ist nicht erschienen',
+          'Vermieter ist nicht erschienen',
+          'Gegenpartei öffnet nicht / reagiert nicht',
+          'Artikel ist nicht wie beschrieben',
+          'Kaution oder Sicherheitszahlung wird verlangt',
+        }.contains(_selectedSubCategory)) {
+      return true;
+    }
+    return _selectedMainCategory == 'item_condition' &&
+        const {
+          'Artikel entspricht nicht der Beschreibung',
+          'Falscher Artikel übergeben',
+          'Schaden wurde schon vor Übergabe bemerkt',
+        }.contains(_selectedSubCategory);
+  }
+
+  bool get _handoverExceptionReady {
+    if (!_isHandoverExceptionSelection) return true;
+    if (_descriptionController.text.trim().length < 10) return false;
+    if (const {
+      'Artikel ist nicht wie beschrieben',
+      'Artikel entspricht nicht der Beschreibung',
+      'Falscher Artikel übergeben',
+      'Schaden wurde schon vor Übergabe bemerkt',
+    }.contains(_selectedSubCategory)) {
+      return _handoverSafeAbortAcknowledged;
+    }
+    if (_selectedSubCategory ==
+        'Kaution oder Sicherheitszahlung wird verlangt') {
+      return _handoverDoNotPayAcknowledged;
+    }
+    return _handoverContactAttemptAcknowledged;
+  }
+
   bool get _dsaNoticeReady =>
       !_isDsaNoticeSelection ||
       _immediateDanger == true ||
@@ -922,7 +1037,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       (_productIdentificationController.text.trim().length >= 3 &&
           _descriptionController.text.trim().length >= 20 &&
           _productSafetyGuidanceAcknowledged);
-  bool get _submissionReady => _dsaNoticeReady && _productSafetyNoticeReady;
+  bool get _submissionReady =>
+      _dsaNoticeReady && _productSafetyNoticeReady && _handoverExceptionReady;
 
   @override
   void initState() {
@@ -1013,6 +1129,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         'Übergabeort ist unklar',
         'Falsche Person ist erschienen',
         'Artikel ist nicht wie beschrieben',
+        'Kaution oder Sicherheitszahlung wird verlangt',
         'Vermieter verweigert Übergabe',
         'Mieter verweigert Bestätigung',
         'QR-Code funktioniert nicht',
@@ -1794,9 +1911,23 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
 
   Widget _buildSubcategories(String mainKey) {
     final cat = _categories[mainKey]!;
-    final subcategories = mainKey == 'other' && !_isProfileContext
+    var subcategories = mainKey == 'other' && !_isProfileContext
         ? cat.subcategories.where((sub) => sub != 'Profil melden').toList()
-        : cat.subcategories;
+        : List<String>.of(cat.subcategories);
+    if (!_hasBookingContext) {
+      const bookingBound = {
+        'Mieter ist nicht erschienen',
+        'Vermieter ist nicht erschienen',
+        'Gegenpartei öffnet nicht / reagiert nicht',
+        'Artikel ist nicht wie beschrieben',
+        'Kaution oder Sicherheitszahlung wird verlangt',
+        'Artikel entspricht nicht der Beschreibung',
+        'Falscher Artikel übergeben',
+        'Schaden wurde schon vor Übergabe bemerkt',
+      };
+      subcategories =
+          subcategories.where((sub) => !bookingBound.contains(sub)).toList();
+    }
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       itemCount: subcategories.length,
@@ -1808,6 +1939,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
           onTap: () => setState(() {
             _selectedSubCategory = sub;
             _selectedDetailSubCategory = null;
+            _handoverSafeAbortAcknowledged = false;
+            _handoverDoNotPayAcknowledged = false;
+            _handoverContactAttemptAcknowledged = false;
           }),
         );
       },
@@ -1977,6 +2111,98 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     );
   }
 
+  Widget _buildHandoverExceptionFields() {
+    final selected = _selectedSubCategory ?? '';
+    final isItemMismatch = const {
+      'Artikel ist nicht wie beschrieben',
+      'Artikel entspricht nicht der Beschreibung',
+      'Falscher Artikel übergeben',
+      'Schaden wurde schon vor Übergabe bemerkt',
+    }.contains(selected);
+    final isDeposit =
+        selected == 'Kaution oder Sicherheitszahlung wird verlangt';
+    final title = isItemMismatch
+        ? 'Sichere Abbruch- und Support-Route'
+        : isDeposit
+            ? 'Keine Kaution oder Sicherheitszahlung leisten'
+            : 'Nichterscheinen neutral dokumentieren';
+    final guidance = isItemMismatch
+        ? 'Nimm oder übergib den Artikel nicht, wenn er wesentlich von der '
+            'Anzeige abweicht. Sichere die Situation und dokumentiere den '
+            'Artikel, Zubehör und die Abweichung. Die Meldung entscheidet '
+            'weder Schuld noch Geldfolgen.'
+        : isDeposit
+            ? 'Leiste keine Barzahlung, Kaution oder Sicherheitszahlung '
+                'außerhalb des vorgesehenen SIT-Ablaufs und teile keine '
+                'Zahlungsdaten im Chat. Besteht die Forderung fort, brich die '
+                'Übergabe sicher ab. Trust & Safety prüft neutral; es erfolgt '
+                'keine automatische Sperre oder Betrugsfeststellung.'
+            : 'Sende der Gegenpartei zuerst eine kurze Nachricht im SIT-Chat. '
+                'Der Server prüft den bestätigten Termin und einen vorhandenen '
+                'Kontaktversuch. Die Meldung löst keine automatische Schuld-, '
+                'Storno- oder 100%-Geldfolge aus.';
+    final checkboxKey = isItemMismatch
+        ? 'support_handover_safe_abort_acknowledged'
+        : isDeposit
+            ? 'support_handover_do_not_pay_acknowledged'
+            : 'support_handover_contact_attempt_acknowledged';
+    final checkboxValue = isItemMismatch
+        ? _handoverSafeAbortAcknowledged
+        : isDeposit
+            ? _handoverDoNotPayAcknowledged
+            : _handoverContactAttemptAcknowledged;
+    final checkboxText = isItemMismatch
+        ? 'Ich habe den Hinweis zum sicheren Nicht-Annehmen beziehungsweise '
+            'Nicht-Übergeben gelesen. *'
+        : isDeposit
+            ? 'Ich habe verstanden, dass ich keine Kaution oder '
+                'Sicherheitszahlung leisten soll. *'
+            : 'Ich habe der Gegenpartei zum erreichten Termin eine kurze '
+                'Nachricht im SIT-Chat gesendet. *';
+    return ListView(
+      key: const ValueKey('support_handover_exception_fields'),
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Text(guidance),
+        const SizedBox(height: 14),
+        _supportTextField(
+          controller: _descriptionController,
+          fieldKey: 'support_handover_exception_details',
+          label: 'Was ist konkret passiert? *',
+          hint:
+              'Beschreibe beobachtbare Fakten, Zeitpunkt und vorhandene Nachweise.',
+          maxLength: 1400,
+          minLines: 4,
+          maxLines: 8,
+        ),
+        CheckboxListTile(
+          key: ValueKey(checkboxKey),
+          value: checkboxValue,
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          title: Text(checkboxText),
+          onChanged: (value) => setState(() {
+            if (isItemMismatch) {
+              _handoverSafeAbortAcknowledged = value == true;
+            } else if (isDeposit) {
+              _handoverDoNotPayAcknowledged = value == true;
+            } else {
+              _handoverContactAttemptAcknowledged = value == true;
+            }
+          }),
+        ),
+        const Text(
+          'Der Eingang erstellt nur einen P1-Prüffall im internen Testmodus. '
+          'Übergabestatus, Buchungsstatus, Zahlung, Erstattung, Schuld und '
+          'Kontomaßnahmen bleiben unverändert.',
+          style: TextStyle(fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDescriptionStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final resolvedMainCategory =
@@ -2015,32 +2241,34 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                       ? _buildDsaNoticeFields()
                       : _isProductSafetySelection
                           ? _buildProductSafetyFields()
-                          : TextField(
-                              controller: _descriptionController,
-                              maxLength: 1400,
-                              maxLines: null,
-                              expands: true,
-                              textAlignVertical: TextAlignVertical.top,
-                              style: TextStyle(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.95)
-                                    : AppTheme.textPrimary(context),
-                                fontSize: 15,
-                                height: 1.5,
-                              ),
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Was ist passiert? Beschreibe die Situation so genau wie möglich …',
-                                hintStyle: TextStyle(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.35)
-                                      : AppTheme.textDisabled(context),
-                                  fontSize: 15,
+                          : _isHandoverExceptionSelection
+                              ? _buildHandoverExceptionFields()
+                              : TextField(
+                                  controller: _descriptionController,
+                                  maxLength: 1400,
+                                  maxLines: null,
+                                  expands: true,
+                                  textAlignVertical: TextAlignVertical.top,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.95)
+                                        : AppTheme.textPrimary(context),
+                                    fontSize: 15,
+                                    height: 1.5,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        'Was ist passiert? Beschreibe die Situation so genau wie möglich …',
+                                    hintStyle: TextStyle(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.35)
+                                          : AppTheme.textDisabled(context),
+                                      fontSize: 15,
+                                    ),
+                                    contentPadding: const EdgeInsets.all(18),
+                                    border: InputBorder.none,
+                                  ),
                                 ),
-                                contentPadding: const EdgeInsets.all(18),
-                                border: InputBorder.none,
-                              ),
-                            ),
                 ),
               ),
             ),
@@ -2151,16 +2379,35 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                 safetyGuidanceAcknowledged: _productSafetyGuidanceAcknowledged,
               )
             : null,
+        handoverSafeAbortAcknowledged: _handoverSafeAbortAcknowledged,
+        handoverDoNotPayAcknowledged: _handoverDoNotPayAcknowledged,
+        handoverContactAttemptAcknowledged: _handoverContactAttemptAcknowledged,
       );
-      final submitter = widget.submitter ??
-          (intake, idempotencyKey) => BackendRepository.createSupportCase(
-                intake: intake,
-                idempotencyKey: idempotencyKey,
-              );
-      final supportCase = await submitter(
-        draft.toBackendInput(),
-        _submissionIdempotencyKey,
-      );
+      final Map<String, dynamic> supportCase;
+      if (draft.handoverExceptionKind != null) {
+        final submitter = widget.handoverExceptionSubmitter ??
+            (bookingId, intake, idempotencyKey) =>
+                BackendRepository.reportHandoverException(
+                  bookingId: bookingId,
+                  intake: intake,
+                  idempotencyKey: idempotencyKey,
+                );
+        supportCase = await submitter(
+          widget.context.requestId.trim(),
+          draft.toHandoverExceptionInput(),
+          _submissionIdempotencyKey,
+        );
+      } else {
+        final submitter = widget.submitter ??
+            (intake, idempotencyKey) => BackendRepository.createSupportCase(
+                  intake: intake,
+                  idempotencyKey: idempotencyKey,
+                );
+        supportCase = await submitter(
+          draft.toBackendInput(),
+          _submissionIdempotencyKey,
+        );
+      }
       final result = draft.withCanonicalCase(supportCase);
       if (!mounted) return;
       await showDialog<void>(
