@@ -173,6 +173,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
       });
     } catch (e) {
       // just fallback to empty; DataService already logs critical errors when needed
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
@@ -218,6 +219,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
       await DataService.setCurrentUser(updated);
       if (!mounted) return;
       await AppPopup.toast(context, icon: Icons.check_circle_outline, title: l10n.t('Gespeichert'));
+      if (!mounted) return;
       Navigator.of(context).maybePop();
     } catch (e) {
       debugPrint('[ProfileInfo] save failed: $e');
