@@ -71,6 +71,7 @@ node tool/validate_operational_delegation.mjs
 
 node --check tool/validate_p0a_closed_pilot_readiness.mjs
 node --test test/tool/validate_p0a_closed_pilot_readiness.test.mjs
+node --test test/tool/p0a_web_smoke_readiness.test.mjs
 node tool/validate_p0a_closed_pilot_readiness.mjs
 
 node --check tool/validate_p0b_pilot_dossier.mjs
