@@ -904,3 +904,34 @@ The initial monolithic run reproduced `TD-RR-002`. S4J now owns a fresh
 app/limiter test instance rather than an IP, limit or timing workaround and
 passed twice from fresh databases. Whole-suite limiter isolation, Flutter
 parallelism and automated PostgreSQL lifecycle remain open release debt.
+
+## S4K server-authoritative booking address reveal
+
+`S4K_BOOKING_EXACT_ADDRESS_REVEAL` implements the non-live portion of Drive
+scenarios `SUP-046` through `SUP-048` at exact commit
+`59d8f1eee2d72111d1bc97034bf2114123897622`. One participant-only endpoint
+decides pickup or return visibility from counterparty confirmation,
+booking-local date, server clock, workflow state and safety truth. More than
+six hours before the appointment remains hidden; late effective confirmation
+inside the window reveals immediately. Outsider and missing booking are
+indistinguishable.
+
+Migration `061` requires minimized exact audit shapes, validates a successful
+reveal against current database truth, prevents address/coordinate/party data
+in metadata and refuses destructive rollback. Product UI no longer treats its
+local clock or ongoing state as authority. Pickup and return use separate
+segments, and structured chat location sharing fails closed with the same
+server decision.
+
+Focused tests, Privacy/Retention/P0B protections, successful fresh PostgreSQL
+16 runs, 561 Backend passes plus one expected skip, accepted analyzer baseline,
+373 Flutter tests with one documented skip, Google-only coverage, Web
+build/smoke and Android debug APK pass locally. P0B remains `HOLD` / `NO-GO`;
+GitHub push and CI are not claimed because the stored CLI credential is
+expired. No production, Payment, Store, Cloud/VPS/DNS, signed candidate,
+deployment, PR merge or public activation is enabled.
+
+No timing, limiter or request-source workaround became a prerequisite. The
+final gate used a fresh database and injected-clock boundary tests. Existing
+temporary Node, Flutter serialism, manual PostgreSQL orchestration and bounded
+fixture-cleanup proof stay in the open release-debt register.

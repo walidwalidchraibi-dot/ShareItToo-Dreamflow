@@ -49,6 +49,20 @@ claimed until every item below has reproducible evidence and is closed.
   PostgreSQL instance still required manual lifecycle commands. These runs do
   not close `TD-RR-003` or `TD-RR-004`; neither accommodation may be part of the
   release-ready path.
+- 22.08.2026, S4K: the first PostgreSQL address-window run exposed a real
+  timezone defect: the JavaScript PostgreSQL client represented SQL `DATE`
+  values as instants and the local timezone shifted the policy date backward.
+  The product query now reads those values explicitly as calendar-date text;
+  focused and fresh PostgreSQL tests cover the booking-local-date comparison.
+  This is a source fix, not a timing workaround.
+- 22.08.2026, S4K: the final full gate passed without sleeps, limiter changes,
+  request-source rotation or clock-bound waiting. The exact boundary tests use
+  injected clocks and the integration uses database-checked appointment truth.
+  Temporary database/log fixtures were stopped and moved to Trash. Manual
+  PostgreSQL setup, temporary Node resolution, Flutter concurrency one and the
+  required two-run bounded-disk proof remain open under `TD-RR-001`,
+  `TD-RR-003`, `TD-RR-004` and `TD-RR-005`; this successful package does not
+  close them.
 
 ## Closure rule
 

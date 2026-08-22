@@ -1378,3 +1378,35 @@ S4J reproducibly exposed the monolithic general-limit collision. It now uses a
 fresh app/limiter instance without limit changes, IP rotation or waits and
 passed twice from fresh databases. `TD-RR-002`, `TD-RR-003` and `TD-RR-004`
 remain open and must close before release readiness.
+
+## S4K server-authoritative booking address reveal
+
+`S4K_BOOKING_EXACT_ADDRESS_REVEAL` is locally verified at exact implementation
+commit `59d8f1eee2d72111d1bc97034bf2114123897622` for Drive scenarios
+`SUP-046` through `SUP-048`. Exact pickup/return address access now requires a
+participant, distinct counterparty confirmation, booking-local date match, an
+eligible workflow state, the server-side six-hour window and no safety hold.
+Late confirmation inside the window reveals immediately. Outsiders receive a
+non-enumerating `404` and every outcome is minimally audited.
+
+Migration `061` independently validates current reveal truth, forbids address,
+coordinates and participant IDs in audit metadata and refuses rollback while
+evidence exists. Backend-enabled clients fail closed when server authority is
+unavailable. Upcoming and return stages use separate segments; exact text, map
+links and structured chat location sharing remain locked otherwise. SQL dates
+are read as calendar text to avoid local-timezone day drift.
+
+Local verification passed 13 focused Node tests, seven focused Flutter tests,
+58 Privacy/Retention tests, 37 P0B tests, successful fresh PostgreSQL 16 runs,
+561 Backend tests plus one expected skip, the accepted 220-issue analyzer
+baseline, 373 Flutter tests with one documented skip, Google-only coverage,
+Web build/smoke and Android debug APK. P0B remains PSP `0/8 HOLD` and pilot
+`0/4 HOLD` / `NO-GO`. GitHub push/CI is not claimed because the stored CLI
+credential is expired; Draft PR #7 remains unmerged. No production, Payment,
+Store, Cloud/VPS/DNS, signing, deployment, PR merge or public activation
+occurred.
+
+No new rate-limit, timing or request-source workaround was accepted. Manual
+PostgreSQL lifecycle, temporary Node resolution, Flutter serial execution and
+bounded temp-fixture proof remain open release debt; S4K does not claim release
+readiness.
