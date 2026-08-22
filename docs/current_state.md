@@ -1975,3 +1975,23 @@ direct 448-task Android debug build.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AK search-results async-context ratchet
+
+`S4AK_SEARCH_RESULTS_ASYNC_CONTEXT_RATCHET` is locally verified at commit
+`204e60f`. Search-result Wishlist actions now recheck their owning State after
+the initial Wishlist lookup and after manage-option selection before later
+context access. Wishlist data, filtering, search results and navigation behavior
+are unchanged.
+
+The exact analyzer snapshot ratcheted `194 -> 191`, with
+`use_build_context_synchronously` `72 -> 69` and the search-results bucket
+`3 -> 0`; all other buckets remained identical. Five focused Wishlist/search
+lifecycle source contracts, nine focused catalog/saved-item Flutter tests and
+the complete clean local metadata gate passed at
+`204e60f08c7fd366c919db73f6d6a7be0445a0f5` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.

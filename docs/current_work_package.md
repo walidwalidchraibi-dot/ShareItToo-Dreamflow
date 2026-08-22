@@ -1438,3 +1438,22 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AK search-results async-context ratchet
+
+`S4AK_SEARCH_RESULTS_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `204e60f`. Search-result Wishlist actions
+now recheck their screen lifecycle after the initial Wishlist lookup and after
+manage-option selection before opening add, manage or move UI. Wishlist data,
+filtering, search results and navigation behavior are unchanged.
+
+The exact debt snapshot moves `194 -> 191`, and only the intended
+`use_build_context_synchronously` search-results bucket changes. Five focused
+Wishlist/search lifecycle source contracts, nine focused catalog/saved-item
+Flutter tests and the complete clean local metadata gate pass with the new exact
+fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.
