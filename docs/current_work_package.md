@@ -1295,12 +1295,13 @@ open-source Basic Cache, and replaces Flutter's retrying APK command with one
 direct checksum-bound Gradle `assembleDebug` invocation.
 
 Ten focused contracts, the direct build and the complete clean implementation
-gate pass locally. GitHub must still prove a cold PR cache write and later
-restore without rerun-after-failure, sleep, retry or alternate mirror.
+gate pass locally. Exact GitHub run `32593274378` also passed without rerun,
+wrote its cold PR-scoped Basic Cache (`0 restored, 1 saved`) and executed one
+direct `:app:assembleDebug` with no Flutter APK retry path.
 
-`TD-RR-011` remains open. P0B remains `HOLD` / `NO-GO`; no production,
-Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
-is enabled.
+`TD-RR-011` remains open only for the later restored-cache proof. P0B remains
+`HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
+signing, merge or public activation is enabled.
 
 ## S4AD listing-options async-context ratchet
 

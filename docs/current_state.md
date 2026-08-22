@@ -1827,9 +1827,14 @@ implementation-head local metadata gate passed at
 Flutter tests plus one documented skip, Google-only, Web build/smoke and one
 direct Android debug build. SIT temp roots remained zero.
 
-`TD-RR-011` remains open for exact GitHub cold-cache-write and restored-cache
-proof without retry or pass-on-rerun. P0B remains `HOLD` / `NO-GO`, with no
-live boundary changed.
+Exact post-remediation GitHub run `32593274378` then passed on head `5f58368`
+without a rerun. Its Basic Cache reported `0 restored, 1 saved`, and its log
+contained exactly one direct `:app:assembleDebug`, zero `flutter build apk` and
+zero `Retrying Gradle Build` lines.
+
+`TD-RR-011` remains open only for a later restored-cache GitHub proof with the
+same single-attempt contract. P0B remains `HOLD` / `NO-GO`, with no live
+boundary changed.
 
 ## S4AD listing-options async-context ratchet
 

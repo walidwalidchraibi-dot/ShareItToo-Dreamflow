@@ -1,6 +1,6 @@
 # S4AC Gradle single-attempt cache contract
 
-Status: locally verified, exact GitHub closure pending.
+Status: locally verified; cold GitHub cache write passed, restore pending.
 
 ## Canonical checks
 
@@ -20,11 +20,14 @@ not actual CI, Store or device evidence.
 
 ## GitHub acceptance
 
-Do not rerun failed run `32592388940` as a way to make it green. A new exact
-remediation commit must pass on its own. Record whether its Basic Cache entry is
-cold/written, then retain a later run that restores the PR-scoped entry. Neither
-run may depend on a sleep, loop, automatic retry, alternate Maven mirror,
-manual cache injection or paid cache provider.
+Failed run `32592388940` remains failed. New exact run `32593274378` passed
+without rerun, reported `0 restored, 1 saved`, and executed exactly one direct
+`:app:assembleDebug`; the log contained neither `flutter build apk` nor
+`Retrying Gradle Build`.
 
-This package does not close `TD-RR-011`; it implements its deterministic local
-path. P0B remains `HOLD` / `NO-GO`.
+Retain a later run that restores this PR-scoped entry. It may not depend on a
+sleep, loop, automatic retry, alternate Maven mirror, manual cache injection or
+paid cache provider.
+
+This package does not close `TD-RR-011`; restored-cache proof is still pending.
+P0B remains `HOLD` / `NO-GO`.
