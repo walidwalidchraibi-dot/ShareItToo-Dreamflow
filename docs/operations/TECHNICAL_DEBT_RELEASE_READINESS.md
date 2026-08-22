@@ -16,6 +16,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-005` | S4Q routes all twelve known leaking suites through scoped fail-closed cleanup and adds a twice-repeated parallel boundedness guard to the full gate. After recoverable historical cleanup, the focused guard and two complete technical regressions passed `0/0 KiB -> 0/0 KiB`; exact-commit CI is unavailable. | Retain green exact-commit CI running the same boundedness guard with no orphaned `sit-*` fixture directories. Manual cleanup, a larger disk, alternate temp root or serial execution cannot be acceptance evidence. |
 | `TD-RR-006` | S4U retains a clean-head proof of the single persisted issuance clock, exact 30-minute derived expiry and independently validated database bound. Five focused units and two fresh PostgreSQL 16 integrations passed at `db92a8c` with temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-commit PostgreSQL 16 CI with the same source, exact-lifetime unit and migration/API constraint. No sleep, retry, clock wait, relaxed bound, reused database or manual schema may appear in the evidence. |
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
+| `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 
 ## Observation log
 
@@ -189,6 +190,15 @@ claimed until every item below has reproducible evidence and is closed.
   overrides and noncanonical database execution. This implements the local
   deterministic part of `TD-RR-006`; exact-commit CI remains required for
   formal closure.
+- 22.08.2026, S4V: the P0A Web smoke's fixed port `18765`, twenty-attempt curl
+  loop and fixed `sleep 0.1` were removed. The repository-owned Python helper
+  now binds an OS-selected `127.0.0.1` port synchronously and performs one
+  request for each of the three current-source artifacts. Three focused tests,
+  the complete clean implementation-head local metadata gate and five further
+  consecutive real smokes passed at
+  `1d6aeda04a272648ae5fdea98f7b8a94f5a85a9f`. The ten-second request timeout
+  fails closed and cannot retry. This implements the local deterministic part
+  of `TD-RR-008`; exact-commit CI remains required for formal closure.
 
 ## Closure rule
 

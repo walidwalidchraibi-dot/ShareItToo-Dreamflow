@@ -1153,3 +1153,24 @@ cleanup is accepted. `TD-RR-006` remains formally open only for exact-commit CI
 evidence on PostgreSQL 16. P0B remains `HOLD` / `NO-GO`; no production,
 Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
 is enabled.
+
+## S4V P0A Web smoke bound readiness
+
+`S4V_P0A_WEB_SMOKE_BOUND_READINESS` implements the local `TD-RR-008` exit path
+at commit `1d6aeda`. The P0A Web smoke no longer starts a fixed-port server and
+waits through twenty curl attempts with `sleep 0.1`. The repository-owned
+helper binds an OS-selected loopback port before its serving thread starts and
+fetches each required current-source artifact exactly once.
+
+The committed three-test contract locks loopback-only binding, OS-selected
+default port, one request per artifact, positive and fail-closed manifest
+behavior, and the absence of sleep, retry, curl polling and the old port. Five
+consecutive real smokes and the complete clean implementation-head local
+metadata gate pass; analyzer baseline 220, 379 Flutter tests plus one documented
+skip, Google-only, Web build/smoke and Android debug remain green.
+
+The request timeout is a fail-closed bound, not a rerun path. No fixed default
+port, startup wait, retry, pass-on-rerun or external server is accepted.
+`TD-RR-008` remains formally open only for exact-commit CI evidence. P0B remains
+`HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
+signing, merge or public activation is enabled.

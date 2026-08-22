@@ -1671,3 +1671,24 @@ Web/loopback smoke and Android debug.
 The local deterministic portion of `TD-RR-006` is implemented. Formal closure
 still requires retained green exact-commit CI on PostgreSQL 16. P0B remains
 `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4V P0A Web smoke bound readiness
+
+`S4V_P0A_WEB_SMOKE_BOUND_READINESS` is locally verified at implementation
+commit `1d6aeda`. The current-source Web smoke no longer depends on fixed port
+`18765`, a twenty-attempt curl loop or `sleep 0.1`. Its repository-owned helper
+binds an OS-selected `127.0.0.1` port synchronously before serving, then requests
+`index.html`, `main.dart.js` and `manifest.json` exactly once each.
+
+The ten-second request timeout fails closed and never triggers a retry. A
+committed contract also rejects the former fixed port, sleep and polling path,
+proves a real fixture and rejects a non-SIT manifest. All three focused tests,
+five consecutive current-source smokes and the complete clean implementation
+gate passed at `1d6aeda04a272648ae5fdea98f7b8a94f5a85a9f`; the full gate retained
+analyzer baseline 220, 379 Flutter tests plus one documented skip, Google-only,
+Web build/smoke and Android debug. General SIT temp roots remained zero.
+
+The local deterministic portion of `TD-RR-008` is implemented. Formal closure
+still requires retained green exact-commit CI. P0B remains `HOLD` / `NO-GO`,
+and no production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or
+public activation occurred.
