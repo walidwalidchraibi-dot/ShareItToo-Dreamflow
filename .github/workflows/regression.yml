@@ -75,7 +75,7 @@ jobs:
 
       - name: Audit dependencies and tracked Git history
         run: |
-          pnpm audit --prod --audit-level=high
+          pnpm run security:audit
           pnpm run security:secrets
 
       - name: Validate production and staging Compose plans
