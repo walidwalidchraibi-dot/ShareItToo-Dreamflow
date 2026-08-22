@@ -2038,3 +2038,25 @@ debug build. Privacy remains honestly draft and fail-closed.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AN owner-detail time/overflow async-context ratchet
+
+`S4AN_OWNER_DETAIL_TIME_OVERFLOW_ASYNC_CONTEXT_RATCHET` is locally verified at
+commit `b4ac1d1`. Owner appointment management now checks its owning State after
+flow-state loading and after accepted or newly requested time persistence. The
+owner overflow route checks its exact builder context after menu selection and
+again after cancellation status and timeline mutations. Appointment,
+cancellation, timeline, quote, booking, handover/return, item-detail and
+navigation behavior are unchanged.
+
+The exact analyzer snapshot ratcheted `182 -> 175`, with
+`use_build_context_synchronously` `60 -> 53` and the owner-detail context bucket
+`17 -> 10`; all other buckets remained identical. Thirty-four focused
+source/analyzer/privacy contracts, 96 focused Flutter tests, the privacy and
+retention validators and the complete clean local metadata gate passed at
+`b4ac1d1325d513103f6fe87c10e8306ec8ef0986` with 384 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and one direct 448-task Android
+debug build. Privacy remains honestly draft and fail-closed.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
