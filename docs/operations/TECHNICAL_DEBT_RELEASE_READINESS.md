@@ -29,6 +29,12 @@ claimed until every item below has reproducible evidence and is closed.
 - 22.08.2026, S4H: PostgreSQL 16 verification again required a manually created
   scoped data directory and loopback port. Successful cleanup is operational
   hygiene, not deterministic runner evidence; `TD-RR-004` remains open.
+- 22.08.2026, S4I: the standard HTTP integration passed after adding the two
+  content-guard requests without another limiter exemption, changed limit or
+  new request-source rotation. This is positive package evidence but does not
+  close `TD-RR-002`; the suite still needs repository-owned isolated limiter
+  state and separate repeatable threshold tests. The fresh PostgreSQL 16
+  instance was again started manually, so `TD-RR-004` also remains open.
 
 ## Closure rule
 

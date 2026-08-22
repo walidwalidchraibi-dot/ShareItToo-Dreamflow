@@ -1321,3 +1321,30 @@ candidate or public activation occurred.
 The S4H rate-limit observation is recorded under open `TD-RR-002`. No limiter
 bypass or request-source workaround became a prerequisite; deterministic HTTP
 test isolation still must close before release readiness.
+
+## S4I minimized support-message content guard
+
+`S4I_SUPPORT_MESSAGE_CONTENT_GUARD` is locally verified at exact implementation
+commit `0f4ae3842b37945b31341ac1ae7d6c5265d185eb` for Drive scenarios `SUP-044`
+and `SUP-045`. Secret/API-key patterns and direct personal-data patterns in
+caller-supplied support variables are rejected before rendering. Generic
+messages and progress-update drafts share the same versioned guard.
+
+The rejected transaction creates no message or case event. A separate
+append-only audit records only content class, placeholder, template, detector
+version and explicit false storage/message/delivery effects. Migration `059`
+enforces the exact eight-key minimized payload and refuses extra raw content,
+unsupported actors, mutation and destructive rollback with retained evidence.
+
+Focused tests, 60 Privacy/Retention protection tests, two fresh PostgreSQL 16
+integration runs through migration `059`, 551 Backend tests plus one expected
+skip, accepted 220-issue analyzer baseline, 370 Flutter tests with one
+documented skip, Google-only coverage, Web build/smoke and Android debug APK are
+green locally. P0B remains PSP `0/8 HOLD` and pilot `0/4 HOLD` / `NO-GO`.
+GitHub push/CI is not claimed because the stored CLI credential is expired;
+Draft PR #7 remains unmerged. No external message, production, Payment, Store,
+Cloud/VPS/DNS, signed candidate or public activation occurred.
+
+No new limiter or timing workaround was introduced. `TD-RR-002` and
+`TD-RR-004` remain open until the repository provides isolated limiter tests
+and an automatically cleaned, version-pinned PostgreSQL runner.

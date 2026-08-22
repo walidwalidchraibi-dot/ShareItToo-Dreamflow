@@ -847,3 +847,29 @@ The added S4H HTTP-heavy test path exposed the suite-wide limiter bucket. It
 was not papered over with IP rotation or higher limits: workflow integration
 keeps S4H deterministic while `TD-RR-002` remains open until the HTTP harness
 and real limiter thresholds are isolated and repeatedly reproducible.
+
+## S4I minimized support-message content guard
+
+`S4I_SUPPORT_MESSAGE_CONTENT_GUARD` implements the non-live portion of Drive
+scenarios `SUP-044` and `SUP-045` at exact commit
+`0f4ae3842b37945b31341ac1ae7d6c5265d185eb`. The versioned message guard
+distinguishes Secret from personal-data patterns and rejects either before any
+template render, message record, case event or delivery.
+
+After the failed message transaction rolls back, the authenticated route
+persists one separate minimized audit row. It contains no submitted value or
+value hash. Migration `059` requires the exact class/field/template/version and
+false input-storage, message and external-delivery flags; extra metadata,
+unsupported actors, mutation and rollback with retained evidence fail closed.
+
+Focused tests, Privacy/Retention validators, two fresh PostgreSQL 16 runs, 551
+Backend passes plus one expected skip, accepted analyzer baseline, 370 Flutter
+tests with one documented skip, Google-only coverage, Web build/smoke and
+Android debug APK pass locally. P0B remains `HOLD` / `NO-GO`; GitHub push and
+CI are not claimed because the stored CLI credential is expired. No live
+support, external message, production, Payment, Store, Cloud/VPS/DNS, signed
+candidate, deployment, PR merge or public activation is enabled.
+
+The two additional HTTP checks passed without adding a limiter exemption or
+request-source workaround. This does not close the pre-existing `TD-RR-002` or
+manual-database `TD-RR-004` exit criteria.
