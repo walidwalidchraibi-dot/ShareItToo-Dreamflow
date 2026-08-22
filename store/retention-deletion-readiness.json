@@ -333,7 +333,7 @@
     },
     {
       "path": "backend/sql/migrations/046_support_article18_authority_referral_guard.up.sql",
-      "sha256": "6236fff1c0bac47682811b5cdfee291ffdce6411d77d6722222a512ad6090799"
+      "sha256": "c3b36a9ff8b208a0fa5c0fb3b0567c7c09d0f99a69a0c429ab573973a720933d"
     },
     {
       "path": "backend/sql/migrations/046_support_article18_authority_referral_guard.down.sql",

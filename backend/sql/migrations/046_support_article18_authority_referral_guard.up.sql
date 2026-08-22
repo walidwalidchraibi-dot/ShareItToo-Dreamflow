@@ -52,7 +52,7 @@ CREATE TABLE support_article18_assessments (
   reviewer_authorization_evidence_ref TEXT NOT NULL CHECK (
     char_length(reviewer_authorization_evidence_ref) BETWEEN 12 AND 300
     AND reviewer_authorization_evidence_ref
-      ~ '^[A-Za-z0-9][A-Za-z0-9_.:-]{11,299}$'
+      ~ '^[A-Za-z0-9][A-Za-z0-9_.:-]+$'
   ),
   reviewer_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   reviewer_session_id UUID NOT NULL,

@@ -49,6 +49,11 @@ test('SUP-122 dispatch route denies normal agents and stays disabled for admins'
   assert.match(migration, /external_delivery_allowed BOOLEAN NOT NULL DEFAULT false/u);
   assert.match(migration, /CHECK \(NOT external_delivery_allowed\)/u);
   assert.match(migration, /external_delivery_status = 'disabled_not_configured'/u);
+  assert.match(
+    migration,
+    /char_length\(reviewer_authorization_evidence_ref\) BETWEEN 12 AND 300/u,
+  );
+  assert.doesNotMatch(migration, /\{11,299\}/u);
 });
 
 test('restricted assessment evidence is retention-inventoried but omitted from automatic self-service export', () => {
