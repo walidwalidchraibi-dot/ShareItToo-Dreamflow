@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "422f91cb460a95a3a67dc0a14c6da9a8b3d053d15dee427ab7b774f93db53dd9"
+      "sha256": "c6b71aa13281503ff682eafe7d0f9269a2ef0473c92772a3237b6d09620d511d"
     },
     {
       "path": "backend/src/server.js",

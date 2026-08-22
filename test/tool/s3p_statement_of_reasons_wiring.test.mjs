@@ -19,7 +19,7 @@ test('S3P wires exact reasons from admin input to the authenticated user surface
   );
   assert.match(
     app,
-    /app\.post\('\/v1\/moderation\/decisions\/:id\/review'[\s\S]*?actionLimiter[\s\S]*?private, no-store/u,
+    /app\.post\('\/v1\/moderation\/decisions\/:id\/review'[\s\S]*?moderationReviewLimiter[\s\S]*?private, no-store/u,
   );
   assert.match(repository, /path: '\/moderation\/decisions'/u);
   assert.match(
