@@ -41,7 +41,15 @@ test('substantiated cases keep five-day response and recurring seven-day updates
   assert.match(workflow, /kind: 'return_case_opened'/);
   assert.match(workflow, /kind: 'return_case_response_due'/);
   assert.match(workflow, /kind: 'return_case_status_update'/);
-  assert.match(workflow, /intervals \* 7 \* DAY_MS/);
+  assert.match(
+    workflow,
+    /let next = addReturnPolicyCalendarDays\(dueAt, 7, timezone\)/,
+  );
+  assert.match(
+    workflow,
+    /while \(next <= now\) next = addReturnPolicyCalendarDays\(next, 7, timezone\)/,
+  );
+  assert.match(workflow, /deadlineTimezone = returnPolicyTimeZone/);
   assert.match(workflow, /booking_case\.status <> 'closed'/);
   assert.doesNotMatch(workflow, /UPDATE booking_cases[\s\S]*SET status = 'closed'/);
 });
