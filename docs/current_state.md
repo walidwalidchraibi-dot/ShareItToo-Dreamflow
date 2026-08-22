@@ -67,7 +67,7 @@ Verified: 2026-08-22 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with verified PostgreSQL migrations through `042`,
+- Node/Express backend with verified PostgreSQL migrations through `043`,
   deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
@@ -187,6 +187,19 @@ Verified: 2026-08-22 on the Mac mini.
   measure: those remain behind explicit human red review. Public/guest access,
   legal/operator approval, production, payment, Store, signed candidate and
   live paths remain closed.
+- S3O is technically verified at exact implementation commit
+  `0c8724c3ba05b4b2afd8622087ae00970b573a8e` and successful GitHub Actions run
+  `32539524697`. It addresses Drive scenarios `SUP-113` and `SUP-114` by
+  creating the Notice ID and immutable original evidence before locator
+  completeness review. Missing or descriptive locators remain retained as
+  `needs_clarification`; the authenticated reporter can append an exact,
+  version-bound locator without rewriting the original notice. Migration `043`
+  makes amendments append-only and independently guards completion. All 449
+  Backend tests including PostgreSQL 16.14 and the complete 354-test Flutter
+  suite with one documented skip passed, together with Web smoke/build and
+  Android debug build. Locator status remains a completeness signal only; no
+  illegality decision, content measure, external delivery, production,
+  payment, Store, signed candidate or live operation is enabled.
 - C1G binds neutral transactional FCM, separate opt-in Crashlytics, fail-closed
   external provider activation and the privacy/retention inventories.
 - C1H binds an immutable server category allowlist, private-marketplace and

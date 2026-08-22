@@ -210,6 +210,22 @@ debug build passed. Public/guest accessibility, legal/operator approval,
 Statement of Reasons delivery, production, payment, Store, signed candidate
 and live operation remain closed.
 
+`S3O_DSA_NOTICE_LOCATOR_COMPLETION` is technically verified at exact
+implementation commit `0c8724c3ba05b4b2afd8622087ae00970b573a8e` and
+successful GitHub Actions run `32539524697`. It addresses Drive scenarios
+`SUP-113` and `SUP-114`: a valid DSA notice now receives its Notice ID and
+immutable receipt before locator completeness review. Missing or descriptive
+locator input is retained as `needs_clarification` with a targeted
+reporter-only prompt. The reporter may later append one exact, version-bound
+locator without overwriting the original evidence. Migration `043` makes the
+amendment append-only and independently guards the derived completion state.
+All 449 Backend tests including PostgreSQL 16.14 and the complete 354-test
+Flutter suite with one documented skip passed; the separate Google-only test,
+Web smoke/build and Android debug build also passed. Locator classification is
+a completeness signal only and cannot decide illegality or execute a content
+measure. Public/guest access, legal/operator approval, production, payment,
+Store, signed candidate and live operation remain closed.
+
 ## Prior ordered post-P0B gate close
 
 ## Gate progress
