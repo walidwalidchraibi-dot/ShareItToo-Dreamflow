@@ -1348,3 +1348,33 @@ Cloud/VPS/DNS, signed candidate or public activation occurred.
 No new limiter or timing workaround was introduced. `TD-RR-002` and
 `TD-RR-004` remain open until the repository provides isolated limiter tests
 and an automatically cleaned, version-pinned PostgreSQL runner.
+
+## S4J atomic non-acute harassment block-report
+
+`S4J_NON_ACUTE_HARASSMENT_BLOCK_REPORT` is locally verified at exact
+implementation commit `3aff92398633876605db1b51c29207cad99e1e84` for Drive
+scenario `SUP-094`. The harassment UI now requires an explicit danger answer.
+Immediate danger or uncertainty shows 110/112 guidance, states that SIT is not
+an emergency service and cannot enter the ordinary report path.
+
+Confirmed non-acute intake uses a dedicated server-owned reason/priority path.
+Report creation, direct-contact blocking, thread archival and minimized audit
+commit atomically. The report remains open for neutral review, with explicit
+false guilt, account-measure and external-action effects. Generic harassment
+reports, drifted replays, mismatched active reports and forged database receipts
+fail closed. Migration `060` is append-only and rollback-guarded.
+
+Local verification passed 12 focused tests, 68 Privacy/Retention tests, 11 P0B
+gate tests, two consecutive fresh PostgreSQL 16 integrations, 553 Backend tests
+plus one expected skip, the accepted 220-issue analyzer baseline, 372 Flutter
+tests with one documented skip, separate Google-only coverage, Web build/smoke
+and Android debug APK. P0B remains PSP `0/8 HOLD` and pilot `0/4 HOLD` /
+`NO-GO`. GitHub push/CI is not claimed because the stored CLI credential is
+expired; Draft PR #7 remains unmerged. No live safety/account action,
+production, Payment, Store, Cloud/VPS/DNS, signed candidate or public
+activation occurred.
+
+S4J reproducibly exposed the monolithic general-limit collision. It now uses a
+fresh app/limiter instance without limit changes, IP rotation or waits and
+passed twice from fresh databases. `TD-RR-002`, `TD-RR-003` and `TD-RR-004`
+remain open and must close before release readiness.

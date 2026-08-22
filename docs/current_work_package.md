@@ -873,3 +873,34 @@ candidate, deployment, PR merge or public activation is enabled.
 The two additional HTTP checks passed without adding a limiter exemption or
 request-source workaround. This does not close the pre-existing `TD-RR-002` or
 manual-database `TD-RR-004` exit criteria.
+
+## S4J atomic non-acute harassment block-report
+
+`S4J_NON_ACUTE_HARASSMENT_BLOCK_REPORT` implements the non-live portion of
+Drive scenario `SUP-094` at exact commit
+`3aff92398633876605db1b51c29207cad99e1e84`. Immediate danger or uncertainty
+is diverted to 110/112 guidance and rejected by the normal server path. A
+literal non-acute confirmation uses a dedicated endpoint whose harassment
+reason and normal priority are server-owned.
+
+One transaction creates or safely reuses the open neutral report, activates
+the reporter's direct-contact block and appends an exact minimized receipt.
+The receipt asserts no guilt, moderation account measure or external action.
+Generic user harassment reports cannot bypass the path; payload-bound replay
+and active-report checks prevent duplication or silent loss of changed details
+and evidence. Migration `060` enforces the linked report/block and exact
+eight-key audit payload and refuses destructive rollback.
+
+Focused tests, Privacy/Retention/P0B protections, two consecutive fresh
+PostgreSQL 16 integrations, 553 Backend passes plus one expected skip, accepted
+analyzer baseline, 372 Flutter tests with one documented skip, Google-only
+coverage, Web build/smoke and Android debug APK pass locally. P0B remains
+`HOLD` / `NO-GO`; GitHub push and CI are not claimed because the stored CLI
+credential is expired. No live safety/account action, production, Payment,
+Store, Cloud/VPS/DNS, signed candidate, deployment, PR merge or public
+activation is enabled.
+
+The initial monolithic run reproduced `TD-RR-002`. S4J now owns a fresh
+app/limiter test instance rather than an IP, limit or timing workaround and
+passed twice from fresh databases. Whole-suite limiter isolation, Flutter
+parallelism and automated PostgreSQL lifecycle remain open release debt.
