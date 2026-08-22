@@ -1844,27 +1844,28 @@ test('support migration defines fail-closed lifecycle, append-only truth and gua
 
 test('support routes and personal-data lifecycle stay authenticated, non-live and fail closed', async () => {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
-  const [app, privacyExport, retentionInventory] = await Promise.all([
+  const [app, rateLimitPolicy, privacyExport, retentionInventory] = await Promise.all([
     fs.readFile(path.resolve(currentDir, '../src/app.js'), 'utf8'),
+    fs.readFile(path.resolve(currentDir, '../src/rate_limit_policy.js'), 'utf8'),
     fs.readFile(path.resolve(currentDir, '../src/privacy_export.js'), 'utf8'),
     fs.readFile(path.resolve(currentDir, '../src/retention_inventory.js'), 'utf8'),
   ]);
   for (const route of [
-    "app.post('/v1/support/cases', requireAuth, requireActiveAccount, supportIntakeRateLimiter",
+    "app.post('/v1/support/cases', supportIntakeRateLimiter, requireAuth, requireActiveAccount",
     "app.get('/v1/support/cases', requireAuth, requireActiveAccount",
     "app.get('/v1/support/cases/:id', requireAuth, requireActiveAccount",
     "app.post('/v1/support/cases/:id/appeals', requireAuth, requireActiveAccount, actionLimiter",
   ]) assert.ok(app.includes(route), route);
   assert.match(
-    app,
-    /const supportIntakeLimiter = rateLimit\(\{ windowMs: 15 \* 60_000, limit: 10,/u,
+    rateLimitPolicy,
+    /supportIntake: Object\.freeze\(\{ windowMs: 15 \* 60_000, limit: 10 \}\)/u,
   );
   assert.match(
-    app,
-    /const supportSafetyIntakeLimiter = rateLimit\(\{ windowMs: 15 \* 60_000, limit: 30,/u,
+    rateLimitPolicy,
+    /supportSafetyIntake: Object\.freeze\(\{ windowMs: 15 \* 60_000, limit: 30 \}\)/u,
   );
   assert.match(
-    app,
+    rateLimitPolicy,
     /isProtectedSupportSafetyIntake\(req\.body\)[\s\S]*supportSafetyIntakeLimiter/u,
   );
   for (const route of [

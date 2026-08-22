@@ -828,7 +828,11 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "30086e2b64189eac62982a1b5d0a788298dfbba3a06250ec2030050f0ce6a93e"
+      "sha256": "48c8fe353d7629decbcd830b4fa8a5a5881b3b60d9f626ae792731b10a3791a6"
+    },
+    {
+      "path": "backend/src/rate_limit_policy.js",
+      "sha256": "66dc32d9bff571b43274982e9eca3e92c5f40d1cc10c0aafc78149554678113a"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

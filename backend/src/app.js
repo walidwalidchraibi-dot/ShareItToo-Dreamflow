@@ -182,7 +182,6 @@ import {
   SupportCaseError,
   transitionSupportCase,
 } from './support_case_workflow.js';
-import { isProtectedSupportSafetyIntake } from './support_safety_impact_domain.js';
 import {
   listSupportSafetyImpactReviews,
   recordSupportSafetyImpactReview,
@@ -296,6 +295,7 @@ import {
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
 import { addReturnPolicyCalendarDays } from './return_calendar_policy.js';
+import { createCoreRateLimiters } from './rate_limit_policy.js';
 import {
   errorPayload,
   requestContext,
@@ -1572,20 +1572,17 @@ export function createApp({
   app.use(express.urlencoded({ extended: false, limit: '20kb' }));
 
   const limitHandler = (req, res) => res.status(429).json(errorPayload(req, 'rate_limit_exceeded'));
-  const generalLimiter = rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const {
+    generalLimiter,
+    supportSafetyIntakeLimiter,
+    supportIntakeRateLimiter,
+  } = createCoreRateLimiters({ limitHandler });
   const registrationLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const loginLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const socialAuthLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const harassmentBlockReportLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
-  const supportIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
-  const supportSafetyIntakeLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
-  const supportIntakeRateLimiter = (req, res, next) => (
-    isProtectedSupportSafetyIntake(req.body)
-      ? supportSafetyIntakeLimiter(req, res, next)
-      : supportIntakeLimiter(req, res, next)
-  );
   const supportLegacyMigrationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceUploadLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceAccessLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -4207,7 +4204,7 @@ export function createApp({
     res.json({ reports: await listMyReports(pool, req.auth.userId) });
   }));
 
-  app.post('/v1/support/cases', requireAuth, requireActiveAccount, supportIntakeRateLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/support/cases', supportIntakeRateLimiter, requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => createSupportCase(client, {
       actor: req.actor,
       raw: req.body,
@@ -4218,7 +4215,7 @@ export function createApp({
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
-  app.post('/v1/bookings/:id/handover-exceptions', requireAuth, requireActiveAccount, supportSafetyIntakeLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/bookings/:id/handover-exceptions', supportSafetyIntakeLimiter, requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => reportHandoverException(client, {
       actor: req.actor,
       bookingId: req.params.id,

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const sourcePaths = [
   'backend/src/app.js',
+  'backend/src/rate_limit_policy.js',
   'backend/src/server.js',
   'backend/src/credential_cleanup.js',
   'backend/src/moderation_workflow.js',

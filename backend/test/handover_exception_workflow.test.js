@@ -189,7 +189,7 @@ test('authenticated HTTP wiring keeps the specialized route on the existing safe
   );
   assert.match(
     appSource,
-    /app\.post\('\/v1\/bookings\/:id\/handover-exceptions', requireAuth, requireActiveAccount, supportSafetyIntakeLimiter/u,
+    /app\.post\('\/v1\/bookings\/:id\/handover-exceptions', supportSafetyIntakeLimiter, requireAuth, requireActiveAccount/u,
   );
   assert.match(
     appSource,

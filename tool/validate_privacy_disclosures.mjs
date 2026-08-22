@@ -211,6 +211,7 @@ const sourcePaths = [
   'lib/openai/openai_config.dart',
   'lib/services/maps_service.dart',
   'backend/src/app.js',
+  'backend/src/rate_limit_policy.js',
   'tool/run_staging_synthetic_booking.mjs',
   'lib/screens/create_listing_screen.dart',
   'lib/screens/explore_screen.dart',
