@@ -644,3 +644,30 @@ and CI are pending because the stored GitHub CLI HTTPS credential expired; no
 new OAuth credential or SSH trust was created. Draft PR #7 remains unmerged and
 no production, real scanner, external AI, Payment, Store, Firebase Console,
 Cloud/VPS/DNS, signed candidate or public action was performed.
+
+## S4B support Trust & Safety guards
+
+`S4B_SUPPORT_TRUST_SAFETY_GUARDS` is locally verified at exact implementation
+commit `baa5dcc568eb55964fbc7bf3d803a7e11d9b081a` for Drive scenarios
+`SUP-106` through `SUP-112`. An elevated Administrator can record one bounded,
+immutable impact review for the exact prohibited/dangerous-item case types. It
+captures the linked listing and deterministic current/historical booking scope,
+excludes address, amount and participant identity, and executes no measure.
+
+A subsequent support decision must bind the newest review, exact case version
+and recommendation identifier, recheck unchanged current scope and enumerate
+the listing plus every action-relevant booking. Protected safety intake has a
+separate bounded limiter; blocked direct messaging remains denied while the
+canonical authenticated safety route works. Raw exception messages/objects are
+removed from covered operational logs, and audit/review update or deletion is
+rejected.
+
+Local verification passed 60 focused tests, 106 Privacy/Retention tests and
+validators, all 515 backend unit tests with one expected no-database skip, and
+the separate isolated PostgreSQL 16 integration through migration `052`. The
+complete technical regression passed the accepted analyzer baseline, 369
+Flutter tests with one documented skip, separate Google-only coverage, Web
+build/smoke and Android debug APK. GitHub push/CI remains pending because the
+stored HTTPS credential expired; no new trust was created. Real measures,
+authority/external delivery, production, Payment, Store, signed candidate,
+deployment, merge and public activation remain closed.

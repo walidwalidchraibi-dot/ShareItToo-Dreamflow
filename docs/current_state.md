@@ -1114,3 +1114,28 @@ stored GitHub CLI HTTPS credential expired after the local commit; no new access
 was created automatically. Draft PR #7 is not merged. Real scanner/provider,
 approved upload/Retention policy, signed candidate and every live, Store,
 Payment, production or public path remain closed.
+
+## S4B support Trust & Safety guards
+
+`S4B_SUPPORT_TRUST_SAFETY_GUARDS` is locally verified at exact implementation
+commit `baa5dcc568eb55964fbc7bf3d803a7e11d9b081a` for Support Matrix scenarios
+`SUP-106` through `SUP-112`. Migration `052` stores an append-only SHA-bound
+Administrator impact review for the exact prohibited/dangerous-item case types.
+It inventories one linked listing and bounded deterministic booking scope, but
+cannot change a listing, booking or account or contact a user/provider/authority.
+
+Safety decisions now require the latest exact review, current case version,
+matching recommendation, unchanged scope, all action-relevant entities and
+explicit unaffected areas. Genuine safety intake is isolated from the ordinary
+rate class, blocked peer contact remains blocked while canonical support stays
+available, and covered operational logs use safe codes rather than raw errors.
+
+Local verification passed 60 focused tests, 106 Privacy/Retention tests and
+validators, 515 backend tests with one expected no-database skip, isolated
+PostgreSQL 16 integration through migration `052`, the accepted analyzer
+baseline, 369 Flutter tests with one documented skip, separate Google-only
+coverage, Web build/smoke and Android debug APK. GitHub push/CI remains pending
+because the stored HTTPS credential expired; Draft PR #7 is unmerged. All real
+measures, professional/legal decisions, authority/external delivery,
+production, Payment, Store, signed candidate, deployment and public activation
+remain closed.
