@@ -18,7 +18,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 | `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
-| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y then guards all Wishlist selector async gaps and ratchets the exact backlog `220 -> 214` at `1958248`, with only `use_build_context_synchronously` decreasing `98 -> 92`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y and S4Z then guard Wishlist selector and popup navigator lifetimes, ratcheting the exact backlog `220 -> 214 -> 212`; `use_build_context_synchronously` alone decreases `98 -> 92 -> 90`, most recently at `e7b7f8f`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
 
 ## Observation log
 
@@ -231,6 +231,19 @@ claimed until every item below has reproducible evidence and is closed.
   metadata gate passed at `195824802b5edaf2c65d8b8ab611abfccae4b707`.
   `TD-RR-010` remains open for further reviewed reductions to zero and
   exact-commit CI.
+- 22.08.2026, S4Z: popup and toast timers now capture their root navigator
+  synchronously and require that it is still mounted. Dialog completion also
+  disarms the standard popup timer, preventing a manually dismissed popup from
+  popping a later route. Two focused widget tests and the complete clean
+  implementation-head local metadata gate passed at
+  `e7b7f8f586ec457ce90efe2cae118e0aa0279963`. The analyzer ratcheted exactly
+  `214 -> 212`, `use_build_context_synchronously` `92 -> 90`, and the popup
+  path bucket `2 -> 0`; every other bucket stayed unchanged. One exploratory
+  test/analyzer invocation encountered Flutter's process lock because those two
+  commands were launched together; it was discarded as evidence and both were
+  rerun sequentially before the clean full gate. Parallel Flutter commands are
+  not an accepted release prerequisite. `TD-RR-010` remains open for further
+  reviewed reductions to zero and exact-commit CI.
 
 ## Closure rule
 

@@ -1233,3 +1233,21 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4Z popup auto-close lifecycle ratchet
+
+`S4Z_POPUP_AUTO_CLOSE_LIFECYCLE_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `e7b7f8f`. Standard popup and toast timers
+no longer resolve a navigator from a `BuildContext` after their delay. The
+captured root navigator must still be mounted, and completing the popup disarms
+its timer so a later route cannot be popped accidentally.
+
+The exact debt snapshot moves `214 -> 212`, and only the intended
+`use_build_context_synchronously` popup bucket changes. Two focused widget tests
+and the complete clean implementation-head local metadata gate pass with the
+new exact fingerprint and 381 Flutter tests plus one documented skip.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.

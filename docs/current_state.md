@@ -1757,3 +1757,22 @@ debug. SIT temp roots remained zero.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4Z popup auto-close lifecycle ratchet
+
+`S4Z_POPUP_AUTO_CLOSE_LIFECYCLE_RATCHET` is locally verified at implementation
+commit `e7b7f8f`. Popup and toast timers now capture the root navigator before
+their asynchronous delay and require it to remain mounted. Completing or
+manually dismissing the standard popup disarms its timer, so it cannot pop a
+different route opened later.
+
+The exact analyzer snapshot ratcheted `214 -> 212`, with
+`use_build_context_synchronously` `92 -> 90` and the popup file's bucket
+`2 -> 0`; all other buckets remained identical. Two focused widget tests and
+the complete clean implementation-head local metadata gate passed at
+`e7b7f8f586ec457ce90efe2cae118e0aa0279963` with 381 Flutter tests plus one
+documented skip, Google-only, Web build/smoke and Android debug. SIT temp roots
+remained zero.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
