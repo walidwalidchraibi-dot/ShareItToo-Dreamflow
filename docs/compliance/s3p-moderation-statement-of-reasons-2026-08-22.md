@@ -1,7 +1,9 @@
 # S3P moderation Statement of Reasons - technical compliance record
 
-Status: locally verified on 22.08.2026; exact commit and GitHub Actions evidence
-are pending.
+Status: technically verified on 22.08.2026 at implementation commit
+`079dc0e139437a2c8b1732a5cd77a826b892d8c4`, follow-up rate-limit isolation
+commit `23b9cb84e0286215661e78ac67638eeedcd819d4` and successful GitHub Actions
+run `32542904176`.
 
 ## Implemented controls
 
@@ -25,7 +27,7 @@ are pending.
 - Privacy export and the retention inventory include the new dataset. The
   privacy and retention manifests remain draft and fail closed.
 
-## Local verification
+## Verification
 
 - Focused Backend domain/workflow tests: 17 passed. The complete Backend run
   passed 455 tests with the single PostgreSQL-only integration test skipped
@@ -39,9 +41,14 @@ are pending.
   documented skip, the separate Google-only test, Web build and loopback smoke,
   and Android debug build. The local run did not claim private historical AAB,
   physical-device or Store proof.
-- PostgreSQL migration `044`, complete Backend regression, dependency and
-  secret checks, Compose validation and API image build remain pending GitHub
-  CI evidence for the exact commit.
+- Exact-head GitHub Actions run `32542904176` passed all 456 Backend tests with
+  zero failures and zero skips on PostgreSQL 16.14, including migration `044`.
+  Dependency and tracked-history secret checks, production/staging Compose
+  validation and the commit-labelled API image build also passed.
+- The same run passed 358 Flutter tests with one documented skip, the separate
+  Google-only profile, Web build and loopback smoke, and Android debug build.
+  The private signed-candidate step was skipped and therefore supplies no
+  signed-device, Store or release evidence.
 
 ## Residual gates
 

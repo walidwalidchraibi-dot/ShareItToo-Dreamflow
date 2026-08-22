@@ -226,20 +226,25 @@ a completeness signal only and cannot decide illegality or execute a content
 measure. Public/guest access, legal/operator approval, production, payment,
 Store, signed candidate and live operation remain closed.
 
-`S3P_MODERATION_STATEMENT_OF_REASONS` is locally verified and awaiting its
-exact commit and GitHub Actions evidence. It addresses the technical core of
-Drive scenarios `SUP-115` through `SUP-119`: every new significant account,
+`S3P_MODERATION_STATEMENT_OF_REASONS` is technically verified at exact
+implementation commit `079dc0e139437a2c8b1732a5cd77a826b892d8c4`, follow-up
+rate-limit isolation commit `23b9cb84e0286215661e78ac67638eeedcd819d4` and
+successful GitHub Actions run `32542904176`. It addresses Drive scenarios
+`SUP-115` through `SUP-118`: every new significant account,
 function, listing or private-marketplace restriction and every reversal must
 commit one versioned, append-only Statement of Reasons with exact facts, basis,
 reasoning, origin, scope, duration and automation role. Migration `044`
 independently rejects a significant decision without its Statement and binds
 the human reviewer to the issuing Administrator. The authenticated user
 surface fails closed for incomplete legacy evidence but preserves the existing
-free electronic review route. Local Backend, Flutter, privacy, retention, P0B,
-Web and Android debug checks passed. Historical facts are not invented;
-independent review assignment, correction workflow, legal/operator approval,
-external transparency reporting, production, payment, Store, signed candidate
-and live operation remain closed.
+free electronic review route. All 456 Backend tests passed without skips on
+PostgreSQL 16.14; the complete 358-test Flutter suite passed with one documented
+skip together with the separate Google-only test, Web smoke/build, Android
+debug build, dependency/history checks, Compose validation and the API image
+build. The private signed-candidate step was not executed. Historical facts are
+not invented; independent review assignment, correction workflow,
+legal/operator approval, external transparency reporting, production, payment,
+Store, signed candidate and live operation remain closed.
 
 ## Prior ordered post-P0B gate close
 

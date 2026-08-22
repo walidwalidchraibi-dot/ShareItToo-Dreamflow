@@ -201,13 +201,19 @@ Verified: 2026-08-22 on the Mac mini.
   Android debug build. Locator status remains a completeness signal only; no
   illegality decision, content measure, external delivery, production,
   payment, Store, signed candidate or live operation is enabled.
-- S3P is locally verified and awaiting its exact implementation commit and
-  GitHub Actions run. It requires a versioned, append-only Statement of Reasons
+- S3P is technically verified at exact implementation commit
+  `079dc0e139437a2c8b1732a5cd77a826b892d8c4`, follow-up rate-limit isolation
+  commit `23b9cb84e0286215661e78ac67638eeedcd819d4` and successful GitHub Actions
+  run `32542904176`. It requires a versioned, append-only Statement of Reasons
   for every new significant moderation measure and reversal. The Statement is
   action-duration-bound, Administrator-issued and human-reviewed; fully
   automated significant decisions fail closed. Authenticated affected users
   receive exact confirmed facts, basis, reasoning, scope, duration, origin and
   automation disclosure plus the existing free electronic review route.
+  All 456 Backend tests passed without skips on PostgreSQL 16.14; 358 Flutter
+  tests passed with one documented skip together with the separate Google-only
+  test, Web smoke/build and Android debug build. The private signed-candidate
+  step was not executed, so it adds no device, Store or release evidence.
   Legacy gaps remain explicit rather than being backfilled. Independent review
   assignment, correction, professional legal approval, external transparency
   reporting and every production, payment, Store, signed-candidate or live path
