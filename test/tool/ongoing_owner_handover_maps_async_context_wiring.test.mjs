@@ -9,18 +9,18 @@ const source = readFileSync(
 const body = source.match(
   /Widget _buildOngoingBody[\s\S]*?\n  Future<void> _downloadReceiptPdf/u,
 )?.[0];
-const maps = source.match(
-  /Future<void> _openMaps[\s\S]*?\n  String _computeBookingId/u,
+const confirmedLocation = source.match(
+  /Future<void> _openConfirmedLocationUrl[\s\S]*?\n  Future<void> _openSupportFlow/u,
 )?.[0];
 const completion = source.match(
   /Future<void> _completeOwnerReturnWithSideEffects[\s\S]*?\n  Future<void> _startPickupFlowOwner/u,
 )?.[0];
 const pickup = source.match(
-  /Future<void> _startPickupFlowOwner[\s\S]*?\n  void _showQrOverlay/u,
+  /Future<void> _startPickupFlowOwner[\s\S]*?\n  Future<void> _showReviewSheet/u,
 )?.[0];
 
 assert.ok(body, 'expected owner detail body');
-assert.ok(maps, 'expected owner maps helper');
+assert.ok(confirmedLocation, 'expected confirmed-location helper');
 assert.ok(completion, 'expected owner return completion helper');
 assert.ok(pickup, 'expected owner pickup helper');
 
@@ -35,14 +35,11 @@ test('both handover starters prove the exact body context after time lookup', ()
   );
 });
 
-test('maps failure feedback requires the exact caller context', () => {
+test('confirmed-location launch remains active without the obsolete maps helper', () => {
+  assert.doesNotMatch(source, /Future<void> _openMaps\(/u);
   assert.match(
-    maps,
-    /final launched = await launchUrl\([\s\S]*?\);\s+if \(!context\.mounted\) return;\s+if \(!launched\) \{\s+_toast\(context,/u,
-  );
-  assert.match(
-    maps,
-    /catch \(_\) \{\s+if \(!context\.mounted\) return;\s+_toast\(context,/u,
+    confirmedLocation,
+    /await launchUrl\(uri, mode: LaunchMode\.externalApplication\);/u,
   );
 });
 
@@ -60,9 +57,9 @@ test('pickup challenge proves its exact caller context before the stepper', () =
   );
 });
 
-test('handover and maps fixes contain no timing or lint accommodation', () => {
+test('handover and confirmed-location paths contain no timing or lint accommodation', () => {
   assert.doesNotMatch(body, /ignore:\s*use_build_context_synchronously/u);
-  for (const value of [maps, completion, pickup]) {
+  for (const value of [confirmedLocation, completion, pickup]) {
     assert.doesNotMatch(value, /ignore:\s*use_build_context_synchronously/u);
     assert.doesNotMatch(value, /Future(?:<void>)?\.delayed|Timer\s*\(/u);
   }

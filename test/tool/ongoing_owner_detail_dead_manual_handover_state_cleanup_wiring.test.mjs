@@ -51,7 +51,7 @@ test('upcoming owner action keeps its confirmed-time pickup guard', () => {
 test('pickup flow keeps secure challenge and pickup stepper wiring', () => {
   const pickup = sectionBetween(
     'Future<void> _startPickupFlowOwner(',
-    'void _showQrOverlay(',
+    'Future<void> _showReviewSheet(',
   );
   assert.match(pickup, /DataService\.issueBookingConfirmationChallenge\(/);
   assert.match(pickup, /segment: HandoverCodeService\.segmentPickup/);
@@ -259,5 +259,7 @@ test('owner review remains direction-bound inside the review action', () => {
   assert.match(review, /reviewerId: owner\.id/);
   assert.match(review, /reviewedUserId: renter\.id/);
   assert.match(review, /direction: 'owner_to_renter'/);
-  assert.match(review, /setState\(\(\) => _reviewAlreadySubmitted = true\)/);
+  assert.match(review, /title: 'Danke für deine Bewertung!'/);
+  assert.match(review, /title: 'Bewertung abgegeben'/);
+  assert.doesNotMatch(ownerDetail, /\b_reviewAlreadySubmitted\b/);
 });

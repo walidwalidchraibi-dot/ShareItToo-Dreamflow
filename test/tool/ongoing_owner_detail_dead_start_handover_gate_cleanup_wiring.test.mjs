@@ -34,7 +34,7 @@ test('upcoming action still requires the confirmed start time', () => {
 test('pickup keeps challenge, code, QR and pickup stepper wiring', () => {
   const pickup = between(
     'Future<void> _startPickupFlowOwner(',
-    'void _showQrOverlay(',
+    'Future<void> _showReviewSheet(',
   );
   assert.match(pickup, /DataService\.issueBookingConfirmationChallenge\(/);
   assert.match(pickup, /segment: HandoverCodeService\.segmentPickup/);

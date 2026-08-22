@@ -18,7 +18,6 @@ import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
@@ -54,7 +53,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   final TextEditingController _manualCodeCtrl = TextEditingController();
   Map<String, dynamic> _flowState = const {};
   Map<String, dynamic> _addressVisibility = const {};
-  bool _reviewAlreadySubmitted = false;
   Timer? _acceptanceDeadlineTimer;
   StreamSubscription<String>? _sharedPersistenceSub;
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
@@ -87,12 +85,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             localExactAddress: item.locationText,
             segment: 'return',
           );
-    final alreadyReviewed = owner != null
-        ? await DataService.hasSubmittedReview(
-            requestId: req.id,
-            reviewerId: owner.id,
-          )
-        : false;
     if (!mounted) return;
     setState(() {
       _req = req;
@@ -101,7 +93,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       _owner = owner;
       _flowState = flowState;
       _addressVisibility = addressVisibility;
-      _reviewAlreadySubmitted = alreadyReviewed;
     });
     _scheduleAcceptanceDeadlineRefresh(req);
     // Show one-time handover banner if present (e.g., renter confirmed)
@@ -1758,49 +1749,11 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return '$days Tage';
   }
 
-  Future<void> _openMaps(BuildContext context, String query) async {
-    final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}',
-    );
-    try {
-      final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
-      if (!context.mounted) return;
-      if (!launched) {
-        _toast(context, 'Karte konnte nicht geöffnet werden');
-      }
-    } catch (_) {
-      if (!context.mounted) return;
-      _toast(context, 'Karte konnte nicht geöffnet werden');
-    }
-  }
-
   String _computeBookingId(Item item, RentalRequest req) {
     final seed =
         ((item.id.hashCode) ^ (req.id.hashCode) ^ (item.title.hashCode)).abs();
     final s = seed.toString().padLeft(8, '0');
     return 'BKG-${s.substring(0, 4)}-${s.substring(4, 8)}';
-  }
-
-  String _confirmationCode(
-    Item item,
-    RentalRequest req, {
-    required String segment,
-    required String presenterRole,
-  }) {
-    return HandoverCodeService.codeForTitleAndStart(
-      title: item.title,
-      start: req.start,
-      bookingId: _computeBookingId(item, req),
-      segment: segment,
-      presenterRole: presenterRole,
-    );
-  }
-
-  String _handoverCode(Item item, RentalRequest req) {
-    return HandoverCodeService.codeFromTitleAndStart(
-      title: item.title,
-      start: req.start,
-    );
   }
 
   String _formatEuro(double v) {
@@ -1830,26 +1783,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return '$dd. $m';
   }
 
-  void _toast(BuildContext context, String msg) {
-    AppPopup.toast(context, icon: Icons.info_outline, title: msg);
-  }
-
   bool _canCompleteOwnerReturn(RentalRequest req) {
     final status = req.status.toLowerCase().trim();
     return status == 'running';
-  }
-
-  Future<bool> _guardRequiredHandoverPhotos(String requestId) async {
-    final handoverPhotos = await DataService.getHandoverPhotoCount(requestId);
-    if (handoverPhotos >= DataService.minimumRequiredPhotos) return true;
-    if (mounted) {
-      AppPopup.toast(
-        context,
-        icon: Icons.photo_camera_back_outlined,
-        title: 'Bitte dokumentiere die Übergabe zuerst mit mindestens 4 Fotos.',
-      );
-    }
-    return false;
   }
 
   Future<bool> _guardRequiredReturnPhotos(String requestId) async {
@@ -1936,19 +1872,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       return null;
     }
     return current.id;
-  }
-
-  Future<void> _confirmManualHandover(
-    BuildContext context,
-    RentalRequest req,
-    Item item,
-  ) async {
-    await AppPopup.toast(
-      context,
-      icon: Icons.info_outline,
-      title:
-          'Eine Übergabe kann nur durch QR-Code oder den 6-stelligen Code der Gegenpartei bestätigt werden.',
-    );
   }
 
   Future<void> _startReturnFlow(
@@ -2087,71 +2010,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     );
   }
 
-  void _showQrOverlay(BuildContext context, String data) {
-    showGeneralDialog(
-      context: context,
-      barrierLabel: 'QR',
-      barrierDismissible: true,
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 180),
-      pageBuilder: (context, anim, anim2) {
-        final theme = Theme.of(context);
-        return GestureDetector(
-          onTap: () => Navigator.of(context, rootNavigator: true).maybePop(),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Container(color: Colors.black.withValues(alpha: 0.25)),
-                ),
-              ),
-              Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.45,
-                          ),
-                          blurRadius: 28,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: QrImageView(
-                      data: data,
-                      version: QrVersions.auto,
-                      size: 300,
-                      backgroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-      transitionBuilder: (context, anim, anim2, child) {
-        final curved = CurvedAnimation(
-          parent: anim,
-          curve: Curves.easeOutCubic,
-        );
-        return FadeTransition(
-          opacity: curved,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.95, end: 1.0).animate(curved),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _showReviewSheet(BuildContext context, User renter) async {
     final request = _req;
     final item = _item;
@@ -2166,14 +2024,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       direction: 'owner_to_renter',
     );
     if (ok == true && context.mounted) {
-      setState(() => _reviewAlreadySubmitted = true);
       await AppPopup.toast(
         context,
         icon: Icons.star_rate_outlined,
         title: 'Danke für deine Bewertung!',
       );
     } else if (ok == false && context.mounted) {
-      setState(() => _reviewAlreadySubmitted = true);
       await AppPopup.toast(
         context,
         icon: Icons.check_circle_outline,
