@@ -10,7 +10,7 @@ claimed until every item below has reproducible evidence and is closed.
 | ID | Current observation / temporary accommodation | Required deterministic exit evidence |
 | --- | --- | --- |
 | `TD-RR-001` | S4P installed and repository-bound normal-shell Node 22 plus exact Corepack pnpm 11.16.0. A fresh login shell passed frozen install, Backend, syntax, moderate audit, secret scan and PostgreSQL without a copied runtime; exact-commit CI is unavailable. | Retain green exact-package CI for the same pinned Node/pnpm contract and commands. No copied runtime or Codex-internal fallback may appear in the evidence. |
-| `TD-RR-002` | S4N added repository-owned fresh limiter stores and twice-repeated real 10/30/240 threshold tests with one fixed source. The historical monolithic PostgreSQL HTTP integration still gives some auth/recovery scenarios distinct reserved test IPs. | Remove every request-source accommodation from the monolithic integration, run two complete clean regressions without rotation/reset/wait, and retain green exact-commit CI together with the isolated threshold proof. |
+| `TD-RR-002` | S4R removed every historical request-source accommodation from the monolithic PostgreSQL integration and isolates unrelated scenarios with fresh application/limiter instances. Exactly one multi-source input remains solely to prove account lockout against a distributed attack. Isolated 10/30/240 thresholds, two fresh PostgreSQL runs and two complete regressions pass locally; exact-commit CI is unavailable. | Retain green exact-commit CI for the monolithic integration and isolated threshold contract. No source rotation for unrelated scenarios, reset hook, wait, bypass or increased production limit may reappear. |
 | `TD-RR-003` | The serial default was removed in S4L and two complete local standard-parallel runs passed, but exact-commit CI and a retained repeated stress result are still missing. | Remove timer/animation leakage, run the complete suite repeatedly at the standard supported parallelism, and retain a stress result with zero flakes in local and CI evidence; concurrency one must no longer be required for a green result. |
 | `TD-RR-004` | S4O added the PostgreSQL-16-pinned repository runner; S4P repeated it from the normal pinned Node/pnpm shell. Consecutive fresh-cluster runs passed with runner temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-package CI for the runner contract and canonical PostgreSQL 16 integration without caller-supplied port, database or lifecycle commands. |
 | `TD-RR-005` | S4Q routes all twelve known leaking suites through scoped fail-closed cleanup and adds a twice-repeated parallel boundedness guard to the full gate. After recoverable historical cleanup, the focused guard and two complete technical regressions passed `0/0 KiB -> 0/0 KiB`; exact-commit CI is unavailable. | Retain green exact-commit CI running the same boundedness guard with no orphaned `sit-*` fixture directories. Manual cleanup, a larger disk, alternate temp root or serial execution cannot be acceptance evidence. |
@@ -150,6 +150,18 @@ claimed until every item below has reproducible evidence and is closed.
   passed `0/0 KiB -> 0/0 KiB`, without sleeps, serialization, alternate temp
   roots or manual deletion between runs. This implements the local part of
   `TD-RR-005`; exact-commit CI is still required for formal closure.
+- 22.08.2026, S4R: all reserved request sources used only to preserve order in
+  the monolithic PostgreSQL HTTP integration were removed. Independent DSA,
+  evidence, recovery, export and authentication scenarios now close the prior
+  loopback server and create a fresh application with fresh limiter stores
+  while retaining the same isolated database. A source contract allows exactly
+  one forwarded header: ten distinct sources are the explicit distributed
+  credential-attack input whose target account must still lock. The final
+  per-source login threshold uses one fresh loopback application. Focused
+  policy/contract tests, two fresh PostgreSQL 16 runs, full Backend and two
+  complete standard-parallel regressions passed without wait, reset, bypass,
+  limit change or unrelated source rotation. This implements the local part of
+  `TD-RR-002`; exact-commit CI is still required for formal closure.
 
 ## Closure rule
 

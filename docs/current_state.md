@@ -1580,3 +1580,26 @@ parallelism or cleanup workaround. Formal closure still requires green CI on
 the exact commit. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
 Cloud/VPS/DNS, signed candidate, deployment, merge or public activation
 occurred.
+
+## S4R PostgreSQL rate-limit scenario isolation
+
+`S4R_POSTGRES_RATE_LIMIT_SCENARIO_ISOLATION` is locally verified at
+implementation commit `0dffd6c`. Historical reserved IPs for DSA, evidence,
+account recovery, exports and ordinary auth lifecycles are gone from the
+monolithic PostgreSQL HTTP integration. Scenario boundaries now create fresh
+application/limiter instances after closing the prior loopback server, while
+all database state remains in the same isolated PostgreSQL test.
+
+Exactly one forwarded-source header remains and is guarded by a committed
+contract: ten distinct sources deliberately model a distributed credential
+attack and the persisted account must lock after ten failures. It is not used
+to rescue unrelated request budgets. The fixed-source 10/30/240 policy suite
+and the final one-source login threshold remain green.
+
+Two consecutive fresh PostgreSQL 16 runs, 602 Backend tests plus one expected
+skip and two consecutive complete technical regressions passed. Standard
+Flutter parallelism, analyzer baseline 220, Google-only, Web/loopback smoke,
+Android debug and temp-fixture `0/0 KiB -> 0/0 KiB` remained green. The local
+`TD-RR-002` requirement is implemented; formal closure still requires green CI
+on the exact commit. P0B remains `HOLD` / `NO-GO`, with no live boundary
+changed.

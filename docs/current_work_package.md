@@ -1069,3 +1069,24 @@ serial execution is an acceptance condition. `TD-RR-005` remains formally open
 only for exact-commit CI evidence. P0B remains `HOLD` / `NO-GO`; no production,
 Payment, Store, Cloud/VPS/DNS, deployment, signed candidate, merge or public
 activation is enabled.
+
+## S4R PostgreSQL rate-limit scenario isolation
+
+`S4R_POSTGRES_RATE_LIMIT_SCENARIO_ISOLATION` implements the local `TD-RR-002`
+exit path at commit `0dffd6c`. The monolithic HTTP integration no longer rotates
+reserved request sources to protect later scenarios from earlier rate-budget
+consumption. Independent scenarios restart the loopback application and its
+repository-owned limiter stores while keeping one continuous isolated
+PostgreSQL database.
+
+The only remaining forwarded source is an explicit security input: ten failed
+credentials from ten distinct sources must still lock one account. A committed
+source contract rejects any additional occurrence. Exact 10/30/240 focused
+thresholds, two fresh PostgreSQL 16 runs, 602 Backend passes plus one expected
+skip and two complete standard-parallel technical regressions pass locally.
+
+No wait, reset hook, limiter bypass, higher product limit or unrelated IP
+rotation is accepted. `TD-RR-002` remains formally open only for exact-commit
+CI evidence. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
+Cloud/VPS/DNS, deployment, signed candidate, merge or public activation is
+enabled.
