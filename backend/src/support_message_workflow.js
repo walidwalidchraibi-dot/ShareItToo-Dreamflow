@@ -4,6 +4,7 @@ import { SupportCaseError } from './support_case_domain.js';
 import { enqueueSupportCaseUpdateNotification } from './support_notifications.js';
 import {
   assertSupportMessageDeadlineCurrent,
+  assertSupportMessageNextUpdateBindingCurrent,
   normalizeSupportMessageDraft,
   normalizeSupportMessagePublication,
   normalizeSupportMessageReview,
@@ -128,6 +129,8 @@ export async function createSupportMessage(client, {
   raw,
   idempotencyKey,
   now = new Date(),
+  progressUpdateDraft = false,
+  nextUpdateAtBinding = null,
 }) {
   assertActor(actor, ['support', 'admin'], 'support_message_create_forbidden');
   const key = supportMessageIdempotencyKey(idempotencyKey, 'support.message.create');
@@ -168,6 +171,12 @@ export async function createSupportMessage(client, {
       && actor.role !== 'admin') {
     throw new SupportCaseError(403, 'support_consumer_dispute_notice_requires_admin');
   }
+  const progressTemplate = ['T-008', 'T-010'].includes(
+    String(raw.templateId ?? '').trim().toUpperCase(),
+  );
+  if (progressTemplate !== (progressUpdateDraft === true)) {
+    throw new SupportCaseError(409, 'support_progress_update_workflow_required');
+  }
   const activeRecipient = await client.query(
     `SELECT id FROM users
       WHERE id = $1 AND account_status = 'active' AND deactivated_at IS NULL
@@ -177,8 +186,11 @@ export async function createSupportMessage(client, {
   if (!activeRecipient.rowCount) {
     throw new SupportCaseError(409, 'support_message_recipient_account_closed');
   }
+  const draftCase = progressTemplate
+    ? { ...supportCase, next_update_at: nextUpdateAtBinding }
+    : supportCase;
   const draft = normalizeSupportMessageDraft(raw, {
-    supportCase,
+    supportCase: draftCase,
     now,
   });
   if (draft.correctsMessageId) {
@@ -369,6 +381,21 @@ export async function reviewSupportMessage(client, {
     ],
   );
   if (!updated.rowCount) throw new SupportCaseError(409, 'support_message_version_conflict');
+  if (['T-008', 'T-010'].includes(row.template_id)) {
+    const progressUpdate = await client.query(
+      `UPDATE support_case_progress_updates
+          SET proposal_status = $2,
+              reviewed_by = $3,
+              reviewed_at = $4,
+              lock_version = lock_version + 1
+        WHERE message_id = $1 AND proposal_status = 'pending_review'
+        RETURNING id`,
+      [row.id, approved ? 'approved' : 'rejected', actor.id, now],
+    );
+    if (!progressUpdate.rowCount) {
+      throw new SupportCaseError(409, 'support_progress_update_proposal_missing');
+    }
+  }
   const payload = {
     templateId: row.template_id,
     templateVersion: row.template_version,
@@ -409,6 +436,7 @@ export async function publishSupportMessage(client, {
   raw,
   idempotencyKey,
   now = new Date(),
+  progressUpdatePublication = false,
 }) {
   assertActor(actor, ['support', 'admin'], 'support_message_publish_forbidden');
   const key = supportMessageIdempotencyKey(idempotencyKey, 'support.message.publish');
@@ -448,6 +476,10 @@ export async function publishSupportMessage(client, {
   if (row.recipient_account_status !== 'active' || row.recipient_deactivated_at) {
     throw new SupportCaseError(409, 'support_message_recipient_account_closed');
   }
+  const progressTemplate = ['T-008', 'T-010'].includes(row.template_id);
+  if (progressTemplate !== (progressUpdatePublication === true)) {
+    throw new SupportCaseError(409, 'support_progress_update_publication_required');
+  }
   const concurrentReplay = await client.query(
     `SELECT 1 FROM support_case_events
       WHERE case_id = $1 AND entity_id = $2 AND idempotency_key = $3`,
@@ -466,6 +498,10 @@ export async function publishSupportMessage(client, {
     row,
     { next_update_at: row.case_next_update_at },
     now,
+  );
+  assertSupportMessageNextUpdateBindingCurrent(
+    row,
+    { next_update_at: row.case_next_update_at },
   );
   const greenDraft = row.approval_level === 'green_automatic' && row.send_status === 'draft';
   const reviewedHuman = isHumanReviewableMessage(row)

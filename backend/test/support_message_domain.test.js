@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  assertSupportMessageNextUpdateBindingCurrent,
   listSupportMessageTemplates,
   normalizeSupportMessageDraft,
   normalizeSupportMessagePublication,
@@ -130,6 +131,24 @@ test('templates with a next-update promise reject an already overdue case deadli
     now: new Date('2026-08-23T10:00:00.000Z'),
   });
   assert.equal(noPromise.sendStatus, 'sent');
+});
+
+test('publication rechecks the exact server next-update binding after approval', () => {
+  assert.doesNotThrow(() => assertSupportMessageNextUpdateBindingCurrent({
+    structured_variables: {
+      next_update_date: '22.08.2026',
+      next_update_time: '12:00',
+    },
+  }, supportCase));
+  assert.throws(
+    () => assertSupportMessageNextUpdateBindingCurrent({
+      structured_variables: {
+        next_update_date: '23.08.2026',
+        next_update_time: '12:00',
+      },
+    }, supportCase),
+    /support_message_next_update_binding_changed/u,
+  );
 });
 
 test('sensitive data and unsafe decision claims are blocked in variables', () => {

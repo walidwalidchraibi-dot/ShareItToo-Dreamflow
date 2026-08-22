@@ -205,6 +205,10 @@ import {
   reviewSupportMessage,
 } from './support_message_workflow.js';
 import {
+  proposeSupportProgressUpdate,
+  publishSupportProgressUpdate,
+} from './support_progress_update_workflow.js';
+import {
   listSupportOperationalAlerts,
   supportDeadlineHealth,
 } from './support_deadline_watchdog.js';
@@ -4903,6 +4907,28 @@ export function createApp({
     res.set('Cache-Control', 'private, no-store').json({
       templates: listSupportMessageTemplates(),
     });
+  }));
+
+  app.post('/v1/admin/support/cases/:id/progress-updates', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => proposeSupportProgressUpdate(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store');
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/support/cases/:id/progress-updates/:progressUpdateId/publication', requireAuth, requireActiveAccount, requireStaffElevation, supportMessagePublishLimiter, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => publishSupportProgressUpdate(client, {
+      actor: req.actor,
+      caseId: safeText(req.params.id, 80),
+      progressUpdateId: safeText(req.params.progressUpdateId, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
   }));
 
   app.post('/v1/admin/support/cases/:id/messages', requireAuth, requireActiveAccount, requireStaffElevation, supportMessageDraftLimiter, asyncRoute(async (req, res) => {

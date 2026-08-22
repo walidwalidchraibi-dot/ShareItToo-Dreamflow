@@ -97,6 +97,7 @@ export async function buildAccountExport(client, userId) {
     supportCaseEvents,
     supportBreakGlassAccess,
     supportMessages,
+    supportProgressUpdates,
     supportLegacyImports,
     supportLegacyHistory,
     supportDecisions,
@@ -748,6 +749,18 @@ export async function buildAccountExport(client, userId) {
            OR (message.recipient_user_id = $1 AND message.send_status = 'sent')
         ORDER BY message.created_at, message.id`, userId),
     rows(client,
+      `SELECT progress.id, progress.case_id, progress.message_id,
+              progress.progress_version, progress.template_id,
+              progress.prior_next_update_at,
+              progress.proposed_next_update_at, progress.was_overdue,
+              progress.proposal_status, progress.reviewed_at,
+              progress.published_at, progress.created_at
+         FROM support_case_progress_updates AS progress
+         JOIN support_cases AS support_case ON support_case.id = progress.case_id
+        WHERE support_case.reporter_user_id = $1
+           OR $1 = ANY(support_case.affected_user_ids)
+        ORDER BY progress.created_at, progress.id`, userId),
+    rows(client,
       `SELECT legacy_import.id, legacy_import.case_id,
               legacy_import.source_system, legacy_import.source_thread_id,
               legacy_import.legacy_status, legacy_import.mapped_status,
@@ -1021,6 +1034,7 @@ export async function buildAccountExport(client, userId) {
         events: supportCaseEvents,
         emergencyAccess: supportBreakGlassAccess,
         messages: supportMessages,
+        progressUpdates: supportProgressUpdates,
         legacyImports: supportLegacyImports,
         legacyHistory: supportLegacyHistory,
         legacyHistoryVerificationState: 'unverified_user_device_source',

@@ -39,6 +39,8 @@ const sourcePaths = [
   'backend/src/product_safety_config.js',
   'backend/src/support_message_domain.js',
   'backend/src/support_message_workflow.js',
+  'backend/src/support_progress_update_domain.js',
+  'backend/src/support_progress_update_workflow.js',
   'backend/src/support_notifications.js',
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
@@ -110,6 +112,8 @@ const sourcePaths = [
   'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
   'backend/sql/migrations/054_support_feedback_priority.up.sql',
   'backend/sql/migrations/054_support_feedback_priority.down.sql',
+  'backend/sql/migrations/055_support_progress_updates.up.sql',
+  'backend/sql/migrations/055_support_progress_updates.down.sql',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
@@ -417,6 +421,7 @@ function assertSourceContracts({ root, sourceTexts }) {
     'internalSafetyImpactReviewsExcluded: true',
     'duplicateCaseLinks: supportDuplicateCaseLinks',
     'support_case.feedback_context',
+    'progressUpdates: supportProgressUpdates',
   ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
   }
@@ -734,6 +739,61 @@ function assertSourceContracts({ root, sourceTexts }) {
     'Refusing to drop retained support feedback context',
   )) {
     fail('Support feedback rollback must refuse stored context.');
+  }
+  const supportProgressDomain = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_progress_update_domain.js',
+  );
+  const supportProgressWorkflow = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/support_progress_update_workflow.js',
+  );
+  const supportProgressMigrationUp = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/055_support_progress_updates.up.sql',
+  );
+  const supportProgressMigrationDown = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/055_support_progress_updates.down.sql',
+  );
+  for (const marker of [
+    "templateId = wasOverdue ? 'T-010' : 'T-008'",
+    'support_progress_update_live_forbidden',
+    'support_progress_update_deadline_not_advanced',
+  ]) {
+    if (!supportProgressDomain.includes(marker)) {
+      fail(`Support progress-update privacy boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'independentReviewRequired: true',
+    'externalMessageSent: false',
+    'progressUpdatePublication: true',
+  ]) {
+    if (!supportProgressWorkflow.includes(marker)) {
+      fail(`Support progress-update workflow privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (/fetch\s*\(|https?:\/\//u.test(supportProgressWorkflow)) {
+    fail('Support progress updates must not have an external network path.');
+  }
+  for (const marker of [
+    'support_case_progress_updates_one_live_proposal',
+    "approval_level <> 'yellow_human_review'",
+    'support_progress_update_history_append_only',
+  ]) {
+    if (!supportProgressMigrationUp.includes(marker)) {
+      fail(`Support progress-update schema privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportProgressMigrationDown.includes(
+    'Cannot roll back support progress updates while retained update evidence exists',
+  )) {
+    fail('Support progress-update rollback must refuse stored update evidence.');
   }
   const observability = sourceText(root, sourceTexts, 'backend/src/observability.js');
   if (!observability.includes('safeOperationalErrorCode')

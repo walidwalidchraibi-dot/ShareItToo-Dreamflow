@@ -56,7 +56,7 @@ function shapeFinalDecision(row) {
   });
 }
 
-function shapeSupportCase(row, { staff = false, actorId = null, now = new Date() } = {}) {
+export function shapeSupportCase(row, { staff = false, actorId = null, now = new Date() } = {}) {
   const appealConfigured = row.appeal_configured_at != null
     && row.appeal_configured_by != null;
   const deadline = row.appeal_deadline ? new Date(row.appeal_deadline) : null;

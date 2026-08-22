@@ -139,6 +139,7 @@ if (!databaseUrl) {
         '052_support_safety_impact_review.up.sql',
         '053_support_duplicate_case_linking.up.sql',
         '054_support_feedback_priority.up.sql',
+        '055_support_progress_updates.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -210,6 +211,7 @@ if (!databaseUrl) {
           'support_break_glass_grants',
           'support_case_events',
           'support_case_links',
+          'support_case_progress_updates',
           'support_cases',
           'support_decisions',
           'support_deadline_watchdog_state',
@@ -231,6 +233,7 @@ if (!databaseUrl) {
         { table_name: 'support_break_glass_grants' },
         { table_name: 'support_case_events' },
         { table_name: 'support_case_links' },
+        { table_name: 'support_case_progress_updates' },
         { table_name: 'support_cases' },
         { table_name: 'support_deadline_watchdog_state' },
         { table_name: 'support_decisions' },
@@ -5267,30 +5270,66 @@ if (!databaseUrl) {
         'support_message_red_template_requires_decision_workflow',
       );
 
-      const yellowDraftResponse = await fetch(
+      const progressTemplateBypass = await fetch(
         `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
         {
           method: 'POST',
           headers: {
             ...supportHeaders,
-            'Idempotency-Key': 'http-support-yellow-message',
+            'Idempotency-Key': 'http-support-progress-bypass',
           },
           body: JSON.stringify({
             templateId: 'T-008',
             recipientUserId: 'renter-a',
-            variables: {
-              first_name: 'Walid',
-              progress_since_last_update: 'Die technischen Eingangsdaten wurden geprüft.',
-              open_check: 'Die genaue Ursache der Anzeige.',
-              user_action_or_no_action: 'Du musst aktuell nichts weiter tun.',
-            },
+            variables: {},
           }),
         },
       );
-      assert.equal(yellowDraftResponse.status, 201);
+      assert.equal(progressTemplateBypass.status, 409);
+      assert.equal(
+        (await progressTemplateBypass.json()).error,
+        'support_progress_update_workflow_required',
+      );
+
+      const progressCaseBeforeDraft = await setupPool.query(
+        `SELECT lock_version, next_update_at
+           FROM support_cases
+          WHERE id = $1`,
+        [supportIntake.supportCase.id],
+      );
+      const proposedNextUpdateAt = new Date(
+        new Date(progressCaseBeforeDraft.rows[0].next_update_at).getTime()
+          + (60 * 60 * 1000),
+      ).toISOString();
+      const yellowDraftResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/progress-updates`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-yellow-progress',
+          },
+          body: JSON.stringify({
+            expectedVersion: Number(progressCaseBeforeDraft.rows[0].lock_version),
+            recipientUserId: 'renter-a',
+            firstName: 'Walid',
+            progressSinceLastUpdate: 'Die technischen Eingangsdaten wurden geprüft.',
+            openCheck: 'Die genaue Ursache der Anzeige wird noch abgeglichen.',
+            userActionOrNoAction: 'Du musst aktuell nichts weiter tun.',
+            provisionalImpactStatement:
+              'Die bisherige vorläufige Auswirkung bleibt unverändert.',
+            nextAction: 'Serverprotokoll und App-Version miteinander abgleichen.',
+            nextUpdateAt: proposedNextUpdateAt,
+          }),
+        },
+      );
       const yellowDraft = await yellowDraftResponse.json();
+      assert.equal(yellowDraftResponse.status, 201, yellowDraft.error);
       assert.equal(yellowDraft.message.sendStatus, 'pending_approval');
       assert.equal(yellowDraft.message.approvalLevel, 'yellow_human_review');
+      assert.equal(yellowDraft.progressUpdate.templateId, 'T-008');
+      assert.equal(yellowDraft.progressUpdate.wasOverdue, false);
+      assert.equal(yellowDraft.progressUpdate.proposalStatus, 'pending_review');
 
       const yellowReviewResponse = await fetch(
         `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages/${yellowDraft.message.id}/review`,
@@ -5313,8 +5352,28 @@ if (!databaseUrl) {
       assert.equal(yellowReview.message.sendStatus, 'approved');
       assert.equal(yellowReview.message.reviewOutcome, 'approved');
 
-      const yellowPublishRequest = () => fetch(
+      const directProgressPublication = await fetch(
         `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages/${yellowDraft.message.id}/publication`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-progress-direct-publication',
+          },
+          body: JSON.stringify({
+            expectedVersion: yellowReview.message.version,
+            expectedPayloadSha256: yellowReview.message.renderedContentSha256,
+          }),
+        },
+      );
+      assert.equal(directProgressPublication.status, 409);
+      assert.equal(
+        (await directProgressPublication.json()).error,
+        'support_progress_update_publication_required',
+      );
+
+      const yellowPublishRequest = () => fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/progress-updates/${yellowDraft.progressUpdate.id}/publication`,
         {
           method: 'POST',
           headers: {
@@ -5322,7 +5381,9 @@ if (!databaseUrl) {
             'Idempotency-Key': 'http-support-yellow-publication',
           },
           body: JSON.stringify({
-            expectedVersion: yellowReview.message.version,
+            expectedProgressVersion:
+              yellowDraft.progressUpdate.proposalVersion + 1,
+            expectedMessageVersion: yellowReview.message.version,
             expectedPayloadSha256: yellowReview.message.renderedContentSha256,
           }),
         },
@@ -5332,9 +5393,94 @@ if (!databaseUrl) {
       const yellowPublish = await yellowPublishResponse.json();
       assert.equal(yellowPublish.message.sendStatus, 'sent');
       assert.equal(yellowPublish.message.externalMessageSent, false);
+      assert.equal(yellowPublish.progressUpdate.proposalStatus, 'published');
+      assert.equal(yellowPublish.supportCase.nextUpdateAt, proposedNextUpdateAt);
       const yellowPublishReplay = await yellowPublishRequest();
       assert.equal(yellowPublishReplay.status, 200);
       assert.equal((await yellowPublishReplay.json()).replayed, true);
+
+      const overdueCaseState = await setupPool.query(
+        `UPDATE support_cases
+            SET next_update_at = GREATEST(
+                  created_at + interval '1 millisecond',
+                  clock_timestamp() - interval '1 millisecond'
+                ),
+                lock_version = lock_version + 1,
+                updated_at = now()
+          WHERE id = $1
+          RETURNING lock_version`,
+        [supportIntake.supportCase.id],
+      );
+      const overdueNextUpdateAt = new Date(Date.now() + (2 * 60 * 60 * 1000))
+        .toISOString();
+      const overdueDraftResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/progress-updates`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-overdue-progress',
+          },
+          body: JSON.stringify({
+            expectedVersion: Number(overdueCaseState.rows[0].lock_version),
+            recipientUserId: 'renter-a',
+            firstName: 'Walid',
+            progressSinceLastUpdate:
+              'Die Serverereignisse wurden weiter eingegrenzt.',
+            openCheck: 'Die letzte Abweichung muss noch reproduziert werden.',
+            userActionOrNoAction: 'Du musst im Moment nichts weiter tun.',
+            provisionalImpactStatement:
+              'Die bisherige vorläufige Auswirkung bleibt unverändert.',
+            nextAction: 'Abweichung mit einem isolierten Test reproduzieren.',
+            nextUpdateAt: overdueNextUpdateAt,
+          }),
+        },
+      );
+      assert.equal(overdueDraftResponse.status, 201);
+      const overdueDraft = await overdueDraftResponse.json();
+      assert.equal(overdueDraft.progressUpdate.templateId, 'T-010');
+      assert.equal(overdueDraft.progressUpdate.wasOverdue, true);
+      assert.match(overdueDraft.message.content, /kam nicht rechtzeitig/u);
+      assert.match(overdueDraft.message.content, /Das tut uns leid/u);
+
+      const overdueReviewResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages/${overdueDraft.message.id}/review`,
+        {
+          method: 'POST',
+          headers: {
+            ...adminHeaders,
+            'Idempotency-Key': 'http-support-overdue-review',
+          },
+          body: JSON.stringify({
+            outcome: 'approved',
+            expectedVersion: overdueDraft.message.version,
+            expectedPayloadSha256: overdueDraft.message.renderedContentSha256,
+            reviewNotes: 'Verspätung, Fortschritt und neuer Zeitpunkt wurden geprüft.',
+          }),
+        },
+      );
+      assert.equal(overdueReviewResponse.status, 200);
+      const overdueReview = await overdueReviewResponse.json();
+      const overduePublishResponse = await fetch(
+        `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/progress-updates/${overdueDraft.progressUpdate.id}/publication`,
+        {
+          method: 'POST',
+          headers: {
+            ...supportHeaders,
+            'Idempotency-Key': 'http-support-overdue-publication',
+          },
+          body: JSON.stringify({
+            expectedProgressVersion:
+              overdueDraft.progressUpdate.proposalVersion + 1,
+            expectedMessageVersion: overdueReview.message.version,
+            expectedPayloadSha256: overdueReview.message.renderedContentSha256,
+          }),
+        },
+      );
+      assert.equal(overduePublishResponse.status, 200);
+      const overduePublish = await overduePublishResponse.json();
+      assert.equal(overduePublish.progressUpdate.proposalStatus, 'published');
+      assert.equal(overduePublish.supportCase.nextUpdateAt, overdueNextUpdateAt);
 
       const correctionResponse = await fetch(
         `${baseUrl}/v1/admin/support/cases/${supportIntake.supportCase.id}/messages`,
@@ -5373,7 +5519,7 @@ if (!databaseUrl) {
       );
       assert.equal(userMessageDetailResponse.status, 200);
       const userMessageDetail = await userMessageDetailResponse.json();
-      assert.equal(userMessageDetail.messages.length, 3);
+      assert.equal(userMessageDetail.messages.length, 4);
       assert.ok(userMessageDetail.messages.every((message) => (
         message.externalMessageSent === false
         && !Object.hasOwn(message, 'renderedContentSha256')
@@ -6276,6 +6422,19 @@ if (!databaseUrl) {
         );
       assert.deepEqual(exportedFeedbackCase.feedback_context, feedbackContext);
       assert.equal(exportedFeedbackCase.priority, 'p4');
+      assert.equal(
+        renterExport.data.communication.support.progressUpdates.filter(
+          (entry) => entry.case_id === supportIntake.supportCase.id
+            && entry.proposal_status === 'published',
+        ).length,
+        2,
+      );
+      assert.ok(renterExport.data.communication.support.progressUpdates.every(
+        (entry) => !Object.hasOwn(entry, 'next_action')
+          && !Object.hasOwn(entry, 'proposed_by')
+          && !Object.hasOwn(entry, 'reviewed_by')
+          && !Object.hasOwn(entry, 'published_by'),
+      ));
       assert.ok(renterExport.data.communication.support.duplicateCaseLinks.some(
         (entry) => entry.duplicate_case_number === duplicateCase.human_readable_case_number
           && entry.leading_case_number === leadingCase.human_readable_case_number
@@ -7011,6 +7170,20 @@ if (!databaseUrl) {
         setupPool.query(supportFeedbackPriorityDown),
         (error) => error?.code === 'P0001'
           && error?.message === 'Refusing to drop retained support feedback context',
+      );
+
+      const supportProgressUpdatesDown = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/055_support_progress_updates.down.sql',
+        ),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(supportProgressUpdatesDown),
+        (error) => error?.code === 'P0001'
+          && error?.message
+            === 'Cannot roll back support progress updates while retained update evidence exists',
       );
 
       const g3bDown = await fs.readFile(

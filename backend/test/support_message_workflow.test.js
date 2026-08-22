@@ -262,6 +262,29 @@ test('message recipient must belong to the locked support case', async () => {
   client.done();
 });
 
+test('progress templates cannot bypass the dedicated proposal workflow', async () => {
+  const client = new ScriptedClient([
+    { match: /message\.idempotency_key = \$1/u, result: noRows },
+    { match: /FROM support_cases WHERE id::text = \$1 FOR UPDATE/u,
+      result: { rowCount: 1, rows: [caseRow()] } },
+  ]);
+  await assert.rejects(
+    createSupportMessage(client, {
+      actor: { id: 'support-1', role: 'support' },
+      caseId,
+      raw: {
+        templateId: 'T-008',
+        recipientUserId: 'user-1',
+        variables: {},
+      },
+      idempotencyKey: 'progress-bypass',
+      now,
+    }),
+    /support_progress_update_workflow_required/u,
+  );
+  client.done();
+});
+
 test('T-053 is an admin-only configured red text-form draft with no external send', async () => {
   const supportOwnedLegalCase = caseRow({
     case_type: 'legal_authority',

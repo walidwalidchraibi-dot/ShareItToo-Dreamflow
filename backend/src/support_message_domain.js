@@ -284,6 +284,19 @@ export function assertSupportMessageDeadlineCurrent(templateOrMessage, supportCa
   }
 }
 
+export function assertSupportMessageNextUpdateBindingCurrent(message, supportCase) {
+  const variables = message?.structured_variables;
+  if (!variables || typeof variables !== 'object' || Array.isArray(variables)) {
+    throw new SupportCaseError(409, 'support_message_structured_variables_invalid');
+  }
+  const current = supportCaseBindings(supportCase);
+  for (const key of ['next_update_date', 'next_update_time', 'next_update_datetime']) {
+    if (key in variables && variables[key] !== current[key]) {
+      throw new SupportCaseError(409, 'support_message_next_update_binding_changed', { key });
+    }
+  }
+}
+
 export function normalizeSupportMessageDraft(raw, {
   supportCase,
   now = new Date(),

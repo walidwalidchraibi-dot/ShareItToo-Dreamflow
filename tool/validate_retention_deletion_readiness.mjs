@@ -38,6 +38,8 @@ const sourcePaths = [
   'backend/src/product_safety_config.js',
   'backend/src/support_message_domain.js',
   'backend/src/support_message_workflow.js',
+  'backend/src/support_progress_update_domain.js',
+  'backend/src/support_progress_update_workflow.js',
   'backend/src/support_notifications.js',
   'backend/src/support_message_templates_v1.json',
   'backend/src/support_deadline_watchdog.js',
@@ -123,6 +125,8 @@ const sourcePaths = [
   'backend/sql/migrations/053_support_duplicate_case_linking.down.sql',
   'backend/sql/migrations/054_support_feedback_priority.up.sql',
   'backend/sql/migrations/054_support_feedback_priority.down.sql',
+  'backend/sql/migrations/055_support_progress_updates.up.sql',
+  'backend/sql/migrations/055_support_progress_updates.down.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -784,6 +788,47 @@ function assertSourceContracts(root, sourceTexts) {
     'Refusing to drop retained support feedback context',
   )) {
     fail('Support feedback rollback must refuse deletion of retained context.');
+  }
+  if (!inventory.includes("'communications', 'support_case_progress_updates'")) {
+    fail('Retention inventory is missing immutable dataset support_case_progress_updates.');
+  }
+  const supportProgressWorkflow = text(
+    root,
+    sourceTexts,
+    'backend/src/support_progress_update_workflow.js',
+  );
+  const supportProgressMigrationUp = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/055_support_progress_updates.up.sql',
+  );
+  const supportProgressMigrationDown = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/055_support_progress_updates.down.sql',
+  );
+  for (const marker of [
+    'case.progress_update_proposed',
+    'support.progress_update_published',
+    'externalMessageSent: false',
+  ]) {
+    if (!supportProgressWorkflow.includes(marker)) {
+      fail(`Support progress-update retention boundary is missing ${marker}.`);
+    }
+  }
+  for (const marker of [
+    'support_progress_update_history_append_only',
+    'support_progress_update_payload_immutable',
+    'support_case_progress_updates_one_live_proposal',
+  ]) {
+    if (!supportProgressMigrationUp.includes(marker)) {
+      fail(`Support progress-update schema retention boundary is missing ${marker}.`);
+    }
+  }
+  if (!supportProgressMigrationDown.includes(
+    'Cannot roll back support progress updates while retained update evidence exists',
+  )) {
+    fail('Support progress-update rollback must refuse deletion of retained update evidence.');
   }
   if (!inventory.includes("'moderation', 'moderation_statements_of_reasons'")) {
     fail('Retention inventory is missing immutable dataset moderation_statements_of_reasons.');
