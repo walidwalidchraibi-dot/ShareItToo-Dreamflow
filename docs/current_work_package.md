@@ -1418,3 +1418,23 @@ This package does not close `TD-RR-010`; further reviewed source reductions to
 zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
 production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
 activation is enabled.
+
+## S4AJ owner-requests async-context ratchet
+
+`S4AJ_OWNER_REQUESTS_ASYNC_CONTEXT_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at commit `9727cf6`. Owner decline now rechecks its
+screen lifecycle after both status mutation and list refresh before opening
+result UI. Inline owner review stops after current-user lookup when its owning
+State has been disposed. Acceptance, decline, review, quote and status rules are
+unchanged.
+
+The exact debt snapshot moves `196 -> 194`, and only the intended
+`use_build_context_synchronously` owner-requests bucket changes. Twenty-one
+combined owner-request/acceptance source-contract assertions, 15 focused
+owner-request/pricing/checkout/review Flutter tests and the complete clean local
+metadata gate pass with the new exact fingerprint.
+
+This package does not close `TD-RR-010`; further reviewed source reductions to
+zero plus exact-commit CI remain required. P0B remains `HOLD` / `NO-GO`; no
+production, Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public
+activation is enabled.

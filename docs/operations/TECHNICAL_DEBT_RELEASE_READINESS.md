@@ -18,7 +18,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-007` | S4T removes the CI Gradle wrapper's three-attempt loop and five-/ten-second sleeps. The workflow now performs one checksum-bound wrapper invocation; eight focused tests, a direct Gradle 8.12/Java 17 check and the complete local gate pass at `84357c4`. Exact-commit CI is unavailable. | Retain independent green exact-commit CI runs with exactly one wrapper invocation after verified cache setup. No attempt loop, sleep, retry or pass-on-rerun may appear in the evidence. |
 | `TD-RR-008` | S4V removes the P0A Web smoke's fixed port and twenty-attempt `sleep 0.1` readiness poll. The repository helper binds an OS-selected loopback port before serving and requests each required artifact once. Three focused tests, five consecutive real smokes and the complete local gate pass at `1d6aeda`; exact-commit CI is unavailable. | Retain green exact-commit CI with one bind and one request per artifact on the OS-selected port. No fixed default port, sleep, retry, readiness poll, pass-on-rerun or external server prerequisite may reappear. |
 | `TD-RR-009` | S4W removes the local booking-QA CDP tool's 50-millisecond reload timer, two-second sleep and reconnect. It guards the current main-frame loader, consumes the correlated new-loader lifecycle event and verifies exact storage without printing values. Four focused tests, five consecutive repetitions and the complete local gate pass at `8bc4fed`; no real browser seed was applied. | Retain green exact-commit CI for fragmented-frame/event-order/storage-negative contracts, then retain one controlled local-browser observation in a dedicated QA profile. No sleep, timer, reconnect retry, uncorrelated event or value-bearing verification output may reappear. |
-| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4AI guard Wishlist selector, popup navigator, gallery callback, item-card state, listing-options callback, profile-screen, listing-photo, public-profile menu, request-detail navigation and renter-bookings lifetimes, ratcheting the backlog `220 -> 214 -> 212 -> 210 -> 207 -> 204 -> 203 -> 202 -> 200 -> 198 -> 196`; `use_build_context_synchronously` decreases `98 -> 92 -> 90 -> 88 -> 85 -> 82 -> 81 -> 80 -> 78 -> 76 -> 74`, most recently at `4a050fc`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
+| `TD-RR-010` | S4X replaces the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4AJ guard Wishlist selector, popup navigator, gallery callback, item-card state, listing-options callback, profile-screen, listing-photo, public-profile menu, request-detail navigation, renter-bookings and owner-requests lifetimes, ratcheting the backlog `220 -> 214 -> 212 -> 210 -> 207 -> 204 -> 203 -> 202 -> 200 -> 198 -> 196 -> 194`; `use_build_context_synchronously` decreases `98 -> 92 -> 90 -> 88 -> 85 -> 82 -> 81 -> 80 -> 78 -> 76 -> 74 -> 72`, most recently at `9727cf6`. | Continue reducing the committed snapshot only alongside reviewed source fixes until total zero, then retain green exact-commit CI. Never raise it, replace findings at equal count, suppress lints, make warnings non-fatal or update evidence merely to pass. |
 | `TD-RR-011` | **CLOSED 22.08.2026.** Failed run `32592388940` exposed a cold-cache Maven `403` and Flutter's hidden APK retry. S4AC replaced it with one direct wrapper `assembleDebug`. Run `32593274378` passed without rerun and wrote the cold PR-scoped Basic Cache (`0 restored, 1 saved`); later exact run `32594060058` restored it (`1 restored, 0 saved`) and passed with one direct build, zero Flutter APK commands and zero retries. | Closed by a reproducible open-source Basic Cache write/restore sequence. Permanently retain the single-attempt contract; no rerun-after-failure, sleep, retry loop, alternate mirror, manual cache injection or paid provider may reappear. |
 
 ## Observation log
@@ -341,6 +341,17 @@ claimed until every item below has reproducible evidence and is closed.
   path bucket `2 -> 0`; every other bucket stayed unchanged. The exact privacy
   source hash was refreshed without changing disclosure truth. No delay, retry
   or lint suppression was introduced. `TD-RR-010` remains open.
+- 22.08.2026, S4AJ: owner decline now rechecks its screen lifecycle after both
+  status mutation and list refresh before result UI, and inline owner review
+  rechecks its owning State after current-user lookup. Twenty-one combined
+  owner-request/acceptance source contracts, 15 focused
+  owner-request/pricing/checkout/review Flutter tests and the complete clean
+  local metadata gate passed at
+  `9727cf6acfcb0cd7f1d17721540aede22f9287bc`. The analyzer ratcheted exactly
+  `196 -> 194`, `use_build_context_synchronously` `74 -> 72`, and the
+  owner-requests path bucket `2 -> 0`; every other bucket stayed unchanged.
+  Existing product auto-close timers were retained and no timing workaround,
+  retry or lint suppression was introduced. `TD-RR-010` remains open.
 
 ## Closure rule
 

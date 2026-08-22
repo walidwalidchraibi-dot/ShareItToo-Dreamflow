@@ -1955,3 +1955,23 @@ draft and fail-closed.
 
 `TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
 CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
+
+## S4AJ owner-requests async-context ratchet
+
+`S4AJ_OWNER_REQUESTS_ASYNC_CONTEXT_RATCHET` is locally verified at commit
+`9727cf6`. Owner decline now rechecks its screen lifecycle after both the status
+mutation and list refresh before result UI. Inline owner review rechecks its
+owning State after current-user lookup. Acceptance, decline, review, quote and
+status rules are unchanged.
+
+The exact analyzer snapshot ratcheted `196 -> 194`, with
+`use_build_context_synchronously` `74 -> 72` and the owner-requests bucket
+`2 -> 0`; all other buckets remained identical. Twenty-one combined
+owner-request/acceptance source-contract assertions, 15 focused
+owner-request/pricing/checkout/review Flutter tests and the complete clean local
+metadata gate passed at `9727cf6acfcb0cd7f1d17721540aede22f9287bc` with 384
+Flutter tests plus one documented skip, Google-only, Web build/smoke and one
+direct 448-task Android debug build.
+
+`TD-RR-010` remains open for further reviewed ratchets to zero and exact-commit
+CI. P0B remains `HOLD` / `NO-GO`, with no live boundary changed.
