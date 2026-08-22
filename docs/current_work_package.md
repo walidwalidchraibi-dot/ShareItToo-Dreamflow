@@ -723,3 +723,28 @@ skip, separate Google-only coverage, Web build/loopback smoke and Android debug
 APK. P0B PSP and invited-pilot gates remain HOLD/NO-GO. GitHub push/CI is not
 claimed here. No live support, production, Payment, Store, Cloud/VPS/DNS,
 signed candidate, deployment, PR merge or public activation is enabled.
+
+## S4E reviewed support progress updates
+
+`S4E_SUPPORT_PROGRESS_UPDATES` implements the non-live portion of Drive
+scenarios `SUP-042` and `SUP-043` at exact commit
+`018b39dd44dc25e2503982b8bec801282ceac770`. One version-bound proposal derives
+`T-008` while the prior checkpoint is current and `T-010` after it is overdue.
+It requires concrete progress, open work, user action/no action, provisional
+impact, next action and a bounded later checkpoint without inventing an outcome.
+
+Direct generic progress drafting and publication are blocked. An independent
+Administrator must approve the immutable message hash; dedicated publication
+then atomically updates the case, records the authenticated in-app message and
+appends proposal/event/audit truth. Migration `055` is lifecycle-guarded and
+append-only. Privacy export omits internal action/staff identity, Retention stays
+draft/non-destructive and rollback refuses retained evidence. There is no
+external delivery path.
+
+Focused and Privacy/Retention tests, fresh PostgreSQL 16 integration, 533
+Backend tests plus one expected skip, accepted analyzer baseline, 370 Flutter
+tests with one documented skip, separate Google-only coverage, Web build/smoke
+and Android debug APK are green locally. P0B remains HOLD/NO-GO. GitHub push/CI
+is pending because the stored CLI credential is expired. No live support,
+production, Payment, Store, Cloud/VPS/DNS, signed candidate, deployment, PR
+merge or public activation is enabled.

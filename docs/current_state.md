@@ -1194,3 +1194,27 @@ invited-pilot gates remain HOLD/NO-GO. GitHub push/CI is not claimed here;
 Draft PR #7 remains unmerged. No production, real support action, external
 message, Payment, Store, signed candidate, deployment or public activation
 occurred.
+
+## S4E reviewed support progress updates
+
+`S4E_SUPPORT_PROGRESS_UPDATES` is locally verified at exact implementation
+commit `018b39dd44dc25e2503982b8bec801282ceac770` for Drive scenarios `SUP-042`
+and `SUP-043`. The server derives reviewed `T-008` due updates or truthful
+`T-010` overdue apologies from the authoritative case checkpoint. Every
+proposal includes progress, open work, user action/no action, provisional
+impact, next action and a bounded later update time.
+
+Generic template draft/publication is blocked. Independent Administrator review
+binds the immutable message hash; the dedicated path then rechecks case,
+proposal, recipient and message truth and atomically commits the case checkpoint,
+authenticated in-app record and append-only audit evidence. Privacy export and
+Retention inventory cover minimized published metadata; migration `055` refuses
+destructive rollback after evidence exists. No external delivery adapter exists.
+
+Focused tests, Privacy/Retention validators, fresh PostgreSQL 16 integration,
+533 Backend tests plus one expected skip, the accepted analyzer baseline, 370
+Flutter tests with one documented skip, separate Google-only coverage, Web
+build/smoke and Android debug APK are green locally. P0B remains PSP `HOLD` and
+pilot `0/4` / `NO-GO`. GitHub push/CI is not claimed because the stored CLI
+credential is expired; Draft PR #7 is unmerged. No production, Payment, Store,
+Cloud/VPS/DNS, signed candidate or public activation occurred.
