@@ -1410,3 +1410,38 @@ No new rate-limit, timing or request-source workaround was accepted. Manual
 PostgreSQL lifecycle, temporary Node resolution, Flutter serial execution and
 bounded temp-fixture proof remain open release debt; S4K does not claim release
 readiness.
+
+## S4L server-owned handover exception intake
+
+`S4L_HANDOVER_EXCEPTION_INTAKE` is locally verified at implementation commit
+`27b29e93ef02a987f6414eb780556137de03efcf`, with deterministic runner commit
+`487c34a862676607af47eaf767afcca3e174bf38`. Existing controls cover Drive
+`SUP-049` through `SUP-051`; S4L closes the non-live technical gaps in
+`SUP-052` through `SUP-054` for item mismatch, off-platform deposit requests
+and handover no-shows.
+
+One participant-only endpoint derives three exact P1 routes. Item mismatch
+requires safe-abort acknowledgement, deposit demand requires do-not-pay
+acknowledgement and Trust review, and no-show requires a reached
+counterparty-confirmed booking-local appointment plus a server-visible actor
+message. Generic support cannot bypass the reserved routes. All outcomes are
+neutral simulation cases: no handover/booking change, cancellation, money or
+refund result, guilt decision, or account/listing measure occurs.
+
+Migration `062` independently verifies the booking, route, acknowledgements
+and database contact count, requires an exact 19-key PII-minimized audit
+receipt and refuses rollback after evidence. Privacy and Retention inventories
+bind the new sources and remain draft/blocked.
+
+Local verification passed 50 focused checks, 58 Privacy/Retention tests, 37
+P0B tests, fresh PostgreSQL 16 through migration `062`, 568 Backend tests plus
+one expected skip, analyzer baseline 220, two full standard-parallel Flutter
+runs with 376 passes plus one documented skip each, separate Google-only,
+Web/loopback smoke and Android debug APK. P0B remains PSP `0/8 HOLD` and pilot
+`0/4 HOLD` / `NO-GO`. GitHub push/CI is not claimed; no live boundary changed.
+
+No limiter, IP or timing workaround was accepted. The runner no longer
+defaults to serial Flutter tests and Backend module loading has repository-owned
+non-secret test defaults. Exact-commit CI, isolated limiter thresholds,
+automatic PostgreSQL lifecycle, normal Node/pnpm resolution and bounded fixture
+proof remain required by the release-debt register.

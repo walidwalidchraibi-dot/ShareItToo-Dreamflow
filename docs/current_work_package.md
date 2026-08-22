@@ -935,3 +935,29 @@ No timing, limiter or request-source workaround became a prerequisite. The
 final gate used a fresh database and injected-clock boundary tests. Existing
 temporary Node, Flutter serialism, manual PostgreSQL orchestration and bounded
 fixture-cleanup proof stay in the open release-debt register.
+
+## S4L server-owned handover exception intake
+
+`S4L_HANDOVER_EXCEPTION_INTAKE` implements Drive Support Matrix scenarios
+`SUP-052` through `SUP-054` at commit
+`27b29e93ef02a987f6414eb780556137de03efcf`; `SUP-049` through `SUP-051`
+remain covered by the pre-existing confirmation/evidence guards. The
+participant-only endpoint server-routes item mismatch, off-platform deposit
+demand and handover no-show into three exact P1 review cases.
+
+Safe-abort, do-not-pay and chat-contact acknowledgements are kind-specific.
+No-show additionally requires a reached counterparty-confirmed appointment and
+database-visible message. Clients cannot choose the support route or any
+status, money, guilt or moderation effect. Migration `062` enforces current
+booking truth, exact minimized audit metadata and rollback refusal.
+
+Focused, Privacy/Retention, P0B, fresh PostgreSQL, full Backend, two full
+standard-parallel Flutter runs, Google-only, analyzer, Web smoke, Android debug,
+syntax and secret checks pass locally. The Backend runner now owns safe test
+module defaults and technical regression no longer defaults to concurrency
+one at commit `487c34a862676607af47eaf767afcca3e174bf38`.
+
+P0B remains `HOLD` / `NO-GO`. No production, Payment, Store, Cloud/VPS/DNS,
+signed candidate, deployment, merge or public activation is enabled. Shared
+limiter isolation, exact-commit CI and the remaining deterministic
+release-readiness debt stay open.
