@@ -145,16 +145,16 @@ class AppPopup {
     // New: optional auto-close duration for standard popups
     Duration? autoCloseAfter,
   }) async {
+    final navigator = Navigator.maybeOf(context, rootNavigator: true);
+    var closed = false;
     // Schedule auto-close if requested
     if (autoCloseAfter != null) {
       Future<void>.delayed(autoCloseAfter).then((_) {
-        try {
-          final nav = Navigator.maybeOf(context, rootNavigator: true);
-          if (nav != null && nav.canPop()) {
-            nav.maybePop();
-          }
-        } catch (_) {
-          // Silently ignore if navigator is unavailable (e.g., context disposed)
+        if (!closed &&
+            navigator != null &&
+            navigator.mounted &&
+            navigator.canPop()) {
+          navigator.maybePop();
         }
       });
     }
@@ -216,7 +216,7 @@ class AppPopup {
           ),
         );
       },
-    );
+    ).whenComplete(() => closed = true);
   }
 
   static Future<void> showLoginRequired(BuildContext context) async {
@@ -241,14 +241,13 @@ class AppPopup {
     bool useExploreBackground = false,
   }) async {
     bool closed = false;
+    final navigator = Navigator.maybeOf(context, rootNavigator: true);
     Future<void>.delayed(duration).then((_) {
-      try {
-        final nav = Navigator.maybeOf(context, rootNavigator: true);
-        if (!closed && nav != null && nav.canPop()) {
-          nav.maybePop();
-        }
-      } catch (_) {
-        // Ignore navigator lookup failures
+      if (!closed &&
+          navigator != null &&
+          navigator.mounted &&
+          navigator.canPop()) {
+        navigator.maybePop();
       }
     });
     await showGeneralDialog<void>(
