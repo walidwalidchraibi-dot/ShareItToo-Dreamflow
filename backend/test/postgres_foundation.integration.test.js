@@ -209,8 +209,8 @@ if (!databaseUrl) {
         ]],
       );
       assert.deepEqual(supportCaseTables.rows, [
-        { table_name: 'support_article18_assessments' },
         { table_name: 'support_appeals' },
+        { table_name: 'support_article18_assessments' },
         { table_name: 'support_break_glass_grants' },
         { table_name: 'support_case_events' },
         { table_name: 'support_cases' },
