@@ -1,9 +1,16 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n3-listing-ai-gateway",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n4",
   "capturedAt": "2026-08-23T21:23:34Z",
   "implementationBaseHead": "c3c1d404887d9634ddd67675e74066e86037fdba",
+  "exactGitHubVerification": {
+    "headSha": "053e8b6e26217c914ccdb01532025598327ae9be",
+    "regressionRunId": 32667861927,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32667861950,
+    "codeqlConclusion": "success"
+  },
   "gateway": {
     "version": "N3-2026-08-23.1",
     "defaultProvider": "disabled",
@@ -55,13 +62,13 @@
   "targetedVerification": {
     "gatewaySyntax": "passed",
     "gatewayAndConfigTests": "passed-15",
-    "artifactValidatorTests": "passed-6",
+    "artifactValidatorTests": "passed-7",
     "artifactValidator": "passed",
     "backendSuite": "passed-629-one-documented-skip",
     "postgres16MigrationIntegration": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
   },
   "nextPackage": "N4",
   "boundaries": {

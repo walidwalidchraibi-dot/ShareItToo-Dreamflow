@@ -3444,5 +3444,6 @@ and missing external authorization converge on a photo/input-preserving manual
 fallback with no partial authoritative AI state. Exact replay calls the
 transport once; conflicting key reuse is rejected. No OpenAI transport, key,
 route, provider call or billed cost is present. The full backend, PostgreSQL,
-Flutter, Web and Android regression is green; exact GitHub CI remains pending
-before N3 can be marked ready for N4.
+Flutter, Web and Android regression is green. Commit
+`053e8b6e26217c914ccdb01532025598327ae9be`, regression run `32667861927` and
+CodeQL run `32667861950` are exact and successful. N3 is complete; N4 is active.

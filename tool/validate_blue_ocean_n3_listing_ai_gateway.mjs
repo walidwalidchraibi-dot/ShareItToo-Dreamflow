@@ -90,10 +90,24 @@ export function validateBlueOceanN3ListingAiGateway({
   }
   const fullRegressionPassed = value.status !== 'implemented-targeted-tests-passed-full-regression-pending';
   const githubPassed = value.status === 'verified-ready-for-n4';
+  const exactGitHubVerification = value.exactGitHubVerification;
+  if (githubPassed) {
+    if (!exact(exactGitHubVerification, {
+      headSha: '053e8b6e26217c914ccdb01532025598327ae9be',
+      regressionRunId: 32667861927,
+      regressionConclusion: 'success',
+      codeqlRunId: 32667861950,
+      codeqlConclusion: 'success',
+    })) {
+      fail('N3 exact GitHub verification is invalid.');
+    }
+  } else if (exactGitHubVerification !== undefined) {
+    fail('N3 cannot bind exact GitHub verification before CI is complete.');
+  }
   if (!exact(value.targetedVerification, {
     gatewaySyntax: 'passed',
     gatewayAndConfigTests: 'passed-15',
-    artifactValidatorTests: 'passed-6',
+    artifactValidatorTests: 'passed-7',
     artifactValidator: 'passed',
     backendSuite: fullRegressionPassed ? 'passed-629-one-documented-skip' : 'pending',
     postgres16MigrationIntegration: fullRegressionPassed ? 'passed' : 'pending',

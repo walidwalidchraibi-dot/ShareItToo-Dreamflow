@@ -18,7 +18,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact non-live N3 gateway', () => {
   assert.deepEqual(validate(), {
-    status: 'implemented-full-regression-passed-ci-pending',
+    status: 'verified-ready-for-n4',
     strictFieldCount: 13,
     nextPackage: 'N4',
   });
@@ -59,12 +59,18 @@ test('rejects invented provider adapter, model, key or call evidence', () => {
 
 test('rejects invented regression completion and forbidden mutation', () => {
   const regression = structuredClone(evidence);
-  regression.targetedVerification.githubRegression = 'passed';
+  regression.targetedVerification.backendSuite = 'pending';
   assert.throws(() => validate(regression), /verification record/u);
 
   const mutation = structuredClone(evidence);
   mutation.boundaries.billingActivated = true;
   assert.throws(() => validate(mutation), /mutation boundary/u);
+});
+
+test('rejects an invalid exact GitHub verification binding', () => {
+  const changed = structuredClone(evidence);
+  changed.exactGitHubVerification.headSha = '0000000000000000000000000000000000000000';
+  assert.throws(() => validate(changed), /exact GitHub verification/u);
 });
 
 test('rejects private or secret-shaped evidence', () => {
