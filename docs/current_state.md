@@ -3045,3 +3045,26 @@ PF9 is independently green on exact commit
 account mutation, Store, participant, production, Payment, Cloud/VPS/DNS,
 provider, contract, cost, real-money, public activation or merge action
 occurred. P0B and Stage A remain `HOLD` / `NO-GO`.
+
+## PF11 current-head Android main navigation
+
+The exact PF6 direct-installed candidate now passes a bounded authenticated
+read-only traversal of all five primary destinations on the Pixel: Entdecken,
+Mietkorb, Buchungen, Nachrichten and Mein SIT. Every destination exposed its
+required sanitized authenticated surface and the app returned to Entdecken.
+
+The source-bound tool verifies the installed APK hash and version, refuses a
+locked phone and stores no UI hierarchy, screen/account/cart/booking/message
+content, identity, credential, token, review account, private path, network
+identifier or raw device identifier. Android's compound accessibility labels
+are parsed only at decoded semantic line boundaries and permanently covered by
+focused tests.
+
+PF11 makes no action-level claim: no booking flow, message send, cart/account
+mutation, real push, TalkBack traversal, Store delivery or full functional
+matrix was performed. PF10 is independently green on exact commit
+`e33ae6a343d459e3ea0f9ed4c6cc55aaecbcfe16`: regression run
+`32637209704` and CodeQL run `32637209691` both succeeded. No login, logout,
+participant, Store, production, Payment, Cloud/VPS/DNS, provider, contract,
+cost, real-money, public activation or merge action occurred. P0B and Stage A
+remain `HOLD` / `NO-GO`.

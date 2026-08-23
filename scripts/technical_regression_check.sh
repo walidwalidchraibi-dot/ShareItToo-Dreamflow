@@ -223,6 +223,15 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_current_head_android_authenticated_safe_links.mjs
 fi
+node --check tool/diagnose_current_head_android_main_navigation.mjs
+node --test test/tool/diagnose_current_head_android_main_navigation.test.mjs
+node --check tool/validate_current_head_android_main_navigation.mjs
+node --test test/tool/validate_current_head_android_main_navigation.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_current_head_android_main_navigation.mjs --ci-metadata-only
+else
+  node tool/validate_current_head_android_main_navigation.mjs
+fi
 node --test test/tool/g2a_navigation_migration_wiring.test.mjs
 node --check tool/validate_g2_data_lifecycle.mjs
 node --test test/tool/validate_g2_data_lifecycle.test.mjs

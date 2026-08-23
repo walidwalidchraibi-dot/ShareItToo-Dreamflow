@@ -2692,3 +2692,28 @@ provider, contract, cost, real-money, public activation or merge occurred.
 The next autonomous lane is the highest remaining current-source Android or
 source-level gap that can be closed without credentials, fixture mutation,
 external providers or Store upload. Stage A remains `HOLD` / `NO-GO`.
+
+## PF11 — current-head Android main navigation
+
+`PF11_CURRENT_HEAD_ANDROID_MAIN_NAVIGATION` adds a source-bound physical
+diagnostic for the five primary authenticated destinations. It accepts only
+`--current-head` plus an optional ADB binary, validates the exact PF6
+direct-installed APK and refuses current Android lock states before UI access.
+
+The Pixel run opened Entdecken, Mietkorb, Buchungen, Nachrichten and Mein SIT,
+verified a destination-specific sanitized surface for each and returned to
+Entdecken. The tool only taps the bottom navigation. It never invokes a
+booking, message, cart or account action and retains no hierarchy or personal
+content. Entity-decoded compound Android semantics are handled with exact line
+boundaries and deterministic tests, not a device-specific workaround.
+
+PF11 remains narrower than the full PF5 functional/device matrix. Booking
+roles, request/acceptance, handover/return, message delivery, cart mutation,
+real push, manual TalkBack and Google Play delivery remain unclaimed. No
+login/logout, participant, Store, production, Payment, Cloud/VPS/DNS,
+provider, contract, cost, real-money, public activation or merge occurred.
+
+The next autonomous lane is another isolated current-source or source-level
+launch gap that can be closed without mutating the preserved account, using
+external providers or crossing a Store/live gate. Stage A remains
+`HOLD` / `NO-GO`.
