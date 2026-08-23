@@ -2366,3 +2366,27 @@ run `32622192273` passes PostgreSQL in 58 seconds, Backend in 1:18 and
 Flutter/Web/Android in 6:30; signing and publication remain skipped. No
 production, provider, Payment, Store, Cloud/VPS/DNS, pilot or merge state
 changed. P0B remains `HOLD` / `NO-GO`.
+
+## S4BV external-gate Support Matrix linkage
+
+`S4BV_EXTERNAL_GATE_SUPPORT_MATRIX_LINKAGE` at exact commit
+`66f022e5d823d7d96bd6747e0096208cd71f0f7c` closes the aggregate traceability
+gap between S4BH's ten prepared external gates and S4BU's canonical 167-row
+Support Matrix map.
+
+The external setup preflight now executes the full Support traceability
+validator, reproduces the exact 167/47/0 scenario state and requires the
+common evidence reference on exactly Legal/operator, PSP sandbox,
+Privacy/Retention, Store and explicit activation. Count/source drift,
+misplaced references and premature ready states all fail closed. The setup
+remains 10/10 technically prepared, 0/10 externally ready and `hold-no-go`;
+the strict Support and external-gate checks remain intentionally red.
+
+Fourteen focused tests and the unchanged full local Flutter/Web/Android gate
+pass with analyzer zero, 385 Flutter tests plus one documented skip, Google-
+only, WebAssembly, loopback smoke, Android 448 tasks, minSdk 24 and 12 KiB
+generated growth. Clean-host run `32622784481` passes PostgreSQL in 38 seconds,
+Backend in 1:39 and Flutter/Web/Android in 7:17. Signing and publication stay
+skipped. No external account, contract, production, Payment, Store,
+Cloud/VPS/DNS, pilot, real-money, activation or merge state changed. P0B
+remains `HOLD` / `NO-GO`.
