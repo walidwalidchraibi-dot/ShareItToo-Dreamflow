@@ -2359,3 +2359,27 @@ publication jobs stayed skipped. `TD-RR-004` is closed, so all 12/12 registered
 release-readiness debt exits are now deterministic and retained. External
 legal, staffing, device/iOS, PSP, privacy/retention, Store and activation gates
 remain open; P0B remains `HOLD` / `NO-GO`.
+
+## S4BH external gate technical setup
+
+`S4BH_EXTERNAL_GATE_TECHNICAL_SETUP` is technically verified at exact head
+`6f48a0be40e77a3ff0f5cc12581bb7820d0ef2cd`. The remaining external work
+now has one ordered, machine-checked entry surface covering Legal/operator,
+Operations staffing, Apple/iOS, Firebase, PSP, Privacy/Retention, Store,
+Economics, pilot scope and explicit activation. Its state is exactly ten
+technically prepared gates, zero externally ready gates and `hold-no-go`.
+
+The ordinary preflight is green and strict readiness is deliberately red until
+authentic external evidence updates the canonical specialist artifact first.
+The validator rejects credential-shaped fields, unsafe or absent references,
+fake readiness and drift from the current P0B source truth. The setup runbook
+records the final with-Walid configuration order and retains explicit approval
+for any Apple membership or PSP cost.
+
+The unchanged complete local gate passed with analyzer zero, 384 Flutter tests
+plus one documented skip, Google-only, Web build/smoke and one direct 448-task
+Android debug build; generated footprint growth was 4 KiB. Exact CI run
+`32611637355` passed Backend in 1:15, PostgreSQL-16 runner in 0:33 and
+Flutter/Web/Android in 6:30. Signing and publication were skipped. No external
+or live state changed, external readiness remains 0/10 and P0B remains `HOLD`
+/ `NO-GO`.

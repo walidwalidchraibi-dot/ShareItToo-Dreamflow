@@ -2039,3 +2039,31 @@ construction and publication stayed skipped. `TD-RR-004` is closed; the
 release-readiness Technical-Debt register is now 12/12 closed. P0B and every
 legal, staffing, device/iOS, PSP, privacy/retention, Store and activation gate
 remain fail-closed.
+
+## S4BH external gate technical setup
+
+`S4BH_EXTERNAL_GATE_TECHNICAL_SETUP` is technically verified at exact
+implementation head `6f48a0be40e77a3ff0f5cc12581bb7820d0ef2cd`. One
+machine-readable manifest and an ordered runbook now bind the ten remaining
+external launch gates to their canonical repository evidence. All technical
+preparations are complete, while external readiness remains exactly `0/10`.
+
+The ordinary validator returns `prepared-hold`; strict readiness intentionally
+fails with all ten unresolved gate IDs. It cross-checks Legal, Operations,
+Android/iOS, Firebase, PSP, Privacy/Retention, Store, Economics, pilot and P0B
+truth, rejects credential-shaped fields and permits no missing or unsafe
+evidence reference. The Store documentation now also reflects the already
+recorded machine truth that Google Play account setup is ready while Apple
+membership and Firebase owner terms remain open.
+
+Six focused contracts and the complete unchanged local gate passed with
+analyzer zero, 384 Flutter tests plus one documented skip, Google-only, Web
+build/smoke and one direct 448-task Android debug build. The capacity guard
+recorded only 4 KiB generated growth. Exact CI run `32611637355` passed Backend
+in 1:15, the repository PostgreSQL-16 runner in 0:33 and Flutter/Web/Android in
+6:30; signed-candidate construction and publication stayed skipped.
+
+No login, external account, paid service, production, Payment, Store,
+Cloud/VPS/DNS, pilot or activation state changed. S4BH is complete, but the ten
+authentic professional/owner/provider/device decisions and Walid's final
+activation decision remain external. P0B remains `HOLD` / `NO-GO`.
