@@ -154,6 +154,7 @@ if (!databaseUrl) {
         '064_support_status_machine_v1_alignment.up.sql',
         '065_support_direct_decision_path.up.sql',
         '066_blue_ocean_listing_ai_foundation.up.sql',
+        '067_blue_ocean_regional_price_engine_v2.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -256,6 +257,78 @@ if (!databaseUrl) {
           (error) => error.code === '23514',
         );
         await n2Client.query('ROLLBACK TO SAVEPOINT n2_coarse_region');
+
+        const n5Observation = await n2Client.query(
+          `INSERT INTO regional_market_observations (
+             draft_id, coarse_region_key, category_id, subcategory,
+             daily_price_minor, source_type, observed_at,
+             market_observation_version, brand_model_family, condition_class,
+             market_actor_type, geography_bucket, state_code, country_code,
+             distance_millikm, source_class, source_quality_basis_points,
+             status_class, provenance_reference, reviewed,
+             amount_includes_only_rent, synthetic, engine_eligible
+           ) VALUES (
+             $1, 'heilbronn_wave0', 'power_tools', 'Bohrmaschinen',
+             1500, 'pilot_aggregate', now(),
+             'regional-market-observation-v2', 'Bosch Professional', 'good',
+             'private', 'heilbronn_wave0', 'DE-BW', 'DE', 5000,
+             'completed_sit_rental', 10000, 'completed',
+             'provenance_reference_00000001', true, true, false, true
+           ) RETURNING engine_eligible, source_quality_basis_points`,
+          [draftId],
+        );
+        assert.deepEqual(n5Observation.rows[0], {
+          engine_eligible: true,
+          source_quality_basis_points: 10000,
+        });
+
+        await n2Client.query('SAVEPOINT n5_synthetic_quality');
+        await assert.rejects(
+          n2Client.query(
+            `INSERT INTO regional_market_observations (
+               draft_id, coarse_region_key, category_id, subcategory,
+               daily_price_minor, source_type, observed_at,
+               market_observation_version, condition_class, market_actor_type,
+               geography_bucket, state_code, country_code, distance_millikm,
+               source_class, source_quality_basis_points, status_class,
+               provenance_reference, reviewed, amount_includes_only_rent,
+               synthetic, engine_eligible, exclusion_reason_code
+             ) VALUES (
+               $1, 'heilbronn_wave0', 'power_tools', 'Bohrmaschinen',
+               1500, 'synthetic_test', now(),
+               'regional-market-observation-v2', 'good', 'private',
+               'heilbronn_wave0', 'DE-BW', 'DE', 5000,
+               'synthetic_fixture', 10000, 'synthetic',
+               'provenance_reference_00000002', true, true, true, false,
+               'synthetic_zero_weight'
+             )`,
+            [draftId],
+          ),
+          (error) => error.code === '23514',
+        );
+        await n2Client.query('ROLLBACK TO SAVEPOINT n5_synthetic_quality');
+
+        await n2Client.query(
+          `INSERT INTO regional_price_engine_snapshots (
+             draft_id, draft_version_id, engine_authority, engine_version,
+             input_sha256, range_low_minor, recommended_daily_minor,
+             range_high_minor, explanation, snapshot_payload,
+             market_observation_version, fallback_anchor_minor,
+             regional_weighted_median_minor,
+             effective_observation_count_milli, geography_scope, confidence,
+             fallback_share_basis_points, demand_factor_basis_points,
+             duration_schedule, quote_preview, owner_selected_daily_minor,
+             owner_override_applied, synthetic_learning_applied
+           ) VALUES (
+             $1, $2, 'SIT_REGIONAL_PRICE_ENGINE_V2', 'N5-2026-08-24.1',
+             $3, 1400, 1500, 1600, 'Deterministic N5 integration fixture.',
+             '{}'::jsonb, 'regional-market-observation-v2', 1700, 1500,
+             1000, 'within_20_km', 'LOW', 8889, 10000,
+             '{"enabled":true}'::jsonb, '{"simulation":true}'::jsonb,
+             1600, true, false
+           )`,
+          [draftId, version.rows[0].id, 'c'.repeat(64)],
+        );
         await n2Client.query('DELETE FROM listing_ai_drafts WHERE id = $1', [draftId]);
         const cascaded = await n2Client.query(
           `SELECT

@@ -3117,3 +3117,24 @@ exact GitHub CI are green at commit
 `129177003447084c1b24bc9ad36d9289a2803535`. N4 is complete. N5 now owns
 the deterministic enrichment and SIT regional-price integration while keeping
 AI output non-authoritative and publication manual.
+
+N5 is implemented as an isolated deterministic price domain. The only price
+authority is `SIT_REGIONAL_PRICE_ENGINE_V2`; provider output cannot set a
+price. Six fallback categories, five replacement-value bands, function and
+condition gates, weighted median/MAD regional evidence, rational effective
+sample size, `n_eff / (n_eff + 8)` shrinkage and HIGH/MEDIUM/LOW confidence are
+covered by nineteen focused tests.
+
+Zero authentic observations use the versioned fallback without pretending to
+be a regional market price. Synthetic rows have zero learning weight. Demand
+stays neutral until at least twenty authentic requests and ten active listings
+exist, then remains bounded to 0.90–1.10. The owner sees three editable options
+and retains final authority. Duration tiers are editable/disableable and V5.2
+calculates its 10 percent contribution after discounts in simulation only.
+
+Migration 067 and a header-only manual-import template preserve reviewed
+provenance, coarse geography, append-only history and rollback safety. The
+fresh PostgreSQL 16 migration integration and the complete local Backend,
+Flutter, Web and Android regression are green. Commit/push and exact GitHub CI
+are pending; no route, import, scraper, provider, billing, publication or live
+gate has been opened.

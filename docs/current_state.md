@@ -3464,3 +3464,24 @@ was added. The complete local backend, PostgreSQL, Flutter, Web and Android
 regression is green. Commit `129177003447084c1b24bc9ad36d9289a2803535`,
 regression run `32668969157` and CodeQL run `32668969147` are exact and
 successful. N4 is complete; N5 is active.
+
+## Stage A Blue Ocean N5 regional price engine V2 (2026-08-24)
+
+N5 implements the deterministic `SIT_REGIONAL_PRICE_ENGINE_V2` as an isolated
+server-side domain module. Six category rules, five replacement-value bands,
+three condition factors, robust weighted regional evidence, honest confidence,
+zero-transaction fallback and owner-editable price options retain integer EUR
+money and exclude synthetic learning. Demand remains neutral before authentic
+minimum counts and is bounded afterward.
+
+Migration 067 additively enriches the append-only N2 observation and snapshot
+foundations. Existing rows remain ineligible, exact addresses and identities
+are excluded, reviewed external data has a closed import schema and rollback
+refuses to discard V2 data. Duration pricing remains owner-editable and the
+V5.2 quote engine applies the 10 percent SIT contribution only after discount.
+
+Nineteen focused engine tests, six artifact-validator tests, the fresh
+PostgreSQL 16 migration integration and the complete local Backend, Flutter,
+Web and Android regression pass. Exact GitHub CI remains pending. No route,
+provider, import, scraper, billing, publication, historical rewrite or live
+mutation was added.
