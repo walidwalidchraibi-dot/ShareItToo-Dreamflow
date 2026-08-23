@@ -1929,3 +1929,33 @@ This package does not close `TD-RR-010`; the remaining 20 message-thread
 diagnostics still require reviewed downward ratchets to zero plus exact-commit
 CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
 Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.
+
+## S4BD message-thread legacy-UI ratchet
+
+`S4BD_MESSAGE_THREAD_LEGACY_UI_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at implementation commit `7c93081`. It removes nine
+analyzer-confirmed unreachable Legacy-UI widgets and their two transitive
+helpers. Active transaction composer, combined booking/time actions, confirmed
+handover countdown, text/photo/file/location/time actions and compact booking
+summary remain permanently guarded.
+
+The exact debt snapshot moves `20 -> 3`: `unused_element` changes `9 -> 0`,
+`unused_element_parameter` changes `9 -> 1` and `unused_field` remains `2`.
+One hundred five focused source/analyzer/privacy/retention/data-integrity
+contracts, 42 focused Flutter tests and all exact privacy, retention, G2
+lifecycle and analyzer validators pass. The complete standard-parallel gate
+passed in one execution on `7c93081` with 384 Flutter tests plus one documented
+skip, the separate Google-only test, Web build/smoke and one direct 448-task
+Android debug build. The privacy inventory is rebound to the exact source
+without changing its draft or release state.
+
+The complete S4BD gate passed with the unchanged command, no retry, cleanup,
+network switch or Pixel dependency and 1136 MiB to 1143 MiB available
+capacity. This does not close `TD-RR-012`: deterministic release-host capacity
+and bounded-growth evidence remain open.
+
+This package does not close `TD-RR-010`; two unused animation values and one
+never-selected location-map loading variant require the final reviewed ratchet
+to zero plus exact-commit CI. P0B remains `HOLD` / `NO-GO`; no production,
+Payment, Store, Cloud/VPS/DNS, deployment, signing, merge or public activation
+is enabled.
