@@ -2626,3 +2626,28 @@ The exact preceding repository head `355ec324` passes GitHub Actions run
 Flutter/Web/Android in 6:26. Signing and publication remain skipped. The S4BR
 documentation push provides a new-head GitGuardian evaluation of the closed
 incidents. External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BS/S4BT canonical support status and decision paths
+
+`S4BS_SUPPORT_STATUS_MACHINE_V1_ALIGNMENT` is implemented at exact commit
+`daf7a79e6bdb36926dce46fea37756af0fb89b58`. It binds Drive Support Packet file
+`10_status.json` by file ID and SHA-256, replaces the drifted 12-status/22-edge
+implementation with the canonical 11 statuses and 18 transitions and removes
+active `implementation_pending` behavior. Migration `064` blocks rather than
+rewrites incompatible stored history.
+
+`S4BT_SUPPORT_DIRECT_DECISION_PATH` is implemented at exact commit
+`5e6f99cf074b66d3dd9119f30903894bcb224350`. It closes the canonical
+green/yellow `under_review -> decided` path for an active Administrator with an
+immutable direct-approval hash while keeping red decisions on the separate
+four-eyes path. Migration `065`, application checks and PostgreSQL integration
+all reject direct red self-approval.
+
+Both exact local full gates pass analyzer zero, 385 Flutter tests plus one
+documented skip, Google-only, Web/WebAssembly, loopback smoke and Android. The
+S4BT head also passes 605 backend tests plus one expected no-database skip and
+a fresh PostgreSQL 16 `passed-and-cleaned` run. Exact GitHub Actions runs
+`32620871777` and `32621468236` provide clean-host evidence. The latter passes
+PostgreSQL in 35 seconds, Backend in 1:30 and Flutter/Web/Android in 6:37. No
+live action adapter was added. External readiness remains 0/10 and P0B remains
+`HOLD` / `NO-GO`.

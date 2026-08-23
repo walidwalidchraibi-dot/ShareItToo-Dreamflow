@@ -2318,3 +2318,28 @@ with PostgreSQL in 37 seconds, Backend in 1:14 and Flutter/Web/Android in 6:26;
 signing and publication remain skipped. This documentation push supplies the
 new-head GitGuardian re-evaluation without an empty commit. External readiness
 remains 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BS/S4BT canonical support workflow closeout
+
+`S4BS_SUPPORT_STATUS_MACHINE_V1_ALIGNMENT` at
+`daf7a79e6bdb36926dce46fea37756af0fb89b58` now binds the canonical Drive
+status source exactly: 11 statuses, 18 transitions, no active
+`implementation_pending` compatibility state. Migration `064` is fail-closed
+for incompatible stored history and retains the old column as NULL-only rather
+than deleting it.
+
+`S4BT_SUPPORT_DIRECT_DECISION_PATH` at
+`5e6f99cf074b66d3dd9119f30903894bcb224350` completes the source-defined
+green/yellow route using one active Administrator and an immutable direct
+approval hash. Red decisions retain a distinct Administrator reviewer and the
+four-eyes path. Application, migration wiring, unit tests and fresh PostgreSQL
+integration all enforce that split.
+
+The exact S4BT head passes 605 backend tests plus one expected no-database
+skip, fresh PostgreSQL 16 and the full local Flutter/Web/Android gate. GitHub
+Actions run `32620871777` is green for S4BS; run `32621468236` is the exact S4BT
+clean-host run and passes PostgreSQL in 35 seconds, Backend in 1:30 and
+Flutter/Web/Android in 6:37. No production, provider, Payment, Store,
+Cloud/VPS/DNS, pilot, signing or merge gate changed. The next bounded package
+is the fail-closed traceability mapping for all 167 unique Support Packet
+matrix scenarios before selecting further support hardening.
