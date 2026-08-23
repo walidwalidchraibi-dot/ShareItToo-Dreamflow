@@ -442,6 +442,7 @@ node --test test/tool/item_details_dead_code_ratchet_wiring.test.mjs
 node --test test/tool/android_debug_single_attempt_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs
+node --test test/tool/postgres_runner_ci_wiring.test.mjs
 node --test test/tool/release_host_capacity_guard_wiring.test.mjs
 
 analyze_log="$(mktemp)"

@@ -118,6 +118,30 @@ jobs:
             .
           test "$(docker image inspect "shareittoo-api:$APP_COMMIT" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$APP_COMMIT"
 
+  postgres-runner-proof:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: backend/package.json
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+
+      - name: Install locked backend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run repository-owned PostgreSQL 16 fresh-cluster proof
+        run: pnpm run test:postgres:local
+
   flutter-regression:
     runs-on: ubuntu-latest
     steps:
@@ -185,6 +209,7 @@ jobs:
     if: github.event_name == 'push'
     needs:
       - backend-regression
+      - postgres-runner-proof
       - flutter-regression
     runs-on: ubuntu-latest
     permissions:
