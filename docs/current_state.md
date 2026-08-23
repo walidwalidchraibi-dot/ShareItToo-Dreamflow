@@ -2651,3 +2651,26 @@ a fresh PostgreSQL 16 `passed-and-cleaned` run. Exact GitHub Actions runs
 PostgreSQL in 35 seconds, Backend in 1:30 and Flutter/Web/Android in 6:37. No
 live action adapter was added. External readiness remains 0/10 and P0B remains
 `HOLD` / `NO-GO`.
+
+## S4BU Support Packet matrix traceability
+
+`S4BU_SUPPORT_MATRIX_TRACEABILITY_GATE` is implemented at exact commit
+`a4fbb280d6908c5f8c8be7b758664bdc563a834f`. The machine-readable map binds
+Drive file `13_SIT_SUPPORT_TEST_MATRIX_V1.md` by file ID and SHA-256 and covers
+all 167 unique `SUP-001` through `SUP-167` scenarios exactly once across ten
+functional areas.
+
+The permanent validator reproduces the canonical 112 Pilot, 20 Public Launch,
+8 Quality and 27 Real Money counts, requires executable test files and exact
+behavior anchors, and fails on a gap, overlap, gate drift or missing evidence.
+All coverage is labeled `automated-non-live`; no synthetic test is promoted to
+provider, production, legal or physical-device truth.
+
+All 47 Public Launch and Real Money scenarios remain explicitly externally
+open, with zero external evidence present and strict release readiness false.
+Six focused tests and the complete local gate pass analyzer zero, 385 Flutter
+tests plus one documented skip, Google-only, Web/WebAssembly, loopback smoke
+and Android 448 tasks with 8 KiB generated growth. Exact clean-host run
+`32622192273` passes PostgreSQL in 58 seconds, Backend in 1:18 and
+Flutter/Web/Android in 6:30; signing and publication remain skipped. P0B
+remains `HOLD` / `NO-GO`.

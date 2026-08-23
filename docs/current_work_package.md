@@ -2343,3 +2343,26 @@ Flutter/Web/Android in 6:37. No production, provider, Payment, Store,
 Cloud/VPS/DNS, pilot, signing or merge gate changed. The next bounded package
 is the fail-closed traceability mapping for all 167 unique Support Packet
 matrix scenarios before selecting further support hardening.
+
+## S4BU Support Packet matrix traceability gate
+
+`S4BU_SUPPORT_MATRIX_TRACEABILITY_GATE` at exact commit
+`a4fbb280d6908c5f8c8be7b758664bdc563a834f` closes the S1 traceability backlog.
+It binds the exact current Drive matrix source and maps every one of its 167
+unique scenarios once to executable, anchored repository tests across ten
+functional areas.
+
+The validator requires the canonical 112/20/8/27 gate distribution and keeps
+all technical coverage explicitly non-live. Every Public Launch and Real Money
+scenario is simultaneously held open for external evidence: 47 required, zero
+present, strict release readiness false. Missing, duplicate or overlapping
+IDs, source drift, gate drift, missing tests or changed anchors all fail the
+complete regression.
+
+Six focused tests and the full local Flutter/Web/Android gate pass, including
+385 Flutter tests plus one documented skip, analyzer zero, WebAssembly dry-run,
+loopback smoke, 448 Android tasks and only 8 KiB generated growth. Clean-host
+run `32622192273` passes PostgreSQL in 58 seconds, Backend in 1:18 and
+Flutter/Web/Android in 6:30; signing and publication remain skipped. No
+production, provider, Payment, Store, Cloud/VPS/DNS, pilot or merge state
+changed. P0B remains `HOLD` / `NO-GO`.
