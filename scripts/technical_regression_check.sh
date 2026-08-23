@@ -111,6 +111,7 @@ node --test test/tool/file_picker_security_upgrade.test.mjs
 node --test test/tool/pdf_wasm_dependency_upgrade.test.mjs
 node --test test/tool/android_lifecycle_gradle_floor.test.mjs
 node --test test/tool/android_gradle9_bridge_floor.test.mjs
+node --test test/tool/android_path_provider_gradle_floor.test.mjs
 node --test test/tool/android_gradle_warning_visibility.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
