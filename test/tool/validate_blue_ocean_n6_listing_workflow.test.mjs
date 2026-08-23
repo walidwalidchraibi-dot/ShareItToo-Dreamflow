@@ -72,6 +72,9 @@ test('rejects forbidden mutation claims and invented verification', () => {
 
 test('rejects premature or malformed GitHub evidence', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-full-regression-passed-ci-pending';
+  premature.targetedVerification.githubRegression = 'pending';
+  premature.targetedVerification.githubCodeql = 'pending';
   premature.exactGitHubVerification = {
     headSha: '0'.repeat(40),
     regressionRunId: 1,
@@ -82,17 +85,7 @@ test('rejects premature or malformed GitHub evidence', () => {
   assert.throws(() => validate(premature), /cannot bind exact GitHub/u);
 
   const final = structuredClone(evidence);
-  final.status = 'verified-ready-for-n7';
-  final.targetedVerification.fullTechnicalRegression = 'passed-candidate-rollover-mode';
-  final.targetedVerification.githubRegression = 'passed';
-  final.targetedVerification.githubCodeql = 'passed';
-  final.exactGitHubVerification = {
-    headSha: 'bad',
-    regressionRunId: 1,
-    regressionConclusion: 'success',
-    codeqlRunId: 2,
-    codeqlConclusion: 'success',
-  };
+  final.exactGitHubVerification.headSha = 'bad';
   assert.throws(() => validate(final), /exact GitHub verification/u);
 });
 

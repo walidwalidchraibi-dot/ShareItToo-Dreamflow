@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n6-listing-workflow",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n7",
   "capturedAt": "2026-08-23T23:10:01Z",
   "implementationBaseHead": "c0457ccbfe2cc7928cba57ed5fe7de5d0ce7a48c",
   "workflow": {
@@ -64,8 +64,15 @@
     "backendSuite": "passed-663-one-documented-skip",
     "postgres16MigrationAndRouteIntegration": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
+  },
+  "exactGitHubVerification": {
+    "headSha": "7a8290408edf225c6c41e12eb5b3b278437984e6",
+    "regressionRunId": 32672867686,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32672867642,
+    "codeqlConclusion": "success"
   },
   "nextPackage": "N7",
   "boundaries": {

@@ -100,3 +100,9 @@ documented skip, Web/Wasm, loopback smoke and the 448-task Android debug build.
 The stricter local Store handoff still reports the already documented missing
 private archived AAB; N6 neither recreates it nor converts that external
 artifact gap into a pass.
+
+The exact implementation commit
+`7a8290408edf225c6c41e12eb5b3b278437984e6` passed GitHub regression run
+`32672867686` and CodeQL run `32672867642`. N6 is therefore closed and N7 owns
+the synthetic evaluation corpus and any narrowly evidenced correction it
+reveals.

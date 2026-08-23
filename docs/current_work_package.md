@@ -3166,6 +3166,7 @@ analyze/review/publish route coverage, 387 Flutter tests plus one documented
 skip, Web/Wasm, loopback smoke and the 448-task Android debug build. The strict
 local Store handoff continues to fail closed on its already documented missing
 private archived AAB; no replacement candidate was created. GitHub regression
-and CodeQL for the N6 implementation commit remain pending. N7 is next and must
-evaluate provider/scanner choices without credentials, billing or provider
-activation.
+run `32672867686` and CodeQL run `32672867642` are green at exact implementation
+commit `7a8290408edf225c6c41e12eb5b3b278437984e6`. N6 is complete. N7 is active
+and builds the required personal-data-free evaluation corpus without
+credentials, billing or provider activation.

@@ -3512,6 +3512,7 @@ analyze/review/publish HTTP routes, 387 Flutter tests plus one documented skip,
 Web/Wasm, loopback smoke and the 448-task Android debug build. The ordinary
 local Store handoff still fails closed because its previously documented
 private archived AAB is unavailable; no candidate was rebuilt. Implementation
-commit and exact GitHub regression/CodeQL verification are pending. N7 is
-active; N8 remains responsible for explicit privacy export, erasure and
-retention integration before any invited-person activation.
+commit `7a8290408edf225c6c41e12eb5b3b278437984e6`, GitHub regression run
+`32672867686` and CodeQL run `32672867642` are exact and green. N6 is complete
+and N7 is active; N8 remains responsible for explicit privacy export, erasure
+and retention integration before any invited-person activation.
