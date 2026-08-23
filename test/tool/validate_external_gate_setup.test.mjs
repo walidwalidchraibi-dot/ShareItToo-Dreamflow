@@ -153,7 +153,7 @@ test('aggregate setup is bound to the active hosting and mail provider hold', ()
   );
 });
 
-test('Store setup is bound to PF14B and PF16 while manual review remains open', () => {
+test('Store setup is bound to PF14B, PF16 and PF17 while manual review remains open', () => {
   const changedRef = copy(manifest);
   const storeGate = changedRef.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
@@ -165,6 +165,18 @@ test('Store setup is bound to PF14B and PF16 while manual review remains open', 
   ));
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: changedRef }),
+    /store_candidate_ref_invalid/u,
+  );
+
+  const missingPf17 = copy(manifest);
+  const missingPf17StoreGate = missingPf17.gates.find(
+    ({ id }) => id === 'store_submission_and_closed_testing',
+  );
+  missingPf17StoreGate.currentEvidenceRefs = missingPf17StoreGate.currentEvidenceRefs.filter(
+    (reference) => !reference.includes('current-candidate-authenticated-safe-links'),
+  );
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: missingPf17 }),
     /store_candidate_ref_invalid/u,
   );
 

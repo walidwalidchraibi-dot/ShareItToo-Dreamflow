@@ -138,9 +138,11 @@ text and already-controlled booking evidence.
   touch-target geometry. Its exact installed APK also passed a read-only Pixel
   regression covering process restart, two authenticated cold starts, offline
   recovery, five primary-navigation surfaces, seven legal routes and all five
-  navigation surfaces at 200% text with exact setting restoration. The route
-  choice, Google Play closed test, protected review access, manual visual review
-  and TalkBack traversal are still missing.
+  navigation surfaces at 200% text with exact setting restoration. The same
+  exact installed candidate also preserves its authenticated session across
+  five bounded safe-link checks. The route choice, Google Play closed test,
+  protected review access, manual visual review and TalkBack traversal are
+  still missing.
 - Owner/cost/contract/Walid: Walid and the authorized release operator. Existing
   Google registration is paid; new costs are unknown and need prior approval.
   Current platform agreements apply. Walid must be present.

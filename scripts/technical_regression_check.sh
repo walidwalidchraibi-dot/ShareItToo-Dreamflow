@@ -269,6 +269,15 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_pf16_current_candidate_read_only.mjs
 fi
+node --check tool/diagnose_pf17_current_candidate_authenticated_safe_links.mjs
+node --test test/tool/diagnose_pf17_current_candidate_authenticated_safe_links.test.mjs
+node --check tool/validate_pf17_current_candidate_authenticated_safe_links.mjs
+node --test test/tool/validate_pf17_current_candidate_authenticated_safe_links.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_pf17_current_candidate_authenticated_safe_links.mjs --ci-metadata-only
+else
+  node tool/validate_pf17_current_candidate_authenticated_safe_links.mjs
+fi
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

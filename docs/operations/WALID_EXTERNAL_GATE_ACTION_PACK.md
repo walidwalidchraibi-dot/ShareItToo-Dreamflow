@@ -85,7 +85,9 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
   bereits technisch belegt. Der exakt installierte Kandidat besteht außerdem
   Prozess-Neustart, zwei authentifizierte Kaltstarts, Offline-Wiederherstellung,
   fünf Hauptnavigationen, sieben Rechtsrouten und fünf Großschrift-Flächen
-  read-only; manuelle Sichtprüfung und TalkBack bleiben offen.
+  read-only. Fünf sichere App-Link-Prüfungen erhalten die authentifizierte
+  Sitzung auf demselben exakten Kandidaten; manuelle Sichtprüfung und TalkBack
+  bleiben offen.
 - Dauer: etwa 20 Minuten nur lesende Console-Prüfung; Signierung, Upload und
   Review sind separate spätere Schritte.
 - Mögliche Kosten: Google-Registrierung ist als bereits bezahlt dokumentiert;

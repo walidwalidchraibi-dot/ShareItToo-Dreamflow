@@ -19,6 +19,9 @@ import {
 import {
   validatePf16CurrentCandidateReadOnly,
 } from './validate_pf16_current_candidate_read_only.mjs';
+import {
+  validatePf17CurrentCandidateAuthenticatedSafeLinks,
+} from './validate_pf17_current_candidate_authenticated_safe_links.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -32,6 +35,8 @@ const pf14bEvidencePath =
   'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json';
 const pf16EvidencePath =
   'docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json';
+const pf17EvidencePath =
+  'docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -222,6 +227,27 @@ export function validateExternalGateSetup({
       && pf16Result.decision === 'hold-no-go',
     'pf16_store_candidate_state_invalid',
   );
+  const pf17Evidence = readJson(pf17EvidencePath, sourceOverrides);
+  const pf17Result = validatePf17CurrentCandidateAuthenticatedSafeLinks({
+    root,
+    evidence: pf17Evidence,
+    pf16Evidence,
+    pf14bEvidence,
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf17Result.buildNumber === '2026082302'
+      && pf17Result.exactInstalledApkVerified === true
+      && pf17Result.authenticatedSafeLinksPassed === true
+      && pf17Result.authenticatedSessionPreserved === true
+      && pf17Result.authenticatedFixtureLinksPassed === false
+      && pf17Result.bookingFlowPassed === false
+      && pf17Result.realPushPassed === false
+      && pf17Result.fullDeviceMatrixPassed === false
+      && pf17Result.stageAReady === false
+      && pf17Result.decision === 'hold-no-go',
+    'pf17_store_candidate_safe_link_state_invalid',
+  );
 
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
@@ -266,6 +292,7 @@ export function validateExternalGateSetup({
       assertCondition(
         gate.currentEvidenceRefs.includes(pf14bEvidencePath)
           && gate.currentEvidenceRefs.includes(pf16EvidencePath)
+          && gate.currentEvidenceRefs.includes(pf17EvidencePath)
           && !gate.currentEvidenceRefs.includes(supersededAndroidCandidatePath),
         'store_candidate_ref_invalid:store_submission_and_closed_testing',
       );

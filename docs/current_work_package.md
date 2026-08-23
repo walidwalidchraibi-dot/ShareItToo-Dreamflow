@@ -2865,3 +2865,35 @@ support mutation, screenshot, raw hierarchy, real push, TalkBack setting,
 Store, production, Payment, Cloud/VPS/DNS, provider, cost, public activation or
 merge action occurred. Manual visual review, manual TalkBack, complete device
 matrix, Google Play distribution and Stage A remain `HOLD` / `NO-GO`.
+
+## PF17 — current-candidate authenticated safe links
+
+`PF17_CURRENT_CANDIDATE_AUTHENTICATED_SAFE_LINKS` upgrades the authenticated
+safe-link subset from superseded PF10 candidate `2026082301` to exact signed
+internal Staging candidate `2026082302`. The runner accepts only the
+PF14B/PF16-bound private archive and installed direct APK, passes no credential
+vault and invokes the existing session-preserving diagnostic.
+
+The physical Pixel run proved the authenticated notification surface before
+and after the probes, a bounded unavailable result for a deliberately missing
+verified HTTPS listing, rejection of an encoded path separator and absence of
+SIT package association for a foreign host. The final launcher restoration and
+independent post-check retained build `2026082302`, version `1.0.0`, font scale
+`0.85` and disabled accessibility services.
+
+The evidence validator imports PF16, rejects candidate/APK/device drift,
+incomplete checks, Store/fixture/booking/push/mutation overclaims and private
+identifiers. Both aggregate external-gate validators require PF17 in the Store
+lane while all eleven external gates remain open.
+
+Four orchestrator tests, five evidence-validator tests and twenty aggregate
+external-gate tests pass. The complete supported Mac-mini metadata gate passes
+backend/PostgreSQL/tooling, 387 Flutter tests plus one documented skip,
+Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
+fixed capacity budget with 12 KiB generated growth.
+
+No login/logout, account/cart/booking/message/support mutation, real push,
+Store, production, Payment, Cloud/VPS/DNS, provider, cost, public activation or
+merge action occurred. Authenticated fixture links, manual visual review,
+manual TalkBack, the complete device matrix, Google Play distribution and
+Stage A remain `HOLD` / `NO-GO`.

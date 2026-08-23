@@ -11,6 +11,9 @@ import {
 import {
   validatePf16CurrentCandidateReadOnly,
 } from './validate_pf16_current_candidate_read_only.mjs';
+import {
+  validatePf17CurrentCandidateAuthenticatedSafeLinks,
+} from './validate_pf17_current_candidate_authenticated_safe_links.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const boardPath =
@@ -22,6 +25,8 @@ const pf14bEvidencePath =
   'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json';
 const pf16EvidencePath =
   'docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json';
+const pf17EvidencePath =
+  'docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -222,10 +227,12 @@ export function validateExternalGateExecutionBoard({
   assertCondition(
     storeGate.technicalEvidenceRefs.includes(pf14bEvidencePath)
       && storeGate.technicalEvidenceRefs.includes(pf16EvidencePath)
+      && storeGate.technicalEvidenceRefs.includes(pf17EvidencePath)
       && !storeGate.technicalEvidenceRefs.includes(supersededAndroidCandidatePath)
       && /2026082302/u.test(storeGate.technicalEvidenceSummary)
       && /two authenticated cold starts/iu.test(storeGate.technicalEvidenceSummary)
       && /offline recovery/iu.test(storeGate.technicalEvidenceSummary)
+      && /authenticated safe-link/iu.test(storeGate.technicalEvidenceSummary)
       && /manual visual review/iu.test(storeGate.technicalEvidenceSummary)
       && /TalkBack/iu.test(storeGate.technicalEvidenceSummary),
     'store_candidate_evidence_invalid',
@@ -268,6 +275,26 @@ export function validateExternalGateExecutionBoard({
       && pf16Result.stageAReady === false
       && pf16Result.decision === 'hold-no-go',
     'store_candidate_read_only_gate_state_invalid',
+  );
+  const pf17Result = validatePf17CurrentCandidateAuthenticatedSafeLinks({
+    root,
+    evidence: readJson(pf17EvidencePath),
+    pf16Evidence: readJson(pf16EvidencePath),
+    pf14bEvidence: readJson(pf14bEvidencePath),
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf17Result.buildNumber === '2026082302'
+      && pf17Result.exactInstalledApkVerified === true
+      && pf17Result.authenticatedSafeLinksPassed === true
+      && pf17Result.authenticatedSessionPreserved === true
+      && pf17Result.authenticatedFixtureLinksPassed === false
+      && pf17Result.bookingFlowPassed === false
+      && pf17Result.realPushPassed === false
+      && pf17Result.fullDeviceMatrixPassed === false
+      && pf17Result.stageAReady === false
+      && pf17Result.decision === 'hold-no-go',
+    'store_candidate_safe_link_gate_state_invalid',
   );
   validateDependencies(board.gates);
 

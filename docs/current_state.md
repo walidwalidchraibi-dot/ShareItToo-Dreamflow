@@ -3212,3 +3212,33 @@ review nor manual TalkBack, complete device-matrix, Google Play distribution,
 substantive legal approval, Store submission or Stage-A authorization. All
 production, provider, Payment, Cloud/VPS/DNS, public, real-money and merge
 boundaries remain `HOLD` / `NO-GO`.
+
+## PF17 current-candidate authenticated safe links
+
+The exact installed signed internal Staging candidate `1.0.0+2026082302`
+passes the bounded authenticated safe-link route that PF10 had previously
+proved only on superseded candidate `2026082301`. The physical Pixel run found
+the authenticated notification surface before and after all probes, reached
+the bounded unavailable surface for a deliberately missing verified HTTPS
+listing, rejected an encoded path separator and confirmed that a foreign host
+is not associated with the SIT package.
+
+The diagnostic used no credential vault and performed no login, logout,
+account mutation, booking, message or Support action. It returned the app to
+its launcher surface and retained no UI hierarchy, account content, identity,
+credential, token, private path, network identifier or raw device identifier.
+An independent post-check confirmed installed build `2026082302`, version
+`1.0.0`, restored font scale `0.85` and unchanged disabled accessibility
+services.
+
+PF17 leaves authenticated fixture listing/booking/chat links, real push,
+Google Play delivery, manual visual review, TalkBack and the complete
+functional/device matrix open. External readiness remains zero of eleven and
+Stage A plus every production, provider, Payment, Cloud/VPS/DNS, public,
+real-money and merge boundary remain `HOLD` / `NO-GO`.
+
+PF17's four orchestrator tests, five evidence-validator tests and twenty
+aggregate external-gate tests pass. The complete supported Mac-mini metadata
+gate passes backend/PostgreSQL/tooling, 387 Flutter tests plus one documented
+skip, Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24
+and the fixed capacity budget with 12 KiB generated growth.
