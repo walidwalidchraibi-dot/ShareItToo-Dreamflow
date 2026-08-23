@@ -2717,3 +2717,27 @@ The next autonomous lane is another isolated current-source or source-level
 launch gap that can be closed without mutating the preserved account, using
 external providers or crossing a Store/live gate. Stage A remains
 `HOLD` / `NO-GO`.
+
+## PF12 — current-head Android legal routes
+
+`PF12_CURRENT_HEAD_ANDROID_LEGAL_ROUTES` adds an exact-candidate, read-only
+physical route for seven informational Legal/Privacy documents. It reaches the
+legal root through the authenticated profile search, opens a document-specific
+surface for Impressum, Datenschutz, AGB, Community-Regeln, Gebühren &
+Zahlungsbedingungen, Stornierungsbedingungen and Haftungsausschluss, then
+returns to Entdecken.
+
+The diagnostic reuses the PF11 installed-byte, current-lock and semantic-line
+guards. It excludes the platform-withdrawal route and never invokes Contact,
+Support, booking, Payment or account actions. UI hierarchies remain transient;
+no document content, legal contact value or personal/secret identifier enters
+evidence.
+
+PF12 makes no professional Legal, substantive correctness, Store, public or
+Stage A claim. P0B professional review remains an authentic external gate. No
+login/logout, participant, Store, production, Payment, Cloud/VPS/DNS,
+provider, contract, cost, real-money, public activation or merge occurred.
+
+The next autonomous lane is the highest remaining non-mutating exact-candidate
+or source-level launch gap that does not cross Legal, Store, provider or live
+boundaries. Stage A remains `HOLD` / `NO-GO`.

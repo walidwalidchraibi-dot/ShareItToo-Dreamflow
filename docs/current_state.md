@@ -3068,3 +3068,26 @@ matrix was performed. PF10 is independently green on exact commit
 participant, Store, production, Payment, Cloud/VPS/DNS, provider, contract,
 cost, real-money, public activation or merge action occurred. P0B and Stage A
 remain `HOLD` / `NO-GO`.
+
+## PF12 current-head Android legal routes
+
+Seven informational Legal/Privacy documents are now physically proven
+reachable on the exact PF6 direct-installed Pixel candidate: Impressum,
+Datenschutz, AGB, Community-Regeln, Gebühren & Zahlungsbedingungen,
+Stornierungsbedingungen and Haftungsausschluss. Each route exposed a distinct
+top-level document marker and the app returned to Entdecken.
+
+The source-bound diagnostic reuses exact installed-byte and lock-state guards.
+It stores no hierarchy, document body, legal contact value, account identity,
+credential, token, review account, private path, network identifier or raw
+device identifier. The active platform-withdrawal route was deliberately not
+opened, and no Contact, Support, account, booking or Payment action occurred.
+
+PF12 is technical reachability evidence, not professional Legal approval or a
+statement that the text is substantively correct or complete. PF11 is
+independently green on exact commit
+`fd48a3fa45a6c6570f5102e52d34e72656d23757`: regression run
+`32638168852` and CodeQL run `32638168840` both succeeded. No Store,
+production, Payment, Cloud/VPS/DNS, provider, contract, cost, real-money,
+public activation or merge action occurred. P0B and Stage A remain
+`HOLD` / `NO-GO`.

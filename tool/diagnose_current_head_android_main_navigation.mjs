@@ -14,7 +14,8 @@ import {
   loadCurrentHeadAndroidDeviceCandidate,
 } from './validate_current_head_android_candidate.mjs';
 
-const applicationId = 'com.shareittoo.app';
+export const currentHeadAndroidApplicationId = 'com.shareittoo.app';
+const applicationId = currentHeadAndroidApplicationId;
 const remoteUiDump = '/sdcard/sit-main-navigation-diagnostic.xml';
 const navigationChecks = Object.freeze([
   Object.freeze({
@@ -48,7 +49,7 @@ function fail(message) {
   throw new Error(message);
 }
 
-function defaultCommandRunner(file, args, { binary = false } = {}) {
+export function defaultCurrentHeadAndroidCommandRunner(file, args, { binary = false } = {}) {
   return execFileSync(file, args, {
     encoding: binary ? null : 'utf8',
     maxBuffer: 512 * 1024 * 1024,
@@ -56,7 +57,7 @@ function defaultCommandRunner(file, args, { binary = false } = {}) {
   });
 }
 
-function adb(commandRunner, adbPath, device, args, { binary = false } = {}) {
+export function currentHeadAndroidAdb(commandRunner, adbPath, device, args, { binary = false } = {}) {
   try {
     const result = commandRunner(adbPath, ['-s', device.serial, ...args], { binary });
     return binary ? Buffer.from(result) : String(result).trim();
@@ -78,22 +79,37 @@ function parseInstalledPackage(output) {
   return { versionName, buildNumber };
 }
 
-function assertDeviceAlreadyUnlocked(commandRunner, adbPath, device) {
-  const policy = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'window', 'policy']);
+export function assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device) {
+  const policy = currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'dumpsys', 'window', 'policy'],
+  );
   if (/keyguardShowing=true|isStatusBarKeyguard=true|\bmIsShowing=true\b|\bshowing=true\b/u.test(policy)) {
     fail('The Android phone is locked. Unlock it manually; this diagnostic never enters a passcode.');
   }
 }
 
-function verifyInstalledCandidate(commandRunner, adbPath, device, candidate) {
-  const packagePaths = adb(commandRunner, adbPath, device, ['shell', 'pm', 'path', applicationId])
+export function verifyCurrentHeadAndroidInstalledCandidate(
+  commandRunner,
+  adbPath,
+  device,
+  candidate,
+) {
+  const packagePaths = currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'pm', 'path', applicationId],
+  )
     .split(/\r?\n/)
     .map((line) => line.replace(/^package:/, '').trim())
     .filter(Boolean);
   if (packagePaths.length !== 1 || !packagePaths[0].startsWith('/data/app/')) {
     fail('Installed ShareItToo package is not the exact direct-APK candidate.');
   }
-  const installedSha256 = sha256Bytes(adb(
+  const installedSha256 = sha256Bytes(currentHeadAndroidAdb(
     commandRunner,
     adbPath,
     device,
@@ -104,7 +120,12 @@ function verifyInstalledCandidate(commandRunner, adbPath, device, candidate) {
     fail('Installed ShareItToo APK does not match the current-head candidate.');
   }
   const installed = parseInstalledPackage(
-    adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'package', applicationId]),
+    currentHeadAndroidAdb(
+      commandRunner,
+      adbPath,
+      device,
+      ['shell', 'dumpsys', 'package', applicationId],
+    ),
   );
   if (installed.versionName !== candidate.versionName
       || installed.buildNumber !== candidate.buildNumber) {
@@ -113,9 +134,14 @@ function verifyInstalledCandidate(commandRunner, adbPath, device, candidate) {
   return { ...installed, delivery: 'direct-apk', apkSha256: installedSha256 };
 }
 
-function launchCandidate(commandRunner, adbPath, device) {
-  adb(commandRunner, adbPath, device, ['shell', 'am', 'force-stop', applicationId]);
-  const result = adb(commandRunner, adbPath, device, [
+export function launchCurrentHeadAndroidCandidate(commandRunner, adbPath, device) {
+  currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'am', 'force-stop', applicationId],
+  );
+  const result = currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell',
     'monkey',
     '-p',
@@ -129,13 +155,28 @@ function launchCandidate(commandRunner, adbPath, device) {
   }
 }
 
-function dumpUi(commandRunner, adbPath, device) {
-  adb(commandRunner, adbPath, device, ['shell', 'uiautomator', 'dump', remoteUiDump]);
+export function dumpCurrentHeadAndroidUi(commandRunner, adbPath, device) {
+  currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'uiautomator', 'dump', remoteUiDump],
+  );
   try {
-    return adb(commandRunner, adbPath, device, ['exec-out', 'cat', remoteUiDump]);
+    return currentHeadAndroidAdb(
+      commandRunner,
+      adbPath,
+      device,
+      ['exec-out', 'cat', remoteUiDump],
+    );
   } finally {
     try {
-      adb(commandRunner, adbPath, device, ['shell', 'rm', '-f', remoteUiDump]);
+      currentHeadAndroidAdb(
+        commandRunner,
+        adbPath,
+        device,
+        ['shell', 'rm', '-f', remoteUiDump],
+      );
     } catch {
       // The hierarchy is transient, is overwritten on the next run and never
       // enters repository evidence or console output.
@@ -156,25 +197,28 @@ function xmlValue(value) {
     .replaceAll('&amp;', '&');
 }
 
-function attribute(node, name) {
+export function currentHeadAndroidNodeAttribute(node, name) {
   const value = new RegExp(`(?:^|\\s)${name}="([^"]*)"`, 'u').exec(node)?.[1];
   return value === undefined ? null : xmlValue(value);
 }
 
-function namedNodes(hierarchy, label) {
+export function currentHeadAndroidNamedNodes(hierarchy, label) {
   const matchesLabel = (value) => value?.split('\n').some((line) => (
     line === label
       || (line.startsWith(label) && /[\s,.:;!?–—-]/u.test(line[label.length] ?? ''))
   )) === true;
   return (String(hierarchy).match(/<node\b[^>]*>/gu) ?? []).filter((node) => (
-    matchesLabel(attribute(node, 'text')) || matchesLabel(attribute(node, 'content-desc'))
+    matchesLabel(currentHeadAndroidNodeAttribute(node, 'text'))
+      || matchesLabel(currentHeadAndroidNodeAttribute(node, 'content-desc'))
   ));
 }
 
 function tapBottomNavigationLabel(commandRunner, adbPath, device, hierarchy, label) {
-  const candidates = namedNodes(hierarchy, label)
+  const candidates = currentHeadAndroidNamedNodes(hierarchy, label)
     .map((node) => {
-      const bounds = /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/u.exec(attribute(node, 'bounds'));
+      const bounds = /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/u.exec(
+        currentHeadAndroidNodeAttribute(node, 'bounds'),
+      );
       if (bounds === null) return null;
       const [, x1, y1, x2, y2] = bounds.map(Number);
       return { x: Math.floor((x1 + x2) / 2), y: Math.floor((y1 + y2) / 2) };
@@ -184,7 +228,7 @@ function tapBottomNavigationLabel(commandRunner, adbPath, device, hierarchy, lab
   if (candidates.length === 0) {
     fail(`The ${label} bottom-navigation destination is unavailable.`);
   }
-  adb(commandRunner, adbPath, device, [
+  currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell',
     'input',
     'tap',
@@ -193,15 +237,27 @@ function tapBottomNavigationLabel(commandRunner, adbPath, device, hierarchy, lab
   ]);
 }
 
-async function waitForMainNavigation({ commandRunner, adbPath, device, wait }) {
+export async function waitForCurrentHeadAndroidMainNavigation({
+  commandRunner,
+  adbPath,
+  device,
+  wait,
+}) {
   for (let attempt = 0; attempt < 12; attempt += 1) {
     await wait(600);
-    const hierarchy = dumpUi(commandRunner, adbPath, device);
+    const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
     if (hierarchy.includes('content-desc="Benachrichtigung:')) {
-      adb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '4']);
+      currentHeadAndroidAdb(
+        commandRunner,
+        adbPath,
+        device,
+        ['shell', 'input', 'keyevent', '4'],
+      );
       continue;
     }
-    if (navigationChecks.every((check) => namedNodes(hierarchy, check.label).length >= 1)) {
+    if (navigationChecks.every((check) => (
+      currentHeadAndroidNamedNodes(hierarchy, check.label).length >= 1
+    ))) {
       return hierarchy;
     }
   }
@@ -215,26 +271,37 @@ async function openAndVerifyNavigation({
   check,
   wait,
 }) {
-  let hierarchy = await waitForMainNavigation({ commandRunner, adbPath, device, wait });
+  let hierarchy = await waitForCurrentHeadAndroidMainNavigation({
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
   tapBottomNavigationLabel(commandRunner, adbPath, device, hierarchy, check.label);
   for (let attempt = 0; attempt < 12; attempt += 1) {
     await wait(600);
-    hierarchy = dumpUi(commandRunner, adbPath, device);
-    const allPresent = check.requiredAll.every((value) => namedNodes(hierarchy, value).length >= 1);
+    hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    const allPresent = check.requiredAll.every((value) => (
+      currentHeadAndroidNamedNodes(hierarchy, value).length >= 1
+    ));
     const anyPresent = check.requiredAny.length === 0
-      || check.requiredAny.some((value) => namedNodes(hierarchy, value).length >= 1);
-    if (allPresent && anyPresent && namedNodes(hierarchy, 'Bitte zuerst anmelden').length === 0) return;
+      || check.requiredAny.some((value) => (
+        currentHeadAndroidNamedNodes(hierarchy, value).length >= 1
+      ));
+    if (allPresent
+        && anyPresent
+        && currentHeadAndroidNamedNodes(hierarchy, 'Bitte zuerst anmelden').length === 0) return;
   }
   fail(`The authenticated ${check.label} navigation surface did not appear.`);
 }
 
-function restoreExplore(commandRunner, adbPath, device) {
+export function restoreCurrentHeadAndroidExplore(commandRunner, adbPath, device) {
   try {
-    const hierarchy = dumpUi(commandRunner, adbPath, device);
+    const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
     tapBottomNavigationLabel(commandRunner, adbPath, device, hierarchy, 'Entdecken');
   } catch {
     try {
-      launchCandidate(commandRunner, adbPath, device);
+      launchCurrentHeadAndroidCandidate(commandRunner, adbPath, device);
     } catch {
       // A bounded restoration failure cannot hide the primary diagnostic
       // result. The app remains stopped or on the last read-only surface.
@@ -243,7 +310,7 @@ function restoreExplore(commandRunner, adbPath, device) {
 }
 
 export async function diagnoseCurrentHeadAndroidMainNavigation({
-  commandRunner = defaultCommandRunner,
+  commandRunner = defaultCurrentHeadAndroidCommandRunner,
   adbPath = 'adb',
   device,
   deviceSummary,
@@ -251,15 +318,20 @@ export async function diagnoseCurrentHeadAndroidMainNavigation({
   capturedAt = new Date().toISOString(),
   wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
 }) {
-  assertDeviceAlreadyUnlocked(commandRunner, adbPath, device);
-  const installed = verifyInstalledCandidate(commandRunner, adbPath, device, candidate);
+  assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device);
+  const installed = verifyCurrentHeadAndroidInstalledCandidate(
+    commandRunner,
+    adbPath,
+    device,
+    candidate,
+  );
   try {
-    launchCandidate(commandRunner, adbPath, device);
+    launchCurrentHeadAndroidCandidate(commandRunner, adbPath, device);
     for (const check of navigationChecks) {
       await openAndVerifyNavigation({ commandRunner, adbPath, device, check, wait });
     }
   } finally {
-    restoreExplore(commandRunner, adbPath, device);
+    restoreCurrentHeadAndroidExplore(commandRunner, adbPath, device);
   }
   return {
     schemaVersion: 1,
@@ -332,7 +404,9 @@ export function parseMainNavigationArguments(values) {
 async function run() {
   const args = parseMainNavigationArguments(process.argv.slice(2));
   const candidate = await loadCurrentHeadAndroidDeviceCandidate();
-  const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
+  const devices = parseAdbDevices(
+    defaultCurrentHeadAndroidCommandRunner(args.adbPath, ['devices', '-l']),
+  );
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });
   const evidence = await diagnoseCurrentHeadAndroidMainNavigation({
