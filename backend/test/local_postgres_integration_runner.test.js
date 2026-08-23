@@ -117,7 +117,10 @@ test('runs readiness, isolated database and integration before guaranteed cleanu
 
   const log = await readFile(fixture.commandLog, 'utf8');
   assert.match(log, /initdb\|.*--auth-local=reject.*--auth-host=trust/u);
-  assert.match(log, /pg_ctl\|.* start\|/u);
+  assert.match(
+    log,
+    /pg_ctl\|.*-h 127\.0\.0\.1 -p \d+ -c unix_socket_directories= start\|/u,
+  );
   assert.match(log, /pg_isready\|-h 127\.0\.0\.1 .* -d postgres/u);
   assert.match(log, /createdb\|-h 127\.0\.0\.1 .* sit_integration/u);
   assert.match(log, /node\|--import \.\/backend\/test_setup\.js --test backend\/test\/postgres_foundation\.integration\.test\.js\|postgresql:\/\/sit_runner@127\.0\.0\.1:/u);

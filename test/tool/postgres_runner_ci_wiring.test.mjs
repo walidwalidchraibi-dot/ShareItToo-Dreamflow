@@ -47,6 +47,7 @@ test('fresh-cluster CI supplies no database or lifecycle workaround', () => {
   assert.match(runner, /requiredPostgresMajor = 16/u);
   assert.match(runner, /'\/usr\/lib\/postgresql\/16\/bin'/u);
   assert.match(runner, /findAvailableLoopbackPort\(\)/u);
+  assert.match(runner, /-c unix_socket_directories=/u);
   assert.match(runner, /await cleanupRunRoot\(runRoot, resolvedTemporaryBase\)/u);
 });
 

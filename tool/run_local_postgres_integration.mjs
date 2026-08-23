@@ -230,7 +230,8 @@ export async function runLocalPostgresIntegration({
       '-l', serverLog,
       '-w',
       '-t', '15',
-      '-o', `-h 127.0.0.1 -p ${port}`,
+      '-o',
+      `-h 127.0.0.1 -p ${port} -c unix_socket_directories=`,
       'start',
     ]);
     await checkedRun(postgres('pg_isready'), [
