@@ -34,7 +34,7 @@ test('uses the exact G2A destinations and preserves established icon affordances
   );
   assert.match(
     navigation,
-    /icon:\s*_buildProfileNavIcon\(active:\s*_currentIndex\s*==\s*4\)[\s\S]*label:\s*l10n\.t\(mainNavigationLabelKeys\[4\]\)/u,
+    /icon:\s*mainNavigationTouchTarget\(\s*_buildProfileNavIcon\(active:\s*_currentIndex\s*==\s*4\),?\s*\)[\s\S]*label:\s*l10n\.t\(mainNavigationLabelKeys\[4\]\)/u,
   );
 });
 

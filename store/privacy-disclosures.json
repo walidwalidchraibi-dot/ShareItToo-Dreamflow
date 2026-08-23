@@ -720,7 +720,7 @@
     },
     {
       "path": "lib/navigation/main_navigation.dart",
-      "sha256": "ce46b1d8d1ce52ca87f0caf1912ecd2c9fab73f12c458369680dc1e8917102cf"
+      "sha256": "16215d688f3bbd25ed9d2056b298f5d61d0440889a0b89ad75ba94a4ddc8d274"
     },
     {
       "path": "lib/screens/login_screen.dart",

@@ -2768,3 +2768,25 @@ real-money, public activation or merge occurred.
 The next autonomous lane is the highest remaining non-mutating current-source
 or source-level accessibility/device gap that stays below Legal, Store,
 provider and live boundaries. Stage A remains `HOLD` / `NO-GO`.
+
+## PF14A — main-navigation touch-target remediation
+
+The PF13 physical hierarchy was evaluated against Android's 48dp interactive
+target recommendation. Four custom 20dp icon destinations exposed clickable
+semantic heights of about 43dp at 200% text, while the central 32dp asset
+exposed about 55dp. This produced a reproducible source-level accessibility
+gap rather than a manual visual assumption.
+
+`PF14A_MAIN_NAVIGATION_TOUCH_TARGET_REMEDIATION` places every inactive and
+active icon path inside one `kMinInteractiveDimension` wrapper. The visual icon
+sizes stay unchanged. Focused Flutter coverage composes five destinations at
+200% and requires every semantic target to be at least 48dp in both dimensions;
+a permanent source ratchet proves that all ten production icon paths use the
+same wrapper and forbids timing, lint and platform accommodations.
+
+PF14A does not claim physical remediation because the installed PF6 binary
+predates the source change. The next bounded package is PF14B: create a newer
+signed internal Staging candidate, perform only a signature-preserving direct
+update and remeasure sanitized target geometry at 200%, with exact setting and
+app-state restoration. Store, TalkBack, manual visual review, production,
+Payment, provider, cost, public activation and merge remain outside scope.

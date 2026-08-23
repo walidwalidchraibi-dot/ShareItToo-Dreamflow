@@ -251,6 +251,7 @@ else
   node tool/validate_current_head_android_large_text_main_navigation.mjs
 fi
 node --test test/tool/g2a_navigation_migration_wiring.test.mjs
+node --test test/tool/main_navigation_touch_target_wiring.test.mjs
 node --check tool/validate_g2_data_lifecycle.mjs
 node --test test/tool/validate_g2_data_lifecycle.test.mjs
 node tool/validate_g2_data_lifecycle.mjs

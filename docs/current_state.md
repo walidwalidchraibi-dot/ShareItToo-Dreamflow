@@ -3115,3 +3115,24 @@ regression run `32639210012` and CodeQL run `32639211503` both succeeded. No
 login, logout, booking, message, cart/account mutation, Store, production,
 Payment, Cloud/VPS/DNS, provider, contract, cost, real-money, public activation
 or merge action occurred. P0B and Stage A remain `HOLD` / `NO-GO`.
+
+## PF14A main-navigation touch-target remediation
+
+The PF13 device facts exposed one actionable accessibility gap: at 200% text,
+four of five clickable primary-navigation semantics nodes measured about 43dp
+high, below Android's recommended 48dp minimum. The larger central booking icon
+measured about 55dp, which isolated the source cause to the smaller custom icon
+layout rather than display density or the whole navigation bar.
+
+All five inactive and active icon paths now use one shared
+`kMinInteractiveDimension` layout wrapper. Existing visual icon sizes remain
+unchanged. A 200%-text widget test proves every resulting semantic target is at
+least 48dp by 48dp and a wiring ratchet binds all ten real icon paths without a
+timing, lint or platform workaround.
+
+PF14A is source evidence only until a newer signed commit-bound candidate is
+built and physically remeasured. The current PF6 direct APK cannot prove code
+that it does not contain. PF13 is independently green on exact commit
+`3f638039f817b748ca84a1cbcc7e8855ebc3f47a`: regression run `32640635764`
+and CodeQL run `32640637245` both succeeded. Google Play, manual visual review,
+TalkBack, Stage A and every live/public boundary remain open and fail-closed.
