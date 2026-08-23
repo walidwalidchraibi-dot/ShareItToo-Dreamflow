@@ -188,6 +188,28 @@ fi
 source scripts/release_host_capacity_guard.sh
 release_host_capacity_begin
 
+# A signed candidate produces both a large AAB and APK. Always own the
+# generated Flutter lifecycle so a previous debug/release build cannot consume
+# the physical reserve that is still needed to archive both exact artifacts.
+# The private owner-only archive is outside Flutter's generated tree and is
+# created only after all verification has passed.
+release_candidate_clean_generated() {
+  flutter clean >/dev/null
+}
+
+release_candidate_cleanup_on_exit() {
+  local status="$?"
+  trap - EXIT
+  if ! release_candidate_clean_generated; then
+    echo "ERROR: Generated Android release files could not be cleaned deterministically." >&2
+    status=1
+  fi
+  exit "$status"
+}
+
+trap release_candidate_cleanup_on_exit EXIT
+release_candidate_clean_generated
+
 flutter build appbundle "${common_args[@]}"
 flutter build apk "${common_args[@]}"
 
@@ -279,7 +301,9 @@ cp "$apk" "$evidence_dir/shareittoo-$build_name-$build_number-$commit.apk"
 
 node tool/archive_android_release_candidate.mjs
 
+release_candidate_clean_generated
+trap - EXIT
 release_host_capacity_end
 
 echo "Signed Android release candidate created for commit $commit."
-echo "Evidence: $evidence_dir/manifest.json"
+echo "The exact AAB, APK, manifest and privacy report are retained only in the verified owner-only private archive."
