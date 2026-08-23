@@ -2593,3 +2593,27 @@ The next autonomous lane is another source-bound Stage A gap that can be
 improved without Store upload, external account decisions, cost, contract,
 production or activation. External readiness remains 0/11 and P0B remains
 `HOLD` / `NO-GO`.
+
+## PF7 — current-head Android restart diagnostic
+
+`PF7_CURRENT_HEAD_ANDROID_RESTART_DIAGNOSTIC` adds a reusable, source-bound
+physical-device command for the exact PF6 candidate. It revalidates the
+repository record and owner-only archive, matches the installed APK bytes and
+version, verifies process absence after force-stop, launches once and proves
+the process returned. First-install time and the credential-encrypted app-data
+inode remain unchanged.
+
+The checked evidence records no screen, UI hierarchy, account content, raw
+device/process identifier, private path or opaque marker. Tests reject a
+locked phone, binary mismatch, marker drift, sensitive output and every A14,
+Store or live overclaim. The diagnostic leaves the app running.
+
+PF7 is deliberately narrower than PF5 A14: it does not claim authenticated
+session restore, delayed acknowledgement or server reconciliation, and A14
+therefore remains `not-run` as a complete pilot scenario. No Store, pilot,
+participant, production, Payment, Cloud/VPS/DNS, provider, contract, cost,
+real-money, public activation or merge action occurred.
+
+The next autonomous lane is the remaining source-bound functional preparation
+that can use isolated synthetic state without external accounts, live traffic
+or a pilot claim. Stage A remains `HOLD` / `NO-GO`.

@@ -70,6 +70,8 @@ function assertSource(value, root, checkGitCommit) {
     buildNumber: expectedBuildNumber,
     releaseChannel: 'internal',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+    paymentMode: 'memory',
+    stripeLivemode: false,
     googleLoginEnabled: true,
     appleLoginEnabled: false,
     facebookLoginEnabled: false,
@@ -286,6 +288,42 @@ export async function verifyCurrentHeadPrivateAndroidArchive() {
     ownerOnly: true,
     hashesMatch: true,
     privatePathDisclosed: false,
+  });
+}
+
+export async function loadCurrentHeadAndroidDeviceCandidate() {
+  const root = defaultRoot;
+  const evidence = JSON.parse(readFileSync(resolve(root, evidencePath), 'utf8'));
+  validateCurrentHeadAndroidCandidate({ root, evidence });
+  await verifyCurrentHeadPrivateAndroidArchive();
+  const directory = resolve(
+    homedir(),
+    'Library',
+    'Application Support',
+    'ShareItToo',
+    'release',
+    'android',
+    `${expectedBuildNumber}-${expectedCommit}`,
+  );
+  const apkName = readdirSync(directory).find((name) => name.endsWith('.apk'));
+  if (apkName === undefined) fail('PF6 private Android candidate APK is unavailable.');
+  return Object.freeze({
+    applicationId: 'com.shareittoo.app',
+    bundleId: 'com.shareittoo.app',
+    versionName: evidence.source.versionName,
+    buildNumber: evidence.source.buildNumber,
+    commit: evidence.source.candidateCommit,
+    releaseChannel: evidence.source.releaseChannel,
+    apiBaseUrl: evidence.source.apiBaseUrl,
+    firebaseConfigured: evidence.androidCandidate.firebaseConfigured,
+    paymentMode: evidence.source.paymentMode,
+    stripeLivemode: evidence.source.stripeLivemode,
+    android: Object.freeze({
+      apkSha256: evidence.androidCandidate.apkSha256,
+      aabSha256: evidence.androidCandidate.aabSha256,
+      signingCertificateSha256: canonicalCertificate,
+    }),
+    apkPath: resolve(directory, apkName),
   });
 }
 

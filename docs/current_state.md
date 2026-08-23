@@ -2938,3 +2938,30 @@ review access and final accessibility/device evidence. No external upload,
 Store, production, Payment, Cloud/VPS/DNS, provider, contract, cost, pilot,
 real-money, public activation or merge action occurred. P0B and Stage A remain
 `HOLD` / `NO-GO`.
+
+## PF7 current-head Android restart diagnostic
+
+The exact PF6 direct-installed candidate now also passes a bounded physical
+process-restart diagnostic on the authorized Pixel 7 Pro. The tool revalidates
+the protected candidate and private archive before touching the app, proves
+the installed APK hash and version, force-stops the package, verifies process
+absence, relaunches it once and verifies the restarted process. First-install
+time, credential-encrypted app-data inode and installed APK bytes remain
+unchanged.
+
+The evidence contains no screenshot, UI hierarchy, account content, raw
+device or process identifier, private path or opaque marker value. The phone
+was already unlocked; no passcode was entered. The app was left relaunched.
+
+This closes only the technical process/container subset of PF5 scenario A14.
+Authenticated session recovery, delayed submission acknowledgement and
+authoritative server reconciliation remain unclaimed, so complete A14 remains
+`not-run`. Permanent unit and evidence validators keep that boundary
+fail-closed in the full regression.
+
+The preceding PF6 capacity-floor closeout is independently green on exact
+commit `25afa9d2223273683d9e4fc97cca73e6847abfd6`: regression run
+`32634449961` and CodeQL run `32634449970` both succeeded. No uninstall, data
+reset, network change, Store, participant, production, Payment, Cloud/VPS/DNS,
+provider, contract, cost, real-money, public activation or merge action
+occurred. P0B and Stage A remain `HOLD` / `NO-GO`.

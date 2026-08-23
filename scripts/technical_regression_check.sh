@@ -437,6 +437,15 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_current_head_android_candidate.mjs
 fi
+node --check tool/diagnose_current_head_android_restart.mjs
+node --test test/tool/diagnose_current_head_android_restart.test.mjs
+node --check tool/validate_current_head_android_restart.mjs
+node --test test/tool/validate_current_head_android_restart.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_current_head_android_restart.mjs --ci-metadata-only
+else
+  node tool/validate_current_head_android_restart.mjs
+fi
 node --check tool/validate_p0b_psp_sandbox_e2e.mjs
 node --test test/tool/validate_p0b_psp_sandbox_e2e.test.mjs
 node tool/validate_p0b_psp_sandbox_e2e.mjs

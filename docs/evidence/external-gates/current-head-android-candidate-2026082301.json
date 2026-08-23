@@ -12,6 +12,8 @@
     "buildNumber": "2026082301",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "paymentMode": "memory",
+    "stripeLivemode": false,
     "googleLoginEnabled": true,
     "appleLoginEnabled": false,
     "facebookLoginEnabled": false,
