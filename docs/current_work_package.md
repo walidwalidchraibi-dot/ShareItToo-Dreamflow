@@ -2018,3 +2018,24 @@ open for exact CI execution of the repository-owned PostgreSQL-16 fresh-cluster
 runner; service-container integration is not substituted for that proof. P0B
 remains `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS,
 deployment, signing, merge or public activation is enabled.
+
+## S4BG PostgreSQL runner CI closeout
+
+`S4BG_POSTGRES_RUNNER_CI_CLOSEOUT` is technically verified at exact source head
+`72adea23b38eb56528f257f1980b6d9c44c1c44e`. A separate Ubuntu-24.04 CI job
+now runs the repository-owned PostgreSQL-16 fresh-cluster runner without a
+service, caller database, port, bin override or lifecycle commands. Later
+API-image publication is gated on this proof.
+
+First exact run `32610811354` correctly failed because Ubuntu's default Unix
+socket directory is not writable by the hosted runner. No retry or privilege
+workaround was accepted. The runner source now disables unused Unix sockets
+and retains its isolated loopback-TCP transport. Nine focused local contracts
+and a real local PostgreSQL-16 run pass with zero remaining temp roots.
+
+Exact run `32610904963` passed the independent runner in 32 seconds with
+`passed-and-cleaned`, Backend in 1:20 and Flutter in 6:21. Signed-candidate
+construction and publication stayed skipped. `TD-RR-004` is closed; the
+release-readiness Technical-Debt register is now 12/12 closed. P0B and every
+legal, staffing, device/iOS, PSP, privacy/retention, Store and activation gate
+remain fail-closed.

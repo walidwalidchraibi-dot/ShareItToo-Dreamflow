@@ -2338,3 +2338,24 @@ integration is green in CI but the repository-owned fresh-cluster runner has
 not itself run there. P0B remains `HOLD` / `NO-GO`; no production, Payment,
 Store, Cloud/VPS/DNS, deployment, signing, merge or public activation is
 enabled.
+
+## S4BG PostgreSQL runner CI closeout
+
+`S4BG_POSTGRES_RUNNER_CI_CLOSEOUT` is technically verified at exact head
+`72adea23b38eb56528f257f1980b6d9c44c1c44e`. The workflow now has an
+independent, publication-blocking proof that invokes the repository-owned
+PostgreSQL-16 fresh-cluster runner with no service or caller-controlled
+database lifecycle.
+
+Failed exact run `32610811354` exposed Ubuntu's unwritable default Unix-socket
+directory. The failure was not retried or bypassed. The cross-platform runner
+source now disables Unix-socket creation and keeps only its isolated loopback
+TCP transport. Local contracts and a real runner execution pass and leave no
+scoped temp cluster.
+
+Exact CI run `32610904963` passed the runner in 32 seconds with
+`passed-and-cleaned`, Backend in 1:20 and Flutter in 6:21. Signed-candidate and
+publication jobs stayed skipped. `TD-RR-004` is closed, so all 12/12 registered
+release-readiness debt exits are now deterministic and retained. External
+legal, staffing, device/iOS, PSP, privacy/retention, Store and activation gates
+remain open; P0B remains `HOLD` / `NO-GO`.

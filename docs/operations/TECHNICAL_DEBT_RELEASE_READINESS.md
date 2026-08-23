@@ -1,7 +1,8 @@
 # Technical debt required before release readiness
 
-Status: open with one remaining item (`TD-RR-004`), non-live register created
-on 22.08.2026 and last verified on 23.08.2026.
+Status: **closed, 12/12 deterministic exit contracts retained**. Non-live
+register created on 22.08.2026 and last verified on 23.08.2026. This closure is
+technical only and does not imply external-gate or release approval.
 
 This register prevents local test accommodations from becoming permanent
 product or release prerequisites. None of the entries changes production,
@@ -13,7 +14,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-001` | **CLOSED 23.08.2026.** S4P installed repository-bound normal-shell Node 22 plus exact Corepack pnpm 11.16.0. Exact CI run `32609567488` used the pinned package contract, frozen install and normal commands at `891ecdc`; Backend, syntax, audit, secret scan and PostgreSQL passed without a copied runtime or Codex fallback. | Closed by exact-package CI. Permanently retain the pinned repository/package/workflow contract and normal-shell path. |
 | `TD-RR-002` | **CLOSED 23.08.2026.** S4R removed historical request-source accommodations and isolated unrelated monolithic PostgreSQL scenarios with fresh application/limiter instances. Exact CI run `32609567488` passed the canonical integration and fixed-source 10/30/240 threshold contracts at `891ecdc`. | Closed by exact-commit PostgreSQL CI. No unrelated source rotation, limiter reset, wait, bypass or production-limit increase may reappear. |
 | `TD-RR-003` | **CLOSED 23.08.2026.** Earlier local compiler/worker stalls remain recorded as failed evidence. Manual exact-head CI run `32609858706` executed the complete Flutter suite five times at default parallelism at `891ecdc`; all five passed 384 tests plus one documented skip without interruption or rerun. | Closed by retained exact-commit stress CI. Permanently retain five complete default-parallel runs; no concurrency override, reduced suite, sleep, retry, terminal intervention or pass-on-rerun may appear. |
-| `TD-RR-004` | S4O added the PostgreSQL-16-pinned repository runner; S4P repeated it from the normal pinned Node/pnpm shell. Consecutive fresh-cluster runs passed with runner temp roots `0 -> 0`; exact-commit CI is unavailable. | Retain green exact-package CI for the runner contract and canonical PostgreSQL 16 integration without caller-supplied port, database or lifecycle commands. |
+| `TD-RR-004` | **CLOSED 23.08.2026.** S4BG adds an independent Ubuntu-24.04 CI job with no service, supplied database, port or lifecycle command. Failed run `32610811354` exposed a default Unix-socket permission dependency; source head `72adea2` disables sockets and retains loopback TCP only. Exact run `32610904963` returned `passed-and-cleaned` on PostgreSQL 16 in 32 seconds and the whole workflow passed. | Closed by exact-package CI executing the repository-owned fresh-cluster runner and canonical integration. Permanently retain isolated loopback selection, no caller lifecycle, guarded cleanup and fail-closed major 16. |
 | `TD-RR-005` | **CLOSED 23.08.2026.** All twelve fixture-owning suites retain scoped fail-closed cleanup and the twice-repeated parallel boundedness guard. Exact CI run `32609567488` passed `0/0 KiB -> 0/0 KiB` with no orphaned `sit-*` directories. | Closed by exact-commit CI. Manual cleanup, larger disk, alternate temp root or serial execution cannot become acceptance evidence. |
 | `TD-RR-006` | **CLOSED 23.08.2026.** The single persisted issuance clock, exact 30-minute derived expiry and independent database bound remain source- and migration-guarded. Exact PostgreSQL 16 CI run `32609567488` passed the unit, migration and API constraints at `891ecdc`. | Closed by exact-commit PostgreSQL CI. No sleep, retry, clock wait, relaxed bound, reused database or manual schema may reappear. |
 | `TD-RR-007` | **CLOSED 23.08.2026.** S4T removed the Gradle retry loop and waits. Independent exact CI runs `32608792863` and `32609567488` passed after verified cache setup with one checksum-bound wrapper preflight and one direct Android build. | Closed by repeated exact-commit CI. Retain one attempt; no loop, sleep, retry or pass-on-rerun may reappear. |
@@ -24,6 +25,14 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-012` | **CLOSED 23.08.2026.** S4BF adds fixed fail-closed 4 GiB effective-capacity, 5 GiB generated-footprint and 512 MiB end-free bounds around the unchanged complete gate. The local run at `891ecdc` passed with 8 KiB growth; exact CI `32609567488` passed with 3,166,800 KiB growth and adequate final free space. | Closed by deterministic local and exact-CI host measurements. Retain fixed bounds; manual cache purge, alternate temp root, smaller suite, serial execution, retry or pass-on-rerun cannot become release prerequisites. |
 
 ## Observation log
+
+- 23.08.2026, S4BG: the repository-owned PostgreSQL runner now executes in an
+  independent Ubuntu-24.04 CI job without a service, supplied database, port,
+  bin override or lifecycle command. First run `32610811354` failed on the
+  compiled Unix-socket directory and remained failed. The source now disables
+  Unix sockets for its loopback-only test cluster; exact run `32610904963`
+  passed `passed-and-cleaned` on PostgreSQL 16, Backend and Flutter. This closes
+  `TD-RR-004` and the 12/12 register. P0B and all external gates remain closed.
 
 - 23.08.2026, S4BF: the complete gate now measures fixed release-host capacity
   before all work and validates bounded generated footprint plus minimum free
