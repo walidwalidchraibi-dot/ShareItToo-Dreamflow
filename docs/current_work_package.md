@@ -2296,3 +2296,25 @@ Android tasks and no MobileScanner warning path. Signing and publication remain
 skipped. This closes `TD-RR-020`; all 20/20 deterministic exits are retained.
 Physical Apple-device validation remains external. External readiness remains
 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BR GitGuardian RFC 5737 false-positive review
+
+`S4BR_GITGUARDIAN_RFC5737_FALSE_POSITIVE_REVIEW` closes the four newly surfaced
+GitGuardian Generic Password incidents from historical commit `8e982a3` as
+reviewed false positives. Redacted inspection proves that all four candidates
+are RFC 5737 documentation-only IPv4 addresses used only as `forwardedFor`
+arguments in the PostgreSQL integration test. They are not credentials, none
+is present in the current file, and GitGuardian shows zero files requiring a
+code fix with the source tagged as a test file.
+
+Incidents `36505639`, `36505640`, `36505641` and `36505642` are individually
+`Ignored` with reason `This is not a secret (false positive)`. Each state was
+verified. Detector and integration rules remain active and unchanged; no
+history rewrite, force push, credential-rotation claim or secret disclosure
+was used.
+
+GitHub Actions run `32618862277` passes the exact preceding head `355ec324`
+with PostgreSQL in 37 seconds, Backend in 1:14 and Flutter/Web/Android in 6:26;
+signing and publication remain skipped. This documentation push supplies the
+new-head GitGuardian re-evaluation without an empty commit. External readiness
+remains 0/10 and P0B remains `HOLD` / `NO-GO`.
