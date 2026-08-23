@@ -4134,13 +4134,6 @@ class _ModernDetailsCard extends StatelessWidget {
   final int? counterpartyReviews;
   final VoidCallback? onMessage;
   final bool showLocations;
-  final bool? pickupVisible;
-  final bool? returnVisible;
-  final String? pickupAddress;
-  final String? returnAddress;
-  final bool enablePickupMapActions;
-  final bool enableReturnMapActions;
-  final bool showPickupRow;
   final String? transportInfo;
 
   const _ModernDetailsCard({
@@ -4163,13 +4156,6 @@ class _ModernDetailsCard extends StatelessWidget {
     this.counterpartyReviews,
     this.onMessage,
     this.showLocations = true,
-    this.pickupVisible,
-    this.returnVisible,
-    this.pickupAddress,
-    this.returnAddress,
-    this.enablePickupMapActions = true,
-    this.enableReturnMapActions = true,
-    this.showPickupRow = true,
     this.transportInfo,
   });
 
@@ -4242,28 +4228,20 @@ class _ModernDetailsCard extends StatelessWidget {
             const SizedBox(height: 4),
             Divider(height: 12, color: Colors.white.withValues(alpha: 0.08)),
             const SizedBox(height: 2),
-            if (pickupVisible != false && showPickupRow) ...[
-              _InfoRowModern(
-                icon: Icons.place_outlined,
-                label: 'Abholort',
-                value: (pickupAddress ?? location),
-                trailing: enablePickupMapActions
-                    ? _MapActions(onMap: onMap, onNav: onNav)
-                    : null,
-              ),
-              const SizedBox(height: 3),
-            ],
-            if (returnVisible != false) ...[
-              _InfoRowModern(
-                icon: Icons.place,
-                label: 'Rückgabeort',
-                value: (returnAddress ?? location),
-                trailing: enableReturnMapActions
-                    ? _MapActions(onMap: onMap, onNav: onNav)
-                    : null,
-              ),
-              const SizedBox(height: 4),
-            ],
+            _InfoRowModern(
+              icon: Icons.place_outlined,
+              label: 'Abholort',
+              value: location,
+              trailing: _MapActions(onMap: onMap, onNav: onNav),
+            ),
+            const SizedBox(height: 3),
+            _InfoRowModern(
+              icon: Icons.place,
+              label: 'Rückgabeort',
+              value: location,
+              trailing: _MapActions(onMap: onMap, onNav: onNav),
+            ),
+            const SizedBox(height: 4),
           ],
 
           if (bookingId.trim().isNotEmpty)
@@ -4516,10 +4494,8 @@ class _Bullet extends StatelessWidget {
 
 class _CancellationPolicyCard extends StatefulWidget {
   final Map<String, dynamic> booking;
-  final bool initiallyOpen;
   const _CancellationPolicyCard({
     required this.booking,
-    this.initiallyOpen = false,
   });
   @override
   State<_CancellationPolicyCard> createState() =>
@@ -4528,12 +4504,6 @@ class _CancellationPolicyCard extends StatefulWidget {
 
 class _CancellationPolicyCardState extends State<_CancellationPolicyCard> {
   bool _open = false;
-  @override
-  void initState() {
-    super.initState();
-    // Default collapsed everywhere; only open when explicitly requested
-    _open = widget.initiallyOpen;
-  }
 
   @override
   Widget build(BuildContext context) {
