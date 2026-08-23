@@ -18,7 +18,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact additive N2 foundation', () => {
   assert.deepEqual(validate(), {
-    status: 'implemented-full-regression-passed-ci-pending',
+    status: 'verified-ready-for-n3',
     storageFoundationCount: 7,
     nextPackage: 'N3',
   });
@@ -58,10 +58,10 @@ test('rejects a missing table or forbidden mutation', () => {
   assert.throws(() => validate(mutation), /mutation boundary/u);
 });
 
-test('rejects invented CI completion or a weakened local regression record', () => {
+test('rejects an invalid exact CI binding or a weakened local regression record', () => {
   const ci = structuredClone(evidence);
-  ci.targetedVerification.githubRegression = 'passed';
-  assert.throws(() => validate(ci), /verification record/u);
+  ci.exactGitHubVerification.headSha = '0000000000000000000000000000000000000000';
+  assert.throws(() => validate(ci), /exact GitHub verification/u);
 
   const regression = structuredClone(evidence);
   regression.targetedVerification.postgres16MigrationIntegration = 'pending';

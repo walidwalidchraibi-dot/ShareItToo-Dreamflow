@@ -3424,3 +3424,9 @@ observations exclude exact addresses and store integer minor units; only
 budget tables exist for N3, while disabled/mock providers cannot record billed
 spend. No application writer, route or provider transport is enabled. N8 must
 wire export, erasure and retention inventories before activation.
+
+The implementation is verified at exact commit
+`8bbef0bcc118ac8b1bf8b606c0795cbf16ba2e90`. GitHub regression run
+`32666454117` and CodeQL run `32666454108` both completed successfully. The
+manual listing editor, existing photos and historical listing rows remain
+unchanged; no provider call, billing or live mutation occurred. N3 is active.

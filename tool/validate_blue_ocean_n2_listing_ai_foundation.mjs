@@ -104,6 +104,20 @@ export function validateBlueOceanN2ListingAiFoundation({
   if (value.nextPackage !== 'N3' || !allFalse(value.boundaries)) {
     fail('N2 next package or mutation boundary is invalid.');
   }
+  const exactGitHubVerification = value.exactGitHubVerification;
+  if (value.status === 'verified-ready-for-n3') {
+    if (!exact(exactGitHubVerification, {
+      headSha: '8bbef0bcc118ac8b1bf8b606c0795cbf16ba2e90',
+      regressionRunId: 32666454117,
+      regressionConclusion: 'success',
+      codeqlRunId: 32666454108,
+      codeqlConclusion: 'success',
+    })) {
+      fail('N2 exact GitHub verification is invalid.');
+    }
+  } else if (exactGitHubVerification !== undefined) {
+    fail('N2 cannot bind exact GitHub verification before CI is complete.');
+  }
   if (!exact(value.targetedVerification, {
     domainSyntax: 'passed',
     domainTests: 'passed-9',

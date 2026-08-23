@@ -3071,7 +3071,7 @@ analysis-derivative, regional-observation, price-snapshot and budget aggregate
 foundations. No provider, live, Store, Payment, Firebase or publication gate is
 opened by N1.
 
-## Active package: Stage A Blue Ocean N2
+## Completed package: Stage A Blue Ocean N2
 
 N2 implements the separate listing-AI domain and migration `066` without
 altering `listings` or exposing an application route. Draft revisions,
@@ -3084,3 +3084,17 @@ N3 follows with the provider-independent gateway, deterministic mock, strict
 schema, timeout and failure handling, prompt-injection boundary, idempotency,
 budget/rate limit and manual fallback. No paid provider call or live gate is
 opened by N2.
+
+N2 is verified at exact implementation commit
+`8bbef0bcc118ac8b1bf8b606c0795cbf16ba2e90`; GitHub regression run
+`32666454117` and CodeQL run `32666454108` passed.
+
+## Active package: Stage A Blue Ocean N3
+
+N3 implements the provider-independent listing-AI gateway behind a dedicated
+default-off feature flag. It is limited to a deterministic mock transport and
+strict request/response contracts with injection resistance, timeout and
+failure handling, idempotency, rate and budget refusal, auditable zero-cost
+truth and explicit manual fallback. Paid transport, credentials, billing,
+public routes, automatic publication and every live/external gate remain
+closed.

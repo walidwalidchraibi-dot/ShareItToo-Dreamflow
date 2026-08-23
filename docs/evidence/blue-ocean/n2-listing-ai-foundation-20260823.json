@@ -1,9 +1,16 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n2-listing-ai-foundation",
-  "status": "implemented-full-regression-passed-ci-pending",
-  "capturedAt": "2026-08-23T21:28:00Z",
+  "status": "verified-ready-for-n3",
+  "capturedAt": "2026-08-23T21:14:06Z",
   "implementationBaseHead": "fc09e238b4d07e9c4d6aab1cf27fac865cf5087a",
+  "exactGitHubVerification": {
+    "headSha": "8bbef0bcc118ac8b1bf8b606c0795cbf16ba2e90",
+    "regressionRunId": 32666454117,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32666454108,
+    "codeqlConclusion": "success"
+  },
   "domain": {
     "domainVersion": "N2-2026-08-23.1",
     "schemaVersion": "listing-ai-draft-v1",
@@ -61,8 +68,8 @@
     "webDebugAndSmoke": "passed",
     "androidDebugAndMinSdk24": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
   },
   "nextPackage": "N3",
   "boundaries": {
