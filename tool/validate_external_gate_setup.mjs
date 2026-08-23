@@ -7,17 +7,26 @@ import { fileURLToPath } from 'node:url';
 import {
   validateSupportTestMatrixTraceability,
 } from './validate_support_test_matrix_traceability.mjs';
+import {
+  validateSupportEvidenceExternalReadiness,
+} from './validate_support_evidence_external_readiness.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
 const supportTraceabilityPath =
   'docs/evidence/support/support-test-matrix-v1-traceability.json';
+const supportEvidenceReadinessPath =
+  'docs/evidence/external-gates/support-evidence-scanner-readiness.json';
 
 const expectedGates = Object.freeze([
   ['legal_and_operator_approval', 'prepared-external-review-required'],
   ['operations_roles_and_absence', 'prepared-external-assignments-required'],
   ['ios_apple_signing_and_device', 'android-ready-ios-external-setup-required'],
   ['firebase_owner_terms_and_controls', 'owner-console-confirmation-required'],
+  [
+    'support_evidence_scanner_and_upload_policy',
+    'intake-disabled-external-scanner-and-policy-required',
+  ],
   ['psp_contract_and_sandbox_e2e', 'provider-contract-and-sandbox-required'],
   ['privacy_retention_and_legal_hold', 'prepared-owner-and-legal-decisions-required'],
   ['store_submission_and_closed_testing', 'google-account-ready-submission-gates-open'],
@@ -105,6 +114,23 @@ export function validateExternalGateSetup({
     'support_traceability_state_invalid',
   );
 
+  const supportEvidenceReadiness = readJson(
+    supportEvidenceReadinessPath,
+    sourceOverrides,
+  );
+  const supportEvidenceReadinessResult = validateSupportEvidenceExternalReadiness({
+    manifestOverride: supportEvidenceReadiness,
+    sourceOverrides,
+  });
+  assertCondition(
+    supportEvidenceReadinessResult.requiredDecisionCount === 8
+      && supportEvidenceReadinessResult.completedDecisionCount === 0
+      && supportEvidenceReadinessResult.intakeEnabled === false
+      && supportEvidenceReadinessResult.scannerTransport === 'none'
+      && supportEvidenceReadinessResult.externalReadiness === false,
+    'support_evidence_readiness_state_invalid',
+  );
+
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
     const [expectedId, expectedState] = expectedGates[index];
@@ -133,17 +159,24 @@ export function validateExternalGateSetup({
         === supportTraceabilityConsumers.has(expectedId),
       `support_traceability_ref_invalid:${expectedId}`,
     );
+    assertCondition(
+      gate.currentEvidenceRefs.includes(supportEvidenceReadinessPath)
+        === (expectedId === 'support_evidence_scanner_and_upload_policy'),
+      `support_evidence_readiness_ref_invalid:${expectedId}`,
+    );
   }
 
   assertCondition(
     JSON.stringify(manifest.summary) === JSON.stringify({
-      requiredGateCount: 10,
-      technicallyPreparedGateCount: 10,
+      requiredGateCount: 11,
+      technicallyPreparedGateCount: 11,
       externallyReadyGateCount: 0,
-      openGateCount: 10,
+      openGateCount: 11,
       supportScenarioCount: 167,
       supportExternalEvidenceRequiredCount: 47,
       supportExternalEvidencePresentCount: 0,
+      supportEvidenceRequiredDecisionCount: 8,
+      supportEvidenceCompletedDecisionCount: 0,
       strictReady: false,
     }),
     'summary_invalid',
@@ -262,6 +295,8 @@ export function validateExternalGateSetup({
     supportScenarioCount: 167,
     supportExternalEvidenceRequiredCount: 47,
     supportExternalEvidencePresentCount: 0,
+    supportEvidenceRequiredDecisionCount: 8,
+    supportEvidenceCompletedDecisionCount: 0,
     releaseDecision: 'hold-no-go',
   });
 }

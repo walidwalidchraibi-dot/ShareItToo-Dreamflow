@@ -23,20 +23,29 @@ const supportTraceability = JSON.parse(readFileSync(
   ),
   'utf8',
 ));
+const supportEvidenceReadiness = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/external-gates/support-evidence-scanner-readiness.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
 }
 
-test('accepts exactly ten technically prepared and externally open gates', () => {
+test('accepts exactly eleven technically prepared and externally open gates', () => {
   assert.deepEqual(validateExternalGateSetup(), {
     status: 'prepared-hold',
-    requiredGateCount: 10,
-    technicallyPreparedGateCount: 10,
+    requiredGateCount: 11,
+    technicallyPreparedGateCount: 11,
     externallyReadyGateCount: 0,
     supportScenarioCount: 167,
     supportExternalEvidenceRequiredCount: 47,
     supportExternalEvidencePresentCount: 0,
+    supportEvidenceRequiredDecisionCount: 8,
+    supportEvidenceCompletedDecisionCount: 0,
     releaseDecision: 'hold-no-go',
   });
 });
@@ -82,12 +91,26 @@ test('external setup is bound to the exact support matrix hold', () => {
 
 test('every support-matrix consumer retains the common evidence reference', () => {
   const changed = copy(manifest);
-  changed.gates[4].currentEvidenceRefs = changed.gates[4].currentEvidenceRefs.filter(
+  const pspGate = changed.gates.find(({ id }) => id === 'psp_contract_and_sandbox_e2e');
+  pspGate.currentEvidenceRefs = pspGate.currentEvidenceRefs.filter(
     (reference) => !reference.includes('support-test-matrix-v1-traceability'),
   );
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: changed }),
     /support_traceability_ref_invalid:psp_contract_and_sandbox_e2e/u,
+  );
+});
+
+test('aggregate setup is bound to the disabled scanner readiness gate', () => {
+  const changed = copy(supportEvidenceReadiness);
+  changed.evaluation.requiredDecisionCount = 7;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/external-gates/support-evidence-scanner-readiness.json': changed,
+      },
+    }),
+    /evaluation_invalid/u,
   );
 });
 

@@ -16,6 +16,7 @@
     "operations_roles_and_absence",
     "ios_apple_signing_and_device",
     "firebase_owner_terms_and_controls",
+    "support_evidence_scanner_and_upload_policy",
     "psp_contract_and_sandbox_e2e",
     "privacy_retention_and_legal_hold",
     "store_submission_and_closed_testing",
@@ -70,6 +71,20 @@
         "store/platform-account-readiness.json",
         "store/privacy-disclosures.json",
         "store/phone-verification-readiness.json"
+      ]
+    },
+    {
+      "id": "support_evidence_scanner_and_upload_policy",
+      "state": "intake-disabled-external-scanner-and-policy-required",
+      "technicalPreparation": "complete",
+      "ready": false,
+      "externalEvidenceRef": null,
+      "currentEvidenceRefs": [
+        "docs/evidence/external-gates/support-evidence-scanner-readiness.json",
+        "docs/architecture/s4a-private-support-evidence-security-2026-08-22.md",
+        "store/privacy-disclosures.json",
+        "store/retention-deletion-readiness.json",
+        "docs/operations/SUPPORT_EVIDENCE_SCANNER_AND_UPLOAD_POLICY_RUNBOOK.md"
       ]
     },
     {
@@ -148,13 +163,15 @@
     }
   ],
   "summary": {
-    "requiredGateCount": 10,
-    "technicallyPreparedGateCount": 10,
+    "requiredGateCount": 11,
+    "technicallyPreparedGateCount": 11,
     "externallyReadyGateCount": 0,
-    "openGateCount": 10,
+    "openGateCount": 11,
     "supportScenarioCount": 167,
     "supportExternalEvidenceRequiredCount": 47,
     "supportExternalEvidencePresentCount": 0,
+    "supportEvidenceRequiredDecisionCount": 8,
+    "supportEvidenceCompletedDecisionCount": 0,
     "strictReady": false
   },
   "boundaries": {

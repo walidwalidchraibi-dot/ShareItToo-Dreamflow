@@ -2,10 +2,10 @@
 
 Status: technically prepared, all external gates remain `HOLD` / `NO-GO`.
 
-This runbook gathers the existing Legal, Operations, Device, Firebase, PSP,
-Privacy/Retention, Store, Economics and Pilot gates into one setup sequence. It
-does not replace their canonical runbooks and does not authorize an external
-change. The machine source is
+This runbook gathers the existing Legal, Operations, Device, Firebase, Support
+Evidence Scanner/Upload Policy, PSP, Privacy/Retention, Store, Economics and
+Pilot gates into one setup sequence. It does not replace their canonical
+runbooks and does not authorize an external change. The machine source is
 `docs/evidence/external-gates/technical-setup-manifest.json`.
 
 ## Current preflight
@@ -16,9 +16,9 @@ From the repository root:
 node tool/validate_external_gate_setup.mjs
 ```
 
-Expected result: `prepared-hold`, ten technically prepared gates, zero
+Expected result: `prepared-hold`, eleven technically prepared gates, zero
 externally ready gates, 167 mapped Support scenarios, 47 externally open
-Support scenarios and `hold-no-go`.
+Support scenarios, eight open scanner/upload decisions and `hold-no-go`.
 
 The final check is intentionally red today:
 
@@ -47,26 +47,31 @@ then update this manifest and its validator in a reviewed commit.
 4. **Firebase:** while Walid is present in the owner account, confirm current
    terms and the required FCM/APNs, deletion/retention and Maps-key controls.
    Never copy keys or account identifiers into chat or Git.
-5. **PSP:** select and contract a licensed marketplace product, obtain the DPA,
+5. **Support Evidence Scanner/Upload Policy:** choose a reviewed managed or
+   self-hosted malware scanner, approve provider/security/privacy facts, file
+   size and MIME rules, Retention/Legal Hold, operator procedures and exact
+   candidate/environment binding. Keep intake disabled and use only synthetic
+   files until every decision passes the dedicated runbook.
+6. **PSP:** select and contract a licensed marketplace product, obtain the DPA,
    region/transfer and professional checkout evidence, place test credentials
    only in an approved secret store, then run the existing eight sandbox
    scenarios. Sandbox is not real-money authorization.
-6. **Privacy/Retention:** decide the six Privacy/form questions and ten
+7. **Privacy/Retention:** decide the six Privacy/form questions and ten
    retention/legal-hold periods using professional and owner evidence. Keep
    Store questionnaires draft until source, processor and final binary facts
    agree.
-7. **Store:** Google Play account setup is already ready. Complete the real
+8. **Store:** Google Play account setup is already ready. Complete the real
    closed-test requirement, protected review-account fields, final binary and
    accessibility matrix. Apple remains blocked by step 3. Do not upload or
    submit merely because metadata validates.
-8. **Economics:** enter authentic provider fees, VAT component, Cloud costs,
+9. **Economics:** enter authentic provider fees, VAT component, Cloud costs,
    founder hours/replacement rate and attribution evidence. An unavailable
    value is never zero and planning targets are never observed results.
-9. **Pilot envelope:** only after the four P0B prerequisites are green, prepare
+10. **Pilot envelope:** only after the four P0B prerequisites are green, prepare
    the exact invited Spiegelberg Cat8 synthetic-payment roster and region
    configuration. Keep public registration, G3/G4/G5, live provider traffic
    and real money disabled.
-10. **Activation:** Walid makes a separate explicit decision last. Technical
+11. **Activation:** Walid makes a separate explicit decision last. Technical
     readiness, account login or the existence of credentials is never that
     decision. The exact 47-scenario Public Launch and Real Money hold must also
     be zero before a release-ready claim.

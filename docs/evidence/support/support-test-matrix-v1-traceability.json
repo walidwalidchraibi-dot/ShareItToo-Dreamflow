@@ -378,7 +378,7 @@
         },
         {
           "path": "test/tool/validate_external_gate_setup.test.mjs",
-          "anchor": "accepts exactly ten technically prepared and externally open gates"
+          "anchor": "accepts exactly eleven technically prepared and externally open gates"
         },
         {
           "path": "test/tool/support_operational_privacy_wiring.test.mjs",
