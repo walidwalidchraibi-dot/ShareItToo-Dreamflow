@@ -22,7 +22,7 @@ test('Android uses user-selected photos without broad media-library access', () 
   assert.match(manifest, /android\.permission\.CAMERA/);
   assert.match(listing, /pickMultiImage\(/);
   assert.match(chat, /ImageSource\.gallery/);
-  assert.match(handover, /FilePicker\.platform\.pickFiles\(/);
+  assert.match(handover, /FilePicker\.pickFiles\(/);
 });
 
 test('confirmed handover and return times keep the enabled start action visible', () => {

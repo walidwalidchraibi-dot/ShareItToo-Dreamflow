@@ -244,7 +244,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
   Future<void> _pickFromGallery() async {
     if (kIsWeb) {
-      final res = await FilePicker.platform.pickFiles(
+      final res = await FilePicker.pickFiles(
         allowMultiple: true,
         withData: true,
         type: FileType.image,

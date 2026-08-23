@@ -1605,7 +1605,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return;
     }
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
         withData: true,

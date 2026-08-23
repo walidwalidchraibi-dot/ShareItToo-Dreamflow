@@ -732,7 +732,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   Future<void> _pickPhotosGallery(Function(List<PlatformFile>) addToList,
       {bool allowMultiple = true}) async {
-    final res = await FilePicker.platform.pickFiles(
+    final res = await FilePicker.pickFiles(
       type: FileType.image,
       allowMultiple: allowMultiple,
       withData: true,
