@@ -2390,3 +2390,31 @@ Backend in 1:39 and Flutter/Web/Android in 7:17. Signing and publication stay
 skipped. No external account, contract, production, Payment, Store,
 Cloud/VPS/DNS, pilot, real-money, activation or merge state changed. P0B
 remains `HOLD` / `NO-GO`.
+
+## S4BW Support evidence scanner and upload-policy gate
+
+`S4BW_SUPPORT_EVIDENCE_SCANNER_UPLOAD_POLICY_GATE` at exact commit
+`7f81757abe39bc50d3dc2af8fd7cc9464f7bf1f8` closes the missing technical gate
+for the Support source's mandatory upload-limit configuration and no-silent-
+defaults rule.
+
+The package adds a source-bound readiness manifest, an eight-decision
+fail-closed validator, seven permanent tests and a final setup runbook. It also
+promotes the aggregate external setup from ten to 11 required gates and binds
+the new state into its validator, tests and permanent regression. Production
+intake stays disabled, scanner transport remains `none`, external AI remains
+off and the current 8 MiB value remains explicitly unapproved.
+
+All 22 direct tooling contracts and 70 related workflow/security/privacy/
+retention contracts pass. The complete local gate passes analyzer zero, 385
+Flutter tests plus one documented skip, Google-only, WebAssembly, loopback
+smoke, Android 448 tasks, minSdk 24 and zero generated growth. Clean-host run
+`32623897547` passes PostgreSQL in 26 seconds, Backend in 1:16 and
+Flutter/Web/Android in 7:03; signing and publication remain skipped.
+
+External readiness is 0/11, scanner/upload-policy decisions are 0/8 and the
+Support Matrix external-evidence hold is 0/47 present. No external provider,
+contract, paid service, upload, production, Payment, Store, Cloud/VPS/DNS,
+pilot, real-money, activation or merge action occurred. The next autonomous
+step is another bounded source-to-code external-gate audit before selecting a
+new non-live technical preparation package. P0B remains `HOLD` / `NO-GO`.

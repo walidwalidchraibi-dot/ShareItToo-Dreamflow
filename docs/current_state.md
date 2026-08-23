@@ -2697,3 +2697,28 @@ clean-host run `32622784481` passes PostgreSQL in 38 seconds, Backend in 1:39
 and Flutter/Web/Android in 7:17; signing and publication remain skipped. No
 external account, provider, production, Payment, Store, Cloud/VPS/DNS, pilot,
 real-money or activation state changed. P0B remains `HOLD` / `NO-GO`.
+
+## S4BW Support evidence scanner and upload-policy gate
+
+`S4BW_SUPPORT_EVIDENCE_SCANNER_UPLOAD_POLICY_GATE` is implemented at exact
+commit `7f81757abe39bc50d3dc2af8fd7cc9464f7bf1f8`. It turns the Support Packet's
+explicit no-silent-default upload requirement into a separate fail-closed
+external gate while retaining the production-disabled, simulation-only,
+scanner-transport-`none` baseline.
+
+The source-bound readiness artifact requires eight authentic scanner,
+security, processor/transfer, upload-size, MIME, retention/legal-hold,
+operator-procedure and exact candidate/environment decisions. All eight remain
+open. The aggregate setup is now 11/11 technically prepared and 0/11
+externally ready; the Support Matrix remains 167 scenarios with 47 external
+evidence requirements and zero present evidence.
+
+The 22 direct tooling tests and 70 related support/security/privacy/retention
+tests pass. The complete local gate passes analyzer zero, 385 Flutter tests
+plus one documented skip, Google-only, Web/WebAssembly, loopback smoke,
+Android 448 tasks, minSdk 24 and zero generated growth. Exact clean-host run
+`32623897547` passes PostgreSQL in 26 seconds, Backend in 1:16 and
+Flutter/Web/Android in 7:03; signing and publication remain skipped. No
+scanner/provider was selected or contacted, no file was uploaded and no paid,
+contractual, production or intake state changed. P0B remains `HOLD` /
+`NO-GO`.
