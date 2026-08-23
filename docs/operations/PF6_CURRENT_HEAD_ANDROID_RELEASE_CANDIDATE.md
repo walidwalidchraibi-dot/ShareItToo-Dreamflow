@@ -62,7 +62,7 @@ The successful release was rebuilt on the internal APFS filesystem after only
 regenerable browser cache was cleared. Two permanent deterministic protections
 replace the ad-hoc recovery:
 
-1. the fixed release-host effective-capacity floor is 6 GiB and cannot be
+1. the fixed release-host effective-capacity floor is 5 GiB and cannot be
    reduced by an environment or timing override;
 2. the release builder itself runs the same before/after capacity guard and
    discovers the configured SDK from `android/local.properties` when Android

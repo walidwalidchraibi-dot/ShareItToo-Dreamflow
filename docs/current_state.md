@@ -2927,7 +2927,7 @@ direct internal-install evidence, not Play/Store-install evidence.
 The first APFS build exposed insufficient disk capacity. An external scratch
 experiment was rejected and is not a release dependency. The deterministic
 internal-filesystem rerun passed after regenerable cache cleanup; the fixed
-release-host capacity floor is now 6 GiB, the release builder owns the same
+release-host capacity floor is now 5 GiB, the release builder owns the same
 before/after guard, and SDK discovery falls back to the configured
 `android/local.properties`. `TD-PF6-001` is closed with permanent wiring and
 regression coverage.

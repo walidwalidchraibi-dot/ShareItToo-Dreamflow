@@ -161,7 +161,7 @@ function assertTechnicalDebt(value) {
     firstAttemptFailure: 'insufficient-local-disk-capacity',
     externalScratchResult: 'rejected-not-used-for-release-evidence',
     deterministicInternalFilesystemRerunSucceeded: true,
-    fixedEffectiveCapacityFloorKiB: 6291456,
+    fixedEffectiveCapacityFloorKiB: 5242880,
     sourceBoundCapacityGuard: true,
     sdkLocalPropertiesFallback: true,
     workaroundIsReleasePrerequisite: false,

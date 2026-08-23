@@ -2584,7 +2584,7 @@ closed testing, submission and public release remain false.
 
 `TD-PF6-001` records the initial low-disk build failure and rejected external
 scratch experiment. It is closed by a successful deterministic internal-APFS
-rerun, a fixed 6 GiB effective-capacity floor enforced by the release builder,
+rerun, a fixed 5 GiB effective-capacity floor enforced by the release builder,
 configured-SDK discovery through `android/local.properties` and permanent
 tests. Cache deletion, external scratch storage and an exported SDK path are
 not durable prerequisites.
