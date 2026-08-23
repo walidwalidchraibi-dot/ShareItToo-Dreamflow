@@ -3408,3 +3408,19 @@ price heuristic are explicit conflicts, not accepted shortcuts. N2 therefore
 adds a separate versioned AI-draft domain model without weakening `Item`,
 rewriting historical listings or changing the explicit owner publication
 boundary.
+
+## Stage A Blue Ocean N2 listing-AI foundation (2026-08-23)
+
+N2 adds a separate, additive and versioned listing-AI draft model plus seven
+new storage foundations. Generated fields carry confidence, provenance,
+reason, prompt/schema version and confirmation state. Low-confidence values
+stay blank, clarification is bounded to three questions and publication still
+requires the exact eleven owner confirmations plus a separate explicit owner
+action.
+
+Analysis derivatives have a forward-only purge lifecycle. Regional market
+observations exclude exact addresses and store integer minor units; only
+`SIT_REGIONAL_PRICE_ENGINE_V2` can be a price-snapshot authority. Cost and
+budget tables exist for N3, while disabled/mock providers cannot record billed
+spend. No application writer, route or provider transport is enabled. N8 must
+wire export, erasure and retention inventories before activation.

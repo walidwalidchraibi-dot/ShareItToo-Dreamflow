@@ -3070,3 +3070,17 @@ provenance, clarification, owner-confirmation, schema-version,
 analysis-derivative, regional-observation, price-snapshot and budget aggregate
 foundations. No provider, live, Store, Payment, Firebase or publication gate is
 opened by N1.
+
+## Active package: Stage A Blue Ocean N2
+
+N2 implements the separate listing-AI domain and migration `066` without
+altering `listings` or exposing an application route. Draft revisions,
+per-field provenance and confidence, no more than three clarifications, all
+eleven owner confirmations, derivative cleanup states, coarse regional market
+observations, Engine V2 price snapshots and zero-default cost/budget truth are
+covered by deterministic tests.
+
+N3 follows with the provider-independent gateway, deterministic mock, strict
+schema, timeout and failure handling, prompt-injection boundary, idempotency,
+budget/rate limit and manual fallback. No paid provider call or live gate is
+opened by N2.

@@ -153,10 +153,121 @@ if (!databaseUrl) {
         '063_return_calendar_deadline_guard.up.sql',
         '064_support_status_machine_v1_alignment.up.sql',
         '065_support_direct_decision_path.up.sql',
+        '066_blue_ocean_listing_ai_foundation.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows.at(-1).checksum, /^[0-9a-f]{64}$/);
+      const n2Client = await setupPool.connect();
+      try {
+        await n2Client.query('BEGIN');
+        await n2Client.query(
+          `INSERT INTO users (id, email, profile, role, account_status)
+           VALUES ('n2-owner-test', 'n2-owner-test@example.invalid', '{}'::jsonb, 'user', 'active')`,
+        );
+        const draftId = 'listing_ai_draft_12345678-1234-4123-8123-123456789abc';
+        await n2Client.query(
+          `INSERT INTO listing_ai_drafts (
+             id, domain_version, schema_version, prompt_version, owner_id
+           ) VALUES ($1, 'N2-2026-08-23.1', 'listing-ai-draft-v1',
+                     'listing-ai-prompt-v1', 'n2-owner-test')`,
+          [draftId],
+        );
+        const confirmations = Object.fromEntries([
+          'ownership', 'item_identity', 'allowed_category', 'functionality',
+          'condition', 'accessories', 'owner_price', 'duration_discounts',
+          'availability', 'pickup_region', 'final_publication',
+        ].map((key) => [key, false]));
+        const version = await n2Client.query(
+          `INSERT INTO listing_ai_draft_versions (
+             draft_id, revision, generation_key, generation_mode,
+             input_image_refs, fields, clarification_questions,
+             owner_confirmations, payload_sha256
+           ) VALUES ($1, 1, $2, 'manual_foundation', $3::jsonb, '{}'::jsonb,
+                     '[]'::jsonb, $4::jsonb, $5)
+           RETURNING id`,
+          [
+            draftId,
+            'a'.repeat(64),
+            JSON.stringify(['image_ref_00000001']),
+            JSON.stringify(confirmations),
+            'b'.repeat(64),
+          ],
+        );
+        const draft = await n2Client.query(
+          'SELECT current_revision FROM listing_ai_drafts WHERE id = $1',
+          [draftId],
+        );
+        assert.equal(draft.rows[0].current_revision, 1);
+
+        await n2Client.query('SAVEPOINT n2_append_only');
+        await assert.rejects(
+          n2Client.query(
+            `UPDATE listing_ai_draft_versions SET fields = '{"title": {}}'::jsonb
+              WHERE id = $1`,
+            [version.rows[0].id],
+          ),
+          (error) => error.code === '55000'
+            && error.message === 'listing_ai_record_is_append_only',
+        );
+        await n2Client.query('ROLLBACK TO SAVEPOINT n2_append_only');
+
+        await n2Client.query(
+          `INSERT INTO listing_ai_analysis_derivatives (
+             draft_id, image_reference, derivative_kind, storage_reference,
+             expires_at
+           ) VALUES ($1, 'image_ref_00000001', 'resized_analysis_copy',
+                     'derivative_ref_00000001', now() + interval '1 hour')`,
+          [draftId],
+        );
+        await n2Client.query(
+          `UPDATE listing_ai_analysis_derivatives
+              SET state = 'analysis_ready', updated_at = updated_at + interval '1 second'
+            WHERE draft_id = $1`,
+          [draftId],
+        );
+        const derivative = await n2Client.query(
+          `SELECT state FROM listing_ai_analysis_derivatives WHERE draft_id = $1`,
+          [draftId],
+        );
+        assert.equal(derivative.rows[0].state, 'analysis_ready');
+
+        await n2Client.query('SAVEPOINT n2_derivative_delete');
+        await assert.rejects(
+          n2Client.query(
+            'DELETE FROM listing_ai_analysis_derivatives WHERE draft_id = $1',
+            [draftId],
+          ),
+          (error) => error.code === '55000'
+            && error.message === 'listing_ai_derivative_delete_requires_purge',
+        );
+        await n2Client.query('ROLLBACK TO SAVEPOINT n2_derivative_delete');
+
+        await n2Client.query('SAVEPOINT n2_coarse_region');
+        await assert.rejects(
+          n2Client.query(
+            `INSERT INTO regional_market_observations (
+               draft_id, coarse_region_key, category_id, subcategory,
+               daily_price_minor, source_type, observed_at
+             ) VALUES ($1, 'heilbronn_74072', 'cat8', 'Bohrmaschinen',
+                       1200, 'synthetic_test', now())`,
+            [draftId],
+          ),
+          (error) => error.code === '23514',
+        );
+        await n2Client.query('ROLLBACK TO SAVEPOINT n2_coarse_region');
+        await n2Client.query('DELETE FROM listing_ai_drafts WHERE id = $1', [draftId]);
+        const cascaded = await n2Client.query(
+          `SELECT
+             (SELECT count(*)::int FROM listing_ai_draft_versions WHERE draft_id = $1) AS versions,
+             (SELECT count(*)::int FROM listing_ai_analysis_derivatives WHERE draft_id = $1) AS derivatives`,
+          [draftId],
+        );
+        assert.deepEqual(cascaded.rows[0], { versions: 0, derivatives: 0 });
+        await n2Client.query('ROLLBACK');
+      } finally {
+        n2Client.release();
+      }
       const returnCalendarColumns = await setupPool.query(
         `SELECT column_name, column_default
            FROM information_schema.columns
