@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# This file is sourced by technical_regression_check.sh so the before/after
-# measurements stay in one process and do not require a temporary state file.
+# This file is sourced by the complete technical gate and the release builder
+# so before/after measurements stay in one process without temporary state.
 
-readonly RELEASE_HOST_EFFECTIVE_BUDGET_KIB=$((4 * 1024 * 1024))
+readonly RELEASE_HOST_EFFECTIVE_BUDGET_KIB=$((6 * 1024 * 1024))
 readonly RELEASE_HOST_MAX_GENERATED_KIB=$((5 * 1024 * 1024))
 readonly RELEASE_HOST_MIN_END_FREE_KIB=$((512 * 1024))
 

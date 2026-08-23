@@ -2907,3 +2907,34 @@ Walid Action Pack A1–A5 and all seven authentic Stage A blockers are closed.
 No participant, account, invitation, candidate, signing, installation, Store,
 provider, Payment, Cloud/VPS/DNS, production, merge or activation action
 occurred. PF5 stops at `PILOT_STAGE_A_DECISION`.
+
+## PF6 current-head Android release candidate
+
+The later `SIT_MAXIMUM_LAUNCH_READINESS_AUTONOMY_V1_FREIGABE` opened a new
+non-public implementation runway. Exact source commit
+`76e6565cdb20d6a49fb417e87b044b237a1ae6c1` now has a canonical signed
+internal-Staging AAB/APK, a passed final-binary privacy scan and a verified
+owner-only four-file private archive. Exact regression run `32633048693` and
+CodeQL run `32633048658` both pass on that source.
+
+The signed APK updated the authorized Pixel 7 Pro from
+`1.0.0+2026081510` to `1.0.0+2026082301` without uninstall, reset or
+downgrade. The installed bytes match the archived candidate, first-install
+time and app-data inode were preserved, and launcher process start passed. No
+screenshot, account content or raw device identifier was retained. This is
+direct internal-install evidence, not Play/Store-install evidence.
+
+The first APFS build exposed insufficient disk capacity. An external scratch
+experiment was rejected and is not a release dependency. The deterministic
+internal-filesystem rerun passed after regenerable cache cleanup; the fixed
+release-host capacity floor is now 6 GiB, the release builder owns the same
+before/after guard, and SDK discovery falls back to the configured
+`android/local.properties`. `TD-PF6-001` is closed with permanent wiring and
+regression coverage.
+
+The Store lane now records the exact protected candidate but remains open for
+the private distribution choice, authentic closed-test observations, protected
+review access and final accessibility/device evidence. No external upload,
+Store, production, Payment, Cloud/VPS/DNS, provider, contract, cost, pilot,
+real-money, public activation or merge action occurred. P0B and Stage A remain
+`HOLD` / `NO-GO`.

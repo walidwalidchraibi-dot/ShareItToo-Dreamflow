@@ -2565,3 +2565,31 @@ next bounded answer.
 
 Next package: PF4 freezes the exact PR #7 integration and pilot-candidate path
 without merge, history rewrite, signing, upload or publication.
+
+## PF6 — current-head Android release candidate
+
+`PF6_CURRENT_HEAD_ANDROID_RELEASE_CANDIDATE` closes the previously missing
+exact current-head signed direct-install evidence under the later maximum
+non-public launch-readiness authorization. Source commit
+`76e6565cdb20d6a49fb417e87b044b237a1ae6c1` produced canonical signed
+`1.0.0+2026082301` AAB/APK artifacts, passed final-binary privacy validation
+and is retained in a verified owner-only private archive. Regression
+`32633048693` and CodeQL `32633048658` pass on the exact source.
+
+The preserving Pixel 7 Pro update passes signature, version, installed-byte,
+first-install-time, app-data-inode and launch checks. No uninstall, reset,
+downgrade, screenshot, user content or raw identifier was used or retained.
+The result is direct internal installation only; Google Play distribution,
+closed testing, submission and public release remain false.
+
+`TD-PF6-001` records the initial low-disk build failure and rejected external
+scratch experiment. It is closed by a successful deterministic internal-APFS
+rerun, a fixed 6 GiB effective-capacity floor enforced by the release builder,
+configured-SDK discovery through `android/local.properties` and permanent
+tests. Cache deletion, external scratch storage and an exported SDK path are
+not durable prerequisites.
+
+The next autonomous lane is another source-bound Stage A gap that can be
+improved without Store upload, external account decisions, cost, contract,
+production or activation. External readiness remains 0/11 and P0B remains
+`HOLD` / `NO-GO`.

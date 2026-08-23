@@ -430,6 +430,13 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_p0b_signed_device_evidence.mjs
 fi
+node --check tool/validate_current_head_android_candidate.mjs
+node --test test/tool/validate_current_head_android_candidate.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_current_head_android_candidate.mjs --ci-metadata-only
+else
+  node tool/validate_current_head_android_candidate.mjs
+fi
 node --check tool/validate_p0b_psp_sandbox_e2e.mjs
 node --test test/tool/validate_p0b_psp_sandbox_e2e.test.mjs
 node tool/validate_p0b_psp_sandbox_e2e.mjs

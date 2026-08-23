@@ -278,11 +278,12 @@
         "store/platform-account-readiness.json",
         "store/google-play/closed-testing-readiness.json",
         "store/review-access.json",
-        "store/device-validation.json"
+        "store/device-validation.json",
+        "docs/evidence/external-gates/current-head-android-candidate-2026082301.json"
       ],
-      "technicalEvidenceSummary": "The Google Play account is ready and submission/checklist artifacts exist; submission, closed testing, final-binary and review/device gates remain open.",
+      "technicalEvidenceSummary": "The Google Play account and checklists exist, and the exact current-head signed candidate passed a preserving Pixel direct update; the private distribution choice, Store closed test, final review and accessibility gates remain open.",
       "missingExternalEvidence": [
-        "exact signed current-source Android candidate bound to the chosen private distribution route",
+        "approved Stage A private Android distribution route bound to the exact signed candidate",
         "Google Play closed-testing requirement and sanitized observation evidence",
         "protected review-account and final-binary privacy/accessibility evidence",
         "public Store approval for Stage C",
@@ -296,9 +297,9 @@
       },
       "contractRequirement": "yes-current-platform-agreements",
       "walidPresenceRequired": true,
-      "exactNextAction": "Choose and document the Stage A private Android distribution route, produce an exact protected signed candidate, then with Walid present execute only the required closed-test/review evidence steps; do not submit publicly or publish.",
+      "exactNextAction": "Choose and document the Stage A private Android distribution route for the protected current-head candidate, then with Walid present execute only the required closed-test/review evidence steps; do not submit publicly or publish.",
       "dependencies": ["legal_and_operator_approval", "firebase_owner_terms_and_controls", "privacy_retention_and_legal_hold"],
-      "stopCondition": "Stop this lane before signing, physical installation with data risk, review credentials, 2FA, Store upload/submission, agreement acceptance or public publication.",
+      "stopCondition": "Stop this lane before replacement signing, physical installation with data risk, review credentials, 2FA, Store upload/submission, agreement acceptance or public publication.",
       "releaseToken": "PILOT_STAGE_A_ANDROID_DISTRIBUTION_EVIDENCE_ACCEPTED",
       "releaseTokenState": "not-issued",
       "codexCanContinueIndependentLane": true

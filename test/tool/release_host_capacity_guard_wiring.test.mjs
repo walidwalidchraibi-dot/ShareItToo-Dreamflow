@@ -12,7 +12,7 @@ const regression = readFileSync(
 );
 
 test('release-host gate owns fixed capacity and generated-footprint bounds', () => {
-  assert.match(guard, /RELEASE_HOST_EFFECTIVE_BUDGET_KIB=\$\(\(4 \* 1024 \* 1024\)\)/u);
+  assert.match(guard, /RELEASE_HOST_EFFECTIVE_BUDGET_KIB=\$\(\(6 \* 1024 \* 1024\)\)/u);
   assert.match(guard, /RELEASE_HOST_MAX_GENERATED_KIB=\$\(\(5 \* 1024 \* 1024\)\)/u);
   assert.match(guard, /RELEASE_HOST_MIN_END_FREE_KIB=\$\(\(512 \* 1024\)\)/u);
   assert.match(guard, /for path in build \.dart_tool android\/\.gradle/u);

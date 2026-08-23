@@ -139,7 +139,8 @@
         "store/google-play/closed-testing-readiness.json",
         "store/review-access.json",
         "docs/evidence/support/support-test-matrix-v1-traceability.json",
-        "store/device-validation.json"
+        "store/device-validation.json",
+        "docs/evidence/external-gates/current-head-android-candidate-2026082301.json"
       ]
     },
     {

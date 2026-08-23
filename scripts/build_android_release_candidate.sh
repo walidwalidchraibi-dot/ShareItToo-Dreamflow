@@ -185,6 +185,9 @@ if [[ "${SIT_BUILD_PREFLIGHT_ONLY:-0}" == "1" ]]; then
   exit 0
 fi
 
+source scripts/release_host_capacity_guard.sh
+release_host_capacity_begin
+
 flutter build appbundle "${common_args[@]}"
 flutter build apk "${common_args[@]}"
 
@@ -197,7 +200,14 @@ apk="build/app/outputs/flutter-apk/app-release.apk"
 # `-strict` would reject the expected self-signed certificate chain.
 jarsigner -verify "$aab" >/dev/null
 
-build_tools_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}/build-tools"
+android_sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+if [[ -z "$android_sdk_root" && -f android/local.properties ]]; then
+  android_sdk_root="$(sed -n 's/^sdk\.dir=//p' android/local.properties | tail -n1)"
+fi
+if [[ -z "$android_sdk_root" ]]; then
+  android_sdk_root="$HOME/Library/Android/sdk"
+fi
+build_tools_root="$android_sdk_root/build-tools"
 build_tools="$(find "$build_tools_root" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
 [[ -x "$build_tools/apksigner" ]] || { echo "ERROR: apksigner is unavailable." >&2; exit 1; }
 [[ -x "$build_tools/aapt" ]] || { echo "ERROR: aapt is unavailable." >&2; exit 1; }
@@ -268,6 +278,8 @@ cp "$aab" "$evidence_dir/shareittoo-$build_name-$build_number-$commit.aab"
 cp "$apk" "$evidence_dir/shareittoo-$build_name-$build_number-$commit.apk"
 
 node tool/archive_android_release_candidate.mjs
+
+release_host_capacity_end
 
 echo "Signed Android release candidate created for commit $commit."
 echo "Evidence: $evidence_dir/manifest.json"
