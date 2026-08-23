@@ -16,6 +16,13 @@ const storeReadme = readFileSync(
   new URL('../../store/README.md', import.meta.url),
   'utf8',
 );
+const supportTraceability = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/support/support-test-matrix-v1-traceability.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
@@ -27,6 +34,9 @@ test('accepts exactly ten technically prepared and externally open gates', () =>
     requiredGateCount: 10,
     technicallyPreparedGateCount: 10,
     externallyReadyGateCount: 0,
+    supportScenarioCount: 167,
+    supportExternalEvidenceRequiredCount: 47,
+    supportExternalEvidencePresentCount: 0,
     releaseDecision: 'hold-no-go',
   });
 });
@@ -54,6 +64,30 @@ test('rejects credential-shaped or personal fields anywhere in the manifest', ()
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: changed }),
     /credential_shaped_field:gates.0.password/u,
+  );
+});
+
+test('external setup is bound to the exact support matrix hold', () => {
+  const changed = copy(supportTraceability);
+  changed.summary.externalEvidenceRequiredCount = 46;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/support/support-test-matrix-v1-traceability.json': changed,
+      },
+    }),
+    /summary_invalid/u,
+  );
+});
+
+test('every support-matrix consumer retains the common evidence reference', () => {
+  const changed = copy(manifest);
+  changed.gates[4].currentEvidenceRefs = changed.gates[4].currentEvidenceRefs.filter(
+    (reference) => !reference.includes('support-test-matrix-v1-traceability'),
+  );
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: changed }),
+    /support_traceability_ref_invalid:psp_contract_and_sandbox_e2e/u,
   );
 });
 

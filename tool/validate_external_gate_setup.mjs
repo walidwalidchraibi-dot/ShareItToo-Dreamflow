@@ -4,8 +4,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  validateSupportTestMatrixTraceability,
+} from './validate_support_test_matrix_traceability.mjs';
+
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
+const supportTraceabilityPath =
+  'docs/evidence/support/support-test-matrix-v1-traceability.json';
 
 const expectedGates = Object.freeze([
   ['legal_and_operator_approval', 'prepared-external-review-required'],
@@ -18,6 +24,13 @@ const expectedGates = Object.freeze([
   ['economics_and_cost_inputs', 'external-cost-inputs-required'],
   ['pilot_region_roster_and_scope', 'prepared-prerequisites-open'],
   ['explicit_activation_decision', 'hold-explicit-decision-required'],
+]);
+const supportTraceabilityConsumers = new Set([
+  'legal_and_operator_approval',
+  'psp_contract_and_sandbox_e2e',
+  'privacy_retention_and_legal_hold',
+  'store_submission_and_closed_testing',
+  'explicit_activation_decision',
 ]);
 
 function readJson(relativePath, overrides) {
@@ -70,6 +83,28 @@ export function validateExternalGateSetup({
     'setup_order_invalid',
   );
 
+  const supportTraceability = readJson(supportTraceabilityPath, sourceOverrides);
+  const supportTraceabilityResult = validateSupportTestMatrixTraceability({
+    manifestOverride: supportTraceability,
+  });
+  assertCondition(
+    JSON.stringify(manifest.supportMatrixTraceability) === JSON.stringify({
+      ref: supportTraceabilityPath,
+      scenarioCount: 167,
+      externalEvidenceRequiredCount: 47,
+      externalEvidencePresentCount: 0,
+      strictReleaseReady: false,
+    }),
+    'support_traceability_summary_invalid',
+  );
+  assertCondition(
+    supportTraceabilityResult.scenarioCount === 167
+      && supportTraceabilityResult.externalEvidenceRequiredCount === 47
+      && supportTraceabilityResult.externalEvidencePresentCount === 0
+      && supportTraceabilityResult.strictReleaseReady === false,
+    'support_traceability_state_invalid',
+  );
+
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
     const [expectedId, expectedState] = expectedGates[index];
@@ -93,6 +128,11 @@ export function validateExternalGateSetup({
       );
       assertCondition(existsSync(path.join(root, reference)), `evidence_ref_missing:${reference}`);
     }
+    assertCondition(
+      gate.currentEvidenceRefs.includes(supportTraceabilityPath)
+        === supportTraceabilityConsumers.has(expectedId),
+      `support_traceability_ref_invalid:${expectedId}`,
+    );
   }
 
   assertCondition(
@@ -101,6 +141,9 @@ export function validateExternalGateSetup({
       technicallyPreparedGateCount: 10,
       externallyReadyGateCount: 0,
       openGateCount: 10,
+      supportScenarioCount: 167,
+      supportExternalEvidenceRequiredCount: 47,
+      supportExternalEvidencePresentCount: 0,
       strictReady: false,
     }),
     'summary_invalid',
@@ -216,6 +259,9 @@ export function validateExternalGateSetup({
     requiredGateCount: expectedGates.length,
     technicallyPreparedGateCount: expectedGates.length,
     externallyReadyGateCount: 0,
+    supportScenarioCount: 167,
+    supportExternalEvidenceRequiredCount: 47,
+    supportExternalEvidencePresentCount: 0,
     releaseDecision: 'hold-no-go',
   });
 }

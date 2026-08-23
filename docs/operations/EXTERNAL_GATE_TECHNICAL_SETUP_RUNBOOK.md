@@ -17,7 +17,8 @@ node tool/validate_external_gate_setup.mjs
 ```
 
 Expected result: `prepared-hold`, ten technically prepared gates, zero
-externally ready gates and `hold-no-go`.
+externally ready gates, 167 mapped Support scenarios, 47 externally open
+Support scenarios and `hold-no-go`.
 
 The final check is intentionally red today:
 
@@ -67,7 +68,8 @@ then update this manifest and its validator in a reviewed commit.
    and real money disabled.
 10. **Activation:** Walid makes a separate explicit decision last. Technical
     readiness, account login or the existence of credentials is never that
-    decision.
+    decision. The exact 47-scenario Public Launch and Real Money hold must also
+    be zero before a release-ready claim.
 
 ## Data and cost boundary
 
