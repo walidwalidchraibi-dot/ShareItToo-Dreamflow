@@ -2669,3 +2669,26 @@ action occurred.
 The next autonomous lane is another current-head, session-preserving Stage A
 surface that can be proven without account mutation, external credentials,
 live providers or Store upload. Stage A remains `HOLD` / `NO-GO`.
+
+## PF10 — current-head Android authenticated safe links
+
+`PF10_CURRENT_HEAD_ANDROID_AUTHENTICATED_SAFE_LINKS` adds a paired,
+non-overridable current-head and authenticated-session-preservation mode to the
+existing app-link diagnostic. It revalidates the exact PF6 candidate and
+direct-installed APK, accepts no vault and refuses current Android lock states.
+
+The physical Pixel run proves authenticated read-only notification routing
+before and after the probe, a fail-closed missing listing, rejection of an
+encoded path separator and absence of a ShareItToo association for a foreign
+host. It returns the app to the launcher and retains no hierarchy, content,
+identity, credential, token, private path, network identifier or raw device
+identifier.
+
+The result intentionally does not close authenticated fixture links, booking
+flow, Play delivery, real push or the full device matrix. No login, logout,
+account mutation, participant, Store, production, Payment, Cloud/VPS/DNS,
+provider, contract, cost, real-money, public activation or merge occurred.
+
+The next autonomous lane is the highest remaining current-source Android or
+source-level gap that can be closed without credentials, fixture mutation,
+external providers or Store upload. Stage A remains `HOLD` / `NO-GO`.

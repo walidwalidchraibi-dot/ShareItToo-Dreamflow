@@ -17,6 +17,9 @@ import {
   ensureAndroidGuestSession,
   restoreSyntheticSession,
 } from './diagnose_android_logout_lifecycle.mjs';
+import {
+  loadCurrentHeadAndroidDeviceCandidate,
+} from './validate_current_head_android_candidate.mjs';
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-app-link-diagnostic.xml';
@@ -64,7 +67,7 @@ function parseInstalledPackage(output) {
 
 function assertDeviceAlreadyUnlocked(commandRunner, adbPath, device) {
   const policy = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'window', 'policy']);
-  if (/keyguardShowing=true|isStatusBarKeyguard=true/.test(policy)) {
+  if (/keyguardShowing=true|isStatusBarKeyguard=true|\bmIsShowing=true\b|\bshowing=true\b/u.test(policy)) {
     fail('The Android phone is locked. Unlock it manually; this diagnostic never enters a passcode.');
   }
 }
@@ -94,7 +97,7 @@ function verifyInstalledCandidate(commandRunner, adbPath, device, candidate, arc
   if (installed.versionName !== candidate.versionName || installed.buildNumber !== candidate.buildNumber) {
     fail('Installed ShareItToo version does not match the verified candidate.');
   }
-  return { ...installed, apkSha256: installedSha256 };
+  return { ...installed, delivery: 'direct-apk', apkSha256: installedSha256 };
 }
 
 function startLink(commandRunner, adbPath, device, uri) {
@@ -172,7 +175,7 @@ function queryForeignHost(commandRunner, adbPath, device) {
   }
 }
 
-function restoreGuestStart(commandRunner, adbPath, device) {
+function restoreCandidateStart(commandRunner, adbPath, device) {
   try {
     adb(commandRunner, adbPath, device, ['shell', 'am', 'force-stop', applicationId]);
     adb(commandRunner, adbPath, device, [
@@ -198,19 +201,39 @@ export async function diagnoseAndroidAppLinks({
   deviceSummary,
   candidate,
   archive,
+  sessionMode = 'guest',
   capturedAt = new Date().toISOString(),
   wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
 }) {
+  if (!['guest', 'authenticated-preserved'].includes(sessionMode)) {
+    fail('The Android app-link session mode is unsupported.');
+  }
+  if (sessionMode === 'authenticated-preserved' && vaultFile !== null) {
+    fail('The authenticated-preserved route never accepts a credential vault.');
+  }
   assertDeviceAlreadyUnlocked(commandRunner, adbPath, device);
   const installed = verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive);
   const account = vaultFile === null
     ? null
     : JSON.parse(readFileSync(vaultFile, 'utf8')).accounts?.[0] ?? fail('The private synthetic account fixture is unavailable.');
-  if (account !== null) {
+  if (sessionMode === 'guest' && account !== null) {
     await ensureAndroidGuestSession({ commandRunner, adbPath, device, wait });
   }
 
+  let tests;
   try {
+    if (sessionMode === 'authenticated-preserved') {
+      startLink(commandRunner, adbPath, device, 'shareittoo://notifications');
+      await waitForUi({
+        commandRunner,
+        adbPath,
+        device,
+        requiredAll: ['Benachrichtigungen'],
+        forbidden: ['Bitte zuerst anmelden'],
+        wait,
+      });
+    }
+
     startLink(
       commandRunner,
       adbPath,
@@ -229,18 +252,20 @@ export async function diagnoseAndroidAppLinks({
       wait,
     });
 
-    startLink(commandRunner, adbPath, device, 'shareittoo://chat/sit-link-diagnostic');
-    await waitForUi({
-      commandRunner,
-      adbPath,
-      device,
-      requiredAll: [
-        'Bitte zuerst anmelden',
-        'Nach der Anmeldung öffnen wir den sicheren Chat-Kontext.',
-        'Anmelden',
-      ],
-      wait,
-    });
+    if (sessionMode === 'guest') {
+      startLink(commandRunner, adbPath, device, 'shareittoo://chat/sit-link-diagnostic');
+      await waitForUi({
+        commandRunner,
+        adbPath,
+        device,
+        requiredAll: [
+          'Bitte zuerst anmelden',
+          'Nach der Anmeldung öffnen wir den sicheren Chat-Kontext.',
+          'Anmelden',
+        ],
+        wait,
+      });
+    }
 
     startLink(
       commandRunner,
@@ -258,9 +283,62 @@ export async function diagnoseAndroidAppLinks({
     });
 
     queryForeignHost(commandRunner, adbPath, device);
+
+    if (sessionMode === 'authenticated-preserved') {
+      startLink(commandRunner, adbPath, device, 'shareittoo://notifications');
+      await waitForUi({
+        commandRunner,
+        adbPath,
+        device,
+        requiredAll: ['Benachrichtigungen'],
+        forbidden: ['Bitte zuerst anmelden'],
+        wait,
+      });
+      tests = {
+        authenticatedNotificationsBefore: {
+          status: 'passed',
+          result: 'authenticated-read-only-surface',
+        },
+        verifiedHttpsMissingListing: {
+          status: 'passed',
+          result: 'safe-listing-unavailable-surface',
+        },
+        unsafeIdentifierRejected: {
+          status: 'passed',
+          result: 'authenticated-start-preserved',
+        },
+        foreignHostNotAssociated: {
+          status: 'passed',
+          result: 'shareittoo-package-absent',
+        },
+        authenticatedNotificationsAfter: {
+          status: 'passed',
+          result: 'authenticated-session-preserved',
+        },
+      };
+    } else {
+      tests = {
+        verifiedHttpsMissingListing: {
+          status: 'passed',
+          result: 'safe-listing-unavailable-surface',
+        },
+        customSchemeGuestChat: {
+          status: 'passed',
+          result: 'authentication-required-surface',
+        },
+        unsafeIdentifierRejected: {
+          status: 'passed',
+          result: 'guest-start-preserved',
+        },
+        foreignHostNotAssociated: {
+          status: 'passed',
+          result: 'shareittoo-package-absent',
+        },
+      };
+    }
   } finally {
-    restoreGuestStart(commandRunner, adbPath, device);
-    if (account !== null) {
+    restoreCandidateStart(commandRunner, adbPath, device);
+    if (sessionMode === 'guest' && account !== null) {
       const restored = await restoreSyntheticSession({ commandRunner, adbPath, device, wait, account });
       if (!restored) fail('The private synthetic Staging session could not be restored after the app-link diagnostic.');
     }
@@ -268,8 +346,12 @@ export async function diagnoseAndroidAppLinks({
 
   return {
     schemaVersion: 1,
-    kind: 'android-direct-app-link-diagnostic',
-    status: 'passed-bounded-app-link-diagnostic',
+    kind: sessionMode === 'authenticated-preserved'
+      ? 'android-authenticated-safe-app-link-diagnostic'
+      : 'android-direct-app-link-diagnostic',
+    status: sessionMode === 'authenticated-preserved'
+      ? 'passed-bounded-authenticated-safe-app-link-diagnostic'
+      : 'passed-bounded-app-link-diagnostic',
     capturedAt,
     candidate: {
       applicationId: candidate.applicationId,
@@ -287,34 +369,51 @@ export async function diagnoseAndroidAppLinks({
       packageIdentityVerified: true,
       versionName: installed.versionName,
       buildNumber: installed.buildNumber,
+      delivery: installed.delivery,
       apkSha256: installed.apkSha256,
     },
     device: deviceSummary,
-    tests: {
-      verifiedHttpsMissingListing: { status: 'passed', result: 'safe-listing-unavailable-surface' },
-      customSchemeGuestChat: { status: 'passed', result: 'authentication-required-surface' },
-      unsafeIdentifierRejected: { status: 'passed', result: 'guest-start-preserved' },
-      foreignHostNotAssociated: { status: 'passed', result: 'shareittoo-package-absent' },
-    },
-    boundaries: {
-      directDiagnosticOnly: true,
-      storeInstallationGateSatisfied: false,
-      manualFunctionalMatrixPassed: false,
-      authenticatedDeepLinksPassed: false,
-      realPushPassed: false,
-      lockCodeUsed: false,
-      containsSecrets: false,
-      containsRawDeviceIdentifiers: false,
-      containsReviewCredentials: false,
-      syntheticAccountsOnly: true,
-    },
+    tests,
+    boundaries: sessionMode === 'authenticated-preserved'
+      ? {
+          directDiagnosticOnly: true,
+          storeInstallationGateSatisfied: false,
+          authenticatedSafeLinksPassed: true,
+          authenticatedFixtureLinksPassed: false,
+          manualFunctionalMatrixPassed: false,
+          bookingFlowPassed: false,
+          realPushPassed: false,
+          loginPerformed: false,
+          logoutPerformed: false,
+          accountMutationPerformed: false,
+          accountIdentityRecorded: false,
+          lockCodeUsed: false,
+          containsPersonalAccountData: false,
+          containsSecrets: false,
+          containsRawDeviceIdentifiers: false,
+          containsReviewCredentials: false,
+        }
+      : {
+          directDiagnosticOnly: true,
+          storeInstallationGateSatisfied: false,
+          manualFunctionalMatrixPassed: false,
+          authenticatedDeepLinksPassed: false,
+          realPushPassed: false,
+          lockCodeUsed: false,
+          containsSecrets: false,
+          containsRawDeviceIdentifiers: false,
+          containsReviewCredentials: false,
+          syntheticAccountsOnly: true,
+        },
   };
 }
 
-function parseArguments(values) {
+export function parseArguments(values) {
   let candidateDirectory = null;
   let vaultFile = null;
   let adbPath = 'adb';
+  let currentHead = false;
+  let preserveAuthenticatedSession = false;
   for (let index = 0; index < values.length; index += 1) {
     if (values[index] === '--candidate-dir') {
       candidateDirectory = values[index + 1] ?? fail('--candidate-dir requires a path.');
@@ -325,31 +424,54 @@ function parseArguments(values) {
     } else if (values[index] === '--vault-file') {
       vaultFile = values[index + 1] ?? fail('--vault-file requires a path.');
       index += 1;
+    } else if (values[index] === '--current-head') {
+      currentHead = true;
+    } else if (values[index] === '--preserve-authenticated-session') {
+      preserveAuthenticatedSession = true;
     } else {
       fail(`Unknown argument: ${values[index]}`);
     }
   }
-  return { candidateDirectory, vaultFile, adbPath };
+  if (currentHead !== preserveAuthenticatedSession) {
+    fail('--current-head and --preserve-authenticated-session must be used together.');
+  }
+  if (currentHead && (candidateDirectory !== null || vaultFile !== null)) {
+    fail('The current-head authenticated route never accepts archive or vault overrides.');
+  }
+  return {
+    candidateDirectory,
+    vaultFile,
+    adbPath,
+    currentHead,
+    preserveAuthenticatedSession,
+  };
 }
 
 async function run() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const args = parseArguments(process.argv.slice(2));
-  const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
-  const candidate = manifest.candidate;
-  const candidateDirectory = resolve(
-    args.candidateDirectory ??
-      resolve(
-        homedir(),
-        'Library',
-        'Application Support',
-        'ShareItToo',
-        'release',
-        'android',
-        `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
-      ),
-  );
-  const archive = await validateCandidateArchive({ root, candidateDirectory });
+  let candidate;
+  let archive;
+  if (args.currentHead) {
+    candidate = await loadCurrentHeadAndroidDeviceCandidate();
+    archive = { apkSha256: candidate.android.apkSha256 };
+  } else {
+    const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
+    candidate = manifest.candidate;
+    const candidateDirectory = resolve(
+      args.candidateDirectory ??
+        resolve(
+          homedir(),
+          'Library',
+          'Application Support',
+          'ShareItToo',
+          'release',
+          'android',
+          `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
+        ),
+    );
+    archive = await validateCandidateArchive({ root, candidateDirectory });
+  }
   const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });
@@ -360,6 +482,7 @@ async function run() {
     deviceSummary,
     candidate,
     archive,
+    sessionMode: args.preserveAuthenticatedSession ? 'authenticated-preserved' : 'guest',
   });
   console.log(JSON.stringify(evidence, null, 2));
 }

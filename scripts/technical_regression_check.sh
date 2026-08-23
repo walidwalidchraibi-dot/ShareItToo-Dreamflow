@@ -216,6 +216,13 @@ node --test test/tool/run_isolated_android_device_message_diagnostic.test.mjs
 
 node --check tool/diagnose_android_app_links.mjs
 node --test test/tool/diagnose_android_app_links.test.mjs
+node --check tool/validate_current_head_android_authenticated_safe_links.mjs
+node --test test/tool/validate_current_head_android_authenticated_safe_links.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_current_head_android_authenticated_safe_links.mjs --ci-metadata-only
+else
+  node tool/validate_current_head_android_authenticated_safe_links.mjs
+fi
 node --test test/tool/g2a_navigation_migration_wiring.test.mjs
 node --check tool/validate_g2_data_lifecycle.mjs
 node --test test/tool/validate_g2_data_lifecycle.test.mjs

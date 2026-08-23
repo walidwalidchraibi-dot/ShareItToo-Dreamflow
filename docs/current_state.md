@@ -3020,3 +3020,28 @@ PF8 is independently green on exact commit
 account mutation, Store, participant, production, Payment, Cloud/VPS/DNS,
 provider, contract, cost, real-money, public activation or merge action
 occurred. P0B and Stage A remain `HOLD` / `NO-GO`.
+
+## PF10 current-head Android authenticated safe links
+
+The Android app-link diagnostic now has a non-overridable current-head route
+that preserves the existing authenticated session and accepts no credential
+vault. It validates the PF6 repository record, owner-only archive and exact
+installed direct APK before the physical checks.
+
+On the Pixel, the authenticated read-only notifications route was present
+before and after the probes. A missing verified-HTTPS listing failed closed,
+an encoded path separator was rejected to the ordinary start surface and a
+foreign host was not associated with ShareItToo. The app returned to its
+launcher surface with the session preserved.
+
+No UI hierarchy, notification content, identity, credential, token, review
+account data, private path, network identifier or raw device identifier was
+retained. PF10 does not claim authenticated fixture listing/booking/chat links,
+Google Play delivery, a booking flow, real push or the complete device matrix.
+
+PF9 is independently green on exact commit
+`03178d428ccf660ed56dcddb1d974c6a8a61f38c`: regression run
+`32636406381` and CodeQL run `32636406392` both succeeded. No login, logout,
+account mutation, Store, participant, production, Payment, Cloud/VPS/DNS,
+provider, contract, cost, real-money, public activation or merge action
+occurred. P0B and Stage A remain `HOLD` / `NO-GO`.

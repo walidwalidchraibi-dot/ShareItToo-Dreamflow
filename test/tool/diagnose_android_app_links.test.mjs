@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import { diagnoseAndroidAppLinks } from '../../tool/diagnose_android_app_links.mjs';
+import {
+  diagnoseAndroidAppLinks,
+  parseArguments,
+} from '../../tool/diagnose_android_app_links.mjs';
 
 function digest(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -52,6 +55,7 @@ function fakeRunner({ locked = false, associateForeignHost = false } = {}) {
       const uri = command.at(-1);
       if (uri.includes('sit-link-diagnostic-missing')) activeCase = 'missing-listing';
       else if (uri.startsWith('shareittoo://chat/')) activeCase = 'guest-chat';
+      else if (uri === 'shareittoo://notifications') activeCase = 'authenticated-notifications';
       else if (uri.includes('not%2Fsafe')) activeCase = 'unsafe-id';
       return 'Status: ok\nActivity: com.shareittoo.app/.MainActivity\n';
     }
@@ -62,6 +66,9 @@ function fakeRunner({ locked = false, associateForeignHost = false } = {}) {
       }
       if (activeCase === 'guest-chat') {
         return '<node content-desc="Bitte zuerst anmelden"/><node content-desc="Nach der Anmeldung öffnen wir den sicheren Chat-Kontext."/><node content-desc="Anmelden"/>';
+      }
+      if (activeCase === 'authenticated-notifications') {
+        return '<node content-desc="Benachrichtigungen"/><node content-desc="Keine Benachrichtigungen"/>';
       }
       return '<node content-desc="ShareItToo"/><node content-desc="Entdecken"/>';
     }
@@ -95,6 +102,7 @@ test('records four bounded app-link checks without a raw device identifier', asy
     ['passed', 'passed', 'passed', 'passed'],
   );
   assert.equal(evidence.installed.apkSha256, digest(installedApk));
+  assert.equal(evidence.installed.delivery, 'direct-apk');
   assert.equal(evidence.boundaries.storeInstallationGateSatisfied, false);
   assert.equal(evidence.boundaries.authenticatedDeepLinksPassed, false);
   assert.equal(evidence.boundaries.lockCodeUsed, false);
@@ -120,5 +128,51 @@ test('rejects a different installed APK even with the same visible version', asy
   await assert.rejects(
     () => diagnose({ archive: changedArchive }),
     /Installed ShareItToo APK does not match/,
+  );
+});
+
+test('preserves an authenticated session across bounded read-only safe links', async () => {
+  const evidence = await diagnose({ sessionMode: 'authenticated-preserved' });
+  assert.equal(
+    evidence.status,
+    'passed-bounded-authenticated-safe-app-link-diagnostic',
+  );
+  assert.deepEqual(Object.keys(evidence.tests), [
+    'authenticatedNotificationsBefore',
+    'verifiedHttpsMissingListing',
+    'unsafeIdentifierRejected',
+    'foreignHostNotAssociated',
+    'authenticatedNotificationsAfter',
+  ]);
+  assert.equal(evidence.boundaries.authenticatedSafeLinksPassed, true);
+  assert.equal(evidence.boundaries.authenticatedFixtureLinksPassed, false);
+  assert.equal(evidence.boundaries.accountMutationPerformed, false);
+  assert.equal(evidence.boundaries.accountIdentityRecorded, false);
+  assert.equal(JSON.stringify(evidence).includes('PRIVATE-SERIAL'), false);
+});
+
+test('parses only the source-bound current-head authenticated route', () => {
+  assert.deepEqual(
+    parseArguments(['--current-head', '--preserve-authenticated-session']),
+    {
+      candidateDirectory: null,
+      vaultFile: null,
+      adbPath: 'adb',
+      currentHead: true,
+      preserveAuthenticatedSession: true,
+    },
+  );
+  assert.throws(
+    () => parseArguments(['--current-head']),
+    /must be used together/u,
+  );
+  assert.throws(
+    () => parseArguments([
+      '--current-head',
+      '--preserve-authenticated-session',
+      '--vault-file',
+      'private.json',
+    ]),
+    /never accepts archive or vault overrides/u,
   );
 });
