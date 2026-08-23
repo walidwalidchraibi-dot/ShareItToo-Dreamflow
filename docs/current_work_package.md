@@ -2267,3 +2267,32 @@ Flutter/Web/Android in 6:32 with all four reachability subtests and 445 Android
 tasks. Signing and publication remain skipped. This closes `TD-RR-019`; all
 19/19 deterministic exits are retained. External readiness remains 0/10 and
 P0B remains `HOLD` / `NO-GO`.
+
+## S4BQ MobileScanner iPhone 17 floor
+
+`S4BQ_MOBILE_SCANNER_IPHONE17_FLOOR` is technically verified at exact
+implementation head `910e88824784a4a5127e36d82be47356e052f577`. The bounded
+package pins only MobileScanner 7.1.4, the immediate patch after 7.1.3, and
+retains the upstream Apple correction for an iPhone 17 scanner-start crash.
+Later 7.2 through 7.4 scanner behavior, Web-backend and Android-toolchain
+changes remain excluded.
+
+The permanent contract binds the exact Pub checksum and resolved Swift,
+Android and public-Dart-API hashes. It requires selection from available Apple
+pixel formats before configuring video output, rejects the former unconditional
+BGRA assignment, retains assignment-safe Android compileSdk-36/minSdk-23/Java-
+17 fields and keeps application scope at the two pickup/return scanner surfaces.
+
+The first complete gate correctly rejected the stale Privacy source hash for
+the changed dependency declaration. Exact rebinding changed no Privacy or
+Retention decision; all 58 contracts then passed. The identical complete local
+gate passes analyzer zero, 385 Flutter tests plus one documented skip,
+Google-only, Web/Wasm, loopback smoke, Android 448 tasks and binary minSdk 24.
+The MobileScanner warning path is absent.
+
+Exact clean-host CI `32618368745` passes PostgreSQL in 29 seconds, Backend in
+1:33 and Flutter/Web/Android in 7:01 with all four scanner contracts, 445
+Android tasks and no MobileScanner warning path. Signing and publication remain
+skipped. This closes `TD-RR-020`; all 20/20 deterministic exits are retained.
+Physical Apple-device validation remains external. External readiness remains
+0/10 and P0B remains `HOLD` / `NO-GO`.

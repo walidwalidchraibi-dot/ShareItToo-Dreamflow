@@ -1,6 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **closed, 19/19 deterministic exit contracts retained**. Non-live
+Status: **closed, 20/20 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -30,8 +30,21 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-017` | **CLOSED 23.08.2026.** S4BM exposed third-party Android bridge Gradle-9 warnings. The newest resolvable SharedPreferences, URL-Launcher and ImagePicker probe failed because its AndroidX artifacts require compile SDK 36 and AGP 8.9.1 or later; that broad migration was not accepted. S4BN locks only the earliest compatible upstream fixes (`image_picker_android` 0.8.13+4, `shared_preferences_android` 2.4.15 and `url_launcher_android` 6.3.24), binds exact checksums and permanently inspects the real debug APK for merged minSdk 24. Their former warning paths are absent; the direct build, complete local gate and exact CI `32616408339` pass at `09094df`. | Closed by bounded exact locks/checksums, retained Flutter/toolchain floors, one all-warning 448-task build, real APK `aapt` floor proof, complete local regression and exact clean-host CI. Do not replace this with a dependency override, Pub-cache patch, warning suppression, source-only minSdk assertion, extra build, retry or unreviewed compile/target-SDK migration. |
 | `TD-RR-018` | **CLOSED 23.08.2026.** S4BM also exposed the resolved `path_provider_android` 2.2.17 Gradle-9/10 warning. S4BO locks only upstream 2.2.19, the first compatible line with the explicit Gradle-9 correction after its reviewed toolchain-floor update, and binds its exact checksum plus Flutter 3.41.7 local/CI floors. The later 2.3.x JNI migration remains excluded. The warning path is absent; the direct build, complete local gate and exact CI `32616929359` pass at `620b729`. | Closed by one bounded exact lock/checksum, retained toolchain and full-gate registration contracts, one all-warning Android build, real APK minSdk-24 proof, complete local regression and exact clean-host CI. Do not replace this with an override, cache patch, warning suppression, retry, unreviewed JNI migration or compile/target-SDK change. |
 | `TD-RR-019` | **CLOSED 23.08.2026.** The reviewed Printing 5.14.3 Web adapter embeds PDF.js 3.2.146 below Mozilla's CVE-2024-4367 patched floor. Printing 5.15.0 is incompatible with pinned Dart 3.11.5 and embeds PDF.js 5.7.284 below the later CVE-2026-16633 patched floor. S4BP therefore binds the exact package checksum and resolved source hashes, proves the application's three `layoutPdf` and one `sharePdf` calls never initialize PDF.js, rejects all reachable preview/raster/conversion/direct-print/printer/platform paths, and permanently registers the contract. Focused checks, complete local regression and exact CI `32617626521` pass at `0ec4d0a`. | Closed by removing current application reachability and retaining an exact fail-closed source/adapter contract, not by claiming the embedded library is patched. Keep the guard until a separately reviewed compatible PDF stack satisfies all applicable advisories. No version-only update, advisory suppression, feature flag, runtime/cache patch, retry or reduced suite may replace it. |
+| `TD-RR-020` | **CLOSED 23.08.2026.** MobileScanner 7.1.3 predates its bounded iPhone 17 scanner-start crash correction. S4BQ pins only the immediate 7.1.4 patch, binds the exact package checksum and resolved Swift/Android/public-API hashes, requires available Apple pixel-format selection before output configuration, rejects the old unconditional BGRA assignment, preserves assignment-safe Android floors and limits application scope to the two reviewed pickup/return scanners. The complete local gate and exact CI `32618368745` pass at `910e888`; no MobileScanner Gradle warning path remains. | Closed by one exact patch lock, source-behavior and application-scope contracts, Privacy source rebinding without decision drift, complete local regression and exact clean-host CI. Retain physical Apple validation as a separate external gate. No later scanner migration, dependency override, cache patch, warning filter, retry, reduced suite or source-equals-device claim may replace it. |
 
 ## Observation log
+
+- 23.08.2026, S4BQ: the immediately following MobileScanner patch fixes the
+  documented iPhone 17 scanner-start crash by selecting an available capture
+  pixel format. The exact 7.1.4 lock and resolved Swift/Android/public-API
+  hashes are guarded; broader 7.2 through 7.4 changes are excluded. The first
+  complete run correctly rejected a stale Privacy source hash. Exact rebinding
+  changed no decision, all 58 Privacy/Retention contracts passed, and the
+  identical complete local gate plus exact CI `32618368745` passed at
+  `910e888`. CI includes all four scanner contracts, analyzer zero, Web/Wasm,
+  Android and binary minSdk 24 with no MobileScanner warning path. This closes
+  `TD-RR-020`; all 20/20 deterministic exits are retained. Physical Apple
+  evidence, P0B and every external gate remain closed.
 
 - 23.08.2026, S4BP: dependency review found that the current Printing Web
   adapter contains PDF.js 3.2.146 and that the nominal next Printing version is
