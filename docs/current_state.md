@@ -2722,3 +2722,32 @@ Flutter/Web/Android in 7:03; signing and publication remain skipped. No
 scanner/provider was selected or contacted, no file was uploaded and no paid,
 contractual, production or intake state changed. P0B remains `HOLD` /
 `NO-GO`.
+
+## S4BX active infrastructure and mail provider gate
+
+`S4BX_ACTIVE_INFRASTRUCTURE_MAIL_PROVIDER_GATE` is implemented at exact commit
+`aa1b821a940ac5a8cb808ec1dd5599086360995c`. It reconciles the existing
+five-service active-processor classification with the canonical inventories:
+Privacy now exposes eleven external services and Retention six processors,
+including explicit Hostinger VPS and Google Workspace SMTP relay entries.
+
+Both new entries remain externally unapproved. Ten contract/DPA, seat/region,
+transfer/subprocessor, retention/deletion, backup/restore or suppression and
+incident/exit decisions are open. Hostinger and SMTP official retention review
+is explicitly false with no invented evidence. The current deletion preflight
+therefore reports 23 stable blockers while immutable historical four-processor
+and 21-blocker evidence remains unchanged.
+
+The new source-bound validator, seven direct tests and aggregate wiring keep
+this as a cross-cutting Legal and Privacy/Retention sub-gate; the top-level
+count remains 11. The 81 focused and 58 adjacent tests pass. The complete local
+gate passes analyzer zero, 385 Flutter tests plus one documented skip,
+Google-only, Web/WebAssembly, loopback smoke, Android 448 tasks, minSdk 24 and
+12 KiB generated growth. Exact clean-host run `32625380409` passes PostgreSQL
+in 30 seconds, Backend in 1:51 and Flutter/Web/Android in 6:36; signing and
+publication remain skipped.
+
+External readiness remains 0/11 and provider decisions 0/10. No account was
+inspected, no contract or paid service accepted and no provider, VPS, mail,
+production, Payment, Store, Cloud/DNS, pilot, real-money, activation or merge
+state changed. P0B remains `HOLD` / `NO-GO`.

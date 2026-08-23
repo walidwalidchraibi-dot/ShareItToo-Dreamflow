@@ -2418,3 +2418,33 @@ contract, paid service, upload, production, Payment, Store, Cloud/VPS/DNS,
 pilot, real-money, activation or merge action occurred. The next autonomous
 step is another bounded source-to-code external-gate audit before selecting a
 new non-live technical preparation package. P0B remains `HOLD` / `NO-GO`.
+
+## S4BX active infrastructure and mail provider gate
+
+`S4BX_ACTIVE_INFRASTRUCTURE_MAIL_PROVIDER_GATE` at exact commit
+`aa1b821a940ac5a8cb808ec1dd5599086360995c` closes the inventory gap between
+the classified active hosting/SMTP processors and the Privacy/Retention
+external-service lists.
+
+Hostinger VPS and Google Workspace SMTP relay are now explicit, fail-closed
+processor entries. Privacy lists eleven external services; Retention lists six
+processors and exposes the missing official, service-readiness and owner
+evidence for the two new entries. Ten authentic external decisions remain
+open. A dedicated source/hash-bound validator and seven permanent tests reject
+hidden processors, source drift, invented review, partial approval, sensitive
+data and external mutation claims.
+
+The aggregate external setup references the provider readiness from exactly
+Legal/operator and Privacy/Retention. It remains 11/11 technically prepared,
+0/11 externally ready and `hold-no-go`; active-provider decisions are 0/10.
+The 81 focused and 58 adjacent contracts pass. The complete local gate passes
+analyzer zero, 385 Flutter tests plus one documented skip, Google-only,
+WebAssembly, loopback smoke, Android 448 tasks, minSdk 24 and 12 KiB generated
+growth. Clean-host run `32625380409` passes PostgreSQL in 30 seconds, Backend
+in 1:51 and Flutter/Web/Android in 6:36. Signing and publication remain
+skipped.
+
+No account inspection, provider/contract/cost action, VPS/mail/production,
+Payment, Store, Cloud/DNS, pilot, real-money, activation or merge occurred.
+The next autonomous step is another bounded external-gate source-to-code audit
+for a technically preparable gap. P0B remains `HOLD` / `NO-GO`.
