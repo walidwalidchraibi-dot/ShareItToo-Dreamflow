@@ -110,6 +110,7 @@ node --test test/tool/support_privacy_incident_control_plane_wiring.test.mjs
 node --test test/tool/file_picker_security_upgrade.test.mjs
 node --test test/tool/pdf_wasm_dependency_upgrade.test.mjs
 node --test test/tool/android_lifecycle_gradle_floor.test.mjs
+node --test test/tool/android_gradle9_bridge_floor.test.mjs
 node --test test/tool/android_gradle_warning_visibility.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
@@ -540,5 +541,31 @@ if grep -Fq "Build file '$PWD/android/" <<<"$android_build_output" \
   echo "ERROR: Android build reported a warning from an SIT-owned Gradle script." >&2
   exit 1
 fi
+
+android_sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+if [[ -z "$android_sdk_root" && -f android/local.properties ]]; then
+  android_sdk_root="$(sed -n 's/^sdk\.dir=//p' android/local.properties | tail -n1)"
+fi
+if [[ -z "$android_sdk_root" ]]; then
+  android_sdk_root="$HOME/Library/Android/sdk"
+fi
+android_build_tools_root="$android_sdk_root/build-tools"
+android_build_tools="$(find "$android_build_tools_root" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
+android_aapt="$android_build_tools/aapt"
+android_debug_apk="build/app/outputs/flutter-apk/app-debug.apk"
+[[ -x "$android_aapt" ]] || {
+  echo "ERROR: aapt is unavailable for the Android platform-reach check." >&2
+  exit 1
+}
+[[ -f "$android_debug_apk" ]] || {
+  echo "ERROR: Android debug APK is unavailable for the platform-reach check." >&2
+  exit 1
+}
+android_debug_badging="$("$android_aapt" dump badging "$android_debug_apk")"
+if ! grep -Fq "sdkVersion:'24'" <<<"$android_debug_badging"; then
+  echo "ERROR: Android debug binary no longer has the reviewed minSdk 24 floor." >&2
+  exit 1
+fi
+echo "Android debug binary platform reach: PASS (minSdk 24)."
 
 release_host_capacity_end
