@@ -13,6 +13,9 @@ import {
 import {
   validateActiveInfrastructureMailProviderReadiness,
 } from './validate_active_infrastructure_mail_provider_readiness.mjs';
+import {
+  validatePf14bCurrentHeadAndroidTouchTarget,
+} from './validate_pf14b_current_head_android_touch_target.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -22,6 +25,10 @@ const supportEvidenceReadinessPath =
   'docs/evidence/external-gates/support-evidence-scanner-readiness.json';
 const activeProviderReadinessPath =
   'docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json';
+const pf14bEvidencePath =
+  'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json';
+const supersededAndroidCandidatePath =
+  'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
 const expectedGates = Object.freeze([
   ['legal_and_operator_approval', 'prepared-external-review-required'],
@@ -165,6 +172,27 @@ export function validateExternalGateSetup({
     'active_provider_readiness_state_invalid',
   );
 
+  const pf14bEvidence = readJson(pf14bEvidencePath, sourceOverrides);
+  const pf14bResult = validatePf14bCurrentHeadAndroidTouchTarget({
+    root,
+    evidence: pf14bEvidence,
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf14bResult.buildNumber === '2026082302'
+      && pf14bResult.exactCiPassed === true
+      && pf14bResult.privateArchiveVerified === true
+      && pf14bResult.dataPreservingDirectUpdate === true
+      && pf14bResult.targetCount === 5
+      && pf14bResult.minimumWidthDp >= 48
+      && pf14bResult.minimumHeightDp >= 48
+      && pf14bResult.manualVisualReview === false
+      && pf14bResult.manualTalkBackTraversal === false
+      && pf14bResult.stageAReady === false
+      && pf14bResult.decision === 'hold-no-go',
+    'pf14b_store_candidate_state_invalid',
+  );
+
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
     const [expectedId, expectedState] = expectedGates[index];
@@ -204,6 +232,13 @@ export function validateExternalGateSetup({
           .includes(expectedId),
       `active_provider_readiness_ref_invalid:${expectedId}`,
     );
+    if (expectedId === 'store_submission_and_closed_testing') {
+      assertCondition(
+        gate.currentEvidenceRefs.includes(pf14bEvidencePath)
+          && !gate.currentEvidenceRefs.includes(supersededAndroidCandidatePath),
+        'store_candidate_ref_invalid:store_submission_and_closed_testing',
+      );
+    }
   }
 
   assertCondition(

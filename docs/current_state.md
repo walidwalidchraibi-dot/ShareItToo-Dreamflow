@@ -3136,3 +3136,49 @@ that it does not contain. PF13 is independently green on exact commit
 `3f638039f817b748ca84a1cbcc7e8855ebc3f47a`: regression run `32640635764`
 and CodeQL run `32640637245` both succeeded. Google Play, manual visual review,
 TalkBack, Stage A and every live/public boundary remain open and fail-closed.
+
+## PF14B signed physical touch-target closure
+
+Signed internal Staging candidate `1.0.0+2026082302` is bound to candidate
+commit `1b3e86ef1bcfa5a88b1baf965fdad00e9d64f54b`. Its complete local regression,
+exact GitHub regression `32644493652`, CodeQL `32644493643`, upload-certificate
+check, binary privacy scan and four-file owner-only archive all passed.
+
+The strict Pixel updater replaced `2026082301` with `2026082302` without
+uninstall, reset or downgrade and preserved both first-install time and the
+current user's CE data inode. At Android font scale `2.0`, all five primary
+navigation buttons were enabled, clickable, in-display and pairwise
+non-overlapping; the smallest measured 96.81dp by 70.92dp. The previous font
+scale `0.85` was restored exactly and independently confirmed.
+
+The first archive attempt failed closed on insufficient free disk during the
+private copy and was not accepted as evidence. `TD-RR-021` is closed by the
+deterministic builder-owned cold generated lifecycle, archive-before-cleanup
+ordering and cleanup-on-failure contract; no manual cleanup or capacity
+override is a release prerequisite. PF14B's evidence close commit
+`991ecc2c0a933aab751db00c30545911d7b2b3e0` is independently green in regression
+run `32645372676` and CodeQL run `32645372700`.
+
+## PF15 current-candidate external-gate reconciliation
+
+The V2.4 checkpoint remains unchanged: G3B, G3C, G3D, G3E, G3L, G4A, G4B,
+G5A, G5B, FI1, P0A and P0B are all `DONE` only in their exact authorized
+non-live deliverable scope. The Store lane now references PF14B candidate
+`2026082302` instead of the superseded `2026082301` candidate. It credits only
+the signed archive, binary privacy, data-preserving direct update and physical
+touch-target geometry actually proved.
+
+External readiness remains zero of eleven. Google Play private distribution,
+closed-testing observation, protected review access, manual visual review,
+manual TalkBack traversal, professional Legal/Privacy decisions, authentic
+operations assignments and the separate Stage-A decision remain open. No
+Store upload/submission, account/2FA, agreement, production, provider, Payment,
+cost, public activation or merge action is authorized or claimed.
+
+Focused manifest/board/action-pack/PF14B validation passes. The ordinary local
+full gate intentionally stopped at the already documented absence of historical
+Play-active AAB `2026081509`; no replacement or fabricated artifact was used.
+The complete documented Mac-mini metadata mode then passed 387 Flutter tests
+plus one recorded skip, Web/Wasm, the loopback smoke, one 448-task Android
+build, binary minSdk 24 and fixed capacity with zero generated growth. This is
+repository regression evidence only, not Store-upload or device evidence.

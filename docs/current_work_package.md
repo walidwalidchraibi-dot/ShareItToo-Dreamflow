@@ -2790,3 +2790,49 @@ signed internal Staging candidate, perform only a signature-preserving direct
 update and remeasure sanitized target geometry at 200%, with exact setting and
 app-state restoration. Store, TalkBack, manual visual review, production,
 Payment, provider, cost, public activation and merge remain outside scope.
+
+## PF14B — signed physical touch-target closure
+
+`PF14B_SIGNED_PHYSICAL_TOUCH_TARGET_CLOSURE` produced signed internal Staging
+candidate `1.0.0+2026082302` from exact commit
+`1b3e86ef1bcfa5a88b1baf965fdad00e9d64f54b`. Exact regression and CodeQL,
+canonical upload-certificate validation, binary privacy scan and the owner-only
+archive passed before the candidate became eligible for physical evidence.
+
+The strict direct Pixel update preserved app data and installation identity
+while moving from `2026082301` to `2026082302`. The 200%-font diagnostic then
+proved five enabled, clickable, non-overlapping primary-navigation targets with
+a minimum geometry of 96.81dp by 70.92dp and restored font scale `0.85`
+exactly. No screenshot, raw hierarchy, account content or device identifier was
+retained.
+
+The initial archive-copy `ENOSPC` is not evidence and introduced no durable
+workaround. `TD-RR-021` is closed by a source-bound cold generated lifecycle,
+archive-before-cleanup ordering and cleanup-on-failure behavior. PF14B's final
+evidence commit `991ecc2c0a933aab751db00c30545911d7b2b3e0` passed regression
+`32645372676` and CodeQL `32645372700`. Google Play, manual visual review,
+TalkBack, Stage A and all live/public boundaries remain `HOLD` / `NO-GO`.
+
+## PF15 — current-candidate external-gate reconciliation
+
+`PF15_CURRENT_CANDIDATE_EXTERNAL_GATE_RECONCILIATION` replaces only the stale
+Store-lane reference to candidate `2026082301` with the validated PF14B evidence
+for `2026082302`. The manifest, execution board and Walid action pack now
+distinguish closed technical evidence (signing/archive, binary privacy,
+data-preserving Pixel update and 200% touch-target geometry) from still-open
+external evidence (private Google Play distribution, closed testing, protected
+review access, manual visual review and TalkBack).
+
+The permanent validator imports the PF14B validator and rejects a superseded
+candidate reference, a missing PF14B reference or any Store/manual/Stage-A
+overclaim. The V2.4 portfolio statuses remain unchanged and every external gate
+remains fail-closed. This package performs no Store, account, 2FA, agreement,
+production, Payment, provider, cost, public activation or merge action.
+
+The focused validators pass. The ordinary local full gate still fails closed
+only because the historical Play-active AAB `2026081509` is absent from this
+Mac mini's private archive; it was not reconstructed or substituted. The
+documented Mac-mini metadata-only form of the otherwise unchanged complete gate
+passes 387 Flutter tests plus one recorded skip, Web/Wasm, loopback smoke, one
+448-task Android build, binary minSdk 24 and fixed-capacity closure with zero
+generated growth. It is not Store-upload, signing or device acceptance.

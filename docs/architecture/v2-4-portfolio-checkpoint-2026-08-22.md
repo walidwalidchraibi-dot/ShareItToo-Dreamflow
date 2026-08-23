@@ -47,6 +47,13 @@ more local implementation alone:
 4. current signed iOS evidence and the remaining device/release approvals;
 5. explicit future pilot/public activation, Privacy/Retention and Store gates.
 
+The post-PF14B reconciliation on 23.08.2026 leaves every portfolio row above
+unchanged: all twelve authorized V2.4 repository deliverables remain `DONE` in
+their bounded non-live meaning. Android candidate `2026082302` now closes the
+source-to-physical touch-target remediation, but it does not close G3L's
+professional decisions, FI1's human assignments/absence tests, P0A's technical
+`HOLD` or P0B's ten external blockers.
+
 The ordered post-P0B repository intake/gate packages already bring those lanes
 to their maximum safe local fail-closed state. They must stay ahead of launch,
 but their absent external evidence must not be fabricated and does not justify

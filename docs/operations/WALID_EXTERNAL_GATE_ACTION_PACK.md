@@ -80,7 +80,9 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
 
 - Warum Walid jetzt gebraucht wird: Der Store-Owner muss bestätigen, welche
   aktuelle Google-Play-Closed-Test-Anforderung und welcher private Kanal für
-  den exakten Kandidaten gelten.
+  den signierten internen Kandidaten `2026082302` gelten. Binärdatenschutz,
+  datenerhaltendes Pixel-Update und physische 200%-Touch-Target-Geometrie sind
+  bereits technisch belegt; manuelle Sichtprüfung und TalkBack bleiben offen.
 - Dauer: etwa 20 Minuten nur lesende Console-Prüfung; Signierung, Upload und
   Review sind separate spätere Schritte.
 - Mögliche Kosten: Google-Registrierung ist als bereits bezahlt dokumentiert;
@@ -88,8 +90,9 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
 - Walid öffnet/bestätigt: Google Play Console im eigenen Browser und zeigt nur
   die Closed-Testing-, App-Access- und Agreement-Statusseiten. Codex stoppt bei
   Login/2FA, Zugangsdaten, Agreement-Annahme, Signierung oder Upload.
-- Codex parallel: Kandidaten-, Datenschutz-, Accessibility- und
-  Evidenzchecklisten prüfen; keine Binärdatei signieren oder hochladen.
+- Codex parallel: die vorhandene Kandidaten-, Datenschutz- und physische
+  Accessibility-Evidenz gegen die Closed-Test-Checklisten prüfen;
+  keine Binärdatei signieren oder hochladen.
 - Antworttokens: `PF3_A4_PLAY_CONSOLE_READ_ONLY_READY` oder `PF3_A4_HOLD`;
   nach separat autorisierter echter Evidenz
   `PILOT_STAGE_A_ANDROID_DISTRIBUTION_EVIDENCE_ACCEPTED`.

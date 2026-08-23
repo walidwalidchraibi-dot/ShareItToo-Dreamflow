@@ -37,6 +37,13 @@ const activeProviderReadiness = JSON.parse(readFileSync(
   ),
   'utf8',
 ));
+const pf14bEvidence = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
@@ -136,6 +143,34 @@ test('aggregate setup is bound to the active hosting and mail provider hold', ()
       },
     }),
     /evaluation_invalid/u,
+  );
+});
+
+test('Store setup is bound to PF14B while manual review remains open', () => {
+  const changedRef = copy(manifest);
+  const storeGate = changedRef.gates.find(
+    ({ id }) => id === 'store_submission_and_closed_testing',
+  );
+  storeGate.currentEvidenceRefs = storeGate.currentEvidenceRefs.map((reference) => (
+    reference.includes('touch-target-remediation-2026082302')
+      ? 'docs/evidence/external-gates/current-head-android-candidate-2026082301.json'
+      : reference
+  ));
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: changedRef }),
+    /store_candidate_ref_invalid/u,
+  );
+
+  const overclaim = copy(pf14bEvidence);
+  overclaim.releaseGate.manualVisualReview = true;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json':
+          overclaim,
+      },
+    }),
+    /release gate/u,
   );
 });
 

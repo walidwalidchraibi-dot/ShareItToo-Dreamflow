@@ -279,13 +279,13 @@
         "store/google-play/closed-testing-readiness.json",
         "store/review-access.json",
         "store/device-validation.json",
-        "docs/evidence/external-gates/current-head-android-candidate-2026082301.json"
+        "docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json"
       ],
-      "technicalEvidenceSummary": "The Google Play account and checklists exist, and the exact current-head signed candidate passed a preserving Pixel direct update; the private distribution choice, Store closed test, final review and accessibility gates remain open.",
+      "technicalEvidenceSummary": "The Google Play account and checklists exist. Signed internal Staging candidate 2026082302 passed its binary privacy scan, owner-only archive check, data-preserving Pixel update and physical 200-percent touch-target geometry; private Google Play distribution, protected review access, manual visual review and TalkBack evidence remain open.",
       "missingExternalEvidence": [
-        "approved Stage A private Android distribution route bound to the exact signed candidate",
+        "approved Stage A private Android distribution route bound to signed candidate 2026082302",
         "Google Play closed-testing requirement and sanitized observation evidence",
-        "protected review-account and final-binary privacy/accessibility evidence",
+        "protected review-account plus manual visual-review and TalkBack evidence on the distributed candidate",
         "public Store approval for Stage C",
         "Apple Store evidence only if iOS later enters scope"
       ],
@@ -297,7 +297,7 @@
       },
       "contractRequirement": "yes-current-platform-agreements",
       "walidPresenceRequired": true,
-      "exactNextAction": "Choose and document the Stage A private Android distribution route for the protected current-head candidate, then with Walid present execute only the required closed-test/review evidence steps; do not submit publicly or publish.",
+      "exactNextAction": "With Walid present, inspect the current Google Play closed-testing and app-access state, choose the Stage A private Android distribution route for signed candidate 2026082302 and separately authorize any later upload or review step; do not submit publicly or publish.",
       "dependencies": ["legal_and_operator_approval", "firebase_owner_terms_and_controls", "privacy_retention_and_legal_hold"],
       "stopCondition": "Stop this lane before replacement signing, physical installation with data risk, review credentials, 2FA, Store upload/submission, agreement acceptance or public publication.",
       "releaseToken": "PILOT_STAGE_A_ANDROID_DISTRIBUTION_EVIDENCE_ACCEPTED",

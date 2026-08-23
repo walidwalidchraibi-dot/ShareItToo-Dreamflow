@@ -5,6 +5,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { validatePilotLaunchTiers } from './validate_pilot_launch_tiers.mjs';
+import {
+  validatePf14bCurrentHeadAndroidTouchTarget,
+} from './validate_pf14b_current_head_android_touch_target.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const boardPath =
@@ -12,6 +15,10 @@ const boardPath =
 const runbookPath = 'docs/operations/EXTERNAL_GATE_EXECUTION_BOARD.md';
 const canonicalPath =
   'docs/evidence/external-gates/technical-setup-manifest.json';
+const pf14bEvidencePath =
+  'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json';
+const supersededAndroidCandidatePath =
+  'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
 const stageABlockers = Object.freeze([
   'legal_and_operator_approval',
@@ -205,6 +212,31 @@ export function validateExternalGateExecutionBoard({
     /upload remains disabled/iu.test(scanner.stageADeferralCondition ?? '')
       && /text/iu.test(scanner.stageADeferralCondition ?? ''),
     'scanner_deferral_boundary_invalid',
+  );
+  const storeGate = board.gates[7];
+  assertCondition(
+    storeGate.technicalEvidenceRefs.includes(pf14bEvidencePath)
+      && !storeGate.technicalEvidenceRefs.includes(supersededAndroidCandidatePath)
+      && /2026082302/u.test(storeGate.technicalEvidenceSummary)
+      && /manual visual review/iu.test(storeGate.technicalEvidenceSummary)
+      && /TalkBack/iu.test(storeGate.technicalEvidenceSummary),
+    'store_candidate_evidence_invalid',
+  );
+  const pf14bResult = validatePf14bCurrentHeadAndroidTouchTarget({
+    root,
+    evidence: readJson(pf14bEvidencePath),
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf14bResult.buildNumber === '2026082302'
+      && pf14bResult.dataPreservingDirectUpdate === true
+      && pf14bResult.minimumWidthDp >= 48
+      && pf14bResult.minimumHeightDp >= 48
+      && pf14bResult.manualVisualReview === false
+      && pf14bResult.manualTalkBackTraversal === false
+      && pf14bResult.stageAReady === false
+      && pf14bResult.decision === 'hold-no-go',
+    'store_candidate_gate_state_invalid',
   );
   validateDependencies(board.gates);
 

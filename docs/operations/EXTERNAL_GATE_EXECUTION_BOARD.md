@@ -23,7 +23,7 @@ external result is still missing for every gate.
 | 5 | `support_evidence_scanner_and_upload_policy` | KANN FÜR STUFE A ZURÜCKGESTELLT WERDEN | intake disabled; scanner and policy decisions missing | `SUPPORT_EVIDENCE_SCANNER_POLICY_ACCEPTED` |
 | 6 | `psp_contract_and_sandbox_e2e` | BLOCKIERT NUR STUFE B | prepared; provider, contract and eight authentic scenarios missing | `PILOT_STAGE_B_PSP_CONTRACT_SANDBOX_ACCEPTED` |
 | 7 | `privacy_retention_and_legal_hold` | BLOCKIERT STUFE A | prepared; professional and owner decisions missing | `PILOT_STAGE_A_PRIVACY_RETENTION_EVIDENCE_ACCEPTED` |
-| 8 | `store_submission_and_closed_testing` | BLOCKIERT STUFE A | exact signed Pixel candidate ready; private distribution choice and Store evidence missing | `PILOT_STAGE_A_ANDROID_DISTRIBUTION_EVIDENCE_ACCEPTED` |
+| 8 | `store_submission_and_closed_testing` | BLOCKIERT STUFE A | signed `2026082302` Pixel candidate passes privacy/update/touch-target checks; private distribution and manual/Store evidence missing | `PILOT_STAGE_A_ANDROID_DISTRIBUTION_EVIDENCE_ACCEPTED` |
 | 9 | `economics_and_cost_inputs` | BLOCKIERT NUR STUFE C | cockpit prepared; authentic costs and profitability missing | `PILOT_STAGE_C_ECONOMICS_EVIDENCE_ACCEPTED` |
 | 10 | `pilot_region_roster_and_scope` | BLOCKIERT STUFE A | exact envelope prepared; all four prerequisites open | `PILOT_STAGE_A_ENVELOPE_EVIDENCE_ACCEPTED` |
 | 11 | `explicit_activation_decision` | BLOCKIERT STUFE A | HOLD; separate Walid decision missing | `PILOT_STAGE_A_DECISION` |
@@ -133,16 +133,18 @@ text and already-controlled booking evidence.
 
 - Goal/evidence: prove the exact protected Android candidate and private
   distribution route; public Store approval remains a later Stage-C gate. The
-  exact current-head signed candidate passed a preserving Pixel direct update.
-  The route choice, closed-test, protected review access, final-binary and
-  accessibility evidence are still missing.
+  signed internal Staging candidate `2026082302` passed its binary privacy scan,
+  owner-only archive check, data-preserving Pixel update and physical 200%
+  touch-target geometry. The route choice, Google Play closed test, protected
+  review access, manual visual review and TalkBack traversal are still missing.
 - Owner/cost/contract/Walid: Walid and the authorized release operator. Existing
   Google registration is paid; new costs are unknown and need prior approval.
   Current platform agreements apply. Walid must be present.
-- Next/dependency: after Legal, Firebase and Privacy, bind the protected
-  candidate to the selected private route and execute only authorized evidence
-  steps. Stop before replacement signing, risky device install, review
-  credentials, 2FA, upload/submission, agreement or publication.
+- Next/dependency: after Legal, Firebase and Privacy, inspect the current Play
+  Console state with Walid, select the private route for candidate `2026082302`
+  and separately authorize any later upload or review step. Stop before
+  replacement signing, risky device install, review credentials, 2FA,
+  upload/submission, agreement or publication.
 
 ### 9. Economics and cost inputs
 
