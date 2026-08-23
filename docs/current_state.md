@@ -2506,3 +2506,29 @@ ownership gate. Publication/signing stayed skipped. `TD-RR-016` is closed and
 the register is 16/16 closed. Remaining vendor warnings stay visible for
 bounded compatible upgrades. External readiness remains 0/10 and P0B remains
 `HOLD` / `NO-GO`.
+
+## S4BN Android Gradle-9 bridge floors
+
+`S4BN_ANDROID_GRADLE9_BRIDGE_FLOORS` is technically verified at exact
+implementation head `09094df2d74c68293866160289179413830a627f`. A retained
+red build proved that the newest resolvable SharedPreferences, URL-Launcher
+and ImagePicker Android bridges already require compile SDK 36 and AGP 8.9.1
+or later. No broad toolchain or target-SDK change was accepted.
+
+The bounded solution locks the earliest compatible upstream Gradle-9 fixes:
+`image_picker_android` 0.8.13+4, `shared_preferences_android` 2.4.15 and
+`url_launcher_android` 6.3.24. Exact checksums and Flutter 3.41.7 floors are
+guarded. Their three former Build-file warning paths are absent from a direct
+448-task all-warning build; remaining vendor warnings stay visible.
+
+The complete gate now also uses `aapt` on the actual debug APK after the same
+single Android build and fails unless its merged minSdk is 24. The complete
+local gate passes analyzer zero, 385 Flutter tests plus one documented skip,
+Google-only, Web/Wasm, loopback smoke, Android 448 tasks and the binary floor
+proof with 4 KiB generated growth.
+
+Exact clean-host CI `32616408339` passes PostgreSQL in 31 seconds, Backend in
+1:28 and Flutter/Web/Android in 6:37.
+Signing and publication stay skipped. `TD-RR-017` is closed and the register is
+17/17 closed. External readiness remains 0/10 and P0B remains `HOLD` /
+`NO-GO`.

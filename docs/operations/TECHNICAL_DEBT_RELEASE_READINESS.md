@@ -1,6 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **closed, 16/16 deterministic exit contracts retained**. Non-live
+Status: **closed, 17/17 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -27,8 +27,19 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-014` | **CLOSED 23.08.2026.** The locked `image` 4.5.4 dependency emitted two WebAssembly dry-run findings, while the first real financial-PDF test showed that built-in Helvetica omitted the German document's en dash. S4BK uses a bounded `pdf`/`printing` update that locks `image` 4.9.2, makes WebAssembly findings fatal without disabling the dry run, and renders financial PDFs with hash-bound offline Roboto Regular/Bold assets plus the shipped SIL OFL 1.1 license. The real PDF test, unchanged local gate and exact clean-host CI `32613968872` pass at `52aa41f`; its log contains positive Wasm success and no former finding signature. | Closed by reviewed dependency floors/locks, offline font supply-chain hashes/license, real PDF generation and fail-on-Wasm-finding full builds. Retain the active dry run, exact font contract and clean-host CI; no warning filter, `--no-wasm-dry-run`, runtime font download, system-font dependency, cache patch, retry or partial build may replace them. |
 | `TD-RR-015` | **CLOSED 23.08.2026.** The transitive Android lifecycle bridge 2.0.30 retained an upstream Groovy Gradle-9/10 syntax deprecation, and the new S4BJ file-picker and S4BK PDF/WebAssembly contracts were not yet registered in the complete gate. S4BL changes only that transitive lock to 2.0.35, binds its exact checksum and the compatible Flutter 3.41.7 floor, and permanently registers all three dependency contracts. An all-warning local Android build no longer reports the lifecycle Groovy syntax warning; the complete local gate and exact clean-host CI `32614834455` pass at `fcd2a0d`. Remaining vendor/SDK warnings stay visible and separate. | Closed by one bounded lock update, exact checksum/toolchain/runner contracts, a direct 448-task all-warning Android build, the complete local gate and clean-host CI. Retain the three full-gate registrations; no Pub-cache patch, warning suppression, broad toolchain upgrade, retry, partial build or removal of remaining warnings may replace reviewed compatible updates. |
 | `TD-RR-016` | **CLOSED 23.08.2026.** The complete Android gate used Gradle's default warning summary, so individual warning ownership was absent from its retained output and an SIT-owned Gradle deprecation could be obscured among vendor warnings. S4BM keeps exactly one direct build, captures and prints `--warning-mode all` output, preserves build failure and fails after a successful compile on any Build-file or Settings-file warning under the checkout's `android/` path. The unchanged local gate and exact clean-host CI `32615539334` pass at `1ad3410`; clean-host warning locations are visible under resolved Pub-cache plugin paths and no SIT-owned path was accepted. | Closed by full warning visibility, fail-closed repository ownership checks, one-attempt/capacity contracts and exact clean-host CI. Retain one build and unchanged output; no second diagnostic build, warning filtering, `none`/`summary` mode, accepted-warning fingerprint, Pub-cache patch, retry or timing workaround may replace compatible source/dependency fixes. |
+| `TD-RR-017` | **CLOSED 23.08.2026.** S4BM exposed third-party Android bridge Gradle-9 warnings. The newest resolvable SharedPreferences, URL-Launcher and ImagePicker probe failed because its AndroidX artifacts require compile SDK 36 and AGP 8.9.1 or later; that broad migration was not accepted. S4BN locks only the earliest compatible upstream fixes (`image_picker_android` 0.8.13+4, `shared_preferences_android` 2.4.15 and `url_launcher_android` 6.3.24), binds exact checksums and permanently inspects the real debug APK for merged minSdk 24. Their former warning paths are absent; the direct build, complete local gate and exact CI `32616408339` pass at `09094df`. | Closed by bounded exact locks/checksums, retained Flutter/toolchain floors, one all-warning 448-task build, real APK `aapt` floor proof, complete local regression and exact clean-host CI. Do not replace this with a dependency override, Pub-cache patch, warning suppression, source-only minSdk assertion, extra build, retry or unreviewed compile/target-SDK migration. |
 
 ## Observation log
+
+- 23.08.2026, S4BN: the first newest-resolvable three-bridge build remained red
+  because AndroidX Browser, Activity and Core required compile SDK 36 and AGP
+  8.9.1 or later. No broad migration or warning workaround was accepted. The
+  retained exact locks select the earliest compatible Gradle-9 fixes and remove
+  the three bridge warning paths. The same single Android build now feeds an
+  `aapt` minSdk-24 artifact check. Fourteen focused contracts, the complete
+  local gate and exact clean-host CI `32616408339` pass at `09094df`. This
+  closes `TD-RR-017`; all 17/17 deterministic exits are retained. Remaining
+  vendor warnings stay visible. P0B and every external gate remain closed.
 
 - 23.08.2026, S4BM: Gradle's summary-only Android output was replaced by full
   warning visibility on the same single build. The output is printed unchanged

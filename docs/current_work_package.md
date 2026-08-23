@@ -2195,3 +2195,27 @@ This closes `TD-RR-016`; all 16/16 deterministic release-readiness debt exits
 are retained. Vendor warnings remain visible for separately reviewed compatible
 dependency work. External readiness remains 0/10 and P0B remains `HOLD` /
 `NO-GO`.
+
+## S4BN Android Gradle-9 bridge floors
+
+`S4BN_ANDROID_GRADLE9_BRIDGE_FLOORS` is technically verified at exact
+implementation head `09094df2d74c68293866160289179413830a627f`. The newest
+resolvable three-bridge probe failed honestly because its AndroidX artifacts
+require compile SDK 36 and AGP 8.9.1 or later. The retained package instead
+locks only the earliest compatible upstream Gradle-9 corrections for
+ImagePicker Android 0.8.13+4, SharedPreferences Android 2.4.15 and URL-Launcher
+Android 6.3.24, with exact checksums and no direct API or toolchain change.
+
+Fourteen focused contracts, a direct 448-task all-warning build and the
+complete local gate pass. The three updated plugin warning paths are absent;
+the same single Android build is followed by a real `aapt` inspection that
+requires merged minSdk 24. Analyzer zero, 385 Flutter tests plus one documented
+skip, Google-only, Web/Wasm and loopback smoke remain green with only 4 KiB
+generated growth.
+
+Exact clean-host CI `32616408339` passes PostgreSQL in 31 seconds, Backend in
+1:28 and Flutter/Web/Android in 6:37;
+signing and publication remain skipped. This closes `TD-RR-017`; all 17/17
+deterministic exits are retained. Other vendor warnings remain visible for
+separate bounded packages. External readiness remains 0/10 and P0B remains
+`HOLD` / `NO-GO`.
