@@ -48,7 +48,9 @@ PostgreSQL 16 integration passes, including the G5 failure audit and retained
 main listing. The complete supported candidate-rollover regression also passes:
 711 Backend tests plus one documented skip, PostgreSQL 16, 387 Flutter tests
 plus one documented skip, Web/Wasm, loopback smoke and the 448-task Android
-debug build. Exact GitHub verification remains the final N7 closure step.
+debug build. GitHub regression run `32673817497` and CodeQL run `32673817482`
+are exact and successful at implementation commit
+`a6248a7cd97711eddcf9211c0c3a8cccdf1858c7`. N7 is complete and N8 is active.
 
 Rollback is a normal revert of the corpus, tests, evidence and post-publication
 G5 boundary. No schema or retained user data is added by N7.

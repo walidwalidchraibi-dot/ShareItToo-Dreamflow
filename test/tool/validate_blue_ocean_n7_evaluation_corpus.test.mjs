@@ -80,6 +80,9 @@ test('rejects G5 correction, mutation or verification drift', () => {
 
 test('rejects premature or malformed GitHub evidence', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-full-regression-passed-ci-pending';
+  premature.targetedVerification.githubRegression = 'pending';
+  premature.targetedVerification.githubCodeql = 'pending';
   premature.exactGitHubVerification = {
     headSha: '0'.repeat(40),
     regressionRunId: 1,

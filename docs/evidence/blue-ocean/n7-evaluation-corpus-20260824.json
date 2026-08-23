@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n7-evaluation-corpus",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n8",
   "capturedAt": "2026-08-24T00:02:00Z",
   "implementationBaseHead": "4e2f4f2c0d744eed62070d4c0ffc0eb031b18306",
   "corpus": {
@@ -41,8 +41,15 @@
     "postgres16G5FailureIntegration": "passed",
     "backendSuite": "passed-711-one-documented-skip",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
+  },
+  "exactGitHubVerification": {
+    "headSha": "a6248a7cd97711eddcf9211c0c3a8cccdf1858c7",
+    "regressionRunId": 32673817497,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32673817482,
+    "codeqlConclusion": "success"
   },
   "boundaries": {
     "externalProviderCallPerformed": false,

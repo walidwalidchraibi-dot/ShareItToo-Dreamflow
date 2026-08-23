@@ -3535,5 +3535,7 @@ coverage proves the failed G5 link, retained active listing, upload binding,
 published draft and immutable receipt together. The complete supported
 candidate-rollover regression passes: 711 Backend tests
 plus one documented skip, PostgreSQL 16, 387 Flutter tests plus one documented
-skip, Web/Wasm, loopback smoke and Android debug. Exact GitHub verification
-remains pending; N8 follows after N7 closure.
+skip, Web/Wasm, loopback smoke and Android debug. GitHub regression run
+`32673817497` and CodeQL run `32673817482` are exact and successful at
+implementation commit `a6248a7cd97711eddcf9211c0c3a8cccdf1858c7`. N7 is
+complete and N8 is active.

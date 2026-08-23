@@ -3173,7 +3173,7 @@ commit `7a8290408edf225c6c41e12eb5b3b278437984e6`. N6 is complete. N7 is active
 and builds the required personal-data-free evaluation corpus without
 credentials, billing or provider activation.
 
-## Active package: Stage A Blue Ocean N7
+## Completed package: Stage A Blue Ocean N7
 
 N7 now has a versioned executable corpus with 22 listing/image/provider cases,
 24 named price cases and all 90 category/value-band/condition combinations.
@@ -3188,5 +3188,13 @@ draft publication state and immutable receipt remain stored. No provider,
 scanner, credential, billing, real-person data or live gate was opened. The
 complete candidate-rollover regression passes with 711 Backend tests plus one
 documented skip, PostgreSQL 16, 387 Flutter tests plus one documented skip,
-Web/Wasm and Android debug. Exact GitHub verification remains pending before N7
-closure and N8 privacy integration.
+Web/Wasm and Android debug. GitHub regression run `32673817497` and CodeQL run
+`32673817482` are exact and successful at implementation commit
+`a6248a7cd97711eddcf9211c0c3a8cccdf1858c7`. N7 is complete.
+
+## Active package: Stage A Blue Ocean N8
+
+N8 owns the deterministic, personal-data-free CORE/GROWTH/BLUE-OCEAN
+comparison. All outputs remain aggregate and explicitly distinguish domain
+simulation from human or app E2E evidence. No provider, scanner, paid or live
+operation is authorized.
