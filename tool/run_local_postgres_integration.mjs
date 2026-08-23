@@ -254,6 +254,7 @@ export async function runLocalPostgresIntegration({
         integrationDatabaseName,
     };
     await checkedRun(nodeBin, [
+      '--throw-deprecation',
       '--import', './backend/test_setup.js',
       '--test', 'backend/test/postgres_foundation.integration.test.js',
     ], { env: testEnvironment, inherit: true });

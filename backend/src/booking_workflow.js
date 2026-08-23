@@ -1417,31 +1417,29 @@ export async function getListingAvailability(client, { listingId, fromDate, toDa
   if (!dates) throw new BookingWorkflowError(400, 'invalid_availability_range');
   await expireBookingHolds(client);
   const period = await periodInstants(client, dates, listing.availability_timezone);
-  const [blocks, bookings, rules] = await Promise.all([
-    client.query(
-      `SELECT id, kind, starts_at, ends_at
-       FROM listing_availability_blocks
-       WHERE listing_id = $1
-         AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
-       ORDER BY starts_at`,
-      [listing.id, period.starts_at, period.ends_at],
-    ),
-    client.query(
-      `SELECT id, starts_at, ends_at
-       FROM bookings
-       WHERE listing_id = $1 AND workflow_version = 1
-         AND workflow_status = ANY($4::text[])
-         AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
-       ORDER BY starts_at`,
-      [listing.id, period.starts_at, period.ends_at, blockingWorkflowStatuses],
-    ),
-    client.query(
-      `SELECT id, weekday, local_start, local_end, valid_from, valid_until, is_available
-       FROM listing_availability_rules WHERE listing_id = $1
-       ORDER BY weekday, local_start`,
-      [listing.id],
-    ),
-  ]);
+  const blocks = await client.query(
+    `SELECT id, kind, starts_at, ends_at
+     FROM listing_availability_blocks
+     WHERE listing_id = $1
+       AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
+     ORDER BY starts_at`,
+    [listing.id, period.starts_at, period.ends_at],
+  );
+  const bookings = await client.query(
+    `SELECT id, starts_at, ends_at
+     FROM bookings
+     WHERE listing_id = $1 AND workflow_version = 1
+       AND workflow_status = ANY($4::text[])
+       AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
+     ORDER BY starts_at`,
+    [listing.id, period.starts_at, period.ends_at, blockingWorkflowStatuses],
+  );
+  const rules = await client.query(
+    `SELECT id, weekday, local_start, local_end, valid_from, valid_until, is_available
+     FROM listing_availability_rules WHERE listing_id = $1
+     ORDER BY weekday, local_start`,
+    [listing.id],
+  );
   return {
     listingId: listing.id,
     timezone: listing.availability_timezone,

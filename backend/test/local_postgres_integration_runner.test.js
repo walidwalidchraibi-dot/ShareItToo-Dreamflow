@@ -123,7 +123,7 @@ test('runs readiness, isolated database and integration before guaranteed cleanu
   );
   assert.match(log, /pg_isready\|-h 127\.0\.0\.1 .* -d postgres/u);
   assert.match(log, /createdb\|-h 127\.0\.0\.1 .* sit_integration/u);
-  assert.match(log, /node\|--import \.\/backend\/test_setup\.js --test backend\/test\/postgres_foundation\.integration\.test\.js\|postgresql:\/\/sit_runner@127\.0\.0\.1:/u);
+  assert.match(log, /node\|--throw-deprecation --import \.\/backend\/test_setup\.js --test backend\/test\/postgres_foundation\.integration\.test\.js\|postgresql:\/\/sit_runner@127\.0\.0\.1:/u);
   assert.match(log, /pg_ctl\|.* -m fast stop\|/u);
 });
 

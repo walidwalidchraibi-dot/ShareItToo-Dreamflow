@@ -366,37 +366,38 @@ export async function getBookingGroupHandoverReturn(client, {
   const group = await lockedFinalGroup(client, groupId);
   assertParticipant(group, actorId);
   const systemRiskHold = await hasSystemRiskHold(client, group);
-  const [appointmentRows, positionRows] = await Promise.all([
-    storedAppointments(client, groupId),
-    client.query(
-      `SELECT quote_position.id AS group_quote_position_id,
-              quote_position.group_position_id, quote_position.listing_id,
-              binding.booking_id, binding.platform_contract_id,
-              booking.workflow_status, booking.return_state, booking.return_t0,
-              booking.return_report_deadline, booking.return_clarification_deadline,
-              thread.id AS thread_id
-         FROM booking_group_quote_positions AS quote_position
-         LEFT JOIN booking_group_position_booking_bindings AS binding
-           ON binding.group_quote_position_id = quote_position.id
-         LEFT JOIN bookings AS booking ON booking.id = binding.booking_id
-         LEFT JOIN message_threads AS thread ON thread.booking_id = binding.booking_id
-        WHERE quote_position.booking_group_id = $1
-          AND quote_position.group_quote_id = $2
-        ORDER BY quote_position.sort_order`,
-      [groupId, group.group_quote_id],
-    ),
-  ]);
+  const appointmentRows = await storedAppointments(client, groupId);
+  const positionRows = await client.query(
+    `SELECT quote_position.id AS group_quote_position_id,
+            quote_position.group_position_id, quote_position.listing_id,
+            binding.booking_id, binding.platform_contract_id,
+            booking.workflow_status, booking.return_state, booking.return_t0,
+            booking.return_report_deadline, booking.return_clarification_deadline,
+            thread.id AS thread_id
+       FROM booking_group_quote_positions AS quote_position
+       LEFT JOIN booking_group_position_booking_bindings AS binding
+         ON binding.group_quote_position_id = quote_position.id
+       LEFT JOIN bookings AS booking ON booking.id = binding.booking_id
+       LEFT JOIN message_threads AS thread ON thread.booking_id = binding.booking_id
+      WHERE quote_position.booking_group_id = $1
+        AND quote_position.group_quote_id = $2
+      ORDER BY quote_position.sort_order`,
+    [groupId, group.group_quote_id],
+  );
   const bookingIds = positionRows.rows.map((row) => row.booking_id).filter(Boolean);
-  const [evidence, confirmations, returnCases] = bookingIds.length ? await Promise.all([
-    client.query(
+  let evidence = { rows: [] };
+  let confirmations = { rows: [] };
+  let returnCases = { rows: [] };
+  if (bookingIds.length) {
+    evidence = await client.query(
       `SELECT evidence_id, booking_id, segment, evidence_kind, semantic_slot,
               upload_id, upload_sha256, observed_at
          FROM v52_condition_evidence_bindings
         WHERE booking_id = ANY($1::text[])
         ORDER BY booking_id, segment, semantic_slot, observed_at`,
       [bookingIds],
-    ),
-    client.query(
+    );
+    confirmations = await client.query(
       `SELECT confirmation_id, booking_id, segment, decision,
               presenter_evidence_set_sha256, presenter_photo_count,
               deviation_photo_count, confirmed_at
@@ -404,8 +405,8 @@ export async function getBookingGroupHandoverReturn(client, {
         WHERE booking_id = ANY($1::text[])
         ORDER BY booking_id, segment, confirmed_at`,
       [bookingIds],
-    ),
-    client.query(
+    );
+    returnCases = await client.query(
       `SELECT id, booking_id, reason_code, contested_authorized_minor,
               undisputed_releasable_minor, response_due_at,
               next_status_update_due_at
@@ -413,8 +414,8 @@ export async function getBookingGroupHandoverReturn(client, {
         WHERE booking_id = ANY($1::text[])
         ORDER BY booking_id, created_at DESC`,
       [bookingIds],
-    ),
-  ]) : [{ rows: [] }, { rows: [] }, { rows: [] }];
+    );
+  }
   const items = positionRows.rows.map((position) => buildBookingGroupItemHandoverState({
     position,
     evidenceRows: evidence.rows.filter((row) => row.booking_id === position.booking_id),

@@ -86,34 +86,32 @@ async function audit(client, { actor, action, resourceType, resourceId, metadata
 }
 
 export async function getProfessionalReviewStatus(client) {
-  const [fees, reserve, incident] = await Promise.all([
-    client.query(
-      `SELECT
-         COALESCE(sum(payment.platform_fee_minor), 0)::bigint AS received_platform_fee_minor,
-         COALESCE((
-           SELECT sum(refund.platform_share_minor)
-             FROM refunds AS refund
-             JOIN payments AS refunded_payment ON refunded_payment.id = refund.payment_id
-            WHERE refund.status = 'succeeded'
-              AND refund.livemode = true
-              AND refunded_payment.livemode = true
-         ), 0)::bigint AS refunded_platform_fee_minor
-       FROM payments AS payment
-       WHERE payment.livemode = true
-         AND payment.status IN ('captured', 'partially_refunded', 'refunded')
-         AND payment.captured_minor = payment.amount_minor`,
-    ),
-    client.query(
-      `SELECT * FROM compliance_reserve_attestations
-       WHERE currency = 'EUR'
-       ORDER BY recorded_at DESC, id DESC LIMIT 1`,
-    ),
-    client.query(
-      `SELECT id, reason_code, evidence_reference, recorded_at
-       FROM compliance_professional_review_incidents
-       ORDER BY recorded_at DESC, id DESC LIMIT 1`,
-    ),
-  ]);
+  const fees = await client.query(
+    `SELECT
+       COALESCE(sum(payment.platform_fee_minor), 0)::bigint AS received_platform_fee_minor,
+       COALESCE((
+         SELECT sum(refund.platform_share_minor)
+           FROM refunds AS refund
+           JOIN payments AS refunded_payment ON refunded_payment.id = refund.payment_id
+          WHERE refund.status = 'succeeded'
+            AND refund.livemode = true
+            AND refunded_payment.livemode = true
+       ), 0)::bigint AS refunded_platform_fee_minor
+     FROM payments AS payment
+     WHERE payment.livemode = true
+       AND payment.status IN ('captured', 'partially_refunded', 'refunded')
+       AND payment.captured_minor = payment.amount_minor`,
+  );
+  const reserve = await client.query(
+    `SELECT * FROM compliance_reserve_attestations
+     WHERE currency = 'EUR'
+     ORDER BY recorded_at DESC, id DESC LIMIT 1`,
+  );
+  const incident = await client.query(
+    `SELECT id, reason_code, evidence_reference, recorded_at
+     FROM compliance_professional_review_incidents
+     ORDER BY recorded_at DESC, id DESC LIMIT 1`,
+  );
   const feeRow = fees.rows[0] ?? {};
   const reserveRow = reserve.rows[0];
   const incidentRow = incident.rows[0];

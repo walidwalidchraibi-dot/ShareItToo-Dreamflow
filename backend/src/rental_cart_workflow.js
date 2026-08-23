@@ -143,31 +143,29 @@ async function shapeCart(client, actorId) {
       updatedAt: null,
     });
   }
-  const [projects, items] = await Promise.all([
-    client.query(
-      `SELECT client_project_id, title, answers, sort_order, created_at, updated_at
-         FROM rental_cart_projects
-        WHERE cart_id = $1
-        ORDER BY sort_order, created_at, id`,
-      [cart.id],
-    ),
-    client.query(
-      `SELECT item.client_item_id, item.listing_id,
-              project.client_project_id,
-              item.rental_start_date, item.rental_end_date, item.sort_order,
-              item.quote_status, item.quote_error_code, item.quote_rechecked_at,
-              item.quote_payload, item.created_at, item.updated_at,
-              listing.payload AS listing_payload, listing.city AS listing_city,
-              listing.is_active AS listing_is_active, listing.status AS listing_status,
-              listing.moderation_status AS listing_moderation_status
-         FROM rental_cart_items AS item
-         JOIN listings AS listing ON listing.id = item.listing_id
-         LEFT JOIN rental_cart_projects AS project ON project.id = item.project_id
-        WHERE item.cart_id = $1
-        ORDER BY item.sort_order, item.created_at, item.id`,
-      [cart.id],
-    ),
-  ]);
+  const projects = await client.query(
+    `SELECT client_project_id, title, answers, sort_order, created_at, updated_at
+       FROM rental_cart_projects
+      WHERE cart_id = $1
+      ORDER BY sort_order, created_at, id`,
+    [cart.id],
+  );
+  const items = await client.query(
+    `SELECT item.client_item_id, item.listing_id,
+            project.client_project_id,
+            item.rental_start_date, item.rental_end_date, item.sort_order,
+            item.quote_status, item.quote_error_code, item.quote_rechecked_at,
+            item.quote_payload, item.created_at, item.updated_at,
+            listing.payload AS listing_payload, listing.city AS listing_city,
+            listing.is_active AS listing_is_active, listing.status AS listing_status,
+            listing.moderation_status AS listing_moderation_status
+       FROM rental_cart_items AS item
+       JOIN listings AS listing ON listing.id = item.listing_id
+       LEFT JOIN rental_cart_projects AS project ON project.id = item.project_id
+      WHERE item.cart_id = $1
+      ORDER BY item.sort_order, item.created_at, item.id`,
+    [cart.id],
+  );
   return Object.freeze({
     schemaVersion: Number(cart.schema_version),
     revision: Number(cart.revision),

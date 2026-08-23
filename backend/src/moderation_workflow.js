@@ -533,20 +533,18 @@ export async function getStaffReport(client, reportId) {
     [reportId],
   );
   if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
-  const [events, evidence] = await Promise.all([
-    client.query(
-      `SELECT id, actor_id, actor_role, event_type, from_status, to_status, note, metadata, created_at
-       FROM moderation_case_events WHERE report_id = $1 ORDER BY created_at, id`,
-      [result.rows[0].id],
-    ),
-    client.query(
-      `SELECT upload.id, upload.mime_type, upload.byte_size, upload.created_at
-       FROM report_evidence AS evidence
-       JOIN uploads AS upload ON upload.id = evidence.upload_id
-       WHERE evidence.report_id = $1 ORDER BY evidence.created_at`,
-      [result.rows[0].id],
-    ),
-  ]);
+  const events = await client.query(
+    `SELECT id, actor_id, actor_role, event_type, from_status, to_status, note, metadata, created_at
+     FROM moderation_case_events WHERE report_id = $1 ORDER BY created_at, id`,
+    [result.rows[0].id],
+  );
+  const evidence = await client.query(
+    `SELECT upload.id, upload.mime_type, upload.byte_size, upload.created_at
+     FROM report_evidence AS evidence
+     JOIN uploads AS upload ON upload.id = evidence.upload_id
+     WHERE evidence.report_id = $1 ORDER BY evidence.created_at`,
+    [result.rows[0].id],
+  );
   return {
     ...reportShape(result.rows[0]),
     reporterName: result.rows[0].reporter_name || 'Mitglied',

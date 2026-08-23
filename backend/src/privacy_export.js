@@ -1,6 +1,16 @@
-async function rows(client, sql, userId) {
-  const result = await client.query(sql, [userId]);
-  return result.rows;
+function rows(client, sql, userId) {
+  return async () => {
+    const result = await client.query(sql, [userId]);
+    return result.rows;
+  };
+}
+
+async function runInOrder(operations) {
+  const results = [];
+  for (const operation of operations) {
+    results.push(await operation());
+  }
+  return results;
 }
 
 const locationShareMarker = 'LOCATION_SHARE|';
@@ -122,7 +132,7 @@ export async function buildAccountExport(client, userId) {
     depositCharges,
     disputes,
     auditEvents,
-  ] = await Promise.all([
+  ] = await runInOrder([
     rows(client,
       `SELECT id, device_label, user_agent, host(ip_address) AS ip_address,
               created_at, last_seen_at, revoked_at, revoked_reason
