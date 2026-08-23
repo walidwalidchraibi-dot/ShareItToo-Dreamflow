@@ -83,6 +83,28 @@ test('requires both Stage A deferrals to remain fail closed', () => {
   );
 });
 
+test('Firebase lane is bound to PF20 default-off controls and keeps owner evidence open', () => {
+  const missing = copy(board);
+  missing.gates[3].technicalEvidenceRefs = missing.gates[3].technicalEvidenceRefs.filter(
+    (reference) => !reference.includes('firebase-device-services-opt-in'),
+  );
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: missing }),
+    /firebase_device_services_evidence_invalid/u,
+  );
+
+  const overclaim = copy(board);
+  overclaim.gates[3].technicalEvidenceSummary = overclaim.gates[3]
+    .technicalEvidenceSummary.replace(
+      'Owner terms and console controls remain unconfirmed',
+      'Owner gate passed',
+    );
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: overclaim }),
+    /firebase_device_services_evidence_invalid/u,
+  );
+});
+
 test('Store lane is bound to PF14B, PF16, PF17 and PF19 and retains manual review holds', () => {
   const stale = copy(board);
   stale.gates[7].technicalEvidenceRefs = stale.gates[7].technicalEvidenceRefs.map(
@@ -191,5 +213,9 @@ test('complete regression permanently executes the external gate board validator
   assert.match(
     regression,
     /node tool\/validate_external_gate_execution_board\.mjs/u,
+  );
+  assert.match(
+    regression,
+    /node --test test\/tool\/validate_pf20_current_candidate_device_services_opt_in\.test\.mjs/u,
   );
 });

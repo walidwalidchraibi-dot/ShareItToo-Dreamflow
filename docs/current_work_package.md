@@ -2963,3 +2963,26 @@ the fixed capacity budget with 4 KiB generated growth.
 PF19 performs no account, booking, message, Store, Firebase, provider, Payment,
 production, Cloud/VPS/DNS, public, cost, contract, pilot, release-token or merge
 action.
+
+## PF20 — current-candidate Firebase device-services opt-in preflight
+
+`PF20_CURRENT_CANDIDATE_FIREBASE_DEVICE_SERVICES_OPT_IN` binds the independent
+Push and voluntary Crash-diagnostics controls to the exact installed direct
+candidate `2026082302`. The physical Pixel route opened authenticated
+notification settings, revealed the two controls, observed both off twice and
+returned to `Entdecken`.
+
+The diagnostic never taps a service switch. It opened no consent dialog,
+requested no opt-in-dependent registration or report and triggered no
+controlled Crash event. Permanent tests reject a locked phone, candidate/APK
+drift, a previously enabled control, missing independent controls and any state
+change between the two read-only observations.
+
+PF20 evidence is mandatory in the canonical setup manifest and execution-board
+Firebase lane. It does not prove real Push, Crashlytics receipt, Firebase owner
+terms, console controls, Google Play delivery or Stage A. External readiness
+remains `0/11`; the release decision remains `HOLD` / `NO-GO`.
+
+PF20 performs no account, consent, notification permission, registration,
+telemetry, message, Store, provider, Payment, production, Cloud/VPS/DNS,
+public, cost, contract, pilot, release-token or merge action.

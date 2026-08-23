@@ -69,7 +69,10 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
   navigiert zu den vorbereiteten Kontrollpunkten. Bei Login, 2FA, Bedingungen,
   Schlüssel oder Billing stoppt Codex; keine geheimen Werte werden geteilt.
 - Codex parallel: Ja/Nein-Evidenzvorlage und Kandidatenbindung prüfen; keine
-  Cloud-, Provider- oder Produktionskonfiguration verändern.
+  Cloud-, Provider- oder Produktionskonfiguration verändern. Die zwei
+  unabhängigen Gerätedienst-Schalter sind auf dem exakten Pixel-Kandidaten
+  `2026082302` bereits zweimal als aus verifiziert; es wurde keine Einwilligung,
+  Registrierung oder Crashdiagnose ausgelöst.
 - Antworttokens: `PF3_A3_OWNER_CONSOLE_READ_ONLY_READY` oder `PF3_A3_HOLD`;
   nach vollständiger sanitierter Evidenz
   `PILOT_STAGE_A_FIREBASE_OWNER_CONTROLS_CONFIRMED`.

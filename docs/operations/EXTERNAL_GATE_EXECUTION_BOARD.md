@@ -19,7 +19,7 @@ external result is still missing for every gate.
 | 1 | `legal_and_operator_approval` | BLOCKIERT STUFE A | prepared; professional and authentic operator evidence missing | `PILOT_STAGE_A_LEGAL_OPERATOR_EVIDENCE_ACCEPTED` |
 | 2 | `operations_roles_and_absence` | BLOCKIERT STUFE A | prepared; assignments and human absence tests missing | `PILOT_STAGE_A_OPERATIONS_EVIDENCE_ACCEPTED` |
 | 3 | `ios_apple_signing_and_device` | KANN FÜR STUFE A ZURÜCKGESTELLT WERDEN | Android evidence exists; iOS account, signing and device evidence missing | `IOS_PLATFORM_GATE_DECISION` |
-| 4 | `firebase_owner_terms_and_controls` | BLOCKIERT STUFE A | prepared; owner-console confirmations missing | `PILOT_STAGE_A_FIREBASE_OWNER_CONTROLS_CONFIRMED` |
+| 4 | `firebase_owner_terms_and_controls` | BLOCKIERT STUFE A | exact `2026082302` controls are separately present and default-off; owner-console confirmations missing | `PILOT_STAGE_A_FIREBASE_OWNER_CONTROLS_CONFIRMED` |
 | 5 | `support_evidence_scanner_and_upload_policy` | KANN FÜR STUFE A ZURÜCKGESTELLT WERDEN | intake disabled; scanner and policy decisions missing | `SUPPORT_EVIDENCE_SCANNER_POLICY_ACCEPTED` |
 | 6 | `psp_contract_and_sandbox_e2e` | BLOCKIERT NUR STUFE B | prepared; provider, contract and eight authentic scenarios missing | `PILOT_STAGE_B_PSP_CONTRACT_SANDBOX_ACCEPTED` |
 | 7 | `privacy_retention_and_legal_hold` | BLOCKIERT STUFE A | prepared; professional and owner decisions missing | `PILOT_STAGE_A_PRIVACY_RETENTION_EVIDENCE_ACCEPTED` |
@@ -82,8 +82,11 @@ text and already-controlled booking evidence.
 ### 4. Firebase owner controls
 
 - Goal/evidence: confirm current owner terms and the exact Auth, FCM, deletion,
-  retention and Maps-key controls. Fail-closed inventories exist; sanitized
-  owner-console confirmation is missing.
+  retention and Maps-key controls. Fail-closed inventories exist. On exact
+  physical candidate `2026082302`, separate Push and voluntary Crash-diagnostics
+  controls were observed twice, both off, without opening consent or requesting
+  an opt-in-dependent registration/report. Sanitized owner-console confirmation
+  is still missing.
 - Owner/cost/contract/Walid: Walid as owner. Plan/usage cost is unknown and must
   be approved; current provider terms/DPA evidence is required. Walid must be
   present.

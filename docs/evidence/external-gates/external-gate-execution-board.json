@@ -129,12 +129,13 @@
       "readinessClassification": "TECHNISCH BEREIT, EXTERNE EVIDENZ FEHLT",
       "blocksTiers": ["stage_a", "stage_b", "stage_c"],
       "currentStatus": "owner-console-confirmation-required",
-      "technicalEvidenceRefs": [
-        "store/platform-account-readiness.json",
-        "store/privacy-disclosures.json",
-        "store/phone-verification-readiness.json"
-      ],
-      "technicalEvidenceSummary": "Runtime collection is fail-closed and Store/Privacy/phone-readiness artifacts identify the required controls; owner terms remain unconfirmed.",
+    "technicalEvidenceRefs": [
+      "store/platform-account-readiness.json",
+      "store/privacy-disclosures.json",
+      "store/phone-verification-readiness.json",
+      "docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json"
+    ],
+    "technicalEvidenceSummary": "Runtime collection is fail-closed and Store/Privacy/phone-readiness artifacts identify the required controls. Exact physical candidate 2026082302 exposes separate Push and voluntary Crash-diagnostics switches; two read-only observations found both off, opened no consent dialog and requested no opt-in-dependent registration or report. Owner terms and console controls remain unconfirmed.",
       "missingExternalEvidence": [
         "current owner terms confirmation",
         "required Android FCM and any in-scope APNs configuration evidence",

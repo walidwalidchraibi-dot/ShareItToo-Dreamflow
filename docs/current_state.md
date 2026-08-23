@@ -3306,3 +3306,24 @@ issued and Stage A remains `HOLD` / `NO-GO`.
 No account, booking, message, Store, Firebase, provider, Payment, production,
 Cloud/VPS/DNS, public, cost, contract, pilot, release-token or merge action
 occurred.
+
+## PF20 current-candidate Firebase device-services opt-in preflight
+
+The exact installed direct candidate `2026082302` exposes separate Push and
+voluntary Crash-diagnostics controls under authenticated notification settings.
+On the physical Pixel 7 Pro both controls were observed off twice without a tap,
+consent dialog, opt-in-dependent registration/report request or controlled Crash
+event. The diagnostic returned the app to `Entdecken` and retained no hierarchy,
+screenshot, account content, identifier, credential, network value or private
+path.
+
+PF20 is a default-off control preflight only. It does not prove real Push,
+Crashlytics delivery, Firebase owner terms, deletion/retention settings, Maps-key
+restrictions, Google Play distribution or Stage A. Its validator and both
+aggregate gate validators preserve those boundaries; all eleven external gates
+remain technically prepared, zero are externally ready and the decision remains
+`HOLD` / `NO-GO`.
+
+No account, consent, notification permission, registration, telemetry, message,
+Store, provider, Payment, production, Cloud/VPS/DNS, public, cost, contract,
+pilot, release-token or merge action occurred.

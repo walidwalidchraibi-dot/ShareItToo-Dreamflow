@@ -25,6 +25,9 @@ import {
 import {
   validatePf19CurrentCandidateTalkBackPreflight,
 } from './validate_pf19_current_candidate_talkback_preflight.mjs';
+import {
+  validatePf20CurrentCandidateDeviceServicesOptIn,
+} from './validate_pf20_current_candidate_device_services_opt_in.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -42,6 +45,8 @@ const pf17EvidencePath =
   'docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json';
 const pf19EvidencePath =
   'docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json';
+const pf20EvidencePath =
+  'docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -276,6 +281,33 @@ export function validateExternalGateSetup({
       && pf19Result.decision === 'hold-no-go',
     'pf19_store_candidate_talkback_state_invalid',
   );
+  const pf20Evidence = readJson(pf20EvidencePath, sourceOverrides);
+  const pf20Result = validatePf20CurrentCandidateDeviceServicesOptIn({
+    repositoryRoot: root,
+    evidence: pf20Evidence,
+    pf19Evidence,
+    pf17Evidence,
+    pf16Evidence,
+    pf14bEvidence,
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf20Result.buildNumber === '2026082302'
+      && pf20Result.exactInstalledApkVerified === true
+      && pf20Result.independentSwitchCount === 2
+      && pf20Result.pushControlPresent === true
+      && pf20Result.pushEnabled === false
+      && pf20Result.crashDiagnosticsControlPresent === true
+      && pf20Result.crashDiagnosticsEnabled === false
+      && pf20Result.consentChanged === false
+      && pf20Result.controlledCrashDiagnosticTriggered === false
+      && pf20Result.optInDependentRegistrationOrReportRequested === false
+      && pf20Result.exploreSurfaceRestored === true
+      && pf20Result.firebaseOwnerGateSatisfied === false
+      && pf20Result.stageAReady === false
+      && pf20Result.decision === 'hold-no-go',
+    'pf20_firebase_device_services_state_invalid',
+  );
 
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
@@ -324,6 +356,12 @@ export function validateExternalGateSetup({
           && gate.currentEvidenceRefs.includes(pf19EvidencePath)
           && !gate.currentEvidenceRefs.includes(supersededAndroidCandidatePath),
         'store_candidate_ref_invalid:store_submission_and_closed_testing',
+      );
+    }
+    if (expectedId === 'firebase_owner_terms_and_controls') {
+      assertCondition(
+        gate.currentEvidenceRefs.includes(pf20EvidencePath),
+        'firebase_device_services_ref_invalid:firebase_owner_terms_and_controls',
       );
     }
   }

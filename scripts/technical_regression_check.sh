@@ -287,6 +287,15 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_pf19_current_candidate_talkback_preflight.mjs
 fi
+node --check tool/diagnose_current_candidate_android_device_services_opt_in.mjs
+node --test test/tool/diagnose_current_candidate_android_device_services_opt_in.test.mjs
+node --check tool/validate_pf20_current_candidate_device_services_opt_in.mjs
+node --test test/tool/validate_pf20_current_candidate_device_services_opt_in.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_pf20_current_candidate_device_services_opt_in.mjs --ci-metadata-only
+else
+  node tool/validate_pf20_current_candidate_device_services_opt_in.mjs
+fi
 node --check tool/validate_pf18_pre_intervention_readiness_audit.mjs
 node --test test/tool/validate_pf18_pre_intervention_readiness_audit.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

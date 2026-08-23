@@ -82,7 +82,8 @@
       "currentEvidenceRefs": [
         "store/platform-account-readiness.json",
         "store/privacy-disclosures.json",
-        "store/phone-verification-readiness.json"
+        "store/phone-verification-readiness.json",
+        "docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json"
       ]
     },
     {

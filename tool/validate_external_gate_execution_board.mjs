@@ -17,6 +17,9 @@ import {
 import {
   validatePf19CurrentCandidateTalkBackPreflight,
 } from './validate_pf19_current_candidate_talkback_preflight.mjs';
+import {
+  validatePf20CurrentCandidateDeviceServicesOptIn,
+} from './validate_pf20_current_candidate_device_services_opt_in.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const boardPath =
@@ -32,6 +35,8 @@ const pf17EvidencePath =
   'docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json';
 const pf19EvidencePath =
   'docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json';
+const pf20EvidencePath =
+  'docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -228,6 +233,23 @@ export function validateExternalGateExecutionBoard({
       && /text/iu.test(scanner.stageADeferralCondition ?? ''),
     'scanner_deferral_boundary_invalid',
   );
+  const firebaseGate = board.gates[3];
+  assertCondition(
+    firebaseGate.technicalEvidenceRefs.includes(pf20EvidencePath)
+      && /2026082302/u.test(firebaseGate.technicalEvidenceSummary)
+      && /separate Push and voluntary Crash-diagnostics switches/iu.test(
+        firebaseGate.technicalEvidenceSummary,
+      )
+      && /both off/iu.test(firebaseGate.technicalEvidenceSummary)
+      && /no consent dialog/iu.test(firebaseGate.technicalEvidenceSummary)
+      && /requested no opt-in-dependent registration or report/iu.test(
+        firebaseGate.technicalEvidenceSummary,
+      )
+      && /Owner terms and console controls remain unconfirmed/iu.test(
+        firebaseGate.technicalEvidenceSummary,
+      ),
+    'firebase_device_services_evidence_invalid',
+  );
   const storeGate = board.gates[7];
   assertCondition(
     storeGate.technicalEvidenceRefs.includes(pf14bEvidencePath)
@@ -326,6 +348,30 @@ export function validateExternalGateExecutionBoard({
       && pf19Result.stageAReady === false
       && pf19Result.decision === 'hold-no-go',
     'store_candidate_talkback_preflight_state_invalid',
+  );
+  const pf20Result = validatePf20CurrentCandidateDeviceServicesOptIn({
+    repositoryRoot: root,
+    evidence: readJson(pf20EvidencePath),
+    pf19Evidence: readJson(pf19EvidencePath),
+    pf17Evidence: readJson(pf17EvidencePath),
+    pf16Evidence: readJson(pf16EvidencePath),
+    pf14bEvidence: readJson(pf14bEvidencePath),
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf20Result.buildNumber === '2026082302'
+      && pf20Result.exactInstalledApkVerified === true
+      && pf20Result.independentSwitchCount === 2
+      && pf20Result.pushEnabled === false
+      && pf20Result.crashDiagnosticsEnabled === false
+      && pf20Result.consentChanged === false
+      && pf20Result.controlledCrashDiagnosticTriggered === false
+      && pf20Result.optInDependentRegistrationOrReportRequested === false
+      && pf20Result.exploreSurfaceRestored === true
+      && pf20Result.firebaseOwnerGateSatisfied === false
+      && pf20Result.stageAReady === false
+      && pf20Result.decision === 'hold-no-go',
+    'firebase_device_services_preflight_state_invalid',
   );
   validateDependencies(board.gates);
 

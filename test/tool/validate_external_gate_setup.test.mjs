@@ -58,6 +58,13 @@ const pf19Evidence = JSON.parse(readFileSync(
   ),
   'utf8',
 ));
+const pf20Evidence = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
@@ -157,6 +164,32 @@ test('aggregate setup is bound to the active hosting and mail provider hold', ()
       },
     }),
     /evaluation_invalid/u,
+  );
+});
+
+test('Firebase setup is bound to PF20 default-off controls and no consent change', () => {
+  const missing = copy(manifest);
+  const firebaseGate = missing.gates.find(
+    ({ id }) => id === 'firebase_owner_terms_and_controls',
+  );
+  firebaseGate.currentEvidenceRefs = firebaseGate.currentEvidenceRefs.filter(
+    (reference) => !reference.includes('firebase-device-services-opt-in'),
+  );
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: missing }),
+    /firebase_device_services_ref_invalid/u,
+  );
+
+  const overclaim = copy(pf20Evidence);
+  overclaim.boundaries.firebaseOwnerGateSatisfied = true;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json':
+          overclaim,
+      },
+    }),
+    /boundaries are incomplete or overstate/u,
   );
 });
 
@@ -262,4 +295,8 @@ test('complete regression permanently retains draft and strict validators', () =
     /node --test test\/tool\/validate_external_gate_setup\.test\.mjs/u,
   );
   assert.match(regression, /node tool\/validate_external_gate_setup\.mjs/u);
+  assert.match(
+    regression,
+    /node tool\/validate_pf20_current_candidate_device_services_opt_in\.mjs/u,
+  );
 });
