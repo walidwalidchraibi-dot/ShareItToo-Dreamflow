@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "6f129da98818b0887559342ba194c49ba655a15ad82b0de1ef2008bd5db916eb"
+      "sha256": "ad4efa6b2a80b4f8c7691460b64d9245fa4567baf47094b72ae10e41bfca855d"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -740,7 +740,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "b81dfb764d4767b02f9114b4828650a15b0d980b5bc4138aa5ec2fc7c33ff1d4"
+      "sha256": "a3b2b00fc30366481a2746ba2033569ea8224e5e19adf18d1e8948993481dbcd"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",

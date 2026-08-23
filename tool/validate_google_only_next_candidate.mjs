@@ -114,7 +114,10 @@ export function validateGoogleOnlyNextCandidate({
     }
   } else if (built?.applicationId !== baseline.applicationId ||
       built?.versionName !== policy.versionName ||
-      built?.buildNumber !== plannedBuildNumber ||
+      typeof built?.buildNumber !== 'string' ||
+      !/^\d+$/u.test(built.buildNumber) ||
+      BigInt(built.buildNumber) <= BigInt(baseline.buildNumber) ||
+      BigInt(built.buildNumber) > BigInt(plannedBuildNumber) ||
       typeof built?.commit !== 'string' ||
       !/^[0-9a-f]{40}$/u.test(built.commit) ||
       built?.releaseChannel !== policy.releaseChannel ||

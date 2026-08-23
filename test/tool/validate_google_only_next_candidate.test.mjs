@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { validateGoogleOnlyNextCandidate } from '../../tool/validate_google_only_next_candidate.mjs';
 
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
-const futurePubspec = readFileSync(new URL('../../pubspec.yaml', import.meta.url), 'utf8')
+const currentPubspec = readFileSync(new URL('../../pubspec.yaml', import.meta.url), 'utf8');
+const currentBuildNumber = /^version:\s*[^+\s]+\+(\d+)\s*$/mu.exec(currentPubspec)?.[1];
+const futurePubspec = currentPubspec
   .replace(/^version:\s*([^+\s]+)\+\d+\s*$/mu, 'version: $1+2026081510');
 const repeatedPubspec = futurePubspec
   .replace(/^version:\s*([^+\s]+)\+\d+\s*$/mu, 'version: $1+2026081509');
@@ -27,9 +29,16 @@ test('accepts the verified local Google-only build without treating it as upload
   assert.deepEqual(validateGoogleOnlyNextCandidate({ repositoryRoot }), {
     state: 'built-local-not-uploaded',
     baselineBuildNumber: '2026081509',
-    plannedBuildNumber: '2026081510',
+    plannedBuildNumber: currentBuildNumber,
     buildable: false,
   });
+});
+
+test('retains the immutable prior candidate while the source advances', () => {
+  assert.throws(() => validateGoogleOnlyNextCandidate({
+    repositoryRoot,
+    pubspecContents: 'version: 1.0.0+2026081509\n',
+  }), /locally built candidate evidence is incomplete or unsafe/);
 });
 
 test('refuses to rebuild the already archived candidate in place', () => {
