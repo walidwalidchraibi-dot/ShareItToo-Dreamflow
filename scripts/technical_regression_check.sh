@@ -443,6 +443,8 @@ node --test test/tool/android_debug_single_attempt_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs
 node --test test/tool/postgres_runner_ci_wiring.test.mjs
+node --test test/tool/validate_external_gate_setup.test.mjs
+node tool/validate_external_gate_setup.mjs
 node --test test/tool/release_host_capacity_guard_wiring.test.mjs
 
 analyze_log="$(mktemp)"

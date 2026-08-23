@@ -13,13 +13,12 @@ Zustand akzeptieren, wenn alle Pflicht-URLs verifiziert, alle Gates geschlossen
 und die Buildnummer mindestens `2026080903` ist.
 
 `store/platform-account-readiness.json` hält zusätzlich den geheimnisfreien
-Ist-Stand der drei externen Kontovoraussetzungen fest. Das persönliche Google-
-Play-Entwicklerkonto ist erstellt, die erforderlichen Verträge wurden bewusst
-angenommen und die einmalige Registrierungsgebühr wurde bezahlt. Offen bleiben
-die persönliche Identitätsprüfung, Geräte- und Telefonnummernbestätigung sowie
-der erste App-Datensatz. Für Apple fehlt die Entwicklermitgliedschaft, und die
-Firebase-Nutzungsbedingungen sind noch nicht als vom Eigentümer bestätigt
-belegt. Der Store-Prüfer koppelt diese drei
+Ist-Stand der drei externen Kontovoraussetzungen fest. Das persönliche
+Google-Play-Konto ist aktuell `ready`: Entwicklerkonto, bezahlte einmalige
+Registrierung, Identitäts-, Geräte- und Telefonnummernbestätigung sowie der
+erste App-Datensatz sind im bereinigten Nachweis belegt. Für Apple fehlt die
+Entwicklermitgliedschaft, und die Firebase-Nutzungsbedingungen sind noch nicht
+als vom Eigentümer bestätigt belegt. Der Store-Prüfer koppelt diese drei
 Zustände fest an `googlePlayAccountAndFee`, `appleAccountXcodeAndSigning` und
 `firebaseTermsAcceptedByOwner`. Ein Gate kann daher nicht durch bloßes Ändern
 von `open` auf `closed` umgangen werden. E-Mail-Adressen, Konto-IDs,
