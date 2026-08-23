@@ -23,6 +23,7 @@ import {
   supportRouteFor,
   supportSafetyGuidanceVersion,
   supportSafetyTriageVersion,
+  supportStatusMachineSource,
 } from '../src/support_case_domain.js';
 
 const now = new Date('2026-08-21T10:00:00.000Z');
@@ -83,11 +84,18 @@ test('support taxonomy and controlled vocabularies stay canonical and exclude pa
     'escalated',
     'decision_pending_approval',
     'decided',
-    'implementation_pending',
     'resolved',
     'closed',
     'reopened',
   ]);
+  assert.deepEqual(supportStatusMachineSource, {
+    version: '1.0.0',
+    packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+    driveFileId: '1qj0md6DoHt7lDAfIvFtmMiT0vQ48KbYG',
+    sha256: '3cc58111a6079f9f82ce90d9fed18d4a8b10bd27191777ed30130d03fbbf2f55',
+    statusCount: 11,
+    transitionCount: 18,
+  });
   assert.equal(supportCaseStatuses.includes('paused'), false);
   assert.deepEqual(supportPriorities, ['p0', 'p1', 'p2', 'p3', 'p4']);
   assert.deepEqual(supportApprovalLevels, [
@@ -688,6 +696,12 @@ test('transition graph is explicit and rejects skips, paused and stale versions'
     /support_status_invalid/,
   );
   assert.throws(
+    () => transition(caseRecord({ status: 'decided' }), {
+      status: 'implementation_pending',
+    }),
+    /support_status_invalid/,
+  );
+  assert.throws(
     () => normalizeSupportCaseTransition(caseRecord(), {
       status: 'under_review',
       expectedVersion: 2,
@@ -799,36 +813,29 @@ test('green cases cannot enter approval and decided cases stay operationally act
   );
 });
 
-test('only a green information case can resolve directly from review', () => {
+test('review always reaches decided before verified implementation can resolve', () => {
   assert.throws(
     () => transition(caseRecord({ status: 'under_review' }), {
       status: 'resolved',
       resolutionReference: 'Information wurde nachvollziehbar geliefert.',
     }),
-    /support_resolution_requires_approved_decision/,
+    /support_transition_not_allowed/,
   );
-  const resolved = transition(caseRecord({
+  const decided = transition(caseRecord({
     status: 'under_review',
     approval_level: 'green_automatic',
     priority: 'p3',
     severity: 'low',
     current_owner_role: 'general_support_owner',
   }), {
-    status: 'resolved',
-    resolutionReference: 'Bestätigte Bedienungsinformation wurde geliefert.',
+    status: 'decided',
+    decisionId,
   });
-  assert.equal(resolved.status, 'resolved');
-  assert.equal(resolved.decisionId, null);
+  assert.equal(decided.status, 'decided');
+  assert.equal(decided.decisionId, decisionId);
 });
 
-test('implementation, resolution, closure and reopen guards fail closed', () => {
-  assert.throws(
-    () => transition(caseRecord({ status: 'decided' }), {
-      status: 'implementation_pending',
-      implementationPendingAction: '',
-    }),
-    /support_implementation_action_required/,
-  );
+test('resolution, closure and reopen guards fail closed', () => {
   assert.throws(
     () => transition(caseRecord({ status: 'decided', priority: 'p0', severity: 'critical' }), {
       status: 'resolved',

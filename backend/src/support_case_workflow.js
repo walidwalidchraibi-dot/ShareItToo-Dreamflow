@@ -673,7 +673,7 @@ export async function completeDsaNoticeLocator(client, {
     }
     throw new SupportCaseError(409, 'support_dsa_notice_locator_already_complete');
   }
-  if (['decision_pending_approval', 'decided', 'implementation_pending', 'resolved', 'closed'].includes(row.status)) {
+  if (['decision_pending_approval', 'decided', 'resolved', 'closed'].includes(row.status)) {
     throw new SupportCaseError(409, 'support_dsa_notice_locator_case_finalizing');
   }
   const normalized = normalizeDsaNoticeLocatorCompletion(raw, {
@@ -842,25 +842,24 @@ export async function transitionSupportCase(client, {
     if (!decision.rowCount) throw new SupportCaseError(409, 'support_decision_review_pending');
   }
   if (transition.status === 'resolved') {
-    if (row.decision_id) {
-      const implementation = await client.query(
-        `SELECT id FROM support_decisions
-          WHERE id = $1 AND case_id = $2
-            AND approval_status = 'approved'
-            AND approval_payload_sha256 = payload_sha256
-            AND implementation_status = 'succeeded'
-            AND implementation_verified_by IS NOT NULL
-            AND implementation_verified_at IS NOT NULL
-            AND communicated_at IS NOT NULL
-            AND communicated_by IS NOT NULL
-            AND communication_payload_sha256 = payload_sha256`,
-        [row.decision_id, row.id],
-      );
-      if (!implementation.rowCount) {
-        throw new SupportCaseError(409, 'support_decision_publication_not_verified');
-      }
-    } else if (row.approval_level !== 'green_automatic') {
+    if (!row.decision_id) {
       throw new SupportCaseError(409, 'support_resolution_requires_approved_decision');
+    }
+    const implementation = await client.query(
+      `SELECT id FROM support_decisions
+        WHERE id = $1 AND case_id = $2
+          AND approval_status = 'approved'
+          AND approval_payload_sha256 = payload_sha256
+          AND implementation_status = 'succeeded'
+          AND implementation_verified_by IS NOT NULL
+          AND implementation_verified_at IS NOT NULL
+          AND communicated_at IS NOT NULL
+          AND communicated_by IS NOT NULL
+          AND communication_payload_sha256 = payload_sha256`,
+      [row.decision_id, row.id],
+    );
+    if (!implementation.rowCount) {
+      throw new SupportCaseError(409, 'support_decision_publication_not_verified');
     }
   }
   if (transition.status === 'closed' && transition.appealAvailable) {

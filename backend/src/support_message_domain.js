@@ -64,7 +64,7 @@ const automaticTemplateStatuses = Object.freeze({
   'T-034': new Set([
     'received', 'acknowledged', 'waiting_for_user', 'waiting_for_other_party',
     'under_review', 'escalated', 'decision_pending_approval', 'decided',
-    'implementation_pending', 'resolved', 'closed', 'reopened',
+    'resolved', 'closed', 'reopened',
   ]),
 });
 const secretValuePatterns = Object.freeze([

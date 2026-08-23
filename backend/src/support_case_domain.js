@@ -128,11 +128,19 @@ export const supportCaseStatuses = Object.freeze([
   'escalated',
   'decision_pending_approval',
   'decided',
-  'implementation_pending',
   'resolved',
   'closed',
   'reopened',
 ]);
+
+export const supportStatusMachineSource = Object.freeze({
+  version: '1.0.0',
+  packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+  driveFileId: '1qj0md6DoHt7lDAfIvFtmMiT0vQ48KbYG',
+  sha256: '3cc58111a6079f9f82ce90d9fed18d4a8b10bd27191777ed30130d03fbbf2f55',
+  statusCount: 11,
+  transitionCount: 18,
+});
 
 export const supportPriorities = Object.freeze(['p0', 'p1', 'p2', 'p3', 'p4']);
 export const supportApprovalLevels = Object.freeze([
@@ -230,14 +238,19 @@ const statusTransitions = Object.freeze({
   acknowledged: new Set(['waiting_for_user', 'waiting_for_other_party', 'under_review']),
   waiting_for_user: new Set(['under_review']),
   waiting_for_other_party: new Set(['under_review']),
-  under_review: new Set(['escalated', 'decision_pending_approval', 'resolved']),
-  escalated: new Set(['under_review', 'decision_pending_approval']),
+  under_review: new Set([
+    'waiting_for_user',
+    'waiting_for_other_party',
+    'escalated',
+    'decision_pending_approval',
+    'decided',
+  ]),
+  escalated: new Set(['under_review']),
   decision_pending_approval: new Set(['decided', 'under_review']),
-  decided: new Set(['implementation_pending', 'resolved']),
-  implementation_pending: new Set(['resolved', 'under_review']),
+  decided: new Set(['resolved']),
   resolved: new Set(['closed']),
   closed: new Set(['reopened']),
-  reopened: new Set(['waiting_for_user', 'waiting_for_other_party', 'under_review']),
+  reopened: new Set(['under_review']),
 });
 
 const p0Subtypes = new Set([
@@ -990,21 +1003,7 @@ export function normalizeSupportCaseTransition(caseRecord, raw, {
       throw new SupportCaseError(409, 'support_decision_id_mismatch');
     }
   }
-  if (toStatus === 'implementation_pending') {
-    activeNext();
-    updates.waitingOn = raw.waitingOn ?? 'external_processor';
-    updates.implementationPendingAction = requiredText(
-      raw.implementationPendingAction,
-      2000,
-      'support_implementation_action_required',
-      3,
-    );
-  }
   if (toStatus === 'resolved') {
-    if (caseRecord.status === 'under_review'
-        && caseRecord.approval_level !== 'green_automatic') {
-      throw new SupportCaseError(409, 'support_resolution_requires_approved_decision');
-    }
     updates.resolutionReference = requiredText(
       raw.resolutionReference,
       2000,

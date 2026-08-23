@@ -151,6 +151,7 @@ if (!databaseUrl) {
         '061_booking_exact_address_reveal_guard.up.sql',
         '062_handover_exception_guard.up.sql',
         '063_return_calendar_deadline_guard.up.sql',
+        '064_support_status_machine_v1_alignment.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);

@@ -468,7 +468,7 @@ export async function recordSupportDecisionImplementation(client, {
   if (!['simulation', 'internal_testing'].includes(row.case_operating_mode)) {
     throw new SupportCaseError(409, 'support_decision_live_implementation_forbidden');
   }
-  if (!['decided', 'implementation_pending'].includes(row.case_status)) {
+  if (row.case_status !== 'decided') {
     throw new SupportCaseError(409, 'support_decision_implementation_case_status_invalid');
   }
   const implementation = normalizeSupportDecisionImplementation(raw, row.implementation_status);
@@ -590,7 +590,7 @@ export async function recordSupportDecisionCommunication(client, {
   if (!['simulation', 'internal_testing'].includes(row.case_operating_mode)) {
     throw new SupportCaseError(409, 'support_decision_live_communication_forbidden');
   }
-  if (!['decided', 'implementation_pending'].includes(row.case_status)) {
+  if (row.case_status !== 'decided') {
     throw new SupportCaseError(409, 'support_decision_communication_case_status_invalid');
   }
   if (new Date(row.implemented_at).getTime() > now.getTime()) {

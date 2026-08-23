@@ -408,7 +408,7 @@ test('implementation record is admin-only, simulation-bound and separately verif
       result: { rowCount: 1, rows: [decisionRow({
         approval_status: 'approved',
         approved_by: 'admin-1',
-        case_status: 'implementation_pending',
+        case_status: 'decided',
         case_operating_mode: 'simulation',
         implementation_status: 'pending',
         lock_version: 2,

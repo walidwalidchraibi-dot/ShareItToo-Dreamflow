@@ -26,7 +26,6 @@ const activeSubmissionStatuses = new Set([
   'escalated',
   'decision_pending_approval',
   'decided',
-  'implementation_pending',
   'reopened',
 ]);
 

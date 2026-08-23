@@ -44,7 +44,6 @@ const _supportStatusLabels = <String, String>{
   'escalated': 'An das zuständige Team weitergegeben',
   'decision_pending_approval': 'Entscheidung wird geprüft',
   'decided': 'Entscheidung getroffen',
-  'implementation_pending': 'Umsetzung läuft',
   'resolved': 'Gelöst',
   'closed': 'Abgeschlossen',
   'reopened': 'Wieder geöffnet',

@@ -73,11 +73,11 @@
     },
     {
       "path": "backend/src/support_case_domain.js",
-      "sha256": "62e191d666b194defe4778ad63d4a8981d1c92a4f1c6bbf0ec4f102d081af1e6"
+      "sha256": "c38ff06cc364e8ada8c595787c97854edda6cc970a1a0861c955b834a687c80e"
     },
     {
       "path": "backend/src/support_case_workflow.js",
-      "sha256": "34b44ea3dc23264a630545d89c2e8840857198804e84efe88142178747fc8cbd"
+      "sha256": "0a0648124f43db54793d19482d9534350484998f4e49c20217094ed19a08d167"
     },
     {
       "path": "backend/src/handover_exception_domain.js",
@@ -125,7 +125,7 @@
     },
     {
       "path": "backend/src/support_decision_workflow.js",
-      "sha256": "79e7e3375298cde4aeaf1935b9827d70b71beec8715b182f37ff6d886654be83"
+      "sha256": "65fe0b868c95af612e4e26e0272caf4e1ec41ad018db090561d7f57a8b87544f"
     },
     {
       "path": "backend/src/support_break_glass_domain.js",
@@ -149,7 +149,7 @@
     },
     {
       "path": "backend/src/support_message_domain.js",
-      "sha256": "639897816b3943986a4c409142088ec56da70b104ef04de37cebd2d13a03e6d4"
+      "sha256": "8c3a30a2438fd4697ef1e0fbc8cbaf2e8cd4746c3f4889ed201a79ca34c2c7b5"
     },
     {
       "path": "backend/src/support_message_workflow.js",
@@ -157,7 +157,7 @@
     },
     {
       "path": "backend/src/support_progress_update_domain.js",
-      "sha256": "c8679876c68ed9231da08a04eef74526f68f33c8005058bdbd743c4015ed77b1"
+      "sha256": "5c62d9c643706e08ea43a061679232c6db4908f40d52bf8f8d2be4023d6ffeb1"
     },
     {
       "path": "backend/src/support_progress_update_workflow.js",
@@ -185,7 +185,7 @@
     },
     {
       "path": "backend/src/support_evidence_workflow.js",
-      "sha256": "c01965e7f59229a8c445338c455c34cbf2d41932ae6c4d6e91d9c4ac6c4cbc7e"
+      "sha256": "6846344047ada6a2d0ad76a934bb3f12cc290e007e453751c0aa4ada3364b8c4"
     },
     {
       "path": "backend/src/support_safety_impact_domain.js",
@@ -661,7 +661,7 @@
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "80c9a23bf66f17466dea673facf2dfc408c9590c701f01171738c07f8a66c15f"
+      "sha256": "14d33e48b3c64fe202cf8ed2ce74cb0b112dd751229a52fb810d9075deb1ef7d"
     },
     {
       "path": "lib/screens/support_flow_screen.dart",

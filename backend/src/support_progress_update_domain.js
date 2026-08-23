@@ -11,7 +11,6 @@ const activeStatuses = new Set([
   'escalated',
   'decision_pending_approval',
   'decided',
-  'implementation_pending',
   'reopened',
 ]);
 
@@ -24,7 +23,6 @@ const statusLabels = Object.freeze({
   escalated: 'Der Fall wird im zuständigen Fachbereich geprüft',
   decision_pending_approval: 'Die vorbereitete Entscheidung wird noch unabhängig geprüft',
   decided: 'Die freigegebene Entscheidung wird für die Umsetzung vorbereitet',
-  implementation_pending: 'Die bestätigte Umsetzung ist noch nicht abgeschlossen',
   reopened: 'Der Fall wird nach der Wiedereröffnung erneut geprüft',
 });
 

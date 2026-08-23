@@ -88,6 +88,7 @@ node --test test/tool/support_final_decision_wiring.test.mjs
 node --test test/tool/support_appeal_wiring.test.mjs
 node --test test/tool/support_break_glass_wiring.test.mjs
 node --test test/tool/support_message_template_wiring.test.mjs
+node --test test/tool/support_status_machine_v1_alignment_wiring.test.mjs
 node --test test/tool/support_deadline_watchdog_wiring.test.mjs
 node --test test/tool/support_operational_privacy_wiring.test.mjs
 node --test test/tool/support_legacy_migration_wiring.test.mjs
