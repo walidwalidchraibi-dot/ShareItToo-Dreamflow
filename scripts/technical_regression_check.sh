@@ -313,6 +313,13 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_pf18_pre_intervention_readiness_audit.mjs
 fi
+node --check tool/validate_pf22_final_non_live_launch_readiness_checkpoint.mjs
+node --test test/tool/validate_pf22_final_non_live_launch_readiness_checkpoint.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_pf22_final_non_live_launch_readiness_checkpoint.mjs --ci-metadata-only
+else
+  node tool/validate_pf22_final_non_live_launch_readiness_checkpoint.mjs
+fi
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

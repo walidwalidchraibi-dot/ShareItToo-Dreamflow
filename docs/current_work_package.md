@@ -3016,3 +3016,28 @@ readiness remains `0/11` and Stage A remains `HOLD` / `NO-GO`.
 PF21 performs no account, booking, message, Support, Store, provider, Firebase,
 Payment, production, Cloud/VPS/DNS, public, cost, contract, pilot,
 release-token or merge action.
+
+## PF22 — final non-live launch-readiness checkpoint
+
+`PF22_FINAL_NON_LIVE_LAUNCH_READINESS_CHECKPOINT` reconciles the synchronized
+PF19–PF21 package head `b77933939adcf5825c00d680ab00759a5969bf59`, exact
+successful GitHub regression `32658613478` and CodeQL `32658613486`, Draft
+unmerged PR #7, secure keyring-backed Git access, the current Drive control
+folder, exact 167-scenario Support matrix, signed Android candidate, local
+release configuration, dependency/Security evidence and all external gates.
+
+All `11/11` external gates are technically prepared, `0/11` are externally
+ready and all `21/21` deterministic debt contracts remain closed. The exact
+Support matrix hash still matches Drive; `167/167` scenarios are technically
+mapped and `47` retain authentic external holds. Release preflight, canonical
+Android signing, Android/iOS Firebase files, the private candidate archive,
+Pixel reachability, Backend audits, local full regression and exact GitHub
+checks pass without a temporary workaround becoming acceptance evidence.
+
+iOS tooling and arbitrary Support upload remain valid Stage-A deferrals. The
+seven Stage-A blockers still require external Legal/Privacy, Operations,
+Firebase-owner, Store, Pilot and final activation evidence. There is no further
+independent safe technical lane in the authorized non-live runway. The next
+bounded action is A1, accepting only `PF3_A1_QUOTE_REQUEST_PACK_GO` or
+`PF3_A1_HOLD`; no cost, contract, production, provider, Payment, Store, public,
+real-money, release-token or merge action is performed.

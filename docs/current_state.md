@@ -3354,3 +3354,28 @@ delivery and the complete device matrix remain open. External readiness stays
 No account, booking, message, Store, provider, Firebase, Payment, production,
 Cloud/VPS/DNS, public, cost, contract, pilot, release-token or merge action
 occurred.
+
+## PF22 final non-live launch-readiness checkpoint
+
+PF19, PF20 and PF21 are synchronized through package head
+`b77933939adcf5825c00d680ab00759a5969bf59`. Draft PR #7 remains open,
+mergeable, clean and unmerged; exact regression `32658613478` and CodeQL
+`32658613486` passed. GitHub CLI and Git now use the secure macOS keyring and
+HTTPS credential helper without retaining a token or account identity in
+evidence.
+
+The live Drive re-audit found no command newer than V2.4. Its Support matrix
+hash still matches all `167/167` repository traceability records; `47` remain
+authentically external. Release preflight, canonical Android signing, Android
+and iOS Firebase configuration, private candidate archive, Pixel reachability,
+backend dependency audits and all `21/21` deterministic debt contracts pass.
+The complete local supported gate and exact GitHub checks are green.
+
+All `11/11` external gates are technically prepared, `0/11` are externally
+ready and no release token exists. Full Xcode/CocoaPods and arbitrary Support
+upload may remain deferred for Android-only Stage A; Store distribution,
+professional Legal/Privacy review, real Operations and Pilot facts, Firebase
+owner controls and the explicit activation decision remain authentic external
+gates. No independent safe technical lane remains. The next bounded action is
+A1 with only `PF3_A1_QUOTE_REQUEST_PACK_GO` or `PF3_A1_HOLD`; cost, contract,
+live state, real money, public launch and PR merge remain unauthorized.
