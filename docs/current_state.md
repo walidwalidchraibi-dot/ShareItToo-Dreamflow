@@ -2884,3 +2884,26 @@ Pixel 7 Pro build `2026081509` evidence remains historical: current source has
 no signed and installed Stage A candidate. Candidate branch creation, signing,
 installation and merge each remain separate future Walid gates. Current
 decision is `HOLD_PR7_DRAFT_UNMERGED`; no external or live state changed.
+
+## PF5 closed Android pilot test and measurement plan
+
+`PF5_CLOSED_ANDROID_PILOT_TEST_AND_MEASUREMENT_PLAN` defines fifteen bounded
+Stage A cases for listing, search, Gemerkt, non-reserving cart, request,
+accept/reject, availability conflict, handover, return/`needsReview`,
+cancellation, Support, Privacy/deletion, controlled restart and WLAN-only
+offline recovery. Every case names roles, prerequisites, actions, expected
+state, sanitized evidence, error class, excluded personal data and the P0/P1
+pilot-blocker rule.
+
+The measurement plan gives numerator and denominator definitions for all eleven
+required pilot measures, uses only pseudonymous structured values and reports
+missing observations as unavailable. The 30-person ceiling and 30–50 flows are
+planning values; all scenarios remain `not-run` and no result is claimed.
+
+The permanent wiring tests preserve the P0–P4 rules, zero-real-money and
+disabled-upload boundaries, WLAN identifier exclusion and the unissued final
+tokens. Current recommendation remains `PILOT_STAGE_A_DECISION_NO_GO` until
+Walid Action Pack A1–A5 and all seven authentic Stage A blockers are closed.
+No participant, account, invitation, candidate, signing, installation, Store,
+provider, Payment, Cloud/VPS/DNS, production, merge or activation action
+occurred. PF5 stops at `PILOT_STAGE_A_DECISION`.
