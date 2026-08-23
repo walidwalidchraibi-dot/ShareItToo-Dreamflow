@@ -3394,3 +3394,17 @@ No paid/provider AI call, production/VPS/DNS/cloud mutation, real money,
 PSP/KYC, Firebase/Store/Apple mutation, public release, PR merge or
 auto-publish was performed. The next package is N1: inventory and gap audit of
 the existing listing-creation, photo, draft and price-suggestion surfaces.
+
+## Stage A Blue Ocean N1 listing-flow audit (2026-08-23)
+
+The verified N1 matrix contains `4 DONE`, `4 OPEN` and `3 CONFLICT` findings.
+Manual create/edit/draft controls, the private-pilot category allowlist, G5A's
+deterministic post-publication separation and the V5.2 minor-unit quote/fee
+authority are reusable. Analysis-derivative privacy, AI-draft safety and a
+dedicated listing-AI gate remain additive work.
+
+The existing draft payload, direct active-listing POST and legacy coarse
+price heuristic are explicit conflicts, not accepted shortcuts. N2 therefore
+adds a separate versioned AI-draft domain model without weakening `Item`,
+rewriting historical listings or changing the explicit owner publication
+boundary.

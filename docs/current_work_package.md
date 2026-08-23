@@ -3056,3 +3056,17 @@ N0 is limited to non-live evidence, documentation and deterministic local
 validation. N1 follows with a current-code inventory and gap audit; no paid AI,
 provider enablement, production/cloud, Payment, Store, Firebase, Apple, public
 release, PR merge or automatic listing publication is authorized.
+
+## Completed package: Stage A Blue Ocean N1
+
+N1 records a source-backed `DONE / OPEN / CONFLICT` matrix for all eleven
+requested listing-flow areas. The manual listing editor and existing data stay
+untouched. Four foundations are directly reusable, four require additive
+implementation and three are deliberately blocked from being reused as if
+they already met the Blue Ocean goal.
+
+N2 is next: introduce versioned, rollback-safe AI draft, confidence,
+provenance, clarification, owner-confirmation, schema-version,
+analysis-derivative, regional-observation, price-snapshot and budget aggregate
+foundations. No provider, live, Store, Payment, Firebase or publication gate is
+opened by N1.
