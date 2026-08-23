@@ -35,8 +35,9 @@ function packageDump(buildNumber, ceDataInode = '4242') {
   return [
     `  versionCode=${buildNumber} minSdk=23 targetSdk=35`,
     '  versionName=1.0.0',
-    '  firstInstallTime=2026-08-01 12:34:56',
-    `  ceDataInode=${ceDataInode}`,
+    `  User 0: ceDataInode=${ceDataInode} deDataInode=2121 installed=true`,
+    '    dataDir=/data/user/0/com.shareittoo.app',
+    '    firstInstallTime=2026-08-01 12:34:56',
   ].join('\n');
 }
 
@@ -51,6 +52,7 @@ function fixture({
     const adbArgs = args.slice(2);
     commands.push(adbArgs);
     if (adbArgs.join(' ') === 'shell dumpsys window policy') return 'keyguardShowing=false';
+    if (adbArgs.join(' ') === 'shell am get-current-user') return '0';
     if (adbArgs.join(' ') === 'shell dumpsys package com.shareittoo.app') {
       return installed
         ? packageDump(candidate.buildNumber, afterInode)
@@ -84,6 +86,15 @@ test('parses the exact package facts required to prove update preservation', () 
   });
   assert.throws(
     () => parseAndroidInstalledPackageSnapshot('versionName=1.0.0\nversionCode=1'),
+    /preservation facts/,
+  );
+  assert.throws(
+    () => parseAndroidInstalledPackageSnapshot([
+      'versionCode=2026082301 minSdk=24 targetSdk=35',
+      'versionName=1.0.0',
+      'User 10: ceDataInode=4242 installed=true',
+      '  firstInstallTime=2026-08-01 12:34:56',
+    ].join('\n'), '0'),
     /preservation facts/,
   );
 });

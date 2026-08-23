@@ -37,12 +37,27 @@ function sha256Bytes(value) {
   return createHash('sha256').update(value).digest('hex');
 }
 
-export function parseAndroidInstalledPackageSnapshot(output) {
+export function parseAndroidInstalledPackageSnapshot(output, userId = '0') {
   const value = String(output);
   const versionName = /^\s*versionName=([^\s]+)\s*$/mu.exec(value)?.[1] ?? null;
   const buildNumber = /^\s*versionCode=(\d+)\b/mu.exec(value)?.[1] ?? null;
-  const firstInstallTime = /^\s*firstInstallTime=(.+?)\s*$/mu.exec(value)?.[1] ?? null;
-  const ceDataInode = /^\s*ceDataInode=(\d+)\s*$/mu.exec(value)?.[1] ?? null;
+  if (!/^\d+$/u.test(userId)) {
+    fail('Current Android user could not be verified.');
+  }
+  const userHeader = new RegExp(`^\\s*User ${userId}:`, 'mu').exec(value);
+  const followingUser = userHeader === null
+    ? null
+    : /^\s*User \d+:/mu.exec(value.slice(userHeader.index + userHeader[0].length));
+  const userBlock = userHeader === null
+    ? ''
+    : value.slice(
+      userHeader.index,
+      followingUser === null
+        ? value.length
+        : userHeader.index + userHeader[0].length + followingUser.index,
+    );
+  const firstInstallTime = /^\s*firstInstallTime=(.+?)\s*$/mu.exec(userBlock)?.[1] ?? null;
+  const ceDataInode = /\bceDataInode=(\d+)\b/u.exec(userBlock)?.[1] ?? null;
   if (versionName === null
       || buildNumber === null
       || firstInstallTime === null
@@ -76,12 +91,18 @@ function installedApkBytes(commandRunner, adbPath, device, applicationId) {
 }
 
 function readInstalledSnapshot(commandRunner, adbPath, device, applicationId) {
+  const userId = currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'am', 'get-current-user'],
+  ).trim();
   return parseAndroidInstalledPackageSnapshot(currentHeadAndroidAdb(
     commandRunner,
     adbPath,
     device,
     ['shell', 'dumpsys', 'package', applicationId],
-  ));
+  ), userId);
 }
 
 function normalizeCertificate(value) {

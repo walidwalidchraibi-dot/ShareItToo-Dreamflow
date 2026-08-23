@@ -24,6 +24,17 @@ environment overrides, sleeps or retries. The shared capacity limits remain
 unchanged. Manual cleanup after the failed attempt is incident hygiene only,
 not release evidence.
 
+## Android 17 package-metadata compatibility
+
+The first strict Pixel updater invocation stopped before installation because
+Android 17 emits the current user's `ceDataInode` on the `User 0:` summary line
+rather than on a dedicated line. No package or app data changed. The updater
+now asks Android for the active user, scopes both `firstInstallTime` and
+`ceDataInode` to that exact user block and rejects another profile's facts.
+Fixtures reproduce the Android 17 shape and prove fail-closed cross-user
+handling. This changes only diagnostic parsing; the required inode and first
+install-time equality remain unchanged.
+
 ## Pending deterministic exit
 
 `TD-RR-021` remains open until all of the following pass on one clean commit:
