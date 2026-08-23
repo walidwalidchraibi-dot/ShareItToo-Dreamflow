@@ -22,6 +22,9 @@ import {
 import {
   validatePf17CurrentCandidateAuthenticatedSafeLinks,
 } from './validate_pf17_current_candidate_authenticated_safe_links.mjs';
+import {
+  validatePf19CurrentCandidateTalkBackPreflight,
+} from './validate_pf19_current_candidate_talkback_preflight.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -37,6 +40,8 @@ const pf16EvidencePath =
   'docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json';
 const pf17EvidencePath =
   'docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json';
+const pf19EvidencePath =
+  'docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -248,6 +253,29 @@ export function validateExternalGateSetup({
       && pf17Result.decision === 'hold-no-go',
     'pf17_store_candidate_safe_link_state_invalid',
   );
+  const pf19Evidence = readJson(pf19EvidencePath, sourceOverrides);
+  const pf19Result = validatePf19CurrentCandidateTalkBackPreflight({
+    repositoryRoot: root,
+    evidence: pf19Evidence,
+    pf17Evidence,
+    pf16Evidence,
+    pf14bEvidence,
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf19Result.buildNumber === '2026082302'
+      && pf19Result.exactInstalledApkVerified === true
+      && pf19Result.officialAuthorizationCompleted === true
+      && pf19Result.serviceBound === true
+      && pf19Result.runtimeTouchExplorationEnabled === false
+      && pf19Result.traversalAttempted === false
+      && pf19Result.exactConfigurationRestored === true
+      && pf19Result.automatedTalkBackMainNavigationPassed === false
+      && pf19Result.manualTalkBackTraversalPassed === false
+      && pf19Result.stageAReady === false
+      && pf19Result.decision === 'hold-no-go',
+    'pf19_store_candidate_talkback_state_invalid',
+  );
 
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
@@ -293,6 +321,7 @@ export function validateExternalGateSetup({
         gate.currentEvidenceRefs.includes(pf14bEvidencePath)
           && gate.currentEvidenceRefs.includes(pf16EvidencePath)
           && gate.currentEvidenceRefs.includes(pf17EvidencePath)
+          && gate.currentEvidenceRefs.includes(pf19EvidencePath)
           && !gate.currentEvidenceRefs.includes(supersededAndroidCandidatePath),
         'store_candidate_ref_invalid:store_submission_and_closed_testing',
       );

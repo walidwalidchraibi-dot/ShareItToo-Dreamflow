@@ -83,7 +83,7 @@ test('requires both Stage A deferrals to remain fail closed', () => {
   );
 });
 
-test('Store lane is bound to PF14B, PF16 and PF17 and retains manual review holds', () => {
+test('Store lane is bound to PF14B, PF16, PF17 and PF19 and retains manual review holds', () => {
   const stale = copy(board);
   stale.gates[7].technicalEvidenceRefs = stale.gates[7].technicalEvidenceRefs.map(
     (reference) => (
@@ -117,11 +117,32 @@ test('Store lane is bound to PF14B, PF16 and PF17 and retains manual review hold
     /store_candidate_evidence_invalid/u,
   );
 
+  const missingPf19 = copy(board);
+  missingPf19.gates[7].technicalEvidenceRefs = missingPf19.gates[7]
+    .technicalEvidenceRefs.filter(
+      (reference) => !reference.includes('current-candidate-talkback-preflight'),
+    );
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: missingPf19 }),
+    /store_candidate_evidence_invalid/u,
+  );
+
   const overclaim = copy(board);
   overclaim.gates[7].technicalEvidenceSummary = overclaim.gates[7]
     .technicalEvidenceSummary.replace('manual visual review', 'visual review passed');
   assert.throws(
     () => validateExternalGateExecutionBoard({ boardOverride: overclaim }),
+    /store_candidate_evidence_invalid/u,
+  );
+
+  const talkBackOverclaim = copy(board);
+  talkBackOverclaim.gates[7].technicalEvidenceSummary = talkBackOverclaim.gates[7]
+    .technicalEvidenceSummary.replace(
+      'the Android runtime did not enable touch exploration',
+      'runtime touch exploration passed',
+    );
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: talkBackOverclaim }),
     /store_candidate_evidence_invalid/u,
   );
 });

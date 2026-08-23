@@ -3276,3 +3276,33 @@ fixed capacity budget with 12 KiB generated growth.
 
 PF18 package commit `80f5a0feddc1612d509c329af54dce96dd59661e`
 passed exact GitHub regression `32650950779` and CodeQL `32650950776`.
+
+## PF19 current-candidate TalkBack activation preflight
+
+The later maximum-autonomy instruction reopened safe non-live diagnostic work;
+PF18 remains the historical pre-intervention audit and does not prevent further
+independent evidence hardening. PF19 exercised the official Android TalkBack
+shortcut on the exact installed direct candidate `2026082302`. The Settings
+authorization completed, the TalkBack process became active and the service
+bound, but the Android runtime did not enable touch exploration. PF19 therefore
+performed no app traversal and records no automated or manual TalkBack pass.
+
+The diagnostic restored all five relevant secure settings exactly. The final
+post-check confirms version `1.0.0`, build `2026082302`, accessibility disabled,
+no enabled accessibility service, touch exploration disabled, no touch-
+exploration grant and an empty accessibility keyboard-shortcut target. The
+sanitized evidence contains no raw device, account, network or filesystem
+identifier. Manual TalkBack traversal, manual visual review, Google Play
+delivery and the full functional/device matrix remain open.
+
+Seven diagnostic tests, five PF19 evidence tests and twenty aggregate external-
+gate tests pass. The complete supported Mac-mini metadata gate passes Backend,
+PostgreSQL and tooling checks, 387 Flutter tests plus one documented skip,
+Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
+fixed capacity budget with 4 KiB generated growth. All eleven external gates
+remain technically prepared, zero are externally ready, no release token was
+issued and Stage A remains `HOLD` / `NO-GO`.
+
+No account, booking, message, Store, Firebase, provider, Payment, production,
+Cloud/VPS/DNS, public, cost, contract, pilot, release-token or merge action
+occurred.

@@ -2930,3 +2930,36 @@ fixed capacity budget with 12 KiB generated growth.
 
 Package commit `80f5a0feddc1612d509c329af54dce96dd59661e` passed exact
 GitHub regression `32650950779` and CodeQL `32650950776`.
+
+## PF19 — current-candidate TalkBack activation preflight
+
+`PF19_CURRENT_CANDIDATE_TALKBACK_PREFLIGHT` adds a bounded, restoring Android
+diagnostic for the exact installed direct candidate `2026082302`. It uses the
+official external-keyboard TalkBack shortcut, accepts only the system Settings
+authorization flow, verifies the process and bound-service state, and requires
+runtime touch exploration before any TalkBack focus or activation traversal.
+
+The physical preflight authorized and bound TalkBack, but Android kept runtime
+touch exploration disabled. The tool therefore stopped before entering the app
+and made no automated or manual TalkBack pass claim. It restored the exact
+previous values for accessibility enablement, enabled services, touch
+exploration, granted services and the keyboard-shortcut target. The independent
+post-check confirms accessibility disabled, no enabled service, no touch-
+exploration grant and an empty shortcut target.
+
+PF19 evidence is now mandatory in both the canonical technical setup manifest
+and the external-gate execution board. Aggregate validators reject a missing
+PF19 reference, an invented runtime pass, incomplete restoration or wording
+that hides the blocked touch-exploration contract. Manual TalkBack traversal,
+manual visual review, Google Play delivery and the complete device matrix stay
+open; external readiness remains `0/11` and Stage A remains `HOLD` / `NO-GO`.
+
+Seven diagnostic tests, five PF19 evidence-validator tests and twenty aggregate
+external-gate tests pass. The complete supported Mac-mini metadata gate passes
+Backend, PostgreSQL and tooling checks, 387 Flutter tests plus one documented
+skip, Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and
+the fixed capacity budget with 4 KiB generated growth.
+
+PF19 performs no account, booking, message, Store, Firebase, provider, Payment,
+production, Cloud/VPS/DNS, public, cost, contract, pilot, release-token or merge
+action.

@@ -51,6 +51,13 @@ const pf16Evidence = JSON.parse(readFileSync(
   ),
   'utf8',
 ));
+const pf19Evidence = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
@@ -153,7 +160,7 @@ test('aggregate setup is bound to the active hosting and mail provider hold', ()
   );
 });
 
-test('Store setup is bound to PF14B, PF16 and PF17 while manual review remains open', () => {
+test('Store setup is bound to PF14B, PF16, PF17 and PF19 while manual review remains open', () => {
   const changedRef = copy(manifest);
   const storeGate = changedRef.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
@@ -177,6 +184,18 @@ test('Store setup is bound to PF14B, PF16 and PF17 while manual review remains o
   );
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: missingPf17 }),
+    /store_candidate_ref_invalid/u,
+  );
+
+  const missingPf19 = copy(manifest);
+  const missingPf19StoreGate = missingPf19.gates.find(
+    ({ id }) => id === 'store_submission_and_closed_testing',
+  );
+  missingPf19StoreGate.currentEvidenceRefs = missingPf19StoreGate.currentEvidenceRefs.filter(
+    (reference) => !reference.includes('current-candidate-talkback-preflight'),
+  );
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: missingPf19 }),
     /store_candidate_ref_invalid/u,
   );
 
@@ -214,6 +233,18 @@ test('Store setup is bound to PF14B, PF16 and PF17 while manual review remains o
       },
     }),
     /release gate/u,
+  );
+
+  const pf19Overclaim = copy(pf19Evidence);
+  pf19Overclaim.activation.runtimeTouchExplorationEnabled = true;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json':
+          pf19Overclaim,
+      },
+    }),
+    /exact blocked runtime/u,
   );
 });
 

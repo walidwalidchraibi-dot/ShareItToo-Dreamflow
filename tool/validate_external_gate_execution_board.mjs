@@ -14,6 +14,9 @@ import {
 import {
   validatePf17CurrentCandidateAuthenticatedSafeLinks,
 } from './validate_pf17_current_candidate_authenticated_safe_links.mjs';
+import {
+  validatePf19CurrentCandidateTalkBackPreflight,
+} from './validate_pf19_current_candidate_talkback_preflight.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const boardPath =
@@ -27,6 +30,8 @@ const pf16EvidencePath =
   'docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json';
 const pf17EvidencePath =
   'docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json';
+const pf19EvidencePath =
+  'docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -228,13 +233,17 @@ export function validateExternalGateExecutionBoard({
     storeGate.technicalEvidenceRefs.includes(pf14bEvidencePath)
       && storeGate.technicalEvidenceRefs.includes(pf16EvidencePath)
       && storeGate.technicalEvidenceRefs.includes(pf17EvidencePath)
+      && storeGate.technicalEvidenceRefs.includes(pf19EvidencePath)
       && !storeGate.technicalEvidenceRefs.includes(supersededAndroidCandidatePath)
       && /2026082302/u.test(storeGate.technicalEvidenceSummary)
       && /two authenticated cold starts/iu.test(storeGate.technicalEvidenceSummary)
       && /offline recovery/iu.test(storeGate.technicalEvidenceSummary)
       && /authenticated safe-link/iu.test(storeGate.technicalEvidenceSummary)
       && /manual visual review/iu.test(storeGate.technicalEvidenceSummary)
-      && /TalkBack/iu.test(storeGate.technicalEvidenceSummary),
+      && /TalkBack/iu.test(storeGate.technicalEvidenceSummary)
+      && /runtime did not enable touch exploration/iu.test(storeGate.technicalEvidenceSummary)
+      && /restored every setting exactly/iu.test(storeGate.technicalEvidenceSummary)
+      && /no traversal or pass claim/iu.test(storeGate.technicalEvidenceSummary),
     'store_candidate_evidence_invalid',
   );
   const pf14bResult = validatePf14bCurrentHeadAndroidTouchTarget({
@@ -295,6 +304,28 @@ export function validateExternalGateExecutionBoard({
       && pf17Result.stageAReady === false
       && pf17Result.decision === 'hold-no-go',
     'store_candidate_safe_link_gate_state_invalid',
+  );
+  const pf19Result = validatePf19CurrentCandidateTalkBackPreflight({
+    repositoryRoot: root,
+    evidence: readJson(pf19EvidencePath),
+    pf17Evidence: readJson(pf17EvidencePath),
+    pf16Evidence: readJson(pf16EvidencePath),
+    pf14bEvidence: readJson(pf14bEvidencePath),
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf19Result.buildNumber === '2026082302'
+      && pf19Result.exactInstalledApkVerified === true
+      && pf19Result.officialAuthorizationCompleted === true
+      && pf19Result.serviceBound === true
+      && pf19Result.runtimeTouchExplorationEnabled === false
+      && pf19Result.traversalAttempted === false
+      && pf19Result.exactConfigurationRestored === true
+      && pf19Result.automatedTalkBackMainNavigationPassed === false
+      && pf19Result.manualTalkBackTraversalPassed === false
+      && pf19Result.stageAReady === false
+      && pf19Result.decision === 'hold-no-go',
+    'store_candidate_talkback_preflight_state_invalid',
   );
   validateDependencies(board.gates);
 
