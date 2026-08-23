@@ -3113,4 +3113,7 @@ metadata stripping, bounded WebP derivatives, opaque names, fail-closed local
 sensitive-content decisions, exact disclosure/consent and unconditional byte
 cleanup. Ten focused tests pass. There is no application route or external
 scanner/provider. The complete local regression is green; commit, push and
-exact GitHub CI are the remaining N4 close steps.
+exact GitHub CI are green at commit
+`129177003447084c1b24bc9ad36d9289a2803535`. N4 is complete. N5 now owns
+the deterministic enrichment and SIT regional-price integration while keeping
+AI output non-authoritative and publication manual.

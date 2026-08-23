@@ -3461,5 +3461,6 @@ Temporary derivative bytes are overwritten after success, block, failure and
 timeout, while audit events retain no filename, OCR, bytes or consumer output.
 Ten focused tests pass. No route, provider/scanner call, billing or publication
 was added. The complete local backend, PostgreSQL, Flutter, Web and Android
-regression is green; commit, push and exact GitHub CI remain before N4 advances
-to N5.
+regression is green. Commit `129177003447084c1b24bc9ad36d9289a2803535`,
+regression run `32668969157` and CodeQL run `32668969147` are exact and
+successful. N4 is complete; N5 is active.

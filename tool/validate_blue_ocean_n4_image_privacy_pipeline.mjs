@@ -111,10 +111,24 @@ export function validateBlueOceanN4ImagePrivacyPipeline({
 
   const fullRegressionPassed = value.status !== 'implemented-targeted-tests-passed-full-regression-pending';
   const githubPassed = value.status === 'verified-ready-for-n5';
+  const exactGitHubVerification = value.exactGitHubVerification;
+  if (githubPassed) {
+    if (!exact(exactGitHubVerification, {
+      headSha: '129177003447084c1b24bc9ad36d9289a2803535',
+      regressionRunId: 32668969157,
+      regressionConclusion: 'success',
+      codeqlRunId: 32668969147,
+      codeqlConclusion: 'success',
+    })) {
+      fail('N4 exact GitHub verification is invalid.');
+    }
+  } else if (exactGitHubVerification !== undefined) {
+    fail('N4 cannot bind exact GitHub verification before CI is complete.');
+  }
   if (!exact(value.targetedVerification, {
     pipelineSyntax: 'passed',
     pipelineTests: 'passed-10',
-    artifactValidatorTests: 'passed-6',
+    artifactValidatorTests: githubPassed ? 'passed-7' : 'passed-6',
     artifactValidator: 'passed',
     backendSuite: fullRegressionPassed ? 'passed-639-one-documented-skip' : 'pending',
     postgres16MigrationIntegration: fullRegressionPassed ? 'passed' : 'pending',
