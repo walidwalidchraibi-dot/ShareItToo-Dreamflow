@@ -44,3 +44,6 @@ candidate tests pass. The complete supported Mac-mini metadata gate passes
 backend/PostgreSQL/tooling, 387 Flutter tests plus one documented skip,
 Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
 fixed capacity budget with 12 KiB generated growth.
+
+Package commit `80f5a0feddc1612d509c329af54dce96dd59661e` passed exact
+GitHub regression `32650950779` and CodeQL `32650950776`.
