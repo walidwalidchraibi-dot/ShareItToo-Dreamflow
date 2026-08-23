@@ -2543,3 +2543,25 @@ A readiness correctly fails on all seven blockers.
 
 Next package: PF3 turns these lanes into a minimal ordered Walid action pack
 without starting cost, contract, account, signing, Store or pilot activity.
+
+## PF3 — Walid external gate action pack
+
+`PF3_WALID_EXTERNAL_GATE_ACTION_PACK` creates twelve short, sequential blocks
+under A closed Android/no money, B closed real money, C public regional launch
+and D iOS/later platforms. Each block contains exactly the seven requested
+operational fields and copyable response tokens.
+
+Costs remain honest: known prior Google registration is separated from every
+unknown future amount, quote-only permission does not authorize engagement,
+and a separate maximum-EUR response pattern is required before paid Legal or
+PSP work. Read-only owner-console readiness does not authorize login handling,
+terms, billing, keys, permissions, signing, upload or Store action.
+
+The validator reconciles the pack against PF2's eleven open gates and requires
+all canonical release tokens, Stage A/B/C decision choices and the Android-only
+and disabled-upload deferrals. Eight focused tests pass; strict mode correctly
+stops at A1 with only `PF3_A1_QUOTE_REQUEST_PACK_GO` or `PF3_A1_HOLD` as the
+next bounded answer.
+
+Next package: PF4 freezes the exact PR #7 integration and pilot-candidate path
+without merge, history rewrite, signing, upload or publication.

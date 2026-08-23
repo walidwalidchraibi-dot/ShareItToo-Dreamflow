@@ -2843,3 +2843,23 @@ cycles and sensitive fields, and keep every external boundary false. Strict
 Stage-A mode intentionally reports all seven open blockers. No cost, contract,
 account, signing, device-install, production, provider, Payment, Store,
 Cloud/VPS/DNS, pilot, real-money, activation or merge action occurred.
+
+## PF3 Walid external gate action pack
+
+`PF3_WALID_EXTERNAL_GATE_ACTION_PACK` replaces a broad task list with twelve
+ordered presence/decision blocks across Stage A, Stage B, Stage C and later
+iOS. Every block states why Walid is needed, duration, unknown or existing cost
+state, the exact screen/confirmation boundary, safe parallel Codex work,
+response tokens and what remains blocked.
+
+The first executable block is only the preparation of a sanitized Legal/
+Privacy quote-request pack. A second amount-bound token is mandatory before
+any paid engagement. The same two-step boundary applies to PSP work. Firebase,
+Play Console and Apple blocks begin read-only and stop at login/2FA, terms,
+secrets, billing, signing, upload or device installation.
+
+All eleven canonical release tokens and the separate Stage A/B/C decision
+choices are present. Eight permanent tests keep the four tiers and twelve
+blocks ordered, require all fields/tokens, reject unsafe missing markers and
+keep external readiness at 0/11. No response token was supplied or inferred;
+no cost, contact, contract, account, external or activation action occurred.
