@@ -3379,3 +3379,18 @@ owner controls and the explicit activation decision remain authentic external
 gates. No independent safe technical lane remains. The next bounded action is
 A1 with only `PF3_A1_QUOTE_REQUEST_PACK_GO` or `PF3_A1_HOLD`; cost, contract,
 live state, real money, public launch and PR merge remain unauthorized.
+
+## Stage A Blue Ocean AI Listing Pilot: N0 baseline (2026-08-23)
+
+The owner-authorized Stage A Blue Ocean goal supersedes the prior PF22
+continuation. N0 freezes the verified repository, PR, CI, Drive-source,
+external-gate and feature-flag baseline in
+`docs/evidence/blue-ocean/n0-baseline-20260823.json`. The deterministic
+validator `tool/validate_blue_ocean_n0_baseline.mjs` and its mutation tests
+reject drift in the binding owner decisions, non-live boundaries, closed
+external gates and fail-closed configuration markers.
+
+No paid/provider AI call, production/VPS/DNS/cloud mutation, real money,
+PSP/KYC, Firebase/Store/Apple mutation, public release, PR merge or
+auto-publish was performed. The next package is N1: inventory and gap audit of
+the existing listing-creation, photo, draft and price-suggestion surfaces.

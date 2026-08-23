@@ -3041,3 +3041,18 @@ independent safe technical lane in the authorized non-live runway. The next
 bounded action is A1, accepting only `PF3_A1_QUOTE_REQUEST_PACK_GO` or
 `PF3_A1_HOLD`; no cost, contract, production, provider, Payment, Store, public,
 real-money, release-token or merge action is performed.
+
+## Active package: Stage A Blue Ocean N0
+
+The new owner-approved Blue Ocean AI Listing Pilot goal replaces the previous
+PF22 continuation. N0 records and validates the exact clean repository/PR/CI
+baseline, the newest same-title Drive instruction selected by modification
+time, the binding Stage A owner decisions, all closed external gates and the
+current fail-closed feature configuration. Evidence is stored under
+`docs/evidence/blue-ocean/` without credentials, personal data or secret
+values.
+
+N0 is limited to non-live evidence, documentation and deterministic local
+validation. N1 follows with a current-code inventory and gap audit; no paid AI,
+provider enablement, production/cloud, Payment, Store, Firebase, Apple, public
+release, PR merge or automatic listing publication is authorized.
