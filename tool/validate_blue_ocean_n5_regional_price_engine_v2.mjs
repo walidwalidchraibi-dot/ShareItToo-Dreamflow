@@ -140,10 +140,10 @@ export function validateBlueOceanN5RegionalPriceEngineV2({
   const exactGitHubVerification = value.exactGitHubVerification;
   if (githubPassed) {
     if (!exact(exactGitHubVerification, {
-      headSha: 'N5_IMPLEMENTATION_HEAD_PENDING',
-      regressionRunId: 0,
+      headSha: 'e4db1515215b6735a0c02294782eb38418615cd6',
+      regressionRunId: 32670454653,
       regressionConclusion: 'success',
-      codeqlRunId: 0,
+      codeqlRunId: 32670454524,
       codeqlConclusion: 'success',
     })) {
       fail('N5 exact GitHub verification is invalid.');

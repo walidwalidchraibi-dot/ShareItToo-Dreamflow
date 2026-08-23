@@ -3135,6 +3135,8 @@ calculates its 10 percent contribution after discounts in simulation only.
 Migration 067 and a header-only manual-import template preserve reviewed
 provenance, coarse geography, append-only history and rollback safety. The
 fresh PostgreSQL 16 migration integration and the complete local Backend,
-Flutter, Web and Android regression are green. Commit/push and exact GitHub CI
-are pending; no route, import, scraper, provider, billing, publication or live
-gate has been opened.
+Flutter, Web and Android regression are green. Commit, push and exact GitHub
+regression `32670454653` plus CodeQL `32670454524` are green at implementation
+commit `e4db1515215b6735a0c02294782eb38418615cd6`. No route, import, scraper,
+provider, billing, publication or live gate has been opened. N5 is complete;
+N6 is active.

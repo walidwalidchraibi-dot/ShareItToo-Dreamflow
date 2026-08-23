@@ -18,7 +18,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact isolated N5 regional price engine', () => {
   assert.deepEqual(validate(), {
-    status: 'implemented-full-regression-passed-ci-pending',
+    status: 'verified-ready-for-n6',
     categoryRuleCount: 6,
     nextPackage: 'N6',
   });
@@ -78,6 +78,12 @@ test('rejects invented verification, historical rewrite or forbidden mutation', 
   const mutation = structuredClone(evidence);
   mutation.boundaries.externalObservationImported = true;
   assert.throws(() => validate(mutation), /mutation boundary/u);
+});
+
+test('rejects an invalid exact GitHub verification binding', () => {
+  const changed = structuredClone(evidence);
+  changed.exactGitHubVerification.headSha = '0000000000000000000000000000000000000000';
+  assert.throws(() => validate(changed), /exact GitHub verification/u);
 });
 
 test('rejects private or secret-shaped evidence', () => {

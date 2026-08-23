@@ -3480,8 +3480,10 @@ are excluded, reviewed external data has a closed import schema and rollback
 refuses to discard V2 data. Duration pricing remains owner-editable and the
 V5.2 quote engine applies the 10 percent SIT contribution only after discount.
 
-Nineteen focused engine tests, six artifact-validator tests, the fresh
+Nineteen focused engine tests, seven artifact-validator tests, the fresh
 PostgreSQL 16 migration integration and the complete local Backend, Flutter,
-Web and Android regression pass. Exact GitHub CI remains pending. No route,
-provider, import, scraper, billing, publication, historical rewrite or live
-mutation was added.
+Web and Android regression pass. The implementation is verified at exact
+commit `e4db1515215b6735a0c02294782eb38418615cd6`; GitHub regression run
+`32670454653` and CodeQL run `32670454524` are successful. No route, provider,
+import, scraper, billing, publication, historical rewrite or live mutation was
+added. N5 is complete; N6 is active.
