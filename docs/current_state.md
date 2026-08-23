@@ -2751,3 +2751,30 @@ External readiness remains 0/11 and provider decisions 0/10. No account was
 inspected, no contract or paid service accepted and no provider, VPS, mail,
 production, Payment, Store, Cloud/DNS, pilot, real-money, activation or merge
 state changed. P0B remains `HOLD` / `NO-GO`.
+
+## S4BY CodeQL backend security gate
+
+`S4BY_CODEQL_BACKEND_SECURITY_GATE` is implemented at exact head
+`992af57cbf555534c6db03898b3a4aac61cbd996`. The public repository now runs the
+current CodeQL v4 JavaScript/TypeScript analysis with `security-extended`
+queries on pull requests, direct `main` pushes, a weekly schedule and explicit
+manual dispatch. The final trigger design avoids duplicate feature-branch
+push/PR scans.
+
+The workflow is bounded to least-privilege read access plus
+`security-events: write`, has a 20-minute timeout and contains no secrets,
+deployment, publication or continue-on-error path. Three permanent wiring
+tests keep those properties inside the complete technical regression.
+
+Exact CodeQL run `32626620094` passes in 1:50, evaluates 103 rules and leaves
+zero open code-scanning alerts. Exact clean-host regression `32626620177`
+passes PostgreSQL in 27 seconds, Backend in 1:27 and Flutter/Web/Android in
+6:37. Local metadata-only regression passes analyzer zero, 385 Flutter tests
+plus one documented skip, Web/WebAssembly, loopback smoke, Android 448 tasks,
+binary minSdk 24 and zero generated growth.
+
+The ordinary local Store handoff correctly remains blocked because the exact
+protected AAB is unavailable in the private release archive. No Store upload,
+signing or device pass is claimed. No production, provider, Payment, Store,
+Cloud/VPS/DNS, pilot, real-money, activation or merge state changed. PR #7
+remains draft and P0B remains `HOLD` / `NO-GO`.

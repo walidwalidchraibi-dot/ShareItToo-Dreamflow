@@ -2448,3 +2448,34 @@ No account inspection, provider/contract/cost action, VPS/mail/production,
 Payment, Store, Cloud/DNS, pilot, real-money, activation or merge occurred.
 The next autonomous step is another bounded external-gate source-to-code audit
 for a technically preparable gap. P0B remains `HOLD` / `NO-GO`.
+
+## S4BY CodeQL backend security gate
+
+`S4BY_CODEQL_BACKEND_SECURITY_GATE` at exact implementation head
+`992af57cbf555534c6db03898b3a4aac61cbd996` closes the repository's missing
+semantic code-scanning path. The public repository already had locked Backend
+dependency audit and secret detection, but no CodeQL analysis.
+
+The new workflow runs CodeQL v4 with the `security-extended`
+JavaScript/TypeScript query suite on pull requests, direct `main` pushes, a
+weekly schedule and explicit manual dispatch. Feature branches are not scanned
+twice. Workflow permissions are read-only except for the required
+`security-events: write`; no secret, artifact publication, deployment or
+continue-on-error route exists. Three permanent wiring tests bind this
+contract into every complete technical regression.
+
+Exact CodeQL run `32626620094` passes in 1:50, evaluates 103 rules and reports
+zero open code-scanning alerts. Exact clean-host regression `32626620177`
+passes PostgreSQL in 27 seconds, Backend in 1:27 and Flutter/Web/Android in
+6:37. Local metadata-only regression passes analyzer zero, 385 Flutter tests
+plus one documented skip, Google-only, Web/WebAssembly, loopback smoke,
+Android 448 tasks, binary minSdk 24 and zero generated growth. Local
+`pnpm audit --prod` reports zero vulnerabilities at every severity.
+
+The ordinary local Store handoff first stopped fail-closed because the exact
+protected AAB is unavailable in the private release archive. The package does
+not replace it and makes no Store, signing or device claim. No repository
+visibility, production, provider, Payment, Store, Cloud/VPS/DNS, pilot,
+real-money, activation or merge state changed. The next autonomous step is a
+fresh source-to-code audit for another independently implementable security or
+launch-readiness gap. PR #7 remains draft and P0B remains `HOLD` / `NO-GO`.
