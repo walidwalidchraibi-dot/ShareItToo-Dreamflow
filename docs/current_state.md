@@ -2310,3 +2310,31 @@ capacity evidence.
 `TD-RR-010` remains open for the remaining 55 screen-only unused-code
 diagnostics and exact-commit CI. P0B remains `HOLD` / `NO-GO`, with no live
 boundary changed.
+
+## S4BF release-readiness determinism closeout
+
+`S4BF_RELEASE_READINESS_DETERMINISM_CLOSEOUT` is technically verified at exact
+implementation commit `891ecdc414df1d1a6097608cb8dd05b8221361c3`. A fixed
+capacity guard now surrounds the complete technical gate: at least 4 GiB
+effective free-plus-replaceable capacity at start, at most 5 GiB generated
+footprint at completion and at least 512 MiB final free space. There is no
+cleanup, retry, sleep, alternate temp root or environment override.
+
+The unchanged complete local gate passed with 384 Flutter tests plus one
+documented skip, separate Google-only, analyzer zero, Web build/smoke and one
+direct 448-task Android debug build. Exact automatic CI run `32609567488`
+passed Backend and Flutter at the same implementation head with publication
+skipped. Manual exact-head run `32609858706` additionally passed five complete
+Flutter suites at default parallelism without intervention or rerun.
+
+S4W's controlled local-browser observation passed in a dedicated temporary
+profile against the loopback Web build: guarded reload, complete document and
+nine exact keys with no values, credentials or profile path retained. The
+normal profile was not used and temporary artifacts were moved to Trash.
+
+The retained evidence closes every registered release-readiness debt except
+`TD-RR-004`. That item remains open because the canonical PostgreSQL 16 service
+integration is green in CI but the repository-owned fresh-cluster runner has
+not itself run there. P0B remains `HOLD` / `NO-GO`; no production, Payment,
+Store, Cloud/VPS/DNS, deployment, signing, merge or public activation is
+enabled.

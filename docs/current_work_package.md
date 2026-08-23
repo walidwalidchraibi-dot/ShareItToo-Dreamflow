@@ -1989,3 +1989,32 @@ satisfied. Exact S4BE CI run `32608792863` is green at documentation commit
 skipped. `TD-RR-010` is closed while the exact-zero gate remains permanent.
 P0B remains `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS,
 deployment, signing, merge or public activation is enabled.
+
+## S4BF release-readiness determinism closeout
+
+`S4BF_RELEASE_READINESS_DETERMINISM_CLOSEOUT` is technically verified at exact
+implementation commit `891ecdc414df1d1a6097608cb8dd05b8221361c3`. The
+complete technical gate now enforces fixed release-host capacity and generated
+footprint bounds before any work and after Android without cleanup, sleep,
+retry or environment override.
+
+The unchanged local gate passed with 384 Flutter tests plus one documented
+skip, Google-only, analyzer zero, Web build/smoke and one direct 448-task
+Android debug build. Exact automatic CI run `32609567488` passed Backend in
+1:39 and Flutter in 6:38 with publication skipped. Manual exact-head run
+`32609858706` passed five complete default-parallel Flutter suites, Backend in
+1:13 and Flutter in 14:42; signed-candidate construction and publication were
+skipped.
+
+The separately required S4W controlled browser observation also passed in a
+dedicated temporary Chrome profile against the loopback Web build with
+`readyState: complete` and nine verified keys. No stored values, credentials
+or profile path were retained, the normal profile was untouched and temporary
+artifacts were moved to Trash.
+
+This closes `TD-RR-001`, `TD-RR-002`, `TD-RR-003`, `TD-RR-005`, `TD-RR-006`,
+`TD-RR-007`, `TD-RR-008`, `TD-RR-009` and `TD-RR-012`. `TD-RR-004` remains
+open for exact CI execution of the repository-owned PostgreSQL-16 fresh-cluster
+runner; service-container integration is not substituted for that proof. P0B
+remains `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS,
+deployment, signing, merge or public activation is enabled.
