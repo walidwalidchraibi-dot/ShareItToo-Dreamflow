@@ -2479,3 +2479,21 @@ visibility, production, provider, Payment, Store, Cloud/VPS/DNS, pilot,
 real-money, activation or merge state changed. The next autonomous step is a
 fresh source-to-code audit for another independently implementable security or
 launch-readiness gap. PR #7 remains draft and P0B remains `HOLD` / `NO-GO`.
+
+## PF0 — pilot-freeze baseline
+
+`PF0_PILOT_FREEZE_BASELINE` freezes the product scope from exact verified
+source HEAD `e1c69a6ad3086061cfaedf14d2bc63537ad82650`. GitHub regression
+`32627029742` and CodeQL `32627029780` are both successful on that HEAD; the
+Working Tree was clean and synchronized, and PR #7 remained open, Draft and
+unmerged at verification.
+
+The permanent record `docs/operations/PILOT_FREEZE_BASELINE.md` separates
+technical implementation/test evidence from external evidence, professional
+approval, pilot approval, real-money approval and public-launch approval. It
+restricts future PR #7 work to P0/P1 defects, pilot blockers, reproducible
+release failures, existing external gates and authentic pilot/device findings.
+P2-P4 findings are backlog-only. No live or external state changed.
+
+Next package: PF1 creates the human-readable and machine-readable three-stage
+pilot/launch matrix while keeping every activation boundary closed.

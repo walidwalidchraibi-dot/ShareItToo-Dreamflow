@@ -2778,3 +2778,23 @@ protected AAB is unavailable in the private release archive. No Store upload,
 signing or device pass is claimed. No production, provider, Payment, Store,
 Cloud/VPS/DNS, pilot, real-money, activation or merge state changed. PR #7
 remains draft and P0B remains `HOLD` / `NO-GO`.
+
+## PF0 pilot-freeze baseline
+
+SIT entered `PILOT FREEZE` from the verified clean and synchronized baseline
+HEAD `e1c69a6ad3086061cfaedf14d2bc63537ad82650`. Exact GitHub regression run
+`32627029742` and CodeQL run `32627029780` both pass on that source. PR #7 is
+still open, Draft and unmerged.
+
+The allowed post-freeze change classes are now limited to P0/P1 defects,
+concrete pilot blockers, reproducible build/CI/test/release failures, existing
+external-gate preparation and authentic pilot/device findings. New feature
+families and speculative P2-P4 hardening are excluded. The recommended Stage A
+shape remains invited Spiegelberg Cat8 adults, V5.2 single-item plus Discover,
+non-reserving cart and Gemerkt, and synthetic/test payment only. It is a
+planning envelope, not an activated pilot.
+
+The authoritative scope-control record is
+`docs/operations/PILOT_FREEZE_BASELINE.md`. External readiness remains 0/11,
+and no production, provider, Payment, Store, Cloud/VPS/DNS, pilot, real-money,
+activation or merge state changed.
