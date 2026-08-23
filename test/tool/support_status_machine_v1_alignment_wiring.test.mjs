@@ -11,6 +11,8 @@ import {
 const read = (path) => readFileSync(path, 'utf8');
 const up = read('backend/sql/migrations/064_support_status_machine_v1_alignment.up.sql');
 const down = read('backend/sql/migrations/064_support_status_machine_v1_alignment.down.sql');
+const directUp = read('backend/sql/migrations/065_support_direct_decision_path.up.sql');
+const directDown = read('backend/sql/migrations/065_support_direct_decision_path.down.sql');
 const progress = read('backend/src/support_progress_update_domain.js');
 const evidence = read('backend/src/support_evidence_workflow.js');
 const messages = read('backend/src/support_message_domain.js');
@@ -74,6 +76,20 @@ test('migration retires drift without rewriting existing case history', () => {
   assert.match(down, /DROP CONSTRAINT support_cases_implementation_pending_action_retired/u);
   assert.match(down, /'implementation_pending'/u);
   assert.match(down, /OLD\.status = 'implementation_pending'/u);
+});
+
+test('green and yellow direct decisions are reviewer-bound while red stays four-eyes', () => {
+  assert.match(directUp, /approval_path IN \('separate_review', 'direct_single_reviewer'\)/u);
+  assert.match(directUp, /approval_path = 'direct_single_reviewer' AND approved_by = decided_by/u);
+  assert.match(directUp, /support_case\.approval_level IN \([\s\S]*'green_automatic', 'yellow_human_review'/u);
+  assert.match(directUp, /reviewer\.role = 'admin'/u);
+  assert.match(directUp, /support_case\.status = 'under_review'/u);
+  assert.match(directUp, /status = 'decided'/u);
+  assert.doesNotMatch(directUp, /status IN \('decided', 'implementation_pending'\)/u);
+  assert.match(decisions, /\['green_automatic', 'yellow_human_review'\]/u);
+  assert.match(decisions, /support_direct_decision_requires_admin/u);
+  assert.match(directDown, /support_direct_decision_rollback_requires_manual_review/u);
+  assert.doesNotMatch(directDown, /DELETE FROM support_decisions/u);
 });
 
 test('every runtime and user projection rejects the retired status', () => {

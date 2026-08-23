@@ -128,7 +128,7 @@
     },
     {
       "path": "backend/src/support_decision_workflow.js",
-      "sha256": "65fe0b868c95af612e4e26e0272caf4e1ec41ad018db090561d7f57a8b87544f"
+      "sha256": "d99c9c5850241db4d6929896b9ff9f3c753990ab876fc69f4a84f90c5423e492"
     },
     {
       "path": "backend/src/support_break_glass_domain.js",
@@ -541,6 +541,22 @@
     {
       "path": "backend/sql/migrations/063_return_calendar_deadline_guard.down.sql",
       "sha256": "bf9c7866c6c3fe3b45bba87fac11be767872369ac680dd0d90c2d0815c1ce11c"
+    },
+    {
+      "path": "backend/sql/migrations/064_support_status_machine_v1_alignment.up.sql",
+      "sha256": "e38e396b58fd9ad9d707e4c14f323107bda1043bda7dca2164d60b8c72e6393e"
+    },
+    {
+      "path": "backend/sql/migrations/064_support_status_machine_v1_alignment.down.sql",
+      "sha256": "be30af69387833f0612ab5c2d79835c5012a452a92fe407e98de28b3ec67a10b"
+    },
+    {
+      "path": "backend/sql/migrations/065_support_direct_decision_path.up.sql",
+      "sha256": "682d73ae7c1ede73f9b3d44505d9c224634bd668c3b7d136c1b5a6442fe829ee"
+    },
+    {
+      "path": "backend/sql/migrations/065_support_direct_decision_path.down.sql",
+      "sha256": "5417b1746873ebed591a6592704c68280997767c1bec09a9b2b6b4006d45b6a0"
     },
     {
       "path": "backend/src/booking_condition_evidence_workflow.js",

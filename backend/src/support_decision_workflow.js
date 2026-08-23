@@ -43,6 +43,7 @@ function shapeDecision(row) {
     userFacingImplementationResult: row.user_facing_implementation_result ?? null,
     internalReason: row.internal_reason,
     redressRoute: row.redress_route,
+    approvalPath: row.approval_path ?? 'separate_review',
     approvalStatus: row.approval_status,
     implementationStatus: row.implementation_status,
     implementationReference: row.implementation_reference ?? null,
@@ -213,8 +214,10 @@ export async function createSupportDecisionDraft(client, {
   if (!['under_review', 'escalated'].includes(caseRow.status)) {
     throw new SupportCaseError(409, 'support_decision_case_status_invalid');
   }
-  if (caseRow.approval_level === 'green_automatic') {
-    throw new SupportCaseError(409, 'support_decision_not_required_for_green_case');
+  const directDecision = ['green_automatic', 'yellow_human_review']
+    .includes(caseRow.approval_level);
+  if (directDecision && actor.role !== 'admin') {
+    throw new SupportCaseError(403, 'support_direct_decision_requires_admin');
   }
   await assertCurrentSafetyImpactScope(client, { caseRow, input });
   const concurrentReplay = await client.query(
@@ -253,20 +256,22 @@ export async function createSupportDecisionDraft(client, {
        policy_snapshot_id, rule_reference, measure_type, amount_minor,
        currency, duration, affected_entity_ids, unaffected_areas,
        implementation_plan, automation_used, recommendation_id,
-       decided_by, approved_by, user_facing_decision, user_facing_effect,
+       decided_by, approved_by, approved_at, approval_payload_sha256,
+       user_facing_decision, user_facing_effect,
        user_facing_reason, user_facing_implementation_result, internal_reason,
        redress_route, implementation_status, idempotency_key,
-       approval_status, payload_sha256, lock_version, decided_at, updated_at
+       approval_status, approval_path, payload_sha256, lock_version,
+       decided_at, updated_at
      ) VALUES (
        $1, $2, $3, $4,
        $5::jsonb, $6::jsonb,
        $7, $8, $9, $10,
        $11, $12, $13, $14::jsonb,
        $15, false, $16,
-       $17, NULL, $18, $19,
-       $20, $21, $22,
-       $23, 'not_started', $24,
-       'pending', $25, 1, $26, $26
+       $17, $18, $19, $20, $21, $22,
+       $23, $24, $25,
+       $26, 'not_started', $27,
+       $28, $29, $30, 1, $31, $31
      ) RETURNING *`,
     [
       id,
@@ -286,6 +291,9 @@ export async function createSupportDecisionDraft(client, {
       input.implementationPlan,
       input.recommendationId,
       actor.id,
+      directDecision ? actor.id : null,
+      directDecision ? now : null,
+      directDecision ? input.payloadSha256 : null,
       input.userFacingDecision,
       input.userFacingEffect,
       input.userFacingReason,
@@ -293,6 +301,8 @@ export async function createSupportDecisionDraft(client, {
       input.internalReason,
       input.redressRoute,
       key,
+      directDecision ? 'approved' : 'pending',
+      directDecision ? 'direct_single_reviewer' : 'separate_review',
       input.payloadSha256,
       now,
     ],
@@ -300,10 +310,11 @@ export async function createSupportDecisionDraft(client, {
   await event(client, {
     caseId: caseRow.id,
     actor,
-    eventType: 'decision.drafted',
+    eventType: directDecision ? 'decision.direct_approved' : 'decision.drafted',
     entityId: id,
     payload: {
       approvalLevel: caseRow.approval_level,
+      approvalPath: directDecision ? 'direct_single_reviewer' : 'separate_review',
       payloadSha256: input.payloadSha256,
       implementationStatus: 'not_started',
     },
@@ -312,11 +323,12 @@ export async function createSupportDecisionDraft(client, {
   });
   await audit(client, {
     actor,
-    action: 'support.decision_drafted',
+    action: directDecision ? 'support.decision_direct_approved' : 'support.decision_drafted',
     resourceId: id,
     metadata: {
       caseId: caseRow.id,
       approvalLevel: caseRow.approval_level,
+      approvalPath: directDecision ? 'direct_single_reviewer' : 'separate_review',
       payloadSha256: input.payloadSha256,
     },
   });

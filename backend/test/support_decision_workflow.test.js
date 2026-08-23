@@ -41,7 +41,7 @@ function caseRow(overrides = {}) {
   return {
     id: '33333333-3333-4333-8333-333333333333',
     status: 'under_review',
-    approval_level: 'yellow_human_review',
+    approval_level: 'red_explicit_decision',
     operating_mode: 'simulation',
     current_owner_id: 'support-1',
     ...overrides,
@@ -78,6 +78,7 @@ function decisionRow(overrides = {}) {
       'Das bestätigte Ergebnis wurde im internen Testfall dokumentiert.',
     internal_reason: 'Reine Simulation ohne Außenwirkung.',
     redress_route: 'Menschliche Prüfung kann angefordert werden.',
+    approval_path: 'separate_review',
     approval_status: 'pending',
     approval_payload_sha256: null,
     implementation_status: 'not_started',
@@ -180,7 +181,7 @@ test('missing and unassigned decision lists return the same audited support resp
   client.done();
 });
 
-test('draft requires a non-green reviewed case and an effective policy snapshot', async () => {
+test('green and yellow direct decisions require an admin reviewer', async () => {
   const client = new ScriptedClient([
     { match: /FROM support_decisions/, result: noRows },
     { match: /FROM support_cases/, result: { rowCount: 1, rows: [caseRow({ approval_level: 'green_automatic' })] } },
@@ -193,8 +194,76 @@ test('draft requires a non-green reviewed case and an effective policy snapshot'
       idempotencyKey: 'draft-green',
       now,
     }),
-    /support_decision_not_required_for_green_case/,
+    /support_direct_decision_requires_admin/,
   );
+  client.done();
+});
+
+test('admin records a green decision through the canonical direct-review path', async () => {
+  const client = new ScriptedClient([
+    { match: /FROM support_decisions/, result: noRows },
+    {
+      match: /FROM support_cases/,
+      result: {
+        rowCount: 1,
+        rows: [caseRow({ approval_level: 'green_automatic', current_owner_id: null })],
+      },
+    },
+    { match: /FROM support_decisions/, result: noRows },
+    { match: /approval_status IN \('pending', 'approved'\)/, result: noRows },
+    { match: /FROM support_policy_snapshots/, result: { rowCount: 1, rows: [{ id: policySnapshotId }] } },
+    {
+      match: /INSERT INTO support_decisions/,
+      check: ({ params }) => {
+        assert.equal(params[16], 'admin-1');
+        assert.equal(params[17], 'admin-1');
+        assert.equal(params[18], now);
+        assert.match(params[19], /^[0-9a-f]{64}$/u);
+        assert.equal(params[27], 'approved');
+        assert.equal(params[28], 'direct_single_reviewer');
+        assert.equal(params[29], params[19]);
+      },
+      result: ({ params }) => ({
+        rowCount: 1,
+        rows: [decisionRow({
+          id: params[0],
+          case_id: params[1],
+          decided_by: params[16],
+          approved_by: params[17],
+          approved_at: params[18],
+          approval_payload_sha256: params[19],
+          approval_status: params[27],
+          approval_path: params[28],
+          payload_sha256: params[29],
+          decided_at: params[30],
+          updated_at: params[30],
+        })],
+      }),
+    },
+    {
+      match: /INSERT INTO support_case_events/,
+      check: ({ params }) => {
+        assert.equal(params[1], 'decision.direct_approved');
+        assert.equal(JSON.parse(params[5]).approvalPath, 'direct_single_reviewer');
+      },
+      result: { rowCount: 1, rows: [] },
+    },
+    {
+      match: /INSERT INTO audit_log/,
+      check: ({ params }) => assert.equal(params[2], 'support.decision_direct_approved'),
+      result: { rowCount: 1, rows: [] },
+    },
+  ]);
+  const result = await createSupportDecisionDraft(client, {
+    actor: { id: 'admin-1', role: 'admin' },
+    caseId: caseRow().id,
+    raw: decisionInput(),
+    idempotencyKey: 'direct-green-1',
+    now,
+  });
+  assert.equal(result.decision.approvalPath, 'direct_single_reviewer');
+  assert.equal(result.decision.approvalStatus, 'approved');
+  assert.equal(result.decision.approvedBy, 'admin-1');
   client.done();
 });
 
@@ -251,19 +320,21 @@ test('draft stores immutable proposal hash, internal event and sanitized audit',
       match: /INSERT INTO support_decisions/,
       check: ({ params }) => {
         assert.equal(params[16], 'support-1');
-        assert.equal(params[17], decisionInput().userFacingDecision);
-        assert.equal(params[18], decisionInput().userFacingEffect);
-        assert.equal(params[20], decisionInput().userFacingImplementationResult);
-        assert.match(params[24], /^[0-9a-f]{64}$/);
+        assert.equal(params[20], decisionInput().userFacingDecision);
+        assert.equal(params[21], decisionInput().userFacingEffect);
+        assert.equal(params[23], decisionInput().userFacingImplementationResult);
+        assert.equal(params[27], 'pending');
+        assert.equal(params[28], 'separate_review');
+        assert.match(params[29], /^[0-9a-f]{64}$/);
       },
       result: ({ params }) => ({
         rowCount: 1,
         rows: [decisionRow({
           id: params[0],
           case_id: params[1],
-          payload_sha256: params[24],
-          decided_at: params[25],
-          updated_at: params[25],
+          payload_sha256: params[29],
+          decided_at: params[30],
+          updated_at: params[30],
         })],
       }),
     },

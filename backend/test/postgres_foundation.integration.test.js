@@ -152,6 +152,7 @@ if (!databaseUrl) {
         '062_handover_exception_guard.up.sql',
         '063_return_calendar_deadline_guard.up.sql',
         '064_support_status_machine_v1_alignment.up.sql',
+        '065_support_direct_decision_path.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -637,6 +638,110 @@ if (!databaseUrl) {
            '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
          ) RETURNING id`,
         [supportPolicy.rows[0].id],
+      );
+      const greenSupportCase = await setupPool.query(
+        `INSERT INTO support_cases (
+           human_readable_case_number, case_type, case_subtype, status,
+           priority, severity, source_channel, operating_mode,
+           reporter_user_id, reporter_role, current_owner_id,
+           current_owner_role, approval_level, waiting_on, next_action,
+           next_update_at, user_facing_summary, internal_summary,
+           policy_snapshot_id, idempotency_key, intake_scope_evidence
+         ) VALUES (
+           'SIT-CDFGHJKLMNPQ', 'general_help', 'general_how_to',
+           'under_review', 'p3', 'low', 'internal', 'simulation',
+           'owner', 'user', 'support', 'general_support_owner',
+           'green_automatic', 'support_owner',
+           'Record the bounded reviewed information decision.',
+           now() + interval '1 day',
+           'A general internal test question is under review.',
+           'No account, money or external action is authorized.',
+           $1, 'support-green-direct-integration',
+           '{"version":"sit_support_single_issue_scope_v1","singleIssueConfirmed":true,"separationGuidanceShown":false}'::jsonb
+         ) RETURNING id`,
+        [supportPolicy.rows[0].id],
+      );
+      const directDecision = await setupPool.query(
+        `INSERT INTO support_decisions (
+           case_id, decision_code, decision_scope,
+           confirmed_facts_considered, material_uncertainties,
+           policy_snapshot_id, rule_reference, measure_type,
+           affected_entity_ids, unaffected_areas,
+           implementation_plan, automation_used, decided_by, approved_by,
+           approved_at, approval_payload_sha256, user_facing_decision,
+           user_facing_effect, user_facing_reason,
+           user_facing_implementation_result, internal_reason, redress_route,
+           implementation_status, idempotency_key, approval_status,
+           approval_path, payload_sha256
+         ) VALUES (
+           $1, 'support.information_only', 'Only this internal green case.',
+           '["The internal question is bounded."]'::jsonb, '[]'::jsonb,
+           $2, 'Support Packet V1 direct-decision binding',
+           'information_only', ARRAY['integration-green-case'],
+           '["No account or payment state changes."]'::jsonb,
+           'Record only the reviewed information result.', false,
+           'admin', 'admin', now(), $3,
+           'The internal review is complete.',
+           'No account or payment state changes.',
+           'The reviewed information answers the bounded question.',
+           'The reviewed result is recorded in the internal test case.',
+           'This is a single-reviewer internal database test.',
+           'A separate human review remains available.', 'not_started',
+           'support-green-direct-decision-integration', 'approved',
+           'direct_single_reviewer', $3
+         ) RETURNING id, approval_status, approval_path, approved_by, decided_by`,
+        [greenSupportCase.rows[0].id, supportPolicy.rows[0].id, 'c'.repeat(64)],
+      );
+      assert.deepEqual(directDecision.rows[0], {
+        id: directDecision.rows[0].id,
+        approval_status: 'approved',
+        approval_path: 'direct_single_reviewer',
+        approved_by: 'admin',
+        decided_by: 'admin',
+      });
+      const directlyDecidedCase = await setupPool.query(
+        `UPDATE support_cases
+            SET status = 'decided', decision_id = $2,
+                lock_version = lock_version + 1,
+                updated_at = updated_at + interval '1 second'
+          WHERE id = $1
+          RETURNING status, decision_id`,
+        [greenSupportCase.rows[0].id, directDecision.rows[0].id],
+      );
+      assert.deepEqual(directlyDecidedCase.rows[0], {
+        status: 'decided',
+        decision_id: directDecision.rows[0].id,
+      });
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO support_decisions (
+             case_id, decision_code, decision_scope,
+             confirmed_facts_considered, material_uncertainties,
+             policy_snapshot_id, rule_reference, measure_type,
+             affected_entity_ids, unaffected_areas,
+             implementation_plan, automation_used, decided_by, approved_by,
+             approved_at, approval_payload_sha256, user_facing_decision,
+             user_facing_effect, user_facing_reason,
+             user_facing_implementation_result, internal_reason, redress_route,
+             implementation_status, idempotency_key, approval_status,
+             approval_path, payload_sha256
+           ) VALUES (
+             $1, 'support.no_measure', 'Invalid direct red decision probe.',
+             '["The case is red."]'::jsonb, '[]'::jsonb, $2,
+             'Support Packet V1 red boundary', 'no_measure', ARRAY[]::text[],
+             '["No action is allowed."]'::jsonb,
+             'Reject before any implementation.', false, 'admin', 'admin',
+             now(), $3, 'No decision was made.', 'No effect is authorized.',
+             'The red case requires a separate reviewer.',
+             'No implementation occurred.', 'Negative database guard probe.',
+             'Use the separate review path.', 'not_started',
+             'support-red-direct-rejected-integration', 'approved',
+             'direct_single_reviewer', $3
+           )`,
+          [supportCase.rows[0].id, supportPolicy.rows[0].id, 'd'.repeat(64)],
+        ),
+        (error) => error?.code === '23514'
+          && error?.message === 'support_direct_decision_path_invalid',
       );
       const supportDecision = await setupPool.query(
         `INSERT INTO support_decisions (
