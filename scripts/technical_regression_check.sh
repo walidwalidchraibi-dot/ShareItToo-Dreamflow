@@ -253,6 +253,13 @@ node --check tool/install_current_head_android_candidate_update.mjs
 node --test test/tool/install_current_head_android_candidate_update.test.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
+node --check tool/validate_pf14b_current_head_android_touch_target.mjs
+node --test test/tool/validate_pf14b_current_head_android_touch_target.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_pf14b_current_head_android_touch_target.mjs --ci-metadata-only
+else
+  node tool/validate_pf14b_current_head_android_touch_target.mjs
+fi
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

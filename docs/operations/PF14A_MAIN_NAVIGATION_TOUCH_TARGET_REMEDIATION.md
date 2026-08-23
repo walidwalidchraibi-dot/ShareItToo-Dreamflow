@@ -1,6 +1,6 @@
 # PF14A main-navigation touch-target remediation
 
-Status: **SOURCE REMEDIATION PASSED — NEW SIGNED CANDIDATE AND PHYSICAL RECHECK PENDING**
+Status: **SOURCE AND SIGNED PHYSICAL REMEDIATION PASSED — MANUAL REVIEW, TALKBACK, STORE AND STAGE A HOLD / NO-GO**
 
 Observed: 2026-08-23
 
@@ -24,12 +24,14 @@ least 48dp in both dimensions and separately proves that a 20dp visual child
 stays 20dp. A source wiring ratchet requires both inactive and active icons for
 all five real destinations to use the wrapper.
 
-## Remaining package gate
+## PF14B physical closure
 
-The direct-installed PF6 binary predates this source change and therefore
-cannot prove the remediation. PF14B must create a strictly newer, signed,
-commit-bound internal Staging candidate, preserve the Pixel app data during a
-direct diagnostic update and repeat the sanitized 200%-text geometry check.
-Google Play, manual TalkBack and manual visual review remain separate external
-gates. No Store, provider, production, Payment, public or real-money state may
-change.
+PF14B created signed internal Staging build `2026082302` at `1b3e86e`, updated
+the Pixel from `2026082301` without changing its first-install time or CE data
+inode and verified the exact installed APK. At 200% font scale all five enabled
+clickable Android Buttons exceeded 48dp in both dimensions; the minimum was
+96.81dp by 70.92dp. The prior font scale was restored exactly to 0.85.
+
+Google Play delivery, manual TalkBack and manual visual review remain separate
+external gates. No Store, provider, production, Payment, public or real-money
+state changed, and Stage A remains `HOLD / NO-GO`.

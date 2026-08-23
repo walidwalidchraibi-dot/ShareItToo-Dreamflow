@@ -1,7 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **20/21 deterministic exit contracts retained; one signed-candidate
-archive lifecycle exit pending**. Non-live
+Status: **closed, 21/21 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -32,7 +31,7 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-018` | **CLOSED 23.08.2026.** S4BM also exposed the resolved `path_provider_android` 2.2.17 Gradle-9/10 warning. S4BO locks only upstream 2.2.19, the first compatible line with the explicit Gradle-9 correction after its reviewed toolchain-floor update, and binds its exact checksum plus Flutter 3.41.7 local/CI floors. The later 2.3.x JNI migration remains excluded. The warning path is absent; the direct build, complete local gate and exact CI `32616929359` pass at `620b729`. | Closed by one bounded exact lock/checksum, retained toolchain and full-gate registration contracts, one all-warning Android build, real APK minSdk-24 proof, complete local regression and exact clean-host CI. Do not replace this with an override, cache patch, warning suppression, retry, unreviewed JNI migration or compile/target-SDK change. |
 | `TD-RR-019` | **CLOSED 23.08.2026.** The reviewed Printing 5.14.3 Web adapter embeds PDF.js 3.2.146 below Mozilla's CVE-2024-4367 patched floor. Printing 5.15.0 is incompatible with pinned Dart 3.11.5 and embeds PDF.js 5.7.284 below the later CVE-2026-16633 patched floor. S4BP therefore binds the exact package checksum and resolved source hashes, proves the application's three `layoutPdf` and one `sharePdf` calls never initialize PDF.js, rejects all reachable preview/raster/conversion/direct-print/printer/platform paths, and permanently registers the contract. Focused checks, complete local regression and exact CI `32617626521` pass at `0ec4d0a`. | Closed by removing current application reachability and retaining an exact fail-closed source/adapter contract, not by claiming the embedded library is patched. Keep the guard until a separately reviewed compatible PDF stack satisfies all applicable advisories. No version-only update, advisory suppression, feature flag, runtime/cache patch, retry or reduced suite may replace it. |
 | `TD-RR-020` | **CLOSED 23.08.2026.** MobileScanner 7.1.3 predates its bounded iPhone 17 scanner-start crash correction. S4BQ pins only the immediate 7.1.4 patch, binds the exact package checksum and resolved Swift/Android/public-API hashes, requires available Apple pixel-format selection before output configuration, rejects the old unconditional BGRA assignment, preserves assignment-safe Android floors and limits application scope to the two reviewed pickup/return scanners. The complete local gate and exact CI `32618368745` pass at `910e888`; no MobileScanner Gradle warning path remains. | Closed by one exact patch lock, source-behavior and application-scope contracts, Privacy source rebinding without decision drift, complete local regression and exact clean-host CI. Retain physical Apple validation as a separate external gate. No later scanner migration, dependency override, cache patch, warning filter, retry, reduced suite or source-equals-device claim may replace it. |
-| `TD-RR-021` | **OPEN 23.08.2026.** PF14B's first current-head signed build completed the AAB, APK and privacy scan but failed with `ENOSPC` while copying the exact artifacts into the private archive. The general capacity guard had counted an existing generated tree as replaceable capacity without making its removal part of the signed builder's deterministic lifecycle. The builder now performs one cold generated-tree clean before compilation, archives only after verification and cleans generated output on success or failure. The unchanged complete local gate passes with the lifecycle wiring contract. | Close only after exact-commit GitHub regression and CodeQL pass, then the same clean commit creates and validates the owner-only private archive while retaining the fixed capacity floor. The incident cleanup and failed attempt are not acceptance evidence. No manual cleanup, alternate volume, reduced artifact set, retry, sleep or capacity override may become a prerequisite. |
+| `TD-RR-021` | **CLOSED 23.08.2026.** PF14B's first current-head signed build completed the AAB, APK and privacy scan but failed with `ENOSPC` while copying the exact artifacts into the private archive. The general capacity guard had counted an existing generated tree as replaceable capacity without making its removal part of the signed builder's deterministic lifecycle. The builder now performs one cold generated-tree clean before compilation, archives only after verification and cleans generated output on success or failure. Exact regression `32644493652` and CodeQL `32644493643` passed at `1b3e86e`; that same clean commit then created and independently validated its four-file owner-only archive, ending with 5,495,736 KiB free. | Closed by source-bound cold/failure lifecycle, unchanged fixed limits, exact CI, same-commit signed private archive and sanitized physical update evidence. The incident cleanup and failed attempt are not acceptance evidence. No manual cleanup, alternate volume, reduced artifact set, retry, sleep or capacity override may become a prerequisite. |
 
 ## Observation log
 
@@ -41,9 +40,12 @@ claimed until every item below has reproducible evidence and is closed.
   an `ENOSPC` failure during the private copy. One exact `flutter clean`
   recovered only ignored generated files after the failed attempt; it is not
   acceptance evidence. The signed builder now owns a cold generated lifecycle,
-  cleanup-on-failure and archive-before-cleanup ordering. Focused contracts and
-  the unchanged complete local gate pass. `TD-RR-021` remains open until exact
-  CI and a successful same-commit signed archive prove the deterministic exit.
+  cleanup-on-failure and archive-before-cleanup ordering. Exact regression
+  `32644493652` and CodeQL `32644493643` passed at `1b3e86e`; the same commit
+  then retained its exact four-file owner-only archive with 5,495,736 KiB free.
+  A strict data-preserving Pixel update and five-target physical 200%-font
+  geometry diagnostic passed without Store or live changes. This closes
+  `TD-RR-021`; all 21/21 deterministic exits are retained.
 
 - 23.08.2026, S4BQ: the immediately following MobileScanner patch fixes the
   documented iPhone 17 scanner-start crash by selecting an available capture
