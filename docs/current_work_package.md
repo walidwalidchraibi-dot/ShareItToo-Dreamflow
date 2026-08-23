@@ -3198,3 +3198,11 @@ N8 owns the deterministic, personal-data-free CORE/GROWTH/BLUE-OCEAN
 comparison. All outputs remain aggregate and explicitly distinguish domain
 simulation from human or app E2E evidence. No provider, scanner, paid or live
 operation is authorized.
+
+The implemented fixed run uses 30 synthetic participants across 40 attempts
+and completes 37 flows. Eight harness tests and seven evidence-validator tests
+pass. The complete CI-metadata candidate-rollover regression is green with 719
+Backend tests plus one documented skip, 387 Flutter tests plus one documented
+skip, Web/Wasm and Android debug. The strict Store handoff remains a separate,
+known HOLD because its private archived AAB is unavailable. Exact GitHub
+verification is the remaining N8 closure step before N9.

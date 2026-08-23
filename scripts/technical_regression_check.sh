@@ -346,6 +346,12 @@ node --test test/tool/blue_ocean_n6_listing_ui_wiring.test.mjs
 node --check tool/validate_blue_ocean_n6_listing_workflow.mjs
 node --test test/tool/validate_blue_ocean_n6_listing_workflow.test.mjs
 node tool/validate_blue_ocean_n6_listing_workflow.mjs
+node --check tool/validate_blue_ocean_n7_evaluation_corpus.mjs
+node --test test/tool/validate_blue_ocean_n7_evaluation_corpus.test.mjs
+node tool/validate_blue_ocean_n7_evaluation_corpus.mjs
+node --check tool/validate_blue_ocean_n8_synthetic_pilot_harness.mjs
+node --test test/tool/validate_blue_ocean_n8_synthetic_pilot_harness.test.mjs
+node tool/validate_blue_ocean_n8_synthetic_pilot_harness.mjs
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

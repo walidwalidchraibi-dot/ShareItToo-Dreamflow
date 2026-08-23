@@ -3515,8 +3515,9 @@ local Store handoff still fails closed because its previously documented
 private archived AAB is unavailable; no candidate was rebuilt. Implementation
 commit `7a8290408edf225c6c41e12eb5b3b278437984e6`, GitHub regression run
 `32672867686` and CodeQL run `32672867642` are exact and green. N6 is complete
-and N7 is active; N8 remains responsible for explicit privacy export, erasure
-and retention integration before any invited-person activation.
+and N7 is active. The Blue Ocean instruction assigns N8 to the deterministic
+synthetic pilot comparison; existing privacy/export/erasure gates remain
+mandatory before any invited-person activation.
 
 ## Stage A Blue Ocean N7 evaluation corpus (2026-08-24)
 
@@ -3539,3 +3540,23 @@ skip, Web/Wasm, loopback smoke and Android debug. GitHub regression run
 `32673817497` and CodeQL run `32673817482` are exact and successful at
 implementation commit `a6248a7cd97711eddcf9211c0c3a8cccdf1858c7`. N7 is
 complete and N8 is active.
+
+## Stage A Blue Ocean N8 synthetic pilot harness (2026-08-24)
+
+N8 adds a deterministic domain-simulation harness for exactly 30 synthetic
+participants, 40 attempted and 37 completed flows across CORE, GROWTH and BLUE
+OCEAN. It returns aggregate metrics only and is explicitly classified as
+planning output, not observed human or Flutter/device E2E evidence.
+
+BLUE OCEAN executes the actual N3 mock/refusal gateway, N5 regional-price
+module and V5.2 quote domain. G3–G5 are bounded cohort simulations in this
+harness. Two provider/budget cases fall back manually and one simulated G5
+failure preserves the main listing. Eight focused tests and seven validator
+tests pass; exact replay is bound to SHA-256
+`1c95d0ace4b101bdf7c09c5ad7116abf749430b1f08d834ec4c6868504f8ecd0`.
+
+The complete technical regression passes in CI-metadata candidate-rollover
+mode: 719 Backend tests plus one documented skip, 387 Flutter tests plus one
+documented skip, Web/Wasm, loopback smoke and Android debug. The separately
+known strict local Store-handoff HOLD for the missing private archived AAB
+remains unchanged. N8 exact GitHub verification is pending; N9 follows.
