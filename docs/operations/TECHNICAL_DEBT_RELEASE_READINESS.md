@@ -1,6 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **closed, 15/15 deterministic exit contracts retained**. Non-live
+Status: **closed, 16/16 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -26,8 +26,19 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-013` | **CLOSED 23.08.2026.** The PostgreSQL-16 integration emitted the `pg` warning that calling `client.query()` while the same client is already executing a query is deprecated and will be removed in `pg` 9. A diagnostic run with `NODE_OPTIONS=--throw-deprecation` failed at the first affected transactional workflow. S4BI serializes every formerly concurrent same-client query batch in six transactional source files; independent queries remain semantically unchanged. The repository runner now always invokes the canonical integration with `--throw-deprecation`, and a source contract rejects recurrence. The unchanged real runner and complete local gate pass. Exact CI `32612314131` passes the independent fresh-cluster proof at `76cb636`. | Closed by fail-on-deprecation execution plus a structural no-parallel-same-client contract. Permanently retain the canonical runner flag and source guard; warning suppression, pinning to an old client, retry, additional clients or a reduced integration suite may not replace the source fix. |
 | `TD-RR-014` | **CLOSED 23.08.2026.** The locked `image` 4.5.4 dependency emitted two WebAssembly dry-run findings, while the first real financial-PDF test showed that built-in Helvetica omitted the German document's en dash. S4BK uses a bounded `pdf`/`printing` update that locks `image` 4.9.2, makes WebAssembly findings fatal without disabling the dry run, and renders financial PDFs with hash-bound offline Roboto Regular/Bold assets plus the shipped SIL OFL 1.1 license. The real PDF test, unchanged local gate and exact clean-host CI `32613968872` pass at `52aa41f`; its log contains positive Wasm success and no former finding signature. | Closed by reviewed dependency floors/locks, offline font supply-chain hashes/license, real PDF generation and fail-on-Wasm-finding full builds. Retain the active dry run, exact font contract and clean-host CI; no warning filter, `--no-wasm-dry-run`, runtime font download, system-font dependency, cache patch, retry or partial build may replace them. |
 | `TD-RR-015` | **CLOSED 23.08.2026.** The transitive Android lifecycle bridge 2.0.30 retained an upstream Groovy Gradle-9/10 syntax deprecation, and the new S4BJ file-picker and S4BK PDF/WebAssembly contracts were not yet registered in the complete gate. S4BL changes only that transitive lock to 2.0.35, binds its exact checksum and the compatible Flutter 3.41.7 floor, and permanently registers all three dependency contracts. An all-warning local Android build no longer reports the lifecycle Groovy syntax warning; the complete local gate and exact clean-host CI `32614834455` pass at `fcd2a0d`. Remaining vendor/SDK warnings stay visible and separate. | Closed by one bounded lock update, exact checksum/toolchain/runner contracts, a direct 448-task all-warning Android build, the complete local gate and clean-host CI. Retain the three full-gate registrations; no Pub-cache patch, warning suppression, broad toolchain upgrade, retry, partial build or removal of remaining warnings may replace reviewed compatible updates. |
+| `TD-RR-016` | **CLOSED 23.08.2026.** The complete Android gate used Gradle's default warning summary, so individual warning ownership was absent from its retained output and an SIT-owned Gradle deprecation could be obscured among vendor warnings. S4BM keeps exactly one direct build, captures and prints `--warning-mode all` output, preserves build failure and fails after a successful compile on any Build-file or Settings-file warning under the checkout's `android/` path. The unchanged local gate and exact clean-host CI `32615539334` pass at `1ad3410`; clean-host warning locations are visible under resolved Pub-cache plugin paths and no SIT-owned path was accepted. | Closed by full warning visibility, fail-closed repository ownership checks, one-attempt/capacity contracts and exact clean-host CI. Retain one build and unchanged output; no second diagnostic build, warning filtering, `none`/`summary` mode, accepted-warning fingerprint, Pub-cache patch, retry or timing workaround may replace compatible source/dependency fixes. |
 
 ## Observation log
+
+- 23.08.2026, S4BM: Gradle's summary-only Android output was replaced by full
+  warning visibility on the same single build. The output is printed unchanged
+  and any warning location inside the checked-out SIT `android/` Build or
+  Settings files fails the gate. Eleven focused contracts, the complete local
+  gate and exact CI `32615539334` pass at `1ad3410`. Clean-host warnings are
+  individually visible under resolved Pub-cache plugin paths; none is silently
+  accepted as a baseline, and no SIT-owned warning path passed. This closes
+  `TD-RR-016`; all 16/16 deterministic exit contracts are retained. P0B and
+  every external gate remain closed.
 
 - 23.08.2026, S4BL: an all-warning Android inventory attributed deprecations to
   plugin/toolchain paths rather than SIT-owned Gradle scripts. The narrow

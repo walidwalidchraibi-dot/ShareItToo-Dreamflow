@@ -2482,3 +2482,27 @@ Exact clean-host CI `32614834455` passes PostgreSQL in 39 seconds, Backend in
 skipped. `TD-RR-015` is closed and the register is 15/15 closed. The lifecycle
 manifest warning, SDK XML warning and other vendor warnings stay visible and
 separate. External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BM Android Gradle warning visibility
+
+`S4BM_ANDROID_GRADLE_WARNING_VISIBILITY` is technically verified at exact
+implementation head `1ad3410bd144be6fe5c5af65f1dd6a586573ad3d`. The same
+single Android debug build now runs with `--warning-mode all`, captures and
+prints its complete output, preserves build failures and rejects every Gradle
+Build-file or Settings-file warning located under the current checkout's
+`android/` path. Summary-only, `none`, a second diagnostic build and hidden
+accepted-warning fingerprints are contractually absent.
+
+Eleven focused contracts and the complete local gate pass with analyzer zero,
+385 Flutter tests plus one documented skip, Google-only, Web/Wasm, loopback
+smoke and Android 448 tasks. The local warning locations are third-party
+Pub-cache/Flutter paths; no SIT-owned Gradle-script warning appears. Capacity
+ends with 1,333,388 KiB free and only 8 KiB generated growth.
+
+Exact clean-host CI `32615539334` passes PostgreSQL in 40 seconds, Backend in
+1:23 and Flutter/Web/Android in 6:27. Clean-host warning locations are visible
+under `/home/runner/.pub-cache/...`; no repository Android path passed the
+ownership gate. Publication/signing stayed skipped. `TD-RR-016` is closed and
+the register is 16/16 closed. Remaining vendor warnings stay visible for
+bounded compatible upgrades. External readiness remains 0/10 and P0B remains
+`HOLD` / `NO-GO`.

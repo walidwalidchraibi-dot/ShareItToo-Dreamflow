@@ -2173,3 +2173,25 @@ This closes `TD-RR-015`; all 15/15 deterministic release-readiness debt exits
 are retained. Remaining lifecycle-manifest, SDK XML and third-party Android
 warnings stay visible for later bounded compatibility work. External readiness
 remains 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BM Android Gradle warning visibility
+
+`S4BM_ANDROID_GRADLE_WARNING_VISIBILITY` is technically verified at exact
+implementation head `1ad3410bd144be6fe5c5af65f1dd6a586573ad3d`. The complete
+gate keeps one direct Android build, now with `--warning-mode all`. It captures
+and prints the full output, preserves any build failure and rejects warning
+locations from the checked-out SIT Android Build or Settings files. It neither
+adds a second build nor treats current vendor warnings as an accepted
+fingerprint.
+
+Eleven focused contracts and the unchanged complete local gate pass. The
+single Android build completes 448 tasks; every local warning source is outside
+the repository-owned Android scripts. Exact clean-host CI `32615539334` passes
+PostgreSQL in 40 seconds, Backend in 1:23 and Flutter/Web/Android in 6:27. Its
+full warning locations are resolved Pub-cache plugin paths and no SIT-owned
+warning passed. Signing and publication remain skipped.
+
+This closes `TD-RR-016`; all 16/16 deterministic release-readiness debt exits
+are retained. Vendor warnings remain visible for separately reviewed compatible
+dependency work. External readiness remains 0/10 and P0B remains `HOLD` /
+`NO-GO`.
