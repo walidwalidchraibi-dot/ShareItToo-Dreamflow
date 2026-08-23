@@ -510,7 +510,17 @@ flutter test --reporter expanded \
   --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=false \
   test/social_auth_google_only_profile_test.dart
 
-flutter build web --debug
+if ! web_build_output="$(flutter build web --debug 2>&1)"; then
+  printf '%s\n' "$web_build_output"
+  echo "ERROR: Flutter Web debug build failed." >&2
+  exit 1
+fi
+printf '%s\n' "$web_build_output"
+if printf '%s\n' "$web_build_output" \
+  | grep -Eq 'Wasm dry run findings|avoid_double_and_int_checks'; then
+  echo "ERROR: Flutter Web build reported unresolved WebAssembly findings." >&2
+  exit 1
+fi
 bash scripts/p0a_web_smoke.sh
 
 ./android/gradlew -p android :app:assembleDebug --no-daemon

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:lendify/models/invoice.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -8,14 +9,19 @@ import 'package:pdf/widgets.dart' as pw;
 /// Creates a portable PDF view of the immutable server document snapshot.
 /// No amount is recalculated from item, delivery, distance or client state.
 class InvoicePdfService {
+  static const _regularFontAsset = 'assets/fonts/Roboto-Regular.ttf';
+  static const _boldFontAsset = 'assets/fonts/Roboto-Bold.ttf';
+
   static Future<Uint8List> buildPdf(Invoice invoice) async {
     try {
+      final theme = await _loadTheme();
       final document = pw.Document(
         title: '${invoice.title} ${invoice.documentNumber}',
         author: 'ShareItToo',
         creator: 'ShareItToo – immutable financial document view',
       );
       document.addPage(pw.MultiPage(
+        theme: theme,
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         build: (_) => [
@@ -44,6 +50,15 @@ class InvoicePdfService {
       debugPrint('[InvoicePdfService] buildPdf failed: $error');
       rethrow;
     }
+  }
+
+  static Future<pw.ThemeData> _loadTheme() async {
+    final regularFontData = await rootBundle.load(_regularFontAsset);
+    final boldFontData = await rootBundle.load(_boldFontAsset);
+    return pw.ThemeData.withFont(
+      base: pw.Font.ttf(regularFontData),
+      bold: pw.Font.ttf(boldFontData),
+    );
   }
 
   static pw.Widget _testBanner() => pw.Container(

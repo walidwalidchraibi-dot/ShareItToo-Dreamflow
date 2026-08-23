@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "83b93b33c5f16e9bb209ed71db481a5dd5a836989132d6e1380ccc9172dfde83"
+      "sha256": "2110c1456c0b15fcfb51740c9100de35522541c8f325372c196d3541e3e7914f"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -780,7 +780,7 @@
     },
     {
       "path": "lib/services/invoice_pdf_service.dart",
-      "sha256": "f76a8e85a7b969f385c36a2853ae27a3644f89d6b9379809cd47c3bc3b942a3a"
+      "sha256": "115b09ca2a8fc47059aa7b044ef7b557a973de667df5176fa28a0a5170d6db82"
     },
     {
       "path": "lib/screens/invoices_screen.dart",
