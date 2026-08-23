@@ -2617,3 +2617,29 @@ real-money, public activation or merge action occurred.
 The next autonomous lane is the remaining source-bound functional preparation
 that can use isolated synthetic state without external accounts, live traffic
 or a pilot claim. Stage A remains `HOLD` / `NO-GO`.
+
+## PF8 — current-head Android authenticated cold start
+
+`PF8_CURRENT_HEAD_ANDROID_AUTHENTICATED_SESSION` adds a source-bound
+`--current-head` route to the reusable authenticated-session diagnostic. It
+cannot accept a candidate-directory override and validates the PF6 evidence,
+owner-only archive and exact installed APK before device interaction.
+
+Two physical Pixel force-stop/launcher cycles restored the existing
+authenticated profile actions and excluded the guest actions. Temporary UI
+hierarchies were deleted after each read; evidence contains no hierarchy,
+screen content, identity, credentials, tokens, review account data, raw device
+identifier or private path. The diagnostic leaves the app on Explore and now
+also uses the current Android keyguard fields and a bounded failure cleanup.
+
+PF8 is not complete PF5 A14 evidence. Pending-submission acknowledgement,
+duplicate prevention and authoritative server reconciliation remain open, as
+do authenticated deep links, booking roles, real push, TalkBack and Store
+delivery. No login/logout, account mutation, network change, participant,
+Store, production, Payment, Cloud/VPS/DNS, provider, contract, cost,
+real-money, public activation or merge action occurred.
+
+The next autonomous lane is a current-head guest or isolated-synthetic
+functional surface that can be proven without altering the preserved account,
+using a live provider or claiming a pilot pass. Stage A remains
+`HOLD` / `NO-GO`.

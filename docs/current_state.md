@@ -2965,3 +2965,32 @@ commit `25afa9d2223273683d9e4fc97cca73e6847abfd6`: regression run
 reset, network change, Store, participant, production, Payment, Cloud/VPS/DNS,
 provider, contract, cost, real-money, public activation or merge action
 occurred. P0B and Stage A remain `HOLD` / `NO-GO`.
+
+## PF8 current-head Android authenticated cold start
+
+The existing authenticated-session diagnostic now has a non-overridable
+`--current-head` route that validates the PF6 repository record, owner-only
+archive and exact installed direct APK before any device interaction. On the
+authorized Pixel 7 Pro, two force-stop/launcher cycles both restored the
+already-present authenticated profile actions while the guest actions stayed
+absent. The app was returned to Explore.
+
+Only the required sanitized action labels were evaluated. Each temporary UI
+hierarchy was deleted after reading and no hierarchy, screen text, identity,
+account content, credential, token, review credential, raw device identifier
+or private path entered evidence. Current Android keyguard fields are now
+checked, and failure paths attempt the same safe Explore restoration without
+masking the original result.
+
+PF8 closes only the authenticated cold-start subset of PF5 A14. It does not
+claim pending-submission acknowledgement, duplicate prevention, server
+reconciliation, authenticated deep links, booking roles, real push, TalkBack
+or Store delivery; complete A14 remains `not-run`.
+
+PF7 is independently green on exact commit
+`20db6a4926f87a3d9223d2109f1b311939a16cdf`: regression run
+`32635113349` and CodeQL run `32635113345` both succeeded. No login, logout,
+account mutation, network change, uninstall, reset, Store, participant,
+production, Payment, Cloud/VPS/DNS, provider, contract, cost, real-money,
+public activation or merge action occurred. P0B and Stage A remain
+`HOLD` / `NO-GO`.

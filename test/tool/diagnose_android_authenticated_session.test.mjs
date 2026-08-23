@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import { diagnoseAndroidAuthenticatedSession } from '../../tool/diagnose_android_authenticated_session.mjs';
+import {
+  diagnoseAndroidAuthenticatedSession,
+  parseAuthenticatedSessionArguments,
+} from '../../tool/diagnose_android_authenticated_session.mjs';
 
 const apkBytes = Buffer.from('verified authenticated candidate bytes');
 const apkSha256 = createHash('sha256').update(apkBytes).digest('hex');
@@ -191,7 +194,7 @@ test('does not misclassify the guest profile as an authenticated session', async
     /still signed out.*never enters review credentials/,
   );
   const dumps = fake.calls.filter((args) => args.includes('uiautomator'));
-  assert.equal(dumps.length, 9);
+  assert.equal(dumps.length, 10);
 });
 
 test('waits through a transient guest profile while the persisted session hydrates', async () => {
@@ -301,5 +304,22 @@ test('rejects a split installation not delivered by Google Play', async () => {
       wait: async () => {},
     }),
     /not delivered by Google Play/,
+  );
+});
+
+test('parses the source-bound current-head route without allowing an archive override', () => {
+  assert.deepEqual(parseAuthenticatedSessionArguments(['--current-head']), {
+    candidateDirectory: null,
+    adbPath: 'adb',
+    networkCondition: null,
+    currentHead: true,
+  });
+  assert.throws(
+    () => parseAuthenticatedSessionArguments([
+      '--current-head',
+      '--candidate-dir',
+      '/private/alternate',
+    ]),
+    /cannot be combined/u,
   );
 });

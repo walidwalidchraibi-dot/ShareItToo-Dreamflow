@@ -222,6 +222,13 @@ node --test test/tool/validate_g2_data_lifecycle.test.mjs
 node tool/validate_g2_data_lifecycle.mjs
 node --check tool/diagnose_android_authenticated_session.mjs
 node --test test/tool/diagnose_android_authenticated_session.test.mjs
+node --check tool/validate_current_head_android_authenticated_session.mjs
+node --test test/tool/validate_current_head_android_authenticated_session.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_current_head_android_authenticated_session.mjs --ci-metadata-only
+else
+  node tool/validate_current_head_android_authenticated_session.mjs
+fi
 node --check tool/diagnose_android_authenticated_links.mjs
 node --test test/tool/diagnose_android_authenticated_links.test.mjs
 node --check tool/run_isolated_android_authenticated_links_diagnostic.mjs

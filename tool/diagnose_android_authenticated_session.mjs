@@ -13,6 +13,9 @@ import {
   selectSinglePhysicalDevice,
   validateCandidateArchive,
 } from './prepare_android_device_test.mjs';
+import {
+  loadCurrentHeadAndroidDeviceCandidate,
+} from './validate_current_head_android_candidate.mjs';
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-authenticated-session-diagnostic.xml';
@@ -56,7 +59,7 @@ function parseInstalledPackage(output) {
 
 function assertDeviceAlreadyUnlocked(commandRunner, adbPath, device) {
   const policy = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'window', 'policy']);
-  if (/keyguardShowing=true|isStatusBarKeyguard=true/.test(policy)) {
+  if (/keyguardShowing=true|isStatusBarKeyguard=true|\bmIsShowing=true\b|\bshowing=true\b/u.test(policy)) {
     fail('The Android phone is locked. Unlock it manually; this diagnostic never enters a passcode.');
   }
 }
@@ -411,8 +414,8 @@ export async function diagnoseAndroidAuthenticatedSession({
       await waitForNoConnectivity({ commandRunner, adbPath, device, wait });
       await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
       await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
-      restoreExplore(commandRunner, adbPath, device);
     } finally {
+      restoreExplore(commandRunner, adbPath, device);
       await setNetworkToggle({
         commandRunner,
         adbPath,
@@ -441,9 +444,12 @@ export async function diagnoseAndroidAuthenticatedSession({
       networkRestored: 'passed',
     };
   } else {
-    await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
-    await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
-    restoreExplore(commandRunner, adbPath, device);
+    try {
+      await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
+      await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
+    } finally {
+      restoreExplore(commandRunner, adbPath, device);
+    }
   }
 
   return {
@@ -500,10 +506,11 @@ export async function diagnoseAndroidAuthenticatedSession({
   };
 }
 
-function parseArguments(values) {
+export function parseAuthenticatedSessionArguments(values) {
   let candidateDirectory = null;
   let adbPath = 'adb';
   let networkCondition = null;
+  let currentHead = false;
   for (let index = 0; index < values.length; index += 1) {
     if (values[index] === '--candidate-dir') {
       candidateDirectory = values[index + 1] ?? fail('--candidate-dir requires a path.');
@@ -515,31 +522,43 @@ function parseArguments(values) {
       networkCondition = values[index + 1] ?? fail('--network requires a value.');
       if (networkCondition !== 'offline') fail('--network only supports offline.');
       index += 1;
+    } else if (values[index] === '--current-head') {
+      currentHead = true;
     } else {
       fail(`Unknown argument: ${values[index]}`);
     }
   }
-  return { candidateDirectory, adbPath, networkCondition };
+  if (currentHead && candidateDirectory !== null) {
+    fail('--current-head cannot be combined with --candidate-dir.');
+  }
+  return { candidateDirectory, adbPath, networkCondition, currentHead };
 }
 
 async function run() {
   const root = fileURLToPath(new URL('../', import.meta.url));
-  const args = parseArguments(process.argv.slice(2));
-  const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
-  const candidate = manifest.candidate;
-  const candidateDirectory = resolve(
-    args.candidateDirectory
-      ?? resolve(
-        homedir(),
-        'Library',
-        'Application Support',
-        'ShareItToo',
-        'release',
-        'android',
-        `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
-      ),
-  );
-  const archive = await validateCandidateArchive({ root, candidateDirectory });
+  const args = parseAuthenticatedSessionArguments(process.argv.slice(2));
+  let candidate;
+  let archive;
+  if (args.currentHead) {
+    candidate = await loadCurrentHeadAndroidDeviceCandidate();
+    archive = Object.freeze({ apkSha256: candidate.android.apkSha256 });
+  } else {
+    const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
+    candidate = manifest.candidate;
+    const candidateDirectory = resolve(
+      args.candidateDirectory
+        ?? resolve(
+          homedir(),
+          'Library',
+          'Application Support',
+          'ShareItToo',
+          'release',
+          'android',
+          `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
+        ),
+    );
+    archive = await validateCandidateArchive({ root, candidateDirectory });
+  }
   const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });
