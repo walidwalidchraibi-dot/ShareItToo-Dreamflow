@@ -1900,3 +1900,32 @@ This package does not close `TD-RR-010`; the remaining 25 message-thread
 diagnostics still require reviewed downward ratchets to zero plus exact-commit
 CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
 Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.
+
+## S4BC message-thread dead-helper ratchet
+
+`S4BC_MESSAGE_THREAD_DEAD_HELPER_RATCHET` delivers the next downward
+`TD-RR-010` source ratchet at implementation commit `7cde3ea`. It removes six
+uncalled message-thread helpers, including the translation picker exposed as a
+transitive orphan. Active translation settings/menu, protected location
+acceptance/reuse, time coordination, `needsReview` and canonical support remain
+permanently guarded.
+
+The exact debt snapshot moves `25 -> 20`: `unused_element` changes `14 -> 9`,
+while `unused_element_parameter` remains `9` and `unused_field` remains `2`.
+One hundred focused source/analyzer/privacy/retention/data-integrity contracts,
+42 focused Flutter tests and all exact privacy, retention, G2 lifecycle and
+analyzer validators pass. The complete standard-parallel gate passed in one
+execution on `7cde3ea` with 384 Flutter tests plus one documented skip, the
+separate Google-only test, Web build/smoke and one direct 448-task Android
+debug build. The privacy inventory is rebound to the exact source without
+changing its draft or release state.
+
+The complete S4BC gate passed with the unchanged command, no retry, cleanup,
+network switch or Pixel dependency and 1139 MiB to 1136 MiB available
+capacity. This does not close `TD-RR-012`: deterministic release-host capacity
+and bounded-growth evidence remain open.
+
+This package does not close `TD-RR-010`; the remaining 20 message-thread
+diagnostics still require reviewed downward ratchets to zero plus exact-commit
+CI. P0B remains `HOLD` / `NO-GO`; no production, Payment, Store,
+Cloud/VPS/DNS, deployment, signing, merge or public activation is enabled.
