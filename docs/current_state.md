@@ -2553,3 +2553,27 @@ Exact clean-host CI `32616929359` passes PostgreSQL in 39 seconds, Backend in
 `TD-RR-018` is closed and the register is 18/18 closed. Remaining vendor
 warnings stay visible for separate bounded review. External readiness remains
 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BP Printing Web PDF.js reachability guard
+
+`S4BP_PRINTING_WEB_PDFJS_REACHABILITY_GUARD` is technically verified at exact
+implementation head `0ec4d0a37e633d9759d3120c3b26b36bfbabbbf7`. Printing's
+reviewed Web adapter embeds PDF.js 3.2.146, below Mozilla's CVE-2024-4367
+patched floor. Printing 5.15.0 is incompatible with pinned Dart 3.11.5 and its
+PDF.js 5.7.284 also precedes the later CVE-2026-16633 patched floor, so no
+unsafe version-only update was accepted.
+
+The permanent contract binds the exact lock checksum and resolved adapter
+hashes. It proves that current application Web delivery uses only three
+`layoutPdf` and one `sharePdf` calls, neither of which initializes the adapter's
+PDF.js loader, and rejects every preview, raster, conversion, direct-print,
+printer-discovery or direct platform path.
+
+Eighteen focused assertions and the complete local gate pass with analyzer
+zero, 385 Flutter tests plus one documented skip, Google-only, Web/Wasm,
+loopback smoke, Android 448 tasks and binary minSdk 24. Exact clean-host CI
+`32617626521` passes PostgreSQL in 54 seconds, Backend in 1:18 and
+Flutter/Web/Android in 6:32 with all four reachability subtests, 445 Android
+tasks and publication/signing skipped. `TD-RR-019` is closed and the register
+is 19/19 closed. External readiness remains 0/10 and P0B remains `HOLD` /
+`NO-GO`.
