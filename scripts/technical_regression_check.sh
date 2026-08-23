@@ -109,6 +109,7 @@ node --test test/tool/support_privacy_rights_control_plane_wiring.test.mjs
 node --test test/tool/support_privacy_incident_control_plane_wiring.test.mjs
 node --test test/tool/file_picker_security_upgrade.test.mjs
 node --test test/tool/pdf_wasm_dependency_upgrade.test.mjs
+node --test test/tool/printing_web_pdfjs_reachability.test.mjs
 node --test test/tool/android_lifecycle_gradle_floor.test.mjs
 node --test test/tool/android_gradle9_bridge_floor.test.mjs
 node --test test/tool/android_path_provider_gradle_floor.test.mjs
