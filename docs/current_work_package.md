@@ -2067,3 +2067,30 @@ No login, external account, paid service, production, Payment, Store,
 Cloud/VPS/DNS, pilot or activation state changed. S4BH is complete, but the ten
 authentic professional/owner/provider/device decisions and Walid's final
 activation decision remain external. P0B remains `HOLD` / `NO-GO`.
+
+## S4BI PostgreSQL single-client serialization
+
+`S4BI_POSTGRES_SINGLE_CLIENT_SERIALIZATION` is technically verified at exact
+implementation head `76cb6368af8e8d50e4db7d6e11ac38b2211ffe1c`. A real
+PostgreSQL warning identified transaction-scoped `Promise.all` query batches
+that `pg` 8 serialized internally but `pg` 9 will reject. A retained red
+diagnostic with `--throw-deprecation` failed at the first affected booking
+query; it was neither suppressed nor retried.
+
+Six transactional workflow sources now issue those same reads in explicit
+order on their existing checked-out client. The canonical fresh-cluster runner
+always enables hard deprecations, and a source contract rejects reintroduced
+parallel same-client batches. Privacy and retention hashes were rebound to the
+exact reviewed sources without changing their draft/HOLD decisions.
+
+The real PostgreSQL-16 runner returned `passed-and-cleaned`, Backend passed 605
+tests with one documented no-database skip, and the complete unchanged local
+gate passed with analyzer zero, 384 Flutter tests plus one documented skip,
+Google-only, Web build/smoke, one direct 448-task Android build and zero
+generated-footprint growth. Exact CI `32612314131` passed the independent
+PostgreSQL proof in 31 seconds, Backend in 1:19 and Flutter/Web/Android;
+the latter completed in 6:23, while signing and publication stayed skipped.
+
+This closes `TD-RR-013`; all 13/13 deterministic release-readiness debt exits
+are retained. No external or live state changed, external readiness remains
+0/10 and P0B remains `HOLD` / `NO-GO`.

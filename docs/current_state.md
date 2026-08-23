@@ -2383,3 +2383,27 @@ Android debug build; generated footprint growth was 4 KiB. Exact CI run
 Flutter/Web/Android in 6:30. Signing and publication were skipped. No external
 or live state changed, external readiness remains 0/10 and P0B remains `HOLD`
 / `NO-GO`.
+
+## S4BI PostgreSQL single-client serialization
+
+`S4BI_POSTGRES_SINGLE_CLIENT_SERIALIZATION` is technically verified at exact
+head `76cb6368af8e8d50e4db7d6e11ac38b2211ffe1c`. The canonical
+PostgreSQL-16 integration exposed parallel calls on the same checked-out
+client as deprecated and incompatible with the upcoming `pg` 9 behavior. A
+hard-deprecation diagnostic retained the complete path and failed at the first
+affected booking query.
+
+All affected transaction-scoped reads in six workflow files now execute in
+explicit order without changing the queries, snapshot boundary or result
+mapping. The repository runner permanently supplies `--throw-deprecation`, and
+a focused source contract rejects `Promise.all` in those six files. The real
+local runner passes and cleans its cluster; Backend, Privacy/Retention and the
+complete technical gate pass without retry or warning suppression. The local
+capacity guard records zero generated-footprint growth.
+
+Exact CI run `32612314131` passed the independent PostgreSQL job in 31 seconds,
+Backend in 1:19 and Flutter/Web/Android in 6:23 at the exact implementation head.
+Signed-candidate construction and publication stayed skipped. `TD-RR-013` is
+closed and the Technical-Debt register is 13/13 closed. This package changes no
+external or live state; external readiness remains 0/10 and P0B remains
+`HOLD` / `NO-GO`.

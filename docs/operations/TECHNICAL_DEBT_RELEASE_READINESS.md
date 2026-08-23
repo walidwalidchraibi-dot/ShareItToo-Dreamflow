@@ -1,6 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **closed, 12/12 deterministic exit contracts retained**. Non-live
+Status: **closed, 13/13 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -23,8 +23,21 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-010` | **CLOSED 23.08.2026.** S4X replaced the Flutter analyzer's permissive ceiling with an exact normalized diagnostic fingerprint. S4Y through S4BE guard every repaired async lifetime and dead-code boundary across Wishlist, popup/navigation, gallery, item-card/details, listing options/photos, profiles, requests/bookings, Explore, DataService and message thread. The backlog ratcheted `220 -> 214 -> 212 -> 210 -> 207 -> 204 -> 203 -> 202 -> 200 -> 198 -> 196 -> 194 -> 191 -> 188 -> 182 -> 175 -> 171 -> 165 -> 155 -> 143 -> 132 -> 122 -> 86 -> 71 -> 59 -> 55 -> 48 -> 42 -> 33 -> 25 -> 20 -> 3 -> 0`; `use_build_context_synchronously` decreased `98 -> 0`, `deprecated_member_use` decreased `36 -> 0`, and all remaining unused-code buckets reached zero. S4AS also removed three 120-millisecond and one 80-millisecond reservation-navigation waits without replacement. The unchanged complete gate passed once locally at `2fd646b`; exact CI run `32608792863` passed at `4d914ed` with Backend 1:31, Flutter 6:36 and publishing skipped. | Closed by reviewed source fixes, an exact empty snapshot and green exact-commit CI. Permanently retain the zero snapshot and fail-closed parser; never raise it, replace findings, suppress lints, make warnings non-fatal or update evidence merely to pass. |
 | `TD-RR-011` | **CLOSED 22.08.2026.** Failed run `32592388940` exposed a cold-cache Maven `403` and Flutter's hidden APK retry. S4AC replaced it with one direct wrapper `assembleDebug`. Run `32593274378` passed without rerun and wrote the cold PR-scoped Basic Cache (`0 restored, 1 saved`); later exact run `32594060058` restored it (`1 restored, 0 saved`) and passed with one direct build, zero Flutter APK commands and zero retries. | Closed by a reproducible open-source Basic Cache write/restore sequence. Permanently retain the single-attempt contract; no rerun-after-failure, sleep, retry loop, alternate mirror, manual cache injection or paid provider may reappear. |
 | `TD-RR-012` | **CLOSED 23.08.2026.** S4BF adds fixed fail-closed 4 GiB effective-capacity, 5 GiB generated-footprint and 512 MiB end-free bounds around the unchanged complete gate. The local run at `891ecdc` passed with 8 KiB growth; exact CI `32609567488` passed with 3,166,800 KiB growth and adequate final free space. | Closed by deterministic local and exact-CI host measurements. Retain fixed bounds; manual cache purge, alternate temp root, smaller suite, serial execution, retry or pass-on-rerun cannot become release prerequisites. |
+| `TD-RR-013` | **CLOSED 23.08.2026.** The PostgreSQL-16 integration emitted the `pg` warning that calling `client.query()` while the same client is already executing a query is deprecated and will be removed in `pg` 9. A diagnostic run with `NODE_OPTIONS=--throw-deprecation` failed at the first affected transactional workflow. S4BI serializes every formerly concurrent same-client query batch in six transactional source files; independent queries remain semantically unchanged. The repository runner now always invokes the canonical integration with `--throw-deprecation`, and a source contract rejects recurrence. The unchanged real runner and complete local gate pass. Exact CI `32612314131` passes the independent fresh-cluster proof at `76cb636`. | Closed by fail-on-deprecation execution plus a structural no-parallel-same-client contract. Permanently retain the canonical runner flag and source guard; warning suppression, pinning to an old client, retry, additional clients or a reduced integration suite may not replace the source fix. |
 
 ## Observation log
+
+- 23.08.2026, S4BI: the canonical PostgreSQL integration's previously
+  non-fatal same-client query warning was converted into a deterministic
+  failure with `--throw-deprecation`. The red proof stopped at the first
+  affected booking availability query. Six transaction-scoped workflows now
+  issue their independent reads explicitly in order, and the privacy export
+  uses ordered query operations inside its existing consistent transaction.
+  The real local fresh-cluster runner then returned `passed-and-cleaned`, the
+  complete unchanged gate passed with zero generated-footprint growth, and
+  exact CI `32612314131` passed the independent PostgreSQL proof at `76cb636`.
+  This closes `TD-RR-013`; all 13/13 deterministic exit contracts are retained.
+  P0B and every external gate remain closed.
 
 - 23.08.2026, S4BG: the repository-owned PostgreSQL runner now executes in an
   independent Ubuntu-24.04 CI job without a service, supplied database, port,
