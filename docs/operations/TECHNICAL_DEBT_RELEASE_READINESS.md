@@ -1,6 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **closed, 14/14 deterministic exit contracts retained**. Non-live
+Status: **closed, 15/15 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -25,8 +25,21 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-012` | **CLOSED 23.08.2026.** S4BF adds fixed fail-closed 4 GiB effective-capacity, 5 GiB generated-footprint and 512 MiB end-free bounds around the unchanged complete gate. The local run at `891ecdc` passed with 8 KiB growth; exact CI `32609567488` passed with 3,166,800 KiB growth and adequate final free space. | Closed by deterministic local and exact-CI host measurements. Retain fixed bounds; manual cache purge, alternate temp root, smaller suite, serial execution, retry or pass-on-rerun cannot become release prerequisites. |
 | `TD-RR-013` | **CLOSED 23.08.2026.** The PostgreSQL-16 integration emitted the `pg` warning that calling `client.query()` while the same client is already executing a query is deprecated and will be removed in `pg` 9. A diagnostic run with `NODE_OPTIONS=--throw-deprecation` failed at the first affected transactional workflow. S4BI serializes every formerly concurrent same-client query batch in six transactional source files; independent queries remain semantically unchanged. The repository runner now always invokes the canonical integration with `--throw-deprecation`, and a source contract rejects recurrence. The unchanged real runner and complete local gate pass. Exact CI `32612314131` passes the independent fresh-cluster proof at `76cb636`. | Closed by fail-on-deprecation execution plus a structural no-parallel-same-client contract. Permanently retain the canonical runner flag and source guard; warning suppression, pinning to an old client, retry, additional clients or a reduced integration suite may not replace the source fix. |
 | `TD-RR-014` | **CLOSED 23.08.2026.** The locked `image` 4.5.4 dependency emitted two WebAssembly dry-run findings, while the first real financial-PDF test showed that built-in Helvetica omitted the German document's en dash. S4BK uses a bounded `pdf`/`printing` update that locks `image` 4.9.2, makes WebAssembly findings fatal without disabling the dry run, and renders financial PDFs with hash-bound offline Roboto Regular/Bold assets plus the shipped SIL OFL 1.1 license. The real PDF test, unchanged local gate and exact clean-host CI `32613968872` pass at `52aa41f`; its log contains positive Wasm success and no former finding signature. | Closed by reviewed dependency floors/locks, offline font supply-chain hashes/license, real PDF generation and fail-on-Wasm-finding full builds. Retain the active dry run, exact font contract and clean-host CI; no warning filter, `--no-wasm-dry-run`, runtime font download, system-font dependency, cache patch, retry or partial build may replace them. |
+| `TD-RR-015` | **CLOSED 23.08.2026.** The transitive Android lifecycle bridge 2.0.30 retained an upstream Groovy Gradle-9/10 syntax deprecation, and the new S4BJ file-picker and S4BK PDF/WebAssembly contracts were not yet registered in the complete gate. S4BL changes only that transitive lock to 2.0.35, binds its exact checksum and the compatible Flutter 3.41.7 floor, and permanently registers all three dependency contracts. An all-warning local Android build no longer reports the lifecycle Groovy syntax warning; the complete local gate and exact clean-host CI `32614834455` pass at `fcd2a0d`. Remaining vendor/SDK warnings stay visible and separate. | Closed by one bounded lock update, exact checksum/toolchain/runner contracts, a direct 448-task all-warning Android build, the complete local gate and clean-host CI. Retain the three full-gate registrations; no Pub-cache patch, warning suppression, broad toolchain upgrade, retry, partial build or removal of remaining warnings may replace reviewed compatible updates. |
 
 ## Observation log
+
+- 23.08.2026, S4BL: an all-warning Android inventory attributed deprecations to
+  plugin/toolchain paths rather than SIT-owned Gradle scripts. The narrow
+  compatible correction changed only `flutter_plugin_android_lifecycle`
+  2.0.30 to 2.0.35 and removed its former Groovy syntax warning. The same
+  review found that S4BJ/S4BK dependency contracts were focused-only; file
+  picker, PDF/WebAssembly and lifecycle contracts now all execute in and guard
+  their permanent full-gate registration. The direct 448-task all-warning
+  build, unchanged local gate and exact CI `32614834455` pass at `fcd2a0d`.
+  This closes `TD-RR-015`; all 15/15 deterministic exit contracts are retained.
+  Remaining vendor/SDK warnings stay visible. P0B and every external gate
+  remain closed.
 
 - 23.08.2026, S4BK: the bounded PDF/printing dependency review removed the two
   WebAssembly findings without a broad upgrade or suppression. A real

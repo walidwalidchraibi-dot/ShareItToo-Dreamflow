@@ -2459,3 +2459,26 @@ skipped.
 Recoverable relocation of four unused local caches was capacity hygiene, not
 acceptance evidence. Remaining Android vendor warnings are still visible and
 separate. External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BL Android lifecycle Gradle floor
+
+`S4BL_ANDROID_LIFECYCLE_GRADLE_FLOOR` is technically verified at exact
+implementation head `fcd2a0d761c6b1e70011c29b1561eac4f47a09e1`. A complete
+Android all-warning inventory found no SIT-owned Gradle-script warning. The
+narrow compatible update changes only transitive
+`flutter_plugin_android_lifecycle` 2.0.30 to 2.0.35, binds its exact checksum
+and the local/CI Flutter 3.41.7 floor, and removes that plugin's former Groovy
+Gradle-9/10 syntax deprecation.
+
+The S4BJ file-picker, S4BK PDF/WebAssembly and S4BL lifecycle contracts are now
+all permanently registered in the complete regression runner and guard their
+own registration. Eleven focused contracts and a direct 448-task all-warning
+Android build pass. The complete local gate passes analyzer zero, 385 Flutter
+tests plus one documented skip, Google-only, Web/Wasm, loopback smoke and one
+direct 448-task Android build with only 12 KiB generated growth.
+
+Exact clean-host CI `32614834455` passes PostgreSQL in 39 seconds, Backend in
+1:22 and Flutter/Web/Android in 6:48. Publication and signed candidate remain
+skipped. `TD-RR-015` is closed and the register is 15/15 closed. The lifecycle
+manifest warning, SDK XML warning and other vendor warnings stay visible and
+separate. External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.

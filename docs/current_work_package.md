@@ -2151,3 +2151,25 @@ finding signature and Android success. Signing and publication stayed
 skipped. `TD-RR-014` is closed and all 14/14 deterministic exits are retained.
 Android vendor warnings remain visible for separate bounded assessment.
 External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BL Android lifecycle Gradle floor
+
+`S4BL_ANDROID_LIFECYCLE_GRADLE_FLOOR` is technically verified at exact
+implementation head `fcd2a0d761c6b1e70011c29b1561eac4f47a09e1`. The bounded
+package changes only the transitive Android lifecycle bridge from 2.0.30 to
+2.0.35. Its exact checksum and compatible Flutter 3.41.7 local/CI floors are
+guarded. A direct 448-task `--warning-mode all` build confirms that the former
+lifecycle Groovy syntax deprecation is absent without patching the Pub cache
+or suppressing the remaining vendor/SDK warnings.
+
+The complete runner now permanently executes the S4BJ file-picker security,
+S4BK PDF/WebAssembly and S4BL lifecycle contracts; each contract rejects its
+own removal. Eleven focused tests, the unchanged complete local gate and exact
+clean-host CI `32614834455` pass. CI completed PostgreSQL in 39 seconds,
+Backend in 1:22 and Flutter/Web/Android in 6:48; signing and publication stayed
+skipped.
+
+This closes `TD-RR-015`; all 15/15 deterministic release-readiness debt exits
+are retained. Remaining lifecycle-manifest, SDK XML and third-party Android
+warnings stay visible for later bounded compatibility work. External readiness
+remains 0/10 and P0B remains `HOLD` / `NO-GO`.
