@@ -3192,7 +3192,7 @@ Web/Wasm and Android debug. GitHub regression run `32673817497` and CodeQL run
 `32673817482` are exact and successful at implementation commit
 `a6248a7cd97711eddcf9211c0c3a8cccdf1858c7`. N7 is complete.
 
-## Active package: Stage A Blue Ocean N8
+## Completed package: Stage A Blue Ocean N8
 
 N8 owns the deterministic, personal-data-free CORE/GROWTH/BLUE-OCEAN
 comparison. All outputs remain aggregate and explicitly distinguish domain
@@ -3204,5 +3204,14 @@ and completes 37 flows. Eight harness tests and seven evidence-validator tests
 pass. The complete CI-metadata candidate-rollover regression is green with 719
 Backend tests plus one documented skip, 387 Flutter tests plus one documented
 skip, Web/Wasm and Android debug. The strict Store handoff remains a separate,
-known HOLD because its private archived AAB is unavailable. Exact GitHub
-verification is the remaining N8 closure step before N9.
+known HOLD because its private archived AAB is unavailable. GitHub regression
+run `32674496053` and CodeQL run `32674496079` are exact and successful at
+implementation commit `9ba15e519edf1fdec01e4bdf74a94c9c03bd0ea8`. N8 is
+complete.
+
+## Active package: Stage A Blue Ocean N9
+
+N9 prepares but does not activate `heilbronn_wave0`: three invited-adult slots,
+nine to fifteen planned listing tasks, safe photo and consent instructions,
+synthetic Treffpunkt labels, aggregate feedback/evaluation templates,
+pause/abort controls and a value-free external operator-configuration check.

@@ -47,6 +47,10 @@ Flutter tests plus one documented skip, Web/Wasm, loopback smoke and the
 on its separately documented missing private archived AAB; it was neither
 recreated nor treated as a prerequisite for this non-Store package.
 
+GitHub regression run `32674496053` and CodeQL run `32674496079` are exact and
+successful at implementation commit
+`9ba15e519edf1fdec01e4bdf74a94c9c03bd0ea8`. N8 is complete and N9 is active.
+
 No external provider or scanner call, personal data, paid call, billing,
 automatic publication, human pilot, production, Store, Firebase, Cloud/VPS/DNS
 or real-money change is made. N13 remains responsible for the final integrated

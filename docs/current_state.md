@@ -3559,4 +3559,6 @@ The complete technical regression passes in CI-metadata candidate-rollover
 mode: 719 Backend tests plus one documented skip, 387 Flutter tests plus one
 documented skip, Web/Wasm, loopback smoke and Android debug. The separately
 known strict local Store-handoff HOLD for the missing private archived AAB
-remains unchanged. N8 exact GitHub verification is pending; N9 follows.
+remains unchanged. GitHub regression run `32674496053` and CodeQL run
+`32674496079` are exact and successful at implementation commit
+`9ba15e519edf1fdec01e4bdf74a94c9c03bd0ea8`. N8 is complete and N9 is active.

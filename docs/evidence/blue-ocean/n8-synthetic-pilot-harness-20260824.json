@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n8-synthetic-pilot-harness",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n9",
   "capturedAt": "2026-08-24T00:18:00Z",
   "implementationBaseHead": "a6248a7cd97711eddcf9211c0c3a8cccdf1858c7",
   "harness": {
@@ -67,8 +67,15 @@
     "artifactValidatorTests": "passed-7",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
+  },
+  "exactGitHubVerification": {
+    "headSha": "9ba15e519edf1fdec01e4bdf74a94c9c03bd0ea8",
+    "regressionRunId": 32674496053,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32674496079,
+    "codeqlConclusion": "success"
   },
   "boundaries": {
     "externalProviderCallPerformed": false,
