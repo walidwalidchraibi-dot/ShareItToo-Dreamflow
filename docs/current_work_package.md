@@ -3107,3 +3107,10 @@ regression and exact GitHub CI are green at commit
 `053e8b6e26217c914ccdb01532025598327ae9be`. N3 is complete. N4 now owns image
 sanitization, EXIF/GPS stripping, bounded resizing, sensitive-content preflight
 and derivative cleanup without any provider, billing or live activation.
+
+N4 is now implemented as an isolated in-memory image-privacy pipeline with
+metadata stripping, bounded WebP derivatives, opaque names, fail-closed local
+sensitive-content decisions, exact disclosure/consent and unconditional byte
+cleanup. Ten focused tests pass. There is no application route or external
+scanner/provider. The complete local regression is green; commit, push and
+exact GitHub CI are the remaining N4 close steps.

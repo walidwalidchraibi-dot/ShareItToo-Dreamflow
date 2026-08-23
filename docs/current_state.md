@@ -3447,3 +3447,19 @@ route, provider call or billed cost is present. The full backend, PostgreSQL,
 Flutter, Web and Android regression is green. Commit
 `053e8b6e26217c914ccdb01532025598327ae9be`, regression run `32667861927` and
 CodeQL run `32667861950` are exact and successful. N3 is complete; N4 is active.
+
+## Stage A Blue Ocean N4 image privacy pipeline (2026-08-23)
+
+N4 now has an isolated backend pipeline for one to four explicitly selected
+listing photos. It creates metadata-free, opaque-name, bounded WebP analysis
+derivatives without modifying the normal listing images or caller-owned photo
+buffers. Clear local sensitive signals block; uncertain or incomplete visual
+screening remains review-only and cannot proceed.
+
+The exact versioned German disclosure and explicit consent are mandatory.
+Temporary derivative bytes are overwritten after success, block, failure and
+timeout, while audit events retain no filename, OCR, bytes or consumer output.
+Ten focused tests pass. No route, provider/scanner call, billing or publication
+was added. The complete local backend, PostgreSQL, Flutter, Web and Android
+regression is green; commit, push and exact GitHub CI remain before N4 advances
+to N5.
