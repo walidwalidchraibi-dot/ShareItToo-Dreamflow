@@ -2863,3 +2863,24 @@ choices are present. Eight permanent tests keep the four tiers and twelve
 blocks ordered, require all fields/tokens, reject unsafe missing markers and
 keep external readiness at 0/11. No response token was supplied or inferred;
 no cost, contact, contract, account, external or activation action occurred.
+
+## PF4 PR #7 integration and pilot-candidate plan
+
+`PR7_INTEGRATION_AND_PILOT_CANDIDATE_PLAN` binds the integration review to code
+anchor `76a3129d8e88e9e428f66be7e382ace5567da3fc` and base
+`6272264e985b1bc1d74a9891ddfd6074ce3caa61`. PR #7 is 901 commits ahead and
+zero behind that base, remains Draft/unmerged, and is grouped into V5.2 core,
+pilot surfaces, Support/Privacy, client and release/operations review lanes.
+
+CodeQL run `32630887885` passed; all genuine source findings were fixed and
+the remaining global-middleware and two bounded intended-flow findings were
+classified individually with evidence, leaving zero open PR alerts without
+reducing query coverage. Exact regression run `32630887900` passes Backend,
+fresh PostgreSQL 16 and Flutter/Web/Android; image publication is skipped.
+
+The migration plan records 65 forward migrations, only 38 paired down scripts
+and the snapshot/restore boundary for forward-only `001`-`027`. Historical
+Pixel 7 Pro build `2026081509` evidence remains historical: current source has
+no signed and installed Stage A candidate. Candidate branch creation, signing,
+installation and merge each remain separate future Walid gates. Current
+decision is `HOLD_PR7_DRAFT_UNMERGED`; no external or live state changed.
