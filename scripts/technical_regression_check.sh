@@ -467,6 +467,9 @@ node tool/validate_external_gate_setup.mjs
 node --check tool/validate_pilot_launch_tiers.mjs
 node --test test/tool/validate_pilot_launch_tiers.test.mjs
 node tool/validate_pilot_launch_tiers.mjs
+node --check tool/validate_external_gate_execution_board.mjs
+node --test test/tool/validate_external_gate_execution_board.test.mjs
+node tool/validate_external_gate_execution_board.mjs
 node --test test/tool/release_host_capacity_guard_wiring.test.mjs
 
 analyze_log="$(mktemp)"

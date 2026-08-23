@@ -2518,3 +2518,28 @@ evidence and the explicit decision.
 
 Next package: PF2 classifies the existing eleven external gates by their first
 blocking tier and prepares the execution board without satisfying any gate.
+
+## PF2 — external gate execution board
+
+`PF2_EXTERNAL_GATE_EXECUTION_BOARD` adds the human-readable execution board
+and a matching machine contract. Every one of the eleven canonical lanes now
+contains its objective, current state, existing technical evidence, missing
+external evidence, responsible role, unknown/known cost state, contract need,
+Walid-presence flag, exact next action, dependency list, stop condition and a
+unique unissued release token.
+
+The classification is fail-closed: seven lanes block Stage A; PSP blocks only
+Stage B and later; authentic economics blocks only Stage C; iOS and arbitrary
+Support file intake may be deferred for Stage A only under their named disabled
+capability conditions. Store work for Stage A is limited to proving the exact
+private Android distribution candidate and is not public submission.
+
+Eight focused tests pass. The validator reconciles the board against the
+canonical 11/11 technically prepared and 0/11 externally ready manifest and
+current Legal, Operations, signing/device, scanner, PSP, Privacy/Retention,
+Store, economics and pilot sources. It rejects cycles, unsafe deferrals,
+sensitive fields, issued tokens and any external mutation claim. Strict Stage
+A readiness correctly fails on all seven blockers.
+
+Next package: PF3 turns these lanes into a minimal ordered Walid action pack
+without starting cost, contract, account, signing, Store or pilot activity.

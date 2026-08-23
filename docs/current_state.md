@@ -2819,3 +2819,27 @@ Eight permanent tests and `tool/validate_pilot_launch_tiers.mjs` keep the tier
 order, boundaries, evidence vocabulary, G3-G5 entry rules and 0/11 external
 readiness fail-closed in every complete regression. Strict Stage A readiness
 intentionally fails. No tier was activated and no external state changed.
+
+## PF2 external gate execution board
+
+`PF2_EXTERNAL_GATE_EXECUTION_BOARD` maps all eleven canonical external gates
+to their first blocking tier, exact owner/cost/contract/Walid requirement,
+technical and missing external evidence, executable next action, dependencies,
+stop condition and unique release token. The result is seven Stage-A blockers,
+one Stage-B-only blocker, one Stage-C-only blocker and two explicitly deferred
+Stage-A capabilities. All eleven are technically prepared and externally open;
+zero release tokens are issued.
+
+iOS is deferred only while Stage A stays Android-only with no iOS/TestFlight
+claim. Arbitrary Support evidence upload is deferred only while it remains
+disabled and Stage-A Support uses text and already-controlled booking evidence.
+The Stage-A Store lane means protected Android private-distribution evidence,
+not a public Store submission.
+
+Eight permanent tests and
+`tool/validate_external_gate_execution_board.mjs` bind the board to the
+canonical 11/11 prepared, 0/11 externally ready source state, reject dependency
+cycles and sensitive fields, and keep every external boundary false. Strict
+Stage-A mode intentionally reports all seven open blockers. No cost, contract,
+account, signing, device-install, production, provider, Payment, Store,
+Cloud/VPS/DNS, pilot, real-money, activation or merge action occurred.
