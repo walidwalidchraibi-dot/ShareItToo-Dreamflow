@@ -3244,3 +3244,32 @@ skip, Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24
 and the fixed capacity budget with 12 KiB generated growth.
 Package commit `a1e4297b2472be659dcba4489ac262c8854ed060` passed exact
 GitHub regression `32649364967` and CodeQL `32649364974`.
+
+## PF18 pre-intervention readiness audit
+
+The exact PF17 close baseline `9cf0e6396d8b7bc596226f17a3e8d10d2f6b22af`
+is synchronized with origin and PR #7 remained open, Draft, clean, mergeable
+and unmerged. Exact regression `32649746483` and CodeQL `32649746475` passed.
+The Drive Support Matrix hash still matches the repository traceability source:
+all 167 scenarios are technically mapped and 47 correctly require authentic
+external evidence.
+
+All eleven external gates are technically prepared; none has an issued release
+token or authentic external acceptance. The four strict validators fail closed
+at the expected Legal/Operations/Firebase/Privacy/Store/Pilot/activation,
+Support-evidence and next-Walid-answer boundaries. The next action remains A1,
+accepting only `PF3_A1_QUOTE_REQUEST_PACK_GO` or `PF3_A1_HOLD`; quoted cost is
+never pre-approved.
+
+The Pixel remains reachable with direct candidate `2026082302`, restored font
+scale `0.85` and disabled accessibility services. The protected Staging role
+vault is absent, so no new account was created and authenticated fixture links
+remain open. All 21 deterministic release-readiness debt contracts stay closed.
+No external system, Store, provider, Payment, production, pilot or merge state
+changed. Stage A remains `HOLD` / `NO-GO`.
+
+Six PF18 validator tests and 45 focused aggregate Gate, Support and candidate
+tests pass. The complete supported Mac-mini metadata gate passes Backend,
+PostgreSQL and tooling checks, 387 Flutter tests plus one documented skip,
+Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
+fixed capacity budget with 12 KiB generated growth.

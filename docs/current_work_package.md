@@ -2899,3 +2899,31 @@ Store, production, Payment, Cloud/VPS/DNS, provider, cost, public activation or
 merge action occurred. Authenticated fixture links, manual visual review,
 manual TalkBack, the complete device matrix, Google Play distribution and
 Stage A remain `HOLD` / `NO-GO`.
+
+## PF18 — pre-intervention readiness audit
+
+`PF18_PRE_INTERVENTION_READINESS_AUDIT` reconciles the exact PF17 baseline,
+Drive-bound 167-scenario Support matrix, current direct Android candidate and
+all eleven external gates into one sanitized fail-closed record. All `11/11`
+gates are technically prepared, `0/11` are externally ready, all `167/167`
+Support scenarios retain non-live technical traceability and `47` retain
+explicit external-evidence holds. The strict setup, board, action-pack and
+Support modes all stop at their intended external boundaries.
+
+The Pixel remains reachable on exact direct candidate `2026082302`, with font
+scale `0.85` restored and accessibility services disabled. The protected
+two-role Staging vault was not transferred, so no new synthetic account was
+created and current-candidate fixture listing/booking/chat links remain open.
+All `21/21` deterministic Technical-Debt exit contracts remain closed.
+
+The canonical next action remains bounded action block `A1` with only
+`PF3_A1_QUOTE_REQUEST_PACK_GO` or `PF3_A1_HOLD` accepted. A quote is not a cost
+approval. PF18 performs no account, contract, permission, Store, Firebase,
+provider, Payment, production, Cloud/VPS/DNS, pilot, public, release-token or
+merge action. Stage A remains `HOLD` / `NO-GO`.
+
+Six PF18 evidence-validator tests and 45 focused aggregate Gate, Support and
+candidate tests pass. The complete supported Mac-mini metadata gate passes
+backend/PostgreSQL/tooling, 387 Flutter tests plus one documented skip,
+Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
+fixed capacity budget with 12 KiB generated growth.

@@ -278,6 +278,13 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_pf17_current_candidate_authenticated_safe_links.mjs
 fi
+node --check tool/validate_pf18_pre_intervention_readiness_audit.mjs
+node --test test/tool/validate_pf18_pre_intervention_readiness_audit.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_pf18_pre_intervention_readiness_audit.mjs --ci-metadata-only
+else
+  node tool/validate_pf18_pre_intervention_readiness_audit.mjs
+fi
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then
