@@ -3203,8 +3203,9 @@ PF16's four diagnostic tests, six evidence-validator tests and twenty external
 manifest/board tests pass. The complete supported Mac-mini metadata gate passes
 backend/PostgreSQL/tooling checks, 387 Flutter tests plus one recorded skip,
 Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
-fixed capacity budget with 8 KiB generated growth. Exact-commit GitHub
-regression and CodeQL are captured after the package commit.
+fixed capacity budget with 8 KiB generated growth. Package commit
+`3de43dbf9b889b98a812c69d9967a55d626e0be8` passed exact GitHub regression
+`32647907274` and CodeQL `32647907325`.
 
 External readiness remains zero of eleven. The pass is neither manual visual
 review nor manual TalkBack, complete device-matrix, Google Play distribution,

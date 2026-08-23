@@ -2857,7 +2857,8 @@ Focused coverage passes 30 diagnostic, evidence and aggregate-gate tests. The
 complete supported Mac-mini metadata gate passes backend/PostgreSQL/tooling,
 387 Flutter tests plus one recorded skip, Web/Wasm, loopback smoke, one 448-task
 Android build, binary minSdk 24 and fixed capacity with 8 KiB generated growth.
-Exact-commit GitHub regression and CodeQL follow the package commit.
+Package commit `3de43dbf9b889b98a812c69d9967a55d626e0be8` passed exact GitHub
+regression `32647907274` and CodeQL `32647907325`.
 
 No build, signing, installation, login/logout, account/cart/booking/message/
 support mutation, screenshot, raw hierarchy, real push, TalkBack setting,
