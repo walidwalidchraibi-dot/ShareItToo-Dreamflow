@@ -5522,10 +5522,11 @@ export function createApp({
       );
     if (!publiclyReadable) {
       const token = bearerToken(req);
+      if (!token) throw new HttpError(401, 'authentication_required');
       let userId = null;
       let sessionId = null;
       try {
-        const payload = verifyAccessToken(token ?? '');
+        const payload = verifyAccessToken(token);
         userId = payload.sub;
         sessionId = payload.sid;
       } catch {

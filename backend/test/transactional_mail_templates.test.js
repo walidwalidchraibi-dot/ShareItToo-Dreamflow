@@ -48,7 +48,10 @@ test('all required transactional templates render text and HTML', () => {
     });
     assert.match(message.subject, /Canon EOS R5/);
     assert.match(message.text, /SIT-123456/);
-    assert.equal(message.text.includes('https://shareittoo.com'), true);
+    assert.equal(
+      message.text.split('\n').some((line) => line.split(': ').at(-1) === base.actionUrl),
+      true,
+    );
     assert.match(message.html, /<!doctype html>/);
     assert.match(message.html, /Buchungsnummer/);
     assert.doesNotMatch(message.html, /undefined|null/);

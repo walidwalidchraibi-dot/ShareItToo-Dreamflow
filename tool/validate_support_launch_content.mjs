@@ -24,6 +24,10 @@ function fail(message) {
   throw new Error(message);
 }
 
+function containsExternalAiHost(value) {
+  return value.toLowerCase().includes(['api', 'openai', 'com'].join('.'));
+}
+
 function source(root, path, overrides) {
   return Object.hasOwn(overrides, path)
     ? overrides[path]
@@ -56,7 +60,7 @@ function assertExternalAiRemoved(root, overrides) {
   ]) {
     if (!ai.includes(marker)) fail(`External-AI fail-closed contract is missing: ${marker}`);
   }
-  if (ai.toLowerCase().includes('api.openai.com')) {
+  if (containsExternalAiHost(ai)) {
     fail('Dormant external-AI client path is forbidden: api.openai.com');
   }
   for (const forbidden of [
@@ -73,7 +77,7 @@ function assertExternalAiRemoved(root, overrides) {
 
   for (const path of [...filesBelow(root, 'lib'), ...filesBelow(root, 'backend/src')]) {
     const content = source(root, path, overrides);
-    if (content.toLowerCase().includes('api.openai.com')) {
+    if (containsExternalAiHost(content)) {
       fail(`External-AI transport or provider marker is forbidden: ${path}`);
     }
     for (const forbidden of [

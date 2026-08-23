@@ -1,3 +1,5 @@
+import escapeHtml from 'escape-html';
+
 import { config } from './config.js';
 import { hashActionToken, newActionToken } from './security.js';
 
@@ -87,15 +89,6 @@ export async function consumeActionToken(client, actionTokenId) {
     [actionTokenId],
   );
   return result.rowCount === 1;
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
 }
 
 function pageShell({ title, content, pageId = '', complianceStatus = '' }) {
