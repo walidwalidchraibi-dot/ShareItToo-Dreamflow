@@ -50,6 +50,9 @@ if (!databaseUrl) {
     process.env.SUPPORT_LEGACY_MIGRATION_ENABLED = 'true';
     process.env.SUPPORT_EVIDENCE_INTAKE_ENABLED = 'true';
     process.env.PAYOUT_HOLD_HOURS = '0';
+    process.env.SIT_LISTING_AI_PROVIDER = 'mock';
+    process.env.SIT_LISTING_AI_MODEL = 'listing-ai-mock-v1';
+    process.env.SIT_LISTING_AI_BUDGET_CENTS = '0';
     const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sit-b3-uploads-'));
     process.env.UPLOAD_DIR = uploadDir;
     const firebaseServiceAccountFile = path.join(
@@ -155,6 +158,7 @@ if (!databaseUrl) {
         '065_support_direct_decision_path.up.sql',
         '066_blue_ocean_listing_ai_foundation.up.sql',
         '067_blue_ocean_regional_price_engine_v2.up.sql',
+        '068_blue_ocean_listing_workflow.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -328,6 +332,79 @@ if (!databaseUrl) {
              1600, true, false
            )`,
           [draftId, version.rows[0].id, 'c'.repeat(64)],
+        );
+        const {
+          loadBlueOceanDraft,
+          persistBlueOceanReview,
+        } = await import('../src/blue_ocean_listing_store.js');
+        const { reviewBlueOceanListingDraft } = await import(
+          '../src/blue_ocean_listing_workflow.js'
+        );
+        const storedN6Draft = await loadBlueOceanDraft(n2Client, {
+          draftId,
+          ownerId: 'n2-owner-test',
+        });
+        const n6Confirmations = Object.fromEntries([
+          'ownership', 'item_identity', 'allowed_category', 'functionality',
+          'condition', 'accessories', 'owner_price', 'duration_discounts',
+          'availability', 'pickup_region', 'final_publication',
+        ].map((key) => [key, key !== 'final_publication']));
+        const n6Review = reviewBlueOceanListingDraft({
+          previousRevision: storedN6Draft.revision,
+          generationKey: 'd'.repeat(64),
+          editedFields: {
+            title: 'Akku-Bohrschrauber',
+            category: 'cat8',
+            subcategory: 'Bohrmaschinen',
+            brand: 'Testmarke',
+            model: 'M-18',
+            description: 'Voll funktionsfähiges N6 Integrations-Testgerät.',
+            condition: 'good',
+            accessories: ['Ladegerät'],
+            projectTags: ['renovation'],
+            useCases: ['bohren'],
+            safetyNotes: 'Nur bestimmungsgemäß verwenden.',
+            replacementValueMinor: 17_500,
+            pickupRegion: 'heilbronn_wave0',
+          },
+          answeredClarificationIds: [],
+          ownerConfirmations: n6Confirmations,
+          pricing: {
+            replacementValueBand: 'eur_100_250',
+            ownerConfirmedReplacementValueBand: true,
+            ownerConfirmedReplacementValueMinor: null,
+            ownerDailyPriceMinor: 1_600,
+            durationPricingEnabled: true,
+          },
+          previewDays: [1, 7],
+          imagePreflightPassed: true,
+          consentValid: true,
+          generatedAt: new Date('2026-08-24T08:00:00.000Z'),
+        });
+        const persistedN6Review = await persistBlueOceanReview(n2Client, {
+          ownerId: 'n2-owner-test',
+          review: n6Review,
+        });
+        assert.equal(persistedN6Review.replayed, false);
+        const n6StoredState = await n2Client.query(
+          `SELECT draft.status, version.review_metadata,
+                  snapshot.owner_selected_daily_minor
+             FROM listing_ai_drafts AS draft
+             JOIN listing_ai_draft_versions AS version
+               ON version.draft_id = draft.id AND version.revision = 2
+             JOIN regional_price_engine_snapshots AS snapshot
+               ON snapshot.draft_version_id = version.id
+            WHERE draft.id = $1`,
+          [draftId],
+        );
+        assert.equal(n6StoredState.rows[0].status, 'review_ready');
+        assert.equal(
+          n6StoredState.rows[0].review_metadata.readiness.previewReady,
+          true,
+        );
+        assert.equal(
+          Number(n6StoredState.rows[0].owner_selected_daily_minor),
+          1_600,
         );
         await n2Client.query('DELETE FROM listing_ai_drafts WHERE id = $1', [draftId]);
         const cascaded = await n2Client.query(
@@ -1958,6 +2035,11 @@ if (!databaseUrl) {
         deletePhoneIdentity: async (identity) => {
           deletedPhoneIdentities.push(identity.firebaseUserId);
         },
+        screenBlueOceanListingImage: async () => ({
+          localOcrText: '',
+          visualScanCompleted: true,
+          visualSignals: [],
+        }),
       };
       let baseUrl;
       const restartApplicationServer = async () => {
@@ -4428,6 +4510,220 @@ if (!databaseUrl) {
       const privateBeforeBinding = await fetch(localMediaUrl(listingUpload.url));
       assert.equal(privateBeforeBinding.status, 401);
       assert.equal((await privateBeforeBinding.json()).error, 'authentication_required');
+
+      const blueOceanUploadForm = new FormData();
+      blueOceanUploadForm.append('purpose', 'listing_image');
+      blueOceanUploadForm.append(
+        'file',
+        new Blob([listingImage], { type: 'image/jpeg' }),
+        'blue-ocean-camera.jpg',
+      );
+      const blueOceanUploadResponse = await fetch(`${baseUrl}/v1/uploads`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenFor('renter-a')}` },
+        body: blueOceanUploadForm,
+      });
+      assert.equal(blueOceanUploadResponse.status, 201);
+      const blueOceanUpload = await blueOceanUploadResponse.json();
+      const blueOceanDraftId =
+        'listing_ai_draft_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const blueOceanAnalyzeResponse = await fetch(
+        `${baseUrl}/v1/blue-ocean/listing-drafts/analyze`,
+        {
+          method: 'POST',
+          headers: renterAHeaders,
+          body: JSON.stringify({
+            draftId: blueOceanDraftId,
+            generationKey: 'e'.repeat(64),
+            photoUrls: [blueOceanUpload.url],
+            consent: {
+              explicitlyInitiated: true,
+              accepted: true,
+              disclosureVersion: 'listing-ai-image-disclosure-v1',
+              disclosureText:
+                'SIT analysiert deine ausgewählten Bilder mit einem externen KI-Dienst, um einen bearbeitbaren Anzeigenentwurf zu erstellen. Es wird nichts automatisch veröffentlicht.',
+            },
+          }),
+        },
+      );
+      assert.equal(blueOceanAnalyzeResponse.status, 201);
+      const blueOceanAnalyze = await blueOceanAnalyzeResponse.json();
+      assert.equal(blueOceanAnalyze.assistant.status, 'draft_ready');
+      assert.equal(blueOceanAnalyze.assistant.autoPublishAllowed, false);
+      assert.equal(blueOceanAnalyze.assistant.billedCostCents, 0);
+      assert.equal(
+        blueOceanAnalyze.assistant.revision.fields.category.value,
+        'cat8',
+      );
+      const blueOceanReviewConfirmations = Object.fromEntries([
+        'ownership', 'item_identity', 'allowed_category', 'functionality',
+        'condition', 'accessories', 'owner_price', 'duration_discounts',
+        'availability', 'pickup_region', 'final_publication',
+      ].map((key) => [key, key !== 'final_publication']));
+      const blueOceanReviewResponse = await fetch(
+        `${baseUrl}/v1/blue-ocean/listing-drafts/${encodeURIComponent(blueOceanDraftId)}/review`,
+        {
+          method: 'POST',
+          headers: renterAHeaders,
+          body: JSON.stringify({
+            generationKey: 'f'.repeat(64),
+            editedFields: {
+              title: 'Akku-Bohrschrauber',
+              category: 'cat8',
+              subcategory: 'Bohrmaschinen',
+              brand: 'Testmarke',
+              model: 'M-18',
+              description:
+                'Voll funktionsfähiges Gerät für den geschlossenen N6 Test.',
+              condition: 'good',
+              accessories: ['Ladegerät'],
+              projectTags: ['renovation'],
+              useCases: ['bohren'],
+              safetyNotes: 'Nur bestimmungsgemäß verwenden.',
+              replacementValueMinor: 17_500,
+              pickupRegion: 'heilbronn_wave0',
+            },
+            answeredClarificationIds:
+              blueOceanAnalyze.assistant.revision.clarificationQuestions
+                .map((entry) => entry.id),
+            ownerConfirmations: blueOceanReviewConfirmations,
+            pricing: {
+              replacementValueBand: 'eur_100_250',
+              ownerConfirmedReplacementValueBand: true,
+              ownerConfirmedReplacementValueMinor: null,
+              ownerDailyPriceMinor: 1_600,
+              durationPricingEnabled: true,
+            },
+            previewDays: [1, 7],
+          }),
+        },
+      );
+      assert.equal(blueOceanReviewResponse.status, 201);
+      const blueOceanReview = await blueOceanReviewResponse.json();
+      assert.equal(
+        blueOceanReview.assistant.recommendation.engineAuthority,
+        'SIT_REGIONAL_PRICE_ENGINE_V2',
+      );
+      assert.equal(blueOceanReview.assistant.readiness.previewReady, true);
+      assert.equal(blueOceanReview.assistant.readiness.readyToPublish, false);
+      assert.deepEqual(
+        blueOceanReview.assistant.readiness.missingConfirmations,
+        ['final_publication'],
+      );
+      assert.ok(blueOceanReview.assistant.quotePreviews.every(
+        (entry) => entry.simulation === true && entry.noRealMoney === true,
+      ));
+      const blueOceanPublishConfirmations = {
+        ...blueOceanReviewConfirmations,
+        final_publication: true,
+      };
+      const blueOceanPublishResponse = await fetch(
+        `${baseUrl}/v1/blue-ocean/listing-drafts/${encodeURIComponent(blueOceanDraftId)}/publish`,
+        {
+          method: 'POST',
+          headers: renterAHeaders,
+          body: JSON.stringify({
+            explicitAction: 'Anzeige veröffentlichen',
+            review: {
+              generationKey: '7'.repeat(64),
+              editedFields: {
+                title: 'Akku-Bohrschrauber',
+                category: 'cat8',
+                subcategory: 'Bohrmaschinen',
+                brand: 'Testmarke',
+                model: 'M-18',
+                description:
+                  'Voll funktionsfähiges Gerät für den geschlossenen N6 Test.',
+                condition: 'good',
+                accessories: ['Ladegerät'],
+                projectTags: ['renovation'],
+                useCases: ['bohren'],
+                safetyNotes: 'Nur bestimmungsgemäß verwenden.',
+                replacementValueMinor: 17_500,
+                pickupRegion: 'heilbronn_wave0',
+              },
+              answeredClarificationIds:
+                blueOceanAnalyze.assistant.revision.clarificationQuestions
+                  .map((entry) => entry.id),
+              ownerConfirmations: blueOceanPublishConfirmations,
+              pricing: {
+                replacementValueBand: 'eur_100_250',
+                ownerConfirmedReplacementValueBand: true,
+                ownerConfirmedReplacementValueMinor: null,
+                ownerDailyPriceMinor: 1_600,
+                durationPricingEnabled: true,
+              },
+              previewDays: [1, 7],
+            },
+            listing: {
+              id: 'new',
+              ownerId: 'renter-a',
+              title: 'Akku-Bohrschrauber',
+              description:
+                'Voll funktionsfähiges Gerät für den geschlossenen N6 Test.',
+              categoryId: 'cat8',
+              subcategory: 'Bohrmaschinen',
+              tags: ['renovation', 'bohren'],
+              pricePerDay: 16,
+              priceRaw: 16,
+              priceUnit: 'day',
+              currency: 'EUR',
+              deposit: null,
+              photos: [blueOceanUpload.url],
+              locationText: 'Test-Abholort Berlin',
+              city: 'Berlin',
+              country: 'Deutschland',
+              lat: 52.52,
+              lng: 13.405,
+              geohash: 'private',
+              condition: 'good',
+              minDays: 1,
+              maxDays: 30,
+              handoverRadiusKm: 15,
+              protectionModel: 'none',
+              status: 'active',
+              isActive: true,
+              privateStatusConfirmed: true,
+            },
+          }),
+        },
+      );
+      assert.equal(blueOceanPublishResponse.status, 201);
+      const blueOceanPublish = await blueOceanPublishResponse.json();
+      assert.equal(blueOceanPublish.listing.ownerId, 'renter-a');
+      assert.equal(blueOceanPublish.listing.pricePerDay, 16);
+      assert.equal(
+        blueOceanPublish.assistant.explicitOwnerActionVerified,
+        true,
+      );
+      assert.equal(blueOceanPublish.assistant.autoPublishAllowed, false);
+      assert.equal(blueOceanPublish.assistant.g5ContinuationLinked, false);
+      const blueOceanPublicationEvidence = await setupPool.query(
+        `SELECT draft.status, draft.published_listing_id,
+                receipt.explicit_action, receipt.readiness_state,
+                upload.listing_id, upload.visibility AS upload_visibility
+           FROM listing_ai_drafts AS draft
+           JOIN listing_ai_publication_receipts AS receipt
+             ON receipt.draft_id = draft.id
+           JOIN uploads AS upload
+             ON upload.listing_id = draft.published_listing_id
+          WHERE draft.id = $1`,
+        [blueOceanDraftId],
+      );
+      assert.equal(blueOceanPublicationEvidence.rowCount, 1);
+      assert.equal(blueOceanPublicationEvidence.rows[0].status, 'published');
+      assert.equal(
+        blueOceanPublicationEvidence.rows[0].explicit_action,
+        'Anzeige veröffentlichen',
+      );
+      assert.equal(
+        blueOceanPublicationEvidence.rows[0].readiness_state,
+        'READY_TO_PUBLISH',
+      );
+      assert.equal(
+        blueOceanPublicationEvidence.rows[0].upload_visibility,
+        'public',
+      );
 
       const lifecycleListing = {
         id: 'listing-lifecycle',

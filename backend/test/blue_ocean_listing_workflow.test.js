@@ -1,0 +1,274 @@
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import test from 'node:test';
+
+import sharp from 'sharp';
+
+import {
+  assertBlueOceanExplicitPublication,
+  blueOceanListingDisclosureText,
+  blueOceanListingDisclosureVersion,
+  blueOceanListingWorkflowVersion,
+  BlueOceanListingWorkflowError,
+  createBlueOceanListingWorkflow,
+  reviewBlueOceanListingDraft,
+} from '../src/blue_ocean_listing_workflow.js';
+import { listingAiMockModel, readListingAiGatewayConfiguration } from '../src/listing_ai_gateway_config.js';
+
+const ownerId = 'owner_12345678';
+const draftId = 'listing_ai_draft_12345678-1234-4123-8123-123456789abc';
+
+function key(suffix) {
+  return crypto.createHash('sha256').update(suffix).digest('hex');
+}
+
+function config() {
+  return readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'mock',
+    SIT_LISTING_AI_MODEL: listingAiMockModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '0',
+  });
+}
+
+async function fixtureImage() {
+  return sharp({
+    create: {
+      width: 8,
+      height: 8,
+      channels: 3,
+      background: { r: 30, g: 90, b: 180 },
+    },
+  }).png().toBuffer();
+}
+
+function consent() {
+  return {
+    explicitlyInitiated: true,
+    accepted: true,
+    disclosureVersion: blueOceanListingDisclosureVersion,
+    disclosureText: blueOceanListingDisclosureText,
+  };
+}
+
+function editedFields() {
+  return {
+    title: 'Akku-Bohrschrauber',
+    category: 'cat8',
+    subcategory: 'Bohrmaschinen',
+    brand: 'Mock-Marke',
+    model: 'M-18',
+    description: 'Voll funktionsfähiger Bohrschrauber mit Ladegerät und Koffer.',
+    condition: 'good',
+    accessories: ['Ladegerät', 'Koffer'],
+    projectTags: ['renovation'],
+    useCases: ['bohren'],
+    safetyNotes: 'Nur bestimmungsgemäß und mit Schutzbrille verwenden.',
+    replacementValueMinor: 17_500,
+    pickupRegion: 'heilbronn_wave0',
+  };
+}
+
+function confirmations({ finalPublication = false } = {}) {
+  return {
+    ownership: true,
+    item_identity: true,
+    allowed_category: true,
+    functionality: true,
+    condition: true,
+    accessories: true,
+    owner_price: true,
+    duration_discounts: true,
+    availability: true,
+    pickup_region: true,
+    final_publication: finalPublication,
+  };
+}
+
+function pricing(ownerDailyPriceMinor = null) {
+  return {
+    replacementValueBand: 'eur_100_250',
+    ownerConfirmedReplacementValueBand: true,
+    ownerConfirmedReplacementValueMinor: null,
+    ownerDailyPriceMinor,
+    durationPricingEnabled: true,
+  };
+}
+
+test('trusted local preflight composes N4, mock N3 and an editable non-published draft', async () => {
+  const workflow = createBlueOceanListingWorkflow({
+    configuration: config(),
+    screenImage: async () => ({
+      localOcrText: '',
+      visualScanCompleted: true,
+      visualSignals: [],
+    }),
+  });
+  const bytes = await fixtureImage();
+  const result = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('analyze'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes,
+    }],
+    consent: consent(),
+  });
+  assert.equal(result.workflowVersion, blueOceanListingWorkflowVersion);
+  assert.equal(result.status, 'draft_ready');
+  assert.equal(result.revision.fields.title.value, 'Akku-Bohrschrauber');
+  assert.equal(result.revision.fields.model.value, null);
+  assert.equal(result.revision.fields.model.confidence, 'LOW');
+  assert.equal(result.revision.clarificationQuestions.length, 2);
+  assert.equal(result.imageReview.realImageSafetyReviewCompleted, true);
+  assert.equal(result.imageReview.temporaryDerivativeBytesPurged, true);
+  assert.equal(result.billedCostCents, 0);
+  assert.equal(result.autoPublishAllowed, false);
+});
+
+test('default incomplete local screening fails closed and preserves the manual editor', async () => {
+  const workflow = createBlueOceanListingWorkflow({ configuration: config() });
+  const result = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('incomplete-screen'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+  assert.equal(result.status, 'manual_fallback');
+  assert.equal(result.reasonCode, 'blue_ocean_image_review_required');
+  assert.equal(result.openManualEditor, true);
+  assert.equal(result.photosPreserved, true);
+  assert.equal(result.manualInputsPreserved, true);
+  assert.equal(result.paidCallPerformed, false);
+  assert.equal(result.autoPublishAllowed, false);
+});
+
+test('owner review composes deterministic N5 price, duration and V5.2 preview', async () => {
+  const workflow = createBlueOceanListingWorkflow({
+    configuration: config(),
+    screenImage: async () => ({
+      localOcrText: '',
+      visualScanCompleted: true,
+      visualSignals: [],
+    }),
+  });
+  const generated = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('review-source'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+  const review = reviewBlueOceanListingDraft({
+    previousRevision: generated.revision,
+    generationKey: key('review-1'),
+    editedFields: editedFields(),
+    answeredClarificationIds: generated.revision.clarificationQuestions.map((entry) => entry.id),
+    ownerConfirmations: confirmations(),
+    pricing: pricing(),
+    previewDays: [1, 7],
+    imagePreflightPassed: true,
+    consentValid: true,
+    generatedAt: new Date('2026-08-24T08:00:00.000Z'),
+  });
+  assert.equal(review.recommendation.engineAuthority, 'SIT_REGIONAL_PRICE_ENGINE_V2');
+  assert.equal(review.recommendation.includedObservationCount, 0);
+  assert.equal(review.recommendation.syntheticLearningApplied, false);
+  assert.equal(review.selection.ownerSelectedDailyMinor, review.recommendation.recommendedDailyMinor);
+  assert.equal(review.durationSchedule.tiers.length, 5);
+  assert.deepEqual(review.quotePreviews.map((entry) => entry.days), [1, 7]);
+  assert.equal(review.quotePreviews[1].simulation, true);
+  assert.equal(review.quotePreviews[1].noRealMoney, true);
+  assert.equal(review.readiness.previewReady, true);
+  assert.equal(review.readiness.readyToPublish, false);
+  assert.equal(review.readiness.state, 'NEEDS_REVIEW');
+  assert.deepEqual(review.readiness.missingConfirmations, ['final_publication']);
+});
+
+test('READY_TO_PUBLISH still requires the separate exact owner publication action', async () => {
+  const workflow = createBlueOceanListingWorkflow({
+    configuration: config(),
+    screenImage: async () => ({
+      localOcrText: '',
+      visualScanCompleted: true,
+      visualSignals: [],
+    }),
+  });
+  const generated = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('publish-source'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+  const review = reviewBlueOceanListingDraft({
+    previousRevision: generated.revision,
+    generationKey: key('publish-review'),
+    editedFields: editedFields(),
+    answeredClarificationIds: generated.revision.clarificationQuestions.map((entry) => entry.id),
+    ownerConfirmations: confirmations({ finalPublication: true }),
+    pricing: pricing(1_600),
+    imagePreflightPassed: true,
+    consentValid: true,
+  });
+  assert.equal(review.readiness.state, 'READY_TO_PUBLISH');
+  assert.throws(
+    () => assertBlueOceanExplicitPublication(review, { explicitOwnerAction: false }),
+    (error) => error instanceof BlueOceanListingWorkflowError
+      && error.code === 'blue_ocean_explicit_publication_required',
+  );
+  const authorization = assertBlueOceanExplicitPublication(review, {
+    explicitOwnerAction: true,
+  });
+  assert.equal(authorization.authorized, true);
+  assert.equal(authorization.ownerDailyPriceMinor, 1_600);
+  assert.equal(authorization.publicationAction, 'explicit_owner_action_verified');
+  assert.equal(authorization.autoPublishAllowed, false);
+});
+
+test('functionality, unanswered questions, price, image and consent remain hard blockers', async () => {
+  const workflow = createBlueOceanListingWorkflow({
+    configuration: config(),
+    screenImage: async () => ({ localOcrText: '', visualScanCompleted: true, visualSignals: [] }),
+  });
+  const generated = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('blocked-source'),
+    images: [{ imageReference: 'listing_image_12345678', mimeType: 'image/png', bytes: await fixtureImage() }],
+    consent: consent(),
+  });
+  const blockedConfirmations = confirmations({ finalPublication: true });
+  blockedConfirmations.functionality = false;
+  blockedConfirmations.owner_price = false;
+  const review = reviewBlueOceanListingDraft({
+    previousRevision: generated.revision,
+    generationKey: key('blocked-review'),
+    editedFields: editedFields(),
+    answeredClarificationIds: [],
+    ownerConfirmations: blockedConfirmations,
+    pricing: pricing(),
+    imagePreflightPassed: false,
+    consentValid: false,
+  });
+  assert.equal(review.readiness.readyToPublish, false);
+  assert.equal(review.readiness.functionalityConfirmed, false);
+  assert.equal(review.readiness.ownerPriceConfirmed, false);
+  assert.equal(review.readiness.imagePreflightPassed, false);
+  assert.equal(review.readiness.consentValid, false);
+  assert.equal(review.readiness.unansweredClarifications.length, 2);
+});

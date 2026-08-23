@@ -677,15 +677,24 @@ class DataService {
   static Future<Item> addItem(
     Item item, {
     Map<String, dynamic>? supplyEnrichmentLink,
+    String? blueOceanDraftId,
+    Map<String, dynamic>? blueOceanReview,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final itemsJson = prefs.getString(_itemsKey);
     final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = await BackendRepository.createListing(
-        item.toJson(),
-        supplyEnrichmentLink: supplyEnrichmentLink,
-      );
+      final remote = blueOceanDraftId != null && blueOceanReview != null
+          ? await BackendRepository.publishBlueOceanListing(
+              draftId: blueOceanDraftId,
+              review: blueOceanReview,
+              listing: item.toJson(),
+              supplyEnrichmentLink: supplyEnrichmentLink,
+            )
+          : await BackendRepository.createListing(
+              item.toJson(),
+              supplyEnrichmentLink: supplyEnrichmentLink,
+            );
       final saved = Item.fromJson(remote);
       list.removeWhere(
         (entry) =>

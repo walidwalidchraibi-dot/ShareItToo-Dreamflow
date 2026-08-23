@@ -265,6 +265,61 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['listing'] as Map);
   }
 
+  static Future<Map<String, dynamic>> analyzeBlueOceanListingDraft({
+    required String draftId,
+    required String generationKey,
+    required List<String> photoUrls,
+    required Map<String, dynamic> consent,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/blue-ocean/listing-drafts/analyze',
+      body: <String, dynamic>{
+        'draftId': draftId,
+        'generationKey': generationKey,
+        'photoUrls': photoUrls,
+        'consent': consent,
+      },
+      timeout: const Duration(seconds: 45),
+    );
+    return Map<String, dynamic>.from(response['assistant'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> reviewBlueOceanListingDraft({
+    required String draftId,
+    required Map<String, dynamic> review,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/blue-ocean/listing-drafts/${Uri.encodeComponent(draftId)}/review',
+      body: review,
+      timeout: const Duration(seconds: 30),
+    );
+    return Map<String, dynamic>.from(response['assistant'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> publishBlueOceanListing({
+    required String draftId,
+    required Map<String, dynamic> review,
+    required Map<String, dynamic> listing,
+    Map<String, dynamic>? supplyEnrichmentLink,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path:
+          '/blue-ocean/listing-drafts/${Uri.encodeComponent(draftId)}/publish',
+      body: <String, dynamic>{
+        'explicitAction': 'Anzeige veröffentlichen',
+        'review': review,
+        'listing': listing,
+        if (supplyEnrichmentLink != null)
+          'supplyEnrichmentLink': supplyEnrichmentLink,
+      },
+      timeout: const Duration(seconds: 45),
+    );
+    return Map<String, dynamic>.from(response['listing'] as Map);
+  }
+
   static Future<Map<String, dynamic>> generateListingSupplyEnrichment(
     String listingId,
   ) async {

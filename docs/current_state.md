@@ -3487,3 +3487,31 @@ commit `e4db1515215b6735a0c02294782eb38418615cd6`; GitHub regression run
 `32670454653` and CodeQL run `32670454524` are successful. No route, provider,
 import, scraper, billing, publication, historical rewrite or live mutation was
 added. N5 is complete; N6 is active.
+
+## Stage A Blue Ocean N6 complete listing workflow (2026-08-24)
+
+N6 now provides the complete default-off technical listing journey from one to
+four owner-selected photos through N4 privacy preflight, N3 mock draft,
+editable thirteen-field review, no more than three clarifications, all eleven
+owner confirmations, N5 regional price and duration selection, V5.2 fee/total
+simulation, complete preview and exact explicit publication. The normal manual
+editor and historical listings remain unchanged.
+
+The server independently requires a non-production zero-cost mock and refuses
+production mock use. Its default visual-screening adapter is intentionally
+incomplete and opens manual fallback; a completed adapter is injected only in
+deterministic tests. Publication revalidates the exact price and analyzed photo
+set, then creates the listing, private-pilot declaration, immutable receipt and
+audit truth atomically. An existing G5 follow-up link is preserved in that
+transaction. No auto-publish, paid call, real-person data, provider credential,
+real-money, Store, Firebase, Cloud/VPS/DNS or production change occurred.
+
+The supported full candidate-rollover regression passes in CI metadata mode:
+663 Backend tests plus one documented skip, PostgreSQL 16 including actual N6
+analyze/review/publish HTTP routes, 387 Flutter tests plus one documented skip,
+Web/Wasm, loopback smoke and the 448-task Android debug build. The ordinary
+local Store handoff still fails closed because its previously documented
+private archived AAB is unavailable; no candidate was rebuilt. Implementation
+commit and exact GitHub regression/CodeQL verification are pending. N7 is
+active; N8 remains responsible for explicit privacy export, erasure and
+retention integration before any invited-person activation.

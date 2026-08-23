@@ -339,6 +339,19 @@ import {
   storageNameFromListingPhoto,
 } from './listing_catalog.js';
 import {
+  assertBlueOceanExplicitPublication,
+  BlueOceanListingWorkflowError,
+  createBlueOceanListingWorkflow,
+  reviewBlueOceanListingDraft,
+} from './blue_ocean_listing_workflow.js';
+import {
+  BlueOceanListingStoreError,
+  loadBlueOceanDraft,
+  markBlueOceanDraftPublished,
+  persistBlueOceanGeneratedDraft,
+  persistBlueOceanReview,
+} from './blue_ocean_listing_store.js';
+import {
   assertListingSupplyEnrichmentTechnicalAccess,
   generateListingSupplyEnrichment,
   linkListingSupplyEnrichmentFollowUp,
@@ -770,6 +783,56 @@ async function bindListingUploads(client, { listingId, ownerId, photos, requireP
        WHERE storage_name = ANY($2::text[])`,
       [listingId, uniqueNames],
     );
+  }
+}
+
+async function loadBlueOceanListingImages({ ownerId, photoUrls }) {
+  if (!Array.isArray(photoUrls) || photoUrls.length < 1 || photoUrls.length > 4) {
+    throw new HttpError(400, 'blue_ocean_image_count_invalid');
+  }
+  const storageNames = photoUrls.map(
+    (photo) => storageNameFromListingPhoto(photo, config.publicBaseUrl),
+  );
+  if (storageNames.some((entry) => !entry)
+      || new Set(storageNames).size !== storageNames.length) {
+    throw new HttpError(400, 'blue_ocean_photo_reference_invalid');
+  }
+  const records = await pool.query(
+    `SELECT owner_id, storage_name, mime_type, purpose, content_scan_status,
+            listing_id, content_sha256
+       FROM uploads
+      WHERE storage_name = ANY($1::text[])`,
+    [storageNames],
+  );
+  if (records.rowCount !== storageNames.length) {
+    throw new HttpError(400, 'blue_ocean_photo_not_found');
+  }
+  const byStorageName = new Map(records.rows.map((row) => [row.storage_name, row]));
+  const images = [];
+  for (const storageName of storageNames) {
+    const record = byStorageName.get(storageName);
+    if (record.owner_id !== ownerId) throw new HttpError(403, 'blue_ocean_photo_forbidden');
+    if (record.purpose !== 'listing_image'
+        || record.content_scan_status !== 'passed'
+        || record.listing_id != null) {
+      throw new HttpError(409, 'blue_ocean_photo_not_available_for_draft');
+    }
+    images.push({
+      imageReference: `listing_image_${record.content_sha256.slice(0, 32)}`,
+      mimeType: record.mime_type,
+      bytes: await fs.readFile(path.join(config.uploadDir, storageName)),
+    });
+  }
+  return images;
+}
+
+function assertBlueOceanListingTechnicalAccess() {
+  if (config.listingAi.enabled !== true
+      || config.listingAi.provider !== 'mock'
+      || config.listingAi.budgetCents !== 0
+      || config.listingAi.externalProviderExecutionAllowed !== false
+      || config.listingAi.providerPublicationAllowed !== false) {
+    throw new HttpError(503, 'blue_ocean_listing_assistant_not_enabled');
   }
 }
 
@@ -1493,8 +1556,15 @@ export function createApp({
     });
   },
   recordPlannerFunnelEvent = (event) => console.info(JSON.stringify(event)),
+  screenBlueOceanListingImage,
 } = {}) {
   const app = express();
+  const blueOceanListing = createBlueOceanListingWorkflow({
+    configuration: config.listingAi,
+    ...(screenBlueOceanListingImage == null
+      ? {}
+      : { screenImage: screenBlueOceanListingImage }),
+  });
   const attemptFirebaseIdentityDeletion = async (ids) => {
     try {
       await drainFirebaseIdentityDeletions(ids);
@@ -2996,6 +3066,252 @@ export function createApp({
       [req.auth.userId],
     );
     res.json({ listings: result.rows.map((row) => row.payload) });
+  }));
+
+  app.post('/v1/blue-ocean/listing-drafts/analyze', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+    assertBlueOceanListingTechnicalAccess();
+    const images = await loadBlueOceanListingImages({
+      ownerId: req.auth.userId,
+      photoUrls: req.body?.photoUrls,
+    });
+    const result = await blueOceanListing.analyze({
+      draftId: req.body?.draftId,
+      ownerId: req.auth.userId,
+      generationKey: req.body?.generationKey,
+      images,
+      consent: req.body?.consent,
+    });
+    if (result.status !== 'draft_ready') {
+      return res.json({ assistant: result });
+    }
+    const persisted = await inTransaction(async (client) => {
+      const record = await persistBlueOceanGeneratedDraft(client, {
+        ownerId: req.auth.userId,
+        generationKey: req.body.generationKey,
+        result,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'blue_ocean.listing_draft.generated',
+        resourceType: 'listing_ai_draft',
+        resourceId: result.revision.draftId,
+        requestId: req.requestId,
+        metadata: {
+          revision: result.revision.revision,
+          provider: config.listingAi.provider,
+          billedCostCents: 0,
+          autoPublishAllowed: false,
+          replayed: record.replayed,
+        },
+      });
+      return record;
+    });
+    return res.status(persisted.replayed ? 200 : 201).json({
+      assistant: result,
+      replayed: persisted.replayed,
+    });
+  }));
+
+  app.post('/v1/blue-ocean/listing-drafts/:id/review', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+    assertBlueOceanListingTechnicalAccess();
+    const draftId = safeText(req.params.id, 160);
+    const stored = await loadBlueOceanDraft(pool, {
+      draftId,
+      ownerId: req.auth.userId,
+    });
+    if (!stored.revision) throw new HttpError(409, 'blue_ocean_draft_has_no_revision');
+    const review = reviewBlueOceanListingDraft({
+      previousRevision: stored.revision,
+      generationKey: req.body?.generationKey,
+      editedFields: req.body?.editedFields,
+      answeredClarificationIds: req.body?.answeredClarificationIds,
+      ownerConfirmations: req.body?.ownerConfirmations,
+      pricing: req.body?.pricing,
+      previewDays: req.body?.previewDays,
+      imagePreflightPassed: stored.row.image_preflight_status === 'consumed',
+      consentValid: stored.row.disclosure_version != null
+        && stored.row.disclosure_accepted_at != null,
+    });
+    const persisted = await inTransaction(async (client) => {
+      const record = await persistBlueOceanReview(client, {
+        ownerId: req.auth.userId,
+        review,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'blue_ocean.listing_draft.reviewed',
+        resourceType: 'listing_ai_draft',
+        resourceId: draftId,
+        requestId: req.requestId,
+        metadata: {
+          revision: review.revision.revision,
+          readinessState: review.readiness.state,
+          previewReady: review.readiness.previewReady,
+          autoPublishAllowed: false,
+          replayed: record.replayed,
+        },
+      });
+      return record;
+    });
+    res.status(persisted.replayed ? 200 : 201).json({
+      assistant: review,
+      replayed: persisted.replayed,
+    });
+  }));
+
+  app.post('/v1/blue-ocean/listing-drafts/:id/publish', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+    assertBlueOceanListingTechnicalAccess();
+    if (req.body?.explicitAction !== 'Anzeige veröffentlichen') {
+      throw new HttpError(409, 'blue_ocean_explicit_publication_required');
+    }
+    const draftId = safeText(req.params.id, 160);
+    const stored = await loadBlueOceanDraft(pool, {
+      draftId,
+      ownerId: req.auth.userId,
+    });
+    if (!stored.revision) throw new HttpError(409, 'blue_ocean_draft_has_no_revision');
+    const review = reviewBlueOceanListingDraft({
+      previousRevision: stored.revision,
+      generationKey: req.body?.review?.generationKey,
+      editedFields: req.body?.review?.editedFields,
+      answeredClarificationIds: req.body?.review?.answeredClarificationIds,
+      ownerConfirmations: req.body?.review?.ownerConfirmations,
+      pricing: req.body?.review?.pricing,
+      previewDays: req.body?.review?.previewDays,
+      imagePreflightPassed: stored.row.image_preflight_status === 'consumed',
+      consentValid: stored.row.disclosure_version != null
+        && stored.row.disclosure_accepted_at != null,
+    });
+    const authorization = assertBlueOceanExplicitPublication(review, {
+      explicitOwnerAction: true,
+    });
+    const id = identifier(req.body?.listing?.id === 'new' ? '' : req.body?.listing?.id, 'listing');
+    const payload = listingPayload(req.body?.listing, { id, ownerId: req.auth.userId });
+    if (payload.status !== 'active') throw new HttpError(409, 'blue_ocean_publication_status_invalid');
+    const financials = listingFinancials(payload);
+    if (financials.pricePerDayMinor !== authorization.ownerDailyPriceMinor) {
+      throw new HttpError(409, 'blue_ocean_publication_price_mismatch');
+    }
+    const analyzedImages = await loadBlueOceanListingImages({
+      ownerId: req.auth.userId,
+      photoUrls: payload.photos,
+    });
+    const analyzedReferences = analyzedImages.map((entry) => entry.imageReference).sort();
+    if (JSON.stringify(analyzedReferences)
+        !== JSON.stringify([...stored.revision.imageReferences].sort())) {
+      throw new HttpError(409, 'blue_ocean_publication_photos_changed');
+    }
+    const projection = listingProjectionValues(payload);
+    const created = await inTransaction(async (client) => {
+      await requirePrivatePilotListingOwner(client, req.auth.userId);
+      const persisted = await persistBlueOceanReview(client, {
+        ownerId: req.auth.userId,
+        review,
+      });
+      if (persisted.replayed) throw new HttpError(409, 'blue_ocean_publication_replay_blocked');
+      const inserted = await client.query(
+        `INSERT INTO listings (
+           id, owner_id, payload, currency, price_per_day_minor,
+           security_deposit_minor, catalog_version, catalog_revision,
+           status, is_active, title, description,
+           category_id, subcategory, condition, location_text, city, country,
+           private_pilot_region_code, latitude, longitude, min_days, max_days,
+           handover_radius_km, protection_model, published_at, ended_at, created_at
+         ) VALUES (
+           $1, $2, $3::jsonb, $4, $5, $6, 1, 1,
+           $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+           $17, $18, $19, $20, $21, $22, $23, $24::timestamptz,
+           $25::timestamptz, $26::timestamptz
+         ) RETURNING payload`,
+        [
+          id,
+          req.auth.userId,
+          JSON.stringify(payload),
+          financials.currency,
+          financials.pricePerDayMinor,
+          financials.securityDepositMinor,
+          ...projection,
+          payload.createdAt,
+        ],
+      );
+      await bindListingUploads(client, {
+        listingId: id,
+        ownerId: req.auth.userId,
+        photos: payload.photos,
+        requirePhoto: true,
+      });
+      if (config.privatePilotV4Enabled) {
+        await client.query(
+          'UPDATE listings SET private_status_confirmed_at = now() WHERE id = $1',
+          [id],
+        );
+        await writePrivatePilotDeclaration(client, {
+          userId: req.auth.userId,
+          listingId: id,
+          declarationType: 'listing_private',
+        });
+      }
+      await markBlueOceanDraftPublished(client, {
+        ownerId: req.auth.userId,
+        draftId,
+        draftVersionId: persisted.draftVersionId,
+        listingId: id,
+        payloadSha256: authorization.payloadSha256,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'blue_ocean.listing.published_by_owner',
+        resourceType: 'listing',
+        resourceId: id,
+        requestId: req.requestId,
+        metadata: {
+          draftId,
+          revision: authorization.revision,
+          explicitAction: 'Anzeige veröffentlichen',
+          readinessState: 'READY_TO_PUBLISH',
+          autoPublishAllowed: false,
+        },
+      });
+      let g5ContinuationLinked = false;
+      if (req.body?.supplyEnrichmentLink != null) {
+        assertListingSupplyEnrichmentTechnicalAccess(config);
+        const linked = await linkListingSupplyEnrichmentFollowUp(client, {
+          actorId: req.auth.userId,
+          targetListingId: id,
+          raw: req.body.supplyEnrichmentLink,
+        });
+        await writeAudit(client, {
+          actor: req.actor,
+          action: 'listing.supply_enrichment_follow_up_linked',
+          resourceType: 'listing',
+          resourceId: linked.sourceListingId,
+          requestId: req.requestId,
+          metadata: {
+            suggestionId: linked.suggestionId,
+            outcome: linked.outcome,
+            linkedListingId: linked.linkedListingId,
+            blueOceanDraftId: draftId,
+          },
+        });
+        g5ContinuationLinked = true;
+      }
+      return {
+        listing: inserted.rows[0].payload,
+        g5ContinuationLinked,
+      };
+    });
+    publishToAll({ type: 'changed', resource: 'listings' });
+    res.status(201).json({
+      listing: created.listing,
+      assistant: {
+        draftId,
+        status: 'published',
+        explicitOwnerActionVerified: true,
+        g5ContinuationAvailable: config.listingSupplyEnrichment.enabled,
+        g5ContinuationLinked: created.g5ContinuationLinked,
+        autoPublishAllowed: false,
+      },
+    });
   }));
 
   app.post('/v1/listings', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
@@ -5573,6 +5889,8 @@ export function createApp({
     const plannerInventoryError = error instanceof PlannerInventoryError;
     const listingSupplyEnrichmentError = error instanceof ListingSupplyEnrichmentError;
     const listingSetError = error instanceof ListingSetError;
+    const blueOceanListingError = error instanceof BlueOceanListingWorkflowError
+      || error instanceof BlueOceanListingStoreError;
     const flowTimeError = error instanceof BookingFlowTimeError;
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
@@ -5590,14 +5908,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || handoverExceptionError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || blueOceanListingError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || handoverExceptionError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || handoverExceptionError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || listingSetError || blueOceanListingError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || supportCaseError || handoverExceptionError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

@@ -342,6 +342,10 @@ node tool/validate_blue_ocean_n4_image_privacy_pipeline.mjs
 node --check tool/validate_blue_ocean_n5_regional_price_engine_v2.mjs
 node --test test/tool/validate_blue_ocean_n5_regional_price_engine_v2.test.mjs
 node tool/validate_blue_ocean_n5_regional_price_engine_v2.mjs
+node --test test/tool/blue_ocean_n6_listing_ui_wiring.test.mjs
+node --check tool/validate_blue_ocean_n6_listing_workflow.mjs
+node --test test/tool/validate_blue_ocean_n6_listing_workflow.test.mjs
+node tool/validate_blue_ocean_n6_listing_workflow.mjs
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

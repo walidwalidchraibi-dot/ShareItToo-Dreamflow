@@ -25,6 +25,13 @@ class PrivatePilotConfig {
   static const bool deliveryEnabled = false;
   static const bool aiFeaturesEnabled = false;
 
+  /// N6 technical pilot gate. It is false in every ordinary build and must
+  /// only be enabled together with the non-production backend mock lane.
+  static const bool blueOceanListingAssistantEnabled = bool.fromEnvironment(
+    'SIT_BLUE_OCEAN_LISTING_ASSISTANT',
+    defaultValue: false,
+  );
+
   /// The V5.1 checkout may create binding test requests. Real money remains
   /// independently disabled until the PSP and launch evidence is complete.
   static const bool bindingCheckoutEnabled = true;

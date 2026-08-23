@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:ui';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
@@ -12,6 +14,7 @@ import 'package:lendify/models/supply_enrichment.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/navigation/main_navigation.dart';
@@ -41,6 +44,18 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _descCtrl = TextEditingController();
   final TextEditingController _priceCtrl = TextEditingController();
+  final TextEditingController _blueOceanBrandCtrl = TextEditingController();
+  final TextEditingController _blueOceanModelCtrl = TextEditingController();
+  final TextEditingController _blueOceanAccessoriesCtrl =
+      TextEditingController();
+  final TextEditingController _blueOceanProjectTagsCtrl =
+      TextEditingController();
+  final TextEditingController _blueOceanUseCasesCtrl = TextEditingController();
+  final TextEditingController _blueOceanSafetyCtrl = TextEditingController();
+  final TextEditingController _blueOceanReplacementValueCtrl =
+      TextEditingController();
+  final TextEditingController _blueOceanPickupRegionCtrl =
+      TextEditingController();
 
   // Photos
   final ImagePicker _picker = ImagePicker();
@@ -99,6 +114,31 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // If user manually edits the price, we stop all auto-adjustments
   bool _priceTouched = false;
   bool _privateStatusConfirmed = false;
+  final GlobalKey _blueOceanCardKey = GlobalKey();
+  final FocusNode _blueOceanErrorFocus = FocusNode();
+  bool _blueOceanConsentAccepted = false;
+  bool _blueOceanBusy = false;
+  String _blueOceanProgress = '';
+  String? _blueOceanError;
+  String? _blueOceanDraftId;
+  Map<String, dynamic>? _blueOceanAssistant;
+  List<String> _blueOceanPhotoUrls = const <String>[];
+  final Set<String> _blueOceanAnsweredQuestions = <String>{};
+  String _blueOceanReplacementBand = 'eur_100_250';
+  bool _blueOceanReplacementBandConfirmed = false;
+  final Map<String, bool> _blueOceanConfirmations = <String, bool>{
+    'ownership': false,
+    'item_identity': false,
+    'allowed_category': false,
+    'functionality': false,
+    'condition': false,
+    'accessories': false,
+    'owner_price': false,
+    'duration_discounts': false,
+    'availability': false,
+    'pickup_region': false,
+    'final_publication': false,
+  };
   // Force-refresh discount rows when switching strategy so focused inputs also update
   int _strategyEpoch = 0;
 
@@ -217,10 +257,326 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _priceCtrl.dispose();
+    _blueOceanBrandCtrl.dispose();
+    _blueOceanModelCtrl.dispose();
+    _blueOceanAccessoriesCtrl.dispose();
+    _blueOceanProjectTagsCtrl.dispose();
+    _blueOceanUseCasesCtrl.dispose();
+    _blueOceanSafetyCtrl.dispose();
+    _blueOceanReplacementValueCtrl.dispose();
+    _blueOceanPickupRegionCtrl.dispose();
     _addressCtrl.dispose();
+    _blueOceanErrorFocus.dispose();
     _debounce?.cancel();
     _priceRecalcDebounce?.cancel();
     super.dispose();
+  }
+
+  static const String _blueOceanDisclosureVersion =
+      'listing-ai-image-disclosure-v1';
+  static const String _blueOceanDisclosureText =
+      'SIT analysiert deine ausgewählten Bilder mit einem externen KI-Dienst, '
+      'um einen bearbeitbaren Anzeigenentwurf zu erstellen. Es wird nichts '
+      'automatisch veröffentlicht.';
+
+  String _newBlueOceanUuid() {
+    final bytes = List<int>.generate(16, (_) => Random.secure().nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    String hex(int value) => value.toRadixString(16).padLeft(2, '0');
+    final raw = bytes.map(hex).join();
+    return '${raw.substring(0, 8)}-${raw.substring(8, 12)}-'
+        '${raw.substring(12, 16)}-${raw.substring(16, 20)}-'
+        '${raw.substring(20)}';
+  }
+
+  String _newBlueOceanGenerationKey(String action) => sha256
+      .convert(utf8.encode(
+          '$action:${_newBlueOceanUuid()}:${DateTime.now().toUtc().toIso8601String()}'))
+      .toString();
+
+  void _clearBlueOceanDraftForPhotoChange() {
+    if (_blueOceanDraftId == null && _blueOceanPhotoUrls.isEmpty) return;
+    _blueOceanDraftId = null;
+    _blueOceanAssistant = null;
+    _blueOceanPhotoUrls = const <String>[];
+    _blueOceanAnsweredQuestions.clear();
+    _blueOceanError =
+        'Die Fotoauswahl wurde geändert. Starte die KI-Analyse erneut; deine '
+        'manuellen Eingaben bleiben erhalten.';
+    for (final key in _blueOceanConfirmations.keys) {
+      _blueOceanConfirmations[key] = false;
+    }
+  }
+
+  void _focusBlueOceanMessage() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _blueOceanCardKey.currentContext;
+      if (target != null) {
+        Scrollable.ensureVisible(
+          target,
+          duration: const Duration(milliseconds: 250),
+          alignment: 0.12,
+        );
+      }
+      if (mounted) _blueOceanErrorFocus.requestFocus();
+    });
+  }
+
+  dynamic _blueOceanFieldValue(Map<String, dynamic> assistant, String key) {
+    final revision = assistant['revision'];
+    if (revision is! Map) return null;
+    final fields = revision['fields'];
+    if (fields is! Map) return null;
+    final field = fields[key];
+    return field is Map ? field['value'] : null;
+  }
+
+  void _applyBlueOceanDraft(Map<String, dynamic> assistant) {
+    final title = _blueOceanFieldValue(assistant, 'title')?.toString();
+    final description =
+        _blueOceanFieldValue(assistant, 'description')?.toString();
+    final category = _blueOceanFieldValue(assistant, 'category')?.toString();
+    final subcategory =
+        _blueOceanFieldValue(assistant, 'subcategory')?.toString();
+    final condition = _blueOceanFieldValue(assistant, 'condition')?.toString();
+    if (title != null && title.isNotEmpty) _titleCtrl.text = title;
+    if (description != null && description.isNotEmpty) {
+      _descCtrl.text = description;
+    }
+    if (category != null &&
+        _categories.any((entry) => entry.id == category) &&
+        PrivatePilotConfig.subcategoryAllowed(category, subcategory ?? '')) {
+      _categoryId = category;
+      _subcategory = subcategory;
+    }
+    if (condition != null &&
+        const <String>{'new', 'like-new', 'good', 'acceptable', 'worn'}
+            .contains(condition)) {
+      _condition = condition;
+    }
+    _blueOceanBrandCtrl.text =
+        _blueOceanFieldValue(assistant, 'brand')?.toString() ?? '';
+    _blueOceanModelCtrl.text =
+        _blueOceanFieldValue(assistant, 'model')?.toString() ?? '';
+    _blueOceanAccessoriesCtrl.text =
+        ((_blueOceanFieldValue(assistant, 'accessories') as List?) ?? const [])
+            .join(', ');
+    _blueOceanProjectTagsCtrl.text =
+        ((_blueOceanFieldValue(assistant, 'projectTags') as List?) ?? const [])
+            .join(', ');
+    _blueOceanUseCasesCtrl.text =
+        ((_blueOceanFieldValue(assistant, 'useCases') as List?) ?? const [])
+            .join(', ');
+    _blueOceanSafetyCtrl.text =
+        _blueOceanFieldValue(assistant, 'safetyNotes')?.toString() ?? '';
+    final replacementMinor =
+        _blueOceanFieldValue(assistant, 'replacementValueMinor');
+    if (replacementMinor is num) {
+      _blueOceanReplacementValueCtrl.text =
+          (replacementMinor / 100).toStringAsFixed(0);
+    }
+    _blueOceanPickupRegionCtrl.text =
+        _blueOceanFieldValue(assistant, 'pickupRegion')?.toString() ??
+            (_registeredCity ?? '');
+  }
+
+  Future<void> _startBlueOceanAssistant() async {
+    if (!_blueOceanConsentAccepted) {
+      setState(() => _blueOceanError =
+          'Bitte lies den Hinweis und stimme der ausgewählten Bildanalyse zu.');
+      _focusBlueOceanMessage();
+      return;
+    }
+    if (_pickedImages.isEmpty || _pickedImages.length > 4) {
+      setState(() => _blueOceanError = _pickedImages.isEmpty
+          ? 'Wähle zuerst mindestens ein Foto aus.'
+          : 'Für die KI-Analyse sind höchstens vier Fotos möglich. Entferne '
+              'weitere Fotos oder nutze den manuellen Editor.');
+      _focusBlueOceanMessage();
+      return;
+    }
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) {
+      setState(() => _blueOceanError =
+          'Der technische KI-Pilot benötigt den nicht-produktiven SIT-Backendpfad. '
+              'Der manuelle Editor bleibt vollständig verfügbar.');
+      _focusBlueOceanMessage();
+      return;
+    }
+    setState(() {
+      _blueOceanBusy = true;
+      _blueOceanProgress = 'Fotos werden sicher vorbereitet …';
+      _blueOceanError = null;
+    });
+    try {
+      final photoUrls = <String>[];
+      for (var index = 0; index < _pickedImages.length; index++) {
+        if (mounted) {
+          setState(() => _blueOceanProgress =
+              'Foto ${index + 1} von ${_pickedImages.length} wird vorbereitet …');
+        }
+        final file = _pickedImages[index];
+        photoUrls.add(await BackendRepository.uploadImage(
+          bytes: await file.readAsBytes(),
+          filename: file.name,
+        ));
+      }
+      final draftId = 'listing_ai_draft_${_newBlueOceanUuid()}';
+      if (mounted) {
+        setState(() => _blueOceanProgress =
+            'Datenschutzprüfung und Entwurfserstellung laufen …');
+      }
+      final assistant = await BackendRepository.analyzeBlueOceanListingDraft(
+        draftId: draftId,
+        generationKey: _newBlueOceanGenerationKey('analyze'),
+        photoUrls: photoUrls,
+        consent: const <String, dynamic>{
+          'explicitlyInitiated': true,
+          'accepted': true,
+          'disclosureVersion': _blueOceanDisclosureVersion,
+          'disclosureText': _blueOceanDisclosureText,
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _blueOceanPhotoUrls = List<String>.unmodifiable(photoUrls);
+        _blueOceanAssistant = assistant;
+        if (assistant['status'] == 'draft_ready') {
+          _blueOceanDraftId = draftId;
+          _blueOceanProgress = 'Bearbeitbarer Entwurf ist bereit.';
+          _applyBlueOceanDraft(assistant);
+        } else {
+          _blueOceanDraftId = null;
+          _blueOceanError =
+              'Die KI-Analyse wurde sicher beendet. Prüfe oder ersetze die '
+              'Fotos und arbeite im manuellen Editor weiter.';
+          _blueOceanProgress = 'Manueller Editor geöffnet.';
+        }
+      });
+      if (_blueOceanError != null) _focusBlueOceanMessage();
+    } on BackendException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _blueOceanError =
+            'Die KI-Hilfe ist nicht verfügbar (${error.code}). Fotos und '
+            'Eingaben bleiben erhalten; arbeite manuell weiter.';
+        _blueOceanProgress = 'Manueller Fallback aktiv.';
+      });
+      _focusBlueOceanMessage();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _blueOceanError =
+            'Die KI-Hilfe ist gerade nicht verfügbar. Fotos und Eingaben '
+            'bleiben erhalten; arbeite manuell weiter.';
+        _blueOceanProgress = 'Manueller Fallback aktiv.';
+      });
+      _focusBlueOceanMessage();
+    } finally {
+      if (mounted) setState(() => _blueOceanBusy = false);
+    }
+  }
+
+  List<String> _commaSeparated(TextEditingController controller) =>
+      controller.text
+          .split(',')
+          .map((entry) => entry.trim())
+          .where((entry) => entry.isNotEmpty)
+          .take(12)
+          .toList(growable: false);
+
+  int? _blueOceanReplacementValueMinor() {
+    final value = double.tryParse(
+        _blueOceanReplacementValueCtrl.text.replaceAll(',', '.'));
+    return value == null || value <= 0 ? null : (value * 100).round();
+  }
+
+  Map<String, dynamic> _blueOceanReviewPayload({
+    required bool finalPublication,
+  }) {
+    final ownerDaily = double.tryParse(_priceCtrl.text.replaceAll(',', '.'));
+    final confirmations = Map<String, bool>.from(_blueOceanConfirmations);
+    confirmations['final_publication'] = finalPublication &&
+        (_blueOceanConfirmations['final_publication'] ?? false);
+    return <String, dynamic>{
+      'generationKey': _newBlueOceanGenerationKey(
+          finalPublication ? 'publish-review' : 'review'),
+      'editedFields': <String, dynamic>{
+        'title': _titleCtrl.text.trim(),
+        'category': _categoryId,
+        'subcategory': _subcategory,
+        'brand': _blueOceanBrandCtrl.text.trim(),
+        'model': _blueOceanModelCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
+        'condition': _condition,
+        'accessories': _commaSeparated(_blueOceanAccessoriesCtrl),
+        'projectTags': _commaSeparated(_blueOceanProjectTagsCtrl),
+        'useCases': _commaSeparated(_blueOceanUseCasesCtrl),
+        'safetyNotes': _blueOceanSafetyCtrl.text.trim(),
+        'replacementValueMinor': _blueOceanReplacementValueMinor(),
+        'pickupRegion': _blueOceanPickupRegionCtrl.text.trim(),
+      },
+      'answeredClarificationIds':
+          _blueOceanAnsweredQuestions.toList(growable: false),
+      'ownerConfirmations': confirmations,
+      'pricing': <String, dynamic>{
+        'replacementValueBand': _blueOceanReplacementBand,
+        'ownerConfirmedReplacementValueBand':
+            _blueOceanReplacementBandConfirmed,
+        'ownerConfirmedReplacementValueMinor':
+            _blueOceanReplacementBand == 'over_1000'
+                ? _blueOceanReplacementValueMinor()
+                : null,
+        'ownerDailyPriceMinor': ownerDaily == null || ownerDaily <= 0
+            ? null
+            : (ownerDaily * 100).round(),
+        'durationPricingEnabled': _autoApplyDiscounts,
+      },
+      'previewDays': const <int>[1, 7],
+    };
+  }
+
+  Future<void> _reviewBlueOceanAssistant() async {
+    final draftId = _blueOceanDraftId;
+    if (draftId == null) return;
+    if (!_blueOceanReplacementBandConfirmed) {
+      setState(() => _blueOceanError =
+          'Bitte bestätige zuerst den geschätzten Wiederbeschaffungswert.');
+      _focusBlueOceanMessage();
+      return;
+    }
+    setState(() {
+      _blueOceanBusy = true;
+      _blueOceanProgress =
+          'Entwurf, Preis, Mietdauer und Gebührenvorschau werden geprüft …';
+      _blueOceanError = null;
+    });
+    try {
+      final assistant = await BackendRepository.reviewBlueOceanListingDraft(
+        draftId: draftId,
+        review: _blueOceanReviewPayload(finalPublication: false),
+      );
+      if (!mounted) return;
+      setState(() {
+        _blueOceanAssistant = assistant;
+        _blueOceanProgress = 'Vorschau wurde aktualisiert.';
+        final recommendation = assistant['recommendation'];
+        if (recommendation is Map && _priceCtrl.text.trim().isEmpty) {
+          final minor = recommendation['recommendedDailyMinor'];
+          if (minor is num) {
+            _priceCtrl.text = (minor / 100).toStringAsFixed(2);
+          }
+        }
+      });
+    } on BackendException catch (error) {
+      if (!mounted) return;
+      setState(() => _blueOceanError =
+          'Die Vorschau ist noch nicht bereit (${error.code}). Prüfe die '
+              'markierten Angaben; der manuelle Editor bleibt verfügbar.');
+      _focusBlueOceanMessage();
+    } finally {
+      if (mounted) setState(() => _blueOceanBusy = false);
+    }
   }
 
   Future<void> _pickFromCamera() async {
@@ -234,7 +590,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         imageQuality: 85,
         maxWidth: 1600,
       );
-      if (file != null) setState(() => _pickedImages.add(file));
+      if (file != null) {
+        setState(() {
+          _clearBlueOceanDraftForPhotoChange();
+          _pickedImages.add(file);
+        });
+      }
     } catch (e) {
       // Keep experience consistent: avoid auto-switching to gallery on Web.
       // Some browsers will still show a file dialog even for ImageSource.camera.
@@ -250,15 +611,23 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         type: FileType.image,
       );
       if (res != null && res.files.isNotEmpty) {
-        setState(() => _pickedImages.addAll(res.files
-            .where((f) => f.bytes != null)
-            .map((f) => XFile.fromData(f.bytes!, name: f.name))));
+        setState(() {
+          _clearBlueOceanDraftForPhotoChange();
+          _pickedImages.addAll(res.files
+              .where((f) => f.bytes != null)
+              .map((f) => XFile.fromData(f.bytes!, name: f.name)));
+        });
       }
       return;
     }
     final List<XFile> files =
         await _picker.pickMultiImage(imageQuality: 85, maxWidth: 1600);
-    if (files.isNotEmpty) setState(() => _pickedImages.addAll(files));
+    if (files.isNotEmpty) {
+      setState(() {
+        _clearBlueOceanDraftForPhotoChange();
+        _pickedImages.addAll(files);
+      });
+    }
   }
 
   void _showPhotoSourceSheet() {
@@ -432,6 +801,34 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           icon: Icons.login, title: 'Bitte zuerst anmelden');
       return;
     }
+    final blueOceanPublication =
+        !forceInactive && !_isEdit && _blueOceanDraftId != null;
+    if (blueOceanPublication) {
+      final missingConfirmation = _blueOceanConfirmations.entries
+          .where((entry) => entry.value != true)
+          .map((entry) => entry.key)
+          .toList(growable: false);
+      final revision = _blueOceanAssistant?['revision'];
+      final questions =
+          revision is Map && revision['clarificationQuestions'] is List
+              ? revision['clarificationQuestions'] as List
+              : const <dynamic>[];
+      final unanswered = questions
+          .whereType<Map>()
+          .map((entry) => entry['id']?.toString() ?? '')
+          .where((id) => !_blueOceanAnsweredQuestions.contains(id))
+          .toList(growable: false);
+      if (missingConfirmation.isNotEmpty ||
+          unanswered.isNotEmpty ||
+          !_blueOceanReplacementBandConfirmed) {
+        if (!mounted) return;
+        setState(() => _blueOceanError =
+            'Vor der Veröffentlichung müssen alle Eigentümer-Bestätigungen, '
+                'Rückfragen und die Wertspanne geprüft sein.');
+        _focusBlueOceanMessage();
+        return;
+      }
+    }
     final productionBackend =
         BackendConfig.enabled && !QaRuntimeService.isEnabled;
     final acceptedExistingPhotos = productionBackend
@@ -482,7 +879,17 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     // Production uploads images to the central backend. Debug/QA keeps the
     // existing local data-URL behavior for deterministic offline fixtures.
     final List<String> photos = List<String>.from(acceptedExistingPhotos);
-    if (_pickedImages.isNotEmpty) {
+    if (blueOceanPublication && productionBackend) {
+      if (_blueOceanPhotoUrls.length != _pickedImages.length) {
+        if (!mounted) return;
+        setState(() => _blueOceanError =
+            'Die Fotoauswahl stimmt nicht mehr mit dem geprüften Entwurf '
+                'überein. Starte die Analyse erneut.');
+        _focusBlueOceanMessage();
+        return;
+      }
+      photos.addAll(_blueOceanPhotoUrls);
+    } else if (_pickedImages.isNotEmpty) {
       for (final f in _pickedImages) {
         try {
           final bytes = await f.readAsBytes();
@@ -552,10 +959,26 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         privateStatusConfirmed: _privateStatusConfirmed,
       );
 
-      final saved = await DataService.addItem(
-        item,
-        supplyEnrichmentLink: widget.supplyPrefill?.link.toJson(),
-      );
+      late final Item saved;
+      try {
+        saved = await DataService.addItem(
+          item,
+          supplyEnrichmentLink: widget.supplyPrefill?.link.toJson(),
+          blueOceanDraftId: blueOceanPublication ? _blueOceanDraftId : null,
+          blueOceanReview: blueOceanPublication
+              ? _blueOceanReviewPayload(finalPublication: true)
+              : null,
+        );
+      } on BackendException catch (error) {
+        if (!blueOceanPublication) rethrow;
+        if (!mounted) return;
+        setState(() => _blueOceanError =
+            'Die Veröffentlichung wurde nicht ausgeführt (${error.code}). '
+                'Fotos und Eingaben bleiben erhalten; prüfe sie im manuellen '
+                'Editor und versuche es erneut.');
+        _focusBlueOceanMessage();
+        return;
+      }
       if (!mounted) return;
       DataService.setLastCreateEvent(saved, draft: forceInactive);
       Navigator.of(context).pushAndRemoveUntil(
@@ -871,6 +1294,464 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         price.toStringAsFixed(price.truncateToDouble() == price ? 0 : 2);
   }
 
+  Widget _buildBlueOceanAssistantCard(BuildContext context) {
+    final assistant = _blueOceanAssistant;
+    final revision = assistant?['revision'];
+    final fields = revision is Map ? revision['fields'] : null;
+    final questions =
+        revision is Map && revision['clarificationQuestions'] is List
+            ? revision['clarificationQuestions'] as List
+            : const <dynamic>[];
+    final recommendation = assistant?['recommendation'];
+    final ownerOptions =
+        recommendation is Map && recommendation['ownerOptions'] is List
+            ? recommendation['ownerOptions'] as List
+            : const <dynamic>[];
+    final quotePreviews = assistant?['quotePreviews'] is List
+        ? assistant!['quotePreviews'] as List
+        : const <dynamic>[];
+    final readiness = assistant?['readiness'];
+    const confirmationLabels = <String, String>{
+      'ownership': 'Der Artikel gehört mir oder ich darf ihn vermieten.',
+      'item_identity': 'Artikel, Marke, Modell und Beschreibung sind geprüft.',
+      'allowed_category': 'Kategorie und Unterkategorie sind korrekt.',
+      'functionality': 'Der Artikel funktioniert vollständig.',
+      'condition': 'Der angegebene Zustand ist korrekt.',
+      'accessories': 'Das aufgeführte Zubehör ist vollständig und korrekt.',
+      'owner_price': 'Ich bestätige meinen ausgewählten Tagespreis.',
+      'duration_discounts': 'Ich bestätige die Einstellungen zur Mietdauer.',
+      'availability': 'Die Verfügbarkeit kann von mir eingehalten werden.',
+      'pickup_region': 'Die grobe Abholregion ist korrekt.',
+      'final_publication':
+          'Ich habe die vollständige Vorschau geprüft und möchte veröffentlichen.',
+    };
+    const bandLabels = <String, String>{
+      'under_100': 'unter 100 €',
+      'eur_100_250': '100–250 €',
+      'eur_250_500': '250–500 €',
+      'eur_500_1000': '500–1.000 €',
+      'over_1000': 'über 1.000 €',
+    };
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Focus(
+      focusNode: _blueOceanErrorFocus,
+      child: Semantics(
+        container: true,
+        label: 'SIT KI-Anzeigenassistent, geschlossener technischer Pilot',
+        child: Container(
+          key: _blueOceanCardKey,
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0D1B2A) : const Color(0xFFF0F7FF),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Theme.of(context).colorScheme.primary),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.auto_awesome_outlined,
+                    color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('KI-Anzeigenassistent',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Geschlossener Stage-A-Test. Jeder Vorschlag bleibt '
+                        'bearbeitbar. Es wird nie automatisch veröffentlicht.',
+                        style: TextStyle(fontSize: 13.5, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 12),
+              CheckboxListTile(
+                value: _blueOceanConsentAccepted,
+                onChanged: _blueOceanBusy
+                    ? null
+                    : (value) => setState(
+                        () => _blueOceanConsentAccepted = value ?? false),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                title: const Text(_blueOceanDisclosureText,
+                    style: TextStyle(fontSize: 13.5, height: 1.4)),
+                subtitle: const Text(
+                  'Nur die ausgewählten 1–4 Fotos · ausdrücklicher Start · '
+                  'keine automatische Veröffentlichung',
+                  style: TextStyle(fontSize: 12.5),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _blueOceanBusy ? null : _startBlueOceanAssistant,
+                  icon: const Icon(Icons.photo_camera_back_outlined),
+                  label: const Text('Ausgewählte Fotos analysieren'),
+                ),
+              ),
+              if (_blueOceanBusy || _blueOceanProgress.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Semantics(
+                  liveRegion: true,
+                  label: _blueOceanProgress,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_blueOceanBusy) const LinearProgressIndicator(),
+                      if (_blueOceanBusy) const SizedBox(height: 8),
+                      Text(_blueOceanProgress,
+                          style: const TextStyle(fontSize: 13.5)),
+                    ],
+                  ),
+                ),
+              ],
+              if (_blueOceanError case final message?) ...[
+                const SizedBox(height: 12),
+                Semantics(
+                  liveRegion: true,
+                  label: 'Hinweis: $message',
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .errorContainer
+                          .withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(message)),
+                        ]),
+                  ),
+                ),
+              ],
+              if (_blueOceanDraftId != null && fields is Map) ...[
+                const SizedBox(height: 18),
+                Text('Bearbeitbarer KI-Entwurf',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: fields.entries.map<Widget>((entry) {
+                    final field = entry.value;
+                    final confidence = field is Map
+                        ? field['confidence']?.toString() ?? 'LOW'
+                        : 'LOW';
+                    final icon = confidence == 'HIGH'
+                        ? Icons.check_circle_outline
+                        : confidence == 'MEDIUM'
+                            ? Icons.rate_review_outlined
+                            : Icons.help_outline;
+                    final label = confidence == 'HIGH'
+                        ? 'hoch – bearbeitbar'
+                        : confidence == 'MEDIUM'
+                            ? 'bitte prüfen'
+                            : 'Angabe fehlt';
+                    return Semantics(
+                      label: '${entry.key}: $label',
+                      child: Chip(
+                        avatar: Icon(icon, size: 17),
+                        label: Text('${entry.key}: $label'),
+                      ),
+                    );
+                  }).toList(growable: false),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _blueOceanBrandCtrl,
+                  decoration: const InputDecoration(labelText: 'Marke'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _blueOceanModelCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Modell (leer lassen, wenn unbekannt)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _blueOceanAccessoriesCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Zubehör, durch Kommas getrennt',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _blueOceanProjectTagsCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Projekt-Tags, durch Kommas getrennt',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _blueOceanUseCasesCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Einsatzmöglichkeiten, durch Kommas getrennt',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _blueOceanSafetyCtrl,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Sicherheits- und Nutzungshinweise',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _blueOceanPickupRegionCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Grobe Abholregion (keine genaue Adresse)',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text('Rückfragen (höchstens drei)',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                if (questions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text('Keine Rückfrage offen.'),
+                  )
+                else
+                  for (final rawQuestion in questions)
+                    if (rawQuestion is Map)
+                      CheckboxListTile(
+                        value: _blueOceanAnsweredQuestions
+                            .contains(rawQuestion['id']?.toString()),
+                        onChanged: (value) => setState(() {
+                          final id = rawQuestion['id']?.toString() ?? '';
+                          if (value == true) {
+                            _blueOceanAnsweredQuestions.add(id);
+                          } else {
+                            _blueOceanAnsweredQuestions.remove(id);
+                          }
+                        }),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(rawQuestion['question']?.toString() ?? ''),
+                        subtitle: const Text(
+                            'Angabe im Entwurf ergänzen und danach abhaken.'),
+                      ),
+                const SizedBox(height: 12),
+                Text('Wiederbeschaffungswert',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _blueOceanReplacementBand,
+                  decoration: const InputDecoration(labelText: 'Wertspanne'),
+                  items: bandLabels.entries
+                      .map((entry) => DropdownMenuItem(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          ))
+                      .toList(growable: false),
+                  onChanged: (value) => setState(() {
+                    if (value != null) _blueOceanReplacementBand = value;
+                    _blueOceanReplacementBandConfirmed = false;
+                  }),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _blueOceanReplacementValueCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Geschätzter Wert in Euro',
+                  ),
+                ),
+                CheckboxListTile(
+                  value: _blueOceanReplacementBandConfirmed,
+                  onChanged: (value) => setState(() =>
+                      _blueOceanReplacementBandConfirmed = value ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'Ich bestätige die Wertspanne. Sie dient nur der '
+                    'deterministischen Preisempfehlung.',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('Eigentümer-Bestätigungen',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const Text(
+                  'Funktionalität und die abschließende Publikationsprüfung '
+                  'sind harte Sperren.',
+                  style: TextStyle(fontSize: 13, height: 1.35),
+                ),
+                for (final entry in confirmationLabels.entries)
+                  CheckboxListTile(
+                    value: _blueOceanConfirmations[entry.key] ?? false,
+                    onChanged: (value) => setState(() =>
+                        _blueOceanConfirmations[entry.key] = value ?? false),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(entry.value),
+                  ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed:
+                        _blueOceanBusy ? null : _reviewBlueOceanAssistant,
+                    icon: const Icon(Icons.fact_check_outlined),
+                    label: const Text('Entwurf und Preisvorschau prüfen'),
+                  ),
+                ),
+              ],
+              if (recommendation is Map) ...[
+                const SizedBox(height: 18),
+                Text('Unverbindliche SIT-Preisempfehlung',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  '${recommendation['explanation'] ?? ''}\n'
+                  'Vertrauen: ${recommendation['confidence'] ?? 'LOW'}. '
+                  'Du entscheidest über deinen Mietpreis.',
+                  style: const TextStyle(fontSize: 13.5, height: 1.4),
+                ),
+                const SizedBox(height: 8),
+                for (final rawOption in ownerOptions)
+                  if (rawOption is Map && rawOption['dailyPriceMinor'] is num)
+                    Builder(builder: (context) {
+                      final minor =
+                          (rawOption['dailyPriceMinor'] as num).toInt();
+                      final selectedMinor = (() {
+                        final euros = double.tryParse(
+                            _priceCtrl.text.replaceAll(',', '.'));
+                        return euros == null ? null : (euros * 100).round();
+                      })();
+                      final selected = minor == selectedMinor;
+                      return Semantics(
+                        button: true,
+                        selected: selected,
+                        label:
+                            '${rawOption['label'] ?? ''}, ${(minor / 100).toStringAsFixed(2)} Euro pro Tag',
+                        child: ListTile(
+                          onTap: () => setState(() {
+                            _priceCtrl.text = (minor / 100).toStringAsFixed(2);
+                            _blueOceanConfirmations['owner_price'] = false;
+                          }),
+                          leading: Icon(selected
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked),
+                          title: Text(rawOption['label']?.toString() ?? ''),
+                          subtitle: Text(
+                              '${(minor / 100).toStringAsFixed(2)} € pro Tag · bearbeitbar'),
+                        ),
+                      );
+                    }),
+              ],
+              if (quotePreviews.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text('Mietdauer- und V5.2-Gebührenvorschau',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const Text(
+                  'Reine Simulation ohne Zahlung, Kaution oder versteckte Gebühr.',
+                  style: TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                for (final rawPreview in quotePreviews)
+                  if (rawPreview is Map)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.calculate_outlined),
+                      title: Text('${rawPreview['days']} Tag(e)'),
+                      subtitle: Text(
+                        'Vermieter-Miete: ${_formatMinor(rawPreview['ownerRentMinor'])} · '
+                        'SIT-Beitrag: ${_formatMinor(rawPreview['sitPlatformContributionMinor'])} · '
+                        'Mieter gesamt: ${_formatMinor(rawPreview['renterTotalMinor'])}',
+                      ),
+                    ),
+              ],
+              if (readiness is Map) ...[
+                const SizedBox(height: 12),
+                Semantics(
+                  liveRegion: true,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: readiness['readyToPublish'] == true
+                          ? Colors.green.withValues(alpha: 0.12)
+                          : Colors.amber.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(readiness['readyToPublish'] == true
+                              ? Icons.check_circle_outline
+                              : Icons.pending_actions_outlined),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              readiness['readyToPublish'] == true
+                                  ? 'READY_TO_PUBLISH: Die vollständige Vorschau '
+                                      'ist bereit. Nur der Button „Anzeige '
+                                      'veröffentlichen“ darf jetzt publizieren.'
+                                  : 'NEEDS_REVIEW: Prüfe offene Rückfragen, '
+                                      'Bestätigungen, Preis und Vorschau.',
+                            ),
+                          ),
+                        ]),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              const Text(
+                'Du kannst den KI-Pfad jederzeit verlassen und alle Felder '
+                'im normalen Editor manuell bearbeiten.',
+                style: TextStyle(fontSize: 12.5, height: 1.35),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatMinor(dynamic value) {
+    if (value is! num) return '–';
+    return '${(value / 100).toStringAsFixed(2).replaceAll('.', ',')} €';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1093,8 +1974,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 for (int i = 0; i < _pickedImages.length; i++)
                                   _PickedThumb(
                                       file: _pickedImages[i],
-                                      onRemove: () => setState(
-                                          () => _pickedImages.removeAt(i))),
+                                      onRemove: () => setState(() {
+                                            _clearBlueOceanDraftForPhotoChange();
+                                            _pickedImages.removeAt(i);
+                                          })),
                                 _AddPhotoTile(onTap: _showPhotoSourceSheet),
                               ],
                             );
@@ -1128,6 +2011,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           ),
                         ])),
                 const SizedBox(height: 12),
+                if (PrivatePilotConfig.blueOceanListingAssistantEnabled &&
+                    !_isEdit) ...[
+                  _buildBlueOceanAssistantCard(context),
+                  const SizedBox(height: 12),
+                ],
                 _Section(
                   title: 'Zustand',
                   leading: Icon(Icons.workspace_premium_outlined,
@@ -1648,9 +2536,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       FilledButton.icon(
                         onPressed: () => _submit(),
                         icon: const Icon(Icons.add_business),
-                        label: Text(_isEdit
-                            ? 'Anzeige veröffentlichen'
-                            : 'Anzeige erstellen'),
+                        label: const Text('Anzeige veröffentlichen'),
                         style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             backgroundColor: colorScheme.primary,

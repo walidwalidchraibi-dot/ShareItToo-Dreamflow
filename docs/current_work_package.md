@@ -3140,3 +3140,32 @@ regression `32670454653` plus CodeQL `32670454524` are green at implementation
 commit `e4db1515215b6735a0c02294782eb38418615cd6`. No route, import, scraper,
 provider, billing, publication or live gate has been opened. N5 is complete;
 N6 is active.
+
+## Completed package: Stage A Blue Ocean N6
+
+N6 connects the N2–N5 foundations to the existing owner-controlled Flutter
+listing editor behind a compile-time default-off gate and three authenticated,
+listing-scope backend routes. One to four selected uploads pass the N4 privacy
+preflight before the N3 mock can create an editable thirteen-field draft. The
+default server scanner remains deliberately incomplete, so ordinary runtime
+use fails closed to the preserved manual editor; no real scanner or external
+provider is claimed.
+
+Review appends immutable owner-input revisions and N5 price snapshots, exposes
+at most three questions, all eleven owner confirmations, editable duration
+pricing and V5.2 simulation totals. `READY_TO_PUBLISH` still has no side effect;
+only the exact owner action `Anzeige veröffentlichen` may atomically create the
+listing, bind the analyzed photo set and write an immutable publication
+receipt. Existing G5 follow-up linkage is preserved in the guarded transaction.
+Failures keep photos and manual inputs available.
+
+Migration `068`, the workflow/store domain, Flutter wiring and permanent
+validators pass the complete supported candidate-rollover regression in CI
+metadata mode: 663 Backend tests plus one documented skip, fresh PostgreSQL 16
+analyze/review/publish route coverage, 387 Flutter tests plus one documented
+skip, Web/Wasm, loopback smoke and the 448-task Android debug build. The strict
+local Store handoff continues to fail closed on its already documented missing
+private archived AAB; no replacement candidate was created. GitHub regression
+and CodeQL for the N6 implementation commit remain pending. N7 is next and must
+evaluate provider/scanner choices without credentials, billing or provider
+activation.
