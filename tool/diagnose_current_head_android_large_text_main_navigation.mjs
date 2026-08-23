@@ -70,7 +70,7 @@ export function parseAndroidFontScale(value) {
   return parsed;
 }
 
-function readFontScale(commandRunner, adbPath, device) {
+export function readAndroidFontScale(commandRunner, adbPath, device) {
   const raw = currentHeadAndroidAdb(
     commandRunner,
     adbPath,
@@ -80,7 +80,7 @@ function readFontScale(commandRunner, adbPath, device) {
   return { raw, value: parseAndroidFontScale(raw) };
 }
 
-function setFontScale(commandRunner, adbPath, device, value) {
+export function setAndroidFontScale(commandRunner, adbPath, device, value) {
   currentHeadAndroidAdb(
     commandRunner,
     adbPath,
@@ -89,7 +89,7 @@ function setFontScale(commandRunner, adbPath, device, value) {
   );
 }
 
-function restoreFontScale(commandRunner, adbPath, device, previous) {
+export function restoreAndroidFontScale(commandRunner, adbPath, device, previous) {
   if (previous.value === null) {
     currentHeadAndroidAdb(
       commandRunner,
@@ -98,9 +98,9 @@ function restoreFontScale(commandRunner, adbPath, device, previous) {
       ['shell', 'settings', 'delete', 'system', 'font_scale'],
     );
   } else {
-    setFontScale(commandRunner, adbPath, device, previous.raw);
+    setAndroidFontScale(commandRunner, adbPath, device, previous.raw);
   }
-  const restored = readFontScale(commandRunner, adbPath, device);
+  const restored = readAndroidFontScale(commandRunner, adbPath, device);
   const exact = previous.value === null
     ? restored.value === null
     : restored.value === previous.value;
@@ -196,12 +196,12 @@ export async function diagnoseCurrentHeadAndroidLargeTextMainNavigation({
     device,
     candidate,
   );
-  const previous = readFontScale(commandRunner, adbPath, device);
+  const previous = readAndroidFontScale(commandRunner, adbPath, device);
   let restoredFontScale;
   try {
-    setFontScale(commandRunner, adbPath, device, targetFontScale);
+    setAndroidFontScale(commandRunner, adbPath, device, targetFontScale);
     await wait(1200);
-    const active = readFontScale(commandRunner, adbPath, device);
+    const active = readAndroidFontScale(commandRunner, adbPath, device);
     if (active.value === null || active.value < targetFontScale) {
       fail('Android did not apply the required 200 percent system font scale.');
     }
@@ -220,7 +220,7 @@ export async function diagnoseCurrentHeadAndroidLargeTextMainNavigation({
       restoreCurrentHeadAndroidExplore(commandRunner, adbPath, device);
     }
   } finally {
-    restoredFontScale = restoreFontScale(
+    restoredFontScale = restoreAndroidFontScale(
       commandRunner,
       adbPath,
       device,

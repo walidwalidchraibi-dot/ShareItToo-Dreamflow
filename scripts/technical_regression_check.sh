@@ -189,7 +189,11 @@ node --test test/tool/google_play_closed_testing_wiring.test.mjs
 node tool/validate_google_play_closed_testing.mjs
 node --check tool/validate_google_play_closed_testing_feedback.mjs
 node --test test/tool/validate_google_play_closed_testing_feedback.test.mjs
-node tool/validate_google_play_closed_testing_feedback.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_google_play_closed_testing_feedback.mjs --allow-candidate-rollover
+else
+  node tool/validate_google_play_closed_testing_feedback.mjs
+fi
 node --check tool/validate_google_play_production_access_application.mjs
 node --test test/tool/validate_google_play_production_access_application.test.mjs
 node tool/validate_google_play_production_access_application.mjs
@@ -243,6 +247,12 @@ else
 fi
 node --check tool/diagnose_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/diagnose_current_head_android_large_text_main_navigation.test.mjs
+node --check tool/validate_current_head_android_release_archive.mjs
+node --test test/tool/validate_current_head_android_release_archive.test.mjs
+node --check tool/install_current_head_android_candidate_update.mjs
+node --test test/tool/install_current_head_android_candidate_update.test.mjs
+node --check tool/diagnose_android_main_navigation_touch_targets.mjs
+node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

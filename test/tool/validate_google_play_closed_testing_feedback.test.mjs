@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { validateGooglePlayClosedTestingFeedback } from '../../tool/validate_google_play_closed_testing_feedback.mjs';
+import {
+  selectReservedCandidateForClosedTestingFeedback,
+  validateGooglePlayClosedTestingFeedback,
+} from '../../tool/validate_google_play_closed_testing_feedback.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const plan = JSON.parse(readFileSync(resolve(root, 'store/google-play/closed-testing-feedback-plan.json'), 'utf8'));
@@ -142,4 +145,40 @@ test('rejects active feedback that was never rebound to the installed candidate'
     () => validate(fixture, active),
     /exact installed B11 release candidate/,
   );
+});
+
+test('keeps a planned Store feedback run bound during a newer internal rollover', () => {
+  assert.deepEqual(selectReservedCandidateForClosedTestingFeedback({
+    planCandidate: plan.candidate,
+    pubspecCandidate: {
+      versionName: plan.candidate.versionName,
+      buildNumber: String(BigInt(plan.candidate.buildNumber) + 1n),
+    },
+    allowCandidateRollover: true,
+  }), {
+    versionName: plan.candidate.versionName,
+    buildNumber: plan.candidate.buildNumber,
+  });
+});
+
+test('rollover cannot weaken Store-submission or staging boundaries', () => {
+  const next = {
+    versionName: plan.candidate.versionName,
+    buildNumber: String(BigInt(plan.candidate.buildNumber) + 1n),
+  };
+  for (const override of [
+    { releaseChannel: 'production' },
+    { apiBaseUrl: 'https://api.shareittoo.com/api/v1' },
+    { requireStoreSubmission: true },
+  ]) {
+    assert.throws(
+      () => selectReservedCandidateForClosedTestingFeedback({
+        planCandidate: plan.candidate,
+        pubspecCandidate: next,
+        allowCandidateRollover: true,
+        ...override,
+      }),
+      /strictly newer internal Staging diagnostic build/,
+    );
+  }
 });

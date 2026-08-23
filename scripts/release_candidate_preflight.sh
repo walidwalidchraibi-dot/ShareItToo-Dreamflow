@@ -63,7 +63,11 @@ node tool/validate_privacy_disclosures.mjs
 node tool/validate_retention_deletion_readiness.mjs
 node tool/validate_store_review_access.mjs
 node tool/validate_google_play_closed_testing.mjs
-node tool/validate_google_play_closed_testing_feedback.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_google_play_closed_testing_feedback.mjs --allow-candidate-rollover
+else
+  node tool/validate_google_play_closed_testing_feedback.mjs
+fi
 node tool/validate_google_play_production_access_application.mjs
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   [[ "${SIT_RELEASE_CHANNEL:-internal}" == "internal" ]] || \

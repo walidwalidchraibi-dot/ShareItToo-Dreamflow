@@ -245,8 +245,49 @@ export function validateGooglePlayClosedTestingFeedback({
   };
 }
 
+export function selectReservedCandidateForClosedTestingFeedback({
+  planCandidate,
+  pubspecCandidate,
+  allowCandidateRollover = false,
+  releaseChannel = 'internal',
+  apiBaseUrl = 'https://staging.shareittoo.com/api/v1',
+  requireStoreSubmission = false,
+}) {
+  const planned = object(planCandidate, 'planned closed-test candidate');
+  const current = object(pubspecCandidate, 'pubspec candidate');
+  const same = planned.versionName === current.versionName
+    && planned.buildNumber === current.buildNumber;
+  if (same || !allowCandidateRollover) return current;
+  if (releaseChannel !== 'internal'
+      || apiBaseUrl !== 'https://staging.shareittoo.com/api/v1'
+      || requireStoreSubmission
+      || planned.versionName !== current.versionName
+      || !/^\d{10}$/u.test(planned.buildNumber)
+      || !/^\d{10}$/u.test(current.buildNumber)
+      || BigInt(current.buildNumber) <= BigInt(planned.buildNumber)) {
+    fail('Closed-test candidate rollover is restricted to a strictly newer internal Staging diagnostic build.');
+  }
+  return {
+    versionName: planned.versionName,
+    buildNumber: planned.buildNumber,
+  };
+}
+
+function parseArguments(values) {
+  let allowCandidateRollover = false;
+  for (const value of values) {
+    if (value === '--allow-candidate-rollover') {
+      allowCandidateRollover = true;
+    } else {
+      fail(`Unknown argument: ${value}`);
+    }
+  }
+  return { allowCandidateRollover };
+}
+
 function runCli() {
   const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
+  const args = parseArguments(process.argv.slice(2));
   const plan = JSON.parse(readFileSync(resolve(root, 'store/google-play/closed-testing-feedback-plan.json'), 'utf8'));
   const closedTestingReadiness = JSON.parse(readFileSync(
     resolve(root, 'store/google-play/closed-testing-readiness.json'),
@@ -259,10 +300,19 @@ function runCli() {
   const pubspec = readFileSync(resolve(root, 'pubspec.yaml'), 'utf8');
   const version = /^version:\s+([^+\s]+)\+(\d{10})$/mu.exec(pubspec);
   if (version === null) fail('pubspec candidate version is invalid.');
+  const currentCandidate = selectReservedCandidateForClosedTestingFeedback({
+    planCandidate: plan.candidate,
+    pubspecCandidate: { versionName: version[1], buildNumber: version[2] },
+    allowCandidateRollover: args.allowCandidateRollover,
+    releaseChannel: process.env.SIT_RELEASE_CHANNEL ?? 'internal',
+    apiBaseUrl: process.env.SIT_API_BASE_URL
+      ?? 'https://staging.shareittoo.com/api/v1',
+    requireStoreSubmission: process.env.SIT_REQUIRE_STORE_SUBMISSION === '1',
+  });
   const result = validateGooglePlayClosedTestingFeedback({
     plan,
     closedTestingReadiness,
-    currentCandidate: { versionName: version[1], buildNumber: version[2] },
+    currentCandidate,
     deviceCandidate,
     root,
   });
