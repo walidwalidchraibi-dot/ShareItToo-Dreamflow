@@ -2891,6 +2891,8 @@ external-gate tests pass. The complete supported Mac-mini metadata gate passes
 backend/PostgreSQL/tooling, 387 Flutter tests plus one documented skip,
 Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
 fixed capacity budget with 12 KiB generated growth.
+Package commit `a1e4297b2472be659dcba4489ac262c8854ed060` passed exact
+GitHub regression `32649364967` and CodeQL `32649364974`.
 
 No login/logout, account/cart/booking/message/support mutation, real push,
 Store, production, Payment, Cloud/VPS/DNS, provider, cost, public activation or
