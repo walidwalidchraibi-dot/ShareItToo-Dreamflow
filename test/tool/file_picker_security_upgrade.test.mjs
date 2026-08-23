@@ -9,6 +9,7 @@ const read = (path) => readFileSync(resolve(root, path), 'utf8');
 
 const pubspec = read('pubspec.yaml');
 const lock = read('pubspec.lock');
+const regressionRunner = read('scripts/technical_regression_check.sh');
 const pickerSources = [
   'lib/screens/create_listing_screen.dart',
   'lib/screens/message_thread_screen.dart',
@@ -27,4 +28,11 @@ test('all SIT picker calls use the reviewed static API', () => {
   const combined = pickerSources.join('\n');
   assert.doesNotMatch(combined, /FilePicker\.platform/u);
   assert.equal(combined.match(/FilePicker\.pickFiles\(/gu)?.length, 3);
+});
+
+test('the complete regression retains the picker security contract', () => {
+  assert.match(
+    regressionRunner,
+    /^node --test test\/tool\/file_picker_security_upgrade\.test\.mjs$/mu,
+  );
 });

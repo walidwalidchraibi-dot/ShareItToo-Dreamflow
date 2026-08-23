@@ -38,6 +38,10 @@ test('PDF dependencies retain the reviewed WebAssembly-compatible floor and lock
 test('the release regression keeps the WebAssembly dry run enabled', () => {
   assert.match(
     regressionRunner,
+    /^node --test test\/tool\/pdf_wasm_dependency_upgrade\.test\.mjs$/mu,
+  );
+  assert.match(
+    regressionRunner,
     /web_build_output="\$\(flutter build web --debug 2>&1\)"/u,
   );
   assert.match(

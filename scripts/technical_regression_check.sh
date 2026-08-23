@@ -107,6 +107,9 @@ node --test backend/test/moderation_account_measure_domain.test.js
 node --test test/tool/support_article18_guard_wiring.test.mjs
 node --test test/tool/support_privacy_rights_control_plane_wiring.test.mjs
 node --test test/tool/support_privacy_incident_control_plane_wiring.test.mjs
+node --test test/tool/file_picker_security_upgrade.test.mjs
+node --test test/tool/pdf_wasm_dependency_upgrade.test.mjs
+node --test test/tool/android_lifecycle_gradle_floor.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
 
