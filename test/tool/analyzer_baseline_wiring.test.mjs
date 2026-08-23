@@ -15,6 +15,8 @@ test('locks the exact Flutter analyzer backlog instead of accepting a ceiling', 
   assert.match(validator, /snapshot\.total !== baseline\.total/u);
   assert.match(validator, /snapshot\.fingerprintSha256 !== baseline\.fingerprintSha256/u);
   assert.match(validator, /ratchet the committed baseline/u);
+  assert.match(validator, /No issues found!/u);
+  assert.match(script, /No issues found!/u);
 });
 
 test('rejects reintroduction of cleared correctness analyzer codes', () => {

@@ -6018,7 +6018,6 @@ class _TransactionComposerState extends State<_TransactionComposer> {
                 onSendPhoto: widget.onSendPhoto,
                 onPickFile: widget.onPickFile,
                 onChangeTime: widget.onChangeTime,
-                isComposing: isComposing,
                 chatState: widget.chatState,
               ),
             ],
@@ -6500,7 +6499,6 @@ class _GlassInputBar extends StatefulWidget {
   final VoidCallback onSendPhoto;
   final VoidCallback onPickFile;
   final VoidCallback onChangeTime;
-  final bool isComposing;
   final _ChatState chatState;
 
   const _GlassInputBar({
@@ -6513,23 +6511,17 @@ class _GlassInputBar extends StatefulWidget {
     required this.onPickFile,
     required this.onChangeTime,
     required this.chatState,
-    this.isComposing = false,
   });
 
   @override
   State<_GlassInputBar> createState() => _GlassInputBarState();
 }
 
-class _GlassInputBarState extends State<_GlassInputBar>
-    with SingleTickerProviderStateMixin {
+class _GlassInputBarState extends State<_GlassInputBar> {
   static const double _iconSize = 18.0;
-  static const Duration _animDuration = Duration(milliseconds: 220);
   static const Duration _focusAnimDuration = Duration(milliseconds: 140);
   static const double _fieldMinHeight = 40.0;
   static const double _fieldFontSize = 15.0;
-  late AnimationController _animController;
-  late Animation<double> _fadeOuterIcons;
-  late Animation<double> _fadeInnerIcons;
 
   void _focusInput() {
     // Ensure a single tap both expands the field and puts the cursor inside.
@@ -6562,20 +6554,6 @@ class _GlassInputBarState extends State<_GlassInputBar>
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: _animDuration);
-    _fadeOuterIcons = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    _fadeInnerIcons = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    if (widget.isComposing) _animController.value = 1.0;
-
     widget.focusNode.addListener(_onFocusChanged);
     widget.controller.addListener(_onTextChanged);
   }
@@ -6583,14 +6561,6 @@ class _GlassInputBarState extends State<_GlassInputBar>
   @override
   void didUpdateWidget(covariant _GlassInputBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isComposing != oldWidget.isComposing) {
-      if (widget.isComposing) {
-        _animController.forward();
-      } else {
-        _animController.reverse();
-      }
-    }
-
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller.removeListener(_onTextChanged);
       widget.controller.addListener(_onTextChanged);
@@ -6606,7 +6576,6 @@ class _GlassInputBarState extends State<_GlassInputBar>
   void dispose() {
     widget.focusNode.removeListener(_onFocusChanged);
     widget.controller.removeListener(_onTextChanged);
-    _animController.dispose();
     super.dispose();
   }
 
@@ -7222,8 +7191,7 @@ _LocationShareData? _parseLocationShareMessage(String raw) {
 }
 
 class _LocationMapFallback extends StatelessWidget {
-  final bool loading;
-  const _LocationMapFallback({this.loading = false});
+  const _LocationMapFallback();
 
   @override
   Widget build(BuildContext context) {
@@ -7242,17 +7210,6 @@ class _LocationMapFallback extends StatelessWidget {
             opacity: 0.16,
             child: CustomPaint(painter: _LocationGridPainter()),
           ),
-          if (loading)
-            const Center(
-              child: SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              ),
-            ),
         ],
       ),
     );

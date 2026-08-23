@@ -28,6 +28,20 @@ test('accepts only the exact analyzer diagnostic fingerprint', () => {
   assert.equal(result.byCode.use_build_context_synchronously, 1);
 });
 
+test('accepts the native Flutter zero-issue summary as an exact empty snapshot', () => {
+  const logText = [
+    'Analyzing fixture...',
+    'No issues found! (ran in 1.0s)',
+  ].join('\n');
+  const baseline = buildAnalyzerDebtSnapshot(logText);
+
+  const result = validateAnalyzerDebt({ logText, baseline });
+
+  assert.equal(result.total, 0);
+  assert.deepEqual(result.byCode, {});
+  assert.deepEqual(result.byPathCode, {});
+});
+
 test('rejects an unratcheted improvement so the old ceiling cannot return', () => {
   const baseline = buildAnalyzerDebtSnapshot(analyzerLog([first, second]));
 

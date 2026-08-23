@@ -26,6 +26,7 @@ export function parseAnalyzerDiagnostics(logText) {
   for (const line of logText.split(/\r?\n/u)) {
     const totalMatch = /\b([0-9]+) issues? found\./u.exec(line);
     if (totalMatch !== null) reportedTotal = Number.parseInt(totalMatch[1], 10);
+    if (/\bNo issues found!/u.test(line)) reportedTotal = 0;
 
     const parts = line.split(' • ');
     if (parts.length < 4) continue;
