@@ -954,29 +954,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     });
   }
 
-  Future<String?> _pickTranslationLanguageFromChat() async {
-    final current = _effectiveTranslationLanguageCode();
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.4),
-      builder: (_) => TranslationLanguageDialog(
-        title: 'Übersetzungssprache',
-        initialCode: current,
-        options: translationLanguageOptions,
-      ),
-    );
-  }
-
-  Future<void> _ensureTranslationEnabledFromChat() async {
-    var next = _messageSettings.copyWith(autoTranslateChat: true);
-    final lang = await _pickTranslationLanguageFromChat();
-    if (lang != null && lang.trim().isNotEmpty) {
-      next = next.copyWith(preferredLanguageCode: lang.trim());
-    }
-    await _updateTranslationSettings(next);
-  }
-
   Future<void> _showTranslationMenu(
     Message message, {
     required bool isMe,
@@ -1714,17 +1691,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return '';
   }
 
-  String _roleLabel(String roleKey) {
-    switch (roleKey) {
-      case 'owner':
-        return 'Vermieter';
-      case 'renter':
-        return 'Mieter';
-      default:
-        return '';
-    }
-  }
-
   _LocationIntent _locationIntentForCurrentContext() {
     final req = _request;
     if (req == null || req.needsReview) return _LocationIntent.unknown;
@@ -1751,12 +1717,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         (((_handoverReturnState['${prefix}LocationLng'] as String?) ?? '')
             .trim()
             .isNotEmpty);
-  }
-
-  String _savedLocationText(bool isReturn) {
-    return isReturn
-        ? 'Als Rückgabeort gespeichert'
-        : 'Als Übergabeort gespeichert';
   }
 
   bool _savedLocationMatches(
@@ -2666,26 +2626,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         return ''; // Kein Text bei completed - Button spricht für sich
       case _ChatState.support:
         return '';
-    }
-  }
-
-  String _deriveResponseTimeLabel({
-    required List<Message> messages,
-    required String? otherUserId,
-  }) {
-    try {
-      if (otherUserId == null || messages.isEmpty) return 'Antwortzeit: < 1h';
-      final others = messages.where((m) => m.senderId == otherUserId).toList();
-      if (others.isEmpty) return 'Antwortzeit: < 1h';
-      others.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-      final last = others.last.timestamp;
-      final mins = DateTime.now().difference(last).inMinutes;
-      if (mins < 10) return 'Antwortzeit: aktiv';
-      if (mins < 60) return 'Antwortzeit: ~$mins min';
-      final h = (mins / 60).round();
-      return 'Antwortzeit: ~$h h';
-    } catch (_) {
-      return 'Antwortzeit: < 1h';
     }
   }
 
@@ -3606,15 +3546,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         );
       }
     }
-  }
-
-  String _formatDate(DateTime dt) {
-    final d = dt.day.toString().padLeft(2, '0');
-    final m = dt.month.toString().padLeft(2, '0');
-    final y = dt.year;
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final mm = dt.minute.toString().padLeft(2, '0');
-    return '$d.$m.$y $hh:$mm';
   }
 
   Future<String?> _showTimeRequestActionDialog({
