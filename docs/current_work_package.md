@@ -2119,3 +2119,35 @@ The cache action is not acceptance evidence; `TD-RR-012` remains closed by the
 retained guard and exact CI. Remaining third-party Wasm/Android warnings stay
 visible for separate bounded packages. External readiness remains 0/10 and
 P0B remains `HOLD` / `NO-GO`.
+
+## S4BK PDF, WebAssembly and offline-font hardening
+
+`S4BK_PDF_WASM_OFFLINE_FONT_HARDENING` is technically verified at exact
+implementation head `52aa41f8807c5a36f251e4bad1a32c2120fa4454`. A bounded
+`pdf`/`printing` update locks `pdf` 3.12.0, `printing` 5.14.3 and transitive
+`image` 4.9.2, removing the prior WebAssembly findings without disabling
+Flutter's dry run or broadly updating the dependency tree.
+
+The complete regression runner now fails on a Web build error or either former
+finding signature while preserving visible success output. The first real
+financial-PDF compatibility test also found unsupported en-dash glyphs in the
+default Helvetica path. Financial documents now use bundled, hash-bound Roboto
+Regular/Bold assets from the official v3.015 release with the SIL OFL 1.1
+license shipped offline. No amount or immutable server snapshot is
+recalculated.
+
+Focused contracts, real PDF generation, Privacy, analyzer zero and the
+complete local gate pass with 385 Flutter tests plus one documented skip,
+Google-only, Web build/smoke and one direct 448-task Android build. The gate
+started at 4,230,920 KiB effective capacity and ended with 878,200 KiB free,
+3,307,728 KiB generated and 100,968 KiB growth. Four unused Pub-cache versions
+were moved recoverably off the constrained data volume before the run; that is
+not acceptance evidence.
+
+Exact clean-host CI `32613968872` passed PostgreSQL in 39 seconds, Backend in
+1:19 and Flutter/Web/Android in 6:39. The CI log proves 385 passes plus one
+documented skip, analyzer zero, positive WebAssembly dry-run success, no former
+finding signature and Android success. Signing and publication stayed
+skipped. `TD-RR-014` is closed and all 14/14 deterministic exits are retained.
+Android vendor warnings remain visible for separate bounded assessment.
+External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.

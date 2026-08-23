@@ -2430,3 +2430,32 @@ Exact clean-host CI `32613104943` passed PostgreSQL in 35 seconds, Backend in
 `TD-RR-012` remains closed by deterministic exact-CI evidence. Known vendor
 Wasm, Kotlin, Gradle and manifest warnings remain explicit for separate work.
 External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BK PDF, WebAssembly and offline-font hardening
+
+`S4BK_PDF_WASM_OFFLINE_FONT_HARDENING` is technically verified at exact head
+`52aa41f8807c5a36f251e4bad1a32c2120fa4454`. The client now requires and
+locks the reviewed `pdf` 3.12.0 / `printing` 5.14.3 path with transitive
+`image` 4.9.2. The two former WebAssembly findings are absent, the dry run
+remains active, and the permanent regression runner now fails closed if those
+finding signatures return.
+
+The first real immutable financial-PDF generation test exposed missing en-dash
+glyphs in the built-in Helvetica path. Financial documents now load bundled
+Roboto Regular/Bold assets with exact SHA-256 contracts and the included SIL
+OFL 1.1 license. Rendering is offline and uses no system font, provider API or
+runtime download. The compatibility test requires a valid non-empty PDF from a
+test-mode immutable server snapshot without client-side amount calculation.
+
+Focused dependency, font, PDF and Privacy checks, analyzer zero and the
+complete local gate pass with 385 Flutter tests plus one documented skip,
+Google-only, Web build/smoke and one direct 448-task Android build. Exact
+clean-host CI `32613968872` passed PostgreSQL in 39 seconds, Backend in 1:19
+and Flutter/Web/Android in 6:39. Its log records positive Wasm success, no
+former finding signature and Android success; signing/publication stayed
+skipped.
+
+`TD-RR-014` is closed and the release-readiness debt register is 14/14 closed.
+Recoverable relocation of four unused local caches was capacity hygiene, not
+acceptance evidence. Remaining Android vendor warnings are still visible and
+separate. External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.

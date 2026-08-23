@@ -1,6 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **closed, 13/13 deterministic exit contracts retained**. Non-live
+Status: **closed, 14/14 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -24,8 +24,21 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-011` | **CLOSED 22.08.2026.** Failed run `32592388940` exposed a cold-cache Maven `403` and Flutter's hidden APK retry. S4AC replaced it with one direct wrapper `assembleDebug`. Run `32593274378` passed without rerun and wrote the cold PR-scoped Basic Cache (`0 restored, 1 saved`); later exact run `32594060058` restored it (`1 restored, 0 saved`) and passed with one direct build, zero Flutter APK commands and zero retries. | Closed by a reproducible open-source Basic Cache write/restore sequence. Permanently retain the single-attempt contract; no rerun-after-failure, sleep, retry loop, alternate mirror, manual cache injection or paid provider may reappear. |
 | `TD-RR-012` | **CLOSED 23.08.2026.** S4BF adds fixed fail-closed 4 GiB effective-capacity, 5 GiB generated-footprint and 512 MiB end-free bounds around the unchanged complete gate. The local run at `891ecdc` passed with 8 KiB growth; exact CI `32609567488` passed with 3,166,800 KiB growth and adequate final free space. | Closed by deterministic local and exact-CI host measurements. Retain fixed bounds; manual cache purge, alternate temp root, smaller suite, serial execution, retry or pass-on-rerun cannot become release prerequisites. |
 | `TD-RR-013` | **CLOSED 23.08.2026.** The PostgreSQL-16 integration emitted the `pg` warning that calling `client.query()` while the same client is already executing a query is deprecated and will be removed in `pg` 9. A diagnostic run with `NODE_OPTIONS=--throw-deprecation` failed at the first affected transactional workflow. S4BI serializes every formerly concurrent same-client query batch in six transactional source files; independent queries remain semantically unchanged. The repository runner now always invokes the canonical integration with `--throw-deprecation`, and a source contract rejects recurrence. The unchanged real runner and complete local gate pass. Exact CI `32612314131` passes the independent fresh-cluster proof at `76cb636`. | Closed by fail-on-deprecation execution plus a structural no-parallel-same-client contract. Permanently retain the canonical runner flag and source guard; warning suppression, pinning to an old client, retry, additional clients or a reduced integration suite may not replace the source fix. |
+| `TD-RR-014` | **CLOSED 23.08.2026.** The locked `image` 4.5.4 dependency emitted two WebAssembly dry-run findings, while the first real financial-PDF test showed that built-in Helvetica omitted the German document's en dash. S4BK uses a bounded `pdf`/`printing` update that locks `image` 4.9.2, makes WebAssembly findings fatal without disabling the dry run, and renders financial PDFs with hash-bound offline Roboto Regular/Bold assets plus the shipped SIL OFL 1.1 license. The real PDF test, unchanged local gate and exact clean-host CI `32613968872` pass at `52aa41f`; its log contains positive Wasm success and no former finding signature. | Closed by reviewed dependency floors/locks, offline font supply-chain hashes/license, real PDF generation and fail-on-Wasm-finding full builds. Retain the active dry run, exact font contract and clean-host CI; no warning filter, `--no-wasm-dry-run`, runtime font download, system-font dependency, cache patch, retry or partial build may replace them. |
 
 ## Observation log
+
+- 23.08.2026, S4BK: the bounded PDF/printing dependency review removed the two
+  WebAssembly findings without a broad upgrade or suppression. A real
+  financial-document test then exposed unsupported typography in the default
+  PDF font, so Regular/Bold Roboto v3.015 assets, exact hashes and the SIL OFL
+  1.1 text are now bundled for deterministic offline rendering. The unchanged
+  local gate passed after only recoverable relocation of four unused caches;
+  that relocation is not evidence. Exact clean-host CI `32613968872` passed at
+  `52aa41f` with `Wasm dry run succeeded`, no former finding signature and
+  publication skipped. This closes `TD-RR-014`; all 14/14 deterministic exit
+  contracts are retained. Android vendor warnings remain separate and
+  visible. P0B and every external gate remain closed.
 
 - 23.08.2026, S4BJ: a targeted dependency review found that locked
   `file_picker` 10.3.3 preceded the upstream Android path-traversal correction.
