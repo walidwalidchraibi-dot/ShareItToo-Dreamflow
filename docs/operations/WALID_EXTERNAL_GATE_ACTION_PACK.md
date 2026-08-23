@@ -82,7 +82,10 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
   aktuelle Google-Play-Closed-Test-Anforderung und welcher private Kanal für
   den signierten internen Kandidaten `2026082302` gelten. Binärdatenschutz,
   datenerhaltendes Pixel-Update und physische 200%-Touch-Target-Geometrie sind
-  bereits technisch belegt; manuelle Sichtprüfung und TalkBack bleiben offen.
+  bereits technisch belegt. Der exakt installierte Kandidat besteht außerdem
+  Prozess-Neustart, zwei authentifizierte Kaltstarts, Offline-Wiederherstellung,
+  fünf Hauptnavigationen, sieben Rechtsrouten und fünf Großschrift-Flächen
+  read-only; manuelle Sichtprüfung und TalkBack bleiben offen.
 - Dauer: etwa 20 Minuten nur lesende Console-Prüfung; Signierung, Upload und
   Review sind separate spätere Schritte.
 - Mögliche Kosten: Google-Registrierung ist als bereits bezahlt dokumentiert;

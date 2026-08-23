@@ -260,6 +260,15 @@ if [[ "${CI:-false}" == "true" ]]; then
 else
   node tool/validate_pf14b_current_head_android_touch_target.mjs
 fi
+node --check tool/diagnose_pf16_current_candidate_read_only.mjs
+node --test test/tool/diagnose_pf16_current_candidate_read_only.test.mjs
+node --check tool/validate_pf16_current_candidate_read_only.mjs
+node --test test/tool/validate_pf16_current_candidate_read_only.test.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_pf16_current_candidate_read_only.mjs --ci-metadata-only
+else
+  node tool/validate_pf16_current_candidate_read_only.mjs
+fi
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

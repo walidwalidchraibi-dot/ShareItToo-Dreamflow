@@ -83,7 +83,7 @@ test('requires both Stage A deferrals to remain fail closed', () => {
   );
 });
 
-test('Store lane is bound to PF14B and retains manual review holds', () => {
+test('Store lane is bound to PF14B and PF16 and retains manual review holds', () => {
   const stale = copy(board);
   stale.gates[7].technicalEvidenceRefs = stale.gates[7].technicalEvidenceRefs.map(
     (reference) => (
@@ -94,6 +94,16 @@ test('Store lane is bound to PF14B and retains manual review holds', () => {
   );
   assert.throws(
     () => validateExternalGateExecutionBoard({ boardOverride: stale }),
+    /store_candidate_evidence_invalid/u,
+  );
+
+  const missingPf16 = copy(board);
+  missingPf16.gates[7].technicalEvidenceRefs = missingPf16.gates[7]
+    .technicalEvidenceRefs.filter(
+      (reference) => !reference.includes('current-candidate-read-only-regression'),
+    );
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: missingPf16 }),
     /store_candidate_evidence_invalid/u,
   );
 

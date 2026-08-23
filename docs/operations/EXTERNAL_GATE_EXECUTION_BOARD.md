@@ -135,8 +135,12 @@ text and already-controlled booking evidence.
   distribution route; public Store approval remains a later Stage-C gate. The
   signed internal Staging candidate `2026082302` passed its binary privacy scan,
   owner-only archive check, data-preserving Pixel update and physical 200%
-  touch-target geometry. The route choice, Google Play closed test, protected
-  review access, manual visual review and TalkBack traversal are still missing.
+  touch-target geometry. Its exact installed APK also passed a read-only Pixel
+  regression covering process restart, two authenticated cold starts, offline
+  recovery, five primary-navigation surfaces, seven legal routes and all five
+  navigation surfaces at 200% text with exact setting restoration. The route
+  choice, Google Play closed test, protected review access, manual visual review
+  and TalkBack traversal are still missing.
 - Owner/cost/contract/Walid: Walid and the authorized release operator. Existing
   Google registration is paid; new costs are unknown and need prior approval.
   Current platform agreements apply. Walid must be present.

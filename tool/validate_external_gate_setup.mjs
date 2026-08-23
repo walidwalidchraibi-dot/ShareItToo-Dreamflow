@@ -16,6 +16,9 @@ import {
 import {
   validatePf14bCurrentHeadAndroidTouchTarget,
 } from './validate_pf14b_current_head_android_touch_target.mjs';
+import {
+  validatePf16CurrentCandidateReadOnly,
+} from './validate_pf16_current_candidate_read_only.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -27,6 +30,8 @@ const activeProviderReadinessPath =
   'docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json';
 const pf14bEvidencePath =
   'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json';
+const pf16EvidencePath =
+  'docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -192,6 +197,31 @@ export function validateExternalGateSetup({
       && pf14bResult.decision === 'hold-no-go',
     'pf14b_store_candidate_state_invalid',
   );
+  const pf16Evidence = readJson(pf16EvidencePath, sourceOverrides);
+  const pf16Result = validatePf16CurrentCandidateReadOnly({
+    root,
+    evidence: pf16Evidence,
+    pf14bEvidence,
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf16Result.buildNumber === '2026082302'
+      && pf16Result.privateArchiveVerified === true
+      && pf16Result.exactInstalledApkVerified === true
+      && pf16Result.processRestartPassed === true
+      && pf16Result.authenticatedColdStartCycleCount === 2
+      && pf16Result.offlineRecoveryPassed === true
+      && pf16Result.mainNavigationDestinationCount === 5
+      && pf16Result.legalRouteCount === 7
+      && pf16Result.largeTextDestinationCount === 5
+      && pf16Result.exactPreviousFontScaleRestored === true
+      && pf16Result.manualVisualReview === false
+      && pf16Result.manualTalkBackTraversal === false
+      && pf16Result.completeDeviceMatrix === false
+      && pf16Result.stageAReady === false
+      && pf16Result.decision === 'hold-no-go',
+    'pf16_store_candidate_state_invalid',
+  );
 
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
@@ -235,6 +265,7 @@ export function validateExternalGateSetup({
     if (expectedId === 'store_submission_and_closed_testing') {
       assertCondition(
         gate.currentEvidenceRefs.includes(pf14bEvidencePath)
+          && gate.currentEvidenceRefs.includes(pf16EvidencePath)
           && !gate.currentEvidenceRefs.includes(supersededAndroidCandidatePath),
         'store_candidate_ref_invalid:store_submission_and_closed_testing',
       );

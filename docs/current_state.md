@@ -3182,3 +3182,32 @@ The complete documented Mac-mini metadata mode then passed 387 Flutter tests
 plus one recorded skip, Web/Wasm, the loopback smoke, one 448-task Android
 build, binary minSdk 24 and fixed capacity with zero generated growth. This is
 repository regression evidence only, not Store-upload or device evidence.
+
+## PF16 current-candidate read-only physical regression
+
+The exact signed internal Staging candidate `1.0.0+2026082302` from commit
+`1b3e86ef1bcfa5a88b1baf965fdad00e9d64f54b` remains installed on the Pixel 7
+Pro and matches its owner-only private archive. PF16 performs no build, signing,
+install, login, logout or application mutation. Its sanitized physical evidence
+records a data-preserving process restart, two authenticated cold-start cycles,
+an offline cold start plus online restoration, all five primary-navigation
+surfaces, technical reachability of seven legal routes and all five primary
+surfaces at Android font scale `2.0`.
+
+The previous font scale `0.85` was restored exactly. An independent post-check
+also confirmed the exact installed build, restored Wi-Fi, a valid restored
+mobile-data setting and unchanged disabled accessibility services. No raw
+device, network or account identifier was retained.
+
+PF16's four diagnostic tests, six evidence-validator tests and twenty external
+manifest/board tests pass. The complete supported Mac-mini metadata gate passes
+backend/PostgreSQL/tooling checks, 387 Flutter tests plus one recorded skip,
+Web/Wasm, loopback smoke, one 448-task Android build, binary minSdk 24 and the
+fixed capacity budget with 8 KiB generated growth. Exact-commit GitHub
+regression and CodeQL are captured after the package commit.
+
+External readiness remains zero of eleven. The pass is neither manual visual
+review nor manual TalkBack, complete device-matrix, Google Play distribution,
+substantive legal approval, Store submission or Stage-A authorization. All
+production, provider, Payment, Cloud/VPS/DNS, public, real-money and merge
+boundaries remain `HOLD` / `NO-GO`.

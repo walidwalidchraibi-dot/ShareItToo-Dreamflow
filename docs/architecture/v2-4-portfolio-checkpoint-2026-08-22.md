@@ -50,9 +50,12 @@ more local implementation alone:
 The post-PF14B reconciliation on 23.08.2026 leaves every portfolio row above
 unchanged: all twelve authorized V2.4 repository deliverables remain `DONE` in
 their bounded non-live meaning. Android candidate `2026082302` now closes the
-source-to-physical touch-target remediation, but it does not close G3L's
-professional decisions, FI1's human assignments/absence tests, P0A's technical
-`HOLD` or P0B's ten external blockers.
+source-to-physical touch-target remediation and passes the bounded PF16
+read-only physical regression for restart, two cold starts, offline recovery,
+main navigation, legal-route reachability and 200% semantic navigation. This
+does not close G3L's professional decisions, FI1's human assignments/absence
+tests, P0A's technical `HOLD` or P0B's external blockers, and it is not manual
+visual, TalkBack, Google Play or complete-device-matrix evidence.
 
 The ordered post-P0B repository intake/gate packages already bring those lanes
 to their maximum safe local fail-closed state. They must stay ahead of launch,

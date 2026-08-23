@@ -44,6 +44,13 @@ const pf14bEvidence = JSON.parse(readFileSync(
   ),
   'utf8',
 ));
+const pf16Evidence = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
@@ -146,7 +153,7 @@ test('aggregate setup is bound to the active hosting and mail provider hold', ()
   );
 });
 
-test('Store setup is bound to PF14B while manual review remains open', () => {
+test('Store setup is bound to PF14B and PF16 while manual review remains open', () => {
   const changedRef = copy(manifest);
   const storeGate = changedRef.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
@@ -168,6 +175,30 @@ test('Store setup is bound to PF14B while manual review remains open', () => {
       sourceOverrides: {
         'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json':
           overclaim,
+      },
+    }),
+    /release gate/u,
+  );
+
+  const missingPf16 = copy(manifest);
+  const missingPf16Store = missingPf16.gates.find(
+    ({ id }) => id === 'store_submission_and_closed_testing',
+  );
+  missingPf16Store.currentEvidenceRefs = missingPf16Store.currentEvidenceRefs.filter(
+    (reference) => !reference.includes('current-candidate-read-only-regression'),
+  );
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: missingPf16 }),
+    /store_candidate_ref_invalid/u,
+  );
+
+  const pf16Overclaim = copy(pf16Evidence);
+  pf16Overclaim.releaseGate.manualTalkBackTraversal = true;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json':
+          pf16Overclaim,
       },
     }),
     /release gate/u,

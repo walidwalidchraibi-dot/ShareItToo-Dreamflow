@@ -2836,3 +2836,31 @@ documented Mac-mini metadata-only form of the otherwise unchanged complete gate
 passes 387 Flutter tests plus one recorded skip, Web/Wasm, loopback smoke, one
 448-task Android build, binary minSdk 24 and fixed-capacity closure with zero
 generated growth. It is not Store-upload, signing or device acceptance.
+
+## PF16 — current-candidate read-only physical regression
+
+`PF16_CURRENT_CANDIDATE_READ_ONLY_PHYSICAL_REGRESSION` binds the exact signed
+internal Staging candidate `1.0.0+2026082302` and its installed direct APK to one
+sanitized Pixel 7 Pro regression. The bounded orchestrator reuses the existing
+fail-closed physical diagnostics and accepts evidence only after process
+restart, two authenticated cold starts, offline recovery, five main-navigation
+surfaces, seven legal routes and five 200%-text navigation surfaces all pass.
+It also requires exact restoration of the previous font and network settings.
+
+The evidence validator imports the PF14B validator and rejects candidate or
+archive drift, incomplete flows, failed restoration, manual/Store/complete-
+matrix/Stage-A overclaims and private identifiers. Both external gate
+validators now require PF14B and PF16 evidence in the Store lane while keeping
+all eleven gates externally open.
+
+Focused coverage passes 30 diagnostic, evidence and aggregate-gate tests. The
+complete supported Mac-mini metadata gate passes backend/PostgreSQL/tooling,
+387 Flutter tests plus one recorded skip, Web/Wasm, loopback smoke, one 448-task
+Android build, binary minSdk 24 and fixed capacity with 8 KiB generated growth.
+Exact-commit GitHub regression and CodeQL follow the package commit.
+
+No build, signing, installation, login/logout, account/cart/booking/message/
+support mutation, screenshot, raw hierarchy, real push, TalkBack setting,
+Store, production, Payment, Cloud/VPS/DNS, provider, cost, public activation or
+merge action occurred. Manual visual review, manual TalkBack, complete device
+matrix, Google Play distribution and Stage A remain `HOLD` / `NO-GO`.

@@ -8,6 +8,9 @@ import { validatePilotLaunchTiers } from './validate_pilot_launch_tiers.mjs';
 import {
   validatePf14bCurrentHeadAndroidTouchTarget,
 } from './validate_pf14b_current_head_android_touch_target.mjs';
+import {
+  validatePf16CurrentCandidateReadOnly,
+} from './validate_pf16_current_candidate_read_only.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const boardPath =
@@ -17,6 +20,8 @@ const canonicalPath =
   'docs/evidence/external-gates/technical-setup-manifest.json';
 const pf14bEvidencePath =
   'docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json';
+const pf16EvidencePath =
+  'docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -216,8 +221,11 @@ export function validateExternalGateExecutionBoard({
   const storeGate = board.gates[7];
   assertCondition(
     storeGate.technicalEvidenceRefs.includes(pf14bEvidencePath)
+      && storeGate.technicalEvidenceRefs.includes(pf16EvidencePath)
       && !storeGate.technicalEvidenceRefs.includes(supersededAndroidCandidatePath)
       && /2026082302/u.test(storeGate.technicalEvidenceSummary)
+      && /two authenticated cold starts/iu.test(storeGate.technicalEvidenceSummary)
+      && /offline recovery/iu.test(storeGate.technicalEvidenceSummary)
       && /manual visual review/iu.test(storeGate.technicalEvidenceSummary)
       && /TalkBack/iu.test(storeGate.technicalEvidenceSummary),
     'store_candidate_evidence_invalid',
@@ -237,6 +245,29 @@ export function validateExternalGateExecutionBoard({
       && pf14bResult.stageAReady === false
       && pf14bResult.decision === 'hold-no-go',
     'store_candidate_gate_state_invalid',
+  );
+  const pf16Result = validatePf16CurrentCandidateReadOnly({
+    root,
+    evidence: readJson(pf16EvidencePath),
+    pf14bEvidence: readJson(pf14bEvidencePath),
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf16Result.buildNumber === '2026082302'
+      && pf16Result.exactInstalledApkVerified === true
+      && pf16Result.processRestartPassed === true
+      && pf16Result.authenticatedColdStartCycleCount === 2
+      && pf16Result.offlineRecoveryPassed === true
+      && pf16Result.mainNavigationDestinationCount === 5
+      && pf16Result.legalRouteCount === 7
+      && pf16Result.largeTextDestinationCount === 5
+      && pf16Result.exactPreviousFontScaleRestored === true
+      && pf16Result.manualVisualReview === false
+      && pf16Result.manualTalkBackTraversal === false
+      && pf16Result.completeDeviceMatrix === false
+      && pf16Result.stageAReady === false
+      && pf16Result.decision === 'hold-no-go',
+    'store_candidate_read_only_gate_state_invalid',
   );
   validateDependencies(board.gates);
 
