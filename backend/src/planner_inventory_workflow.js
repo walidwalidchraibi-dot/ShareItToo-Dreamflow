@@ -110,18 +110,18 @@ function planInput(raw) {
   const missingRequiredItemTypes = plan.items
     .filter((item) => item.priority === 'required' && !selected.has(item.itemType))
     .map((item) => item.itemType);
-  const preferredListings = candidate.preferredListings == null
+  const rawPreferredListings = candidate.preferredListings == null
     ? {}
     : object(candidate.preferredListings, 'invalid_planner_preferred_listings');
-  if (Object.keys(preferredListings).some((itemType) => !selected.has(itemType))) {
+  if (Object.keys(rawPreferredListings).some((itemType) => !selected.has(itemType))) {
     throw new PlannerInventoryError(400, 'planner_preferred_item_not_selected');
   }
-  for (const [itemType, listingId] of Object.entries(preferredListings)) {
-    preferredListings[itemType] = clientIdentifier(
-      listingId,
-      'invalid_planner_preferred_listing_id',
-    );
-  }
+  const preferredListings = Object.fromEntries(
+    Object.entries(rawPreferredListings).map(([itemType, listingId]) => [
+      itemType,
+      clientIdentifier(listingId, 'invalid_planner_preferred_listing_id'),
+    ]),
+  );
   return {
     candidate,
     plan,

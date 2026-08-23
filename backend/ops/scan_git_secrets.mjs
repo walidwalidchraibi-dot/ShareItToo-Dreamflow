@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
+import { constants } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
@@ -78,16 +79,21 @@ async function scanWorkingTree() {
   for (const relativePath of tracked) {
     inspectPath('working-tree', relativePath);
     const absolutePath = path.join(repoRoot, relativePath);
-    let stat;
+    let handle;
     try {
-      stat = await fs.stat(absolutePath);
+      handle = await fs.open(absolutePath, constants.O_RDONLY | constants.O_NOFOLLOW);
     } catch {
       continue;
     }
-    if (!stat.isFile() || stat.size > 5 * 1024 * 1024) continue;
-    const contents = await fs.readFile(absolutePath);
-    if (contents.includes(0)) continue;
-    inspect(contents.toString('utf8'), 'working-tree', relativePath);
+    try {
+      const stat = await handle.stat();
+      if (!stat.isFile() || stat.size > 5 * 1024 * 1024) continue;
+      const contents = await handle.readFile();
+      if (contents.includes(0)) continue;
+      inspect(contents.toString('utf8'), 'working-tree', relativePath);
+    } finally {
+      await handle.close();
+    }
   }
 }
 

@@ -48,7 +48,7 @@ test('all required transactional templates render text and HTML', () => {
     });
     assert.match(message.subject, /Canon EOS R5/);
     assert.match(message.text, /SIT-123456/);
-    assert.match(message.text, /https:\/\/shareittoo\.com/);
+    assert.equal(message.text.includes('https://shareittoo.com'), true);
     assert.match(message.html, /<!doctype html>/);
     assert.match(message.html, /Buchungsnummer/);
     assert.doesNotMatch(message.html, /undefined|null/);
@@ -94,7 +94,8 @@ test('template HTML escapes user-controlled content and rejects unsafe URLs', ()
     itemTitle: '<img src=x onerror=alert(1)>',
     actionUrl: 'https://shareittoo.com/?x=<unsafe>',
   });
-  assert.doesNotMatch(message.html, /<script>|<img/);
+  assert.equal(message.html.includes('<script>'), false);
+  assert.equal(message.html.includes('<img'), false);
   assert.match(message.html, /&lt;script&gt;/);
   assert.match(message.html, /%3Cunsafe%3E/);
 

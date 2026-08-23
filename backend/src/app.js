@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import cors from 'cors';
+import escapeHtml from 'escape-html';
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { fileTypeFromBuffer } from 'file-type';
@@ -446,15 +447,6 @@ function sendHtml(res, status, html) {
     'X-Frame-Options': 'DENY',
   });
   res.status(status).send(html);
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
 }
 
 function deepLinkFallbackPage({ kind, id }) {
@@ -5533,9 +5525,9 @@ export function createApp({
       let userId = null;
       let sessionId = null;
       try {
-        const payload = token ? verifyAccessToken(token) : null;
-        userId = payload?.sub ?? null;
-        sessionId = payload?.sid ?? null;
+        const payload = verifyAccessToken(token ?? '');
+        userId = payload.sub;
+        sessionId = payload.sid;
       } catch {
         throw new HttpError(401, 'invalid_or_expired_session');
       }

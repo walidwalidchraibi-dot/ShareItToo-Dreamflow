@@ -58,7 +58,7 @@ test('receipt contains the complete immutable texts and escapes active HTML', ()
   assert.match(html, /Erklärung eins/u);
   assert.match(html, /Privat-Mietbedingungen/u);
   assert.match(html, /Plattform &lt;script&gt;nicht ausführen&lt;\/script&gt;/u);
-  assert.doesNotMatch(html, /<script>/u);
+  assert.equal(html.includes('<script>'), false);
   assert.match(html, new RegExp('a'.repeat(64), 'u'));
   assert.match(html, new RegExp('e'.repeat(64), 'u'));
 });

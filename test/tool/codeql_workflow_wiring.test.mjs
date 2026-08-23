@@ -6,6 +6,14 @@ const workflow = readFileSync(
   new URL('../../.github/workflows/codeql.yml', import.meta.url),
   'utf8',
 );
+const backendApp = readFileSync(
+  new URL('../../backend/src/app.js', import.meta.url),
+  'utf8',
+);
+const rateLimitPolicy = readFileSync(
+  new URL('../../backend/src/rate_limit_policy.js', import.meta.url),
+  'utf8',
+);
 
 test('CodeQL covers main, pull request, schedule and manual entry points', () => {
   assert.match(workflow, /^name: codeql$/mu);
@@ -33,4 +41,23 @@ test('CodeQL is bounded and cannot silently ignore findings or workflow failures
   assert.doesNotMatch(workflow, /continue-on-error/u);
   assert.doesNotMatch(workflow, /secrets\./u);
   assert.doesNotMatch(workflow, /(?:deploy|publish|upload-artifact|workflow_run)/u);
+});
+
+test('every general API route remains behind the global limiter', () => {
+  const globalLimiter = backendApp.indexOf('app.use(generalLimiter);');
+  const firstGeneralRoute = backendApp.indexOf("app.get('/v1/maps/places/autocomplete'");
+  const webhookRoute = backendApp.indexOf("app.post('/v1/payments/webhook'");
+  assert.ok(webhookRoute >= 0 && webhookRoute < globalLimiter);
+  assert.ok(globalLimiter >= 0 && globalLimiter < firstGeneralRoute);
+  assert.equal(
+    backendApp.slice(webhookRoute, globalLimiter).includes('webhookLimiter'),
+    true,
+  );
+  for (const contract of [
+    'general: Object.freeze({ windowMs: 60_000, limit: 240 })',
+    'supportIntake: Object.freeze({ windowMs: 15 * 60_000, limit: 10 })',
+    'supportSafetyIntake: Object.freeze({ windowMs: 15 * 60_000, limit: 30 })',
+  ]) {
+    assert.equal(rateLimitPolicy.includes(contract), true, `missing policy: ${contract}`);
+  }
 });

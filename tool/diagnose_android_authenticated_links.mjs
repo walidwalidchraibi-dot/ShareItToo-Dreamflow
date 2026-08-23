@@ -2,7 +2,14 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -45,15 +52,19 @@ function readPrivateFixture(vaultFile) {
   if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
     fail('The synthetic account vault must remain outside the repository.');
   }
-  const stat = lstatSync(canonical);
-  if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) {
-    fail('The synthetic account vault must be a private, regular file.');
-  }
   let vault;
+  let descriptor;
   try {
-    vault = JSON.parse(readFileSync(canonical, 'utf8'));
+    descriptor = openSync(canonical, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const stat = fstatSync(descriptor);
+    if (!stat.isFile() || (stat.mode & 0o077) !== 0) {
+      fail('The synthetic account vault must be a private, regular file.');
+    }
+    vault = JSON.parse(readFileSync(descriptor, 'utf8'));
   } catch {
     fail('The synthetic account vault is invalid.');
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
   const roles = Array.isArray(vault?.accounts)
     ? vault.accounts.map((account) => account?.role).sort()

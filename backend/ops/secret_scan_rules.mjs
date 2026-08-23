@@ -17,7 +17,7 @@ const sensitivePathRules = [
   [
     'tracked_environment_file',
     /(^|\/)\.env(?:\.[^/]+)?$/u,
-    /(?:^|\/)(?:\.env(?:\.[^/]+)*\.(?:example|sample|template)|example\.env)$/u,
+    isEnvironmentTemplatePath,
   ],
   [
     'tracked_service_account_file',
@@ -30,6 +30,13 @@ const sensitivePathRules = [
     null,
   ],
 ];
+
+function isEnvironmentTemplatePath(file) {
+  const fileName = file.split('/').at(-1);
+  if (fileName === 'example.env') return true;
+  if (!fileName?.startsWith('.env.')) return false;
+  return ['example', 'sample', 'template'].includes(fileName.split('.').at(-1));
+}
 
 const templateRules = [
   [
@@ -74,8 +81,8 @@ export function detectHighConfidenceSecretRules(text, file) {
 
 export function detectSensitivePathRules(file) {
   const findings = new Set();
-  for (const [rule, pattern, allowPattern] of sensitivePathRules) {
-    if (pattern.test(file) && !(allowPattern?.test(file) ?? false)) findings.add(rule);
+  for (const [rule, pattern, allow] of sensitivePathRules) {
+    if (pattern.test(file) && !(allow?.(file) ?? false)) findings.add(rule);
   }
   return [...findings];
 }

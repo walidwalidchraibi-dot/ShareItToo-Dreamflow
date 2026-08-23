@@ -33,16 +33,16 @@ test('technical regression runs syntax, tests, and the honest privacy draft vali
 
 test('signed binary privacy scan requires the backend Maps proxy and rejects direct client calls', () => {
   const source = readFileSync(resolve(repositoryRoot, 'tool/verify_android_binary_privacy.mjs'), 'utf8');
-  assert.match(source, /nominatim\.openstreetmap\.org/);
-  assert.match(source, /tile\.openstreetmap\.org/);
-  assert.match(source, /maps\.googleapis\.com/);
+  assert.equal(source.includes('nominatim.openstreetmap.org'), true);
+  assert.equal(source.includes('tile.openstreetmap.org'), true);
+  assert.equal(source.includes('maps.googleapis.com'), true);
   assert.match(source, /Google Maps Platform/);
   assert.match(source, /!googleMapsEndpointPresent/);
   assert.match(source, /googleMapsProxyEndpointPresent/);
   assert.match(source, /codeEndpointPresent: googleMapsEndpointPresent/);
   assert.match(source, /serverCredentialVerification: 'backend-deployment-gate'/);
   assert.match(source, /googleMapsServerCredentialApiAndIpRestrictions/);
-  assert.match(source, /https:\/\/api\.openai\.com\//);
+  assert.equal(source.includes('https://api.openai.com/'), true);
   assert.match(source, /FirebaseAuthRegistrar/);
   assert.match(source, /Facebook automatic app events must be explicitly disabled/);
   assert.match(source, /Facebook advertiser ID collection must be explicitly disabled/);

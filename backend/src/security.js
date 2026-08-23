@@ -6,15 +6,18 @@ import jwt from 'jsonwebtoken';
 import { config } from './config.js';
 
 const scrypt = promisify(crypto.scrypt);
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
 export function isValidEmail(value) {
   const email = normalizeEmail(value);
-  return email.length <= 254 && emailPattern.test(email);
+  if (!email || email.length > 254 || /\s/u.test(email)) return false;
+  const separator = email.indexOf('@');
+  if (separator <= 0 || separator !== email.lastIndexOf('@')) return false;
+  const domain = email.slice(separator + 1);
+  const dot = domain.lastIndexOf('.');
+  return dot > 0 && dot < domain.length - 1;
 }
 
 export function isValidPassword(value) {
@@ -91,9 +94,12 @@ export function hashActionToken(token) {
 }
 
 export function bearerToken(req) {
-  const value = req.get('authorization') ?? '';
-  const match = /^Bearer\s+(.+)$/i.exec(value);
-  return match?.[1] ?? null;
+  const value = req.get('authorization');
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (normalized.slice(0, 7).toLowerCase() !== 'bearer ') return null;
+  const token = normalized.slice(7).trim();
+  return token || null;
 }
 
 export function requireAuth(req, res, next) {
@@ -167,14 +173,16 @@ const protectedProfileKeys = new Set([
 
 export function sanitizeProfileUpdate(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  const output = {};
+  const entries = [];
   for (const [key, raw] of Object.entries(value)) {
     if (protectedProfileKeys.has(key)) continue;
-    if (typeof raw === 'string') output[key] = raw.trim().slice(0, 2000);
-    else if (typeof raw === 'boolean' || typeof raw === 'number' || raw === null) output[key] = raw;
-    else if (Array.isArray(raw)) output[key] = raw.slice(0, 50).map((item) => String(item).slice(0, 120));
+    if (typeof raw === 'string') entries.push([key, raw.trim().slice(0, 2000)]);
+    else if (typeof raw === 'boolean' || typeof raw === 'number' || raw === null) entries.push([key, raw]);
+    else if (Array.isArray(raw)) {
+      entries.push([key, raw.slice(0, 50).map((item) => String(item).slice(0, 120))]);
+    }
   }
-  return output;
+  return Object.fromEntries(entries);
 }
 
 export function shapeUser(row, { publicOnly = false } = {}) {

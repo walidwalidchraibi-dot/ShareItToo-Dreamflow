@@ -183,8 +183,8 @@ test('account result pages escape untrusted content', () => {
     title: '<script>alert(1)</script>',
     message: '<img src=x onerror=alert(1)>',
   });
-  assert.doesNotMatch(page, /<script>/);
-  assert.doesNotMatch(page, /<img/);
+  assert.equal(page.includes('<script>'), false);
+  assert.equal(page.includes('<img'), false);
   assert.match(page, /&lt;script&gt;/);
 });
 
@@ -238,7 +238,7 @@ test('approved public privacy copy covers the evidenced current data flows and d
   assert.match(privacy, /Empfänger und Dienstleister/);
   assert.match(privacy, /Speicherung, Löschung und Rechte/);
   assert.match(privacy, /innerhalb von 14 Tagen/);
-  assert.match(privacy, /shareittoo\.com\/account-deletion/);
+  assert.equal(privacy.includes('shareittoo.com/account-deletion'), true);
   assert.doesNotMatch(privacy, /OpenAI/);
 });
 

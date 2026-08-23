@@ -338,33 +338,29 @@ export function supportCaseIdempotencyKey(value, suffix = 'support.case') {
   return `${suffix}:${key}`;
 }
 
-export function newHumanReadableCaseNumber(randomBytes = crypto.randomBytes(9)) {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let result = 'SIT-';
-  for (let index = 0; index < 12; index += 1) {
-    result += alphabet[randomBytes[index % randomBytes.length] % alphabet.length];
+function humanReadableRandomSuffix(randomBytes) {
+  if (!Buffer.isBuffer(randomBytes) || randomBytes.length === 0) {
+    throw new TypeError('random_bytes_required');
   }
-  return result;
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const entropy = randomBytes.length >= 12
+    ? randomBytes.subarray(0, 12)
+    : Buffer.concat([randomBytes, Buffer.alloc(12 - randomBytes.length)]);
+  return [...entropy].map((byte) => alphabet[byte & 31]).join('');
 }
 
-export function newHumanReadableDsaNoticeNumber(randomBytes = crypto.randomBytes(9)) {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let result = 'SIT-N-';
-  for (let index = 0; index < 12; index += 1) {
-    result += alphabet[randomBytes[index % randomBytes.length] % alphabet.length];
-  }
-  return result;
+export function newHumanReadableCaseNumber(randomBytes = crypto.randomBytes(12)) {
+  return `SIT-${humanReadableRandomSuffix(randomBytes)}`;
+}
+
+export function newHumanReadableDsaNoticeNumber(randomBytes = crypto.randomBytes(12)) {
+  return `SIT-N-${humanReadableRandomSuffix(randomBytes)}`;
 }
 
 export function newHumanReadableProductSafetyNoticeNumber(
-  randomBytes = crypto.randomBytes(9),
+  randomBytes = crypto.randomBytes(12),
 ) {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let result = 'SIT-P-';
-  for (let index = 0; index < 12; index += 1) {
-    result += alphabet[randomBytes[index % randomBytes.length] % alphabet.length];
-  }
-  return result;
+  return `SIT-P-${humanReadableRandomSuffix(randomBytes)}`;
 }
 
 export function supportRouteFor(caseType, caseSubType, signals = {}) {

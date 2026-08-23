@@ -125,7 +125,7 @@ test('receipt contains scope, consequences, separate refunds and escaped source 
   assert.match(html, /rent_refund/u);
   assert.match(html, /sit_fee_refund/u);
   assert.match(html, /Widerruf &lt;script&gt;nicht ausführen&lt;\/script&gt;/u);
-  assert.doesNotMatch(html, /<script>/u);
+  assert.equal(html.includes('<script>'), false);
 });
 
 test('before-handover withdrawal atomically cancels and creates two full obligations', async () => {

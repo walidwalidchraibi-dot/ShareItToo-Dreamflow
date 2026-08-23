@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -31,13 +38,23 @@ function privateSyntheticAccount(vaultFile, role) {
   if (typeof vaultFile !== 'string' || !isAbsolute(vaultFile)) fail('--vault-file must be absolute.');
   const canonical = realpathSync(vaultFile);
   const rel = relative(repositoryRoot, canonical);
-  const stat = lstatSync(canonical);
-  if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))
-      || !stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) {
+  if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) {
     fail('The synthetic account vault must be a private regular file outside the repository.');
   }
   let vault;
-  try { vault = JSON.parse(readFileSync(canonical, 'utf8')); } catch { fail('The synthetic account vault is invalid.'); }
+  let descriptor;
+  try {
+    descriptor = openSync(canonical, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const stat = fstatSync(descriptor);
+    if (!stat.isFile() || (stat.mode & 0o077) !== 0) {
+      fail('The synthetic account vault must be a private regular file outside the repository.');
+    }
+    vault = JSON.parse(readFileSync(descriptor, 'utf8'));
+  } catch {
+    fail('The synthetic account vault is invalid.');
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
   if (vault?.schemaVersion !== 1 || vault?.kind !== 'sit-staging-synthetic-account-vault'
       || vault?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1'
       || vault?.stripeLivemode !== false || !['owner', 'renter'].includes(role)) {

@@ -56,11 +56,13 @@ function assertExternalAiRemoved(root, overrides) {
   ]) {
     if (!ai.includes(marker)) fail(`External-AI fail-closed contract is missing: ${marker}`);
   }
+  if (ai.toLowerCase().includes('api.openai.com')) {
+    fail('Dormant external-AI client path is forbidden: api.openai.com');
+  }
   for (const forbidden of [
     /package:http\/http\.dart/u,
     /dart:convert/u,
     /OPENAI_[A-Z_]+/u,
-    /api\.openai\.com/iu,
     /http\.(?:post|get|put|delete|patch)\s*\(/u,
     /Uri\.parse\s*\(/u,
     /\bgpt-[a-z0-9.-]+/iu,
@@ -71,8 +73,10 @@ function assertExternalAiRemoved(root, overrides) {
 
   for (const path of [...filesBelow(root, 'lib'), ...filesBelow(root, 'backend/src')]) {
     const content = source(root, path, overrides);
+    if (content.toLowerCase().includes('api.openai.com')) {
+      fail(`External-AI transport or provider marker is forbidden: ${path}`);
+    }
     for (const forbidden of [
-      /api\.openai\.com/iu,
       /OPENAI_(?:PROXY|API|ENDPOINT|MODEL|KEY)/u,
       /package:(?:google_generative_ai|anthropic|openai)/iu,
       /\bgpt-[a-z0-9.-]+/iu,

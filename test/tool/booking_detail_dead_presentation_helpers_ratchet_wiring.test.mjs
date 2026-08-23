@@ -30,8 +30,8 @@ test('booking detail cannot regain dead call calendar code or format helpers', (
 
 test('active map navigation and secure server challenge paths remain intact', () => {
   const maps = between('Future<void> _openMaps(', 'String _computeBookingId()');
-  assert.match(maps, /google\.com\/maps\/search/u);
-  assert.match(maps, /google\.com\/maps\/dir/u);
+  assert.equal(maps.includes('google.com/maps/search'), true);
+  assert.equal(maps.includes('google.com/maps/dir'), true);
   assert.match(maps, /launchUrl\(uri, mode: LaunchMode\.platformDefault\)/u);
 
   const challenge = between(

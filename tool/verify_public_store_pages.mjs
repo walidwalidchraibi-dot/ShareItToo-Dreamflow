@@ -41,11 +41,13 @@ if (originOverride) {
 
 const expectations = {
   support: {
+    url: 'https://shareittoo.com/support',
     pageId: 'support',
     approvedStatus: 'approved',
     required: ['mailto:', 'Fragen zu Konten'],
   },
   privacy: {
+    url: 'https://shareittoo.com/privacy',
     pageId: 'privacy',
     approvedStatus: 'approved',
     required: [
@@ -58,6 +60,7 @@ const expectations = {
     ],
   },
   accountDeletion: {
+    url: 'https://shareittoo.com/account-deletion',
     pageId: 'account-deletion',
     approvedStatus: 'operational',
     required: ['Konto löschen', 'Löschung anfordern', 'name="email"'],
@@ -76,8 +79,11 @@ for (const [key, expectation] of Object.entries(expectations)) {
   if (!['verified', 'draft'].includes(entry.status)) {
     fail(`publicUrls.${key} must be verified or draft for content checks.`);
   }
+  if (entry.url !== expectation.url) {
+    fail(`publicUrls.${key}.url must match the frozen canonical public URL.`);
+  }
 
-  const configured = new URL(entry.url);
+  const configured = new URL(expectation.url);
   const target = originOverride
     ? new URL(`${configured.pathname}${configured.search}`, originOverride)
     : configured;

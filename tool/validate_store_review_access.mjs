@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -86,24 +93,24 @@ function readEvidence(root, ref) {
   const fullPath = resolve(root, ref);
   const rel = relative(evidenceRoot, fullPath);
   if (rel.startsWith('..') || isAbsolute(rel)) fail('The review evidence path escapes B11 evidence.');
-  let stat;
-  try {
-    stat = lstatSync(fullPath);
-  } catch {
-    fail('The review access evidence file does not exist.');
-  }
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 2 || stat.size > 1024 * 1024) {
-    fail('The review access evidence must be a non-empty regular file.');
-  }
-  const canonicalRel = relative(realpathSync(evidenceRoot), realpathSync(fullPath));
+  const canonicalPath = realpathSync(fullPath);
+  const canonicalRel = relative(realpathSync(evidenceRoot), canonicalPath);
   if (canonicalRel.startsWith('..') || isAbsolute(canonicalRel)) {
     fail('The review access evidence escapes B11 evidence through a link.');
   }
   let evidence;
+  let descriptor;
   try {
-    evidence = JSON.parse(readFileSync(fullPath, 'utf8'));
+    descriptor = openSync(canonicalPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const stat = fstatSync(descriptor);
+    if (!stat.isFile() || stat.size < 2 || stat.size > 1024 * 1024) {
+      fail('The review access evidence must be a non-empty regular file.');
+    }
+    evidence = JSON.parse(readFileSync(descriptor, 'utf8'));
   } catch {
     fail('The review access evidence must contain valid JSON.');
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
   return object(evidence, 'review evidence');
 }

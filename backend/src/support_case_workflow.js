@@ -1083,7 +1083,7 @@ export async function getSupportCase(client, {
     [caseId, staffAccess, actor?.role === 'admin', actor?.id ?? null],
   );
   let breakGlassGrant = null;
-  if (!result.rowCount && staffAccess && actor?.role === 'support' && breakGlassToken) {
+  if (!result.rowCount && staffAccess && actor?.role === 'support') {
     breakGlassGrant = await verifySupportBreakGlassGrant(client, {
       actor,
       sessionId,
