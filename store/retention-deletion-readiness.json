@@ -798,6 +798,14 @@
     "security-and-account-erasure-audit"
   ],
   "externalProcessors": {
+    "hostingerVps": {
+      "retentionOwnerVerified": false,
+      "deletionProcedureVerified": false,
+      "officialDocumentationReviewed": false,
+      "officialEvidenceRef": null,
+      "serviceReadinessRef": null,
+      "ownerEvidenceRef": null
+    },
     "firebaseCloudMessaging": {
       "retentionOwnerVerified": false,
       "deletionProcedureVerified": false,
@@ -820,6 +828,14 @@
       "officialDocumentationReviewed": true,
       "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
       "serviceReadinessRef": "docs/evidence/b11/firebase-authentication-retention-deletion-readiness-20260817.json",
+      "ownerEvidenceRef": null
+    },
+    "googleWorkspaceSmtpRelay": {
+      "retentionOwnerVerified": false,
+      "deletionProcedureVerified": false,
+      "officialDocumentationReviewed": false,
+      "officialEvidenceRef": null,
+      "serviceReadinessRef": null,
       "ownerEvidenceRef": null
     },
     "googleMapsPlatform": {

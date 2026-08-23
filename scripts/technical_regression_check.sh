@@ -88,6 +88,9 @@ node tool/validate_support_test_matrix_traceability.mjs
 node --check tool/validate_support_evidence_external_readiness.mjs
 node --test test/tool/validate_support_evidence_external_readiness.test.mjs
 node tool/validate_support_evidence_external_readiness.mjs
+node --check tool/validate_active_infrastructure_mail_provider_readiness.mjs
+node --test test/tool/validate_active_infrastructure_mail_provider_readiness.test.mjs
+node tool/validate_active_infrastructure_mail_provider_readiness.mjs
 node --test test/tool/validate_privacy_disclosures.test.mjs
 node --test test/tool/validate_messaging_launch_scope.test.mjs
 node --test test/tool/support_final_decision_wiring.test.mjs

@@ -50,7 +50,7 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   assert.equal(result.state, 'draft');
   assert.equal(result.approvalAllowed, false);
   assert.equal(result.dataTypeCount, 18);
-  assert.equal(result.externalServiceCount, 9);
+  assert.equal(result.externalServiceCount, 11);
   assert.equal(result.binaryReleaseCheck, 'passed');
   assert.equal(result.storeGate, 'open');
 });
@@ -168,6 +168,34 @@ test('rejects hiding active phone verification in the bound environment', () => 
   assert.throws(() => validate({ privacyManifest }), /Firebase Authentication/);
 });
 
+test('rejects hiding the active hosting processor from the disclosure inventory', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.externalServices.hostingerVps.enabled = false;
+  assert.throws(
+    () => validate({ privacyManifest }),
+    /hostingerVps must remain an explicitly inventoried active processor/,
+  );
+});
+
+test('rejects hiding the active transactional mail processor from the disclosure inventory', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.externalServices.googleWorkspaceSmtpRelay.candidateState =
+    'inactive';
+  assert.throws(
+    () => validate({ privacyManifest }),
+    /googleWorkspaceSmtpRelay must remain an explicitly inventoried active processor/,
+  );
+});
+
+test('rejects approving an active processor without contract region transfer and retention facts', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.externalServices.hostingerVps.contractAndDpaApproved = true;
+  assert.throws(
+    () => validate({ privacyManifest }),
+    /Draft privacy disclosures must remain fail closed/,
+  );
+});
+
 test('rejects classifying Maps as a processor after controller-role review', () => {
   const privacyManifest = clone(basePrivacyManifest);
   privacyManifest.externalServices.googleMapsPlatform.role = 'processor';
@@ -207,6 +235,17 @@ test('accepts a complete internally consistent approved fixture', () => {
   privacyManifest.externalServices.googleMapsPlatform.clientCredentialEmbedded = false;
   privacyManifest.externalServices.googleMapsPlatform.serverProxied = true;
   privacyManifest.externalServices.googleMapsPlatform.serverCredentialRestrictionVerified = true;
+  for (const service of [
+    privacyManifest.externalServices.hostingerVps,
+    privacyManifest.externalServices.googleWorkspaceSmtpRelay,
+  ]) {
+    service.contractAndDpaApproved = true;
+    service.transferMechanismApproved = true;
+    service.retentionAndDeletionApproved = true;
+  }
+  privacyManifest.externalServices.hostingerVps.providerSeatAndRegionApproved = true;
+  privacyManifest.externalServices.googleWorkspaceSmtpRelay
+    .providerSeatAndSendingRegionApproved = true;
   privacyManifest.binaryEvidence.releaseCheckStatus = 'passed';
   deviceManifest.releaseChecks.binaryPrivacyAndNetwork.status = 'passed';
   submissionManifest.blockingGates.finalBinaryPrivacyScan = 'closed';

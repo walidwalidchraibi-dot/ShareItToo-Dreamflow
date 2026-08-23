@@ -206,11 +206,21 @@ const decisionKeys = [
 ];
 
 const externalProcessorKeys = [
+  'hostingerVps',
   'firebaseCloudMessaging',
   'firebaseCrashlytics',
   'firebaseAuthentication',
+  'googleWorkspaceSmtpRelay',
   'googleMapsPlatform',
 ];
+
+const providerClassificationPath =
+  'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json';
+const externallyUnreviewedProcessorKeys = new Set([
+  'hostingerVps',
+  'googleWorkspaceSmtpRelay',
+]);
+const legacyExecutionPreflightProcessorCount = 4;
 
 const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
 const firebaseServiceReadinessPaths = {
@@ -1203,7 +1213,8 @@ function assertRetentionExecutionPreflightEvidence(root, evidenceTexts) {
       || evidence.result?.destructiveRouteExposed !== false
       || evidence.result?.currentBlockerCount !== 21
       || evidence.result?.openRetentionDecisions !== decisionKeys.length
-      || evidence.result?.processorVerificationGatesOpen !== externalProcessorKeys.length
+      || evidence.result?.processorVerificationGatesOpen
+        !== legacyExecutionPreflightProcessorCount
       || evidence.result?.unsafeDecisionValuesReflected !== false
       || !Array.isArray(evidence.requiredCombinedGates)
       || evidence.requiredCombinedGates.length !== 9
@@ -1801,6 +1812,33 @@ export function validateRetentionDeletionReadiness({
   }
 
   const processors = object(retention.externalProcessors, 'externalProcessors');
+  exactKeys(processors, externalProcessorKeys, 'externalProcessors');
+  let providerClassification;
+  try {
+    providerClassification = JSON.parse(text(root, evidenceTexts, providerClassificationPath));
+  } catch (error) {
+    fail(`Active-provider classification must be valid JSON: ${error.message}`);
+  }
+  assertNoSensitiveData(providerClassification, 'active-provider classification');
+  const classifiedProcessors = new Map(
+    (providerClassification.services ?? []).map((service) => [service?.id, service]),
+  );
+  for (const processor of externallyUnreviewedProcessorKeys) {
+    const classification = classifiedProcessors.get(processor);
+    if (classification?.technicalRole !== 'processor'
+        || typeof classification.candidateState !== 'string'
+        || !classification.candidateState.startsWith('active')
+        || !Array.isArray(classification.actualCandidateTransfers)
+        || classification.actualCandidateTransfers.length === 0) {
+      fail(`${processor} must remain bound to the active provider classification.`);
+    }
+  }
+  if (providerClassification.status !==
+        'technical-provider-roles-classified-owner-contract-and-legal-approval-open'
+      || providerClassification.blockingGates?.retentionAndDeletionScheduleApproved !== false
+      || providerClassification.boundaries?.providerContractAcceptedByAgent !== false) {
+    fail('Active-provider classification must remain externally unapproved.');
+  }
   for (const processor of externalProcessorKeys) {
     const processorState = object(processors[processor], `externalProcessors.${processor}`);
     exactKeys(processorState, [
@@ -1813,12 +1851,32 @@ export function validateRetentionDeletionReadiness({
     ], `externalProcessors.${processor}`);
     if (typeof processorState.retentionOwnerVerified !== 'boolean'
         || typeof processorState.deletionProcedureVerified !== 'boolean'
-        || processorState.officialDocumentationReviewed !== true
-        || processorState.officialEvidenceRef !== providerEvidencePath) {
-      fail(`${processor} must keep boolean verification flags and reference the reviewed official-source evidence.`);
+        || typeof processorState.officialDocumentationReviewed !== 'boolean') {
+      fail(`${processor} must keep explicit verification flags.`);
     }
     const expectedServiceReadinessRef = firebaseServiceReadinessPaths[processor] ?? null;
-    if (processorState.serviceReadinessRef !== expectedServiceReadinessRef) {
+    if (externallyUnreviewedProcessorKeys.has(processor)) {
+      if (decisions.externalProcessorRetention.status === 'open'
+          && (processorState.officialDocumentationReviewed !== false
+            || processorState.officialEvidenceRef !== null
+            || processorState.serviceReadinessRef !== null)) {
+        fail(`${processor} must expose its missing official retention and deletion review.`);
+      }
+      if (decisions.externalProcessorRetention.status === 'closed') {
+        for (const [key, reference] of [
+          ['officialEvidenceRef', processorState.officialEvidenceRef],
+          ['serviceReadinessRef', processorState.serviceReadinessRef],
+        ]) {
+          if (processorState.officialDocumentationReviewed !== true
+              || typeof reference !== 'string'
+              || !reference.startsWith('docs/evidence/b11/')) {
+            fail(`${processor}.${key} requires separate reviewed evidence before closure.`);
+          }
+        }
+      }
+    } else if (processorState.officialDocumentationReviewed !== true
+        || processorState.officialEvidenceRef !== providerEvidencePath
+        || processorState.serviceReadinessRef !== expectedServiceReadinessRef) {
       fail(`${processor} must reference only its own service-specific readiness evidence.`);
     }
     const verified = processorState.retentionOwnerVerified
@@ -1832,7 +1890,9 @@ export function validateRetentionDeletionReadiness({
           || typeof processorState.ownerEvidenceRef !== 'string'
           || !processorState.ownerEvidenceRef.startsWith('docs/evidence/b11/')
           || processorState.ownerEvidenceRef === providerEvidencePath
-          || processorState.ownerEvidenceRef === processorState.serviceReadinessRef)) {
+          || processorState.ownerEvidenceRef === processorState.officialEvidenceRef
+          || processorState.ownerEvidenceRef === processorState.serviceReadinessRef
+          || processorState.officialEvidenceRef === processorState.serviceReadinessRef)) {
       fail(`${processor} requires separate owner evidence when external processor retention is closed.`);
     }
   }

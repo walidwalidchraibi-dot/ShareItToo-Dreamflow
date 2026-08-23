@@ -20,8 +20,57 @@ function validate({ retentionManifest = clone(baseRetention), privacyManifest = 
   return validateRetentionDeletionReadiness({ root, retentionManifest, privacyManifest, sourceTexts, evidenceTexts, requireApproved });
 }
 
+function closeProcessorVerification(processor, { ownerEvidence = true } = {}) {
+  processor.retentionOwnerVerified = true;
+  processor.deletionProcedureVerified = true;
+  if (!processor.officialDocumentationReviewed) {
+    processor.officialDocumentationReviewed = true;
+    processor.officialEvidenceRef =
+      'docs/evidence/b11/retention-active-provider-official.json';
+    processor.serviceReadinessRef =
+      'docs/evidence/b11/retention-active-provider-readiness.json';
+  }
+  if (ownerEvidence) {
+    processor.ownerEvidenceRef = 'docs/evidence/b11/retention-external-owner.json';
+  }
+}
+
 test('accepts the honest fail-closed retention draft', () => {
   assert.deepEqual(validate(), {state: 'draft', approvalAllowed: false, openDecisionCount: 10, storeGate: 'open'});
+});
+
+test('inventories active hosting and mail processors as explicit open retention gates', () => {
+  for (const processorId of ['hostingerVps', 'googleWorkspaceSmtpRelay']) {
+    assert.deepEqual(baseRetention.externalProcessors[processorId], {
+      retentionOwnerVerified: false,
+      deletionProcedureVerified: false,
+      officialDocumentationReviewed: false,
+      officialEvidenceRef: null,
+      serviceReadinessRef: null,
+      ownerEvidenceRef: null,
+    });
+  }
+});
+
+test('rejects omitting an active processor from retention readiness', () => {
+  const retentionManifest = clone(baseRetention);
+  delete retentionManifest.externalProcessors.hostingerVps;
+  assert.throws(
+    () => validate({ retentionManifest }),
+    /externalProcessors must contain exactly/,
+  );
+});
+
+test('rejects active-provider classification drift behind retention readiness', () => {
+  const path =
+    'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.services.find((service) => service.id === 'googleWorkspaceSmtpRelay')
+    .candidateState = 'inactive';
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /googleWorkspaceSmtpRelay must remain bound to the active provider classification/,
+  );
 });
 
 test('rejects drift in the retained user support case display', () => {
@@ -41,7 +90,7 @@ test('execution preflight reports only stable blocker codes and exposes no destr
   assert.equal(result.status, 'blocked');
   assert.equal(result.executionAllowed, false);
   assert.equal(result.destructiveRouteExposed, false);
-  assert.equal(result.blockerCount, 21);
+  assert.equal(result.blockerCount, 23);
   assert.deepEqual(result.blockers.slice(0, 3), [
     'retention-policy-approval-open',
     'decision-open:inactiveAccountPeriod',
@@ -49,6 +98,8 @@ test('execution preflight reports only stable blocker codes and exposes no destr
   ]);
   assert.ok(result.blockers.includes('external-processor-open:firebaseCloudMessaging'));
   assert.ok(result.blockers.includes('external-processor-open:firebaseCrashlytics'));
+  assert.ok(result.blockers.includes('external-processor-open:hostingerVps'));
+  assert.ok(result.blockers.includes('external-processor-open:googleWorkspaceSmtpRelay'));
   assert.ok(result.blockers.includes('privacy-retention-schedule-open'));
   assert.doesNotMatch(JSON.stringify(result), /@|password|token|secret/iu);
 });
@@ -78,9 +129,7 @@ test('approved paperwork alone cannot make retention execution ready', () => {
     decision.evidenceRef = `docs/evidence/b11/retention-${key}.json`;
   }
   for (const processor of Object.values(retentionManifest.externalProcessors)) {
-    processor.retentionOwnerVerified = true;
-    processor.deletionProcedureVerified = true;
-    processor.ownerEvidenceRef = 'docs/evidence/b11/retention-external-owner.json';
+    closeProcessorVerification(processor);
   }
   const result = assessRetentionExecutionReadiness({ retentionManifest, privacyManifest });
   assert.equal(result.executionAllowed, false);
@@ -111,9 +160,7 @@ test('execution preflight requires policy, processors, cutoffs, dry run and Stor
     decision.evidenceRef = `docs/evidence/b11/retention-${key}.json`;
   }
   for (const processor of Object.values(retentionManifest.externalProcessors)) {
-    processor.retentionOwnerVerified = true;
-    processor.deletionProcedureVerified = true;
-    processor.ownerEvidenceRef = 'docs/evidence/b11/retention-external-owner.json';
+    closeProcessorVerification(processor);
   }
   const result = assessRetentionExecutionReadiness({ retentionManifest, privacyManifest });
   assert.deepEqual(result, {
@@ -454,8 +501,7 @@ test('rejects owner verification without a separate owner evidence reference', (
   externalDecision.value = 'approved-external-retention';
   externalDecision.evidenceRef = 'docs/evidence/b11/retention-external-owner.json';
   for (const processor of Object.values(retentionManifest.externalProcessors)) {
-    processor.retentionOwnerVerified = true;
-    processor.deletionProcedureVerified = true;
+    closeProcessorVerification(processor, { ownerEvidence: false });
   }
   retentionManifest.storeGate.status = 'closed';
   assert.throws(
@@ -505,9 +551,7 @@ test('accepts a fully evidence-backed approved fixture', () => {
     decision.evidenceRef = `docs/evidence/b11/retention-${key}.json`;
   }
   for (const processor of Object.values(retentionManifest.externalProcessors)) {
-    processor.retentionOwnerVerified = true;
-    processor.deletionProcedureVerified = true;
-    processor.ownerEvidenceRef = 'docs/evidence/b11/retention-external-owner.json';
+    closeProcessorVerification(processor);
   }
   assert.equal(validate({ retentionManifest, privacyManifest, requireApproved: true }).state, 'approved');
 });

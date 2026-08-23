@@ -11,6 +11,14 @@
     "externalEvidencePresentCount": 0,
     "strictReleaseReady": false
   },
+  "activeProviderReadiness": {
+    "ref": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+    "classifiedActiveProcessorCount": 5,
+    "newlyExplicitActiveProcessorCount": 2,
+    "requiredDecisionCount": 10,
+    "completedDecisionCount": 0,
+    "strictReady": false
+  },
   "setupOrder": [
     "legal_and_operator_approval",
     "operations_roles_and_absence",
@@ -33,7 +41,11 @@
       "externalEvidenceRef": null,
       "currentEvidenceRefs": [
         "assets/legal/de/legal_review_intake_p0b_20260821.json",
+        "assets/legal/de/legal_manifest_v52.json",
         "docs/compliance/p0b-l1-v52-g3-professional-review-intake-2026-08-21.md",
+        "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json",
+        "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+        "docs/operations/ACTIVE_INFRASTRUCTURE_AND_MAIL_PROVIDER_RUNBOOK.md",
         "docs/evidence/support/support-test-matrix-v1-traceability.json",
         "store/legal-readiness.json"
       ]
@@ -108,6 +120,9 @@
       "currentEvidenceRefs": [
         "store/privacy-disclosures.json",
         "store/retention-deletion-readiness.json",
+        "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json",
+        "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+        "docs/operations/ACTIVE_INFRASTRUCTURE_AND_MAIL_PROVIDER_RUNBOOK.md",
         "docs/evidence/support/support-test-matrix-v1-traceability.json",
         "docs/compliance/retention-deletion-decision-matrix.md"
       ]
@@ -172,6 +187,10 @@
     "supportExternalEvidencePresentCount": 0,
     "supportEvidenceRequiredDecisionCount": 8,
     "supportEvidenceCompletedDecisionCount": 0,
+    "classifiedActiveProcessorCount": 5,
+    "newlyExplicitActiveProcessorCount": 2,
+    "activeProviderRequiredDecisionCount": 10,
+    "activeProviderCompletedDecisionCount": 0,
     "strictReady": false
   },
   "boundaries": {

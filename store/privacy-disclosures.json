@@ -902,6 +902,35 @@
       "enabled": true,
       "role": "controller-service"
     },
+    "hostingerVps": {
+      "enabled": true,
+      "role": "processor",
+      "candidateState": "active-first-party-backend-and-database-hosting",
+      "providerClassificationEvidenceRef": "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json",
+      "contractAndDpaApproved": false,
+      "providerSeatAndRegionApproved": false,
+      "transferMechanismApproved": false,
+      "retentionAndDeletionApproved": false,
+      "dataTypes": [
+        "name",
+        "emailAddress",
+        "phoneNumber",
+        "physicalAddress",
+        "userId",
+        "approximateLocation",
+        "preciseLocation",
+        "photos",
+        "inAppMessages",
+        "otherUserContent",
+        "healthInfo",
+        "purchaseHistory",
+        "otherFinancialInfo",
+        "deviceOrOtherIds",
+        "crashData",
+        "otherDiagnostics",
+        "appInteractions"
+      ]
+    },
     "firebaseCloudMessaging": {
       "enabled": true,
       "role": "processor",
@@ -956,6 +985,19 @@
         "emailAddress",
         "phoneNumber",
         "userId"
+      ]
+    },
+    "googleWorkspaceSmtpRelay": {
+      "enabled": true,
+      "role": "processor",
+      "candidateState": "active-staging-transactional-mail",
+      "providerClassificationEvidenceRef": "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json",
+      "contractAndDpaApproved": false,
+      "providerSeatAndSendingRegionApproved": false,
+      "transferMechanismApproved": false,
+      "retentionAndDeletionApproved": false,
+      "dataTypes": [
+        "emailAddress"
       ]
     },
     "googleMapsPlatform": {

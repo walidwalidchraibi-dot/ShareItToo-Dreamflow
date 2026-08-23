@@ -260,15 +260,20 @@ const decisionKeys = [
 
 const serviceKeys = [
   'firstPartyBackend',
+  'hostingerVps',
   'firebaseCloudMessaging',
   'firebaseCrashlytics',
   'firebaseAuthentication',
+  'googleWorkspaceSmtpRelay',
   'googleMapsPlatform',
   'stripe',
   'openAiHelpers',
   'analytics',
   'advertising',
 ];
+
+const providerClassificationPath =
+  'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json';
 
 const purposeValues = new Set([
   'accountManagement',
@@ -1567,6 +1572,74 @@ export function validatePrivacyDisclosures({
 
   const services = object(privacy.externalServices, 'externalServices');
   assertExactKeys(services, serviceKeys, 'externalServices');
+  const providerClassification = evidenceJson(
+    root,
+    evidenceTexts,
+    providerClassificationPath,
+  );
+  if (providerClassification.status !==
+        'technical-provider-roles-classified-owner-contract-and-legal-approval-open'
+      || providerClassification.technicalConclusion?.consoleAnswerAllowed !== false
+      || providerClassification.blockingGates?.currentAccountContractAcceptanceConfirmed !== false
+      || providerClassification.blockingGates?.retentionAndDeletionScheduleApproved !== false) {
+    fail('Active provider classification must remain complete and externally unapproved.');
+  }
+  const classifiedServices = new Map(
+    (providerClassification.services ?? []).map((service) => [service?.id, service]),
+  );
+  const hoster = object(services.hostingerVps, 'externalServices.hostingerVps');
+  const smtp = object(
+    services.googleWorkspaceSmtpRelay,
+    'externalServices.googleWorkspaceSmtpRelay',
+  );
+  const activeProcessorDefinitions = [
+    [
+      'hostingerVps',
+      hoster,
+      'active-first-party-backend-and-database-hosting',
+      'providerSeatAndRegionApproved',
+    ],
+    [
+      'googleWorkspaceSmtpRelay',
+      smtp,
+      'active-staging-transactional-mail',
+      'providerSeatAndSendingRegionApproved',
+    ],
+  ];
+  for (const [serviceId, service, candidateState, regionApprovalKey]
+    of activeProcessorDefinitions) {
+    const classified = classifiedServices.get(serviceId);
+    if (service.enabled !== true
+        || service.role !== 'processor'
+        || service.candidateState !== candidateState
+        || service.providerClassificationEvidenceRef !== providerClassificationPath
+        || classified?.technicalRole !== 'processor'
+        || classified.candidateState !== candidateState
+        || !Array.isArray(classified.actualCandidateTransfers)
+        || classified.actualCandidateTransfers.length === 0) {
+      fail(`${serviceId} must remain an explicitly inventoried active processor.`);
+    }
+    for (const approvalKey of [
+      'contractAndDpaApproved',
+      regionApprovalKey,
+      'transferMechanismApproved',
+      'retentionAndDeletionApproved',
+    ]) {
+      if (typeof service[approvalKey] !== 'boolean') {
+        fail(`${serviceId}.${approvalKey} must be a boolean external decision.`);
+      }
+    }
+  }
+  if (!Array.isArray(hoster.dataTypes)
+      || hoster.dataTypes.length !== dataTypeIds.length - 1
+      || hoster.dataTypes.includes('paymentInfo')
+      || dataTypeIds.some((id) => id !== 'paymentInfo' && !hoster.dataTypes.includes(id))) {
+    fail('Hoster disclosure must cover every collected backend data type without payment credentials.');
+  }
+  if (!Array.isArray(smtp.dataTypes)
+      || smtp.dataTypes.join(',') !== 'emailAddress') {
+    fail('SMTP disclosure must preserve the classified transactional email-address transfer.');
+  }
   if (services.firebaseCloudMessaging?.enabled !== true || services.firebaseCrashlytics?.enabled !== true) {
     fail('Firebase Messaging and Crashlytics must remain disclosed as enabled.');
   }
@@ -1714,16 +1787,31 @@ export function validatePrivacyDisclosures({
   const allDecisionsClosed = decisionKeys.every((key) => decisions[key].status === 'closed');
   const allDecisionsOpen = decisionKeys.every((key) => decisions[key].status === 'open');
   const formsVerified = ['googlePlay', 'apple'].every((platform) => forms[platform].status === 'verified');
+  const activeProcessorApprovals = activeProcessorDefinitions.flatMap(
+    ([, service, , regionApprovalKey]) => [
+      service.contractAndDpaApproved,
+      service[regionApprovalKey],
+      service.transferMechanismApproved,
+      service.retentionAndDeletionApproved,
+    ],
+  );
+  const activeProcessorsApproved = activeProcessorApprovals.every((value) => value === true);
+  const activeProcessorsOpen = activeProcessorApprovals.every((value) => value === false);
   const approved = privacy.state === 'approved'
     && privacy.approvalAllowed === true
     && allDecisionsClosed
     && formsVerified
+    && activeProcessorsApproved
     && maps.serverCredentialRestrictionVerified === true
     && binary.releaseCheckStatus === 'passed'
     && storeGate.status === 'closed';
 
   if (privacy.state === 'draft') {
-    if (privacy.approvalAllowed !== false || !allDecisionsOpen || formsVerified || storeGate.status !== 'open') {
+    if (privacy.approvalAllowed !== false
+        || !allDecisionsOpen
+        || !activeProcessorsOpen
+        || formsVerified
+        || storeGate.status !== 'open') {
       fail('Draft privacy disclosures must remain fail closed with every owner decision and Store gate open.');
     }
   } else if (!approved) {

@@ -30,6 +30,13 @@ const supportEvidenceReadiness = JSON.parse(readFileSync(
   ),
   'utf8',
 ));
+const activeProviderReadiness = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
@@ -46,6 +53,10 @@ test('accepts exactly eleven technically prepared and externally open gates', ()
     supportExternalEvidencePresentCount: 0,
     supportEvidenceRequiredDecisionCount: 8,
     supportEvidenceCompletedDecisionCount: 0,
+    classifiedActiveProcessorCount: 5,
+    newlyExplicitActiveProcessorCount: 2,
+    activeProviderRequiredDecisionCount: 10,
+    activeProviderCompletedDecisionCount: 0,
     releaseDecision: 'hold-no-go',
   });
 });
@@ -108,6 +119,20 @@ test('aggregate setup is bound to the disabled scanner readiness gate', () => {
     () => validateExternalGateSetup({
       sourceOverrides: {
         'docs/evidence/external-gates/support-evidence-scanner-readiness.json': changed,
+      },
+    }),
+    /evaluation_invalid/u,
+  );
+});
+
+test('aggregate setup is bound to the active hosting and mail provider hold', () => {
+  const changed = copy(activeProviderReadiness);
+  changed.evaluation.requiredDecisionCount = 9;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json':
+          changed,
       },
     }),
     /evaluation_invalid/u,

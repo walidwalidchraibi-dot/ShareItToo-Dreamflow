@@ -10,6 +10,9 @@ import {
 import {
   validateSupportEvidenceExternalReadiness,
 } from './validate_support_evidence_external_readiness.mjs';
+import {
+  validateActiveInfrastructureMailProviderReadiness,
+} from './validate_active_infrastructure_mail_provider_readiness.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -17,6 +20,8 @@ const supportTraceabilityPath =
   'docs/evidence/support/support-test-matrix-v1-traceability.json';
 const supportEvidenceReadinessPath =
   'docs/evidence/external-gates/support-evidence-scanner-readiness.json';
+const activeProviderReadinessPath =
+  'docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json';
 
 const expectedGates = Object.freeze([
   ['legal_and_operator_approval', 'prepared-external-review-required'],
@@ -131,6 +136,35 @@ export function validateExternalGateSetup({
     'support_evidence_readiness_state_invalid',
   );
 
+  const activeProviderReadiness = readJson(
+    activeProviderReadinessPath,
+    sourceOverrides,
+  );
+  const activeProviderReadinessResult =
+    validateActiveInfrastructureMailProviderReadiness({
+      manifestOverride: activeProviderReadiness,
+      sourceOverrides,
+    });
+  assertCondition(
+    JSON.stringify(manifest.activeProviderReadiness) === JSON.stringify({
+      ref: activeProviderReadinessPath,
+      classifiedActiveProcessorCount: 5,
+      newlyExplicitActiveProcessorCount: 2,
+      requiredDecisionCount: 10,
+      completedDecisionCount: 0,
+      strictReady: false,
+    }),
+    'active_provider_readiness_summary_invalid',
+  );
+  assertCondition(
+    activeProviderReadinessResult.classifiedActiveProcessorCount === 5
+      && activeProviderReadinessResult.newlyExplicitActiveProcessorCount === 2
+      && activeProviderReadinessResult.requiredDecisionCount === 10
+      && activeProviderReadinessResult.completedDecisionCount === 0
+      && activeProviderReadinessResult.externalReadiness === false,
+    'active_provider_readiness_state_invalid',
+  );
+
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
     const [expectedId, expectedState] = expectedGates[index];
@@ -164,6 +198,12 @@ export function validateExternalGateSetup({
         === (expectedId === 'support_evidence_scanner_and_upload_policy'),
       `support_evidence_readiness_ref_invalid:${expectedId}`,
     );
+    assertCondition(
+      gate.currentEvidenceRefs.includes(activeProviderReadinessPath)
+        === ['legal_and_operator_approval', 'privacy_retention_and_legal_hold']
+          .includes(expectedId),
+      `active_provider_readiness_ref_invalid:${expectedId}`,
+    );
   }
 
   assertCondition(
@@ -177,6 +217,10 @@ export function validateExternalGateSetup({
       supportExternalEvidencePresentCount: 0,
       supportEvidenceRequiredDecisionCount: 8,
       supportEvidenceCompletedDecisionCount: 0,
+      classifiedActiveProcessorCount: 5,
+      newlyExplicitActiveProcessorCount: 2,
+      activeProviderRequiredDecisionCount: 10,
+      activeProviderCompletedDecisionCount: 0,
       strictReady: false,
     }),
     'summary_invalid',
@@ -297,6 +341,14 @@ export function validateExternalGateSetup({
     supportExternalEvidencePresentCount: 0,
     supportEvidenceRequiredDecisionCount: 8,
     supportEvidenceCompletedDecisionCount: 0,
+    classifiedActiveProcessorCount:
+      activeProviderReadinessResult.classifiedActiveProcessorCount,
+    newlyExplicitActiveProcessorCount:
+      activeProviderReadinessResult.newlyExplicitActiveProcessorCount,
+    activeProviderRequiredDecisionCount:
+      activeProviderReadinessResult.requiredDecisionCount,
+    activeProviderCompletedDecisionCount:
+      activeProviderReadinessResult.completedDecisionCount,
     releaseDecision: 'hold-no-go',
   });
 }
