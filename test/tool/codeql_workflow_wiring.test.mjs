@@ -7,11 +7,11 @@ const workflow = readFileSync(
   'utf8',
 );
 
-test('CodeQL covers branch, pull request, schedule and manual entry points', () => {
+test('CodeQL covers main, pull request, schedule and manual entry points', () => {
   assert.match(workflow, /^name: codeql$/mu);
   assert.match(workflow, /^  push:$/mu);
   assert.match(workflow, /^      - main$/mu);
-  assert.match(workflow, /^      - codex\/master-workflow-20260808$/mu);
+  assert.doesNotMatch(workflow, /^      - codex\//mu);
   assert.match(workflow, /^  pull_request:$/mu);
   assert.match(workflow, /^  schedule:$/mu);
   assert.match(workflow, /^  workflow_dispatch:$/mu);
