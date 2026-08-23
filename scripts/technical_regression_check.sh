@@ -363,6 +363,7 @@ node --test test/tool/booking_detail_dead_presentation_helpers_ratchet_wiring.te
 node --test test/tool/booking_detail_dead_manual_pickup_ratchet_wiring.test.mjs
 node --test test/tool/booking_detail_fixed_default_parameter_ratchet_wiring.test.mjs
 node --test test/tool/message_thread_dead_helper_ratchet_wiring.test.mjs
+node --test test/tool/message_thread_legacy_ui_ratchet_wiring.test.mjs
 node --test test/tool/return_handover_stepper_dead_datetime_formatter_cleanup_wiring.test.mjs
 node --test test/tool/booking_detail_dead_return_renter_code_cleanup_wiring.test.mjs
 node --test test/tool/firebase_device_services_opt_in_wiring.test.mjs
