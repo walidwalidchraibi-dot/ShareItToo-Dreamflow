@@ -3098,3 +3098,10 @@ failure handling, idempotency, rate and budget refusal, auditable zero-cost
 truth and explicit manual fallback. Paid transport, credentials, billing,
 public routes, automatic publication and every live/external gate remain
 closed.
+
+The N3 gateway, configuration, deterministic mock, strict schema, untrusted
+OCR boundary, timeout-without-retry, idempotent replay, rate/budget refusal,
+sanitized audit and manual fallback are implemented with 15 focused tests
+passing. There is still no application route or paid adapter. The full local
+regression is green; exact commit, push and CI verification are the remaining
+N3 close steps.

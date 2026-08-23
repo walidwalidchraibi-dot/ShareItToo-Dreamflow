@@ -3430,3 +3430,19 @@ The implementation is verified at exact commit
 `32666454117` and CodeQL run `32666454108` both completed successfully. The
 manual listing editor, existing photos and historical listing rows remain
 unchanged; no provider call, billing or live mutation occurred. N3 is active.
+
+## Stage A Blue Ocean N3 listing-AI gateway (2026-08-23)
+
+N3 adds a server-only, provider-independent gateway with a deterministic
+zero-cost mock and a closed thirteen-field schema. OCR is untrusted data, the
+provider gets no tools, URL fetch, database write, publication or price
+authority, and every output is revalidated against the N2 domain and current
+private-pilot allowlist.
+
+Disabled provider, timeout, malformed output, rate limit, budget exhaustion
+and missing external authorization converge on a photo/input-preserving manual
+fallback with no partial authoritative AI state. Exact replay calls the
+transport once; conflicting key reuse is rejected. No OpenAI transport, key,
+route, provider call or billed cost is present. The full backend, PostgreSQL,
+Flutter, Web and Android regression is green; exact GitHub CI remains pending
+before N3 can be marked ready for N4.

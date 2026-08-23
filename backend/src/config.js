@@ -5,6 +5,7 @@ import { validateFirebaseServiceAccount } from './firebase_service_account.js';
 import { readConsumerDisputeConfiguration } from './consumer_dispute_config.js';
 import { readProductSafetyConfiguration } from './product_safety_config.js';
 import { evaluateGoogleMapsActivation } from './google_maps_activation.js';
+import { readListingAiGatewayConfiguration } from './listing_ai_gateway_config.js';
 import { evaluateOperatorReadiness } from './operator_readiness.js';
 import { normalizePrivatePilotRegion } from './private_pilot_domain.js';
 
@@ -29,6 +30,9 @@ if (jwtSecret.length < 32) {
 const deploymentEnvironment = (process.env.DEPLOYMENT_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development')
   .trim()
   .toLowerCase();
+const listingAiGateway = readListingAiGatewayConfiguration(process.env, {
+  deploymentEnvironment,
+});
 const bookingPilotMode = (process.env.BOOKING_PILOT_MODE ?? (
   deploymentEnvironment === 'staging' || deploymentEnvironment === 'test' || deploymentEnvironment === 'development'
     ? 'pilot'
@@ -336,6 +340,7 @@ export const config = Object.freeze({
     businessStatusRankingAllowed: false,
     hiddenPriceManipulationAllowed: false,
   }),
+  listingAi: listingAiGateway,
   privatePilot: Object.freeze({
     allowedRegions: privatePilotAllowedRegions,
     regionsConfigured: privatePilotAllowedRegions.length > 0,
