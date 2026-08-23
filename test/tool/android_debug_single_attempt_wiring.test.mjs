@@ -23,10 +23,10 @@ test('technical regression executes one direct Android debug build', () => {
   const buildSegment = regression.slice(
     regression.indexOf('flutter build web --debug'),
   );
-  const directBuild = './android/gradlew -p android :app:assembleDebug --no-daemon';
+  const directBuild = './android/gradlew -p android :app:assembleDebug --no-daemon --warning-mode all';
 
   assert.equal(
-    buildSegment.match(/\.\/android\/gradlew -p android :app:assembleDebug --no-daemon/gu)?.length,
+    buildSegment.match(/\.\/android\/gradlew -p android :app:assembleDebug --no-daemon --warning-mode all/gu)?.length,
     1,
   );
   assert.ok(
@@ -37,4 +37,5 @@ test('technical regression executes one direct Android debug build', () => {
     buildSegment,
     /flutter build apk|Retrying Gradle|for attempt|sleep|retry/iu,
   );
+  assert.doesNotMatch(buildSegment, /--warning-mode (?:none|summary)/u);
 });

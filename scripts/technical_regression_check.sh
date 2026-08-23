@@ -110,6 +110,7 @@ node --test test/tool/support_privacy_incident_control_plane_wiring.test.mjs
 node --test test/tool/file_picker_security_upgrade.test.mjs
 node --test test/tool/pdf_wasm_dependency_upgrade.test.mjs
 node --test test/tool/android_lifecycle_gradle_floor.test.mjs
+node --test test/tool/android_gradle_warning_visibility.test.mjs
 node --test test/tool/validate_android_photo_picker_policy.test.mjs
 node tool/validate_privacy_disclosures.mjs
 
@@ -526,6 +527,18 @@ if printf '%s\n' "$web_build_output" \
 fi
 bash scripts/p0a_web_smoke.sh
 
-./android/gradlew -p android :app:assembleDebug --no-daemon
+if ! android_build_output="$(
+  ./android/gradlew -p android :app:assembleDebug --no-daemon --warning-mode all 2>&1
+)"; then
+  printf '%s\n' "$android_build_output"
+  echo "ERROR: Android debug build failed." >&2
+  exit 1
+fi
+printf '%s\n' "$android_build_output"
+if grep -Fq "Build file '$PWD/android/" <<<"$android_build_output" \
+  || grep -Fq "Settings file '$PWD/android/" <<<"$android_build_output"; then
+  echo "ERROR: Android build reported a warning from an SIT-owned Gradle script." >&2
+  exit 1
+fi
 
 release_host_capacity_end
