@@ -2532,3 +2532,24 @@ Exact clean-host CI `32616408339` passes PostgreSQL in 31 seconds, Backend in
 Signing and publication stay skipped. `TD-RR-017` is closed and the register is
 17/17 closed. External readiness remains 0/10 and P0B remains `HOLD` /
 `NO-GO`.
+
+## S4BO PathProvider Android Gradle floor
+
+`S4BO_PATH_PROVIDER_ANDROID_GRADLE_FLOOR` is technically verified at exact
+implementation head `620b7298847fc2732b789be731a17adfb027adfd`. The bounded
+package changes only the transitive PathProvider Android bridge from 2.2.17 to
+2.2.19, the reviewed compatible upstream Gradle-9 correction. Its exact
+checksum, Flutter 3.41.7 local/CI floors and permanent full-gate registration
+are guarded. The later 2.3.x JNI migration remains deliberately excluded.
+
+Seventeen focused contracts and a direct 448-task all-warning Android build
+pass. The former PathProvider Build-file warning path is absent and the merged
+debug APK remains minSdk 24 / targetSdk 35. The complete local gate passes
+analyzer zero, 385 Flutter tests plus one documented skip, Google-only,
+Web/Wasm, loopback smoke and Android with zero generated growth.
+
+Exact clean-host CI `32616929359` passes PostgreSQL in 39 seconds, Backend in
+1:23 and Flutter/Web/Android in 7:07. Signing and publication stay skipped.
+`TD-RR-018` is closed and the register is 18/18 closed. Remaining vendor
+warnings stay visible for separate bounded review. External readiness remains
+0/10 and P0B remains `HOLD` / `NO-GO`.

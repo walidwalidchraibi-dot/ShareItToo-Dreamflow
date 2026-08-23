@@ -1,6 +1,6 @@
 # Technical debt required before release readiness
 
-Status: **closed, 17/17 deterministic exit contracts retained**. Non-live
+Status: **closed, 18/18 deterministic exit contracts retained**. Non-live
 register created on 22.08.2026 and last verified on 23.08.2026. This closure is
 technical only and does not imply external-gate or release approval.
 
@@ -28,8 +28,19 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-015` | **CLOSED 23.08.2026.** The transitive Android lifecycle bridge 2.0.30 retained an upstream Groovy Gradle-9/10 syntax deprecation, and the new S4BJ file-picker and S4BK PDF/WebAssembly contracts were not yet registered in the complete gate. S4BL changes only that transitive lock to 2.0.35, binds its exact checksum and the compatible Flutter 3.41.7 floor, and permanently registers all three dependency contracts. An all-warning local Android build no longer reports the lifecycle Groovy syntax warning; the complete local gate and exact clean-host CI `32614834455` pass at `fcd2a0d`. Remaining vendor/SDK warnings stay visible and separate. | Closed by one bounded lock update, exact checksum/toolchain/runner contracts, a direct 448-task all-warning Android build, the complete local gate and clean-host CI. Retain the three full-gate registrations; no Pub-cache patch, warning suppression, broad toolchain upgrade, retry, partial build or removal of remaining warnings may replace reviewed compatible updates. |
 | `TD-RR-016` | **CLOSED 23.08.2026.** The complete Android gate used Gradle's default warning summary, so individual warning ownership was absent from its retained output and an SIT-owned Gradle deprecation could be obscured among vendor warnings. S4BM keeps exactly one direct build, captures and prints `--warning-mode all` output, preserves build failure and fails after a successful compile on any Build-file or Settings-file warning under the checkout's `android/` path. The unchanged local gate and exact clean-host CI `32615539334` pass at `1ad3410`; clean-host warning locations are visible under resolved Pub-cache plugin paths and no SIT-owned path was accepted. | Closed by full warning visibility, fail-closed repository ownership checks, one-attempt/capacity contracts and exact clean-host CI. Retain one build and unchanged output; no second diagnostic build, warning filtering, `none`/`summary` mode, accepted-warning fingerprint, Pub-cache patch, retry or timing workaround may replace compatible source/dependency fixes. |
 | `TD-RR-017` | **CLOSED 23.08.2026.** S4BM exposed third-party Android bridge Gradle-9 warnings. The newest resolvable SharedPreferences, URL-Launcher and ImagePicker probe failed because its AndroidX artifacts require compile SDK 36 and AGP 8.9.1 or later; that broad migration was not accepted. S4BN locks only the earliest compatible upstream fixes (`image_picker_android` 0.8.13+4, `shared_preferences_android` 2.4.15 and `url_launcher_android` 6.3.24), binds exact checksums and permanently inspects the real debug APK for merged minSdk 24. Their former warning paths are absent; the direct build, complete local gate and exact CI `32616408339` pass at `09094df`. | Closed by bounded exact locks/checksums, retained Flutter/toolchain floors, one all-warning 448-task build, real APK `aapt` floor proof, complete local regression and exact clean-host CI. Do not replace this with a dependency override, Pub-cache patch, warning suppression, source-only minSdk assertion, extra build, retry or unreviewed compile/target-SDK migration. |
+| `TD-RR-018` | **CLOSED 23.08.2026.** S4BM also exposed the resolved `path_provider_android` 2.2.17 Gradle-9/10 warning. S4BO locks only upstream 2.2.19, the first compatible line with the explicit Gradle-9 correction after its reviewed toolchain-floor update, and binds its exact checksum plus Flutter 3.41.7 local/CI floors. The later 2.3.x JNI migration remains excluded. The warning path is absent; the direct build, complete local gate and exact CI `32616929359` pass at `620b729`. | Closed by one bounded exact lock/checksum, retained toolchain and full-gate registration contracts, one all-warning Android build, real APK minSdk-24 proof, complete local regression and exact clean-host CI. Do not replace this with an override, cache patch, warning suppression, retry, unreviewed JNI migration or compile/target-SDK change. |
 
 ## Observation log
+
+- 23.08.2026, S4BO: the bounded PathProvider review selected only
+  `path_provider_android` 2.2.19 and explicitly excluded the later 2.3.x JNI
+  migration. The exact checksum and Flutter 3.41.7 floors are guarded, and the
+  complete runner retains the new contract. Seventeen focused contracts, one
+  448-task local all-warning build, the complete local gate and exact clean-host
+  CI `32616929359` pass at `620b729`. The former PathProvider Build-file warning
+  path is absent and the actual APK remains minSdk 24. This closes
+  `TD-RR-018`; all 18/18 deterministic exits are retained. Remaining vendor
+  warnings stay visible. P0B and every external gate remain closed.
 
 - 23.08.2026, S4BN: the first newest-resolvable three-bridge build remained red
   because AndroidX Browser, Activity and Core required compile SDK 36 and AGP

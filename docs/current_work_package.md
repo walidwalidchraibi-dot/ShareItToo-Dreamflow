@@ -2219,3 +2219,26 @@ signing and publication remain skipped. This closes `TD-RR-017`; all 17/17
 deterministic exits are retained. Other vendor warnings remain visible for
 separate bounded packages. External readiness remains 0/10 and P0B remains
 `HOLD` / `NO-GO`.
+
+## S4BO PathProvider Android Gradle floor
+
+`S4BO_PATH_PROVIDER_ANDROID_GRADLE_FLOOR` is technically verified at exact
+implementation head `620b7298847fc2732b789be731a17adfb027adfd`. The package
+locks only transitive `path_provider_android` 2.2.19 with its exact checksum
+and retains the compatible Flutter 3.41.7 floors. It removes that package's
+former Gradle-9/10 Build-file warning without a dependency override, Pub-cache
+patch, warning suppression, retry, broad Android toolchain change or the later
+2.3.x JNI migration.
+
+Seventeen focused contracts, a direct 448-task all-warning build and the
+complete local gate pass. The new contract is permanently registered, the
+PathProvider warning path is absent, and real `aapt` inspection keeps the
+merged APK floor at minSdk 24. Analyzer zero, 385 Flutter tests plus one
+documented skip, Google-only, Web/Wasm and loopback smoke remain green with
+zero generated growth.
+
+Exact clean-host CI `32616929359` passes PostgreSQL in 39 seconds, Backend in
+1:23 and Flutter/Web/Android in 7:07; signing and publication remain skipped.
+This closes `TD-RR-018`; all 18/18 deterministic exits are retained. Other
+vendor warnings remain visible for separately reviewed packages. External
+readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.
