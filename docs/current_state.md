@@ -2407,3 +2407,26 @@ Signed-candidate construction and publication stayed skipped. `TD-RR-013` is
 closed and the Technical-Debt register is 13/13 closed. This package changes no
 external or live state; external readiness remains 0/10 and P0B remains
 `HOLD` / `NO-GO`.
+
+## S4BJ file-picker security floor
+
+`S4BJ_FILE_PICKER_SECURITY_FLOOR` is technically verified at exact head
+`95b0ead45c6a7706b4a65a1f054cd2a87403b289`. `file_picker` is raised from
+10.3.3 to an exact locked 11.0.3 with a declared `^11.0.3` floor, covering the
+upstream Android path-traversal fix and removal of Apache Tika. The three SIT
+picker consumers use the new static API without changing their file type,
+extension, data-loading or multiple-selection policy. Broad Android media
+permissions remain absent.
+
+Focused dependency/API and photo-policy contracts, analyzer zero, all 384
+Flutter tests plus one documented skip, Privacy/Retention, Web and the direct
+448-task Android build pass. The capacity guard retained a first local refusal
+below 4 GiB. The later identical local gate passed above the fixed threshold;
+the recoverable cleanup/relocation of unused generated/cache data is not
+release evidence.
+
+Exact clean-host CI `32613104943` passed PostgreSQL in 35 seconds, Backend in
+1:22 and Flutter/Web/Android in 6:24. Signing and publication stayed skipped.
+`TD-RR-012` remains closed by deterministic exact-CI evidence. Known vendor
+Wasm, Kotlin, Gradle and manifest warnings remain explicit for separate work.
+External readiness remains 0/10 and P0B remains `HOLD` / `NO-GO`.

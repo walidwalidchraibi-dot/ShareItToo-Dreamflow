@@ -2094,3 +2094,28 @@ the latter completed in 6:23, while signing and publication stayed skipped.
 This closes `TD-RR-013`; all 13/13 deterministic release-readiness debt exits
 are retained. No external or live state changed, external readiness remains
 0/10 and P0B remains `HOLD` / `NO-GO`.
+
+## S4BJ file-picker security floor
+
+`S4BJ_FILE_PICKER_SECURITY_FLOOR` is technically verified at exact
+implementation head `95b0ead45c6a7706b4a65a1f054cd2a87403b289`. The
+client now requires and locks `file_picker` 11.0.3, above the upstream 11.0.2
+Android path-traversal fix and including 11.0.3's removal of Apache Tika from
+MIME detection. Listing, chat and handover/return consumers use the reviewed
+static API with unchanged selection policy. A source contract rejects a floor
+or lock regression, the removed instance API and any unreviewed call count.
+
+Four focused contracts, analyzer zero, 384 Flutter tests plus one documented
+skip and exact Privacy/Retention validation pass. A first complete gate
+correctly refused the Mac's 4,161,440-KiB effective capacity. The fixed limit
+was not changed; obsolete diagnostic output and one unused old package-cache
+entry were handled as recoverable, regenerable local data. The identical gate
+then passed from 4,211,432 KiB effective capacity through Web and one direct
+448-task Android build, ending with 1,011,156 KiB free.
+
+Exact clean-host CI `32613104943` passed PostgreSQL in 35 seconds, Backend in
+1:22 and Flutter/Web/Android in 6:24. Signing and publication stayed skipped.
+The cache action is not acceptance evidence; `TD-RR-012` remains closed by the
+retained guard and exact CI. Remaining third-party Wasm/Android warnings stay
+visible for separate bounded packages. External readiness remains 0/10 and
+P0B remains `HOLD` / `NO-GO`.

@@ -27,6 +27,17 @@ claimed until every item below has reproducible evidence and is closed.
 
 ## Observation log
 
+- 23.08.2026, S4BJ: a targeted dependency review found that locked
+  `file_picker` 10.3.3 preceded the upstream Android path-traversal correction.
+  The floor and exact lock now require 11.0.3, all three consumers use its
+  static API, and focused policy, Privacy/Retention, Flutter and full local
+  checks pass. The first full gate correctly refused 4,161,440 KiB effective
+  capacity. Generated diagnostic output was cleaned and one unused old package
+  cache was moved recoverably off-volume; neither action is acceptance
+  evidence. Exact clean-host CI `32613104943` passed at `95b0ead`, so
+  `TD-RR-012` remains closed by its deterministic guard rather than cleanup.
+  Third-party Wasm/Android warnings remain visible and separate.
+
 - 23.08.2026, S4BI: the canonical PostgreSQL integration's previously
   non-fatal same-client query warning was converted into a deterministic
   failure with `--throw-deprecation`. The red proof stopped at the first
