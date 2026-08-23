@@ -19,6 +19,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT"
 
+source scripts/release_host_capacity_guard.sh
+release_host_capacity_begin
+
 if ! command -v flutter >/dev/null 2>&1; then
   echo "ERROR: flutter is not available in PATH." >&2
   exit 1
@@ -439,6 +442,7 @@ node --test test/tool/item_details_dead_code_ratchet_wiring.test.mjs
 node --test test/tool/android_debug_single_attempt_wiring.test.mjs
 node --test test/tool/flutter_parallel_stress_wiring.test.mjs
 node --test test/tool/reset_token_clock_boundary_wiring.test.mjs
+node --test test/tool/release_host_capacity_guard_wiring.test.mjs
 
 analyze_log="$(mktemp)"
 trap 'rm -f "$analyze_log"' EXIT
@@ -507,3 +511,5 @@ flutter build web --debug
 bash scripts/p0a_web_smoke.sh
 
 ./android/gradlew -p android :app:assembleDebug --no-daemon
+
+release_host_capacity_end
