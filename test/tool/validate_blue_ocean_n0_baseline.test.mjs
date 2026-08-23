@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
@@ -68,4 +69,14 @@ test('rejects forbidden mutation or private-shaped evidence', () => {
   const privateValue = structuredClone(evidence);
   privateValue.note = '/Users/example/private';
   assert.throws(() => validate(privateValue), /private or secret-shaped/u);
+});
+
+test('keeps CI metadata-only mode restricted to CI', () => {
+  const direct = spawnSync(
+    process.execPath,
+    ['tool/validate_blue_ocean_n0_baseline.mjs', '--ci-metadata-only'],
+    { cwd: root, encoding: 'utf8', env: { ...process.env, CI: 'false' } },
+  );
+  assert.notEqual(direct.status, 0);
+  assert.match(direct.stderr, /restricted to CI/u);
 });

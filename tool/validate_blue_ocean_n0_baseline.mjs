@@ -192,7 +192,15 @@ const isDirectRun = process.argv[1]
 
 if (isDirectRun) {
   try {
-    const result = validateBlueOceanN0Baseline();
+    const ciMetadataOnly = process.argv.includes('--ci-metadata-only');
+    const unknown = process.argv.slice(2).filter((value) => value !== '--ci-metadata-only');
+    if (unknown.length > 0) fail(`Unknown argument: ${unknown[0]}`);
+    if (ciMetadataOnly && process.env.CI !== 'true') {
+      fail('N0 CI metadata-only mode is restricted to CI.');
+    }
+    const result = validateBlueOceanN0Baseline({
+      checkGitCommit: !ciMetadataOnly,
+    });
     process.stdout.write(
       `Blue Ocean N0 baseline valid: head=${result.baselineHead}, `
       + `externalReady=${result.externallyReadyGateCount}, next=${result.nextPackage}\n`,
