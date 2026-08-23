@@ -41,6 +41,8 @@ The focused source/analyzer/privacy/retention/data-integrity selection reports
 fingerprint
 `01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b`.
 The complete standard gate passes on implementation commit `2fd646b`.
+Exact CI run `32608792863` is green at documentation commit `4d914ed`:
+Backend passed in 1:31, Flutter passed in 6:36 and publishing was skipped.
 
 ## Failure and release boundary
 
@@ -57,5 +59,5 @@ required deterministic release-host proof.
 
 This package changes no live availability, quote, Payment, refund, delivery,
 cancellation, support, privacy/retention classification, audit or
-`needsReview` behavior. `TD-RR-010` may be closed only after the exact S4BE
-commit is green in CI. P0B remains `HOLD` / `NO-GO`.
+`needsReview` behavior. Exact S4BE CI is green, so `TD-RR-010` is closed while
+the exact-zero gate remains permanent. P0B remains `HOLD` / `NO-GO`.

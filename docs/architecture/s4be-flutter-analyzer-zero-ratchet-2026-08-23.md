@@ -45,7 +45,9 @@ and G2 lifecycle validators pass. The complete standard-parallel technical
 gate passed in one execution at `2fd646b`: 384 Flutter tests plus one
 documented skip, the separate Google-only test, Web build and loopback smoke
 and one direct 448-task Android debug build. S4BD exact CI run `32608259512`
-is green at documentation commit `fe0faab`.
+is green at documentation commit `fe0faab`. S4BE exact CI run `32608792863`
+is green at documentation commit `4d914ed`: Backend passed in 1:31, Flutter
+passed in 6:36 and publishing was skipped.
 
 No retry, reduced parallelism, timing delay, alternate temp root, cache purge,
 network switch, Pixel dependency or smaller complete suite was used. The data
@@ -54,5 +56,6 @@ warm-tree observation does not close `TD-RR-012`; deterministic release-host
 capacity and bounded-growth evidence remain required.
 
 The local source and deterministic-gate requirements of `TD-RR-010` are
-satisfied. Formal closure waits only for green exact-S4BE-commit CI. P0B
-remains `HOLD` / `NO-GO`.
+satisfied and exact-S4BE-commit CI is green. `TD-RR-010` is closed; the exact
+empty snapshot and its fail-closed contracts remain permanent release gates.
+P0B remains `HOLD` / `NO-GO`.

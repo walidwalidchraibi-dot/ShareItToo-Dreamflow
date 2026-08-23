@@ -1984,6 +1984,8 @@ capacity. This does not close `TD-RR-012`: deterministic release-host capacity
 and bounded-growth evidence remain open.
 
 The local source and deterministic-gate requirements of `TD-RR-010` are now
-satisfied. Exact S4BE CI is the remaining closure evidence. P0B remains
-`HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS, deployment,
-signing, merge or public activation is enabled.
+satisfied. Exact S4BE CI run `32608792863` is green at documentation commit
+`4d914ed`: Backend passed in 1:31, Flutter passed in 6:36 and publishing was
+skipped. `TD-RR-010` is closed while the exact-zero gate remains permanent.
+P0B remains `HOLD` / `NO-GO`; no production, Payment, Store, Cloud/VPS/DNS,
+deployment, signing, merge or public activation is enabled.
