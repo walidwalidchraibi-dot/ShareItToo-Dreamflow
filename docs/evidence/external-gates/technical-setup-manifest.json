@@ -144,7 +144,8 @@
         "docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json",
         "docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json",
         "docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json",
-        "docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json"
+        "docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json",
+        "docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json"
       ]
     },
     {

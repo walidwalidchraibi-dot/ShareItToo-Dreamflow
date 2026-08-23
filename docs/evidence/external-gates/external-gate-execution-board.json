@@ -283,9 +283,10 @@
         "docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json",
         "docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json",
         "docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json",
-        "docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json"
+        "docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json",
+        "docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json"
       ],
-      "technicalEvidenceSummary": "The Google Play account and checklists exist. Signed internal Staging candidate 2026082302 passed its binary privacy scan, owner-only archive check, data-preserving Pixel update, physical 200-percent touch-target geometry and an exact-installed-APK read-only regression covering restart, two authenticated cold starts, offline recovery, five main-navigation surfaces, seven legal routes, five large-text surfaces and five authenticated safe-link checks with session preservation. The official TalkBack shortcut preflight bound its service but the Android runtime did not enable touch exploration, restored every setting exactly and made no traversal or pass claim; private Google Play distribution, protected review access, manual visual review and manual TalkBack evidence remain open.",
+      "technicalEvidenceSummary": "The Google Play account and checklists exist. Signed internal Staging candidate 2026082302 passed its binary privacy scan, owner-only archive check, data-preserving Pixel update, physical 200-percent touch-target geometry and an exact-installed-APK read-only regression covering restart, two authenticated cold starts, offline recovery, five main-navigation surfaces, seven legal routes, five large-text surfaces and five authenticated safe-link checks with session preservation. Both the official TalkBack keyboard shortcut and user-visible Settings route bound its service but the Android runtime did not enable touch exploration, restored every setting exactly and made no traversal or pass claim; private Google Play distribution, protected review access, manual visual review and manual TalkBack evidence remain open.",
       "missingExternalEvidence": [
         "approved Stage A private Android distribution route bound to signed candidate 2026082302",
         "Google Play closed-testing requirement and sanitized observation evidence",

@@ -89,8 +89,10 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
   Prozess-Neustart, zwei authentifizierte Kaltstarts, Offline-Wiederherstellung,
   fünf Hauptnavigationen, sieben Rechtsrouten und fünf Großschrift-Flächen
   read-only. Fünf sichere App-Link-Prüfungen erhalten die authentifizierte
-  Sitzung auf demselben exakten Kandidaten; manuelle Sichtprüfung und TalkBack
-  bleiben offen.
+  Sitzung auf demselben exakten Kandidaten. Zwei offizielle TalkBack-
+  Aktivierungswege wurden fail-closed geprüft; beide binden den Dienst, aber
+  die aktuelle Pixel-Laufzeit aktiviert keine Touch-Exploration. Daher bleiben
+  manuelle Sichtprüfung und manueller TalkBack-Durchlauf offen.
 - Dauer: etwa 20 Minuten nur lesende Console-Prüfung; Signierung, Upload und
   Review sind separate spätere Schritte.
 - Mögliche Kosten: Google-Registrierung ist als bereits bezahlt dokumentiert;

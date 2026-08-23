@@ -2986,3 +2986,33 @@ remains `0/11`; the release decision remains `HOLD` / `NO-GO`.
 PF20 performs no account, consent, notification permission, registration,
 telemetry, message, Store, provider, Payment, production, Cloud/VPS/DNS,
 public, cost, contract, pilot, release-token or merge action.
+
+## PF21 — current-candidate TalkBack Settings activation preflight
+
+`PF21_CURRENT_CANDIDATE_TALKBACK_SETTINGS_PREFLIGHT` adds the user-visible
+Android Accessibility Settings route to PF19's external-keyboard activation
+preflight. The exact installed direct candidate remains `2026082302`; no build,
+signing, installation, login or application data mutation occurs.
+
+The physical Pixel run found the TalkBack service row and toggle, accepted the
+system authorization, enabled TalkBack and confirmed its process plus bound
+service. Secure and runtime checks still found no touch exploration and no
+grant, so the runner stopped before focus, double-tap or destination traversal.
+It restored all five accessibility values exactly and returned to `Explore`.
+
+An independent read-only package inspection confirmed the installed TalkBack
+service declares that it can request touch exploration. The permanent runner
+continues to require the actual Android runtime flag rather than treating that
+capability, a bound service, direct secure-setting writes or a delay as a pass.
+PF21's validator rejects candidate/APK drift, missing Settings controls,
+runtime/traversal overclaims, incomplete restoration and private identifiers.
+
+PF21 is mandatory in the Store lane of the technical setup manifest and
+execution board. Forty-nine focused PF19/PF20/PF21 diagnostic, evidence and
+aggregate tests pass. Manual TalkBack traversal, manual visual review, Google
+Play distribution and the complete device matrix remain open; external
+readiness remains `0/11` and Stage A remains `HOLD` / `NO-GO`.
+
+PF21 performs no account, booking, message, Support, Store, provider, Firebase,
+Payment, production, Cloud/VPS/DNS, public, cost, contract, pilot,
+release-token or merge action.

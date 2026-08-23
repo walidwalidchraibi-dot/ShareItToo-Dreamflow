@@ -65,6 +65,13 @@ const pf20Evidence = JSON.parse(readFileSync(
   ),
   'utf8',
 ));
+const pf21Evidence = JSON.parse(readFileSync(
+  new URL(
+    '../../docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json',
+    import.meta.url,
+  ),
+  'utf8',
+));
 
 function copy(value) {
   return structuredClone(value);
@@ -193,7 +200,7 @@ test('Firebase setup is bound to PF20 default-off controls and no consent change
   );
 });
 
-test('Store setup is bound to PF14B, PF16, PF17 and PF19 while manual review remains open', () => {
+test('Store setup is bound through PF21 while manual review remains open', () => {
   const changedRef = copy(manifest);
   const storeGate = changedRef.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
@@ -205,6 +212,18 @@ test('Store setup is bound to PF14B, PF16, PF17 and PF19 while manual review rem
   ));
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: changedRef }),
+    /store_candidate_ref_invalid/u,
+  );
+
+  const missingPf21 = copy(manifest);
+  const missingPf21StoreGate = missingPf21.gates.find(
+    ({ id }) => id === 'store_submission_and_closed_testing',
+  );
+  missingPf21StoreGate.currentEvidenceRefs = missingPf21StoreGate.currentEvidenceRefs.filter(
+    (reference) => !reference.includes('current-candidate-talkback-settings-preflight'),
+  );
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: missingPf21 }),
     /store_candidate_ref_invalid/u,
   );
 
@@ -279,6 +298,18 @@ test('Store setup is bound to PF14B, PF16, PF17 and PF19 while manual review rem
     }),
     /exact blocked runtime/u,
   );
+
+  const pf21Overclaim = copy(pf21Evidence);
+  pf21Overclaim.boundaries.automatedTalkBackMainNavigationPassed = true;
+  assert.throws(
+    () => validateExternalGateSetup({
+      sourceOverrides: {
+        'docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json':
+          pf21Overclaim,
+      },
+    }),
+    /must not claim/iu,
+  );
 });
 
 test('current Store documentation reflects the machine-readable Google state', () => {
@@ -298,5 +329,9 @@ test('complete regression permanently retains draft and strict validators', () =
   assert.match(
     regression,
     /node tool\/validate_pf20_current_candidate_device_services_opt_in\.mjs/u,
+  );
+  assert.match(
+    regression,
+    /node tool\/validate_pf21_current_candidate_talkback_settings_preflight\.mjs/u,
   );
 });

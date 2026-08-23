@@ -28,6 +28,9 @@ import {
 import {
   validatePf20CurrentCandidateDeviceServicesOptIn,
 } from './validate_pf20_current_candidate_device_services_opt_in.mjs';
+import {
+  validatePf21CurrentCandidateTalkBackSettingsPreflight,
+} from './validate_pf21_current_candidate_talkback_settings_preflight.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -47,6 +50,8 @@ const pf19EvidencePath =
   'docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json';
 const pf20EvidencePath =
   'docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json';
+const pf21EvidencePath =
+  'docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -308,6 +313,34 @@ export function validateExternalGateSetup({
       && pf20Result.decision === 'hold-no-go',
     'pf20_firebase_device_services_state_invalid',
   );
+  const pf21Evidence = readJson(pf21EvidencePath, sourceOverrides);
+  const pf21Result = validatePf21CurrentCandidateTalkBackSettingsPreflight({
+    repositoryRoot: root,
+    evidence: pf21Evidence,
+    pf20Evidence,
+    pf19Evidence,
+    pf17Evidence,
+    pf16Evidence,
+    pf14bEvidence,
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf21Result.buildNumber === '2026082302'
+      && pf21Result.exactInstalledApkVerified === true
+      && pf21Result.settingsSurfaceOpened === true
+      && pf21Result.settingsTogglePresent === true
+      && pf21Result.confirmationAccepted === true
+      && pf21Result.serviceBound === true
+      && pf21Result.runtimeTouchExplorationEnabled === false
+      && pf21Result.traversalAttempted === false
+      && pf21Result.exactConfigurationRestored === true
+      && pf21Result.exploreSurfaceRestored === true
+      && pf21Result.automatedTalkBackMainNavigationPassed === false
+      && pf21Result.manualTalkBackTraversalPassed === false
+      && pf21Result.stageAReady === false
+      && pf21Result.decision === 'hold-no-go',
+    'pf21_store_candidate_talkback_settings_state_invalid',
+  );
 
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
@@ -354,6 +387,7 @@ export function validateExternalGateSetup({
           && gate.currentEvidenceRefs.includes(pf16EvidencePath)
           && gate.currentEvidenceRefs.includes(pf17EvidencePath)
           && gate.currentEvidenceRefs.includes(pf19EvidencePath)
+          && gate.currentEvidenceRefs.includes(pf21EvidencePath)
           && !gate.currentEvidenceRefs.includes(supersededAndroidCandidatePath),
         'store_candidate_ref_invalid:store_submission_and_closed_testing',
       );

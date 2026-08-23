@@ -105,7 +105,7 @@ test('Firebase lane is bound to PF20 default-off controls and keeps owner eviden
   );
 });
 
-test('Store lane is bound to PF14B, PF16, PF17 and PF19 and retains manual review holds', () => {
+test('Store lane is bound through PF21 and retains manual review holds', () => {
   const stale = copy(board);
   stale.gates[7].technicalEvidenceRefs = stale.gates[7].technicalEvidenceRefs.map(
     (reference) => (
@@ -116,6 +116,16 @@ test('Store lane is bound to PF14B, PF16, PF17 and PF19 and retains manual revie
   );
   assert.throws(
     () => validateExternalGateExecutionBoard({ boardOverride: stale }),
+    /store_candidate_evidence_invalid/u,
+  );
+
+  const missingPf21 = copy(board);
+  missingPf21.gates[7].technicalEvidenceRefs = missingPf21.gates[7]
+    .technicalEvidenceRefs.filter(
+      (reference) => !reference.includes('current-candidate-talkback-settings-preflight'),
+    );
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: missingPf21 }),
     /store_candidate_evidence_invalid/u,
   );
 
@@ -217,5 +227,9 @@ test('complete regression permanently executes the external gate board validator
   assert.match(
     regression,
     /node --test test\/tool\/validate_pf20_current_candidate_device_services_opt_in\.test\.mjs/u,
+  );
+  assert.match(
+    regression,
+    /node --test test\/tool\/validate_pf21_current_candidate_talkback_settings_preflight\.test\.mjs/u,
   );
 });

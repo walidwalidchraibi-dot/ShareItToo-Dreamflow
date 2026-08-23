@@ -131,7 +131,7 @@ export function readTalkBackConfiguration(commandRunner, adbPath, device) {
   });
 }
 
-function exactConfiguration(actual, expected) {
+export function exactTalkBackConfiguration(actual, expected) {
   return actual.accessibilityEnabled === expected.accessibilityEnabled
     && actual.enabledServices === expected.enabledServices
     && actual.touchExplorationEnabled === expected.touchExplorationEnabled
@@ -141,7 +141,12 @@ function exactConfiguration(actual, expected) {
       === expected.accessibilityKeyGestureTargets;
 }
 
-function restoreTalkBackConfiguration(commandRunner, adbPath, device, previous) {
+export function restoreTalkBackConfiguration(
+  commandRunner,
+  adbPath,
+  device,
+  previous,
+) {
   const failures = [];
   for (const [key, value] of [
     ['accessibility_enabled', previous.accessibilityEnabled],
@@ -163,7 +168,7 @@ function restoreTalkBackConfiguration(commandRunner, adbPath, device, previous) 
     fail('The previous Android accessibility configuration could not be restored.');
   }
   const restored = readTalkBackConfiguration(commandRunner, adbPath, device);
-  if (!exactConfiguration(restored, previous)) {
+  if (!exactTalkBackConfiguration(restored, previous)) {
     fail('The previous Android accessibility configuration was not restored exactly.');
   }
   return restored;
@@ -371,6 +376,36 @@ async function traverseDestination({
   await waitForSurface({ commandRunner, adbPath, device, check: targetCheck, wait });
 }
 
+export async function traverseCurrentCandidateTalkBackMainNavigation({
+  commandRunner,
+  adbPath,
+  device,
+  wait,
+}) {
+  launchCurrentHeadAndroidCandidate(commandRunner, adbPath, device);
+  let previousCheck = navigationChecks[0];
+  await waitForSurface({ commandRunner, adbPath, device, check: previousCheck, wait });
+  for (const label of traversalOrder) {
+    const targetCheck = navigationChecks.find((check) => check.label === label);
+    await traverseDestination({
+      commandRunner,
+      adbPath,
+      device,
+      previousCheck,
+      targetCheck,
+      wait,
+    });
+    previousCheck = targetCheck;
+  }
+  return Object.freeze(Object.fromEntries(navigationChecks.map((check) => [
+    check.label,
+    Object.freeze({
+      status: 'passed',
+      result: 'talkback-focus-before-activation-read-only-surface-reachable',
+    }),
+  ])));
+}
+
 export async function diagnoseCurrentCandidateAndroidTalkBackMainNavigation({
   commandRunner = defaultCurrentHeadAndroidCommandRunner,
   adbPath = 'adb',
@@ -418,21 +453,12 @@ export async function diagnoseCurrentCandidateAndroidTalkBackMainNavigation({
       );
     }
     if (ready) {
-      launchCurrentHeadAndroidCandidate(commandRunner, adbPath, device);
-      let previousCheck = navigationChecks[0];
-      await waitForSurface({ commandRunner, adbPath, device, check: previousCheck, wait });
-      for (const label of traversalOrder) {
-        const targetCheck = navigationChecks.find((check) => check.label === label);
-        await traverseDestination({
-          commandRunner,
-          adbPath,
-          device,
-          previousCheck,
-          targetCheck,
-          wait,
-        });
-        previousCheck = targetCheck;
-      }
+      await traverseCurrentCandidateTalkBackMainNavigation({
+        commandRunner,
+        adbPath,
+        device,
+        wait,
+      });
       traversalPassed = true;
     }
   } finally {
@@ -486,7 +512,8 @@ export async function diagnoseCurrentCandidateAndroidTalkBackMainNavigation({
         runtimeTouchExplorationEnabled: activation.runtimeTouchExploration,
         runtimeGestureContractSatisfied: false,
         traversalAttempted: false,
-        exactPreviousConfigurationRestored: exactConfiguration(restored, previous),
+        exactPreviousConfigurationRestored:
+          exactTalkBackConfiguration(restored, previous),
         accessibilityEnabledAfterDiagnostic: restored.accessibilityEnabled === '1',
         enabledServiceCountAfterDiagnostic: restored.enabledServices === 'null' ? 0 : 1,
         touchExplorationEnabledAfterDiagnostic:
@@ -553,7 +580,8 @@ export async function diagnoseCurrentCandidateAndroidTalkBackMainNavigation({
       previousEnabledServiceCount: previous.enabledServices === 'null' ? 0 : 1,
       previousTouchExplorationGrantCount:
         previous.touchExplorationGrantedServices === 'null' ? 0 : 1,
-      exactPreviousConfigurationRestored: exactConfiguration(restored, previous),
+      exactPreviousConfigurationRestored:
+        exactTalkBackConfiguration(restored, previous),
       accessibilityEnabledAfterDiagnostic: restored.accessibilityEnabled === '1',
       enabledServiceCountAfterDiagnostic: restored.enabledServices === 'null' ? 0 : 1,
       touchExplorationGrantCountAfterDiagnostic:

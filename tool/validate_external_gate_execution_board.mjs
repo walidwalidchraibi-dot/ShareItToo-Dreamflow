@@ -20,6 +20,9 @@ import {
 import {
   validatePf20CurrentCandidateDeviceServicesOptIn,
 } from './validate_pf20_current_candidate_device_services_opt_in.mjs';
+import {
+  validatePf21CurrentCandidateTalkBackSettingsPreflight,
+} from './validate_pf21_current_candidate_talkback_settings_preflight.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const boardPath =
@@ -37,6 +40,8 @@ const pf19EvidencePath =
   'docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json';
 const pf20EvidencePath =
   'docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json';
+const pf21EvidencePath =
+  'docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
 
@@ -256,6 +261,7 @@ export function validateExternalGateExecutionBoard({
       && storeGate.technicalEvidenceRefs.includes(pf16EvidencePath)
       && storeGate.technicalEvidenceRefs.includes(pf17EvidencePath)
       && storeGate.technicalEvidenceRefs.includes(pf19EvidencePath)
+      && storeGate.technicalEvidenceRefs.includes(pf21EvidencePath)
       && !storeGate.technicalEvidenceRefs.includes(supersededAndroidCandidatePath)
       && /2026082302/u.test(storeGate.technicalEvidenceSummary)
       && /two authenticated cold starts/iu.test(storeGate.technicalEvidenceSummary)
@@ -264,6 +270,9 @@ export function validateExternalGateExecutionBoard({
       && /manual visual review/iu.test(storeGate.technicalEvidenceSummary)
       && /TalkBack/iu.test(storeGate.technicalEvidenceSummary)
       && /runtime did not enable touch exploration/iu.test(storeGate.technicalEvidenceSummary)
+      && /keyboard shortcut and user-visible Settings/iu.test(
+        storeGate.technicalEvidenceSummary,
+      )
       && /restored every setting exactly/iu.test(storeGate.technicalEvidenceSummary)
       && /no traversal or pass claim/iu.test(storeGate.technicalEvidenceSummary),
     'store_candidate_evidence_invalid',
@@ -372,6 +381,33 @@ export function validateExternalGateExecutionBoard({
       && pf20Result.stageAReady === false
       && pf20Result.decision === 'hold-no-go',
     'firebase_device_services_preflight_state_invalid',
+  );
+  const pf21Result = validatePf21CurrentCandidateTalkBackSettingsPreflight({
+    repositoryRoot: root,
+    evidence: readJson(pf21EvidencePath),
+    pf20Evidence: readJson(pf20EvidencePath),
+    pf19Evidence: readJson(pf19EvidencePath),
+    pf17Evidence: readJson(pf17EvidencePath),
+    pf16Evidence: readJson(pf16EvidencePath),
+    pf14bEvidence: readJson(pf14bEvidencePath),
+    checkGitCommit: false,
+  });
+  assertCondition(
+    pf21Result.buildNumber === '2026082302'
+      && pf21Result.exactInstalledApkVerified === true
+      && pf21Result.settingsSurfaceOpened === true
+      && pf21Result.settingsTogglePresent === true
+      && pf21Result.confirmationAccepted === true
+      && pf21Result.serviceBound === true
+      && pf21Result.runtimeTouchExplorationEnabled === false
+      && pf21Result.traversalAttempted === false
+      && pf21Result.exactConfigurationRestored === true
+      && pf21Result.exploreSurfaceRestored === true
+      && pf21Result.automatedTalkBackMainNavigationPassed === false
+      && pf21Result.manualTalkBackTraversalPassed === false
+      && pf21Result.stageAReady === false
+      && pf21Result.decision === 'hold-no-go',
+    'store_candidate_talkback_settings_preflight_state_invalid',
   );
   validateDependencies(board.gates);
 

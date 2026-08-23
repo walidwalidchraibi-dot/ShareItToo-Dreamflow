@@ -143,9 +143,13 @@ text and already-controlled booking evidence.
   recovery, five primary-navigation surfaces, seven legal routes and all five
   navigation surfaces at 200% text with exact setting restoration. The same
   exact installed candidate also preserves its authenticated session across
-  five bounded safe-link checks. The route choice, Google Play closed test,
-  protected review access, manual visual review and TalkBack traversal are
-  still missing.
+  five bounded safe-link checks. Both the official external-keyboard shortcut
+  and the user-visible Android Settings route enable and bind TalkBack, but on
+  this Pixel/TalkBack runtime neither reaches touch exploration; both restore
+  the complete prior accessibility state without an app traversal or pass
+  claim. The distribution-route choice, Google Play closed test, protected
+  review access, manual visual review and manual TalkBack traversal are still
+  missing.
 - Owner/cost/contract/Walid: Walid and the authorized release operator. Existing
   Google registration is paid; new costs are unknown and need prior approval.
   Current platform agreements apply. Walid must be present.

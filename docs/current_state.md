@@ -3327,3 +3327,30 @@ remain technically prepared, zero are externally ready and the decision remains
 No account, consent, notification permission, registration, telemetry, message,
 Store, provider, Payment, production, Cloud/VPS/DNS, public, cost, contract,
 pilot, release-token or merge action occurred.
+
+## PF21 current-candidate TalkBack Settings activation preflight
+
+PF21 exercised the user-visible Android Accessibility Settings route on the
+same exact installed direct candidate `2026082302`. Android exposed the
+TalkBack row and `Use TalkBack` control, accepted the system authorization,
+started the TalkBack process and bound its accessibility service. Both the
+secure state and the Android runtime nevertheless retained touch exploration
+disabled with no grant. The runner therefore performed no app traversal and
+claims neither an automated nor a manual TalkBack pass.
+
+The diagnostic restored accessibility enablement, enabled services, touch
+exploration, touch-exploration grants and the keyboard-shortcut target exactly,
+then returned the candidate to `Explore`. A separate read-only inspection of
+the installed TalkBack package confirmed its service declares the capability
+to request touch exploration; the missing runtime request is therefore not
+bypassed by forcing a secure setting or timing dependency.
+
+PF21 evidence is mandatory in the Store lane of both aggregate external-gate
+validators. The focused PF19/PF20/PF21 diagnostic, evidence and aggregate suite
+passes 49 tests. Manual TalkBack traversal, manual visual review, Google Play
+delivery and the complete device matrix remain open. External readiness stays
+`0/11` and Stage A stays `HOLD` / `NO-GO`.
+
+No account, booking, message, Store, provider, Firebase, Payment, production,
+Cloud/VPS/DNS, public, cost, contract, pilot, release-token or merge action
+occurred.
