@@ -74,12 +74,12 @@ creates the listing and publication receipt in one transaction, and records a
 minimized audit event. No automatic status transition or provider publication
 authority exists.
 
-The resulting listing returns through the existing `DataService` path. If the
-owner entered from an existing G5 supply-enrichment follow-up, N6 carries that
-exact link into the same guarded transaction and records the existing G5 audit
-event. With no link, the response states that G5 remains available. A rejected
-G5 link rolls back the transaction rather than leaving a partly linked listing;
-the UI keeps the owner inputs and photos for correction.
+The resulting listing returns through the existing `DataService` path. N6
+initially carried an existing G5 supply-enrichment follow-up into the guarded
+publication transaction. N7 evaluation later identified that optional
+enrichment failure must not roll back the main listing and moved the link into
+a separate post-publication transaction. The UI keeps the owner inputs and
+photos for correction.
 
 ## Failure and rollback
 

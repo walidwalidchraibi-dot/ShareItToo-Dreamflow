@@ -3502,8 +3502,9 @@ production mock use. Its default visual-screening adapter is intentionally
 incomplete and opens manual fallback; a completed adapter is injected only in
 deterministic tests. Publication revalidates the exact price and analyzed photo
 set, then creates the listing, private-pilot declaration, immutable receipt and
-audit truth atomically. An existing G5 follow-up link is preserved in that
-transaction. No auto-publish, paid call, real-person data, provider credential,
+audit truth atomically. N7 evaluation later moved optional G5 follow-up linking
+to a separate post-publication transaction so its failure cannot roll back the
+main listing. No auto-publish, paid call, real-person data, provider credential,
 real-money, Store, Firebase, Cloud/VPS/DNS or production change occurred.
 
 The supported full candidate-rollover regression passes in CI metadata mode:
@@ -3516,3 +3517,23 @@ commit `7a8290408edf225c6c41e12eb5b3b278437984e6`, GitHub regression run
 `32672867686` and CodeQL run `32672867642` are exact and green. N6 is complete
 and N7 is active; N8 remains responsible for explicit privacy export, erasure
 and retention integration before any invited-person activation.
+
+## Stage A Blue Ocean N7 evaluation corpus (2026-08-24)
+
+N7 defines 22 synthetic listing/image/provider/publication cases, 24 named
+price cases and a deterministic 90-combination price matrix covering every
+Stage-A category, value band and condition. The runner uses the real N3–N6
+domain boundaries without external provider, scanner, credentials, personal
+data or cost. Forty-eight corpus tests and seven permanent-validator mutation
+tests pass.
+
+The corpus exposed and corrected one Part-IV mismatch: optional G5 linking can
+no longer share or roll back the authoritative main-publication transaction.
+Publication commits first; G5 runs separately, returns only a sanitized status
+on failure and writes a minimized best-effort audit. Fresh PostgreSQL 16 route
+coverage proves the failed G5 link, retained active listing, upload binding,
+published draft and immutable receipt together. The complete supported
+candidate-rollover regression passes: 711 Backend tests
+plus one documented skip, PostgreSQL 16, 387 Flutter tests plus one documented
+skip, Web/Wasm, loopback smoke and Android debug. Exact GitHub verification
+remains pending; N8 follows after N7 closure.

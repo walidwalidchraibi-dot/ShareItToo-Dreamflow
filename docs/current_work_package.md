@@ -3156,8 +3156,10 @@ at most three questions, all eleven owner confirmations, editable duration
 pricing and V5.2 simulation totals. `READY_TO_PUBLISH` still has no side effect;
 only the exact owner action `Anzeige veröffentlichen` may atomically create the
 listing, bind the analyzed photo set and write an immutable publication
-receipt. Existing G5 follow-up linkage is preserved in the guarded transaction.
-Failures keep photos and manual inputs available.
+receipt. Existing G5 follow-up linkage was initially preserved in the guarded
+transaction; N7 evaluation later separated optional G5 linkage so its failure
+cannot roll back the authoritative main publication. Failures keep photos and
+manual inputs available.
 
 Migration `068`, the workflow/store domain, Flutter wiring and permanent
 validators pass the complete supported candidate-rollover regression in CI
@@ -3170,3 +3172,21 @@ run `32672867686` and CodeQL run `32672867642` are green at exact implementation
 commit `7a8290408edf225c6c41e12eb5b3b278437984e6`. N6 is complete. N7 is active
 and builds the required personal-data-free evaluation corpus without
 credentials, billing or provider activation.
+
+## Active package: Stage A Blue Ocean N7
+
+N7 now has a versioned executable corpus with 22 listing/image/provider cases,
+24 named price cases and all 90 category/value-band/condition combinations.
+Forty-eight focused corpus tests and seven validator tests pass. The first run
+found that an optional G5-link failure shared the main publication transaction;
+the corrected boundary commits the main listing first and handles G5 in a
+separate best-effort transaction with a minimized failure audit.
+
+A fresh PostgreSQL 16 end-to-end run proves that an unavailable G5 continuation
+returns a sanitized non-blocking status while the listing, analyzed upload,
+draft publication state and immutable receipt remain stored. No provider,
+scanner, credential, billing, real-person data or live gate was opened. The
+complete candidate-rollover regression passes with 711 Backend tests plus one
+documented skip, PostgreSQL 16, 387 Flutter tests plus one documented skip,
+Web/Wasm and Android debug. Exact GitHub verification remains pending before N7
+closure and N8 privacy integration.

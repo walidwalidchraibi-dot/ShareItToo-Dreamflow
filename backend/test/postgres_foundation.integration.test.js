@@ -4617,6 +4617,11 @@ if (!databaseUrl) {
         ...blueOceanReviewConfirmations,
         final_publication: true,
       };
+      const g5_failure_after_main_publication = {
+        sourceListingId: 'synthetic-source-listing',
+        suggestionId: 'synthetic-suggestion',
+        outcome: 'new_standalone_listing',
+      };
       const blueOceanPublishResponse = await fetch(
         `${baseUrl}/v1/blue-ocean/listing-drafts/${encodeURIComponent(blueOceanDraftId)}/publish`,
         {
@@ -4685,6 +4690,7 @@ if (!databaseUrl) {
               isActive: true,
               privateStatusConfirmed: true,
             },
+            supplyEnrichmentLink: g5_failure_after_main_publication,
           }),
         },
       );
@@ -4698,6 +4704,11 @@ if (!databaseUrl) {
       );
       assert.equal(blueOceanPublish.assistant.autoPublishAllowed, false);
       assert.equal(blueOceanPublish.assistant.g5ContinuationLinked, false);
+      assert.equal(blueOceanPublish.assistant.g5ContinuationStatus, 'failed');
+      assert.equal(
+        blueOceanPublish.assistant.g5ContinuationFailureCode,
+        'listing_supply_enrichment_failed',
+      );
       const blueOceanPublicationEvidence = await setupPool.query(
         `SELECT draft.status, draft.published_listing_id,
                 receipt.explicit_action, receipt.readiness_state,
@@ -4711,6 +4722,9 @@ if (!databaseUrl) {
         [blueOceanDraftId],
       );
       assert.equal(blueOceanPublicationEvidence.rowCount, 1);
+      const main_listing_remains_published = blueOceanPublicationEvidence.rowCount === 1
+        && blueOceanPublish.listing.id != null;
+      assert.equal(main_listing_remains_published, true);
       assert.equal(blueOceanPublicationEvidence.rows[0].status, 'published');
       assert.equal(
         blueOceanPublicationEvidence.rows[0].explicit_action,
@@ -4724,6 +4738,18 @@ if (!databaseUrl) {
         blueOceanPublicationEvidence.rows[0].upload_visibility,
         'public',
       );
+      const blueOceanG5FailureAudit = await setupPool.query(
+        `SELECT metadata FROM audit_log
+          WHERE action = 'listing.supply_enrichment_follow_up_failed'
+            AND resource_id = $1`,
+        [blueOceanPublish.listing.id],
+      );
+      assert.equal(blueOceanG5FailureAudit.rowCount, 1);
+      assert.deepEqual(blueOceanG5FailureAudit.rows[0].metadata, {
+        blueOceanDraftId,
+        primaryListingBlocked: false,
+        failureCode: 'listing_supply_enrichment_failed',
+      });
 
       const lifecycleListing = {
         id: 'listing-lifecycle',

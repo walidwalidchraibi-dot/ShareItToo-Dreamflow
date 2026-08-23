@@ -3272,34 +3272,56 @@ export function createApp({
           autoPublishAllowed: false,
         },
       });
-      let g5ContinuationLinked = false;
-      if (req.body?.supplyEnrichmentLink != null) {
+      return { listing: inserted.rows[0].payload };
+    });
+    let g5ContinuationLinked = false;
+    let g5ContinuationStatus = req.body?.supplyEnrichmentLink == null
+      ? 'not_requested'
+      : 'failed';
+    if (req.body?.supplyEnrichmentLink != null) {
+      try {
         assertListingSupplyEnrichmentTechnicalAccess(config);
-        const linked = await linkListingSupplyEnrichmentFollowUp(client, {
-          actorId: req.auth.userId,
-          targetListingId: id,
-          raw: req.body.supplyEnrichmentLink,
-        });
-        await writeAudit(client, {
-          actor: req.actor,
-          action: 'listing.supply_enrichment_follow_up_linked',
-          resourceType: 'listing',
-          resourceId: linked.sourceListingId,
-          requestId: req.requestId,
-          metadata: {
-            suggestionId: linked.suggestionId,
-            outcome: linked.outcome,
-            linkedListingId: linked.linkedListingId,
-            blueOceanDraftId: draftId,
-          },
+        await inTransaction(async (client) => {
+          const linked = await linkListingSupplyEnrichmentFollowUp(client, {
+            actorId: req.auth.userId,
+            targetListingId: id,
+            raw: req.body.supplyEnrichmentLink,
+          });
+          await writeAudit(client, {
+            actor: req.actor,
+            action: 'listing.supply_enrichment_follow_up_linked',
+            resourceType: 'listing',
+            resourceId: linked.sourceListingId,
+            requestId: req.requestId,
+            metadata: {
+              suggestionId: linked.suggestionId,
+              outcome: linked.outcome,
+              linkedListingId: linked.linkedListingId,
+              blueOceanDraftId: draftId,
+            },
+          });
         });
         g5ContinuationLinked = true;
+        g5ContinuationStatus = 'linked';
+      } catch {
+        try {
+          await inTransaction((client) => writeAudit(client, {
+            actor: req.actor,
+            action: 'listing.supply_enrichment_follow_up_failed',
+            resourceType: 'listing',
+            resourceId: id,
+            requestId: req.requestId,
+            metadata: {
+              blueOceanDraftId: draftId,
+              primaryListingBlocked: false,
+              failureCode: 'listing_supply_enrichment_failed',
+            },
+          }));
+        } catch {
+          // Publication is authoritative; optional G5 audit failure cannot roll it back.
+        }
       }
-      return {
-        listing: inserted.rows[0].payload,
-        g5ContinuationLinked,
-      };
-    });
+    }
     publishToAll({ type: 'changed', resource: 'listings' });
     res.status(201).json({
       listing: created.listing,
@@ -3308,7 +3330,11 @@ export function createApp({
         status: 'published',
         explicitOwnerActionVerified: true,
         g5ContinuationAvailable: config.listingSupplyEnrichment.enabled,
-        g5ContinuationLinked: created.g5ContinuationLinked,
+        g5ContinuationLinked,
+        g5ContinuationStatus,
+        ...(g5ContinuationStatus === 'failed'
+          ? { g5ContinuationFailureCode: 'listing_supply_enrichment_failed' }
+          : {}),
         autoPublishAllowed: false,
       },
     });
