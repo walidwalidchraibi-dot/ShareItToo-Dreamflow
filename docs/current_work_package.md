@@ -2497,3 +2497,24 @@ P2-P4 findings are backlog-only. No live or external state changed.
 
 Next package: PF1 creates the human-readable and machine-readable three-stage
 pilot/launch matrix while keeping every activation boundary closed.
+
+## PF1 — three-stage pilot and launch matrix
+
+`PF1_PILOT_AND_LAUNCH_TIERS` adds
+`docs/operations/PILOT_AND_LAUNCH_TIERS.md` and the machine contract
+`docs/evidence/external-gates/pilot-launch-tier-matrix.json`. Stage A is the
+smallest invited Android candidate without real money; Stage B adds the full
+Marketplace-PSP and Echtgeld evidence chain; Stage C adds every public regional
+launch gate. The levels technically implemented, technically tested,
+externally evidenced, professionally approved, pilot approved, real-money
+approved and public-launch approved remain distinct.
+
+The validator binds Stage A to at most 30 invited adults, 30-50 planned flows,
+Spiegelberg, the three Cat8 paths, V5.2 single-item plus Discover/cart/Gemerkt,
+and synthetic/test payment. It also enforces all G3-G5 conditional entry gates,
+the eight open Stage B sandbox proofs and a fully disabled Stage C. Eight
+focused tests pass; strict Stage A mode correctly stops on missing external
+evidence and the explicit decision.
+
+Next package: PF2 classifies the existing eleven external gates by their first
+blocking tier and prepares the execution board without satisfying any gate.

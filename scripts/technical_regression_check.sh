@@ -464,6 +464,9 @@ node --test test/tool/reset_token_clock_boundary_wiring.test.mjs
 node --test test/tool/postgres_runner_ci_wiring.test.mjs
 node --test test/tool/validate_external_gate_setup.test.mjs
 node tool/validate_external_gate_setup.mjs
+node --check tool/validate_pilot_launch_tiers.mjs
+node --test test/tool/validate_pilot_launch_tiers.test.mjs
+node tool/validate_pilot_launch_tiers.mjs
 node --test test/tool/release_host_capacity_guard_wiring.test.mjs
 
 analyze_log="$(mktemp)"

@@ -2798,3 +2798,24 @@ The authoritative scope-control record is
 `docs/operations/PILOT_FREEZE_BASELINE.md`. External readiness remains 0/11,
 and no production, provider, Payment, Store, Cloud/VPS/DNS, pilot, real-money,
 activation or merge state changed.
+
+## PF1 three-stage pilot and launch matrix
+
+`PF1_PILOT_AND_LAUNCH_TIERS` defines three cumulative but strictly separate
+states: Stage A closed Android without real money, Stage B closed real money,
+and Stage C public regional launch. The machine matrix fixes the Stage A
+ceiling at 30 invited adults, the planned 30-50 flow range, Spiegelberg and the
+three approved Cat8 paths while keeping public registration, live PSP, real
+money and public Store distribution false.
+
+Stage B inherits Stage A and requires a reviewed Marketplace PSP, authentic
+KYC/onboarding and DPA/region/transfer facts, eight authentic sandbox flows,
+refund/chargeback/payout/ledger evidence, confirmed tax/accounting logic and a
+separate Echtgeld decision. Stage C inherits both earlier stages and adds
+Store, operator/consumer, staffing/delegation, provider/Privacy/Retention,
+authentic economics, monitoring/incident and public-activation gates.
+
+Eight permanent tests and `tool/validate_pilot_launch_tiers.mjs` keep the tier
+order, boundaries, evidence vocabulary, G3-G5 entry rules and 0/11 external
+readiness fail-closed in every complete regression. Strict Stage A readiness
+intentionally fails. No tier was activated and no external state changed.
