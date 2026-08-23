@@ -2741,3 +2741,30 @@ provider, contract, cost, real-money, public activation or merge occurred.
 The next autonomous lane is the highest remaining non-mutating exact-candidate
 or source-level launch gap that does not cross Legal, Store, provider or live
 boundaries. Stage A remains `HOLD` / `NO-GO`.
+
+## PF13 — current-head Android large-text main navigation
+
+`PF13_CURRENT_HEAD_ANDROID_LARGE_TEXT_MAIN_NAVIGATION` adds a source-bound
+physical accessibility diagnostic for the five authenticated primary
+destinations at an Android system font scale of at least 200%. It verifies the
+exact PF6 direct-installed APK and unlocked state before changing the setting,
+uses only bottom-navigation taps and bounded ordinary scrolling, then restores
+the exact previous scale on success or failure.
+
+The Pixel run proved Entdecken, Mietkorb, Buchungen, Nachrichten and Mein SIT
+semantically reachable at `2.0`. It restored the original `0.85`, independently
+confirmed after the run. Deterministic tests cover refusal before mutation,
+failure to apply the target, destination failure and failed restoration. The
+current device now reports Android 17/API 37/security patch 2026-07-05; Codex
+did not initiate an OS update and older evidence is not rewritten.
+
+PF13 is not a human visual/clipping review and does not claim TalkBack, Store
+delivery, a booking flow, message send, cart/account mutation or a full device
+matrix. No hierarchy, screenshot, participant, identity, credential, token,
+private path, network identifier or raw device identifier was retained. No
+login/logout, production, Payment, Cloud/VPS/DNS, provider, contract, cost,
+real-money, public activation or merge occurred.
+
+The next autonomous lane is the highest remaining non-mutating current-source
+or source-level accessibility/device gap that stays below Legal, Store,
+provider and live boundaries. Stage A remains `HOLD` / `NO-GO`.

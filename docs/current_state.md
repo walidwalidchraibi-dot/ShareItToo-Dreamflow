@@ -3091,3 +3091,27 @@ independently green on exact commit
 production, Payment, Cloud/VPS/DNS, provider, contract, cost, real-money,
 public activation or merge action occurred. P0B and Stage A remain
 `HOLD` / `NO-GO`.
+
+## PF13 current-head Android large-text main navigation
+
+The exact PF6 direct-installed candidate now passes a bounded authenticated
+read-only traversal of Entdecken, Mietkorb, Buchungen, Nachrichten and Mein SIT
+with the Android system font scale set to at least 200%. Static markers that no
+longer fit in one viewport may be reached through bounded normal scrolling.
+
+The source-bound diagnostic refuses a locked phone, verifies installed APK
+bytes and version first and restores the exact previous font scale on every
+exit path. The successful physical run started at `0.85`, used `2.0` and
+restored `0.85`; an independent post-run query confirmed that value. No UI
+hierarchy, screenshot, account content or identifier was retained.
+
+The Pixel currently reports Android 17/API 37/security patch 2026-07-05. This
+is recorded as current device drift; earlier Android 16/API 36 records remain
+historically accurate and Codex did not initiate an OS update. PF13 proves
+semantic reachability only, not manual visual layout approval, TalkBack,
+Google Play delivery or the complete device matrix. PF12 is independently
+green on exact commit `c668533d3348884f52cf920b722a718047f47236`:
+regression run `32639210012` and CodeQL run `32639211503` both succeeded. No
+login, logout, booking, message, cart/account mutation, Store, production,
+Payment, Cloud/VPS/DNS, provider, contract, cost, real-money, public activation
+or merge action occurred. P0B and Stage A remain `HOLD` / `NO-GO`.
