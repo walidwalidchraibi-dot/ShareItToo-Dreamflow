@@ -226,10 +226,11 @@ test('proves the authenticated cold-start session offline and restores both netw
   });
   assert.deepEqual(evidence.network, {
     condition: 'offline',
+    onlinePrecondition: 'passed',
     wifiDisabled: true,
     mobileDataDisabled: true,
     connectivityGate: 'passed-no-connectivity',
-    networkRestored: 'passed',
+    networkRestored: 'passed-online',
   });
   assert.equal(fake.wifiEnabled, true);
   assert.equal(fake.mobileDataEnabled, true);

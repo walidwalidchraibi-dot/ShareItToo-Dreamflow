@@ -132,6 +132,14 @@ async function waitForNoConnectivity({ commandRunner, adbPath, device, wait }) {
   fail('The bounded offline gate still had Internet connectivity.');
 }
 
+async function waitForConnectivity({ commandRunner, adbPath, device, wait }) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    if (canReachInternet(commandRunner, adbPath, device)) return;
+    await wait(500);
+  }
+  fail('The original Android network did not regain Internet connectivity.');
+}
+
 function verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive) {
   const packagePaths = adb(commandRunner, adbPath, device, ['shell', 'pm', 'path', applicationId])
     .split(/\r?\n/)
@@ -391,6 +399,9 @@ export async function diagnoseAndroidAuthenticatedSession({
       device,
       'mobile_data',
     );
+    if (!canReachInternet(commandRunner, adbPath, device)) {
+      fail('The bounded offline diagnostic requires an online starting state.');
+    }
     try {
       await setNetworkToggle({
         commandRunner,
@@ -435,13 +446,15 @@ export async function diagnoseAndroidAuthenticatedSession({
         verifySetting: false,
         wait,
       });
+      await waitForConnectivity({ commandRunner, adbPath, device, wait });
     }
     network = {
       condition: 'offline',
+      onlinePrecondition: 'passed',
       wifiDisabled: true,
       mobileDataDisabled: true,
       connectivityGate: 'passed-no-connectivity',
-      networkRestored: 'passed',
+      networkRestored: 'passed-online',
     };
   } else {
     try {

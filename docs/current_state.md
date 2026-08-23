@@ -2994,3 +2994,29 @@ account mutation, network change, uninstall, reset, Store, participant,
 production, Payment, Cloud/VPS/DNS, provider, contract, cost, real-money,
 public activation or merge action occurred. P0B and Stage A remain
 `HOLD` / `NO-GO`.
+
+## PF9 current-head Android offline cold start and recovery
+
+The PF8 current-head diagnostic now supports a bounded offline route that
+first proves Internet reachability, disables Wi-Fi and mobile data, proves the
+absence of connectivity and runs two authenticated force-stop/launcher
+cycles. Both cycles preserved the already-present authenticated session on the
+exact PF6 direct-installed candidate.
+
+The cleanup restores the original Wi-Fi and mobile-data toggle states and
+waits for actual Internet reachability. Evidence retains no SSID, BSSID, IP
+address, network/account identifier, credential, token, screen content, UI
+hierarchy, raw device identifier or private path. The app was returned to
+Explore.
+
+This closes only the one-network offline cold-start and reconnect subset of
+PF5 A15. A second WLAN, safe queued mutation, duplicate prevention and
+authoritative reconciliation remain untested, so complete A15 remains
+`not-run`.
+
+PF8 is independently green on exact commit
+`e3f8daeb3905e6c549a9a1f72873ab0b22133b18`: regression run
+`32635697993` and CodeQL run `32635698023` both succeeded. No login, logout,
+account mutation, Store, participant, production, Payment, Cloud/VPS/DNS,
+provider, contract, cost, real-money, public activation or merge action
+occurred. P0B and Stage A remain `HOLD` / `NO-GO`.

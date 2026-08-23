@@ -2643,3 +2643,29 @@ The next autonomous lane is a current-head guest or isolated-synthetic
 functional surface that can be proven without altering the preserved account,
 using a live provider or claiming a pilot pass. Stage A remains
 `HOLD` / `NO-GO`.
+
+## PF9 — current-head Android offline cold start and recovery
+
+`PF9_CURRENT_HEAD_ANDROID_OFFLINE_SESSION` extends the exact PF6/PF8 physical
+route with a fail-closed offline boundary. It requires a genuinely reachable
+Internet connection before changing anything, disables both Android network
+transports, proves no connectivity, runs two authenticated cold starts and
+restores the original transports in a `finally` path. Recovery succeeds only
+after Internet reachability returns.
+
+The machine evidence and validator bind the source, protected archive,
+installed direct APK, Pixel class, two session observations, disconnect and
+reconnect results while excluding WLAN/account identifiers and all live or
+Store claims. Focused tests reject a missing online precondition, unproven
+offline state, toggle-only recovery, sensitive network data and any functional
+or Store overclaim.
+
+PF9 is narrower than full PF5 A15. It does not use a second WLAN or exercise a
+safe pending mutation and authoritative reconciliation, so full A15 remains
+`not-run`. No account mutation, participant, Store, production, Payment,
+Cloud/VPS/DNS, provider, contract, cost, real-money, public activation or merge
+action occurred.
+
+The next autonomous lane is another current-head, session-preserving Stage A
+surface that can be proven without account mutation, external credentials,
+live providers or Store upload. Stage A remains `HOLD` / `NO-GO`.
