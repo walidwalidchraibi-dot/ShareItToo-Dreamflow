@@ -29,7 +29,7 @@ function requireExact(actual, expected, code) {
 export function validateR11AndroidSecuritySurface(value) {
   if (value?.schemaVersion !== 1
       || value?.kind !== 'sit-48h-r11-android-security-permission-surface'
-      || value?.status !== 'verified-local-merged-debug-artifact-ci-pending'
+      || value?.status !== 'verified-merged-debug-artifact-regression-and-codeql-passed'
       || value?.observedOn !== '2026-08-24') {
     fail('r11_evidence_identity_invalid');
   }
@@ -171,10 +171,52 @@ export function validateR11AndroidSecuritySurface(value) {
     pullRequestMerged: false,
   }, 'r11_boundary_invalid');
   requireExact(value.ciAndCodeql, {
-    exactGithubVerification: 'pending',
+    exactGithubVerification: 'passed',
     localCodeqlClaimed: false,
   }, 'r11_ci_state_invalid');
-  if (value.githubVerification !== undefined) fail('r11_premature_github_claim');
+  requireExact(value.githubVerification, {
+    implementationHead,
+    verifiedHead: 'edf6a0a4ebcdcdfb2af8dae12cbdf0d24e82586f',
+    pullRequest: {
+      number: 7,
+      draft: true,
+      state: 'OPEN',
+      merged: false,
+    },
+    regression: {
+      runId: 32770744048,
+      conclusion: 'success',
+      jobs: {
+        postgresRunnerProof: { jobId: 97570288015, conclusion: 'success' },
+        backendRegression: { jobId: 97570287853, conclusion: 'success' },
+        flutterRegression: {
+          jobId: 97570287894,
+          conclusion: 'success',
+          parallelStressStep: 'skipped',
+          signedCandidateStep: 'skipped',
+        },
+        r10CleanReproducibility: { jobId: 97570287713, conclusion: 'success' },
+        publishApiImage: { jobId: 97572282995, conclusion: 'skipped' },
+      },
+    },
+    codeql: {
+      workflowRunId: 32770744022,
+      workflowConclusion: 'success',
+      advancedSecurityCheckId: 97570928981,
+      advancedSecurityConclusion: 'success',
+      newAlerts: 0,
+    },
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      documentedBaseCommit: 'e64defd0df62fb047c6fbc90733e4caf318ac7c4',
+      documentedBaseCheckId: 97395091283,
+      currentCheckId: 97570272993,
+      currentConclusion: 'failure',
+      reportedPullRequestCommitScope: 250,
+      credentialDetailsInspected: false,
+      classifiedAsR11Regression: false,
+    },
+  }, 'r11_github_verification_invalid');
   if (value.nextPackage !== 'R12') fail('r11_next_package_invalid');
 
   return Object.freeze({

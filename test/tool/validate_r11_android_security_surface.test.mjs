@@ -15,7 +15,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact retained R11 merged-artifact evidence', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-merged-debug-artifact-ci-pending',
+    status: 'verified-merged-debug-artifact-regression-and-codeql-passed',
     implementationHead: '9ec9c62c7ca806e16ab5beb354e4872b3f513e13',
     permissionCount: 14,
     exportedComponentCount: 8,
@@ -61,12 +61,12 @@ test('rejects policy, Firebase or Stage-A enablement drift', () => {
   assert.throws(() => validate(stageA), /r11_stage_a_surface_invalid/u);
 });
 
-test('rejects live-boundary or premature GitHub claims', () => {
+test('rejects live-boundary or changed GitHub claims', () => {
   const live = structuredClone(evidence);
   live.boundaries.storeChanged = true;
   assert.throws(() => validate(live), /r11_boundary_invalid/u);
 
   const github = structuredClone(evidence);
-  github.githubVerification = {};
-  assert.throws(() => validate(github), /r11_premature_github_claim/u);
+  github.githubVerification.regression.runId = 1;
+  assert.throws(() => validate(github), /r11_github_verification_invalid/u);
 });

@@ -1,6 +1,6 @@
 # 48H R11 Android security and permission surface
 
-Status: **LOCAL MERGED-ARTIFACT VERIFIED — EXACT GITHUB REGRESSION AND CODEQL PENDING**
+Status: **VERIFIED — EXACT GITHUB REGRESSION, CODEQL AND CODE SCANNING PASSED**
 
 R11 audits the actual merged Android debug APK produced by the unchanged full
 technical gate. It parses the compiled binary manifest and resources through
@@ -59,5 +59,12 @@ Any permission, component, intent, FileProvider path, package-visibility,
 backup/network, Firebase or disabled Stage-A surface drift now fails. No APK was
 installed, retained for delivery, uploaded or published; no Production, VPS,
 Cloud, Firebase console, Store, payment, credential, account or PR-merge action
-occurred. R11 closes only after exact GitHub Regression, CodeQL and Advanced
-Security checks pass. R12 follows.
+occurred. Exact verified head
+`edf6a0a4ebcdcdfb2af8dae12cbdf0d24e82586f` passed Regression
+`32770744048`, including PostgreSQL, Backend, Flutter and the isolated clean
+R10 reproducibility job, CodeQL workflow `32770744022` and Code Scanning check
+`97570928981` with zero new alerts. Signed-candidate, parallel-stress and API
+publication remained skipped; PR #7 stayed Draft, open and unmerged. The
+separate GitGuardian result remains the documented pre-existing 250-commit
+history finding; no credential detail was inspected. R11 is closed and R12
+follows.

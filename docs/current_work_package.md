@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R10 and R13 exact
-verified; R11 Android security/permission surface active;
+Status: **R0/P0 security contradiction verified closed; R1–R11 and R13 exact
+verified; R12 active;
 non-live and fail-closed** on
 24.08.2026.
 
@@ -287,9 +287,14 @@ Backend now use package-scoped
 `com.shareittoo.app.SIT_NOTIFICATION_CLICK`. The merged replacement artifact
 passes the audit. Backend activation remains false in debug; external AI, real
 payment, public G3/G4/G5 and Support evidence scanner/upload remain disabled.
-No APK was installed or published and no live boundary changed. Focused tests
-and the retained validator are green; exact GitHub Regression, CodeQL and
-Advanced Security verification remain pending before R11 closes and R12 begins.
+No APK was installed or published and no live boundary changed. Exact verified
+head `edf6a0a4ebcdcdfb2af8dae12cbdf0d24e82586f` passed Regression
+`32770744048`, including the clean R10 job `97570287713`, CodeQL workflow
+`32770744022` and Code Scanning check `97570928981` with zero new alerts.
+Signed-candidate, parallel-stress and API publication remained skipped; PR #7
+stayed Draft, open and unmerged. The separate GitGuardian failure remains the
+documented pre-existing 250-commit history finding; no credential detail was
+inspected. R11 is closed and R12 begins.
 
 ### R13 local Codex authentication clarification
 
