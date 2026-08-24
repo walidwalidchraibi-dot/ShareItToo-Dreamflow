@@ -2,9 +2,12 @@
 
 Version: `N13-STAGE-A-BLUE-OCEAN-DECISION-2026-08-24.1`
 
-Status: **PREPARED — LOCAL N13 GATES PASS — EXACT N13 CI PENDING**
+Status: **VERIFIED — STAGE A BLUE OCEAN DECISION REQUIRED**
 
 Final gate: `STAGE_A_BLUE_OCEAN_DECISION`
+
+Drive handover: `06_STAGE_A_BLUE_OCEAN_DECISION_HANDOVER_2026-08-24.md`, file
+ID `11GsMbfw7ZhkC4FuCmpLdFmniyHTaIO30` in the current SIT-Codex folder.
 
 This dossier is a non-live decision package. It does not authorize or perform
 an external provider call, billing, account setup, Store/Console action,
@@ -15,17 +18,17 @@ Production change, public release, human-pilot activation or PR merge.
 
 - Repository: `walidwalidchraibi-dot/ShareItToo-Dreamflow`.
 - Branch: `codex/master-workflow-20260808`.
-- Local pre-N13 evidence-closure HEAD:
+- Pre-N13 evidence-closure HEAD:
   `efaa7ee3af59c13334cb4a3b7ca384178ce0b09e`.
-- Upstream: `origin/codex/master-workflow-20260808`; before the N13 push it is
-  the exact verified N12 implementation `8ded33b8ed7c84d307014263b678c3fd9177038c`.
-- After the evidence-closure commit, only the bounded N13 package differs from
-  the upstream until its own commit and push.
+- Exact verified N13 implementation HEAD and upstream:
+  `110263d5b1582563a0cc9ec4e2e730f56e3969f9`.
+- The final evidence-closure commit is required to leave the local branch and
+  upstream clean and synchronized without rewriting history.
 - PR #7 is open, Draft, unmerged and mergeable into `main`; the branch remains
   blocked from merge by the intended gate state.
 
-This section will bind the exact pushed N13 verification commit and final
-clean/synchronized tree after GitHub closes the last run.
+The final repository check after the evidence-closure push must confirm that
+the local branch and upstream are identical and the Working Tree is clean.
 
 ## 2. CI and CodeQL
 
@@ -39,7 +42,9 @@ clean/synchronized tree after GitHub closes the last run.
   concurrency-cancelled attempt is not counted.
 - N12 exact commit `8ded33b8ed7c84d307014263b678c3fd9177038c`
   passed regression `32677182050` and CodeQL `32677182040`.
-- N13 exact-commit regression and CodeQL remain pending.
+- N13 exact implementation commit
+  `110263d5b1582563a0cc9ec4e2e730f56e3969f9` passed regression
+  `32677663885` and CodeQL `32677663883`.
 - No cancelled run is counted as passing evidence.
 
 ## 3. AI listing assistant status
@@ -108,7 +113,6 @@ performed. Upload and activation remain separate owner gates.
 
 ## 9. Remaining blockers
 
-- Exact N13 regression and CodeQL must pass at the pushed Draft-branch commit.
 - Private operator values must be completed outside Git/Drive/chat before any
   invited human data collection.
 - A signed, exact-source/hash-bound Internal AAB needs separate owner approval,
@@ -173,4 +177,4 @@ HEILBRONN_WAVE0_ACTIVATION_GO
 HEILBRONN_WAVE0_HOLD
 ```
 
-Stop boundary after final exact CI: `STAGE_A_BLUE_OCEAN_DECISION`.
+Stop boundary: `STAGE_A_BLUE_OCEAN_DECISION`.

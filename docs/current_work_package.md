@@ -3269,10 +3269,13 @@ loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
 CodeQL are successful in runs `32677182050` and `32677182040` at exact N12
 implementation commit `8ded33b8ed7c84d307014263b678c3fd9177038c`.
 
-## Active package: Stage A Blue Ocean N13
+## Decision gate: Stage A Blue Ocean N13
 
-N13 now runs and consolidates the final Stage-A Blue Ocean gate set, closes
-exact-commit CI evidence, prepares the compact decision dossier and updates
-the approved Drive handover if its write path is available. It must not merge
-PR #7 or perform provider, billing, Play Console, tester, device, Firebase,
-Production, Cloud, VPS, DNS, payment, public-release or human-pilot changes.
+N13 consolidates the final Stage-A Blue Ocean gate set. Exact implementation
+commit `110263d5b1582563a0cc9ec4e2e730f56e3969f9` passed regression
+`32677663885` and CodeQL `32677663883`; the compact decision dossier is bound
+to Drive file `11GsMbfw7ZhkC4FuCmpLdFmniyHTaIO30`. After the evidence-closure
+commit is synchronized and verified, work stops at
+`STAGE_A_BLUE_OCEAN_DECISION`. PR #7 remains Draft and unmerged; no provider,
+billing, Play Console, tester, device, Firebase, Production, Cloud, VPS, DNS,
+payment, public-release or human-pilot change is authorized.

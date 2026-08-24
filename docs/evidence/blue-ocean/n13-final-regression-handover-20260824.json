@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n13-final-regression-handover",
-  "status": "implemented-local-gates-passed-ci-pending",
+  "status": "verified-stage-a-blue-ocean-decision",
   "capturedAt": "2026-08-24T01:10:00Z",
   "implementationBaseHead": "efaa7ee3af59c13334cb4a3b7ca384178ce0b09e",
   "handoverRef": "docs/operations/STAGE_A_BLUE_OCEAN_DECISION_HANDOVER_2026-08-24.md",
@@ -13,7 +13,9 @@
     "upstreamHeadBeforeN13Push": "8ded33b8ed7c84d307014263b678c3fd9177038c",
     "workingTreeBeforeN13": "n13-package-only",
     "pullRequest": 7,
-    "pullRequestState": "open-draft-unmerged-mergeable-blocked"
+    "pullRequestState": "open-draft-unmerged-mergeable-blocked",
+    "verifiedImplementationHead": "110263d5b1582563a0cc9ec4e2e730f56e3969f9",
+    "finalTreeState": "clean-and-synchronized-after-evidence-closure"
   },
   "packageStates": {
     "N0": "verified-ready-for-n1",
@@ -93,7 +95,6 @@
     "googlePlayInternalTesting": "handoff-prepared-no-aab-build-upload-console-or-testers"
   },
   "remainingBlockers": [
-    "exact-n13-regression-and-codeql",
     "private-operator-config-outside-repository",
     "owner-approved-exact-signed-hash-bound-internal-aab",
     "play-upload-and-separate-internal-release-owner-gates",
@@ -130,8 +131,15 @@
   ],
   "driveHandover": {
     "targetFolderId": "1YOBStKRnK1jOxWiCQz17MlGj7F3yNKWc",
-    "uploaded": false,
-    "fileId": null
+    "uploaded": true,
+    "fileId": "11GsMbfw7ZhkC4FuCmpLdFmniyHTaIO30"
+  },
+  "exactGitHubVerification": {
+    "headSha": "110263d5b1582563a0cc9ec4e2e730f56e3969f9",
+    "regressionRunId": 32677663885,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32677663883,
+    "codeqlConclusion": "success"
   },
   "boundaries": {
     "externalProviderCallPerformed": false,

@@ -143,7 +143,7 @@ export function validateBlueOceanN13FinalHandover({
     heilbronnWave0: 'prepared-not-activated-owner-and-external-gates-open',
     googlePlayInternalTesting: 'handoff-prepared-no-aab-build-upload-console-or-testers',
   })) fail('N13 product-readiness record is invalid.');
-  if (!exact(value.remainingBlockers, [
+  const pendingBlockers = [
     'exact-n13-regression-and-codeql',
     'private-operator-config-outside-repository',
     'owner-approved-exact-signed-hash-bound-internal-aab',
@@ -153,7 +153,12 @@ export function validateBlueOceanN13FinalHandover({
     'real-provider-contract-privacy-security-region-retention-and-budget',
     'real-roles-delegates-firebase-owner-checks-and-authentic-economics',
     'scanner-psp-apple-public-release-and-production-deferred',
-  ])) fail('N13 remaining-blocker record is invalid.');
+  ];
+  const final = value.status === validStatuses[1];
+  const expectedBlockers = final ? pendingBlockers.slice(1) : pendingBlockers;
+  if (!exact(value.remainingBlockers, expectedBlockers)) {
+    fail('N13 remaining-blocker record is invalid.');
+  }
   if (!exact(value.costState, {
     preparedFreeActionsExpectedNewExternalEur: 0,
     optionalAiPilotHardCapEur: 5,
@@ -177,7 +182,6 @@ export function validateBlueOceanN13FinalHandover({
     fail('N13 live mutation boundary is invalid.');
   }
 
-  const final = value.status === validStatuses[1];
   if (final) {
     const verification = value.exactGitHubVerification;
     if (!verification
@@ -187,9 +191,6 @@ export function validateBlueOceanN13FinalHandover({
         || !Number.isSafeInteger(verification.codeqlRunId)
         || verification.codeqlConclusion !== 'success') {
       fail('N13 exact GitHub verification is invalid.');
-    }
-    if (value.remainingBlockers[0] === 'exact-n13-regression-and-codeql') {
-      fail('N13 final blocker record cannot keep completed CI open.');
     }
     if (value.driveHandover?.uploaded !== true
         || !/^[A-Za-z0-9_-]{10,}$/u.test(value.driveHandover.fileId ?? '')) {
