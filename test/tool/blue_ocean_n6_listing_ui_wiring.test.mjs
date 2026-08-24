@@ -63,19 +63,62 @@ test('regional price, duration and V5.2 fee preview stay editable and simulation
   assert.match(screen, /Reine Simulation ohne Zahlung/u);
 });
 
-test('every automatic or manual daily-price change invalidates owner confirmation', () => {
+test('every automatic or manual daily-price change invalidates owner confirmation and final review', () => {
   const invalidations = screen.match(
-    /_blueOceanConfirmations\['owner_price'\] = false;/gu,
+    /confirmations:\s*const <String>\['owner_price'\]/gu,
   ) ?? [];
   assert.ok(invalidations.length >= 4);
   assert.match(
     screen,
-    /recommendedDailyMinor[\s\S]*_priceCtrl\.text =[\s\S]*_blueOceanConfirmations\['owner_price'\] = false;/u,
+    /recommendedDailyMinor[\s\S]*_priceCtrl\.text =[\s\S]*_invalidateBlueOceanReviewState\([\s\S]*'owner_price'/u,
   );
   assert.match(
     screen,
-    /_PricePerDayInput\([\s\S]*onChanged:[\s\S]*_blueOceanConfirmations\['owner_price'\] = false;/u,
+    /_PricePerDayInput\([\s\S]*onChanged:[\s\S]*_invalidateBlueOceanReviewState\([\s\S]*'owner_price'/u,
   );
+});
+
+test('dependent edits invalidate stale confirmations, clarifications and READY state', () => {
+  assert.match(
+    screen,
+    /void _invalidateBlueOceanReviewState\([\s\S]*_blueOceanConfirmations\['final_publication'\] = false;[\s\S]*_blueOceanReadyFingerprint = null;/u,
+  );
+  assert.match(screen, /if \(clearClarifications\) _blueOceanAnsweredQuestions\.clear\(\);/u);
+  assert.match(screen, /if \(resetReplacementBand\)[\s\S]*_blueOceanReplacementBandConfirmed = false;/u);
+
+  for (const id of [
+    'item_identity', 'allowed_category', 'condition', 'accessories',
+    'owner_price', 'duration_discounts', 'pickup_region',
+  ]) {
+    const uses = screen.match(new RegExp(`confirmations:[\\s\\S]{0,100}'${id}'`, 'gu')) ?? [];
+    assert.ok(uses.length >= 1, `${id} must be invalidated by a dependent edit`);
+  }
+
+  assert.match(
+    screen,
+    /if \(entry\.key != 'final_publication'\)[\s\S]*_blueOceanConfirmations\['final_publication'\] = false;/u,
+  );
+});
+
+test('publication is bound to the exact fully reviewed editable snapshot', () => {
+  assert.match(screen, /String _blueOceanEditableFingerprint\(\)/u);
+  for (const field of [
+    'title', 'description', 'category', 'subcategory', 'brand', 'model',
+    'condition', 'accessories', 'replacementValueBand', 'pickupRegion',
+    'handoverAddress', 'ownerDailyPrice', 'durationPricing',
+    'answeredClarifications', 'ownerConfirmations', 'photoUrls',
+  ]) {
+    assert.match(screen, new RegExp(`'${field}'`, 'u'));
+  }
+  assert.match(
+    screen,
+    /readiness is Map && readiness\['readyToPublish'\] == true[\s\S]*_blueOceanReadyFingerprint = _blueOceanEditableFingerprint\(\)/u,
+  );
+  assert.match(
+    screen,
+    /_blueOceanReadyFingerprint == null \|\|[\s\S]*_blueOceanReadyFingerprint != _blueOceanEditableFingerprint\(\)/u,
+  );
+  assert.match(screen, /Der Anzeigeninhalt wurde nach der letzten vollständigen/u);
 });
 
 test('client and server use separate authenticated review and exact publication actions', () => {

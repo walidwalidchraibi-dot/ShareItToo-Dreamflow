@@ -123,6 +123,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   String? _blueOceanDraftId;
   Map<String, dynamic>? _blueOceanAssistant;
   List<String> _blueOceanPhotoUrls = const <String>[];
+  String? _blueOceanReadyFingerprint;
   final Set<String> _blueOceanAnsweredQuestions = <String>{};
   String _blueOceanReplacementBand = 'eur_100_250';
   bool _blueOceanReplacementBandConfirmed = false;
@@ -300,13 +301,71 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     _blueOceanDraftId = null;
     _blueOceanAssistant = null;
     _blueOceanPhotoUrls = const <String>[];
+    _blueOceanReadyFingerprint = null;
     _blueOceanAnsweredQuestions.clear();
+    _blueOceanReplacementBandConfirmed = false;
     _blueOceanError =
         'Die Fotoauswahl wurde geändert. Starte die KI-Analyse erneut; deine '
         'manuellen Eingaben bleiben erhalten.';
     for (final key in _blueOceanConfirmations.keys) {
       _blueOceanConfirmations[key] = false;
     }
+  }
+
+  void _invalidateBlueOceanReviewState({
+    Iterable<String> confirmations = const <String>[],
+    bool clearClarifications = false,
+    bool resetReplacementBand = false,
+  }) {
+    if (_blueOceanDraftId == null) return;
+    for (final key in confirmations) {
+      _blueOceanConfirmations[key] = false;
+    }
+    _blueOceanConfirmations['final_publication'] = false;
+    _blueOceanReadyFingerprint = null;
+    if (clearClarifications) _blueOceanAnsweredQuestions.clear();
+    if (resetReplacementBand) {
+      _blueOceanReplacementBandConfirmed = false;
+    }
+  }
+
+  String _blueOceanEditableFingerprint() {
+    final answered = _blueOceanAnsweredQuestions.toList()..sort();
+    final confirmationKeys = _blueOceanConfirmations.keys.toList()..sort();
+    final confirmations = <String, bool>{
+      for (final key in confirmationKeys)
+        key: _blueOceanConfirmations[key] ?? false,
+    };
+    final snapshot = <String, dynamic>{
+      'title': _titleCtrl.text.trim(),
+      'description': _descCtrl.text.trim(),
+      'category': _categoryId,
+      'subcategory': _subcategory,
+      'brand': _blueOceanBrandCtrl.text.trim(),
+      'model': _blueOceanModelCtrl.text.trim(),
+      'condition': _condition,
+      'accessories': _commaSeparated(_blueOceanAccessoriesCtrl),
+      'projectTags': _commaSeparated(_blueOceanProjectTagsCtrl),
+      'useCases': _commaSeparated(_blueOceanUseCasesCtrl),
+      'safetyNotes': _blueOceanSafetyCtrl.text.trim(),
+      'replacementValueBand': _blueOceanReplacementBand,
+      'replacementValueMinor': _blueOceanReplacementValueMinor(),
+      'replacementValueBandConfirmed':
+          _blueOceanReplacementBandConfirmed,
+      'pickupRegion': _blueOceanPickupRegionCtrl.text.trim(),
+      'handoverAddress': _addressCtrl.text.trim(),
+      'ownerDailyPrice': _priceCtrl.text.trim().replaceAll(',', '.'),
+      'durationPricingEnabled': _autoApplyDiscounts,
+      'durationPricing': <Map<String, dynamic>>[
+        <String, dynamic>{'days': _tier1Days, 'percent': _tier1Pct},
+        <String, dynamic>{'days': _tier2Days, 'percent': _tier2Pct},
+        <String, dynamic>{'days': _tier3Days, 'percent': _tier3Pct},
+      ],
+      'answeredClarifications': answered,
+      'ownerConfirmations': confirmations,
+      'photoUrls': _blueOceanPhotoUrls,
+    };
+    return sha256.convert(utf8.encode(jsonEncode(snapshot))).toString();
   }
 
   void _focusBlueOceanMessage() {
@@ -443,6 +502,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         _blueOceanAssistant = assistant;
         if (assistant['status'] == 'draft_ready') {
           _blueOceanDraftId = draftId;
+          _blueOceanReadyFingerprint = null;
+          _blueOceanAnsweredQuestions.clear();
+          _blueOceanReplacementBandConfirmed = false;
+          for (final key in _blueOceanConfirmations.keys) {
+            _blueOceanConfirmations[key] = false;
+          }
           _blueOceanProgress = 'Bearbeitbarer Entwurf ist bereit.';
           _applyBlueOceanDraft(assistant);
         } else {
@@ -550,6 +615,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       _blueOceanProgress =
           'Entwurf, Preis, Mietdauer und Gebührenvorschau werden geprüft …';
       _blueOceanError = null;
+      _blueOceanReadyFingerprint = null;
     });
     try {
       final assistant = await BackendRepository.reviewBlueOceanListingDraft(
@@ -565,8 +631,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           final minor = recommendation['recommendedDailyMinor'];
           if (minor is num) {
             _priceCtrl.text = (minor / 100).toStringAsFixed(2);
-            _blueOceanConfirmations['owner_price'] = false;
+            _invalidateBlueOceanReviewState(
+              confirmations: const <String>['owner_price'],
+            );
           }
+        }
+        final readiness = assistant['readiness'];
+        if (readiness is Map && readiness['readyToPublish'] == true) {
+          _blueOceanReadyFingerprint = _blueOceanEditableFingerprint();
         }
       });
     } on BackendException catch (error) {
@@ -826,6 +898,19 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         setState(() => _blueOceanError =
             'Vor der Veröffentlichung müssen alle Eigentümer-Bestätigungen, '
                 'Rückfragen und die Wertspanne geprüft sein.');
+        _focusBlueOceanMessage();
+        return;
+      }
+      if (_blueOceanReadyFingerprint == null ||
+          _blueOceanReadyFingerprint != _blueOceanEditableFingerprint()) {
+        if (!mounted) return;
+        setState(() {
+          _invalidateBlueOceanReviewState();
+          _blueOceanError =
+              'Der Anzeigeninhalt wurde nach der letzten vollständigen '
+              'Prüfung geändert. Prüfe den Entwurf erneut und bestätige die '
+              'abschließende Veröffentlichung danach neu.';
+        });
         _focusBlueOceanMessage();
         return;
       }
@@ -1180,6 +1265,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       setState(() {
         _categoryId = target;
         _subcategory = subcategories.isEmpty ? null : subcategories.first;
+        _invalidateBlueOceanReviewState(
+          confirmations: const <String>['allowed_category'],
+          clearClarifications: true,
+        );
       });
       _schedulePriceRecalc();
     }
@@ -1277,6 +1366,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         _tier3Pct = 25;
       }
       _hasCalculatedDiscounts = true;
+      _invalidateBlueOceanReviewState(
+        confirmations: const <String>['duration_discounts'],
+      );
     });
   }
 
@@ -1293,9 +1385,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     if (price > max) price = max;
     _priceCtrl.text =
         price.toStringAsFixed(price.truncateToDouble() == price ? 0 : 2);
-    if (_blueOceanDraftId != null) {
-      _blueOceanConfirmations['owner_price'] = false;
-    }
+    _invalidateBlueOceanReviewState(
+      confirmations: const <String>['owner_price'],
+    );
   }
 
   Widget _buildBlueOceanAssistantCard(BuildContext context) {
@@ -1494,11 +1586,23 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 14),
                 TextField(
                   controller: _blueOceanBrandCtrl,
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      confirmations: const <String>['item_identity'],
+                      clearClarifications: true,
+                    );
+                  }),
                   decoration: const InputDecoration(labelText: 'Marke'),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: _blueOceanModelCtrl,
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      confirmations: const <String>['item_identity'],
+                      clearClarifications: true,
+                    );
+                  }),
                   decoration: const InputDecoration(
                     labelText: 'Modell (leer lassen, wenn unbekannt)',
                   ),
@@ -1506,6 +1610,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _blueOceanAccessoriesCtrl,
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      confirmations: const <String>['accessories'],
+                      clearClarifications: true,
+                    );
+                  }),
                   decoration: const InputDecoration(
                     labelText: 'Zubehör, durch Kommas getrennt',
                   ),
@@ -1513,6 +1623,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _blueOceanProjectTagsCtrl,
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      clearClarifications: true,
+                    );
+                  }),
                   decoration: const InputDecoration(
                     labelText: 'Projekt-Tags, durch Kommas getrennt',
                   ),
@@ -1520,6 +1635,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _blueOceanUseCasesCtrl,
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      clearClarifications: true,
+                    );
+                  }),
                   decoration: const InputDecoration(
                     labelText: 'Einsatzmöglichkeiten, durch Kommas getrennt',
                   ),
@@ -1529,6 +1649,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   controller: _blueOceanSafetyCtrl,
                   minLines: 2,
                   maxLines: 4,
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      clearClarifications: true,
+                    );
+                  }),
                   decoration: const InputDecoration(
                     labelText: 'Sicherheits- und Nutzungshinweise',
                   ),
@@ -1536,6 +1661,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _blueOceanPickupRegionCtrl,
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      confirmations: const <String>['pickup_region'],
+                      clearClarifications: true,
+                    );
+                  }),
                   decoration: const InputDecoration(
                     labelText: 'Grobe Abholregion (keine genaue Adresse)',
                   ),
@@ -1558,6 +1689,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         value: _blueOceanAnsweredQuestions
                             .contains(rawQuestion['id']?.toString()),
                         onChanged: (value) => setState(() {
+                          _blueOceanConfirmations['final_publication'] = false;
+                          _blueOceanReadyFingerprint = null;
                           final id = rawQuestion['id']?.toString() ?? '';
                           if (value == true) {
                             _blueOceanAnsweredQuestions.add(id);
@@ -1589,7 +1722,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       .toList(growable: false),
                   onChanged: (value) => setState(() {
                     if (value != null) _blueOceanReplacementBand = value;
-                    _blueOceanReplacementBandConfirmed = false;
+                    _invalidateBlueOceanReviewState(
+                      resetReplacementBand: true,
+                    );
                   }),
                 ),
                 const SizedBox(height: 10),
@@ -1597,14 +1732,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   controller: _blueOceanReplacementValueCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => setState(() {
+                    _invalidateBlueOceanReviewState(
+                      resetReplacementBand: true,
+                    );
+                  }),
                   decoration: const InputDecoration(
                     labelText: 'Geschätzter Wert in Euro',
                   ),
                 ),
                 CheckboxListTile(
                   value: _blueOceanReplacementBandConfirmed,
-                  onChanged: (value) => setState(() =>
-                      _blueOceanReplacementBandConfirmed = value ?? false),
+                  onChanged: (value) => setState(() {
+                    _invalidateBlueOceanReviewState();
+                    _blueOceanReplacementBandConfirmed = value ?? false;
+                  }),
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                   title: const Text(
@@ -1626,8 +1768,13 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 for (final entry in confirmationLabels.entries)
                   CheckboxListTile(
                     value: _blueOceanConfirmations[entry.key] ?? false,
-                    onChanged: (value) => setState(() =>
-                        _blueOceanConfirmations[entry.key] = value ?? false),
+                    onChanged: (value) => setState(() {
+                      _blueOceanReadyFingerprint = null;
+                      if (entry.key != 'final_publication') {
+                        _blueOceanConfirmations['final_publication'] = false;
+                      }
+                      _blueOceanConfirmations[entry.key] = value ?? false;
+                    }),
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
                     title: Text(entry.value),
@@ -1676,7 +1823,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         child: ListTile(
                           onTap: () => setState(() {
                             _priceCtrl.text = (minor / 100).toStringAsFixed(2);
-                            _blueOceanConfirmations['owner_price'] = false;
+                            _invalidateBlueOceanReviewState(
+                              confirmations: const <String>['owner_price'],
+                            );
                           }),
                           leading: Icon(selected
                               ? Icons.radio_button_checked
@@ -1892,8 +2041,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                       child: Text(subcategory),
                                     ))
                                 .toList(growable: false),
-                            onChanged: (value) =>
-                                setState(() => _subcategory = value),
+                            onChanged: (value) => setState(() {
+                              _subcategory = value;
+                              _invalidateBlueOceanReviewState(
+                                confirmations: const <String>[
+                                  'allowed_category'
+                                ],
+                                clearClarifications: true,
+                              );
+                            }),
                             validator: (value) =>
                                 PrivatePilotConfig.subcategoryAllowed(
                               _categoryId ?? '',
@@ -1920,7 +2076,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             fontWeight: FontWeight.w500),
                         decoration: const InputDecoration(
                             labelText: 'Titel', hintText: 'Was bietest du an?'),
-                        onChanged: (_) => _schedulePriceRecalc(),
+                        onChanged: (_) {
+                          setState(() {
+                            _invalidateBlueOceanReviewState(
+                              confirmations: const <String>['item_identity'],
+                              clearClarifications: true,
+                            );
+                          });
+                          _schedulePriceRecalc();
+                        },
                         validator: (v) => (v == null || v.trim().isEmpty)
                             ? 'Titel ist erforderlich'
                             : null,
@@ -1939,7 +2103,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             labelText: 'Beschreibung',
                             hintText:
                                 'Beschreibe Zustand, Zubehör, Abholung …'),
-                        onChanged: (_) => _schedulePriceRecalc(),
+                        onChanged: (_) {
+                          setState(() {
+                            _invalidateBlueOceanReviewState(
+                              confirmations: const <String>['item_identity'],
+                              clearClarifications: true,
+                            );
+                          });
+                          _schedulePriceRecalc();
+                        },
                         validator: (v) => (v == null || v.trim().length < 10)
                             ? 'Mindestens 10 Zeichen'
                             : null,
@@ -2036,7 +2208,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   child: _ConditionPager(
                     selected: _condition,
                     onChanged: (v) {
-                      setState(() => _condition = v);
+                      setState(() {
+                        _condition = v;
+                        _invalidateBlueOceanReviewState(
+                          confirmations: const <String>['condition'],
+                        );
+                      });
                       _schedulePriceRecalc();
                     },
                   ),
@@ -2057,11 +2234,25 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     d.formattedAddress ?? d.description;
                                 _selectedAddrLat = d.lat;
                                 _selectedAddrLng = d.lng;
+                                _invalidateBlueOceanReviewState(
+                                  confirmations: const <String>[
+                                    'pickup_region'
+                                  ],
+                                  clearClarifications: true,
+                                );
                               });
                               _schedulePriceRecalc();
                             },
                             onQueryChanged: (q) {
                               _onAddressQueryChanged(q);
+                              setState(() {
+                                _invalidateBlueOceanReviewState(
+                                  confirmations: const <String>[
+                                    'pickup_region'
+                                  ],
+                                  clearClarifications: true,
+                                );
+                              });
                               _schedulePriceRecalc();
                             },
                             suggestions: _addrSuggestions,
@@ -2214,9 +2405,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           controller: _priceCtrl,
                           onChanged: (_) => setState(() {
                             _priceTouched = true;
-                            if (_blueOceanDraftId != null) {
-                              _blueOceanConfirmations['owner_price'] = false;
-                            }
+                            _invalidateBlueOceanReviewState(
+                              confirmations: const <String>['owner_price'],
+                            );
                           }),
                           validator: (v) {
                             final n =
@@ -2290,8 +2481,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     alignment: Alignment.centerRight,
                                     child: Switch.adaptive(
                                       value: _autoApplyDiscounts,
-                                      onChanged: (v) => setState(
-                                          () => _autoApplyDiscounts = v),
+                                      onChanged: (v) => setState(() {
+                                        _autoApplyDiscounts = v;
+                                        _invalidateBlueOceanReviewState(
+                                          confirmations: const <String>[
+                                            'duration_discounts'
+                                          ],
+                                        );
+                                      }),
                                       activeThumbColor: colorScheme.primary,
                                     ),
                                   ),
@@ -2384,10 +2581,20 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     onDaysChanged: (v) => setState(() {
                                       _tier1Days = v;
                                       _discountsTouched = true;
+                                      _invalidateBlueOceanReviewState(
+                                        confirmations: const <String>[
+                                          'duration_discounts'
+                                        ],
+                                      );
                                     }),
                                     onPercentChanged: (v) => setState(() {
                                       _tier1Pct = v;
                                       _discountsTouched = true;
+                                      _invalidateBlueOceanReviewState(
+                                        confirmations: const <String>[
+                                          'duration_discounts'
+                                        ],
+                                      );
                                     }),
                                   ),
                                   const SizedBox(height: 6),
@@ -2401,10 +2608,20 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     onDaysChanged: (v) => setState(() {
                                       _tier2Days = v;
                                       _discountsTouched = true;
+                                      _invalidateBlueOceanReviewState(
+                                        confirmations: const <String>[
+                                          'duration_discounts'
+                                        ],
+                                      );
                                     }),
                                     onPercentChanged: (v) => setState(() {
                                       _tier2Pct = v;
                                       _discountsTouched = true;
+                                      _invalidateBlueOceanReviewState(
+                                        confirmations: const <String>[
+                                          'duration_discounts'
+                                        ],
+                                      );
                                     }),
                                   ),
                                   const SizedBox(height: 6),
@@ -2418,10 +2635,20 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     onDaysChanged: (v) => setState(() {
                                       _tier3Days = v;
                                       _discountsTouched = true;
+                                      _invalidateBlueOceanReviewState(
+                                        confirmations: const <String>[
+                                          'duration_discounts'
+                                        ],
+                                      );
                                     }),
                                     onPercentChanged: (v) => setState(() {
                                       _tier3Pct = v;
                                       _discountsTouched = true;
+                                      _invalidateBlueOceanReviewState(
+                                        confirmations: const <String>[
+                                          'duration_discounts'
+                                        ],
+                                      );
                                     }),
                                   ),
                                   const SizedBox(height: 6),
