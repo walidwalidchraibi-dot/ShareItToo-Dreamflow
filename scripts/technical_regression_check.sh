@@ -279,6 +279,9 @@ node --test test/tool/diagnose_r5_android_repeated_stability.test.mjs
 node --check tool/validate_r5_repeated_device_stability.mjs
 node --test test/tool/validate_r5_repeated_device_stability.test.mjs
 node tool/validate_r5_repeated_device_stability.mjs
+node --check tool/validate_r6_price_engine_property_stress.mjs
+node --test test/tool/validate_r6_price_engine_property_stress.test.mjs
+node tool/validate_r6_price_engine_property_stress.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

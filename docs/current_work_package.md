@@ -1,7 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R5 exact verified;
-R13 local Codex evaluation verified; R6 next; non-live and fail-closed** on
+R6 locally regression-verified with exact GitHub checks pending; R13 local
+Codex evaluation verified; non-live and fail-closed** on
 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -112,6 +113,30 @@ regression. Exact verification head
 `97479591110`, with zero open code-scanning alerts. The observations are not
 performance, memory-leak, packet-capture, full-device-UI or release
 certification. R6 may begin.
+
+### R6 Price Engine property and stress testing
+
+R6 reproduced and permanently closed three Price Engine correctness gaps at
+implementation head `0005a8abab6178d282b4c79bedd2e36870968675`.
+Dominated weak/far cohorts can no longer outvote the Pareto frontier merely by
+volume; the documented 0.90/1.10 authentic-demand clamps are now both
+reachable; and unknown recommendation fields fail closed instead of being
+ignored. The algorithm is versioned as `R6-2026-08-24.1`. Additive migration
+069 preserves N5 snapshots, accepts R6 snapshots and refuses rollback once R6
+snapshot truth exists.
+
+The retained matrix passes 28 engine/property tests across all 90 category /
+replacement-band / condition combinations, 1,818 rounding cases, all geography,
+source, confidence, owner-option, duration, quote and synthetic-zero-learning
+requirements. The fixed-seed stress run passes 2,000 cases with 16,651
+synthetic observations and exact digest
+`3e9fb6e3cd65b9efb8a6197de60c9b62812abfc9a93ca86ef3ebc1ba59462ed7`.
+A fresh repository-owned PostgreSQL 16 run applied all 69 migrations twice,
+exercised the Blue Ocean workflow and returned `passed-and-cleaned`. The full
+candidate-rollover technical regression passes in CI metadata mode, including
+analyzer zero, Flutter, Web/Wasm, loopback smoke and Android debug build. Exact
+GitHub Regression and CodeQL verification are still pending; R7 does not begin
+until those R6 checks are bound.
 
 ### R13 local Codex authentication clarification
 
