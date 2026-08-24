@@ -77,6 +77,10 @@ test('rejects live mutation or personal-data claims', () => {
 
 test('rejects premature or malformed GitHub verification', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-full-regression-passed-ci-pending';
+  premature.technicalDebtClosure.closure = 'passed-unit-and-three-fresh-local-proofs-ci-pending';
+  premature.focusedVerification.githubRegression = 'pending';
+  premature.focusedVerification.githubCodeql = 'pending';
   premature.githubVerification = {
     implementationCommit: '0'.repeat(40), regressionRunId: 1,
     regressionConclusion: 'success', codeqlRunId: 2, codeqlConclusion: 'success',

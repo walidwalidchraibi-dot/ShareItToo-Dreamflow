@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r14-heilbronn-wave0-operations",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed-ready-for-r15",
   "implementationBaseHead": "a8eb996db3056053a2201e652e8c1c24d9524a03",
   "predecessor": {
     "package": "N9",
@@ -61,17 +61,27 @@
     "r14ArtifactValidatorTests": "passed-8",
     "r14ArtifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "technicalDebtClosure": {
     "finding": "r9-postgres-pool-administrative-shutdown-unhandled",
     "discoveredByRegressionRunId": 32776316335,
     "failedJobId": 97588090203,
     "observedPostgresCode": "57P01",
-    "closure": "passed-unit-and-three-fresh-local-proofs-ci-pending",
+    "closure": "verified-in-follow-up-regression",
     "unexpectedPoolErrorsRemainFatal": true,
     "permanentTimingOrRetryWorkaroundAdded": false
+  },
+  "githubVerification": {
+    "implementationCommit": "dd70f27f3681451db90124ba22287e07cd7b7dcf",
+    "regressionRunId": 32777252949,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32777252976,
+    "codeqlConclusion": "success",
+    "advancedSecurityCheckId": 97591639936,
+    "advancedSecurityConclusion": "success",
+    "newAlerts": 0
   },
   "boundaries": {
     "realPersonDataStored": false,

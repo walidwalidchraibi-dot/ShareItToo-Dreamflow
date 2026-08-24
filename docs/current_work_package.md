@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R11 and R13 exact
-verified; R12 exact verified and R14 active;
+Status: **R0/P0 security contradiction verified closed; R1–R14 exact
+verified and R15 active;
 non-live and fail-closed** on
 24.08.2026.
 
@@ -366,11 +366,14 @@ runner now installs an explicit pool error boundary. It suppresses only
 and every different pool error remain fatal. The focused contract test passes
 and three fresh, full local PostgreSQL 16 backup/restore/rollback runs each
 passed and cleaned their temporary cluster. No retry, delay or timing
-workaround was retained. Follow-up GitHub verification is pending.
+workaround was retained.
 No person was contacted, no real photo collected, no physical meeting or
 provider call authorized, no candidate approved and no Pilot, Play, Payment,
-Firebase, Production, Cloud, VPS or DNS state changed. Exact GitHub Regression,
-CodeQL and Advanced Security verification remain pending.
+Firebase, Production, Cloud, VPS or DNS state changed. Exact GitHub verification
+is green at implementation head
+`dd70f27f3681451db90124ba22287e07cd7b7dcf`: Regression `32777252949`,
+CodeQL workflow `32777252976` and Advanced Security check `97591639936`, with
+zero open PR code-scanning alerts. R14 is closed and R15 begins.
 
 ## Completed package history
 
