@@ -27,7 +27,6 @@ import {
 const requireFromBackend = createRequire(
   new URL('../backend/package.json', import.meta.url),
 );
-const { Pool } = requireFromBackend('pg');
 
 export const r9RequiredMigrationCount = 69;
 export const r9SyntheticAccountCount = 12;
@@ -607,8 +606,8 @@ function databaseUrl(port, database) {
   return `postgresql://${databaseUser}@127.0.0.1:${port}/${database}`;
 }
 
-function createPool(port, database) {
-  return new Pool({ connectionString: databaseUrl(port, database), max: 4 });
+function createPool(PoolClass, port, database) {
+  return new PoolClass({ connectionString: databaseUrl(port, database), max: 4 });
 }
 
 async function closePools(pools) {
@@ -721,6 +720,7 @@ export async function executeR9DatabaseRecovery({
   temporaryBase = os.tmpdir(),
 } = {}) {
   const plan = await readMigrationPlan(root);
+  const { Pool: PoolClass } = requireFromBackend('pg');
   const resolvedBinDir = await resolvePostgresBinDir({
     environment,
     explicitBinDir: postgresBinDir,
@@ -787,10 +787,14 @@ export async function executeR9DatabaseRecovery({
       ], { cwd: root, env: commandEnvironment });
     }
 
-    const sourcePool = createPool(port, databaseNames.source);
-    const restoredPool = createPool(port, databaseNames.restored);
-    const legacyPool = createPool(port, databaseNames.legacy);
-    const rollbackControlPool = createPool(port, databaseNames.rollbackControl);
+    const sourcePool = createPool(PoolClass, port, databaseNames.source);
+    const restoredPool = createPool(PoolClass, port, databaseNames.restored);
+    const legacyPool = createPool(PoolClass, port, databaseNames.legacy);
+    const rollbackControlPool = createPool(
+      PoolClass,
+      port,
+      databaseNames.rollbackControl,
+    );
     pools.push(sourcePool, restoredPool, legacyPool, rollbackControlPool);
 
     const emptyTables = await tableCount(sourcePool);
