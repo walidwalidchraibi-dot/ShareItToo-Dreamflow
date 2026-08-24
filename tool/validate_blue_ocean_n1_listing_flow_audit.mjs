@@ -90,8 +90,9 @@ export function validateBlueOceanN1ListingFlowAudit({
 
   requireMarkers(repositoryRoot, 'lib/screens/create_listing_screen.dart', [
     'Future<void> _submit({bool forceInactive = false})',
-    'onPressed: () => _submit()',
-    'onPressed: () => _submit(forceInactive: true)',
+    'if (_submitBusy) return;',
+    '_submitBusy || _blueOceanBusy ? null : _submit,',
+    ': () => _submit(forceInactive: true),',
     'await DataService.addItem(',
   ]);
   requireMarkers(repositoryRoot, 'lib/config/private_pilot_config.dart', [
