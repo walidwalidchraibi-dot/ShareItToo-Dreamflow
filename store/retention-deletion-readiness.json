@@ -161,7 +161,7 @@
     },
     {
       "path": "backend/src/support_progress_update_workflow.js",
-      "sha256": "00c6b231906c95c076a4df83979010deda2c257e48b057cb67867d14a3e5b81d"
+      "sha256": "9424b59d5b4e7cd44aa03caea43242062940c363b443497620b485fcab323fd2"
     },
     {
       "path": "backend/src/support_notifications.js",
