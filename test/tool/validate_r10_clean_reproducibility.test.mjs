@@ -1,0 +1,96 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+
+import { validateR10CleanReproducibility } from '../../tool/validate_r10_clean_reproducibility.mjs';
+
+const evidence = JSON.parse(readFileSync(
+  new URL('../../docs/evidence/48h-remote/r10-clean-reproducibility-20260824.json', import.meta.url),
+  'utf8',
+));
+
+function validate(changed = evidence, options) {
+  return validateR10CleanReproducibility(changed, options);
+}
+
+test('accepts the exact retained R10 clean-checkout evidence', () => {
+  assert.deepEqual(validate(), {
+    status: 'verified-local-clean-checkout-ci-pending',
+    implementationHead: '322e97ecc0c20c7f765054523dbcf1ddf45d0e9a',
+    migrations: 112,
+    assets: 84,
+    apkClassification: 'd8-synthetic-checksum-metadata-only',
+    nextPackage: 'R11',
+  });
+});
+
+test('accepts a structurally exact detached CI execution result', () => {
+  const ci = structuredClone(evidence);
+  ci.source.implementationHead = 'a'.repeat(40);
+  ci.source.checkoutHead = 'a'.repeat(40);
+  ci.toolchain.node = 'v22.99.1';
+  ci.commands.fullTechnicalRegression.durationSeconds = 700;
+  assert.equal(validate(ci, { executionOnly: true }).implementationHead, 'a'.repeat(40));
+});
+
+test('rejects source inventory or clean-checkout drift', () => {
+  const inventory = structuredClone(evidence);
+  inventory.sourceComparison.assets.after.sha256 = '0'.repeat(64);
+  assert.throws(() => validate(inventory), /assets inventory/u);
+
+  const dirty = structuredClone(evidence);
+  dirty.source.isolatedCheckoutFinallyClean = false;
+  assert.throws(() => validate(dirty), /clean-checkout proof/u);
+});
+
+test('rejects missing commands and unbounded generated state', () => {
+  const commands = structuredClone(evidence);
+  delete commands.commands.secretScan;
+  assert.throws(() => validate(commands), /command inventory/u);
+
+  const footprint = structuredClone(evidence);
+  footprint.generatedFootprint.after.pathsKiB.build = 6 * 1024 * 1024;
+  footprint.generatedFootprint.after.projectGeneratedKiB = Object.values(
+    footprint.generatedFootprint.after.pathsKiB,
+  ).reduce((sum, amount) => sum + amount, 0);
+  footprint.generatedFootprint.after.totalKiB =
+    footprint.generatedFootprint.after.projectGeneratedKiB
+      + footprint.generatedFootprint.after.isolatedPackageCachesKiB;
+  assert.throws(() => validate(footprint), /project_generated_footprint/u);
+});
+
+test('rejects Android identity, permissions or runtime-provider drift', () => {
+  const identity = structuredClone(evidence);
+  identity.android.identity.versionCode = '1';
+  assert.throws(() => validate(identity), /build identity/u);
+
+  const permission = structuredClone(evidence);
+  permission.android.permissions.push({ name: 'android.permission.READ_SMS', maxSdkVersion: null });
+  assert.throws(() => validate(permission), /permission surface/u);
+
+  const provider = structuredClone(evidence);
+  provider.android.runtimeConfiguration.compiledOpenAiApiOriginPresent = true;
+  assert.throws(() => validate(provider), /network or provider/u);
+});
+
+test('rejects unexplained APK drift or a false binary-identity claim', () => {
+  const drift = structuredClone(evidence);
+  drift.android.reproduction.classification = 'unexplained-payload-drift';
+  drift.android.reproduction.knownEquivalent = false;
+  drift.android.reproduction.unexplainedDifferingEntries = ['classes18.dex'];
+  assert.throws(() => validate(drift), /reproduction classification/u);
+
+  const overclaim = structuredClone(evidence);
+  overclaim.limitations.binaryIdentityClaimedOnlyWhenRawShaMatches = true;
+  assert.throws(() => validate(overclaim), /limitations or binary identity/u);
+});
+
+test('rejects live action, credential handling or premature GitHub claims', () => {
+  const live = structuredClone(evidence);
+  live.boundaries.storeChanged = true;
+  assert.throws(() => validate(live), /live or credential boundary/u);
+
+  const github = structuredClone(evidence);
+  github.githubVerification = {};
+  assert.throws(() => validate(github), /must not contain GitHub/u);
+});

@@ -104,6 +104,22 @@ export function assertSafeR10TempRoot(candidate, base = os.tmpdir()) {
   return resolvedCandidate;
 }
 
+export function resolveR10SourceBranch(actualBranch, branchHint) {
+  const actual = (actualBranch ?? '').trim();
+  const hint = (branchHint ?? '').trim();
+  const safe = (value) => value !== ''
+    && value.length <= 200
+    && !value.includes('..')
+    && !value.startsWith('/')
+    && /^[A-Za-z0-9._/-]+$/u.test(value);
+  if (actual !== '') {
+    if (!safe(actual) || (hint !== '' && hint !== actual)) fail('r10_source_branch_invalid');
+    return actual;
+  }
+  if (!safe(hint)) fail('r10_detached_source_branch_hint_missing');
+  return hint;
+}
+
 export function parseAaptBadging(value) {
   const packageMatch = /^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'[^\n]*compileSdkVersion='(\d+)'/mu.exec(value);
   const minSdk = /^sdkVersion:'(\d+)'/mu.exec(value);
@@ -591,7 +607,7 @@ async function assertNoPrivateInputs(checkout) {
   return Object.freeze({ checked: forbidden.length, present: 0 });
 }
 
-async function currentGitIdentity(sourceRoot) {
+async function currentGitIdentity(sourceRoot, branchHint) {
   const head = (await runCommand('git', ['-C', sourceRoot, 'rev-parse', 'HEAD'], {
     label: 'source Git HEAD',
   })).stdout.trim();
@@ -602,10 +618,10 @@ async function currentGitIdentity(sourceRoot) {
     'git', ['-C', sourceRoot, 'status', '--porcelain', '--untracked-files=no'],
     { label: 'source tracked working tree' },
   )).stdout.trim();
-  if (!/^[0-9a-f]{40}$/u.test(head) || branch === '' || trackedStatus !== '') {
+  if (!/^[0-9a-f]{40}$/u.test(head) || trackedStatus !== '') {
     fail('r10_source_must_be_clean_and_identified');
   }
-  return Object.freeze({ branch, head });
+  return Object.freeze({ branch: resolveR10SourceBranch(branch, branchHint), head });
 }
 
 async function commandProof(command, args, options) {
@@ -615,6 +631,7 @@ async function commandProof(command, args, options) {
 
 export async function executeR10CleanReproducibility({
   sourceRoot = repositoryRoot,
+  sourceBranch,
   output,
   observedOn = new Date().toISOString().slice(0, 10),
 } = {}) {
@@ -622,7 +639,7 @@ export async function executeR10CleanReproducibility({
   const outputPath = output === undefined
     ? path.join(source, 'docs/evidence/48h-remote/r10-clean-reproducibility-20260824.json')
     : path.resolve(output);
-  const git = await currentGitIdentity(source);
+  const git = await currentGitIdentity(source, sourceBranch);
   const tempRoot = assertSafeR10TempRoot(await mkdtemp(path.join(os.tmpdir(), tempPrefix)));
   const checkout = path.join(tempRoot, 'checkout');
   const cacheRoot = path.join(tempRoot, 'isolated-package-caches');
@@ -850,6 +867,7 @@ if (process.argv[1] !== undefined
   const args = parseArgs(process.argv.slice(2));
   await executeR10CleanReproducibility({
     sourceRoot: args['source-root'] ?? repositoryRoot,
+    sourceBranch: args['source-branch'],
     output: args.output,
     observedOn: args['observed-on'],
   });

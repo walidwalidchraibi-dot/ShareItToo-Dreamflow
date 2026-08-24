@@ -1,8 +1,8 @@
 # Technical debt required before release readiness
 
-Status: **closed, 21/21 deterministic exit contracts retained**. Non-live
-register created on 22.08.2026 and last verified on 23.08.2026. This closure is
-technical only and does not imply external-gate or release approval.
+Status: **21 closed; TD-RR-022 locally resolved and awaiting exact CI**.
+Non-live register created on 22.08.2026 and last verified on 24.08.2026. This
+status is technical only and does not imply external-gate or release approval.
 
 This register prevents local test accommodations from becoming permanent
 product or release prerequisites. None of the entries changes production,
@@ -32,8 +32,18 @@ claimed until every item below has reproducible evidence and is closed.
 | `TD-RR-019` | **CLOSED 23.08.2026.** The reviewed Printing 5.14.3 Web adapter embeds PDF.js 3.2.146 below Mozilla's CVE-2024-4367 patched floor. Printing 5.15.0 is incompatible with pinned Dart 3.11.5 and embeds PDF.js 5.7.284 below the later CVE-2026-16633 patched floor. S4BP therefore binds the exact package checksum and resolved source hashes, proves the application's three `layoutPdf` and one `sharePdf` calls never initialize PDF.js, rejects all reachable preview/raster/conversion/direct-print/printer/platform paths, and permanently registers the contract. Focused checks, complete local regression and exact CI `32617626521` pass at `0ec4d0a`. | Closed by removing current application reachability and retaining an exact fail-closed source/adapter contract, not by claiming the embedded library is patched. Keep the guard until a separately reviewed compatible PDF stack satisfies all applicable advisories. No version-only update, advisory suppression, feature flag, runtime/cache patch, retry or reduced suite may replace it. |
 | `TD-RR-020` | **CLOSED 23.08.2026.** MobileScanner 7.1.3 predates its bounded iPhone 17 scanner-start crash correction. S4BQ pins only the immediate 7.1.4 patch, binds the exact package checksum and resolved Swift/Android/public-API hashes, requires available Apple pixel-format selection before output configuration, rejects the old unconditional BGRA assignment, preserves assignment-safe Android floors and limits application scope to the two reviewed pickup/return scanners. The complete local gate and exact CI `32618368745` pass at `910e888`; no MobileScanner Gradle warning path remains. | Closed by one exact patch lock, source-behavior and application-scope contracts, Privacy source rebinding without decision drift, complete local regression and exact clean-host CI. Retain physical Apple validation as a separate external gate. No later scanner migration, dependency override, cache patch, warning filter, retry, reduced suite or source-equals-device claim may replace it. |
 | `TD-RR-021` | **CLOSED 23.08.2026.** PF14B's first current-head signed build completed the AAB, APK and privacy scan but failed with `ENOSPC` while copying the exact artifacts into the private archive. The general capacity guard had counted an existing generated tree as replaceable capacity without making its removal part of the signed builder's deterministic lifecycle. The builder now performs one cold generated-tree clean before compilation, archives only after verification and cleans generated output on success or failure. Exact regression `32644493652` and CodeQL `32644493643` passed at `1b3e86e`; that same clean commit then created and independently validated its four-file owner-only archive, ending with 5,495,736 KiB free. | Closed by source-bound cold/failure lifecycle, unchanged fixed limits, exact CI, same-commit signed private archive and sanitized physical update evidence. The incident cleanup and failed attempt are not acceptance evidence. No manual cleanup, alternate volume, reduced artifact set, retry, sleep or capacity override may become a prerequisite. |
+| `TD-RR-022` | **LOCAL RESOLVED 24.08.2026; EXACT CI PENDING.** R10 reproduced that a clean direct Gradle debug build silently used fallback identity `1.0+1` when generated Flutter version metadata was absent. The technical gate now deterministically derives `1.0.0+2026082302` from checked-in `pubspec.yaml` before its unchanged single direct build. Two equivalent APKs also exposed byte drift limited exactly to DEX header checksum/SHA-1 bytes and the D8 synthetic-class checksum map; normalization is limited to those fields and no raw binary identity is claimed. Project output and intentionally fresh package caches are measured separately at 3,208,463 KiB and 6,119,769 KiB and cleaned. | Close only after the independent exact-PR-head clean-clone job, normal Regression and CodeQL pass. Permanently retain locked restores, standard parallelism, exact build identity, unknown-drift failure and separate fixed 5-GiB project/8-GiB temporary-cache bounds. No stale local properties, undocumented cache, manual cleanup, retry, reduced suite or false byte-identity claim may replace them. |
 
 ## Observation log
+
+- 24.08.2026, R10: six bounded clean-clone runs successively exposed the stale
+  direct-Gradle version fallback, exact D8 synthetic-checksum metadata drift,
+  debug `kernel_blob.bin` versus release `libapp.so` payload selection and an
+  initially combined cache/output bound. The retained implementation fixes or
+  exactly classifies each issue without retry, timing or parallelism changes.
+  The full local run at `322e97e` is green and cleans 9,328,232 KiB of measured
+  temporary project/cache state. TD-RR-022 remains open only for exact GitHub
+  clean-clone, Regression and CodeQL verification.
 
 - 23.08.2026, PF14B: the first signed `2026082302` internal Staging build
   completed compilation and privacy verification but retained no archive after

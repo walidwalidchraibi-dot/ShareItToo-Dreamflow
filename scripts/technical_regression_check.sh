@@ -299,6 +299,10 @@ node --check tool/run_r10_clean_reproducibility.mjs
 node --test test/tool/run_r10_clean_reproducibility.test.mjs
 node --check tool/prepare_android_debug_build_metadata.mjs
 node --test test/tool/prepare_android_debug_build_metadata.test.mjs
+node --test test/tool/r10_clean_reproducibility_ci_wiring.test.mjs
+node --check tool/validate_r10_clean_reproducibility.mjs
+node --test test/tool/validate_r10_clean_reproducibility.test.mjs
+node tool/validate_r10_clean_reproducibility.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

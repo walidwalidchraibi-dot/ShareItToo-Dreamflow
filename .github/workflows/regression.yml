@@ -145,6 +145,41 @@ jobs:
       - name: Run repository-owned PostgreSQL 16 R9 recovery proof
         run: node ../tool/run_r9_database_recovery.mjs
 
+  r10-clean-reproducibility:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: backend/package.json
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.7
+          cache: true
+
+      - name: Run exact clean-checkout reproducibility proof
+        run: |
+          node tool/run_r10_clean_reproducibility.mjs \
+            --source-branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" \
+            --output "$RUNNER_TEMP/r10-clean-reproducibility.json"
+          node tool/validate_r10_clean_reproducibility.mjs \
+            --input "$RUNNER_TEMP/r10-clean-reproducibility.json" \
+            --execution-only
+
   flutter-regression:
     runs-on: ubuntu-latest
     steps:

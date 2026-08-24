@@ -1,0 +1,370 @@
+#!/usr/bin/env node
+
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import {
+  r10ExpectedPermissions,
+  validateR10GeneratedFootprint,
+} from './run_r10_clean_reproducibility.mjs';
+
+const repositoryRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
+const defaultEvidencePath = path.join(
+  repositoryRoot,
+  'docs/evidence/48h-remote/r10-clean-reproducibility-20260824.json',
+);
+const implementationHead = '322e97ecc0c20c7f765054523dbcf1ddf45d0e9a';
+const shaPattern = /^[0-9a-f]{64}$/u;
+const commitPattern = /^[0-9a-f]{40}$/u;
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function exact(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
+
+function requireExact(actual, expected, message) {
+  if (!exact(actual, expected)) fail(message);
+}
+
+function validateSourceComparison(value) {
+  const expected = {
+    dependencies: {
+      count: 7,
+      sha256: '1dd062cf4c609396138d0706388c4c305ff0d5ed418a6d106cad26c05a2a5288',
+    },
+    migrations: {
+      count: 112,
+      sha256: '129ddfb8ac3b9d1b55c4a6f24a0c7f647ec6cdffebf3118f293a27653bed9c00',
+    },
+    assets: {
+      count: 84,
+      sha256: 'f191cecc5902ee87d209a48a194273a3cd88ffa63aedfc6eaa40cb20ac3fd466',
+    },
+    fonts: {
+      count: 3,
+      sha256: '9446f0ff1abb65447f3b432feabfe67806bea222fe08aec22d8cbb50aa81b786',
+    },
+  };
+  requireExact(Object.keys(value ?? {}), Object.keys(expected), 'R10 source comparison categories changed.');
+  for (const [category, identity] of Object.entries(expected)) {
+    requireExact(value[category], {
+      before: identity,
+      after: identity,
+      exactMatch: true,
+    }, `R10 ${category} inventory is not exact.`);
+  }
+}
+
+function validateCommands(value) {
+  const expected = [
+    'backendLockedRestore',
+    'flutterLockedRestore',
+    'backendSuite',
+    'backendSyntax',
+    'dependencyAudit',
+    'secretScan',
+    'postgresRunner',
+    'fullTechnicalRegression',
+    'secondAndroidBuild',
+  ];
+  requireExact(Object.keys(value ?? {}), expected, 'R10 command inventory changed.');
+  for (const name of expected) {
+    const command = value[name];
+    if (command?.status !== 'passed'
+        || !Number.isSafeInteger(command?.durationSeconds)
+        || command.durationSeconds < 0
+        || command.durationSeconds > 3_600) {
+      fail(`R10 command result is invalid: ${name}.`);
+    }
+  }
+}
+
+function validateFootprint(value) {
+  requireExact(value?.before, {
+    pathsKiB: {
+      '.dart_tool': 0,
+      build: 0,
+      'android/.gradle': 0,
+      'backend/node_modules': 0,
+    },
+    projectGeneratedKiB: 0,
+    isolatedPackageCachesKiB: 0,
+    totalKiB: 0,
+  }, 'R10 clean checkout did not start with zero generated footprint.');
+  const after = value?.after;
+  const paths = after?.pathsKiB;
+  const expectedPaths = ['.dart_tool', 'build', 'android/.gradle', 'backend/node_modules'];
+  requireExact(Object.keys(paths ?? {}), expectedPaths, 'R10 generated path inventory changed.');
+  for (const amount of Object.values(paths)) {
+    if (!Number.isSafeInteger(amount) || amount < 0) fail('R10 generated path size is invalid.');
+  }
+  if (Object.values(paths).reduce((sum, amount) => sum + amount, 0)
+      !== after.projectGeneratedKiB) {
+    fail('R10 project generated footprint total is invalid.');
+  }
+  const bounds = validateR10GeneratedFootprint(after);
+  requireExact({
+    maximumProjectGeneratedKiB: value.maximumProjectGeneratedKiB,
+    maximumIsolatedPackageCachesKiB: value.maximumIsolatedPackageCachesKiB,
+    withinBounds: value.withinBounds,
+  }, bounds, 'R10 generated footprint bounds changed.');
+}
+
+function validateArtifactIdentity(value) {
+  if (!Number.isSafeInteger(value?.bytes) || value.bytes <= 0
+      || !shaPattern.test(value?.sha256 ?? '')
+      || !shaPattern.test(value?.payloadInventorySha256 ?? '')
+      || !Number.isSafeInteger(value?.entries) || value.entries <= 0) {
+    fail('R10 APK artifact identity is invalid.');
+  }
+}
+
+function validateReproduction(android) {
+  const value = android.reproduction;
+  const classifications = new Set([
+    'byte-identical',
+    'zip-container-or-signing-metadata-only',
+    'd8-synthetic-checksum-metadata-only',
+  ]);
+  if (!classifications.has(value?.classification)
+      || value?.knownEquivalent !== true
+      || !Array.isArray(value?.differingEntries)
+      || !Array.isArray(value?.knownD8MetadataOnlyEntries)
+      || !exact(value?.unexplainedDifferingEntries, [])) {
+    fail('R10 APK reproduction classification is invalid.');
+  }
+  if (value.classification === 'byte-identical') {
+    if (!value.byteIdentical || !value.extractedEntriesIdentical
+        || value.differingEntries.length !== 0
+        || android.first.sha256 !== android.second.sha256
+        || android.knownNondeterminism !== null) {
+      fail('R10 byte-identical APK claim is invalid.');
+    }
+  } else if (value.classification === 'zip-container-or-signing-metadata-only') {
+    if (value.byteIdentical || !value.extractedEntriesIdentical
+        || value.differingEntries.length !== 0
+        || android.first.sha256 === android.second.sha256
+        || android.knownNondeterminism !== null) {
+      fail('R10 ZIP metadata-only APK claim is invalid.');
+    }
+  } else {
+    if (value.byteIdentical || value.extractedEntriesIdentical
+        || value.differingEntries.length === 0
+        || !exact(value.differingEntries, value.knownD8MetadataOnlyEntries)
+        || value.differingEntries.some((entry) => !/^classes\d*\.dex$/u.test(entry))) {
+      fail('R10 D8 metadata-only APK claim is invalid.');
+    }
+    requireExact(android.knownNondeterminism, {
+      mechanism: 'D8 synthetic-class checksum metadata',
+      normalizedBytes: [
+        'DEX header checksum and SHA-1 signature bytes 8-31',
+        'nine-hex-digit values in the embedded D8 synthetic-class checksum map',
+      ],
+      affectedEntries: value.knownD8MetadataOnlyEntries,
+      rawBinaryIdentityClaimed: false,
+    }, 'R10 known D8 nondeterminism description changed.');
+  }
+}
+
+function validateAndroid(value) {
+  if (value?.buildType !== 'debug' || value?.buildAttempts !== 2) {
+    fail('R10 Android build scope changed.');
+  }
+  validateArtifactIdentity(value.first);
+  validateArtifactIdentity(value.second);
+  if (value.first.bytes !== value.second.bytes || value.first.entries !== value.second.entries) {
+    fail('R10 equivalent APK shape changed.');
+  }
+  validateReproduction(value);
+  requireExact(value.identity, {
+    applicationId: 'com.shareittoo.app',
+    versionCode: '2026082302',
+    versionName: '1.0.0',
+    compileSdk: 35,
+    minSdk: 24,
+    targetSdk: 35,
+    debuggable: true,
+  }, 'R10 Android build identity changed.');
+  requireExact(value.permissions, r10ExpectedPermissions, 'R10 Android permission surface changed.');
+  requireExact(value.policies, {
+    debugArtifact: true,
+    backupDisabled: true,
+    cleartextTrafficDisabled: true,
+    legacyExternalStorageDisabled: true,
+  }, 'R10 Android policy surface changed.');
+  requireExact(value.runtimePayload, {
+    format: 'debug-kernel-blob',
+    entries: ['assets/flutter_assets/kernel_blob.bin'],
+  }, 'R10 Flutter runtime payload changed.');
+  requireExact(value.runtimeConfiguration, {
+    backendEnabledInDebugByDefault: false,
+    compiledDefaultBackendOriginPresent: true,
+    externalAiNetworkAllowed: false,
+    compiledOpenAiApiOriginPresent: false,
+    realPaymentsEnabled: false,
+    socialProvidersEnabledByDefault: { google: false, apple: false, facebook: false },
+    firebaseSdkPresent: true,
+    firebaseMessagingAutoInitDisabled: true,
+    firebaseAnalyticsCollectionDisabled: true,
+    firebaseCrashlyticsCollectionDisabled: true,
+  }, 'R10 network or provider configuration changed.');
+}
+
+export function validateR10CleanReproducibility(value, { executionOnly = false } = {}) {
+  if (value?.schemaVersion !== 1
+      || value?.kind !== 'sit-48h-r10-clean-reproducibility'
+      || value?.status !== 'verified-local-clean-checkout-ci-pending'
+      || value?.observedOn !== '2026-08-24') {
+    fail('R10 evidence identity or status is invalid.');
+  }
+  if (value.source?.branch !== 'codex/master-workflow-20260808'
+      || !commitPattern.test(value.source?.implementationHead ?? '')
+      || value.source.checkoutHead !== value.source.implementationHead
+      || value.source.sourceTrackedTreeClean !== true
+      || value.source.isolatedCheckoutInitiallyClean !== true
+      || value.source.isolatedCheckoutFinallyClean !== true) {
+    fail('R10 source identity or clean-checkout proof is invalid.');
+  }
+  if (!executionOnly && value.source.implementationHead !== implementationHead) {
+    fail('R10 retained evidence is not bound to the implementation head.');
+  }
+  requireExact(value.boundaries, {
+    localIsolatedCheckoutOnly: true,
+    productionChanged: false,
+    vpsChanged: false,
+    cloudChanged: false,
+    firebaseProjectChanged: false,
+    storeChanged: false,
+    paymentChanged: false,
+    accountChanged: false,
+    credentialsReadOrExtracted: false,
+    privateInputsCopied: false,
+    apiBillingUsed: false,
+    pullRequestMerged: false,
+  }, 'R10 live or credential boundary changed.');
+  requireExact(value.cleanCheckout, {
+    mechanism: 'local-git-clone-no-hardlinks-detached-head',
+    dependencyCaches: 'fresh-bounded-temp-directories',
+    undocumentedMachineCacheRequired: false,
+    privateInputs: { checked: 6, present: 0 },
+  }, 'R10 clean checkout contract changed.');
+  if (value.toolchain?.flutter !== '3.41.7'
+      || value.toolchain?.dart !== '3.11.5'
+      || !/^v(?:2[2-9]|[3-9]\d)\.\d+\.\d+$/u.test(value.toolchain?.node ?? '')
+      || value.toolchain?.pnpm !== '11.16.0'
+      || value.toolchain?.javaMajor !== 17
+      || value.toolchain?.gradle !== '8.12') {
+    fail('R10 toolchain identity changed.');
+  }
+  validateSourceComparison(value.sourceComparison);
+  validateCommands(value.commands);
+  validateFootprint(value.generatedFootprint);
+  validateAndroid(value.android);
+  requireExact(value.ciAndCodeql, {
+    localCodeqlClaimed: false,
+    exactGithubVerification: 'pending',
+  }, 'R10 must not claim GitHub or CodeQL before exact verification.');
+  if (value.githubVerification !== undefined) {
+    fail('R10 pending evidence must not contain GitHub verification.');
+  }
+  requireExact(value.limitations, {
+    debugArtifactOnly: true,
+    signedInternalArtifactBuilt: false,
+    binaryIdentityClaimedOnlyWhenRawShaMatches: value.android.reproduction.byteIdentical,
+    knownMetadataClassificationRequiresExactNormalizedEntryMatch: true,
+    retainedBuildArtifact: false,
+  }, 'R10 limitations or binary identity claim changed.');
+  requireExact(value.cleanup, {
+    tempCheckoutRemoved: true,
+    isolatedDependencyCachesRemoved: true,
+    apkCopiesRemoved: true,
+  }, 'R10 cleanup proof changed.');
+  if (value.nextPackage !== 'R11') fail('R10 next package is invalid.');
+
+  if (!executionOnly) {
+    requireExact(value.toolchain, {
+      flutter: '3.41.7',
+      dart: '3.11.5',
+      node: 'v22.23.2',
+      pnpm: '11.16.0',
+      javaMajor: 17,
+      gradle: '8.12',
+    }, 'R10 retained toolchain evidence changed.');
+    requireExact(value.generatedFootprint.after, {
+      pathsKiB: {
+        '.dart_tool': 155768,
+        build: 2989950,
+        'android/.gradle': 8391,
+        'backend/node_modules': 54354,
+      },
+      projectGeneratedKiB: 3208463,
+      isolatedPackageCachesKiB: 6119769,
+      totalKiB: 9328232,
+    }, 'R10 retained footprint measurement changed.');
+    requireExact({ first: value.android.first, second: value.android.second }, {
+      first: {
+        bytes: 230820487,
+        sha256: '87eebd56283c0e255b31e30eaea87b2b4e9ebb73df42d180bd3236570c3121f2',
+        payloadInventorySha256: '7f437d83562162b7011ecae9e88341e24b019aedb5a3aa3fb2b99f61ca76510a',
+        entries: 795,
+      },
+      second: {
+        bytes: 230820487,
+        sha256: '97f28fc3d4ef8dafd9381e523b89775109d299c4041169c5cb29349873ec0338',
+        payloadInventorySha256: '83003cd7a7f0f8b20ae4ef4882dcfe3feef3ac782d8472f35b9aba86070abd7a',
+        entries: 795,
+      },
+    }, 'R10 retained APK identities changed.');
+    requireExact(value.android.reproduction, {
+      classification: 'd8-synthetic-checksum-metadata-only',
+      byteIdentical: false,
+      extractedEntriesIdentical: false,
+      knownEquivalent: true,
+      differingEntries: ['classes18.dex'],
+      knownD8MetadataOnlyEntries: ['classes18.dex'],
+      unexplainedDifferingEntries: [],
+    }, 'R10 retained APK reproduction result changed.');
+  }
+  return Object.freeze({
+    status: value.status,
+    implementationHead: value.source.implementationHead,
+    migrations: value.sourceComparison.migrations.before.count,
+    assets: value.sourceComparison.assets.before.count,
+    apkClassification: value.android.reproduction.classification,
+    nextPackage: value.nextPackage,
+  });
+}
+
+function parseArgs(argv) {
+  let input = defaultEvidencePath;
+  let executionOnly = false;
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--execution-only') {
+      executionOnly = true;
+    } else if (arg === '--input' && argv[index + 1] !== undefined) {
+      input = path.resolve(argv[index + 1]);
+      index += 1;
+    } else {
+      fail(`Unknown R10 validator argument: ${arg}`);
+    }
+  }
+  return { input, executionOnly };
+}
+
+if (process.argv[1] !== undefined
+    && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const args = parseArgs(process.argv.slice(2));
+  const evidence = JSON.parse(readFileSync(args.input, 'utf8'));
+  const result = validateR10CleanReproducibility(evidence, {
+    executionOnly: args.executionOnly,
+  });
+  process.stdout.write(
+    `R10 clean reproducibility valid: migrations=${result.migrations}, `
+      + `assets=${result.assets}, apk=${result.apkClassification}, next=${result.nextPackage}\n`,
+  );
+}

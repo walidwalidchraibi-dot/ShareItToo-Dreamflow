@@ -1,7 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R9 and R13 exact
-verified; R10 active; non-live and fail-closed** on
+verified; R10 local clean-checkout proof green with exact GitHub CI pending;
+non-live and fail-closed** on
 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -229,6 +230,34 @@ code-scanning alerts. The API image was not published and no signed candidate
 was built. The separate GitGuardian failure remains the documented pre-existing
 250-commit PR-history finding; no credential detail was inspected. R9 is closed
 and R10 begins.
+
+### R10 clean checkout and build reproducibility
+
+R10 now has a retained no-hardlink detached clone proof at implementation head
+`322e97ecc0c20c7f765054523dbcf1ddf45d0e9a`. It starts with zero project
+generated state, restores Backend and Flutter dependencies from checked-in
+locks into fresh bounded temporary stores and runs Backend, syntax, dependency
+audit, sanitized secret scan, PostgreSQL, analyzer, 393 Flutter tests plus one
+documented skip, Web/Wasm, loopback smoke and Android debug without private
+Firebase/signing inputs, retries or reduced parallelism.
+
+The clean path exposed and permanently fixed a real build-identity dependency:
+direct Gradle assembly otherwise used fallback `1.0+1` when generated local
+properties were absent. Debug metadata is now deterministically derived from
+checked-in `pubspec.yaml`, producing exact `1.0.0+2026082302`, minSdk 24 and
+target SDK 35. Two forced APK builds differ only in `classes18.dex` DEX-header
+checksum/SHA-1 bytes and the embedded D8 synthetic-class checksum map; exact
+normalization matches, every other extracted entry matches and no raw binary
+identity is claimed.
+
+All seven dependency inputs, 112 schema/migration files, 84 assets and three
+font files preserve exact before/after inventories. The merged APK has the
+reviewed 14 permissions, backup/cleartext disabled and no unexpected AI,
+payment or provider enablement. Project output is 3,208,463 KiB under 5 GiB;
+fresh temporary package caches are 6,119,769 KiB under their separate 8-GiB
+cap, and all are removed. Focused runner/metadata/validator/wiring tests and the
+retained validator are green. The independent GitHub clean-checkout job,
+Regression and CodeQL remain pending before R10 closes and R11 begins.
 
 ### R13 local Codex authentication clarification
 

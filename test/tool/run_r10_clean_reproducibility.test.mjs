@@ -8,6 +8,7 @@ import {
   knownD8MetadataNormalizedSha256,
   parseAaptBadging,
   parseAaptPermissions,
+  resolveR10SourceBranch,
   selectFlutterRuntimePayloadEntries,
   validateR10GeneratedFootprint,
 } from '../../tool/run_r10_clean_reproducibility.mjs';
@@ -29,6 +30,25 @@ test('accepts only one bounded R10 directory directly under the temp root', () =
   assert.throws(
     () => assertSafeR10TempRoot('/tmp/sit-r10-clean-reproducibility-a/nested', '/tmp'),
     /unsafe_r10_temp_root/u,
+  );
+});
+
+test('uses a safe branch hint only for detached CI checkouts', () => {
+  assert.equal(
+    resolveR10SourceBranch('codex/master-workflow-20260808'),
+    'codex/master-workflow-20260808',
+  );
+  assert.equal(
+    resolveR10SourceBranch('', 'codex/master-workflow-20260808'),
+    'codex/master-workflow-20260808',
+  );
+  assert.throws(
+    () => resolveR10SourceBranch('', '../unsafe'),
+    /r10_detached_source_branch_hint_missing/u,
+  );
+  assert.throws(
+    () => resolveR10SourceBranch('main', 'codex/master-workflow-20260808'),
+    /r10_source_branch_invalid/u,
   );
 });
 
