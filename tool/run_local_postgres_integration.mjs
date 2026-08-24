@@ -27,7 +27,7 @@ const requiredPrograms = Object.freeze([
 const tempPrefix = 'sit-postgres-integration-';
 
 function compactFailureOutput(value) {
-  return value.trim().split(/\r?\n/u).slice(-8).join('\n').slice(0, 2_000);
+  return value.trim().split(/\r?\n/u).slice(-40).join('\n').slice(0, 8_000);
 }
 
 function commandError(command, code, stderr, stdout = '') {
@@ -263,7 +263,15 @@ export async function runLocalPostgresIntegration({
       '--test', 'backend/test/postgres_foundation.integration.test.js',
     ], { env: testEnvironment, inherit: inheritTestOutput });
   } catch (error) {
-    primaryError = error;
+    let postgresDetail = '';
+    try {
+      postgresDetail = compactFailureOutput(await readFile(serverLog, 'utf8'));
+    } catch {
+      // A pre-start failure has no PostgreSQL log to include.
+    }
+    primaryError = postgresDetail === ''
+      ? error
+      : new Error(`${error?.message ?? 'postgres integration failed'}\n${postgresDetail}`);
   } finally {
     process.removeListener('SIGINT', onInterrupt);
     process.removeListener('SIGTERM', onTerminate);
