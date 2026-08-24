@@ -2,12 +2,19 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import { validateR10CleanReproducibility } from '../../tool/validate_r10_clean_reproducibility.mjs';
+import {
+  validateR10CleanReproducibility,
+  validateR10TechnicalDebtDocument,
+} from '../../tool/validate_r10_clean_reproducibility.mjs';
 
 const evidence = JSON.parse(readFileSync(
   new URL('../../docs/evidence/48h-remote/r10-clean-reproducibility-20260824.json', import.meta.url),
   'utf8',
 ));
+const technicalDebt = readFileSync(
+  new URL('../../docs/operations/48H_R10_TECHNICAL_DEBT_2026-08-24.md', import.meta.url),
+  'utf8',
+);
 
 function validate(changed = evidence, options) {
   return validateR10CleanReproducibility(changed, options);
@@ -31,6 +38,24 @@ test('accepts a structurally exact detached CI execution result', () => {
   ci.toolchain.node = 'v22.99.1';
   ci.commands.fullTechnicalRegression.durationSeconds = 700;
   assert.equal(validate(ci, { executionOnly: true }).implementationHead, 'a'.repeat(40));
+});
+
+test('retains the separate post-PF18 technical-debt exit contract', () => {
+  assert.doesNotThrow(() => validateR10TechnicalDebtDocument(technicalDebt));
+  assert.throws(
+    () => validateR10TechnicalDebtDocument(technicalDebt.replace(
+      'EXACT CI PENDING',
+      'CLOSED WITHOUT CI',
+    )),
+    /technical-debt exit contract/u,
+  );
+  assert.throws(
+    () => validateR10TechnicalDebtDocument(technicalDebt.replace(
+      'No stale local properties',
+      'Stale local properties',
+    )),
+    /technical-debt exit contract/u,
+  );
 });
 
 test('rejects source inventory or clean-checkout drift', () => {

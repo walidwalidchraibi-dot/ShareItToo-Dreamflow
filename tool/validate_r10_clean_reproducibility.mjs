@@ -14,6 +14,10 @@ const defaultEvidencePath = path.join(
   repositoryRoot,
   'docs/evidence/48h-remote/r10-clean-reproducibility-20260824.json',
 );
+const technicalDebtPath = path.join(
+  repositoryRoot,
+  'docs/operations/48H_R10_TECHNICAL_DEBT_2026-08-24.md',
+);
 const implementationHead = '322e97ecc0c20c7f765054523dbcf1ddf45d0e9a';
 const shaPattern = /^[0-9a-f]{64}$/u;
 const commitPattern = /^[0-9a-f]{40}$/u;
@@ -28,6 +32,15 @@ function exact(actual, expected) {
 
 function requireExact(actual, expected, message) {
   if (!exact(actual, expected)) fail(message);
+}
+
+export function validateR10TechnicalDebtDocument(value) {
+  if (!value.includes('Status: **TD-R10-001 LOCALLY RESOLVED — EXACT CI PENDING**')
+      || !value.includes('deliberately separate from the immutable 21-item PF18 snapshot')
+      || !value.includes('No stale local properties, undocumented cache, manual cleanup, retry, reduced suite or false byte-identity claim may replace them.')
+      || (value.match(/^\| `TD-R10-\d{3}` \|/gmu) ?? []).length !== 1) {
+    fail('R10 technical-debt exit contract is invalid or has drifted.');
+  }
 }
 
 function validateSourceComparison(value) {
@@ -215,6 +228,7 @@ function validateAndroid(value) {
 }
 
 export function validateR10CleanReproducibility(value, { executionOnly = false } = {}) {
+  validateR10TechnicalDebtDocument(readFileSync(technicalDebtPath, 'utf8'));
   if (value?.schemaVersion !== 1
       || value?.kind !== 'sit-48h-r10-clean-reproducibility'
       || value?.status !== 'verified-local-clean-checkout-ci-pending'
