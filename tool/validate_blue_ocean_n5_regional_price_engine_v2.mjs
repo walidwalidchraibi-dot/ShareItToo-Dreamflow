@@ -171,7 +171,6 @@ export function validateBlueOceanN5RegionalPriceEngineV2({
   const engine = source(repositoryRoot, enginePath);
   requireMarkers(engine, enginePath, [
     "regionalPriceEngineAuthority = 'SIT_REGIONAL_PRICE_ENGINE_V2'",
-    "regionalPriceEngineVersion = 'N5-2026-08-24.1'",
     "regionalMarketObservationVersion = 'regional-market-observation-v2'",
     "regionalPriceRoundingRule = 'EUR_FULL_UNIT_HALF_UP_V1'",
     'Unverbindliche SIT-Preisempfehlung. Du entscheidest über deinen Mietpreis.',
@@ -206,6 +205,10 @@ export function validateBlueOceanN5RegionalPriceEngineV2({
     'automaticPublicationAllowed: false',
     'syntheticLearningApplied: false',
   ]);
+  if (!engine.includes("regionalPriceEngineVersion = 'N5-2026-08-24.1'")
+      && !engine.includes("regionalPriceEngineVersion = 'R6-2026-08-24.1'")) {
+    fail('N5 engine has no recognized N5 or fail-closed R6 successor version.');
+  }
   if (/\bfetch\s*\(|OPENAI_API_KEY|process\.env|INSERT\s+INTO|UPDATE\s+listings|DELETE\s+FROM|autoPublish/iu.test(engine)) {
     fail('N5 engine contains a provider, persistence or publication mutation.');
   }

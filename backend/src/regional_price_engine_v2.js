@@ -1,7 +1,7 @@
 import { quoteRental } from './booking_domain.js';
 
 export const regionalPriceEngineAuthority = 'SIT_REGIONAL_PRICE_ENGINE_V2';
-export const regionalPriceEngineVersion = 'N5-2026-08-24.1';
+export const regionalPriceEngineVersion = 'R6-2026-08-24.1';
 export const regionalMarketObservationVersion = 'regional-market-observation-v2';
 export const regionalPriceRoundingRule = 'EUR_FULL_UNIT_HALF_UP_V1';
 export const regionalPriceUserPrinciple = 'Unverbindliche SIT-Preisempfehlung. Du entscheidest über deinen Mietpreis.';
@@ -9,6 +9,7 @@ export const regionalPriceUserPrinciple = 'Unverbindliche SIT-Preisempfehlung. D
 const weightScale = 1_000_000;
 const basisPointScale = 10_000;
 const dayMs = 86_400_000;
+const weakerEvidenceAggregateCapBasisPoints = 9_000;
 
 export const regionalPriceCategoryRules = Object.freeze({
   power_tools: Object.freeze({
@@ -146,6 +147,12 @@ function exactKeys(value, expected, code) {
       || actual.some((key, index) => key !== wanted[index])) {
     fail(400, code);
   }
+}
+
+function allowedKeys(value, allowed, code) {
+  object(value, code);
+  const allowedSet = new Set(allowed);
+  if (Object.keys(value).some((key) => !allowedSet.has(key))) fail(400, code);
 }
 
 function text(value, { minimum = 1, maximum = 160, code } = {}) {
@@ -490,6 +497,87 @@ function effectiveObservationCountMilli(rational) {
   );
 }
 
+const sourceInfluenceTier = Object.freeze({
+  completed_sit_rental: 0,
+  accepted_sit_request: 0,
+  active_sit_listing: 1,
+  reviewed_external_c2c_asking_price: 2,
+  professional_commercial_reference: 3,
+});
+
+function geographyInfluenceTier(observation) {
+  if (observation.distanceKm <= 20) return 0;
+  if (observation.distanceKm <= 50) return 1;
+  if (observation.distanceKm <= 100) return 2;
+  if (observation.stateCode === 'DE-BW') return 3;
+  return 4;
+}
+
+function similarityInfluenceTier(row) {
+  if (row.similarityBasisPoints >= 9_500) return 0;
+  if (row.similarityBasisPoints >= 8_500) return 1;
+  return 2;
+}
+
+function freshnessInfluenceTier(row) {
+  if (row.ageDays <= 30) return 0;
+  if (row.ageDays <= 90) return 1;
+  if (row.ageDays <= 365) return 2;
+  return 3;
+}
+
+function capWeakerCohort(rows, tierForRow) {
+  if (rows.length < 2) return { rows, excluded: [], applied: false };
+  const strongestTier = Math.min(...rows.map(tierForRow));
+  const strongerTotal = rows
+    .filter((row) => tierForRow(row) === strongestTier)
+    .reduce((sum, row) => sum + row.weightMicro, 0);
+  const weaker = rows.filter((row) => tierForRow(row) > strongestTier);
+  const weakerTotal = weaker.reduce((sum, row) => sum + row.weightMicro, 0);
+  const cap = Math.floor(
+    (strongerTotal * weakerEvidenceAggregateCapBasisPoints) / basisPointScale,
+  );
+  if (weakerTotal === 0 || weakerTotal <= cap) {
+    return { rows, excluded: [], applied: false };
+  }
+  const excluded = [];
+  const adjusted = [];
+  for (const row of rows) {
+    if (tierForRow(row) === strongestTier) {
+      adjusted.push(row);
+      continue;
+    }
+    const boundedWeight = Math.floor((row.weightMicro * cap) / weakerTotal);
+    if (boundedWeight < 1) {
+      excluded.push({
+        observationId: row.observation.observationId,
+        reasonCode: 'weaker_evidence_bounded_below_weight_floor',
+      });
+      continue;
+    }
+    adjusted.push({ ...row, weightMicro: boundedWeight });
+  }
+  return { rows: adjusted, excluded, applied: true };
+}
+
+function boundWeakerEvidenceInfluence(rows) {
+  let current = rows;
+  const excluded = [];
+  let applied = false;
+  for (const tierForRow of [
+    (row) => sourceInfluenceTier[row.observation.sourceType],
+    (row) => geographyInfluenceTier(row.observation),
+    similarityInfluenceTier,
+    freshnessInfluenceTier,
+  ]) {
+    const bounded = capWeakerCohort(current, tierForRow);
+    current = bounded.rows;
+    excluded.push(...bounded.excluded);
+    applied ||= bounded.applied;
+  }
+  return { rows: current, excluded, applied };
+}
+
 function evaluateObservations({ observations, target, asOf }) {
   const excluded = [];
   const comparable = [];
@@ -532,13 +620,22 @@ function evaluateObservations({ observations, target, asOf }) {
       excluded.push({ observationId: observation.observationId, reasonCode: 'weight_below_floor' });
       continue;
     }
-    comparable.push({ observation, similarityBasisPoints: similarity, weightMicro });
+    comparable.push({
+      observation,
+      similarityBasisPoints: similarity,
+      weightMicro,
+      ageDays: Math.max(0, ageDays),
+    });
   }
+
+  const influenceBoundary = boundWeakerEvidenceInfluence(comparable);
+  const boundedComparable = influenceBoundary.rows;
+  excluded.push(...influenceBoundary.excluded);
 
   let selected = null;
   for (const scope of regionalPriceGeographyHierarchy) {
     const screened = robustOutlierScreen(
-      comparable.filter((row) => geographyIncludes(scope, row.observation)),
+      boundedComparable.filter((row) => geographyIncludes(scope, row.observation)),
     );
     const rational = effectiveObservationRational(screened.included);
     if (screened.included.length >= 3 && atLeastEffective(rational, 3)) {
@@ -549,7 +646,7 @@ function evaluateObservations({ observations, target, asOf }) {
   if (!selected) {
     for (const scope of [...regionalPriceGeographyHierarchy].reverse()) {
       const screened = robustOutlierScreen(
-        comparable.filter((row) => geographyIncludes(scope, row.observation)),
+        boundedComparable.filter((row) => geographyIncludes(scope, row.observation)),
       );
       if (screened.included.length > 0) {
         selected = {
@@ -567,6 +664,7 @@ function evaluateObservations({ observations, target, asOf }) {
       ...excluded,
       ...(selected?.excluded ?? []),
     ].sort((left, right) => left.observationId.localeCompare(right.observationId)),
+    weakerEvidenceInfluenceBounded: influenceBoundary.applied,
   };
 }
 
@@ -603,8 +701,11 @@ export function calculateAuthenticDemandFactor(raw = {}) {
     maximum: 80,
     code: 'regional_price_demand_window_invalid',
   });
-  const ratio = requests / listings;
-  const factorBasisPoints = clamp(10_000 + Math.round((ratio - 2) * 250), 9_000, 11_000);
+  const factorBasisPoints = clamp(
+    10_000 + Math.round(((requests - (2 * listings)) * 500) / listings),
+    9_000,
+    11_000,
+  );
   return deepFreeze({
     factorBasisPoints,
     thresholdMet: true,
@@ -689,25 +790,39 @@ function boundedRoundedPrice(valueMinor, rule) {
   );
 }
 
-export function recommendRegionalPriceV2({
-  categoryKey,
-  subcategory,
-  brandModelFamily = null,
-  condition,
-  replacementValueBand,
-  replacementValueBandConfidence = 'LOW',
-  ownerConfirmedReplacementValueBand = false,
-  ownerConfirmedReplacementValueMinor = null,
-  observations = [],
-  demand = {
-    authenticRequestCount: 0,
-    authenticActiveListingCount: 0,
-    serverObserved: false,
-    synthetic: false,
-    observationWindowVersion: 'not-active',
-  },
-  asOf = new Date(),
-}) {
+export function recommendRegionalPriceV2(raw = {}) {
+  allowedKeys(raw, [
+    'categoryKey',
+    'subcategory',
+    'brandModelFamily',
+    'condition',
+    'replacementValueBand',
+    'replacementValueBandConfidence',
+    'ownerConfirmedReplacementValueBand',
+    'ownerConfirmedReplacementValueMinor',
+    'observations',
+    'demand',
+    'asOf',
+  ], 'regional_price_request_schema_invalid');
+  const {
+    categoryKey,
+    subcategory,
+    brandModelFamily = null,
+    condition,
+    replacementValueBand,
+    replacementValueBandConfidence = 'LOW',
+    ownerConfirmedReplacementValueBand = false,
+    ownerConfirmedReplacementValueMinor = null,
+    observations = [],
+    demand = {
+      authenticRequestCount: 0,
+      authenticActiveListingCount: 0,
+      serverObserved: false,
+      synthetic: false,
+      observationWindowVersion: 'not-active',
+    },
+    asOf = new Date(),
+  } = raw;
   if (!Array.isArray(observations) || observations.length > 5_000) {
     fail(400, 'regional_price_observations_invalid');
   }
@@ -787,6 +902,9 @@ export function recommendRegionalPriceV2({
       confidence === 'LOW' ? 'regional_evidence_low_fallback_primary' : 'regional_evidence_applied',
       demandResult.reasonCode,
       sufficientPercentiles ? 'weighted_percentile_options' : 'fallback_percentage_options',
+      ...(evaluated.weakerEvidenceInfluenceBounded
+        ? ['weaker_evidence_influence_bounded']
+        : []),
     ]),
     excludedObservations: Object.freeze(evaluated.excluded),
     ownerOptions: Object.freeze([

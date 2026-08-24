@@ -317,7 +317,7 @@ test('authentic demand stays neutral until threshold and is bounded after thresh
     serverObserved: true,
     synthetic: false,
     observationWindowVersion: 'stage-a-v1',
-  }).factorBasisPoints, 9_550);
+  }).factorBasisPoints, 9_100);
   assert.equal(calculateAuthenticDemandFactor({
     authenticRequestCount: 100,
     authenticActiveListingCount: 10,

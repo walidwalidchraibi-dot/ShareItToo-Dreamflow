@@ -159,6 +159,7 @@ if (!databaseUrl) {
         '066_blue_ocean_listing_ai_foundation.up.sql',
         '067_blue_ocean_regional_price_engine_v2.up.sql',
         '068_blue_ocean_listing_workflow.up.sql',
+        '069_regional_price_engine_r6_hardening.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
