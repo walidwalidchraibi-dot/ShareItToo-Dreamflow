@@ -6427,7 +6427,10 @@ if (!databaseUrl) {
         `UPDATE support_cases
             SET current_owner_id = 'support',
                 lock_version = lock_version + 1,
-                updated_at = now()
+                updated_at = GREATEST(
+                  clock_timestamp(),
+                  updated_at + interval '1 microsecond'
+                )
           WHERE id = $1`,
         [accountTakeoverIntake.supportCase.id],
       );
@@ -6871,7 +6874,10 @@ if (!databaseUrl) {
                   clock_timestamp() - interval '1 millisecond'
                 ),
                 lock_version = lock_version + 1,
-                updated_at = now()
+                updated_at = GREATEST(
+                  clock_timestamp(),
+                  updated_at + interval '1 microsecond'
+                )
           WHERE id = $1
           RETURNING lock_version`,
         [supportIntake.supportCase.id],
@@ -7006,7 +7012,10 @@ if (!databaseUrl) {
             SET created_at = now() - interval '2 hours',
                 next_update_at = now() - interval '1 hour',
                 lock_version = lock_version + 1,
-                updated_at = now()
+                updated_at = GREATEST(
+                  clock_timestamp(),
+                  updated_at + interval '1 microsecond'
+                )
           WHERE id = $1`,
         [p0BreakGlassCase.rows[0].id],
       );
