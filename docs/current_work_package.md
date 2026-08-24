@@ -342,6 +342,26 @@ GitGuardian 250-commit PR-history finding predates R13 and remains separately
 visible; no credential detail was inspected. R13 remains developer-only and
 does not alter the R3 or Pilot Freeze boundaries.
 
+### R14 Heilbronn Wave 0 operations
+
+R14 refines the already verified N9 envelope into a day-of package for exactly
+three opaque adult slots and nine required to fifteen maximum listing tasks.
+It adds three distinct task cards, a simple German three-tester script, a
+German safe-photo one-pager, the exact AI and no-binding/no-money copies, a
+ten-step sequence, synthetic Treffpunkt labels, P0–P3 actions and the nine
+required post-task plus five Blue-Ocean value questions. The future tester
+instruction no longer contains a stale
+hard-coded build and instead requires the exact later R15 candidate handoff.
+
+Four N9 wiring tests, seven N9 validator tests and seven R14 validator tests
+pass. The complete technical regression also passes in candidate-rollover CI
+metadata mode, including backend, Flutter, Web smoke and Android debug build.
+The materials contain no tester identities or observed human results.
+No person was contacted, no real photo collected, no physical meeting or
+provider call authorized, no candidate approved and no Pilot, Play, Payment,
+Firebase, Production, Cloud, VPS or DNS state changed. Exact GitHub Regression,
+CodeQL and Advanced Security verification remain pending.
+
 ## Completed package history
 
 `S1_SUPPORT_CASE_FOUNDATION` is implemented and verified at commit

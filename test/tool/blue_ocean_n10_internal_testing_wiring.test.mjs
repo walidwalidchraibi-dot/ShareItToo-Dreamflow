@@ -39,10 +39,12 @@ test('N10 runbook separates both owner tokens and prohibits public routes', () =
   assert.match(runbook, /Do not enter Closed,\n   Open or Production testing/u);
 });
 
-test('N10 tester template requires exact Play build and safe content', () => {
+test('N10 tester template defers the exact Play build to the later R15 handoff', () => {
   const instructions = read(plan.testerDistribution.instructionsPath);
   assert.match(instructions, /Install or update only from Google Play/u);
-  assert.match(instructions, /confirm build `2026082401`/u);
+  assert.match(instructions, /future R15 candidate handoff/u);
+  assert.match(instructions, /A placeholder or different build is a stop/u);
+  assert.doesNotMatch(instructions, /2026082401/u);
   assert.match(instructions, /Remove faces, documents, addresses/u);
 });
 

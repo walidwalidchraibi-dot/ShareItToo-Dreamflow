@@ -10,13 +10,16 @@ Store launch or permission to use personal content.
 ## Before starting
 
 - Join only through the private owner-supplied Internal Testing path.
-- Install or update only from Google Play and confirm build `2026082401` in the
-  future exact-candidate evidence. Stop if another build is shown.
+- Install or update only from Google Play and confirm the exact build named in
+  the future R15 candidate handoff. A placeholder or different build is a stop.
 - Use only your assigned opaque slot: `HW0-A`, `HW0-B` or `HW0-C`.
 - Do not put your name, email, phone, address, Google account or opt-in link in
   feedback, screenshots, listing text, chat or repository material.
-- Read the safe-photo and consent section of the Wave-0 runbook before choosing
-  any image. Remove faces, documents, addresses and sensitive backgrounds.
+- Use only the assigned task card in
+  `docs/operations/48H_R14_HEILBRONN_WAVE0_OPERATIONS_2026-08-24.md`.
+- Read `docs/templates/48H_R14_SAFE_LISTING_PHOTOS_ONE_PAGER_DE.md` before
+  choosing any image. Remove faces, documents, addresses and sensitive
+  backgrounds.
 
 ## Planned test path
 
