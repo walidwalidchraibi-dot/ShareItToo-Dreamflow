@@ -4,7 +4,6 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import { createLocalQaSyntheticImageScreeningOptions } from '../src/local_qa_synthetic_image_screening.js';
-import { sanitizeImage } from '../src/media_pipeline.js';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
 const exactConfiguration = Object.freeze({
@@ -50,33 +49,16 @@ test('local QA synthetic screening requires every non-live boundary', () => {
   }
 });
 
-test('only an exact repository-owned processed synthetic fixture passes', async () => {
-  const fixture = await readFile(resolve(
-    repositoryRoot,
-    'store/assets/synthetic-listings/cordless-drill.png',
-  ));
-  const processed = await sanitizeImage(fixture);
+test('arbitrary bytes cannot satisfy the exact synthetic fixture allowlist', async () => {
   const options = createLocalQaSyntheticImageScreeningOptions({
     env: { SIT_LOCAL_QA_SYNTHETIC_IMAGE_SCREENING: 'true' },
     configuration: exactConfiguration,
   });
-  const reference = `listing_image_${processed.sha256.slice(0, 32)}`;
+  const changed = Buffer.from('repository-owned-fixture-name-is-not-enough');
   assert.deepEqual(await options.screenBlueOceanListingImage({
-    imageReference: reference,
-    bytes: processed.full,
-    mimeType: processed.mimeType,
-  }), {
-    localOcrText: '',
-    visualScanCompleted: true,
-    visualSignals: [],
-  });
-
-  const changed = Buffer.from(processed.full);
-  changed[changed.length - 1] ^= 1;
-  assert.deepEqual(await options.screenBlueOceanListingImage({
-    imageReference: reference,
+    imageReference: 'listing_image_00000000000000000000000000000000',
     bytes: changed,
-    mimeType: processed.mimeType,
+    mimeType: 'image/webp',
   }), {
     localOcrText: '',
     visualScanCompleted: false,
