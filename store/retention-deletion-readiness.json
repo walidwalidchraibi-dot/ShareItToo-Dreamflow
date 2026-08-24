@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "bb6c5a2570ea6b25006b552c21b63e8ada973f338cfb8add3110587b2108c7cb"
+      "sha256": "30579eecfd43d02e7cfaf58365244897d4e8437b23850e7344a73d57e01bab33"
     },
     {
       "path": "backend/src/rate_limit_policy.js",
@@ -652,6 +652,10 @@
       "sha256": "375eeec6dd03484c349129c39e86c95914bb431046977ecae0da99e0d4a59531"
     },
     {
+      "path": "lib/services/blue_ocean_draft_recovery_service.dart",
+      "sha256": "2c4585835bf70057899706d822e05eafed8f4323d6aad45bdc4c28f9ac51083c"
+    },
+    {
       "path": "lib/services/data_service.dart",
       "sha256": "0a8ba2e50a3d6f7bc4fbbaa87c39f0cdf18cd6f30a74e556267afd1d471d4ac1"
     },
@@ -693,7 +697,7 @@
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
-      "sha256": "3b73a0a8c3eaf4184383ed79cf16c2f86dcb2f0d41c520be77148effb96ebe8b"
+      "sha256": "0357f17a7af6f9191ce699881808c0b494385d78ff76191666dce39d3168d6c9"
     },
     {
       "path": "lib/screens/explore_screen.dart",
@@ -759,6 +763,16 @@
     },
     "categoryPurge": {
       "status": "not-implemented"
+    },
+    "localBlueOceanDraftRecovery": {
+      "status": "implemented-encrypted-bounded",
+      "retentionHours": 24,
+      "maximumEncodedBytes": 131072,
+      "ownerBound": true,
+      "clearedOnLogout": true,
+      "clearedOnPublication": true,
+      "rawImageBytesStored": false,
+      "credentialsStored": false
     },
     "retentionInventory": {
       "status": "read-only-counts-implemented-policy-open",

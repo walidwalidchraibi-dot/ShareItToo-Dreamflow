@@ -9,8 +9,12 @@ const source = readFileSync(
 const pickedThumb = source.match(
   /class _PickedThumb[\s\S]*?\n\}\n\n\/\/ ---------- Simple Accordion/u,
 )?.[0];
+const cameraPicker = source.match(
+  /Future<void> _pickFromCamera\(\)[\s\S]*?(?=\n  Future<void> _pickFromGallery\(\))/u,
+)?.[0];
 
 assert.ok(pickedThumb, 'expected the picked-photo thumbnail widget');
+assert.ok(cameraPicker, 'expected the camera picker method');
 
 test('picked-photo preview rechecks its context after asynchronous file access', () => {
   assert.match(
@@ -22,4 +26,20 @@ test('picked-photo preview rechecks its context after asynchronous file access',
 test('photo-preview lifecycle fix contains no timing or lint accommodation', () => {
   assert.doesNotMatch(pickedThumb, /ignore:\s*use_build_context_synchronously/u);
   assert.doesNotMatch(pickedThumb, /Future(?:<void>)?\.delayed|Timer\s*\(/u);
+});
+
+test('camera and gallery failures stay visible without silently switching sources', () => {
+  assert.match(
+    source,
+    /Future<void> _pickFromCamera\(\)[\s\S]*catch \(_\)[\s\S]*_photoAccessError =\s*'Die Kamera ist nicht verfügbar/u,
+  );
+  assert.match(
+    source,
+    /Future<void> _pickFromGallery\(\)[\s\S]*catch \(_\)[\s\S]*_photoAccessError =\s*'Auf Fotos kann gerade nicht zugegriffen werden/u,
+  );
+  assert.match(
+    source,
+    /if \(_photoAccessError case final error\?\)[\s\S]*Semantics\(\s*liveRegion: true,\s*label: error,/u,
+  );
+  assert.doesNotMatch(cameraPicker, /_pickFromGallery\(\)/u);
 });

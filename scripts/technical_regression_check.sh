@@ -267,6 +267,8 @@ node tool/validate_r13_codex_auth_local_dev.mjs
 node --check tool/validate_r3_blue_ocean_pixel_flow.mjs
 node --test test/tool/validate_r3_blue_ocean_pixel_flow.test.mjs
 node tool/validate_r3_blue_ocean_pixel_flow.mjs
+node --check tool/diagnose_r4_android_lifecycle.mjs
+node --test test/tool/diagnose_r4_android_lifecycle.test.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -656,6 +658,7 @@ node --test test/tool/item_card_async_context_wiring.test.mjs
 node --test test/tool/listing_options_async_context_wiring.test.mjs
 node --test test/tool/profile_info_async_lifecycle_wiring.test.mjs
 node --test test/tool/create_listing_photo_async_lifecycle_wiring.test.mjs
+node --test test/tool/blue_ocean_draft_recovery_wiring.test.mjs
 node --test test/tool/public_profile_async_context_wiring.test.mjs
 node --test test/tool/request_detail_async_context_wiring.test.mjs
 node --test test/tool/bookings_async_context_wiring.test.mjs

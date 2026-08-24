@@ -3171,6 +3171,34 @@ export function createApp({
       ownerId: req.auth.userId,
     });
     if (!stored.revision) throw new HttpError(409, 'blue_ocean_draft_has_no_revision');
+    if (stored.row.status === 'published') {
+      const replay = await pool.query(
+        `SELECT listing.payload, receipt.revision_payload_sha256
+           FROM listings AS listing
+           JOIN listing_ai_publication_receipts AS receipt
+             ON receipt.listing_id = listing.id
+          WHERE receipt.draft_id = $1
+            AND receipt.owner_id = $2
+            AND listing.id = $3
+            AND listing.owner_id = $2`,
+        [draftId, req.auth.userId, stored.row.published_listing_id],
+      );
+      if (!replay.rowCount) {
+        throw new HttpError(500, 'blue_ocean_publication_receipt_missing');
+      }
+      res.set('Cache-Control', 'private, no-store').status(200).json({
+        listing: replay.rows[0].payload,
+        assistant: {
+          draftId,
+          status: 'published',
+          replayed: true,
+          explicitOwnerActionVerified: true,
+          revisionPayloadSha256: replay.rows[0].revision_payload_sha256,
+          autoPublishAllowed: false,
+        },
+      });
+      return;
+    }
     const review = reviewBlueOceanListingDraft({
       previousRevision: stored.revision,
       generationKey: req.body?.review?.generationKey,

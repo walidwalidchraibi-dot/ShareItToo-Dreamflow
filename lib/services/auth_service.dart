@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'backend_config.dart';
 import 'backend_http.dart';
 import 'backend_realtime_service.dart';
+import 'blue_ocean_draft_recovery_service.dart';
 import 'firebase_runtime.dart';
 
 /// Authentication facade.
@@ -132,6 +133,12 @@ class AuthService {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_sessionKey);
+      try {
+        await BlueOceanDraftRecoveryService().clear();
+      } catch (_) {
+        // Draft recovery is account-bound and best-effort cleanup must not
+        // prevent the authoritative local session removal.
+      }
       await runBestEffortLogoutCleanup(
         remoteLogout: () async {
           if (BackendConfig.enabled &&

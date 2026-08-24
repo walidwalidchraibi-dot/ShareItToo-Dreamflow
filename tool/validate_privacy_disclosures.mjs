@@ -209,6 +209,7 @@ const sourcePaths = [
   'lib/screens/ongoing_owner_detail_screen.dart',
   'lib/screens/platform_withdrawal_screen.dart',
   'lib/services/account_deletion_service.dart',
+  'lib/services/blue_ocean_draft_recovery_service.dart',
   'lib/services/auth_service.dart',
   'lib/screens/notification_settings_screen.dart',
   'lib/screens/contact_data_screen.dart',

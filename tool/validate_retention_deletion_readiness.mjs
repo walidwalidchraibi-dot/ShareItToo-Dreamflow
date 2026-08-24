@@ -168,6 +168,7 @@ const sourcePaths = [
   'lib/screens/app_link_destination_screen.dart',
   'android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt',
   'lib/services/account_deletion_service.dart',
+  'lib/services/blue_ocean_draft_recovery_service.dart',
   'lib/services/data_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
@@ -472,6 +473,23 @@ function assertSourceContracts(root, sourceTexts) {
     'pseudonymous_notification_delivery_audit',
   ]) {
     if (!app.includes(marker)) fail(`Account erasure is missing the residual-data control: ${marker}.`);
+  }
+  const localDraftRecovery = text(
+    root,
+    sourceTexts,
+    'lib/services/blue_ocean_draft_recovery_service.dart',
+  );
+  for (const marker of [
+    'package:flutter_secure_storage/flutter_secure_storage.dart',
+    'retention = Duration(hours: 24)',
+    '_maximumEncodedBytes = 128 * 1024',
+    "candidate.startsWith('data:')",
+    "payload['ownerId'] != normalizedOwnerId",
+    'age.isNegative || age > retention',
+  ]) {
+    if (!localDraftRecovery.includes(marker)) {
+      fail(`Local Blue-Ocean draft recovery is missing the retention control: ${marker}.`);
+    }
   }
   const rentalCartRetention = text(root, sourceTexts, 'backend/src/retention_inventory.js');
   for (const dataset of [
@@ -1749,6 +1767,14 @@ export function validateRetentionDeletionReadiness({
       || controls.retentionInventory?.eligibleRowsCalculated !== false
       || controls.retentionInventory?.executionEnabled !== false
       || controls.retentionInventory?.technicalEvidenceRef !== retentionInventoryEvidencePath
+      || controls.localBlueOceanDraftRecovery?.status !== 'implemented-encrypted-bounded'
+      || controls.localBlueOceanDraftRecovery?.retentionHours !== 24
+      || controls.localBlueOceanDraftRecovery?.maximumEncodedBytes !== 131072
+      || controls.localBlueOceanDraftRecovery?.ownerBound !== true
+      || controls.localBlueOceanDraftRecovery?.clearedOnLogout !== true
+      || controls.localBlueOceanDraftRecovery?.clearedOnPublication !== true
+      || controls.localBlueOceanDraftRecovery?.rawImageBytesStored !== false
+      || controls.localBlueOceanDraftRecovery?.credentialsStored !== false
       || controls.retentionExecutionPreflight?.status
         !== 'implemented-fail-closed-policy-and-staging-gates-open'
       || controls.retentionExecutionPreflight?.executionAllowed !== false

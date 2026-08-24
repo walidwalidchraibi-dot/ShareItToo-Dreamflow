@@ -15,6 +15,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/backend_http.dart';
+import 'package:lendify/services/blue_ocean_draft_recovery_service.dart';
 import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/navigation/main_navigation.dart';
@@ -37,7 +38,8 @@ class CreateListingScreen extends StatefulWidget {
   State<CreateListingScreen> createState() => _CreateListingScreenState();
 }
 
-class _CreateListingScreenState extends State<CreateListingScreen> {
+class _CreateListingScreenState extends State<CreateListingScreen>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
 
   // Basic fields
@@ -60,6 +62,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // Photos
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _pickedImages = [];
+  String? _photoAccessError;
   // For edit mode: keep previously saved photos (non-removable for now)
   List<String> _existingPhotos = [];
 
@@ -118,6 +121,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final FocusNode _blueOceanErrorFocus = FocusNode();
   bool _blueOceanConsentAccepted = false;
   bool _blueOceanBusy = false;
+  bool _submitBusy = false;
   String _blueOceanProgress = '';
   String? _blueOceanError;
   String? _blueOceanDraftId;
@@ -140,12 +144,33 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     'pickup_region': false,
     'final_publication': false,
   };
+  final BlueOceanDraftRecoveryService _blueOceanDraftRecovery =
+      BlueOceanDraftRecoveryService();
+  Timer? _blueOceanRecoveryDebounce;
+  String? _currentOwnerId;
   // Force-refresh discount rows when switching strategy so focused inputs also update
   int _strategyEpoch = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    for (final controller in <TextEditingController>[
+      _titleCtrl,
+      _descCtrl,
+      _priceCtrl,
+      _blueOceanBrandCtrl,
+      _blueOceanModelCtrl,
+      _blueOceanAccessoriesCtrl,
+      _blueOceanProjectTagsCtrl,
+      _blueOceanUseCasesCtrl,
+      _blueOceanSafetyCtrl,
+      _blueOceanReplacementValueCtrl,
+      _blueOceanPickupRegionCtrl,
+      _addressCtrl,
+    ]) {
+      controller.addListener(_scheduleBlueOceanRecoverySave);
+    }
     _load();
     // Prefill when editing
     final ex = widget.existing;
@@ -205,6 +230,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   Future<void> _load() async {
     final cats = await DataService.getCategories();
     final user = await DataService.getCurrentUser();
+    if (!mounted) return;
     // Build coarse/top-level groups in fixed order, limited to those present
     final present = <String>{
       for (final c in cats) DataService.coarseCategoryFor(c.name)
@@ -220,6 +246,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       (byCoarse[g] ??= <Category>[]).add(c);
     }
     setState(() {
+      _currentOwnerId = user?.id;
       _categories = cats;
       final existingCategory =
           widget.existing?.categoryId ?? widget.supplyPrefill?.categoryId;
@@ -251,10 +278,16 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           user?.city ??
           DataService.getCities().keys.first;
     });
+    if (!_isEdit && user != null) {
+      await _restoreBlueOceanRecoverySnapshot(user.id);
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _blueOceanRecoveryDebounce?.cancel();
+    unawaited(_persistBlueOceanRecoverySnapshot());
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _priceCtrl.dispose();
@@ -271,6 +304,17 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     _debounce?.cancel();
     _priceRecalcDebounce?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      _blueOceanRecoveryDebounce?.cancel();
+      unawaited(_persistBlueOceanRecoverySnapshot());
+    }
   }
 
   static const String _blueOceanDisclosureVersion =
@@ -296,6 +340,234 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           '$action:${_newBlueOceanUuid()}:${DateTime.now().toUtc().toIso8601String()}'))
       .toString();
 
+  Map<String, dynamic> _blueOceanRecoveryEditableFields() =>
+      <String, dynamic>{
+        'title': _titleCtrl.text,
+        'description': _descCtrl.text,
+        'categoryId': _categoryId,
+        'subcategory': _subcategory,
+        'brand': _blueOceanBrandCtrl.text,
+        'model': _blueOceanModelCtrl.text,
+        'accessories': _blueOceanAccessoriesCtrl.text,
+        'projectTags': _blueOceanProjectTagsCtrl.text,
+        'useCases': _blueOceanUseCasesCtrl.text,
+        'safetyNotes': _blueOceanSafetyCtrl.text,
+        'replacementValue': _blueOceanReplacementValueCtrl.text,
+        'replacementBand': _blueOceanReplacementBand,
+        'pickupRegion': _blueOceanPickupRegionCtrl.text,
+        'address': _addressCtrl.text,
+        'registeredCity': _registeredCity,
+        'latitude': _selectedAddrLat,
+        'longitude': _selectedAddrLng,
+        'ownerDailyPrice': _priceCtrl.text,
+        'condition': _condition,
+        'durationPricingEnabled': _autoApplyDiscounts,
+        'durationPricing': <Map<String, dynamic>>[
+          <String, dynamic>{'days': _tier1Days, 'percent': _tier1Pct},
+          <String, dynamic>{'days': _tier2Days, 'percent': _tier2Pct},
+          <String, dynamic>{'days': _tier3Days, 'percent': _tier3Pct},
+        ],
+        'privateStatusConfirmed': _privateStatusConfirmed,
+      };
+
+  BlueOceanDraftRecoverySnapshot? _blueOceanRecoverySnapshot() {
+    final ownerId = _currentOwnerId;
+    final draftId = _blueOceanDraftId;
+    final assistant = _blueOceanAssistant;
+    if (ownerId == null ||
+        draftId == null ||
+        assistant == null ||
+        _blueOceanPhotoUrls.isEmpty ||
+        _blueOceanPhotoUrls.any(
+          (url) => !BackendConfig.isManagedListingImageUrl(url),
+        )) {
+      return null;
+    }
+    return BlueOceanDraftRecoverySnapshot(
+      ownerId: ownerId,
+      draftId: draftId,
+      savedAtUtc: DateTime.now().toUtc(),
+      assistant: Map<String, dynamic>.from(assistant),
+      managedPhotoUrls: List<String>.from(_blueOceanPhotoUrls),
+      editableFields: _blueOceanRecoveryEditableFields(),
+    );
+  }
+
+  Future<void> _persistBlueOceanRecoverySnapshot() async {
+    final snapshot = _blueOceanRecoverySnapshot();
+    if (snapshot == null) return;
+    try {
+      await _blueOceanDraftRecovery.save(snapshot);
+    } catch (_) {
+      debugPrint(
+        '[CreateListingScreen] Blue-Ocean recovery snapshot was not saved.',
+      );
+    }
+  }
+
+  Future<void> _clearBlueOceanRecoverySnapshot() async {
+    try {
+      await _blueOceanDraftRecovery.clear();
+    } catch (_) {
+      debugPrint(
+        '[CreateListingScreen] Blue-Ocean recovery snapshot was not cleared.',
+      );
+    }
+  }
+
+  void _scheduleBlueOceanRecoverySave() {
+    if (_blueOceanDraftId == null) return;
+    _blueOceanRecoveryDebounce?.cancel();
+    _blueOceanRecoveryDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () => unawaited(_persistBlueOceanRecoverySnapshot()),
+    );
+  }
+
+  void _restoreTextField(
+    Map<String, dynamic> fields,
+    String key,
+    TextEditingController controller, {
+    int maximumLength = 4000,
+  }) {
+    final value = fields[key];
+    if (value is String && value.length <= maximumLength) {
+      controller.text = value;
+    }
+  }
+
+  void _applyBlueOceanRecoveryEditableFields(Map<String, dynamic> fields) {
+    _restoreTextField(fields, 'title', _titleCtrl, maximumLength: 200);
+    _restoreTextField(fields, 'description', _descCtrl);
+    _restoreTextField(fields, 'brand', _blueOceanBrandCtrl,
+        maximumLength: 200);
+    _restoreTextField(fields, 'model', _blueOceanModelCtrl,
+        maximumLength: 200);
+    _restoreTextField(fields, 'accessories', _blueOceanAccessoriesCtrl);
+    _restoreTextField(fields, 'projectTags', _blueOceanProjectTagsCtrl);
+    _restoreTextField(fields, 'useCases', _blueOceanUseCasesCtrl);
+    _restoreTextField(fields, 'safetyNotes', _blueOceanSafetyCtrl);
+    _restoreTextField(
+        fields, 'replacementValue', _blueOceanReplacementValueCtrl,
+        maximumLength: 32);
+    _restoreTextField(fields, 'pickupRegion', _blueOceanPickupRegionCtrl,
+        maximumLength: 240);
+    _restoreTextField(fields, 'address', _addressCtrl, maximumLength: 500);
+    _restoreTextField(fields, 'ownerDailyPrice', _priceCtrl,
+        maximumLength: 32);
+
+    final categoryId = fields['categoryId'];
+    final subcategory = fields['subcategory'];
+    if (categoryId is String &&
+        subcategory is String &&
+        _categories.any((entry) => entry.id == categoryId) &&
+        PrivatePilotConfig.subcategoryAllowed(categoryId, subcategory)) {
+      _categoryId = categoryId;
+      _subcategory = subcategory;
+    }
+    final condition = fields['condition'];
+    if (condition is String &&
+        const <String>{'new', 'like-new', 'good', 'acceptable', 'worn'}
+            .contains(condition)) {
+      _condition = condition;
+    }
+    final replacementBand = fields['replacementBand'];
+    if (replacementBand is String &&
+        const <String>{
+          'under_100',
+          'eur_100_250',
+          'eur_250_500',
+          'eur_500_1000',
+          'over_1000',
+        }.contains(replacementBand)) {
+      _blueOceanReplacementBand = replacementBand;
+    }
+    final registeredCity = fields['registeredCity'];
+    if (registeredCity is String &&
+        DataService.getCities().containsKey(registeredCity)) {
+      _registeredCity = registeredCity;
+    }
+    final latitude = fields['latitude'];
+    final longitude = fields['longitude'];
+    if (latitude is num &&
+        longitude is num &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180) {
+      _selectedAddrLat = latitude.toDouble();
+      _selectedAddrLng = longitude.toDouble();
+    }
+    _autoApplyDiscounts = fields['durationPricingEnabled'] == true;
+    final durationPricing = fields['durationPricing'];
+    if (durationPricing is List && durationPricing.length == 3) {
+      final days = <int>[];
+      final percentages = <double>[];
+      for (final entry in durationPricing) {
+        if (entry is! Map ||
+            entry['days'] is! int ||
+            entry['percent'] is! num) {
+          return;
+        }
+        final day = entry['days'] as int;
+        final percentage = (entry['percent'] as num).toDouble();
+        if (day < 2 || day > 365 || percentage < 0 || percentage > 95) {
+          return;
+        }
+        days.add(day);
+        percentages.add(percentage);
+      }
+      _tier1Days = days[0];
+      _tier2Days = days[1];
+      _tier3Days = days[2];
+      _tier1Pct = percentages[0];
+      _tier2Pct = percentages[1];
+      _tier3Pct = percentages[2];
+    }
+    _privateStatusConfirmed = fields['privateStatusConfirmed'] == true;
+  }
+
+  Future<void> _restoreBlueOceanRecoverySnapshot(String ownerId) async {
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return;
+    try {
+      final snapshot = await _blueOceanDraftRecovery.readForOwner(ownerId);
+      if (!mounted || snapshot == null) return;
+      final revision = snapshot.assistant['revision'];
+      final revisionDraftId = revision is Map ? revision['draftId'] : null;
+      if (revisionDraftId != snapshot.draftId ||
+          snapshot.managedPhotoUrls.any(
+            (url) => !BackendConfig.isManagedListingImageUrl(url),
+          )) {
+        await _clearBlueOceanRecoverySnapshot();
+        return;
+      }
+      setState(() {
+        _blueOceanDraftId = snapshot.draftId;
+        _blueOceanAssistant = snapshot.assistant;
+        _blueOceanPhotoUrls = snapshot.managedPhotoUrls;
+        _applyBlueOceanDraft(snapshot.assistant);
+        _applyBlueOceanRecoveryEditableFields(snapshot.editableFields);
+        _blueOceanConsentAccepted = false;
+        _blueOceanAnsweredQuestions.clear();
+        _blueOceanReplacementBandConfirmed = false;
+        for (final key in _blueOceanConfirmations.keys) {
+          _blueOceanConfirmations[key] = false;
+        }
+        _blueOceanReadyFingerprint = null;
+        _blueOceanProgress =
+            'Der unterbrochene Entwurf wurde lokal wiederhergestellt. Prüfe '
+            'Rückfragen, Bestätigungen, Preis und Vorschau erneut.';
+        _blueOceanError = null;
+      });
+    } catch (_) {
+      if (mounted) {
+        debugPrint(
+          '[CreateListingScreen] Blue-Ocean recovery snapshot was not restored.',
+        );
+      }
+    }
+  }
+
   void _clearBlueOceanDraftForPhotoChange() {
     if (_blueOceanDraftId == null && _blueOceanPhotoUrls.isEmpty) return;
     _blueOceanDraftId = null;
@@ -310,6 +582,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     for (final key in _blueOceanConfirmations.keys) {
       _blueOceanConfirmations[key] = false;
     }
+    _blueOceanRecoveryDebounce?.cancel();
+    unawaited(_clearBlueOceanRecoverySnapshot());
   }
 
   void _invalidateBlueOceanReviewState({
@@ -327,6 +601,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     if (resetReplacementBand) {
       _blueOceanReplacementBandConfirmed = false;
     }
+    _scheduleBlueOceanRecoverySave();
   }
 
   String _blueOceanEditableFingerprint() {
@@ -518,6 +793,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           _blueOceanProgress = 'Manueller Editor geöffnet.';
         }
       });
+      if (_blueOceanDraftId != null) {
+        unawaited(_persistBlueOceanRecoverySnapshot());
+      }
       if (_blueOceanError != null) _focusBlueOceanMessage();
     } on BackendException catch (error) {
       if (!mounted) return;
@@ -641,6 +919,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           _blueOceanReadyFingerprint = _blueOceanEditableFingerprint();
         }
       });
+      unawaited(_persistBlueOceanRecoverySnapshot());
     } on BackendException catch (error) {
       if (!mounted) return;
       setState(() => _blueOceanError =
@@ -665,41 +944,53 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       );
       if (file != null) {
         setState(() {
+          _photoAccessError = null;
           _clearBlueOceanDraftForPhotoChange();
           _pickedImages.add(file);
         });
       }
-    } catch (e) {
-      // Keep experience consistent: avoid auto-switching to gallery on Web.
-      // Some browsers will still show a file dialog even for ImageSource.camera.
-      debugPrint('Camera pick failed or blocked: $e');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _photoAccessError =
+          'Die Kamera ist nicht verfügbar oder der Zugriff wurde abgelehnt. '
+          'Du kannst den Zugriff in den Geräteeinstellungen erlauben oder '
+          'ein vorhandenes Foto auswählen.');
     }
   }
 
   Future<void> _pickFromGallery() async {
-    if (kIsWeb) {
-      final res = await FilePicker.pickFiles(
-        allowMultiple: true,
-        withData: true,
-        type: FileType.image,
-      );
-      if (res != null && res.files.isNotEmpty) {
+    try {
+      if (kIsWeb) {
+        final res = await FilePicker.pickFiles(
+          allowMultiple: true,
+          withData: true,
+          type: FileType.image,
+        );
+        if (res != null && res.files.isNotEmpty) {
+          setState(() {
+            _photoAccessError = null;
+            _clearBlueOceanDraftForPhotoChange();
+            _pickedImages.addAll(res.files
+                .where((f) => f.bytes != null)
+                .map((f) => XFile.fromData(f.bytes!, name: f.name)));
+          });
+        }
+        return;
+      }
+      final List<XFile> files =
+          await _picker.pickMultiImage(imageQuality: 85, maxWidth: 1600);
+      if (files.isNotEmpty) {
         setState(() {
+          _photoAccessError = null;
           _clearBlueOceanDraftForPhotoChange();
-          _pickedImages.addAll(res.files
-              .where((f) => f.bytes != null)
-              .map((f) => XFile.fromData(f.bytes!, name: f.name)));
+          _pickedImages.addAll(files);
         });
       }
-      return;
-    }
-    final List<XFile> files =
-        await _picker.pickMultiImage(imageQuality: 85, maxWidth: 1600);
-    if (files.isNotEmpty) {
-      setState(() {
-        _clearBlueOceanDraftForPhotoChange();
-        _pickedImages.addAll(files);
-      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _photoAccessError =
+          'Auf Fotos kann gerade nicht zugegriffen werden. Prüfe die '
+          'Foto-Berechtigung in den Geräteeinstellungen und versuche es erneut.');
     }
   }
 
@@ -815,6 +1106,16 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   }
 
   Future<void> _submit({bool forceInactive = false}) async {
+    if (_submitBusy) return;
+    setState(() => _submitBusy = true);
+    try {
+      await _performSubmit(forceInactive: forceInactive);
+    } finally {
+      if (mounted) setState(() => _submitBusy = false);
+    }
+  }
+
+  Future<void> _performSubmit({bool forceInactive = false}) async {
     if (!_formKey.currentState!.validate()) {
       if (mounted) {
         await AppPopup.show(
@@ -922,7 +1223,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         : List<String>.from(_existingPhotos);
     if (!forceInactive &&
         acceptedExistingPhotos.isEmpty &&
-        _pickedImages.isEmpty) {
+        _pickedImages.isEmpty &&
+        _blueOceanPhotoUrls.isEmpty) {
       if (!mounted) return;
       await AppPopup.show(
         context,
@@ -966,7 +1268,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     // existing local data-URL behavior for deterministic offline fixtures.
     final List<String> photos = List<String>.from(acceptedExistingPhotos);
     if (blueOceanPublication && productionBackend) {
-      if (_blueOceanPhotoUrls.length != _pickedImages.length) {
+      if (_pickedImages.isNotEmpty &&
+          _blueOceanPhotoUrls.length != _pickedImages.length) {
         if (!mounted) return;
         setState(() => _blueOceanError =
             'Die Fotoauswahl stimmt nicht mehr mit dem geprüften Entwurf '
@@ -1065,6 +1368,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         _focusBlueOceanMessage();
         return;
       }
+      if (!mounted) return;
+      await _clearBlueOceanRecoverySnapshot();
       if (!mounted) return;
       DataService.setLastCreateEvent(saved, draft: forceInactive);
       Navigator.of(context).pushAndRemoveUntil(
@@ -2131,8 +2436,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Builder(builder: (context) {
+                            final restoredBlueOceanPhotos =
+                                _blueOceanDraftId != null &&
+                                        _pickedImages.isEmpty
+                                    ? _blueOceanPhotoUrls
+                                    : const <String>[];
                             final hasAnyPhotos = _existingPhotos.isNotEmpty ||
-                                _pickedImages.isNotEmpty;
+                                _pickedImages.isNotEmpty ||
+                                restoredBlueOceanPhotos.isNotEmpty;
                             if (!hasAnyPhotos) {
                               // Center the + photo button horizontally (and give the card some height) when there are no images yet
                               return SizedBox(
@@ -2160,6 +2471,18 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                           child: AppImage(
                                               url: url, fit: BoxFit.cover)),
                                     ),
+                                for (final url in restoredBlueOceanPhotos)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: SizedBox(
+                                      width: 84,
+                                      height: 84,
+                                      child: AppImage(
+                                        url: url,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
                                 for (int i = 0; i < _pickedImages.length; i++)
                                   _PickedThumb(
                                       file: _pickedImages[i],
@@ -2181,6 +2504,36 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                       : AppTheme.textSecondary(context),
                                   fontSize: 13,
                                   height: 1.35)),
+                          if (_photoAccessError case final error?) ...[
+                            const SizedBox(height: 8),
+                            Semantics(
+                              liveRegion: true,
+                              label: error,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      size: 18,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .error),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      error,
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error,
+                                        fontSize: 13,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           _Accordion(
                             title: '💬 Tipp',
@@ -2758,9 +3111,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 8),
                 CheckboxListTile(
                   value: _privateStatusConfirmed,
-                  onChanged: (value) => setState(
-                    () => _privateStatusConfirmed = value ?? false,
-                  ),
+                  onChanged: (value) => setState(() {
+                    _privateStatusConfirmed = value ?? false;
+                    _scheduleBlueOceanRecoverySave();
+                  }),
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                   title: const Text(
@@ -2781,7 +3135,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       FilledButton.icon(
-                        onPressed: () => _submit(),
+                        onPressed:
+                            _submitBusy || _blueOceanBusy ? null : _submit,
                         icon: const Icon(Icons.add_business),
                         label: const Text('Anzeige veröffentlichen'),
                         style: FilledButton.styleFrom(
@@ -2793,7 +3148,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
-                        onPressed: () => _submit(forceInactive: true),
+                        onPressed: _submitBusy || _blueOceanBusy
+                            ? null
+                            : () => _submit(forceInactive: true),
                         icon: const Icon(Icons.save_outlined),
                         label: Text(_isEdit
                             ? 'Bearbeitung speichern'
