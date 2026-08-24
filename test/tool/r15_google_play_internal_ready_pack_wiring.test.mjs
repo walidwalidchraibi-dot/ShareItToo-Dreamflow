@@ -19,7 +19,7 @@ test('R15 release builder carries Blue Ocean only into the Internal Staging lane
   assert.match(builder, /SIT_BLUE_OCEAN_LISTING_ASSISTANT/u);
   assert.match(builder, /--dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=\$blue_ocean_listing_assistant/u);
   assert.match(builder, /\$CHANNEL" != "internal"/u);
-  assert.match(builder, /https:\/\/staging\.shareittoo\.com\/api\/v1/u);
+  assert.ok(builder.includes('https://staging.shareittoo.com/api/v1'));
   assert.match(builder, /SIT_REQUIRE_STORE_SUBMISSION/u);
 });
 
