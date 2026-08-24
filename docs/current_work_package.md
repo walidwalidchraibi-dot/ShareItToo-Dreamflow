@@ -147,6 +147,29 @@ The visible GitGuardian failure remains the documented pre-existing 250-commit
 PR-history finding and no credential detail was inspected. R6 is closed and R7
 begins.
 
+### R7 image privacy and AI contract hardening
+
+R7 has a retained 26-case synthetic adversarial matrix at implementation head
+`e5010d51507a74bd339cceb3d15c33ed72179dc7`. A red-first test proved that the
+gateway still accepted plausible assertions of certification, full
+functionality, ownership and market price. The new versioned R7 unsupported-
+claim policy rejects all four classes. Malformed output, schema drift, overlong
+strings, prohibited categories, attempted publication and attempted Price
+Engine override also fail to the non-authoritative manual fallback.
+
+The existing derivative pipeline is now explicitly exercised for EXIF/GPS
+removal, opaque WebP names, resize/compression, success/failure cleanup and
+sanitized audit. All sensitive visual classes retain block/review behavior; QR
+and prompt-like OCR remains untrusted data with zero tools or write authority.
+The 12 gateway and 10 image-pipeline tests plus historical N3/N4 validators are
+green. These are synthetic consumer-contract tests, not validation of a real
+OCR/QR/vision detector. No external provider or billed model was called. Six R7
+artifact-validator tests and the validator pass. The complete local technical
+regression is green with the 746-test Backend suite, fresh PostgreSQL,
+analyzer-zero, 392 Flutter passes plus one documented skip, Web/Wasm, loopback
+smoke and the 448-task Android debug build. Exact GitHub Regression and CodeQL
+checks remain to be completed before R8.
+
 ### R13 local Codex authentication clarification
 
 Official Codex documentation plus the actual local `codex login status`
