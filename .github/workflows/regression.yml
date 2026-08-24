@@ -142,6 +142,9 @@ jobs:
       - name: Run repository-owned PostgreSQL 16 fresh-cluster proof
         run: pnpm run test:postgres:local
 
+      - name: Run repository-owned PostgreSQL 16 R9 recovery proof
+        run: node ../tool/run_r9_database_recovery.mjs
+
   flutter-regression:
     runs-on: ubuntu-latest
     steps:

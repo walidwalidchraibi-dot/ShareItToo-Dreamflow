@@ -36,6 +36,14 @@ test('CI executes the repository-owned runner on a PostgreSQL-16 host', () => {
     proof.match(/pnpm run test:postgres:local/gu)?.length,
     1,
   );
+  assert.match(
+    proof,
+    /name: Run repository-owned PostgreSQL 16 R9 recovery proof\n\s+run: node \.\.\/tool\/run_r9_database_recovery\.mjs/u,
+  );
+  assert.equal(
+    proof.match(/node \.\.\/tool\/run_r9_database_recovery\.mjs/gu)?.length,
+    1,
+  );
 });
 
 test('fresh-cluster CI supplies no database or lifecycle workaround', () => {
@@ -49,6 +57,10 @@ test('fresh-cluster CI supplies no database or lifecycle workaround', () => {
   assert.match(runner, /findAvailableLoopbackPort\(\)/u);
   assert.match(runner, /-c unix_socket_directories=/u);
   assert.match(runner, /await cleanupRunRoot\(runRoot, resolvedTemporaryBase\)/u);
+  assert.match(
+    proof,
+    /Run repository-owned PostgreSQL 16 R9 recovery proof/u,
+  );
 });
 
 test('publication and the complete local gate retain the runner proof', () => {
