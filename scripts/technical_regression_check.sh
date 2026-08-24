@@ -264,6 +264,9 @@ node --test test/tool/codex_local_dev.test.mjs
 node --check tool/validate_r13_codex_auth_local_dev.mjs
 node --test test/tool/validate_r13_codex_auth_local_dev.test.mjs
 node tool/validate_r13_codex_auth_local_dev.mjs
+node --check tool/validate_r3_blue_ocean_pixel_flow.mjs
+node --test test/tool/validate_r3_blue_ocean_pixel_flow.test.mjs
+node tool/validate_r3_blue_ocean_pixel_flow.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

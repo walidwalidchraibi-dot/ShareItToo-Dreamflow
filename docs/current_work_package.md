@@ -1,8 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1 and R2 complete;
-R3 active and R13 local Codex evaluation verified; non-live and fail-closed** on
-24.08.2026.
+Status: **R0/P0 security contradiction verified closed; R1, R2 and R3
+complete; R13 local Codex evaluation verified; PF0 Pilot Freeze next; non-live
+and fail-closed** on 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -67,8 +67,27 @@ R2 installed and independently verified canonical local QA build
 `1.0.0+2026082303` as an in-place update over `1.0.0+2026082302`. Signature,
 first-install identity and nonzero app-data identity were preserved; the app
 launch is now checked deterministically with Android `am start -W`. Evidence is
-closed at commit `e751279`. R3 continues against a loopback-only ephemeral
+closed at commit `e751279`. R3 subsequently used a loopback-only ephemeral
 PostgreSQL/backend harness with mock listing AI and zero-cent budget.
+
+### R3 Blue Ocean flow on the physical Pixel
+
+R3 completed the exact synthetic cordless-drill Listing-AI flow on Pixel 7 Pro
+with canonical local-QA build `1.0.0+2026082404`, bound to implementation commit
+`19fc3221bc3879788db9c48b70a89a33656116b6`. The loopback-only ephemeral
+PostgreSQL/backend harness used mock AI, a zero-cent budget and memory payments.
+The editable Cat8/Bohrmaschinen draft reached READY with exact 1-/7-day V5.2
+fee previews.
+
+A real-device edit after READY exposed and closed a stale-confirmation and
+stale-readiness presentation defect. Dependent confirmations and clarifications
+now invalidate, publication is fingerprint-bound to the exact reviewed state,
+and READY is hidden until that current state is freshly reviewed. The Pixel
+showed `NEEDS_REVIEW` after the deliberate model edit and READY only after fresh
+answers and confirmations. No listing or explicit publication action occurred;
+the session, fixture, database, uploads and ADB reverse were removed. The full
+technical regression then passed; GitHub regression and CodeQL are the
+remaining R3 closure checks before PF0.
 
 ### R13 local Codex authentication clarification
 
@@ -88,8 +107,8 @@ implementation/security commit `b504bbb3a5ab97dbf2b162b13061e35400fa640d`
 passed GitHub regression `32717658624`, CodeQL workflow `32717658646` and
 Advanced Security check `97402679227` with no new alerts. The unchanged
 GitGuardian 250-commit PR-history finding predates R13 and remains separately
-visible; no credential detail was inspected. R3 remains the next active 48H
-package.
+visible; no credential detail was inspected. R13 remains developer-only and
+does not alter the R3 or Pilot Freeze boundaries.
 
 ## Completed package history
 

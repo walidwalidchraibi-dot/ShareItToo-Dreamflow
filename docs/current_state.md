@@ -28,7 +28,17 @@ Verified: 2026-08-24 on the Mac mini.
 - R2 installed canonical-signed local QA build `1.0.0+2026082303` as an update
   over `1.0.0+2026082302` without uninstall, signature drift or app-data
   replacement. Independent verification passed at commit `e751279`; R3 is
-  active on a loopback-only, ephemeral, mock/zero-cent local test backend.
+  complete on a loopback-only, ephemeral, mock/zero-cent local test backend.
+- R3 verified canonical local-QA build `1.0.0+2026082404` on the physical Pixel
+  at implementation commit `19fc3221bc3879788db9c48b70a89a33656116b6`.
+  The synthetic Cat8/Bohrmaschinen flow reached READY, a deliberate model edit
+  reset dependent confirmations and visibly returned the card to NEEDS_REVIEW,
+  and a fresh review restored READY. Exact snapshot fingerprinting also blocks
+  stale publication. No listing was created or published; no external AI,
+  money, production, Store, cloud or public pilot path was used. Cleanup of the
+  transient session, device fixture, database, uploads and ADB reverse passed.
+  The full technical regression passed in candidate-rollover CI metadata mode;
+  GitHub regression and CodeQL are pending before PF0 Pilot Freeze begins.
 - The direct R13 clarification is classified
   `CODEX_AUTH_LOCAL_DEV_SUPPORTED`. `codex_local_dev` is implemented as a
   disabled-by-default, synthetic-fixture-only developer adapter. One real
