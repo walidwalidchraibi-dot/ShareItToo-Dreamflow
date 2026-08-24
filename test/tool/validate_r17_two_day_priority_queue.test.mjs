@@ -71,6 +71,9 @@ test('rejects an expanded human task surface', () => {
 
 test('rejects premature or malformed GitHub verification', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-full-regression-passed-ci-pending';
+  premature.focusedVerification.githubRegression = 'pending';
+  premature.focusedVerification.githubCodeql = 'pending';
   premature.githubVerification = {
     implementationCommit: '0'.repeat(40),
     regressionRunId: 1,

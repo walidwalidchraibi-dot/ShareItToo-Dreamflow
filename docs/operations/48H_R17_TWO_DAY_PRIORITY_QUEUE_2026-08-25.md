@@ -1,6 +1,6 @@
 # R17 two-day priority queue
 
-Status: **IMPLEMENTED LOCALLY — FULL REGRESSION PASSED — CI PENDING**
+Status: **VERIFIED — FULL REGRESSION PASSED — CODEQL PASSED — READY FOR FINAL DECISION**
 
 R17 starts from exact R16 closure head
 `dda99ed03660c509d3e713799b7001e4e6680b79` and works only the three findings
@@ -55,8 +55,10 @@ implementation commit. Never weaken the archive check to make an artifact pass.
 Focused legacy checkout, Stage-A profile and archive tests pass; the Stage-A
 profile is compiled with the exact non-binding dart define. R17 artifact tests,
 privacy/source hash validation and the full candidate-rollover regression pass
-in CI-metadata mode. Exact GitHub Regression and CodeQL verification remain
-pending and are bound in the machine evidence. No candidate was built, no Pixel
-or human data was changed and no live surface was accessed.
+in CI-metadata mode. Exact implementation commit
+`57a9616951510be353044a0d4d764e429e271d89` passed GitHub Regression
+`32784610782`, CodeQL workflow `32784610640` and Advanced Security check
+`97614261868`, with zero open PR code-scanning alerts. No candidate was built,
+no Pixel or human data was changed and no live surface was accessed.
 
 Next package after exact verification: `48H_REMOTE_READINESS_DECISION` only.

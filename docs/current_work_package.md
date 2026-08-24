@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R16 exact
-verified and R17 locally regression-green / CI pending;
+verified and R17 exact regression / CodeQL green;
 non-live and fail-closed** on
 25.08.2026.
 
@@ -460,8 +460,11 @@ accept/reject, Payment/Refund/Payout, handover/return/damage/`needsReview` and
 G3/G4/G5 are explicitly `not-run`; all existing release locks remain intact.
 No candidate, Console, tester, Payment, provider, Pixel, Production or merge
 action occurred. Focused verification and the complete candidate-rollover
-regression are green in CI-metadata mode. Exact GitHub Regression and CodeQL
-verification are next, followed only by `48H_REMOTE_READINESS_DECISION`.
+regression are green in CI-metadata mode. Exact implementation head
+`57a9616951510be353044a0d4d764e429e271d89` passed Regression
+`32784610782`, CodeQL workflow `32784610640` and Advanced Security check
+`97614261868`, with zero open PR code-scanning alerts. R17 is closed; only
+`48H_REMOTE_READINESS_DECISION` remains.
 
 ## Completed package history
 

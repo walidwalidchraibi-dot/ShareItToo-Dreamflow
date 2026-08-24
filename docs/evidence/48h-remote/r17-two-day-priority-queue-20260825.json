@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r17-two-day-priority-queue",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed-ready-for-final-decision",
   "implementationBaseHead": "dda99ed03660c509d3e713799b7001e4e6680b79",
   "predecessor": {
     "package": "R16",
@@ -72,8 +72,18 @@
     "r16SupersessionValidator": "passed",
     "privacyInventoryValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationCommit": "57a9616951510be353044a0d4d764e429e271d89",
+    "regressionRunId": 32784610782,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32784610640,
+    "codeqlConclusion": "success",
+    "advancedSecurityCheckId": 97614261868,
+    "advancedSecurityConclusion": "success",
+    "newAlerts": 0
   },
   "boundaries": {
     "credentialValueReadOrCopied": false,
