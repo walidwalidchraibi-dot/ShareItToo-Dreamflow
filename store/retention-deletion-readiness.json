@@ -237,7 +237,7 @@
     },
     {
       "path": "backend/src/push_sender.js",
-      "sha256": "326324be4aa203d2e3776e9704738f0457072c0c7cf34a9a6fef0c41d88f42d4"
+      "sha256": "eb00671b2f580436cdc46bd8bb196aa1e3f82a55da62c11df0f7bc123f126ecf"
     },
     {
       "path": "backend/src/transactional_mail_templates.js",
@@ -621,7 +621,7 @@
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
-      "sha256": "a168143258648d2cd0aa6ec4a80ac35dcc4faab69570a5bc8ccd47ce13ea48e9"
+      "sha256": "1db9181fae8dba42fbb7147e5e1001e8ef264be3f8c5e8098ddf173866df0d65"
     },
     {
       "path": "ios/Runner/Info.plist",

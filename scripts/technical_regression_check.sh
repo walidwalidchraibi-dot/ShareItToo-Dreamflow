@@ -305,6 +305,9 @@ node --test test/tool/validate_r10_clean_reproducibility.test.mjs
 node tool/validate_r10_clean_reproducibility.mjs
 node --check tool/audit_r11_android_security_surface.mjs
 node --test test/tool/audit_r11_android_security_surface.test.mjs
+node --check tool/validate_r11_android_security_surface.mjs
+node --test test/tool/validate_r11_android_security_surface.test.mjs
+node tool/validate_r11_android_security_surface.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

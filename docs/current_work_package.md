@@ -272,6 +272,25 @@ pre-existing 250-commit PR-history finding and no credential detail was
 inspected. `TD-R10-001` and `TD-R10-002` are closed; R10 is closed and R11
 begins.
 
+### R11 Android security and permission surface
+
+R11 now audits the actual merged debug APK rather than only the source
+manifest. The retained local artifact is bound to implementation head
+`9ec9c62c7ca806e16ab5beb354e4872b3f513e13` and exact application/version/SDK
+identity. Its 14 permissions, 40 components, eight exported components, seven
+Browsable routes, three non-exported URI-granting FileProviders, backup and
+network policy, package visibility and Firebase collection state are
+fail-closed and inventory-hash bound.
+
+The audit found and removed one globally named FCM click action. Manifest and
+Backend now use package-scoped
+`com.shareittoo.app.SIT_NOTIFICATION_CLICK`. The merged replacement artifact
+passes the audit. Backend activation remains false in debug; external AI, real
+payment, public G3/G4/G5 and Support evidence scanner/upload remain disabled.
+No APK was installed or published and no live boundary changed. Focused tests
+and the retained validator are green; exact GitHub Regression, CodeQL and
+Advanced Security verification remain pending before R11 closes and R12 begins.
+
 ### R13 local Codex authentication clarification
 
 Official Codex documentation plus the actual local `codex login status`
