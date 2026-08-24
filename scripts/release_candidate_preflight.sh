@@ -239,8 +239,12 @@ grep -Fq 'android:autoVerify="true"' android/app/src/main/AndroidManifest.xml ||
   fail "Android verified links are not enabled."
 grep -Fq 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml || \
   fail "Android application backup must be disabled."
-grep -Fq 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml || \
-  fail "Android cleartext traffic must be disabled."
+grep -Fq 'android:usesCleartextTraffic="${sitUsesCleartextTraffic}"' \
+  android/app/src/main/AndroidManifest.xml || \
+  fail "Android cleartext traffic must use the guarded manifest placeholder."
+grep -Fq 'manifestPlaceholders.sitUsesCleartextTraffic = "false"' \
+  android/app/build.gradle || \
+  fail "Android cleartext traffic must remain disabled by default."
 grep -Fq 'android:maxSdkVersion="32"' android/app/src/main/AndroidManifest.xml || \
   fail "Legacy Android read-storage permission must be capped at API 32."
 grep -Fq 'android:maxSdkVersion="28"' android/app/src/main/AndroidManifest.xml || \

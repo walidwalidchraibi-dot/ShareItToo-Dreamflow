@@ -15,6 +15,10 @@ const mainManifest = readFileSync(
   new URL('../../android/app/src/main/AndroidManifest.xml', import.meta.url),
   'utf8',
 );
+const preflight = readFileSync(
+  new URL('../../scripts/release_candidate_preflight.sh', import.meta.url),
+  'utf8',
+);
 
 test('R2 build is explicit, local-loopback-only and enables only technical QA surfaces', () => {
   for (const marker of [
@@ -47,4 +51,6 @@ test('canonical debug signing and cleartext are both explicit debug-only excepti
   );
   assert.doesNotMatch(debugManifest, /usesCleartextTraffic/u);
   assert.match(mainManifest, /android:usesCleartextTraffic="\$\{sitUsesCleartextTraffic\}"/u);
+  assert.match(preflight, /manifestPlaceholders\.sitUsesCleartextTraffic = "false"/u);
+  assert.match(preflight, /guarded manifest placeholder/u);
 });
