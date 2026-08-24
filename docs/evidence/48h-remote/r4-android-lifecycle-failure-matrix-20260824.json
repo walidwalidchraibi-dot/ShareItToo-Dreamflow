@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r4-android-lifecycle-failure-matrix",
-  "status": "verified-physical-and-focused-regression-pending",
+  "status": "verified-r4-full-regression-passed-ci-pending",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -240,7 +240,7 @@
     "flutterAnalyze": "passed-no-issues",
     "privacyDisclosureValidator": "passed-draft-fail-closed",
     "retentionValidator": "passed-draft-fail-closed",
-    "fullTechnicalRegression": "pending",
+    "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },

@@ -22,7 +22,7 @@ function validate(changed = evidence) {
 
 test('accepts all 28 bounded R4 lifecycle and failure cases', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-physical-and-focused-regression-pending',
+    status: 'verified-r4-full-regression-passed-ci-pending',
     cases: 28,
     physicalDevice: 'Pixel 7 Pro',
     fatalOrAnrEntries: 0,
@@ -82,7 +82,7 @@ test('rejects recovery of gates, raw bytes or automatic publication', () => {
 
 test('rejects premature CI claims, live changes and secret-shaped evidence', () => {
   const ci = structuredClone(evidence);
-  ci.status = 'verified-r4-full-regression-passed-ci-pending';
+  ci.status = 'verified-r4-regression-and-codeql-passed';
   assert.throws(() => validate(ci), /verification record/u);
 
   const live = structuredClone(evidence);

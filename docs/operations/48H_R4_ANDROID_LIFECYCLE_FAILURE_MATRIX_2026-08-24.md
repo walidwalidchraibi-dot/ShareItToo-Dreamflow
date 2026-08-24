@@ -1,6 +1,6 @@
 # 48H R4 Android lifecycle and failure matrix
 
-Status: **PHYSICAL AND FOCUSED REGRESSION VERIFIED — FULL REGRESSION PENDING**
+Status: **PHYSICAL AND FULL LOCAL REGRESSION VERIFIED — GITHUB CI PENDING**
 
 R4 covers all 28 lifecycle and failure cases named by the active 48-hour goal.
 The implementation is commit
@@ -70,9 +70,11 @@ the end.
 Focused verification is green: 109 R4 Node tests, 19 focused Flutter tests, 24
 quote/logout/offline Node tests, five logout-resilience Flutter tests, analyzer
 with no issues, both privacy/retention validators and the complete local
-PostgreSQL scenario. The full technical regression and exact-head GitHub
-Regression/CodeQL verification remain pending and are deliberately not claimed
-by the initial evidence state.
+PostgreSQL scenario. The full technical regression also passed in the bounded
+candidate-rollover CI metadata mode, including 391 Flutter tests with one
+documented skip, the Google-only profile test, Web/Wasm build, loopback smoke
+and the 448-task Android debug build. Exact-head GitHub Regression/CodeQL
+verification remains pending and is deliberately not claimed by this state.
 
 R4 made no production, cloud, Firebase, payment, Store, VPS, DNS, pilot,
 external-AI, API-billing, real-money, public-release or PR-merge change. No
