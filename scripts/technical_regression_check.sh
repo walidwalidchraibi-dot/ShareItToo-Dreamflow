@@ -303,6 +303,8 @@ node --test test/tool/r10_clean_reproducibility_ci_wiring.test.mjs
 node --check tool/validate_r10_clean_reproducibility.mjs
 node --test test/tool/validate_r10_clean_reproducibility.test.mjs
 node tool/validate_r10_clean_reproducibility.mjs
+node --check tool/audit_r11_android_security_surface.mjs
+node --test test/tool/audit_r11_android_security_surface.test.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -727,7 +729,7 @@ node tool/validate_walid_external_gate_action_pack.mjs
 node --test test/tool/release_host_capacity_guard_wiring.test.mjs
 
 analyze_log="$(mktemp)"
-trap 'rm -f "$analyze_log"' EXIT
+trap 'rm -f "$analyze_log" "${r11_audit_output:-}"' EXIT
 
 set +e
 flutter analyze 2>&1 | tee "$analyze_log"
@@ -842,5 +844,17 @@ if ! grep -Fq "sdkVersion:'24'" <<<"$android_debug_badging"; then
   exit 1
 fi
 echo "Android debug binary platform reach: PASS (minSdk 24)."
+
+r11_source_branch="${GITHUB_HEAD_REF:-$(git branch --show-current)}"
+if [[ -z "$r11_source_branch" ]]; then
+  r11_source_branch="detached-head"
+fi
+r11_audit_output="$(mktemp)"
+node tool/audit_r11_android_security_surface.mjs \
+  --apk "$android_debug_apk" \
+  --aapt "$android_aapt" \
+  --source-head "$(git rev-parse HEAD)" \
+  --source-branch "$r11_source_branch" \
+  --output "$r11_audit_output"
 
 release_host_capacity_end

@@ -35,7 +35,10 @@ test('FCM messages expose only the neutral V5.2 lock-screen contract', () => {
   assert.equal(message.android.priority, 'high');
   assert.equal(message.android.ttl, 60 * 60 * 1000);
   assert.equal(message.android.notification.icon, 'ic_stat_shareittoo_v2');
-  assert.equal(message.android.notification.clickAction, 'SIT_NOTIFICATION_CLICK');
+  assert.equal(
+    message.android.notification.clickAction,
+    'com.shareittoo.app.SIT_NOTIFICATION_CLICK',
+  );
   assert.equal(message.apns.headers['apns-priority'], '10');
   assert.equal(
     message.apns.headers['apns-expiration'],

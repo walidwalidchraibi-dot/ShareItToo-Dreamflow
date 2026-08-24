@@ -115,7 +115,7 @@ export function buildFcmMessageForTest(device, kind, { nowMs = Date.now() } = {}
       notification: {
         icon: 'ic_stat_shareittoo_v2',
         sound: 'default',
-        clickAction: 'SIT_NOTIFICATION_CLICK',
+        clickAction: 'com.shareittoo.app.SIT_NOTIFICATION_CLICK',
       },
     },
     apns: {
