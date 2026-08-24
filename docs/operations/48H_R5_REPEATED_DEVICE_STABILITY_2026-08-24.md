@@ -1,6 +1,6 @@
 # 48H R5 repeated device stability
 
-Status: **LOCAL REPEATED OBSERVATION AND FULL REGRESSION COMPLETE — CI PENDING**
+Status: **COMPLETE — PHYSICAL, REGRESSION AND CODEQL VERIFIED**
 
 R5 binds three different stability observations to implementation and device
 candidate commit `8e31b19f1205088036b4f3f9755dbdca33246ef1`. They must not be
@@ -67,8 +67,21 @@ Focused R5 harness checks, five Flutter recovery tests, both privacy/retention
 validators, the exact 25-run backend observation and exact 25-cycle Pixel
 observation are green. The complete technical regression also passed in
 candidate-rollover CI metadata mode, including Web/Wasm and the 448-task
-Android debug build. Exact GitHub Regression/CodeQL verification remains
-pending at this evidence stage.
+Android debug build.
+
+GitHub Regression run `32742156529` passed on exact head
+`cb3735ec66f1190aec14f86d3817c43bd91bdb60`. PostgreSQL job
+`97478929841`, Backend job `97478930152` and Flutter job `97478930292`
+all passed. The explicit parallel-stability step and signed release-candidate
+step were skipped. The backend API image was built inside CI, but publish job
+`97481368883` was skipped; no registry or runtime changed. CodeQL workflow
+`32742155112` and Advanced Security check `97479591110` passed, and the open
+code-scanning alert query returned zero alerts.
+
+The separate GitGuardian check `97478903904` remains failed for the already
+documented 250-commit PR-history finding present before R5. No credential detail
+was inspected, and that external historical check is not presented as green or
+silently classified as an R5 regression.
 
 R5 made no production, Cloud, Firebase, Payment, Store, VPS, DNS, pilot,
 external-AI, API-billing, real-money, public-release or PR-merge change. The

@@ -9,6 +9,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath =
   'docs/evidence/48h-remote/r5-repeated-device-stability-20260824.json';
 const implementationHead = '8e31b19f1205088036b4f3f9755dbdca33246ef1';
+const verifiedHead = 'cb3735ec66f1190aec14f86d3817c43bd91bdb60';
 
 function fail(message) {
   throw new Error(message);
@@ -185,20 +186,36 @@ export function validateR5RepeatedDeviceStability({
   if (githubPassed) {
     const github = value.githubVerification;
     if (github?.implementationHead !== implementationHead
-        || !/^[a-f0-9]{40}$/u.test(github.verifiedHead ?? '')
+        || github.verifiedHead !== verifiedHead
         || github.regression?.conclusion !== 'success'
-        || !Number.isSafeInteger(github.regression.runId)
+        || github.regression.runId !== 32742156529
+        || github.regression.postgresJobId !== 97478929841
         || github.regression.postgresConclusion !== 'success'
+        || github.regression.backendJobId !== 97478930152
         || github.regression.flutterConclusion !== 'success'
+        || github.regression.flutterJobId !== 97478930292
         || github.regression.backendConclusion !== 'success'
         || github.regression.parallelStabilityExecuted !== false
         || github.regression.signedCandidateBuilt !== false
+        || github.regression.apiImageBuilt !== true
         || github.regression.apiImagePublished !== false
+        || github.regression.publishApiImageJobId !== 97481368883
+        || github.regression.publishApiImageConclusion !== 'skipped'
         || github.codeql?.workflowConclusion !== 'success'
-        || !Number.isSafeInteger(github.codeql.workflowRunId)
+        || github.codeql.workflowRunId !== 32742155112
         || github.codeql.advancedSecurityConclusion !== 'success'
-        || !Number.isSafeInteger(github.codeql.advancedSecurityCheckId)
-        || github.codeql.newAlerts !== 0) {
+        || github.codeql.advancedSecurityCheckId !== 97479591110
+        || github.codeql.newAlerts !== 0
+        || !exact(github.preExistingExternalHistoryCheck, {
+          provider: 'GitGuardian',
+          documentedBaseCommit: 'e64defd0df62fb047c6fbc90733e4caf318ac7c4',
+          documentedBaseCheckId: 97395091283,
+          currentCheckId: 97478903904,
+          currentConclusion: 'failure',
+          reportedPullRequestCommitScope: 250,
+          credentialDetailsInspected: false,
+          classifiedAsR5Regression: false,
+        })) {
       fail('R5 GitHub verification is invalid.');
     }
   }

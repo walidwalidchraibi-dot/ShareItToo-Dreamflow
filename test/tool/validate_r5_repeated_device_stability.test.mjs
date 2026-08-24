@@ -19,7 +19,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact bounded R5 backend, Flutter and physical observations', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-r5-full-regression-passed-ci-pending',
+    status: 'verified-r5-regression-and-codeql-passed',
     backendRuns: 25,
     deviceCycles: 25,
     draftCycles: 25,
@@ -77,8 +77,14 @@ test('rejects performance, packet-capture or full-device-flow overclaims', () =>
 
 test('rejects premature GitHub claims and live changes', () => {
   const github = structuredClone(evidence);
-  github.githubVerification = {};
+  github.status = 'verified-r5-full-regression-passed-ci-pending';
+  github.verification.githubRegression = 'pending';
+  github.verification.githubCodeql = 'pending';
   assert.throws(() => validate(github), /must not claim GitHub/u);
+
+  const incomplete = structuredClone(evidence);
+  incomplete.githubVerification = {};
+  assert.throws(() => validate(incomplete), /GitHub verification is invalid/u);
 
   const live = structuredClone(evidence);
   live.boundaries.storeChanged = true;

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r5-repeated-device-stability",
-  "status": "verified-r5-full-regression-passed-ci-pending",
+  "status": "verified-r5-regression-and-codeql-passed",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -141,8 +141,45 @@
     "physicalPixelCycles": "passed-25-data-preserving",
     "privacyAndRetentionValidators": "passed-draft-fail-closed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationHead": "8e31b19f1205088036b4f3f9755dbdca33246ef1",
+    "verifiedHead": "cb3735ec66f1190aec14f86d3817c43bd91bdb60",
+    "regression": {
+      "runId": 32742156529,
+      "conclusion": "success",
+      "postgresJobId": 97478929841,
+      "postgresConclusion": "success",
+      "backendJobId": 97478930152,
+      "backendConclusion": "success",
+      "flutterJobId": 97478930292,
+      "flutterConclusion": "success",
+      "parallelStabilityExecuted": false,
+      "signedCandidateBuilt": false,
+      "apiImageBuilt": true,
+      "apiImagePublished": false,
+      "publishApiImageJobId": 97481368883,
+      "publishApiImageConclusion": "skipped"
+    },
+    "codeql": {
+      "workflowRunId": 32742155112,
+      "workflowConclusion": "success",
+      "advancedSecurityCheckId": 97479591110,
+      "advancedSecurityConclusion": "success",
+      "newAlerts": 0
+    },
+    "preExistingExternalHistoryCheck": {
+      "provider": "GitGuardian",
+      "documentedBaseCommit": "e64defd0df62fb047c6fbc90733e4caf318ac7c4",
+      "documentedBaseCheckId": 97395091283,
+      "currentCheckId": 97478903904,
+      "currentConclusion": "failure",
+      "reportedPullRequestCommitScope": 250,
+      "credentialDetailsInspected": false,
+      "classifiedAsR5Regression": false
+    }
   },
   "limitations": {
     "fullBlueOceanUiFlowRepeatedOnDevice": false,

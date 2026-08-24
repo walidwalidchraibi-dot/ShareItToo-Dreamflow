@@ -1,8 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R5 complete locally;
-R13 local Codex evaluation verified; R5 exact GitHub verification pending;
-non-live and fail-closed** on 24.08.2026.
+Status: **R0/P0 security contradiction verified closed; R1–R5 exact verified;
+R13 local Codex evaluation verified; R6 next; non-live and fail-closed** on
+24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -106,9 +106,12 @@ found and permanently fixed one support progress timestamp race plus three
 non-monotonic integration fixture updates. The unchanged 25-run requirement
 then passed on implementation head
 `8e31b19f1205088036b4f3f9755dbdca33246ef1`, as did the full technical
-regression. The observations are not performance, memory-leak, packet-capture,
-full-device-UI or release certification. Exact GitHub Regression and CodeQL
-verification remain pending before R6.
+regression. Exact verification head
+`cb3735ec66f1190aec14f86d3817c43bd91bdb60` passed Regression
+`32742156529`, CodeQL workflow `32742155112` and Advanced Security check
+`97479591110`, with zero open code-scanning alerts. The observations are not
+performance, memory-leak, packet-capture, full-device-UI or release
+certification. R6 may begin.
 
 ### R13 local Codex authentication clarification
 

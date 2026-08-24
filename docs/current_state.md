@@ -15,8 +15,10 @@ Verified: 2026-08-24 on the Mac mini.
   physical Pixel start/stop cycles on local QA build `1.0.0+2026082405` from
   implementation head `8e31b19f1205088036b4f3f9755dbdca33246ef1`. No target-flow
   failure, crash, ANR, Flutter error, state corruption or failed replay was
-  observed. The complete local technical regression passed; exact R5 GitHub
-  Regression and CodeQL verification are pending before R6.
+  observed. The complete local technical regression passed. Exact R5 head
+  `cb3735ec66f1190aec14f86d3817c43bd91bdb60` passed Regression
+  `32742156529`, CodeQL workflow `32742155112` and Advanced Security check
+  `97479591110`, with zero open code-scanning alerts. R6 may begin.
 - Baseline commit `18ae00c82c108d5b1d6478d354c385f11cc83da4` records
   the independently observed R0 state.
 - GitHub workflows were green at the preceding product HEAD, but the GitHub
