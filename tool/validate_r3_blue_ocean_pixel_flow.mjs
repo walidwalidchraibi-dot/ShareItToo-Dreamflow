@@ -10,6 +10,8 @@ const evidencePath =
   'docs/evidence/48h-remote/r3-blue-ocean-pixel-flow-20260824.json';
 const implementationCommit =
   '19fc3221bc3879788db9c48b70a89a33656116b6';
+const verifiedHead =
+  '40eb46c39b95ad54fa67b40fa54977bc0d034523';
 
 function fail(message) {
   throw new Error(message);
@@ -170,7 +172,7 @@ export function validateR3BlueOceanPixelFlow({
     credentialsPersistedInRepository: false,
     containsSecrets: false,
   })) fail('R3 live boundary is invalid.');
-  if (value.nextPackage !== 'PF0_PILOT_FREEZE_BASELINE') {
+  if (value.nextPackage !== 'R4_ANDROID_LIFECYCLE_FAILURE_MATRIX') {
     fail('R3 next package is invalid.');
   }
 
@@ -191,6 +193,7 @@ export function validateR3BlueOceanPixelFlow({
   if (githubPassed) {
     const github = value.githubVerification;
     if (github?.implementationCommit !== implementationCommit
+        || github.verifiedHead !== verifiedHead
         || github.regression?.conclusion !== 'success'
         || !Number.isInteger(github.regression?.runId)
         || github.regression.runId <= 0

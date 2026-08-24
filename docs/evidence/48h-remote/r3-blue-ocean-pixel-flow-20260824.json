@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r3-blue-ocean-pixel-flow",
-  "status": "verified-pixel-flow-and-regression-passed-ci-pending",
+  "status": "verified-pixel-flow-regression-and-codeql-passed",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -110,8 +110,25 @@
     "focusedTotalTests": "passed-81",
     "flutterAnalyze": "passed-no-issues",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationCommit": "19fc3221bc3879788db9c48b70a89a33656116b6",
+    "verifiedHead": "40eb46c39b95ad54fa67b40fa54977bc0d034523",
+    "regression": {
+      "runId": 32730758489,
+      "conclusion": "success",
+      "signedCandidateBuilt": false,
+      "apiImagePublished": false
+    },
+    "codeql": {
+      "workflowRunId": 32730758551,
+      "workflowConclusion": "success",
+      "advancedSecurityCheckId": 97442882988,
+      "advancedSecurityConclusion": "success",
+      "newAlerts": 0
+    }
   },
   "boundaries": {
     "apiBillingCreated": false,
@@ -131,5 +148,5 @@
     "credentialsPersistedInRepository": false,
     "containsSecrets": false
   },
-  "nextPackage": "PF0_PILOT_FREEZE_BASELINE"
+  "nextPackage": "R4_ANDROID_LIFECYCLE_FAILURE_MATRIX"
 }

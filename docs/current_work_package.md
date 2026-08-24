@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1, R2 and R3
-complete; R13 local Codex evaluation verified; PF0 Pilot Freeze next; non-live
+complete; R13 local Codex evaluation verified; R4 lifecycle matrix active; non-live
 and fail-closed** on 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -86,8 +86,11 @@ and READY is hidden until that current state is freshly reviewed. The Pixel
 showed `NEEDS_REVIEW` after the deliberate model edit and READY only after fresh
 answers and confirmations. No listing or explicit publication action occurred;
 the session, fixture, database, uploads and ADB reverse were removed. The full
-technical regression then passed; GitHub regression and CodeQL are the
-remaining R3 closure checks before PF0.
+technical regression then passed. Exact verification head
+`40eb46c39b95ad54fa67b40fa54977bc0d034523` passed regression
+`32730758489`, CodeQL workflow `32730758551` and CodeQL check `97442882988`
+with zero open alerts. R4 is next; the historical PF0–PF5 packages remain
+complete and are not duplicated.
 
 ### R13 local Codex authentication clarification
 

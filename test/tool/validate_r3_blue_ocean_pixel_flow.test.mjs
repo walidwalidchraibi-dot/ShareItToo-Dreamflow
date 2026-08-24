@@ -19,13 +19,13 @@ function validate(changed = evidence) {
 
 test('accepts the exact non-live physical Pixel listing flow', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-pixel-flow-and-regression-passed-ci-pending',
+    status: 'verified-pixel-flow-regression-and-codeql-passed',
     buildNumber: '2026082404',
     device: 'Pixel 7 Pro',
     firstReady: 'READY_TO_PUBLISH',
     staleEditState: 'NEEDS_REVIEW',
     published: false,
-    nextPackage: 'PF0_PILOT_FREEZE_BASELINE',
+    nextPackage: 'R4_ANDROID_LIFECYCLE_FAILURE_MATRIX',
   });
 });
 
@@ -75,6 +75,9 @@ test('rejects private media or incomplete cleanup claims', () => {
 
 test('rejects premature CI claims and secret-shaped evidence', () => {
   const ci = structuredClone(evidence);
+  ci.status = 'verified-pixel-flow-and-regression-passed-ci-pending';
+  ci.verification.githubRegression = 'pending';
+  ci.verification.githubCodeql = 'pending';
   ci.githubVerification = { implementationCommit };
   assert.throws(() => validate(ci), /must not claim GitHub/u);
 

@@ -37,8 +37,11 @@ Verified: 2026-08-24 on the Mac mini.
   stale publication. No listing was created or published; no external AI,
   money, production, Store, cloud or public pilot path was used. Cleanup of the
   transient session, device fixture, database, uploads and ADB reverse passed.
-  The full technical regression passed in candidate-rollover CI metadata mode;
-  GitHub regression and CodeQL are pending before PF0 Pilot Freeze begins.
+  The full technical regression passed in candidate-rollover CI metadata mode.
+  Exact verification head `40eb46c39b95ad54fa67b40fa54977bc0d034523`
+  passed regression `32730758489`, CodeQL workflow `32730758551` and CodeQL
+  check `97442882988` with zero open alerts. R4 is active; PF0–PF5 already
+  remain completed in repository history.
 - The direct R13 clarification is classified
   `CODEX_AUTH_LOCAL_DEV_SUPPORTED`. `codex_local_dev` is implemented as a
   disabled-by-default, synthetic-fixture-only developer adapter. One real

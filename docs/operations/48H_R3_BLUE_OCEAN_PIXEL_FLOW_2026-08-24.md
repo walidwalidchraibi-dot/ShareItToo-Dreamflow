@@ -1,6 +1,6 @@
 # 48H R3 Blue Ocean flow on the real Pixel
 
-Status: **DEVICE AND FULL REGRESSION VERIFIED — GITHUB CHECKS PENDING**
+Status: **COMPLETE — DEVICE, REGRESSION AND CODEQL VERIFIED**
 
 R3 verified the complete local Listing-AI review path on the authorized Pixel
 7 Pro with canonical local-QA build `1.0.0+2026082404`, bound to implementation
@@ -65,6 +65,10 @@ app-data inode and used neither uninstall nor data reset.
 
 R3 performed no production, cloud, Firebase, payment, Store, VPS, DNS, public
 registration, pilot activation, external-provider, API-billing, real-money,
-PR-merge or public-release action. The next authorized package is the supplied
-`PF0_PILOT_FREEZE_BASELINE`, followed by PF1–PF5. Those packages prepare gates
-only and cannot activate a pilot.
+PR-merge or public-release action. Exact verification head
+`40eb46c39b95ad54fa67b40fa54977bc0d034523` passed regression
+`32730758489`, CodeQL workflow `32730758551` and CodeQL check `97442882988`
+with zero open code-scanning alerts. The signable-candidate and publication
+steps stayed skipped. The next package in the active 48H goal is
+`R4_ANDROID_LIFECYCLE_FAILURE_MATRIX`; the older PF0–PF5 Pilot Freeze packages
+already exist in verified repository history and are not repeated.
