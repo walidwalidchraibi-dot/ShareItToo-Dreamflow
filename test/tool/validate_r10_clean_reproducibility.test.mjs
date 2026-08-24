@@ -22,7 +22,7 @@ function validate(changed = evidence, options) {
 
 test('accepts the exact retained R10 clean-checkout evidence', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-clean-checkout-ci-pending',
+    status: 'verified-clean-checkout-regression-and-codeql-passed',
     implementationHead: '322e97ecc0c20c7f765054523dbcf1ddf45d0e9a',
     migrations: 112,
     assets: 84,
@@ -33,6 +33,9 @@ test('accepts the exact retained R10 clean-checkout evidence', () => {
 
 test('accepts a structurally exact detached CI execution result', () => {
   const ci = structuredClone(evidence);
+  ci.status = 'verified-local-clean-checkout-ci-pending';
+  ci.ciAndCodeql.exactGithubVerification = 'pending';
+  delete ci.githubVerification;
   ci.source.implementationHead = 'a'.repeat(40);
   ci.source.checkoutHead = 'a'.repeat(40);
   ci.toolchain.node = 'v22.99.1';
@@ -44,7 +47,7 @@ test('retains the separate post-PF18 technical-debt exit contract', () => {
   assert.doesNotThrow(() => validateR10TechnicalDebtDocument(technicalDebt));
   assert.throws(
     () => validateR10TechnicalDebtDocument(technicalDebt.replace(
-      'EXACT CI PENDING',
+      'EXACT CI VERIFIED',
       'CLOSED WITHOUT CI',
     )),
     /technical-debt exit contract/u,
@@ -110,12 +113,20 @@ test('rejects unexplained APK drift or a false binary-identity claim', () => {
   assert.throws(() => validate(overclaim), /limitations or binary identity/u);
 });
 
-test('rejects live action, credential handling or premature GitHub claims', () => {
+test('rejects live action, credential handling or changed GitHub claims', () => {
   const live = structuredClone(evidence);
   live.boundaries.storeChanged = true;
   assert.throws(() => validate(live), /live or credential boundary/u);
 
   const github = structuredClone(evidence);
-  github.githubVerification = {};
-  assert.throws(() => validate(github), /must not contain GitHub/u);
+  github.githubVerification.advancedSecurity.annotations = 1;
+  assert.throws(() => validate(github), /exact GitHub verification/u);
+
+  const dismissed = structuredClone(evidence);
+  dismissed.githubVerification.advancedSecurity.findingsDismissed = true;
+  assert.throws(() => validate(dismissed), /exact GitHub verification/u);
+
+  const inspected = structuredClone(evidence);
+  inspected.githubVerification.gitGuardian.credentialDetailInspected = true;
+  assert.throws(() => validate(inspected), /exact GitHub verification/u);
 });

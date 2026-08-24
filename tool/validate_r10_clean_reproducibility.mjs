@@ -35,10 +35,12 @@ function requireExact(actual, expected, message) {
 }
 
 export function validateR10TechnicalDebtDocument(value) {
-  if (!value.includes('Status: **TD-R10-001 AND TD-R10-002 LOCALLY RESOLVED — EXACT CI PENDING**')
+  if (!value.includes('Status: **TD-R10-001 AND TD-R10-002 CLOSED — EXACT CI VERIFIED**')
       || !value.includes('deliberately separate from the immutable 21-item PF18 snapshot')
       || !value.includes('No stale local properties, undocumented cache, manual cleanup, retry, reduced suite or false byte-identity claim may replace them.')
       || !value.includes('no race suppression, CodeQL dismissal, substring allowlist or weakened negative OpenAI-origin check may replace them')
+      || !value.includes('Regression `32767155545`')
+      || !value.includes('Advanced Security check `97559603226`')
       || (value.match(/^\| `TD-R10-\d{3}` \|/gmu) ?? []).length !== 2) {
     fail('R10 technical-debt exit contract is invalid or has drifted.');
   }
@@ -230,9 +232,12 @@ function validateAndroid(value) {
 
 export function validateR10CleanReproducibility(value, { executionOnly = false } = {}) {
   validateR10TechnicalDebtDocument(readFileSync(technicalDebtPath, 'utf8'));
+  const expectedStatus = executionOnly
+    ? 'verified-local-clean-checkout-ci-pending'
+    : 'verified-clean-checkout-regression-and-codeql-passed';
   if (value?.schemaVersion !== 1
       || value?.kind !== 'sit-48h-r10-clean-reproducibility'
-      || value?.status !== 'verified-local-clean-checkout-ci-pending'
+      || value?.status !== expectedStatus
       || value?.observedOn !== '2026-08-24') {
     fail('R10 evidence identity or status is invalid.');
   }
@@ -279,12 +284,62 @@ export function validateR10CleanReproducibility(value, { executionOnly = false }
   validateCommands(value.commands);
   validateFootprint(value.generatedFootprint);
   validateAndroid(value.android);
-  requireExact(value.ciAndCodeql, {
-    localCodeqlClaimed: false,
-    exactGithubVerification: 'pending',
-  }, 'R10 must not claim GitHub or CodeQL before exact verification.');
-  if (value.githubVerification !== undefined) {
-    fail('R10 pending evidence must not contain GitHub verification.');
+  if (executionOnly) {
+    requireExact(value.ciAndCodeql, {
+      localCodeqlClaimed: false,
+      exactGithubVerification: 'pending',
+    }, 'R10 execution evidence must not claim GitHub or CodeQL verification.');
+    if (value.githubVerification !== undefined) {
+      fail('R10 execution evidence must not contain GitHub verification.');
+    }
+  } else {
+    requireExact(value.ciAndCodeql, {
+      localCodeqlClaimed: false,
+      exactGithubVerification: 'passed',
+    }, 'R10 exact GitHub or CodeQL verification changed.');
+    requireExact(value.githubVerification, {
+      headSha: '7d215e41e2c0f20f088152a19b4915b8bc2bdb45',
+      pullRequest: {
+        number: 7,
+        draft: true,
+        state: 'OPEN',
+        merged: false,
+      },
+      regression: {
+        runId: 32767155545,
+        conclusion: 'success',
+        jobs: {
+          postgresRunnerProof: { jobId: 97559116901, conclusion: 'success' },
+          backendRegression: { jobId: 97559117129, conclusion: 'success' },
+          flutterRegression: {
+            jobId: 97559117121,
+            conclusion: 'success',
+            parallelStressStep: 'skipped',
+            signedCandidateStep: 'skipped',
+          },
+          r10CleanReproducibility: { jobId: 97559117227, conclusion: 'success' },
+          publishApiImage: { jobId: 97561229688, conclusion: 'skipped' },
+        },
+      },
+      codeqlWorkflow: {
+        runId: 32767155548,
+        jobId: 97559117104,
+        conclusion: 'success',
+      },
+      advancedSecurity: {
+        checkRunId: 97559603226,
+        conclusion: 'success',
+        title: 'No new alerts in code changed by this pull request',
+        annotations: 0,
+        openAlerts: 0,
+        findingsDismissed: false,
+      },
+      gitGuardian: {
+        state: 'failure',
+        scope: 'documented-pre-existing-250-commit-pr-history',
+        credentialDetailInspected: false,
+      },
+    }, 'R10 exact GitHub verification changed.');
   }
   requireExact(value.limitations, {
     debugArtifactOnly: true,

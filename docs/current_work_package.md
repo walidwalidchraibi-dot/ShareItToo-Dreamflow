@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R9 and R13 exact
-verified; R10 local clean-checkout proof green with exact GitHub CI pending;
+Status: **R0/P0 security contradiction verified closed; R1–R10 and R13 exact
+verified; R11 Android security/permission surface active;
 non-live and fail-closed** on
 24.08.2026.
 
@@ -262,7 +262,15 @@ snapshot stays immutable. The independent GitHub clean-checkout job, Regression
 and CodeQL workflow passed at `f911e04`, but the separate Advanced Security
 result found three diagnostics in the new runner. Single-read APK identity and
 conservative raw-byte marker checks now resolve them locally as `TD-R10-002`;
-an exact replacement run remains required before R10 closes and R11 begins.
+exact verification head `7d215e41e2c0f20f088152a19b4915b8bc2bdb45`
+passed Regression `32767155545`, including clean R10 job `97559117227`, CodeQL
+workflow `32767155548` and Advanced Security check `97559603226`, with zero
+annotations and zero open code-scanning alerts. Publication, explicit parallel
+stress and the signed-candidate step remained skipped; PR #7 stayed Draft,
+open and unmerged. The separate GitGuardian failure remains the documented
+pre-existing 250-commit PR-history finding and no credential detail was
+inspected. `TD-R10-001` and `TD-R10-002` are closed; R10 is closed and R11
+begins.
 
 ### R13 local Codex authentication clarification
 

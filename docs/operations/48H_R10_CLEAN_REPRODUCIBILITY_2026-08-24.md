@@ -1,6 +1,6 @@
 # 48H R10 clean-checkout and build reproducibility
 
-Status: **LOCAL VERIFIED — EXACT GITHUB REGRESSION AND CODEQL PENDING**
+Status: **CLOSED — EXACT GITHUB REGRESSION AND CODEQL VERIFIED**
 
 R10 creates a no-hardlink local clone at an exact detached Git head and starts
 with zero `.dart_tool`, `build`, `android/.gradle` and `backend/node_modules`
@@ -46,18 +46,24 @@ the end. No retry, reduced parallelism, sleep, hidden cache, retained artifact,
 signed candidate, Production/VPS/Cloud/Firebase/Store/Payment/account change,
 API billing, credential extraction, PR merge or publication is part of R10.
 
-The committed validator is fail-closed for exact local evidence and supports a
-separate structural execution mode for a detached GitHub PR-head checkout. R10
-closes only after that independent job, normal Regression and CodeQL are bound
-to exact successful checks. The post-PF18 finding and its permanent exit
+The committed validator is fail-closed for exact retained evidence and supports
+a separate structural execution mode for a detached GitHub PR-head checkout.
+At security-fix head `7d215e41e2c0f20f088152a19b4915b8bc2bdb45`, Regression
+`32767155545` passed the independent R10 job `97559117227`, PostgreSQL, Backend
+and Flutter jobs; publication, explicit parallel stress and the signed-candidate
+step remained skipped. CodeQL workflow `32767155548` and Advanced Security check
+`97559603226` passed with zero annotations and zero open code-scanning alerts.
+PR #7 remained Draft, open and unmerged. The post-PF18 finding and its permanent exit
 contract are retained separately in
 `docs/operations/48H_R10_TECHNICAL_DEBT_2026-08-24.md`; the historical PF18
-21-item snapshot remains unchanged. R11 is next after that closure.
+21-item snapshot remains unchanged. The visible GitGuardian failure remains the
+documented pre-existing 250-commit PR-history finding; no credential detail was
+inspected. R10 is closed and R11 begins.
 
 The first exact run `32765161224` passed the clean R10 job, normal Regression
 and the CodeQL workflow. Its separate Advanced Security result identified an
 APK time-of-check/time-of-use hash shape and two ambiguous URL-substring APIs
 in the new runner. The implementation now hashes the same in-memory bytes used
 for size and treats compiled origins as conservative raw-byte diagnostics, not
-URL authorization. No alert was dismissed; an exact replacement run is
-required before R10 can close.
+URL authorization. No alert was dismissed. The exact replacement checks above
+passed and closed both R10 technical-debt items.

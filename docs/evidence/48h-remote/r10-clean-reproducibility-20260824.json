@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r10-clean-reproducibility",
-  "status": "verified-local-clean-checkout-ci-pending",
+  "status": "verified-clean-checkout-regression-and-codeql-passed",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -290,7 +290,62 @@
   },
   "ciAndCodeql": {
     "localCodeqlClaimed": false,
-    "exactGithubVerification": "pending"
+    "exactGithubVerification": "passed"
+  },
+  "githubVerification": {
+    "headSha": "7d215e41e2c0f20f088152a19b4915b8bc2bdb45",
+    "pullRequest": {
+      "number": 7,
+      "draft": true,
+      "state": "OPEN",
+      "merged": false
+    },
+    "regression": {
+      "runId": 32767155545,
+      "conclusion": "success",
+      "jobs": {
+        "postgresRunnerProof": {
+          "jobId": 97559116901,
+          "conclusion": "success"
+        },
+        "backendRegression": {
+          "jobId": 97559117129,
+          "conclusion": "success"
+        },
+        "flutterRegression": {
+          "jobId": 97559117121,
+          "conclusion": "success",
+          "parallelStressStep": "skipped",
+          "signedCandidateStep": "skipped"
+        },
+        "r10CleanReproducibility": {
+          "jobId": 97559117227,
+          "conclusion": "success"
+        },
+        "publishApiImage": {
+          "jobId": 97561229688,
+          "conclusion": "skipped"
+        }
+      }
+    },
+    "codeqlWorkflow": {
+      "runId": 32767155548,
+      "jobId": 97559117104,
+      "conclusion": "success"
+    },
+    "advancedSecurity": {
+      "checkRunId": 97559603226,
+      "conclusion": "success",
+      "title": "No new alerts in code changed by this pull request",
+      "annotations": 0,
+      "openAlerts": 0,
+      "findingsDismissed": false
+    },
+    "gitGuardian": {
+      "state": "failure",
+      "scope": "documented-pre-existing-250-commit-pr-history",
+      "credentialDetailInspected": false
+    }
   },
   "limitations": {
     "debugArtifactOnly": true,
