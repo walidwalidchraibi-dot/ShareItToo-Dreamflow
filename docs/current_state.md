@@ -2184,6 +2184,28 @@ State or exact callback context after every asynchronous boundary. Existing
 Wishlist, availability, support, Payment, privacy and `needsReview` behavior is
 unchanged.
 
+## Stage A Blue Ocean N11 Codex local guardrails (2026-08-24)
+
+Current official Codex documentation and local CLI inspection verify stable
+repo-local lifecycle hooks. N11 adds the smallest reversible `.codex/` setup:
+`SessionStart` supplies bounded gate context, Bash `PreToolUse` blocks known
+destructive Git and external mutation patterns and performs a staged secret
+scan plus fast SIT validators before commit, and `Stop` can write one minimized
+pending-gate record into worktree Git metadata.
+
+The hook definition still requires official Codex trust review on discovery;
+N11 does not automate or overclaim that security decision. Hooks are documented
+as incomplete defense in depth, and Flutter, Backend, builds, CI behavior and
+production have no dependency on them. No user-level Codex config or plugin was
+changed.
+
+Ten hook behavior tests and seven evidence-validator tests pass. The complete
+candidate-rollover regression is green with 725 Backend tests plus one
+documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
+loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
+CodeQL verification are pending for the N11 implementation commit. N12 owner
+action-pack preparation is active; all live and paid boundaries remain closed.
+
 The exact analyzer snapshot ratcheted `132 -> 122`, with
 `use_build_context_synchronously` `10 -> 0` and the item-overlay context bucket
 `10 -> 0`; all other buckets remained identical. Fifty-four focused

@@ -3237,9 +3237,25 @@ documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
 loopback smoke and Android debug. Exact GitHub regression and CodeQL results
 remain pending for the N10 implementation commit.
 
-## Active package: Stage A Blue Ocean N11
+## Verification package: Stage A Blue Ocean N11
 
 N11 evaluates only officially supported, local and reversible Codex guardrail
 mechanisms. It may implement the smallest supported local setup, but Hooks can
 never become a product, build, test, CI, release or production dependency. If
 official support is absent or ambiguous, N11 remains design-only.
+
+Official support is now verified. The smallest repo-local setup implements
+`SessionStart`, Bash `PreToolUse` and `Stop` hooks with the mandatory Codex
+trust review still pending. Ten behavior tests and seven evidence-validator
+tests pass. The complete candidate-rollover regression is green with 725
+Backend tests plus one documented skip, 387 Flutter tests plus one documented
+skip, Web/Wasm, loopback smoke and Android debug. Exact GitHub regression and
+CodeQL results remain pending for the N11 implementation commit. The hooks are
+optional defense in depth and no app/build/runtime path depends on them.
+
+## Active package: Stage A Blue Ocean N12
+
+N12 now assembles the final owner-action pack with separate FREE, OWNER LOGIN,
+PHYSICAL DEVICE, EXTERNAL CONTRACT, PAID and LATER sections. It records exact
+gates and prerequisites only; it does not contact third parties, activate a
+service, spend money or change any live environment.
