@@ -359,6 +359,10 @@ node --test test/tool/blue_ocean_n9_wave0_wiring.test.mjs
 node --check tool/validate_blue_ocean_n9_heilbronn_wave0.mjs
 node --test test/tool/validate_blue_ocean_n9_heilbronn_wave0.test.mjs
 node tool/validate_blue_ocean_n9_heilbronn_wave0.mjs
+node --test test/tool/blue_ocean_n10_internal_testing_wiring.test.mjs
+node --check tool/validate_blue_ocean_n10_internal_testing.mjs
+node --test test/tool/validate_blue_ocean_n10_internal_testing.test.mjs
+node tool/validate_blue_ocean_n10_internal_testing.mjs
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then

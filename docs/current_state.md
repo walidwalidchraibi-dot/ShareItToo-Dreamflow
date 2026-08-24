@@ -3585,3 +3585,27 @@ one documented skip, Web/Wasm, loopback smoke and Android debug with 448 tasks.
 Exact GitHub regression and CodeQL verification are pending for the N9
 implementation commit. N10 Internal Testing handoff preparation is active;
 there has been no Play Console change, upload, tester enrollment or release.
+
+## Stage A Blue Ocean N10 Internal Testing handoff (2026-08-24)
+
+N10 prepares a separate Google Play Internal Testing plan for
+`heilbronn_wave0` without modifying the historical B11 Internal release state.
+It reserves future candidate `1.0.0+2026082401`; the exact source commit, signed
+AAB, SHA-256 and owner-only archive intentionally remain pending the later
+candidate-cut gate. The repository version remains `1.0.0+2026082302`, and no
+AAB was built or relabelled.
+
+The handoff contains the exact pre-build and pre-Console checklist, two
+separate owner tokens for upload and Internal activation, private tester-list
+handling, future tester instructions, bounded feedback, rollback and
+data-preservation rules. Production, Open/Closed testing, public review, real
+money, public registration, unapproved provider billing and mismatched
+artifacts are hard stops.
+
+Eight plan-wiring tests and seven evidence-validator tests pass. The complete
+candidate-rollover regression is green with 725 Backend tests plus one
+documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
+loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
+CodeQL verification are pending for the N10 implementation commit. N11 local
+guardrail support evaluation is active; Play Console and all live systems are
+unchanged.

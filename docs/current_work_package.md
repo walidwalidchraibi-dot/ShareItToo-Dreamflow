@@ -3223,9 +3223,23 @@ one documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
 loopback smoke and Android debug. Exact GitHub regression and CodeQL results
 remain pending for the N9 implementation commit; no pilot was activated.
 
-## Active package: Stage A Blue Ocean N10
+## Verification package: Stage A Blue Ocean N10
 
 N10 now prepares the Google Play Internal Testing handoff only. It must bind
 an exact future AAB candidate, version/build plan, owner Console actions,
 tester instructions, feedback path, rollback and data-preservation steps while
 performing no build upload, Console mutation, tester enrollment or release.
+The implementation reserves the monotonic future build `1.0.0+2026082401`
+without changing `pubspec.yaml`, building an AAB or claiming an exact artifact.
+Eight wiring tests and seven evidence-validator tests pass. The complete
+candidate-rollover regression is green with 725 Backend tests plus one
+documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
+loopback smoke and Android debug. Exact GitHub regression and CodeQL results
+remain pending for the N10 implementation commit.
+
+## Active package: Stage A Blue Ocean N11
+
+N11 evaluates only officially supported, local and reversible Codex guardrail
+mechanisms. It may implement the smallest supported local setup, but Hooks can
+never become a product, build, test, CI, release or production dependency. If
+official support is absent or ambiguous, N11 remains design-only.
