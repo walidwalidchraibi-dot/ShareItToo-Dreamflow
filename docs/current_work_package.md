@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R14 exact
-verified and R15 active;
+Status: **R0/P0 security contradiction verified closed; R1–R15 exact
+verified and R16 active;
 non-live and fail-closed** on
 24.08.2026.
 
@@ -389,8 +389,10 @@ the non-public Internal/Staging lane, binds its state into the private archive
 manifest and can require the canonical upload certificate without claiming a
 public Store submission. A value-free local preflight at head `dd70f27` passed
 canonical Android signing, Android Firebase configuration with Analytics off
-and the release preflight without creating artifacts. The new exact R15
-control combination remains pending the clean implementation commit.
+and the release preflight without creating artifacts. The exact R15 control
+combination subsequently passed again on clean implementation/security head
+`7992fe06260334a30e5fdb775b45fbc25af0e033`, also without creating an
+artifact.
 
 The feature matrix records the actual signed-release truth rather than the
 broader debug-QA envelope: V5.2/G2 and the Blue Ocean core are buildable, while
@@ -401,8 +403,17 @@ cannot reach `HUMAN_PILOT_ACTIVATED` without a separate legal/internal-release
 decision and exact candidate proof. Payment, telemetry, FCM, Support evidence
 upload, public signup and public release remain off. Focused signing/archive,
 R15 wiring and artifact-validator tests pass. The complete technical regression
-also passes in candidate-rollover CI metadata mode. Exact clean-head preflight
-and GitHub verification are pending.
+also passes in candidate-rollover CI metadata mode. Two successive Advanced
+Security scans rejected a loose URL test assertion: first for an unanchored
+regular expression and then for an incomplete substring check. The retained
+test now uses an exact line-anchored assertion; neither workaround was kept.
+Exact implementation/security head
+`7992fe06260334a30e5fdb775b45fbc25af0e033` passed Regression
+`32780091768`, including PostgreSQL, Backend, Flutter and the independent R10
+clean-checkout job; CodeQL workflow `32780091762` and Advanced Security check
+`97600547701` passed with zero open PR code-scanning alerts. No candidate was
+built or uploaded, and every owner/live gate remains closed. R15 is closed and
+R16 begins.
 
 ## Completed package history
 

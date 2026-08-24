@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r15-google-play-internal-ready-pack",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed-ready-for-r16",
   "implementationBaseHead": "843f8803248b276ff9b843bcb206657cea4295af",
   "predecessor": {
     "package": "R14",
@@ -59,7 +59,8 @@
     "androidFirebaseConfigured": true,
     "firebaseAnalyticsConfigured": false,
     "candidatePreflight": "passed-without-artifact-creation",
-    "r15ExactInternalControls": "pending-clean-implementation-head"
+    "r15ExactInternalControls": "passed-exact-implementation-head-without-artifacts",
+    "exactR15PreflightHead": "7992fe06260334a30e5fdb775b45fbc25af0e033"
   },
   "featureTruth": {
     "blueOceanCoreBuildable": true,
@@ -96,8 +97,18 @@
     "r15ArtifactValidatorTests": "passed-8",
     "r15ArtifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationCommit": "7992fe06260334a30e5fdb775b45fbc25af0e033",
+    "regressionRunId": 32780091768,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32780091762,
+    "codeqlConclusion": "success",
+    "advancedSecurityCheckId": 97600547701,
+    "advancedSecurityConclusion": "success",
+    "newAlerts": 0
   },
   "boundaries": {
     "aabBuilt": false,

@@ -82,6 +82,11 @@ test('rejects live mutation, built artifact or tester overclaims', () => {
 
 test('rejects premature or malformed GitHub verification', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-full-regression-passed-ci-pending';
+  premature.localPreflight.r15ExactInternalControls = 'pending-clean-implementation-head';
+  delete premature.localPreflight.exactR15PreflightHead;
+  premature.focusedVerification.githubRegression = 'pending';
+  premature.focusedVerification.githubCodeql = 'pending';
   premature.githubVerification = {
     implementationCommit: '0'.repeat(40), regressionRunId: 1,
     regressionConclusion: 'success', codeqlRunId: 2, codeqlConclusion: 'success',
