@@ -1,9 +1,9 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R16 exact
-verified and R17 active;
+verified and R17 locally regression-green / CI pending;
 non-live and fail-closed** on
-24.08.2026.
+25.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -436,6 +436,32 @@ PostgreSQL `97606169218` and R10 clean checkout `97606169226`; CodeQL workflow
 `32782075298` and Advanced Security check `97606603148` also passed with zero
 open PR code-scanning alerts. No artifact was built or published. R16 is closed
 and R17 begins with only those three direct findings.
+
+### R17 two-day priority queue
+
+R17 is limited to the three findings admitted by R16. The possible historical
+GitGuardian secret remains an owner-only P0 gate; no credential value was
+inspected and the exact private review/revoke-or-false-positive procedure is
+prepared. Until its current check succeeds, Build, Play upload, human pilot
+and PR merge approvals remain invalid.
+
+The two P1 findings are corrected locally. Every Blue Ocean release candidate
+is now build-coupled to `SIT_STAGE_A_NON_BINDING_PILOT=true`, the private
+archive verifies that relationship and the Stage-A checkout cannot load or
+submit a binding request. It displays only an unverbindliche price simulation
+and a disabled rental-request action. The ordinary V5.2 development contract
+path remains covered when the Stage-A flag is false. Its compatibility check
+also exposed and corrected a stale `v52ClientBuild` declaration from
+`2026082301` to the actual repository build `2026082302`.
+
+The human Wave-0 scope is reduced to the actually release-buildable listing,
+search, project/Saved, non-reserving cart and feedback surfaces. Request,
+accept/reject, Payment/Refund/Payout, handover/return/damage/`needsReview` and
+G3/G4/G5 are explicitly `not-run`; all existing release locks remain intact.
+No candidate, Console, tester, Payment, provider, Pixel, Production or merge
+action occurred. Focused verification and the complete candidate-rollover
+regression are green in CI-metadata mode. Exact GitHub Regression and CodeQL
+verification are next, followed only by `48H_REMOTE_READINESS_DECISION`.
 
 ## Completed package history
 

@@ -248,9 +248,31 @@ export function validateR16Pr7PilotFreezeIntegrationReview({
     'R16-P1-WAVE0-SURFACE-001', 'Exact future merge procedure',
     'normal **merge commit**', 'No Production, VPS, DNS, Cloud',
   ]);
-  markers(source(repositoryRoot, 'lib/config/private_pilot_config.dart'), 'lib/config/private_pilot_config.dart', [
-    'static const bool bindingCheckoutEnabled = true;',
-  ]);
+  const privatePilotConfig = source(
+    repositoryRoot, 'lib/config/private_pilot_config.dart',
+  );
+  if (privatePilotConfig.includes('static const bool bindingCheckoutEnabled = true;')) {
+    markers(privatePilotConfig, 'lib/config/private_pilot_config.dart', [
+      'static const bool bindingCheckoutEnabled = true;',
+    ]);
+  } else {
+    const r17 = JSON.parse(source(
+      repositoryRoot,
+      'docs/evidence/48h-remote/r17-two-day-priority-queue-20260825.json',
+    ));
+    if (r17.kind !== 'sit-48h-r17-two-day-priority-queue'
+        || r17.predecessor?.closureHead
+          !== 'dda99ed03660c509d3e713799b7001e4e6680b79'
+        || r17.findings?.[1]?.id !== 'R16-P1-STAGE-A-BINDING-001'
+        || r17.findings?.[1]?.state !== 'resolved-code-and-tests') {
+      fail('R16 binding finding changed without an exact R17 supersession.');
+    }
+    markers(privatePilotConfig, 'lib/config/private_pilot_config.dart', [
+      'SIT_STAGE_A_NON_BINDING_PILOT',
+      'bindingCheckoutAvailableFor',
+      '!stageANonBindingPilot',
+    ]);
+  }
   for (const path of [
     'lib/config/booking_group_technical_config.dart',
     'lib/config/planner_technical_config.dart',

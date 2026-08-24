@@ -74,6 +74,7 @@ flutter build apk \
   --dart-define=SIT_SOCIAL_APPLE_ENABLED=false \
   --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=false \
   --dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=true \
+  --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
   --dart-define=SIT_BOOKING_GROUPS_TECHNICAL_UI_ENABLED=true \
   --dart-define=SIT_BOOKING_GROUPS_PUBLIC_RELEASE_ALLOWED=false \
   --dart-define=SIT_PLANNER_TECHNICAL_UI_ENABLED=true \
@@ -162,6 +163,7 @@ printf '%s\n' \
   "    \"apiBaseUrl\": \"$API_BASE_URL\"," \
   "    \"adbReverseRequired\": \"tcp:18080\"," \
   "    \"blueOceanMockUi\": true," \
+  "    \"stageANonBindingPilotEnabled\": true," \
   "    \"requiredLocalBackendProvider\": \"mock\"," \
   "    \"g3TechnicalUi\": true," \
   "    \"g4TechnicalUi\": true," \

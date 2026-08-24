@@ -325,6 +325,10 @@ node --check tool/validate_r16_pr7_pilot_freeze_integration_review.mjs
 node --test test/tool/r16_pr7_pilot_freeze_integration_review_wiring.test.mjs
 node --test test/tool/validate_r16_pr7_pilot_freeze_integration_review.test.mjs
 node tool/validate_r16_pr7_pilot_freeze_integration_review.mjs
+node --check tool/validate_r17_two_day_priority_queue.mjs
+node --test test/tool/r17_two_day_priority_queue_wiring.test.mjs
+node --test test/tool/validate_r17_two_day_priority_queue.test.mjs
+node tool/validate_r17_two_day_priority_queue.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -810,6 +814,13 @@ flutter test --reporter expanded \
   --dart-define=SIT_SOCIAL_APPLE_ENABLED=false \
   --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=false \
   test/social_auth_google_only_profile_test.dart
+
+# Compile and execute the exact non-binding Stage-A checkout profile. This is
+# a separate profile test so the ordinary V5.2 binding contract path remains
+# covered by the default Flutter suite.
+flutter test --reporter expanded \
+  --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
+  test/private_pilot_stage_a_non_binding_profile.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

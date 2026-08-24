@@ -91,6 +91,9 @@ export function archiveAndroidReleaseCandidate({
       manifest.channel !== 'internal' ||
       manifest.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
       typeof manifest.blueOceanListingAssistantEnabled !== 'boolean' ||
+      typeof manifest.stageANonBindingPilotEnabled !== 'boolean' ||
+      (manifest.blueOceanListingAssistantEnabled === true &&
+        manifest.stageANonBindingPilotEnabled !== true) ||
       manifest.firebaseConfigured !== true ||
       manifest.signingCertificateSha256 !== canonicalSigningCertificateSha256 ||
       manifest.androidBinaryPrivacyScan !== 'passed' ||
@@ -146,6 +149,7 @@ export function archiveAndroidReleaseCandidate({
       buildNumber: expectedBuildNumber,
       commit: expectedCommit,
       blueOceanListingAssistantEnabled: manifest.blueOceanListingAssistantEnabled,
+      stageANonBindingPilotEnabled: manifest.stageANonBindingPilotEnabled,
     },
     archiveDirectoryName,
     files,

@@ -43,6 +43,7 @@ async function fixture(mutate = () => {}) {
     channel: 'internal',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     blueOceanListingAssistantEnabled: false,
+    stageANonBindingPilotEnabled: false,
     firebaseConfigured: true,
     signingCertificateSha256: certificate,
     androidBinaryPrivacyScan: 'passed',
@@ -78,6 +79,7 @@ test('archives and verifies the exact candidate without exposing its path', asyn
   assert.equal(result.boundaries.overwriteAllowed, false);
   assert.equal(result.boundaries.externalUploadPerformed, false);
   assert.equal(result.candidate.blueOceanListingAssistantEnabled, false);
+  assert.equal(result.candidate.stageANonBindingPilotEnabled, false);
   assert.equal(JSON.stringify(result).includes(data.root), false);
   const archived = join(data.archiveRoot, result.archiveDirectoryName, data.aabName);
   assert.deepEqual(await readFile(archived), Buffer.from('exact-aab'));
@@ -108,6 +110,15 @@ test('rejects extra candidate artifacts in the evidence directory', async (t) =>
 test('rejects a non-canonical upload certificate', async (t) => {
   const data = await fixture(({ manifest }) => {
     manifest.signingCertificateSha256 = 'f'.repeat(64);
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => archive(data), /exact internal Staging candidate/);
+});
+
+test('rejects a Blue Ocean candidate without the non-binding Stage-A gate', async (t) => {
+  const data = await fixture(({ manifest }) => {
+    manifest.blueOceanListingAssistantEnabled = true;
+    manifest.stageANonBindingPilotEnabled = false;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => archive(data), /exact internal Staging candidate/);

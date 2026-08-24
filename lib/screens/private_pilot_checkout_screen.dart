@@ -45,6 +45,8 @@ class _PrivatePilotCheckoutScreenState
 
   bool get _usesRemoteBackend =>
       BackendConfig.enabled && !QaRuntimeService.isEnabled;
+  bool get _stageANonBindingPilot =>
+      PrivatePilotConfig.stageANonBindingPilotEnabled;
 
   @override
   void initState() {
@@ -53,9 +55,12 @@ class _PrivatePilotCheckoutScreenState
       item: widget.item,
       days: _days,
     );
-    _paymentMethodAvailable = !_usesRemoteBackend;
+    _paymentMethodAvailable =
+        !_usesRemoteBackend && PrivatePilotConfig.bindingCheckoutEnabled;
     unawaited(_loadOwnerName());
-    if (_usesRemoteBackend) unawaited(_loadFreshQuote());
+    if (_usesRemoteBackend && PrivatePilotConfig.bindingCheckoutEnabled) {
+      unawaited(_loadFreshQuote());
+    }
   }
 
   @override
@@ -459,7 +464,13 @@ class _PrivatePilotCheckoutScreenState
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Buchungsübersicht')),
+      appBar: AppBar(
+        title: Text(
+          _stageANonBindingPilot
+              ? 'Unverbindliche Stage-A-Vorschau'
+              : 'Buchungsübersicht',
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -473,6 +484,19 @@ class _PrivatePilotCheckoutScreenState
           Text(
             '${_date(widget.range.start)} - ${_date(widget.range.end)} · ${quote.days} ${quote.days == 1 ? 'Tag' : 'Tage'}',
           ),
+          if (_stageANonBindingPilot) ...[
+            const SizedBox(height: 12),
+            Card(
+              color: theme.colorScheme.tertiaryContainer,
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  PrivatePilotConfig.blueOceanStageANonBindingNotice,
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           if (_loadingQuote) ...[
             const LinearProgressIndicator(),
@@ -487,7 +511,9 @@ class _PrivatePilotCheckoutScreenState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Preisaufschlüsselung',
+                    _stageANonBindingPilot
+                        ? 'Unverbindliche Preisvorschau'
+                        : 'Preisaufschlüsselung',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -523,7 +549,9 @@ class _PrivatePilotCheckoutScreenState
                   ),
                   const Divider(height: 26),
                   _PriceRow(
-                    label: 'Gesamtpreis',
+                    label: _stageANonBindingPilot
+                        ? 'Simulierte Gesamtsumme'
+                        : 'Gesamtpreis',
                     value: PrivatePilotPricing.formatMinor(
                       quote.totalMinor,
                       currency: quote.currency,
@@ -534,7 +562,7 @@ class _PrivatePilotCheckoutScreenState
               ),
             ),
           ),
-          if (_usesRemoteBackend) ...[
+          if (_usesRemoteBackend && !_stageANonBindingPilot) ...[
             const SizedBox(height: 8),
             if (_quoteExpiresAt != null)
               Text(
@@ -561,35 +589,37 @@ class _PrivatePilotCheckoutScreenState
                 ),
               ),
           ],
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Storno und Karenz',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    graceDeadline == null
-                        ? 'Mindestens 24 Stunden vor Mietbeginn ist die Stornierung kostenlos. Unter 24 Stunden werden grundsätzlich 50 % des Mietpreises berücksichtigt.'
-                        : 'Bei einer Bestätigung jetzt: kostenlose Stornierung bis ${_dateTime(graceDeadline)}. Danach gilt vor Mietbeginn grundsätzlich die 50-%-Regel.',
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Ab Mietbeginn gilt keine starre Pauschale. Maßgeblich sind der gesetzliche Mietzahlungsanspruch sowie ersparte Aufwendungen und eine mögliche Ersatzvermietung.',
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'An diese Anfrage bist du bis ${_dateTime(_bindingDeadline)} gebunden, höchstens bis Mietbeginn. Eine Eingangsbestätigung ist noch keine Annahme.',
-                  ),
-                ],
+          if (!_stageANonBindingPilot) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Storno und Karenz',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      graceDeadline == null
+                          ? 'Mindestens 24 Stunden vor Mietbeginn ist die Stornierung kostenlos. Unter 24 Stunden werden grundsätzlich 50 % des Mietpreises berücksichtigt.'
+                          : 'Bei einer Bestätigung jetzt: kostenlose Stornierung bis ${_dateTime(graceDeadline)}. Danach gilt vor Mietbeginn grundsätzlich die 50-%-Regel.',
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Ab Mietbeginn gilt keine starre Pauschale. Maßgeblich sind der gesetzliche Mietzahlungsanspruch sowie ersparte Aufwendungen und eine mögliche Ersatzvermietung.',
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'An diese Anfrage bist du bis ${_dateTime(_bindingDeadline)} gebunden, höchstens bis Mietbeginn. Eine Eingangsbestätigung ist noch keine Annahme.',
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           const PrivatePilotRiskNotice(title: 'Kein SIT-Schutzprodukt'),
           const SizedBox(height: 12),
@@ -679,64 +709,81 @@ class _PrivatePilotCheckoutScreenState
               ),
             ],
           ),
-          CheckboxListTile(
-            value: _privateAndTermsConfirmed,
-            onChanged: (value) => setState(
-              () => _privateAndTermsConfirmed = value == true,
+          if (_stageANonBindingPilot) ...[
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: null,
+              icon: const Icon(Icons.lock_outline),
+              label: const Text(
+                'Mietanfrage im Stage-A-Pilot gesperrt',
+              ),
             ),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: const Text(
-              PrivatePilotConfig.v52PrivateAndPlatformTermsDeclaration,
-            ),
-            subtitle: Text(
-              '${PrivatePilotConfig.v52DocumentName} · ${PrivatePilotConfig.v52DocumentVersion}',
-            ),
-          ),
-          CheckboxListTile(
-            value: _earlyPerformanceAndWithdrawalConfirmed,
-            onChanged: (value) => setState(
-              () => _earlyPerformanceAndWithdrawalConfirmed = value == true,
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: const Text(
-              PrivatePilotConfig.v52EarlyPerformanceAndWithdrawalDeclaration,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Du gibst jetzt eine verbindliche Buchungsanfrage ab. Du zahlst erst, wenn der Vermieter sie annimmt. Dann werden insgesamt ${PrivatePilotPricing.formatMinor(quote.totalMinor, currency: quote.currency)} fällig: ${PrivatePilotPricing.formatMinor(quote.rentalSubtotalMinor, currency: quote.currency)} Mietpreis und ${PrivatePilotPricing.formatMinor(quote.platformFeeMinor, currency: quote.currency)} SIT-Plattformgebühr. Lehnt der Vermieter ab oder nimmt er die Anfrage nicht bis ${_dateTime(_bindingDeadline)} an, musst du nichts zahlen.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (!_paymentMethodAvailable) ...[
             const SizedBox(height: 8),
             Text(
-              'Eine echte Zahlungsmethode ist für diesen Teststand noch nicht verfügbar. Deshalb bleibt der Abschluss gesperrt.',
-              style: TextStyle(color: theme.colorScheme.error),
+              'Diese Ansicht dient ausschließlich der Produkt- und Preisprüfung. Sie sendet keine Anfrage, erzeugt keinen Vertrag und reserviert keinen Gegenstand.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall,
+            ),
+          ] else ...[
+            CheckboxListTile(
+              value: _privateAndTermsConfirmed,
+              onChanged: (value) => setState(
+                () => _privateAndTermsConfirmed = value == true,
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                PrivatePilotConfig.v52PrivateAndPlatformTermsDeclaration,
+              ),
+              subtitle: Text(
+                '${PrivatePilotConfig.v52DocumentName} · ${PrivatePilotConfig.v52DocumentVersion}',
+              ),
+            ),
+            CheckboxListTile(
+              value: _earlyPerformanceAndWithdrawalConfirmed,
+              onChanged: (value) => setState(
+                () => _earlyPerformanceAndWithdrawalConfirmed = value == true,
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                PrivatePilotConfig.v52EarlyPerformanceAndWithdrawalDeclaration,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Du gibst jetzt eine verbindliche Buchungsanfrage ab. Du zahlst erst, wenn der Vermieter sie annimmt. Dann werden insgesamt ${PrivatePilotPricing.formatMinor(quote.totalMinor, currency: quote.currency)} fällig: ${PrivatePilotPricing.formatMinor(quote.rentalSubtotalMinor, currency: quote.currency)} Mietpreis und ${PrivatePilotPricing.formatMinor(quote.platformFeeMinor, currency: quote.currency)} SIT-Plattformgebühr. Lehnt der Vermieter ab oder nimmt er die Anfrage nicht bis ${_dateTime(_bindingDeadline)} an, musst du nichts zahlen.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (!_paymentMethodAvailable) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Eine echte Zahlungsmethode ist für diesen Teststand noch nicht verfügbar. Deshalb bleibt der Abschluss gesperrt.',
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: _canSubmit ? _submitRequest : null,
+              icon: _submitting
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_outlined),
+              label: Text(
+                _submitting ? 'Wird gesendet…' : 'Bestätigen und bezahlen',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Das bloße Öffnen dieser Übersicht sendet keine Anfrage. Erst die Schaltfläche oben löst den nächsten sicheren Vertragsschritt aus.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall,
             ),
           ],
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: _canSubmit ? _submitRequest : null,
-            icon: _submitting
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send_outlined),
-            label: Text(
-              _submitting ? 'Wird gesendet…' : 'Bestätigen und bezahlen',
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Das bloße Öffnen dieser Übersicht sendet keine Anfrage. Erst die Schaltfläche oben löst den nächsten sicheren Vertragsschritt aus.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall,
-          ),
         ],
       ),
     );

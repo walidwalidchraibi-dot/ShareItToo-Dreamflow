@@ -740,7 +740,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "eecc3c6a6bbb05725b6efeefb3964c0b0b2dbdf0189c2515c0674596547b1bcd"
+      "sha256": "1b03af48442cdfe481493453ff862f24edb68322c6ea16cf6e18c392cddbb68e"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
@@ -764,7 +764,7 @@
     },
     {
       "path": "lib/screens/private_pilot_checkout_screen.dart",
-      "sha256": "1a5a56bbb421767f559b477ea6860a47d4ff69b58ceb7ce5e64aa85c310e644a"
+      "sha256": "388d6ac9c7c754880604b301817193e3f00996f169d2e4ff8342f175876fa45d"
     },
     {
       "path": "lib/screens/v52_legal_document_screen.dart",

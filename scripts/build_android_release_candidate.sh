@@ -14,6 +14,7 @@ case "${SIT_BLUE_OCEAN_LISTING_ASSISTANT:-0}" in
     exit 1
     ;;
 esac
+stage_a_non_binding_pilot="$blue_ocean_listing_assistant"
 case "${SIT_REQUIRE_CANONICAL_SIGNING:-0}" in
   1|true) require_canonical_signing=true ;;
   0|false|'') require_canonical_signing=false ;;
@@ -108,6 +109,7 @@ common_args=(
   "--dart-define=SIT_RELEASE_CHANNEL=$CHANNEL"
   "--dart-define=SIT_BUNDLE_ID=com.shareittoo.app"
   "--dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=$blue_ocean_listing_assistant"
+  "--dart-define=SIT_STAGE_A_NON_BINDING_PILOT=$stage_a_non_binding_pilot"
 )
 
 social_google_enabled=false
@@ -313,6 +315,7 @@ printf '%s\n' \
   "  \"channel\": \"$CHANNEL\"," \
   "  \"apiBaseUrl\": \"$API_BASE_URL\"," \
   "  \"blueOceanListingAssistantEnabled\": $blue_ocean_listing_assistant," \
+  "  \"stageANonBindingPilotEnabled\": $stage_a_non_binding_pilot," \
   "  \"firebaseConfigured\": $firebase_configured," \
   "  \"signingCertificateSha256\": \"$signing_certificate_sha256\"," \
   "  \"createdAt\": \"$created_at\"," \

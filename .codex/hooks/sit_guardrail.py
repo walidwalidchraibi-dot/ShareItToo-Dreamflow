@@ -175,6 +175,13 @@ PACKAGE_COMPLETION_COMMANDS = {
         ("node", "--test", "test/tool/validate_r16_pr7_pilot_freeze_integration_review.test.mjs"),
         ("node", "tool/validate_r16_pr7_pilot_freeze_integration_review.mjs"),
     ),
+    "R17_TWO_DAY_PRIORITY_QUEUE": (
+        ("node", "--test", "test/tool/archive_android_release_candidate.test.mjs"),
+        ("node", "--test", "test/tool/r17_two_day_priority_queue_wiring.test.mjs"),
+        ("node", "--test", "test/tool/validate_r17_two_day_priority_queue.test.mjs"),
+        ("node", "tool/validate_r17_two_day_priority_queue.mjs"),
+        ("node", "tool/validate_privacy_disclosures.mjs"),
+    ),
 }
 
 

@@ -36,9 +36,24 @@ class PrivatePilotConfig {
       'Es erfolgen keine echten Zahlungen, Erstattungen oder Auszahlungen. '
       'Nichts ist öffentlich; Anzeigen bleiben im geschlossenen Pilot.';
 
-  /// The V5.1 checkout may create binding test requests. Real money remains
-  /// independently disabled until the PSP and launch evidence is complete.
-  static const bool bindingCheckoutEnabled = true;
+  /// Every Blue Ocean/Internal Stage-A candidate sets this build-time gate.
+  /// It keeps the listing, search and non-reserving cart evaluation available
+  /// while preventing the candidate from creating a rental request or contract.
+  static const bool stageANonBindingPilotEnabled = bool.fromEnvironment(
+    'SIT_STAGE_A_NON_BINDING_PILOT',
+    defaultValue: false,
+  );
+
+  static bool bindingCheckoutAvailableFor({
+    required bool stageANonBindingPilot,
+  }) =>
+      !stageANonBindingPilot;
+
+  /// Ordinary V5.2 development keeps the binding contract path testable.
+  /// A Stage-A candidate always fails closed before request creation.
+  static bool get bindingCheckoutEnabled => bindingCheckoutAvailableFor(
+        stageANonBindingPilot: stageANonBindingPilotEnabled,
+      );
 
   /// V5.1 product model. External legal/provider approval remains a separate
   /// launch gate and real money stays disabled until that evidence exists.
@@ -70,7 +85,7 @@ class PrivatePilotConfig {
   static const String v52DocumentName =
       'ShareItToo Rechtsmappe Privat-Launch V5.2';
   static const String v52DocumentVersion = 'V5.2-2026-08-16';
-  static const String v52ClientBuild = '1.0.0+2026082301';
+  static const String v52ClientBuild = '1.0.0+2026082302';
   static const String v52PrivateAndPlatformTermsDeclaration =
       'Ich handle bei dieser Buchung ausschließlich privat und akzeptiere die SIT-Plattformbedingungen [Teil A, Version V5.2-2026-08-16] sowie die Privat-Mietbedingungen einschließlich Storno-, Übergabe- und Schadenregeln [Teile B-D, Version V5.2-2026-08-16].';
   static const String v52EarlyPerformanceAndWithdrawalDeclaration =

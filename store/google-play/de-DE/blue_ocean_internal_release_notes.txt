@@ -2,5 +2,5 @@ Interner ShareItToo-Test: geschlossener, nicht bindender Stage-A-Produkt- und Pr
 
 - Geführte Inseratserstellung mit bearbeitbaren Entwürfen und klarer KI-Einwilligung
 - Regionale Preisorientierung und transparente simulierte Gesamtsumme
-- Projekt-, Warenkorb-, Anfrage-, Übergabe- und Rückgabeabläufe mit Testdaten
+- Suche, Projekte und nicht reservierender Mietkorb mit Testdaten; Mietanfragen bleiben im nicht bindenden Stage-A-Pilot gesperrt
 - Keine öffentliche Veröffentlichung und keine echten Zahlungen, Erstattungen oder Auszahlungen
