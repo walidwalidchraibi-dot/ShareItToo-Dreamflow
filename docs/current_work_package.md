@@ -200,6 +200,25 @@ The API image was not published and no signed candidate was built. The separate
 GitGuardian failure remains the documented pre-existing 250-commit PR-history
 finding; no credential detail was inspected. R8 is closed and R9 begins.
 
+### R9 database migration, backup and restore
+
+R9 now has a repository-owned PostgreSQL 16 recovery runner at implementation
+head `bfbbc94629b60f7df0862de3dc60ef6376cda959`. It starts from zero public
+tables, applies all 69 checksum-bound migrations, proves the second run changes
+no ledger entry and fingerprints the complete 136-table schema. A bounded
+synthetic dataset is dumped in PostgreSQL custom format and restored into a
+separate empty database with matching schema, migration inventory and data
+digest and zero tested integrity failures.
+
+A representative migration-027 state upgrades through migration 069 while
+preserving four users, two listings and one cart item. The empty R6 down path is
+transaction-tested and rolled back; with retained evidence, Support 032,
+Listing-AI 066 and Price Engine 069 all refuse destructive rollback and leave
+the restored digest unchanged. The local cluster and archive are removed and
+no synthetic credential is retained. Targeted tests and the R9 validator are
+green; the full technical regression and exact GitHub verification remain
+pending before R9 closes and R10 begins.
+
 ### R13 local Codex authentication clarification
 
 Official Codex documentation plus the actual local `codex login status`
