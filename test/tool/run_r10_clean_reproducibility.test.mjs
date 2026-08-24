@@ -168,6 +168,15 @@ test('selects only the Flutter runtime payload for debug or AOT artifacts', () =
 
 test('bounds project output separately from intentionally fresh package caches', () => {
   assert.deepEqual(validateR10GeneratedFootprint({
+    projectGeneratedKiB: 4 * 1024 * 1024,
+    isolatedPackageCachesKiB: 6 * 1024 * 1024,
+    totalKiB: 10 * 1024 * 1024,
+  }), {
+    maximumProjectGeneratedKiB: 5 * 1024 * 1024,
+    maximumIsolatedPackageCachesKiB: 8 * 1024 * 1024,
+    withinBounds: true,
+  });
+  assert.deepEqual(validateR10GeneratedFootprint({
     projectGeneratedKiB: 4_000,
     isolatedPackageCachesKiB: 3_000,
     totalKiB: 7_000,

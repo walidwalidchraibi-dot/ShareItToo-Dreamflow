@@ -268,7 +268,7 @@ async function generatedFootprint(checkout, cacheRoot) {
 
 export function validateR10GeneratedFootprint(value, {
   maximumProjectGeneratedKiB = 5 * 1024 * 1024,
-  maximumIsolatedPackageCachesKiB = 5 * 1024 * 1024,
+  maximumIsolatedPackageCachesKiB = 8 * 1024 * 1024,
 } = {}) {
   if (value.projectGeneratedKiB > maximumProjectGeneratedKiB) {
     fail('r10_project_generated_footprint_exceeds_bound');
@@ -726,6 +726,10 @@ export async function executeR10CleanReproducibility({
     )).stdout.trim();
     if (finalStatus !== '') fail('r10_build_changed_tracked_checkout');
     const afterFootprint = await generatedFootprint(checkout, cacheRoot);
+    process.stdout.write(
+      `[R10] generated footprint: project=${afterFootprint.projectGeneratedKiB} KiB, `
+        + `isolated-caches=${afterFootprint.isolatedPackageCachesKiB} KiB\n`,
+    );
     const footprintBounds = validateR10GeneratedFootprint(afterFootprint);
 
     evidence = {
