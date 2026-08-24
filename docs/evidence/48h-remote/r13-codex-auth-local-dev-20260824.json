@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r13-codex-auth-local-dev",
-  "status": "verified-local-evaluation-and-regression-passed-commit-pending",
+  "status": "verified-local-evaluation-regression-and-codeql-passed",
   "classification": "CODEX_AUTH_LOCAL_DEV_SUPPORTED",
   "implementationBaseHead": "e64defd0df62fb047c6fbc90733e4caf318ac7c4",
   "officialSupport": {
@@ -55,11 +55,41 @@
     "adapterTests": "passed-8",
     "statusCheck": "passed-chatgpt-no-api-billing",
     "actualSyntheticEvaluation": "passed",
-    "artifactValidatorTests": "passed-5",
+    "artifactValidatorTests": "passed-6",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationCommit": "b504bbb3a5ab97dbf2b162b13061e35400fa640d",
+    "regression": {
+      "runId": 32717658624,
+      "conclusion": "success",
+      "backendRegression": "success",
+      "postgresRunnerProof": "success",
+      "flutterRegression": "success",
+      "signedCandidateBuilt": false,
+      "apiImagePublished": false
+    },
+    "codeql": {
+      "workflowRunId": 32717658646,
+      "workflowConclusion": "success",
+      "advancedSecurityCheckId": 97402679227,
+      "advancedSecurityConclusion": "success",
+      "newAlerts": 0
+    },
+    "preExistingExternalHistoryCheck": {
+      "provider": "GitGuardian",
+      "baseCheckId": 97395091283,
+      "baseCommit": "e64defd0df62fb047c6fbc90733e4caf318ac7c4",
+      "baseConclusion": "failure",
+      "currentCheckId": 97402213592,
+      "currentConclusion": "failure",
+      "reportedPullRequestCommitScope": 250,
+      "credentialDetailsInspected": false,
+      "classifiedAsR13Regression": false
+    }
   },
   "boundaries": {
     "apiBillingEnabled": false,

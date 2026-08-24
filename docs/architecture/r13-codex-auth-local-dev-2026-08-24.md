@@ -69,6 +69,13 @@ The evaluation is developer evidence only. It is not an observed SIT user
 flow, does not enter regional learning, does not write a listing and is not
 wired to the backend or Flutter runtime.
 
+The exact implementation/security commit
+`b504bbb3a5ab97dbf2b162b13061e35400fa640d` passed GitHub regression run
+`32717658624`, CodeQL workflow `32717658646` and Advanced Security check
+`97402679227` with no new alerts. The separate GitGuardian failure reports the
+same 250-commit PR-history finding that was already present at the R13 base; it
+was not treated as green and no credential detail was inspected.
+
 ## Operation and rollback
 
 Read-only status:

@@ -35,6 +35,11 @@ Verified: 2026-08-24 on the Mac mini.
   Codex evaluation passed through the strict N2/N3 authority boundary under
   the existing ChatGPT login with no API billing environment, credential
   extraction, runtime wiring, price authority or publication.
+  Implementation/security commit `b504bbb3a5ab97dbf2b162b13061e35400fa640d`
+  passed regression run `32717658624`, CodeQL workflow `32717658646` and
+  Advanced Security check `97402679227` with no new alerts. The separate
+  GitGuardian check still reports the same pre-existing 250-commit PR-history
+  finding already present at the R13 base; no credential detail was inspected.
 
 ## Repository baseline
 

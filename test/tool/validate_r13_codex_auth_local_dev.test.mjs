@@ -17,13 +17,23 @@ function validate(changed = evidence) {
 
 test('accepts exact local Codex subscription-auth evidence', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-evaluation-and-regression-passed-commit-pending',
+    status: 'verified-local-evaluation-regression-and-codeql-passed',
     classification: 'CODEX_AUTH_LOCAL_DEV_SUPPORTED',
     authMode: 'chatgpt',
     apiBilling: false,
     runtimeProviderEligible: false,
     next48hPackage: 'R3',
   });
+});
+
+test('rejects GitHub success or historical external-check overclaims', () => {
+  const regression = structuredClone(evidence);
+  regression.githubVerification.regression.flutterRegression = 'failure';
+  assert.throws(() => validate(regression), /GitHub verification/u);
+
+  const external = structuredClone(evidence);
+  external.githubVerification.preExistingExternalHistoryCheck.currentConclusion = 'success';
+  assert.throws(() => validate(external), /GitHub verification/u);
 });
 
 test('rejects API billing or runtime entitlement overclaims', () => {

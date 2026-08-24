@@ -31,6 +31,7 @@ export function validateR13CodexAuthLocalDev({ repositoryRoot = root, evidence }
   const validStatuses = [
     'verified-local-evaluation-passed-regression-pending',
     'verified-local-evaluation-and-regression-passed-commit-pending',
+    'verified-local-evaluation-regression-and-codeql-passed',
   ];
   if (value.schemaVersion !== 1
       || value.kind !== 'sit-48h-r13-codex-auth-local-dev'
@@ -101,19 +102,50 @@ export function validateR13CodexAuthLocalDev({ repositoryRoot = root, evidence }
     pullRequestMerged: false,
   })) fail('R13 live boundary is invalid.');
   if (value.next48hPackage !== 'R3') fail('R13 next package is invalid.');
-  const fullRegressionPassed = value.status === validStatuses[1];
+  const fullRegressionPassed = value.status !== validStatuses[0];
+  const githubPassed = value.status === validStatuses[2];
   if (!exact(value.focusedVerification, {
     adapterTests: 'passed-8',
     statusCheck: 'passed-chatgpt-no-api-billing',
     actualSyntheticEvaluation: 'passed',
-    artifactValidatorTests: 'passed-5',
+    artifactValidatorTests: 'passed-6',
     artifactValidator: 'passed',
     fullTechnicalRegression: fullRegressionPassed
       ? 'passed-candidate-rollover-ci-metadata-mode'
       : 'pending',
-    githubRegression: 'pending',
-    githubCodeql: 'pending',
+    githubRegression: githubPassed ? 'passed' : 'pending',
+    githubCodeql: githubPassed ? 'passed-no-new-alerts' : 'pending',
   })) fail('R13 verification record is invalid.');
+  if (githubPassed && !exact(value.githubVerification, {
+    implementationCommit: 'b504bbb3a5ab97dbf2b162b13061e35400fa640d',
+    regression: {
+      runId: 32717658624,
+      conclusion: 'success',
+      backendRegression: 'success',
+      postgresRunnerProof: 'success',
+      flutterRegression: 'success',
+      signedCandidateBuilt: false,
+      apiImagePublished: false,
+    },
+    codeql: {
+      workflowRunId: 32717658646,
+      workflowConclusion: 'success',
+      advancedSecurityCheckId: 97402679227,
+      advancedSecurityConclusion: 'success',
+      newAlerts: 0,
+    },
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      baseCheckId: 97395091283,
+      baseCommit: 'e64defd0df62fb047c6fbc90733e4caf318ac7c4',
+      baseConclusion: 'failure',
+      currentCheckId: 97402213592,
+      currentConclusion: 'failure',
+      reportedPullRequestCommitScope: 250,
+      credentialDetailsInspected: false,
+      classifiedAsR13Regression: false,
+    },
+  })) fail('R13 GitHub verification is invalid.');
 
   const adapter = source(repositoryRoot, value.implementation.adapter);
   requireMarkers(adapter, value.implementation.adapter, [

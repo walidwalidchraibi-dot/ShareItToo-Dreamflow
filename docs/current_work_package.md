@@ -83,8 +83,13 @@ wired into the SIT runtime.
 One explicitly enabled synthetic Bohrmaschinen evaluation passed with the
 existing ChatGPT login, no API billing environment, no credentials extracted,
 no owner confirmations, no authoritative price and no publication. R13 does
-not authorize consumer-auth reuse for SIT users or production. R3 remains the
-next active 48H package.
+not authorize consumer-auth reuse for SIT users or production. Exact
+implementation/security commit `b504bbb3a5ab97dbf2b162b13061e35400fa640d`
+passed GitHub regression `32717658624`, CodeQL workflow `32717658646` and
+Advanced Security check `97402679227` with no new alerts. The unchanged
+GitGuardian 250-commit PR-history finding predates R13 and remains separately
+visible; no credential detail was inspected. R3 remains the next active 48H
+package.
 
 ## Completed package history
 
