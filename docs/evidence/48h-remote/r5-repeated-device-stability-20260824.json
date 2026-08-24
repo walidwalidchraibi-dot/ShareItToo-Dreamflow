@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r5-repeated-device-stability",
-  "status": "verified-local-r5-regression-pending",
+  "status": "verified-r5-full-regression-passed-ci-pending",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -140,7 +140,7 @@
     "freshPostgresIntegrationRuns": "passed-25-and-cleaned",
     "physicalPixelCycles": "passed-25-data-preserving",
     "privacyAndRetentionValidators": "passed-draft-fail-closed",
-    "fullTechnicalRegression": "pending",
+    "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },

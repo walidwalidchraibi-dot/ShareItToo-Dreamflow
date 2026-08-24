@@ -1,8 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1, R2 and R3
-complete; R13 local Codex evaluation verified; R4 lifecycle matrix active; non-live
-and fail-closed** on 24.08.2026.
+Status: **R0/P0 security contradiction verified closed; R1–R5 complete locally;
+R13 local Codex evaluation verified; R5 exact GitHub verification pending;
+non-live and fail-closed** on 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -89,8 +89,26 @@ the session, fixture, database, uploads and ADB reverse were removed. The full
 technical regression then passed. Exact verification head
 `40eb46c39b95ad54fa67b40fa54977bc0d034523` passed regression
 `32730758489`, CodeQL workflow `32730758551` and CodeQL check `97442882988`
-with zero open alerts. R4 is next; the historical PF0–PF5 packages remain
-complete and are not duplicated.
+with zero open alerts. The historical PF0–PF5 packages remain complete and are
+not duplicated.
+
+### R4 lifecycle and R5 repeated stability
+
+R4 completed its 28-case lifecycle/failure matrix and is exact
+GitHub-verified at head `c7dba0d0af5d00c5e2b4c5439bf0002e1185a9c5` through
+regression `32736181817`, CodeQL workflow `32736181796` and Advanced Security
+check `97459435293`, with zero open alerts and no live publication.
+
+R5 completed 25 fresh PostgreSQL/Blue-Ocean integrations, 25 encrypted
+owner-bound draft save/restore/clear cycles and 25 physical Pixel force-stop /
+start cycles on canonical local-QA build `1.0.0+2026082405`. The repeated runs
+found and permanently fixed one support progress timestamp race plus three
+non-monotonic integration fixture updates. The unchanged 25-run requirement
+then passed on implementation head
+`8e31b19f1205088036b4f3f9755dbdca33246ef1`, as did the full technical
+regression. The observations are not performance, memory-leak, packet-capture,
+full-device-UI or release certification. Exact GitHub Regression and CodeQL
+verification remain pending before R6.
 
 ### R13 local Codex authentication clarification
 

@@ -7,6 +7,16 @@ Verified: 2026-08-24 on the Mac mini.
 - The previous N0–N13 goal remains closed at `STAGE_A_BLUE_OCEAN_DECISION`.
 - A separate R0–R17 non-live runway is active and must end at
   `48H_REMOTE_READINESS_DECISION`.
+- R4 is complete and exact GitHub-verified at head
+  `c7dba0d0af5d00c5e2b4c5439bf0002e1185a9c5`: regression
+  `32736181817`, CodeQL workflow `32736181796` and Advanced Security check
+  `97459435293` passed with zero open alerts. R5 then completed 25 fresh local
+  PostgreSQL/Blue-Ocean flows, 25 encrypted owner-bound draft cycles and 25
+  physical Pixel start/stop cycles on local QA build `1.0.0+2026082405` from
+  implementation head `8e31b19f1205088036b4f3f9755dbdca33246ef1`. No target-flow
+  failure, crash, ANR, Flutter error, state corruption or failed replay was
+  observed. The complete local technical regression passed; exact R5 GitHub
+  Regression and CodeQL verification are pending before R6.
 - Baseline commit `18ae00c82c108d5b1d6478d354c385f11cc83da4` records
   the independently observed R0 state.
 - GitHub workflows were green at the preceding product HEAD, but the GitHub
@@ -40,8 +50,8 @@ Verified: 2026-08-24 on the Mac mini.
   The full technical regression passed in candidate-rollover CI metadata mode.
   Exact verification head `40eb46c39b95ad54fa67b40fa54977bc0d034523`
   passed regression `32730758489`, CodeQL workflow `32730758551` and CodeQL
-  check `97442882988` with zero open alerts. R4 is active; PF0–PF5 already
-  remain completed in repository history.
+  check `97442882988` with zero open alerts. R4 and R5 followed under the same
+  non-live boundaries; PF0–PF5 already remain completed in repository history.
 - The direct R13 clarification is classified
   `CODEX_AUTH_LOCAL_DEV_SUPPORTED`. `codex_local_dev` is implemented as a
   disabled-by-default, synthetic-fixture-only developer adapter. One real

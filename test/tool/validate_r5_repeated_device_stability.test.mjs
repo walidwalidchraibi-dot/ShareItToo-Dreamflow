@@ -19,7 +19,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact bounded R5 backend, Flutter and physical observations', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-r5-regression-pending',
+    status: 'verified-r5-full-regression-passed-ci-pending',
     backendRuns: 25,
     deviceCycles: 25,
     draftCycles: 25,

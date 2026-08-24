@@ -1,6 +1,6 @@
 # 48H R5 repeated device stability
 
-Status: **LOCAL REPEATED OBSERVATION COMPLETE — FULL REGRESSION PENDING**
+Status: **LOCAL REPEATED OBSERVATION AND FULL REGRESSION COMPLETE — CI PENDING**
 
 R5 binds three different stability observations to implementation and device
 candidate commit `8e31b19f1205088036b4f3f9755dbdca33246ef1`. They must not be
@@ -65,8 +65,10 @@ belongs to the Pixel evidence.
 
 Focused R5 harness checks, five Flutter recovery tests, both privacy/retention
 validators, the exact 25-run backend observation and exact 25-cycle Pixel
-observation are green. Full technical regression and exact GitHub
-Regression/CodeQL verification remain pending at this evidence stage.
+observation are green. The complete technical regression also passed in
+candidate-rollover CI metadata mode, including Web/Wasm and the 448-task
+Android debug build. Exact GitHub Regression/CodeQL verification remains
+pending at this evidence stage.
 
 R5 made no production, Cloud, Firebase, Payment, Store, VPS, DNS, pilot,
 external-AI, API-billing, real-money, public-release or PR-merge change. The
