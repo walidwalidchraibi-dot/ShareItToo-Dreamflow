@@ -1,6 +1,6 @@
 # 48H R10 technical-debt register
 
-Status: **TD-R10-001 LOCALLY RESOLVED — EXACT CI PENDING**
+Status: **TD-R10-001 AND TD-R10-002 LOCALLY RESOLVED — EXACT CI PENDING**
 
 This R10-specific register records clean-checkout, toolchain and reproducibility
 findings discovered after the historical PF18 release-readiness checkpoint. It
@@ -10,6 +10,7 @@ work cannot silently rewrite a completed historical audit.
 | ID | Finding and current evidence | Deterministic exit contract |
 |---|---|---|
 | `TD-R10-001` | **LOCALLY RESOLVED 24.08.2026; EXACT CI PENDING.** A clean direct Gradle debug build silently used fallback identity `1.0+1` when generated Flutter version metadata was absent. The technical gate now derives `1.0.0+2026082302` from checked-in `pubspec.yaml` before its unchanged single direct build. Two equivalent APKs also exposed byte drift limited exactly to DEX header checksum/SHA-1 bytes and the D8 synthetic-class checksum map; normalization is restricted to those fields and no raw binary identity is claimed. Project output and intentionally fresh package caches are measured separately at 3,208,463 KiB and 6,119,769 KiB and cleaned. | Close only after the independent exact-PR-head clean-clone job, normal Regression and CodeQL pass. Permanently retain locked restores, standard parallelism, exact build identity, unknown-drift failure and separate fixed 5-GiB project/8-GiB temporary-cache bounds. No stale local properties, undocumented cache, manual cleanup, retry, reduced suite or false byte-identity claim may replace them. |
+| `TD-R10-002` | **LOCALLY RESOLVED 24.08.2026; EXACT CI PENDING.** The first exact R10 CI run passed the CodeQL workflow but its separate Advanced Security result rejected one APK time-of-check/time-of-use hash pattern and two URL-substring diagnostics. APK size and SHA-256 now come from the same immutable in-memory read. Compiled origins are inspected as conservative raw byte markers: any embedded occurrence counts as present, and this probe is explicitly not URL parsing or host authorization. | Close only when the exact replacement run passes Regression, the clean R10 job, the CodeQL workflow and the separate Advanced Security result with zero open code-scanning alerts. Retain single-read artifact identity and conservative byte-marker semantics; no race suppression, CodeQL dismissal, substring allowlist or weakened negative OpenAI-origin check may replace them. |
 
 ## Observation log
 
@@ -21,3 +22,9 @@ work cannot silently rewrite a completed historical audit.
   The full local run at `322e97e` is green and cleans 9,328,232 KiB of measured
   temporary project/cache state. `TD-R10-001` remains open only for exact
   GitHub clean-clone, Regression and CodeQL verification.
+
+- 24.08.2026, R10 security follow-up: exact run `32765161224` passed all four
+  Regression jobs and the CodeQL workflow, but the separate Advanced Security
+  check failed on three high-confidence diagnostics in the new runner. The
+  underlying race shape and ambiguous string API were removed rather than
+  dismissed. `TD-R10-002` remains open for the exact replacement run.

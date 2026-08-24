@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   assertSafeR10TempRoot,
   compareApkInventories,
+  containsConservativeRawByteMarker,
   knownD8MetadataNormalizedSha256,
   parseAaptBadging,
   parseAaptPermissions,
@@ -49,6 +50,25 @@ test('uses a safe branch hint only for detached CI checkouts', () => {
   assert.throws(
     () => resolveR10SourceBranch('main', 'codex/master-workflow-20260808'),
     /r10_source_branch_invalid/u,
+  );
+});
+
+test('compiled-origin probes are conservative raw-byte diagnostics', () => {
+  const payload = Buffer.from(
+    'prefix-https://shareittoo.com/api/v1-suffix',
+    'ascii',
+  );
+  assert.equal(
+    containsConservativeRawByteMarker(payload, 'https://shareittoo.com/api/v1'),
+    true,
+  );
+  assert.equal(
+    containsConservativeRawByteMarker(payload, 'https://api.openai.com'),
+    false,
+  );
+  assert.throws(
+    () => containsConservativeRawByteMarker(payload, ''),
+    /invalid_raw_byte_marker/u,
   );
 });
 

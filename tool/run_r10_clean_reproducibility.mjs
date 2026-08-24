@@ -12,7 +12,6 @@ import {
   readFile,
   readdir,
   rm,
-  stat,
   writeFile,
 } from 'node:fs/promises';
 import os from 'node:os';
@@ -45,6 +44,19 @@ function fail(message) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+export function containsConservativeRawByteMarker(value, asciiMarker) {
+  if (!Buffer.isBuffer(value)
+      || typeof asciiMarker !== 'string'
+      || asciiMarker.length === 0
+      || !/^[\x20-\x7e]+$/u.test(asciiMarker)) {
+    fail('r10_invalid_raw_byte_marker');
+  }
+  // This is deliberately a conservative compiled-artifact byte probe, not URL
+  // parsing or host authorization. Any occurrence, including one embedded in
+  // surrounding bytes, counts as present.
+  return value.indexOf(Buffer.from(asciiMarker, 'ascii')) !== -1;
 }
 
 function exact(actual, expected) {
@@ -450,9 +462,10 @@ async function apkInventory(apk, extractionRoot) {
     }
     entries.push(Object.freeze(entry));
   }
+  const apkBytes = await readFile(apk);
   return Object.freeze({
-    bytes: (await stat(apk)).size,
-    sha256: sha256(await readFile(apk)),
+    bytes: apkBytes.length,
+    sha256: sha256(apkBytes),
     payloadInventorySha256: sha256(JSON.stringify(entries)),
     entries: Object.freeze(entries),
   });
@@ -486,12 +499,17 @@ async function runtimeConfiguration(checkout, manifest, compiledPayload) {
       `social-${provider.toLowerCase()}-disabled`,
     );
   }
-  const ascii = compiledPayload.toString('latin1');
   const value = Object.freeze({
     backendEnabledInDebugByDefault: false,
-    compiledDefaultBackendOriginPresent: ascii.includes('https://shareittoo.com/api/v1'),
+    compiledDefaultBackendOriginPresent: containsConservativeRawByteMarker(
+      compiledPayload,
+      'https://shareittoo.com/api/v1',
+    ),
     externalAiNetworkAllowed: false,
-    compiledOpenAiApiOriginPresent: ascii.includes('https://api.openai.com'),
+    compiledOpenAiApiOriginPresent: containsConservativeRawByteMarker(
+      compiledPayload,
+      'https://api.openai.com',
+    ),
     realPaymentsEnabled: false,
     socialProvidersEnabledByDefault: Object.freeze({ google: false, apple: false, facebook: false }),
     firebaseSdkPresent: manifest.includes('FirebaseMessagingRegistrar')

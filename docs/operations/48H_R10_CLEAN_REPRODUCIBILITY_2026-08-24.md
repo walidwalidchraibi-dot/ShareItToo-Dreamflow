@@ -53,3 +53,11 @@ to exact successful checks. The post-PF18 finding and its permanent exit
 contract are retained separately in
 `docs/operations/48H_R10_TECHNICAL_DEBT_2026-08-24.md`; the historical PF18
 21-item snapshot remains unchanged. R11 is next after that closure.
+
+The first exact run `32765161224` passed the clean R10 job, normal Regression
+and the CodeQL workflow. Its separate Advanced Security result identified an
+APK time-of-check/time-of-use hash shape and two ambiguous URL-substring APIs
+in the new runner. The implementation now hashes the same in-memory bytes used
+for size and treats compiled origins as conservative raw-byte diagnostics, not
+URL authorization. No alert was dismissed; an exact replacement run is
+required before R10 can close.

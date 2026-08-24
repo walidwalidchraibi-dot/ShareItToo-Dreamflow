@@ -35,10 +35,11 @@ function requireExact(actual, expected, message) {
 }
 
 export function validateR10TechnicalDebtDocument(value) {
-  if (!value.includes('Status: **TD-R10-001 LOCALLY RESOLVED — EXACT CI PENDING**')
+  if (!value.includes('Status: **TD-R10-001 AND TD-R10-002 LOCALLY RESOLVED — EXACT CI PENDING**')
       || !value.includes('deliberately separate from the immutable 21-item PF18 snapshot')
       || !value.includes('No stale local properties, undocumented cache, manual cleanup, retry, reduced suite or false byte-identity claim may replace them.')
-      || (value.match(/^\| `TD-R10-\d{3}` \|/gmu) ?? []).length !== 1) {
+      || !value.includes('no race suppression, CodeQL dismissal, substring allowlist or weakened negative OpenAI-origin check may replace them')
+      || (value.match(/^\| `TD-R10-\d{3}` \|/gmu) ?? []).length !== 2) {
     fail('R10 technical-debt exit contract is invalid or has drifted.');
   }
 }

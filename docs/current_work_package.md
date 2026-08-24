@@ -259,7 +259,10 @@ cap, and all are removed. Focused runner/metadata/validator/wiring tests and the
 retained validator are green. The post-PF18 finding is retained as
 `TD-R10-001` in the separate R10 technical-debt register so the historical PF18
 snapshot stays immutable. The independent GitHub clean-checkout job, Regression
-and CodeQL remain pending before R10 closes and R11 begins.
+and CodeQL workflow passed at `f911e04`, but the separate Advanced Security
+result found three diagnostics in the new runner. Single-read APK identity and
+conservative raw-byte marker checks now resolve them locally as `TD-R10-002`;
+an exact replacement run remains required before R10 closes and R11 begins.
 
 ### R13 local Codex authentication clarification
 
