@@ -17,6 +17,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath =
   'docs/evidence/48h-remote/r8-bounded-concurrency-20260824.json';
 const implementationHead = '74daf0a462a240649a647c5b9c00e5568c5af3ed';
+const verifiedHead = 'f4b69d6ae56d75acdcccf568aec2ba1de3915c45';
 
 function fail(message) {
   throw new Error(message);
@@ -132,22 +133,43 @@ export function validateR8BoundedConcurrency({
   if (!githubPassed && value.githubVerification !== undefined) {
     fail('R8 pending evidence must not claim GitHub verification.');
   }
-  if (githubPassed) {
-    const github = value.githubVerification;
-    if (github?.implementationHead !== implementationHead
-        || !/^[0-9a-f]{40}$/u.test(github?.verifiedHead ?? '')
-        || github?.regression?.conclusion !== 'success'
-        || !Number.isSafeInteger(github?.regression?.runId)
-        || github?.regression?.postgresConclusion !== 'success'
-        || github?.regression?.backendConclusion !== 'success'
-        || github?.regression?.flutterConclusion !== 'success'
-        || github?.regression?.apiImagePublished !== false
-        || github?.codeql?.workflowConclusion !== 'success'
-        || github?.codeql?.advancedSecurityConclusion !== 'success'
-        || github?.codeql?.newAlerts !== 0) {
-      fail('R8 exact GitHub verification is invalid.');
-    }
-  }
+  if (githubPassed && !exact(value.githubVerification, {
+    implementationHead,
+    verifiedHead,
+    regression: {
+      runId: 32752535433,
+      conclusion: 'success',
+      postgresJobId: 97512758822,
+      postgresConclusion: 'success',
+      backendJobId: 97512759179,
+      backendConclusion: 'success',
+      flutterJobId: 97512759251,
+      flutterConclusion: 'success',
+      parallelStabilityExecuted: false,
+      signedCandidateBuilt: false,
+      apiImageBuilt: true,
+      apiImagePublished: false,
+      publishApiImageJobId: 97515110356,
+      publishApiImageConclusion: 'skipped',
+    },
+    codeql: {
+      workflowRunId: 32752535527,
+      workflowConclusion: 'success',
+      advancedSecurityCheckId: 97513141931,
+      advancedSecurityConclusion: 'success',
+      newAlerts: 0,
+    },
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      documentedBaseCommit: 'e64defd0df62fb047c6fbc90733e4caf318ac7c4',
+      documentedBaseCheckId: 97395091283,
+      currentCheckId: 97512569543,
+      currentConclusion: 'failure',
+      reportedPullRequestCommitScope: 250,
+      credentialDetailsInspected: false,
+      classifiedAsR8Regression: false,
+    },
+  })) fail('R8 exact GitHub verification is invalid.');
 
   if (!exact(value.limitations, {
     boundedLocalObservationOnly: true,

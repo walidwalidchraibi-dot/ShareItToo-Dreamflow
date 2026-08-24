@@ -17,9 +17,9 @@ function validate(changed = evidence) {
   return validateR8BoundedConcurrency({ repositoryRoot: root, evidence: changed });
 }
 
-test('accepts the exact locally verified R8 bounded observation', () => {
+test('accepts the exact GitHub-verified R8 bounded observation', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-r8-regression-passed-ci-pending',
+    status: 'verified-r8-regression-and-codeql-passed',
     accountCount: 120,
     maximumConcurrentWorkers: 24,
     nextPackage: 'R9',
@@ -62,8 +62,15 @@ test('rejects a retained workaround, premature GitHub claim or live action', () 
   assert.throws(() => validate(workaround), /workaround audit/u);
 
   const github = structuredClone(evidence);
+  github.status = 'verified-local-r8-regression-passed-ci-pending';
+  github.verification.githubRegression = 'pending';
+  github.verification.githubCodeql = 'pending';
   github.githubVerification = {};
   assert.throws(() => validate(github), /must not claim GitHub/u);
+
+  const changedCheck = structuredClone(evidence);
+  changedCheck.githubVerification.codeql.newAlerts = 1;
+  assert.throws(() => validate(changedCheck), /exact GitHub verification/u);
 
   const live = structuredClone(evidence);
   live.boundaries.realMoneyUsed = true;

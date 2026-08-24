@@ -1,8 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R7 and R13 exact
-verified; R8 locally verified with exact GitHub CI pending; non-live and
-fail-closed** on
+Status: **R0/P0 security contradiction verified closed; R1–R8 and R13 exact
+verified; R9 active; non-live and fail-closed** on
 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -194,8 +193,12 @@ rejected that intermediate attempt. PostgreSQL cleanup completed and no
 credential, external provider call or real-money action was retained. Backend,
 fresh PostgreSQL, analyzer zero, 393 Flutter passes plus one documented skip,
 Web/Wasm, loopback smoke and the 448-task Android debug build are locally green.
-Exact GitHub Regression and CodeQL verification remains pending before R8 can
-close and R9 can begin.
+Exact verified head `f4b69d6ae56d75acdcccf568aec2ba1de3915c45`
+passed GitHub Regression `32752535433`, CodeQL workflow `32752535527` and
+Advanced Security check `97513141931`, with zero open PR code-scanning alerts.
+The API image was not published and no signed candidate was built. The separate
+GitGuardian failure remains the documented pre-existing 250-commit PR-history
+finding; no credential detail was inspected. R8 is closed and R9 begins.
 
 ### R13 local Codex authentication clarification
 

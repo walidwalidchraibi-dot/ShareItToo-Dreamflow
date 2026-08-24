@@ -1,6 +1,6 @@
 # 48H R8 bounded concurrency and race testing
 
-Status: **LOCAL VERIFIED — FULL REGRESSION GREEN; EXACT GITHUB CI PENDING**
+Status: **VERIFIED — LOCAL REGRESSION, GITHUB REGRESSION AND CODEQL GREEN**
 
 R8 exercises 120 repository-owned synthetic accounts with at most 24
 concurrent workers against an ephemeral loopback application and PostgreSQL 16
@@ -54,10 +54,13 @@ pass at implementation head
 `74daf0a462a240649a647c5b9c00e5568c5af3ed`. The complete candidate-rollover
 technical regression is also green in CI-metadata mode: analyzer zero, 393
 Flutter passes plus one documented skip, separate Google-only profile, Web/Wasm,
-loopback smoke and the 448-task Android debug build all pass. Exact GitHub
-Regression/CodeQL verification is still pending. No external provider, real
-person, real money, Production, Cloud, Firebase, Payment, Store, VPS, DNS,
-pilot activation, public release or PR merge is part of R8.
-
-After exact local and GitHub verification, R8 closes and the next package is
-`R9`.
+loopback smoke and the 448-task Android debug build all pass. Exact verified
+head `f4b69d6ae56d75acdcccf568aec2ba1de3915c45` passed GitHub Regression
+`32752535433`, CodeQL workflow `32752535527` and Advanced Security check
+`97513141931`, with zero open PR code-scanning alerts. The API image was built
+but not published; explicit parallel stability and signed-candidate creation
+were not requested. The separate GitGuardian failure remains the documented
+pre-existing 250-commit PR-history finding; no credential detail was inspected.
+No external provider, real person, real money, Production, Cloud, Firebase,
+Payment, Store, VPS, DNS, pilot activation, public release or PR merge is part
+of R8. R8 is closed and the next package is `R9`.

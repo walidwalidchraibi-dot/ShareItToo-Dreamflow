@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r8-bounded-concurrency",
-  "status": "verified-local-r8-regression-passed-ci-pending",
+  "status": "verified-r8-regression-and-codeql-passed",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -93,8 +93,45 @@
     "r8ArtifactValidatorTests": "passed-6",
     "r8ArtifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationHead": "74daf0a462a240649a647c5b9c00e5568c5af3ed",
+    "verifiedHead": "f4b69d6ae56d75acdcccf568aec2ba1de3915c45",
+    "regression": {
+      "runId": 32752535433,
+      "conclusion": "success",
+      "postgresJobId": 97512758822,
+      "postgresConclusion": "success",
+      "backendJobId": 97512759179,
+      "backendConclusion": "success",
+      "flutterJobId": 97512759251,
+      "flutterConclusion": "success",
+      "parallelStabilityExecuted": false,
+      "signedCandidateBuilt": false,
+      "apiImageBuilt": true,
+      "apiImagePublished": false,
+      "publishApiImageJobId": 97515110356,
+      "publishApiImageConclusion": "skipped"
+    },
+    "codeql": {
+      "workflowRunId": 32752535527,
+      "workflowConclusion": "success",
+      "advancedSecurityCheckId": 97513141931,
+      "advancedSecurityConclusion": "success",
+      "newAlerts": 0
+    },
+    "preExistingExternalHistoryCheck": {
+      "provider": "GitGuardian",
+      "documentedBaseCommit": "e64defd0df62fb047c6fbc90733e4caf318ac7c4",
+      "documentedBaseCheckId": 97395091283,
+      "currentCheckId": 97512569543,
+      "currentConclusion": "failure",
+      "reportedPullRequestCommitScope": 250,
+      "credentialDetailsInspected": false,
+      "classifiedAsR8Regression": false
+    }
   },
   "limitations": {
     "boundedLocalObservationOnly": true,
