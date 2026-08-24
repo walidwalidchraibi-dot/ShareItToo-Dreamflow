@@ -1407,6 +1407,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         ? assistant!['quotePreviews'] as List
         : const <dynamic>[];
     final readiness = assistant?['readiness'];
+    final exactCurrentStateIsReady = readiness is Map &&
+        readiness['readyToPublish'] == true &&
+        _blueOceanReadyFingerprint != null &&
+        _blueOceanReadyFingerprint == _blueOceanEditableFingerprint();
     const confirmationLabels = <String, String>{
       'ownership': 'Der Artikel gehört mir oder ich darf ihn vermieten.',
       'item_identity': 'Artikel, Marke, Modell und Beschreibung sind geprüft.',
@@ -1870,7 +1874,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: readiness['readyToPublish'] == true
+                      color: exactCurrentStateIsReady
                           ? Colors.green.withValues(alpha: 0.12)
                           : Colors.amber.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(10),
@@ -1878,13 +1882,13 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(readiness['readyToPublish'] == true
+                          Icon(exactCurrentStateIsReady
                               ? Icons.check_circle_outline
                               : Icons.pending_actions_outlined),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              readiness['readyToPublish'] == true
+                              exactCurrentStateIsReady
                                   ? 'READY_TO_PUBLISH: Die vollständige Vorschau '
                                       'ist bereit. Nur der Button „Anzeige '
                                       'veröffentlichen“ darf jetzt publizieren.'

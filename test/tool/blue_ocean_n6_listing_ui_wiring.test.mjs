@@ -118,6 +118,12 @@ test('publication is bound to the exact fully reviewed editable snapshot', () =>
     screen,
     /_blueOceanReadyFingerprint == null \|\|[\s\S]*_blueOceanReadyFingerprint != _blueOceanEditableFingerprint\(\)/u,
   );
+  assert.match(
+    screen,
+    /final exactCurrentStateIsReady = readiness is Map &&[\s\S]*_blueOceanReadyFingerprint == _blueOceanEditableFingerprint\(\)/u,
+  );
+  assert.match(screen, /color: exactCurrentStateIsReady/u);
+  assert.match(screen, /Icon\(exactCurrentStateIsReady/u);
   assert.match(screen, /Der Anzeigeninhalt wurde nach der letzten vollständigen/u);
 });
 
