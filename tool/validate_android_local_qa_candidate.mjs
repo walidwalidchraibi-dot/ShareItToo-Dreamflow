@@ -16,7 +16,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { canonicalAndroidSigningCertificateSha256 } from './validate_current_head_android_release_archive.mjs';
 
-const buildNumber = '2026082303';
+const defaultBuildNumber = '2026082303';
 const versionName = '1.0.0';
 const applicationId = 'com.shareittoo.app';
 
@@ -81,12 +81,18 @@ export async function validateAndroidLocalQaCandidate({
   root,
   candidateDirectory,
   expectedCommit,
+  expectedBuildNumber = defaultBuildNumber,
   commandRunner = defaultRunner,
   apksignerPath,
   aaptPath,
   includePrivateArtifact = false,
 } = {}) {
   const repositoryRoot = resolve(root ?? fileURLToPath(new URL('../', import.meta.url)));
+  const buildNumber = String(expectedBuildNumber);
+  if (!/^\d{10,12}$/u.test(buildNumber)
+      || BigInt(buildNumber) < BigInt(defaultBuildNumber)) {
+    fail('Local QA build number is invalid.');
+  }
   const commit = expectedCommit ?? String(commandRunner('git', ['rev-parse', 'HEAD'], {
     cwd: repositoryRoot,
   })).trim();
@@ -199,7 +205,10 @@ export async function validateAndroidLocalQaCandidate({
 }
 
 async function run() {
-  const result = await validateAndroidLocalQaCandidate();
+  const result = await validateAndroidLocalQaCandidate({
+    expectedBuildNumber: process.env.SIT_LOCAL_QA_BUILD_NUMBER
+      ?? defaultBuildNumber,
+  });
   console.log(
     `R2 local QA candidate valid: build=${result.buildNumber}, `
       + `commit=${result.commit}, signing=canonical, installed=false`,

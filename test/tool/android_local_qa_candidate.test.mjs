@@ -14,14 +14,15 @@ import { createTestTempTracker } from './test_temp_fixtures.mjs';
 
 const tempFixtures = createTestTempTracker();
 const commit = 'b'.repeat(40);
-const apkName = `shareittoo-local-qa-1.0.0-2026082303-${commit}.apk`;
+const defaultBuildNumber = '2026082303';
 
-function fixture() {
+function fixture(buildNumber = defaultBuildNumber) {
   const root = tempFixtures.makeSync('sit-r2-candidate-');
   const directory = resolve(root, 'candidate');
   mkdirSync(directory, { mode: 0o700 });
   chmodSync(directory, 0o700);
   const apk = Buffer.from('local qa apk');
+  const apkName = `shareittoo-local-qa-1.0.0-${buildNumber}-${commit}.apk`;
   const manifest = {
     schemaVersion: 1,
     kind: 'sit-android-local-blue-ocean-qa-candidate',
@@ -32,7 +33,7 @@ function fixture() {
       commit,
       applicationId: 'com.shareittoo.app',
       versionName: '1.0.0',
-      buildNumber: '2026082303',
+      buildNumber,
     },
     artifact: {
       fileName: apkName,
@@ -77,15 +78,19 @@ function fixture() {
   return { root, directory, manifest };
 }
 
-function runner(_file, args) {
-  if (args[0] === 'verify') {
-    return `Signer #1 certificate SHA-256 digest: ${canonicalAndroidSigningCertificateSha256}\n`;
-  }
-  if (args[0] === 'dump') {
-    return "package: name='com.shareittoo.app' versionCode='2026082303' versionName='1.0.0'\n";
-  }
-  throw new Error('Unexpected fake Android tool command.');
+function runnerFor(buildNumber = defaultBuildNumber) {
+  return (_file, args) => {
+    if (args[0] === 'verify') {
+      return `Signer #1 certificate SHA-256 digest: ${canonicalAndroidSigningCertificateSha256}\n`;
+    }
+    if (args[0] === 'dump') {
+      return `package: name='com.shareittoo.app' versionCode='${buildNumber}' versionName='1.0.0'\n`;
+    }
+    throw new Error('Unexpected fake Android tool command.');
+  };
 }
+
+const runner = runnerFor();
 
 test('accepts the exact owner-only local QA candidate without exposing paths or signing digests', async () => {
   const value = fixture();
@@ -116,10 +121,25 @@ test('returns private installation facts only behind the explicit in-process opt
   });
   assert.equal(result.applicationId, 'com.shareittoo.app');
   assert.equal(result.buildNumber, '2026082303');
-  assert.equal(result.apkPath, resolve(value.directory, apkName));
+  assert.equal(result.apkPath, resolve(value.directory, value.manifest.artifact.fileName));
   assert.equal(result.signingCertificateSha256, canonicalAndroidSigningCertificateSha256);
   assert.equal(result.apiBaseUrl, 'http://127.0.0.1:18080/api/v1');
   assert.equal(result.firebaseConfigured, false);
+});
+
+test('accepts an explicitly newer local QA build without changing the R2 default', async () => {
+  const buildNumber = '2026082401';
+  const value = fixture(buildNumber);
+  const result = await validateAndroidLocalQaCandidate({
+    root: value.root,
+    candidateDirectory: value.directory,
+    expectedCommit: commit,
+    expectedBuildNumber: buildNumber,
+    commandRunner: runnerFor(buildNumber),
+    apksignerPath: 'apksigner',
+    aaptPath: 'aapt',
+  });
+  assert.equal(result.buildNumber, buildNumber);
 });
 
 test('rejects a live boundary or noncanonical signature', async () => {

@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_NAME="1.0.0"
-BUILD_NUMBER="2026082303"
+DEFAULT_BUILD_NUMBER="2026082303"
+BUILD_NUMBER="${SIT_LOCAL_QA_BUILD_NUMBER:-$DEFAULT_BUILD_NUMBER}"
 API_BASE_URL="http://127.0.0.1:18080/api/v1"
 APPLICATION_ID="com.shareittoo.app"
 
@@ -11,6 +12,11 @@ cd "$ROOT"
 
 if [[ "${SIT_CONFIRM_LOCAL_INTERNAL_QA:-0}" != "1" ]]; then
   echo "ERROR: Set SIT_CONFIRM_LOCAL_INTERNAL_QA=1 for the bounded R2 local candidate." >&2
+  exit 1
+fi
+if [[ ! "$BUILD_NUMBER" =~ ^[0-9]{10,12}$ ]] ||
+   (( 10#$BUILD_NUMBER < 10#$DEFAULT_BUILD_NUMBER )); then
+  echo "ERROR: Local QA build number must be numeric and must not precede the R2 baseline." >&2
   exit 1
 fi
 if [[ -n "$(git status --porcelain)" ]]; then
