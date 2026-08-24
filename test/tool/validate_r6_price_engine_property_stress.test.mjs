@@ -17,9 +17,9 @@ function validate(changed = evidence) {
   return validateR6PriceEnginePropertyStress({ repositoryRoot: root, evidence: changed });
 }
 
-test('accepts the exact locally verified R6 property and PostgreSQL evidence', () => {
+test('accepts the exact GitHub-verified R6 property and PostgreSQL evidence', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-r6-regression-passed-ci-pending',
+    status: 'verified-r6-regression-and-codeql-passed',
     stressCases: 2000,
     observationInputs: 16651,
     nextPackage: 'R7',
@@ -52,17 +52,17 @@ test('rejects migration rewrite or rollback overclaim', () => {
   assert.throws(() => validate(migration), /migration verification/u);
 });
 
-test('rejects premature GitHub claims or a missing exact GitHub record', () => {
+test('rejects premature or changed GitHub claims', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'verified-local-r6-regression-passed-ci-pending';
+  premature.verification.githubRegression = 'pending';
+  premature.verification.githubCodeql = 'pending';
   premature.githubVerification = {};
   assert.throws(() => validate(premature), /must not claim GitHub/u);
 
-  const missing = structuredClone(evidence);
-  missing.status = 'verified-r6-regression-and-codeql-passed';
-  missing.verification.fullTechnicalRegression = 'passed-candidate-rollover-ci-metadata-mode';
-  missing.verification.githubRegression = 'passed';
-  missing.verification.githubCodeql = 'passed-no-new-alerts';
-  assert.throws(() => validate(missing), /requires exact GitHub/u);
+  const changed = structuredClone(evidence);
+  changed.githubVerification.codeql.newAlerts = 1;
+  assert.throws(() => validate(changed), /exact GitHub verification/u);
 });
 
 test('rejects live changes, capacity claims or secret-shaped evidence', () => {

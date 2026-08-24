@@ -9,6 +9,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath =
   'docs/evidence/48h-remote/r6-price-engine-property-stress-20260824.json';
 const implementationHead = '0005a8abab6178d282b4c79bedd2e36870968675';
+const verifiedHead = 'f4dd649f74c0420faf0117afbd844563e91effda';
 
 function fail(message) {
   throw new Error(message);
@@ -153,8 +154,44 @@ export function validateR6PriceEnginePropertyStress({
   if (!githubPassed && value.githubVerification !== undefined) {
     fail('R6 pending evidence must not claim GitHub verification.');
   }
-  if (githubPassed && !value.githubVerification) {
-    fail('R6 verified evidence requires exact GitHub verification.');
+  if (githubPassed && !exact(value.githubVerification, {
+    implementationHead,
+    verifiedHead,
+    regression: {
+      runId: 32746280246,
+      conclusion: 'success',
+      postgresJobId: 97492755326,
+      postgresConclusion: 'success',
+      backendJobId: 97492755400,
+      backendConclusion: 'success',
+      flutterJobId: 97492754898,
+      flutterConclusion: 'success',
+      parallelStabilityExecuted: false,
+      signedCandidateBuilt: false,
+      apiImageBuilt: true,
+      apiImagePublished: false,
+      publishApiImageJobId: 97495255521,
+      publishApiImageConclusion: 'skipped',
+    },
+    codeql: {
+      workflowRunId: 32746280233,
+      workflowConclusion: 'success',
+      advancedSecurityCheckId: 97493148349,
+      advancedSecurityConclusion: 'success',
+      newAlerts: 0,
+    },
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      documentedBaseCommit: 'e64defd0df62fb047c6fbc90733e4caf318ac7c4',
+      documentedBaseCheckId: 97395091283,
+      currentCheckId: 97492456137,
+      currentConclusion: 'failure',
+      reportedPullRequestCommitScope: 250,
+      credentialDetailsInspected: false,
+      classifiedAsR6Regression: false,
+    },
+  })) {
+    fail('R6 exact GitHub verification is invalid.');
   }
 
   if (!exact(value.limitations, {

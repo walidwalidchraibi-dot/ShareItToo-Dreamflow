@@ -1,6 +1,6 @@
 # 48H R6 regional Price Engine property and stress testing
 
-Status: **LOCAL VERIFIED — TARGETED, POSTGRESQL AND FULL REGRESSION GREEN; CI PENDING**
+Status: **VERIFIED — TARGETED, POSTGRESQL, FULL REGRESSION AND CODEQL GREEN**
 
 R6 independently tested `SIT_REGIONAL_PRICE_ENGINE_V2` against the complete
 Goal matrix. The retained deterministic suite covers all 90 category/value-band/
@@ -58,7 +58,15 @@ twice, persisted the Blue-Ocean review with the new engine version and returned
 `passed-and-cleaned`. The complete candidate-rollover technical regression also
 passes in CI metadata mode, including the analyzer-zero gate, Flutter tests,
 Web/Wasm build and loopback smoke, and the Android debug build. Exact GitHub
-Regression and CodeQL verification remain pending.
+Regression `32746280246` passed at verified head
+`f4dd649f74c0420faf0117afbd844563e91effda`, including PostgreSQL job
+`97492755326`, Backend job `97492755400` and Flutter job `97492754898`.
+CodeQL workflow `32746280233` and Advanced Security check `97493148349` also
+passed with zero new code-scanning alerts. The API image was built but not
+published; parallel stability and signed-candidate creation were not requested.
+The separately visible GitGuardian failure is the documented pre-existing
+250-commit PR-history finding, not an R6 regression; no credential detail was
+inspected.
 
 ## Boundary and rollback
 

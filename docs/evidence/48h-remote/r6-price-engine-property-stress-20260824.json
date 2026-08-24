@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r6-price-engine-property-stress",
-  "status": "verified-local-r6-regression-passed-ci-pending",
+  "status": "verified-r6-regression-and-codeql-passed",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -113,8 +113,45 @@
     "seededStress": "passed-2000-cases-16651-observations",
     "postgres16MigrationAndWorkflow": "passed-and-cleaned",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationHead": "0005a8abab6178d282b4c79bedd2e36870968675",
+    "verifiedHead": "f4dd649f74c0420faf0117afbd844563e91effda",
+    "regression": {
+      "runId": 32746280246,
+      "conclusion": "success",
+      "postgresJobId": 97492755326,
+      "postgresConclusion": "success",
+      "backendJobId": 97492755400,
+      "backendConclusion": "success",
+      "flutterJobId": 97492754898,
+      "flutterConclusion": "success",
+      "parallelStabilityExecuted": false,
+      "signedCandidateBuilt": false,
+      "apiImageBuilt": true,
+      "apiImagePublished": false,
+      "publishApiImageJobId": 97495255521,
+      "publishApiImageConclusion": "skipped"
+    },
+    "codeql": {
+      "workflowRunId": 32746280233,
+      "workflowConclusion": "success",
+      "advancedSecurityCheckId": 97493148349,
+      "advancedSecurityConclusion": "success",
+      "newAlerts": 0
+    },
+    "preExistingExternalHistoryCheck": {
+      "provider": "GitGuardian",
+      "documentedBaseCommit": "e64defd0df62fb047c6fbc90733e4caf318ac7c4",
+      "documentedBaseCheckId": 97395091283,
+      "currentCheckId": 97492456137,
+      "currentConclusion": "failure",
+      "reportedPullRequestCommitScope": 250,
+      "credentialDetailsInspected": false,
+      "classifiedAsR6Regression": false
+    }
   },
   "limitations": {
     "realMarketObservationsUsed": false,

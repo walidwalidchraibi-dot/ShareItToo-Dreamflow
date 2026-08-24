@@ -1,8 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R5 exact verified;
-R6 locally regression-verified with exact GitHub checks pending; R13 local
-Codex evaluation verified; non-live and fail-closed** on
+Status: **R0/P0 security contradiction verified closed; R1–R6 and R13 exact
+verified; R7 image privacy/AI contract hardening active; non-live and
+fail-closed** on
 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -139,8 +139,13 @@ A fresh repository-owned PostgreSQL 16 run applied all 69 migrations twice,
 exercised the Blue Ocean workflow and returned `passed-and-cleaned`. The full
 candidate-rollover technical regression passes in CI metadata mode, including
 analyzer zero, Flutter, Web/Wasm, loopback smoke and Android debug build. Exact
-GitHub Regression and CodeQL verification are still pending; R7 does not begin
-until those R6 checks are bound.
+verified head `f4dd649f74c0420faf0117afbd844563e91effda` passed GitHub Regression
+`32746280246`, CodeQL workflow `32746280233` and Advanced Security check
+`97493148349`, with zero new code-scanning alerts. The API image was built but
+not published; parallel stability and a signed candidate were not requested.
+The visible GitGuardian failure remains the documented pre-existing 250-commit
+PR-history finding and no credential detail was inspected. R6 is closed and R7
+begins.
 
 ### R13 local Codex authentication clarification
 
