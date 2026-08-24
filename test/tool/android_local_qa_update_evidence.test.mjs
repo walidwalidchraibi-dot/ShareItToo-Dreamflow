@@ -18,6 +18,10 @@ const installer = readFileSync(resolve(
   root,
   'tool/install_current_head_android_candidate_update.mjs',
 ), 'utf8');
+const regressionWorkflow = readFileSync(resolve(
+  root,
+  '.github/workflows/regression.yml',
+), 'utf8');
 
 test('R2 evidence binds the installed local-QA candidate and all seven conditions', () => {
   assert.equal(evidence.schemaVersion, 1);
@@ -63,6 +67,17 @@ test('R2 closes the timing debt with deterministic launch checks', () => {
   assert.equal(evidence.technicalDebt.workaroundIsReleasePrerequisite, false);
   assert.match(operation, /TD-48H-001/u);
   assert.match(operation, /am start -W/u);
+});
+
+test('Flutter CI fetches the history required by commit-bound R2 evidence', () => {
+  const flutterJob = regressionWorkflow.slice(
+    regressionWorkflow.indexOf('  flutter-regression:'),
+    regressionWorkflow.indexOf('  publish-api-image:'),
+  );
+  assert.match(
+    flutterJob,
+    /- uses: actions\/checkout@v6\n\s+with:\n\s+fetch-depth: 0/u,
+  );
 });
 
 test('R2 repository evidence stays non-live and excludes sensitive identifiers', () => {
