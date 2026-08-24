@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r16-pr7-pilot-freeze-integration-review",
-  "status": "implemented-audit-findings-bound-ready-for-freeze-commit",
+  "status": "verified-regression-and-codeql-passed-ready-for-r17",
   "implementationBaseHead": "2fed8f02b0e333b445e2cc4540b7a32da0d48bc9",
   "predecessor": {
     "package": "R15",
@@ -12,7 +12,7 @@
   },
   "report": "docs/operations/48H_R16_PR7_PILOT_FREEZE_INTEGRATION_REVIEW_2026-08-24.md",
   "pilotFreeze": {
-    "commit": "pending-r16-implementation-commit",
+    "commit": "7eac3d240b96e848addf3ee6df034bb742b0a9b9",
     "productChangesAfterFreeze": false,
     "pullRequestMerged": false,
     "historyRewritten": false
@@ -145,8 +145,18 @@
     "artifactValidatorTests": "passed-8",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationCommit": "7eac3d240b96e848addf3ee6df034bb742b0a9b9",
+    "regressionRunId": 32782075256,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32782075298,
+    "codeqlConclusion": "success",
+    "advancedSecurityCheckId": 97606603148,
+    "advancedSecurityConclusion": "success",
+    "newAlerts": 0
   },
   "boundaries": {
     "credentialValueReadOrCopied": false,

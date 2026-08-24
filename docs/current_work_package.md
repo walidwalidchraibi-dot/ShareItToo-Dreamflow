@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R15 exact
-verified and R16 active;
+Status: **R0/P0 security contradiction verified closed; R1–R16 exact
+verified and R17 active;
 non-live and fail-closed** on
 24.08.2026.
 
@@ -429,8 +429,13 @@ non-binding goal versus the enabled binding checkout; and the full Wave-0
 G3/G4/G5 task list versus hard release-mode UI locks. No credential value was
 inspected, and no merge, history rewrite or live mutation occurred. Seventeen
 focused tests, the retained validator and the complete local candidate-rollover
-technical regression are green; the exact freeze commit and GitHub checks are
-next.
+technical regression are green. Exact pilot-freeze implementation head
+`7eac3d240b96e848addf3ee6df034bb742b0a9b9` passed Regression
+`32782075256`, including Flutter `97606168820`, Backend `97606169194`,
+PostgreSQL `97606169218` and R10 clean checkout `97606169226`; CodeQL workflow
+`32782075298` and Advanced Security check `97606603148` also passed with zero
+open PR code-scanning alerts. No artifact was built or published. R16 is closed
+and R17 begins with only those three direct findings.
 
 ## Completed package history
 

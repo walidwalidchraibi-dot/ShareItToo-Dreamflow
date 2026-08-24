@@ -80,6 +80,10 @@ test('rejects missing or downgraded R17 findings', () => {
 
 test('rejects premature or malformed GitHub freeze binding', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-audit-findings-bound-ready-for-freeze-commit';
+  premature.pilotFreeze.commit = 'pending-r16-implementation-commit';
+  premature.focusedVerification.githubRegression = 'pending';
+  premature.focusedVerification.githubCodeql = 'pending';
   premature.githubVerification = {
     implementationCommit: '0'.repeat(40),
     regressionRunId: 1,
@@ -93,7 +97,6 @@ test('rejects premature or malformed GitHub freeze binding', () => {
   assert.throws(() => validate(premature), /cannot bind GitHub/u);
 
   const malformed = structuredClone(evidence);
-  malformed.status = 'verified-regression-and-codeql-passed-ready-for-r17';
   malformed.pilotFreeze.commit = 'bad';
   malformed.focusedVerification.fullTechnicalRegression = 'passed-candidate-rollover-ci-metadata-mode';
   malformed.focusedVerification.githubRegression = 'passed';

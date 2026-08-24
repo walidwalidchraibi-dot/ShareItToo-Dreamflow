@@ -175,3 +175,13 @@ commit is the exact R16 implementation commit after this report, machine
 evidence, validator and tests are committed together. A later evidence-only
 closure commit does not silently change the frozen product state.
 
+## Exact verification closure
+
+The exact pilot-freeze implementation commit
+`7eac3d240b96e848addf3ee6df034bb742b0a9b9` passed GitHub Regression run
+`32782075256`: Flutter job `97606168820`, Backend job `97606169194`,
+PostgreSQL recovery job `97606169218` and independent R10 clean-checkout job
+`97606169226` all succeeded; image publication stayed skipped. CodeQL workflow
+`32782075298` and Advanced Security check `97606603148` succeeded with zero
+open PR code-scanning alerts. R16 is closed and only its three direct findings
+may enter R17.
