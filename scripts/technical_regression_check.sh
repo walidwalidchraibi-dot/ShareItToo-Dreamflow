@@ -297,6 +297,8 @@ node --test test/tool/validate_r9_database_recovery.test.mjs
 node tool/validate_r9_database_recovery.mjs
 node --check tool/run_r10_clean_reproducibility.mjs
 node --test test/tool/run_r10_clean_reproducibility.test.mjs
+node --check tool/prepare_android_debug_build_metadata.mjs
+node --test test/tool/prepare_android_debug_build_metadata.test.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -796,6 +798,7 @@ if printf '%s\n' "$web_build_output" \
 fi
 bash scripts/p0a_web_smoke.sh
 
+node tool/prepare_android_debug_build_metadata.mjs
 if ! android_build_output="$(
   ./android/gradlew -p android :app:assembleDebug --no-daemon --warning-mode all 2>&1
 )"; then

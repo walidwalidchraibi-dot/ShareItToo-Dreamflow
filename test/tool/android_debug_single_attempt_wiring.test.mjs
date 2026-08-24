@@ -39,3 +39,17 @@ test('technical regression executes one direct Android debug build', () => {
   );
   assert.doesNotMatch(buildSegment, /--warning-mode (?:none|summary)/u);
 });
+
+test('direct Gradle debug metadata is deterministically derived from pubspec first', () => {
+  const buildSegment = regression.slice(
+    regression.indexOf('flutter build web --debug'),
+  );
+  assert.match(
+    buildSegment,
+    /node tool\/prepare_android_debug_build_metadata\.mjs\nif ! android_build_output=/u,
+  );
+  assert.match(
+    regression,
+    /node --check tool\/prepare_android_debug_build_metadata\.mjs\nnode --test test\/tool\/prepare_android_debug_build_metadata\.test\.mjs/u,
+  );
+});
