@@ -31,6 +31,10 @@ class PrivatePilotConfig {
     'SIT_BLUE_OCEAN_LISTING_ASSISTANT',
     defaultValue: false,
   );
+  static const String blueOceanStageANonBindingNotice =
+      'Pilot-Simulation: Es entsteht keine verbindliche SIT-Miete. '
+      'Es erfolgen keine echten Zahlungen, Erstattungen oder Auszahlungen. '
+      'Nichts ist öffentlich; Anzeigen bleiben im geschlossenen Pilot.';
 
   /// The V5.1 checkout may create binding test requests. Real money remains
   /// independently disabled until the PSP and launch evidence is complete.

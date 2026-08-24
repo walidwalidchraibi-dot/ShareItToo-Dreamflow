@@ -3209,9 +3209,23 @@ run `32674496053` and CodeQL run `32674496079` are exact and successful at
 implementation commit `9ba15e519edf1fdec01e4bdf74a94c9c03bd0ea8`. N8 is
 complete.
 
-## Active package: Stage A Blue Ocean N9
+## Verification package: Stage A Blue Ocean N9
 
 N9 prepares but does not activate `heilbronn_wave0`: three invited-adult slots,
 nine to fifteen planned listing tasks, safe photo and consent instructions,
 synthetic Treffpunkt labels, aggregate feedback/evaluation templates,
 pause/abort controls and a value-free external operator-configuration check.
+The default-off listing flow now also states explicitly that the pilot is
+non-binding, no-money and non-public. Six operator-domain tests, two checker
+tests, four Wave-0 wiring tests and seven evidence-validator tests pass. The
+complete candidate-rollover regression is green with 725 Backend tests plus
+one documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
+loopback smoke and Android debug. Exact GitHub regression and CodeQL results
+remain pending for the N9 implementation commit; no pilot was activated.
+
+## Active package: Stage A Blue Ocean N10
+
+N10 now prepares the Google Play Internal Testing handoff only. It must bind
+an exact future AAB candidate, version/build plan, owner Console actions,
+tester instructions, feedback path, rollback and data-preservation steps while
+performing no build upload, Console mutation, tester enrollment or release.

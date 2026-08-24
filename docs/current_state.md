@@ -3562,3 +3562,26 @@ known strict local Store-handoff HOLD for the missing private archived AAB
 remains unchanged. GitHub regression run `32674496053` and CodeQL run
 `32674496079` are exact and successful at implementation commit
 `9ba15e519edf1fdec01e4bdf74a94c9c03bd0ea8`. N8 is complete and N9 is active.
+
+## Stage A Blue Ocean N9 Heilbronn Wave-0 preparation (2026-08-24)
+
+N9 prepares the closed, invited and non-binding `heilbronn_wave0` envelope but
+does not activate it. The prepared runbook fixes three opaque adult slots,
+nine to fifteen listing tasks, safe-photo and explicit AI-consent instructions,
+synthetic Treffpunkt labels, aggregate-only feedback/evaluation templates and
+fail-closed pause/abort rules. No roster, personal data or observed human result
+is stored in Git.
+
+The default-off Blue Ocean listing surface now adds an explicit non-binding,
+no-money and non-public notice. A value-free operator-configuration domain and
+checker report only missing field names and can never authorize activation.
+The repository still contains no operator values, and all service, Store,
+provider, payment and human-pilot gates remain off.
+
+Six operator-domain tests, two checker tests, four Wave-0 wiring tests and seven
+evidence-validator tests pass. The complete candidate-rollover regression is
+green with 725 Backend tests plus one documented skip, 387 Flutter tests plus
+one documented skip, Web/Wasm, loopback smoke and Android debug with 448 tasks.
+Exact GitHub regression and CodeQL verification are pending for the N9
+implementation commit. N10 Internal Testing handoff preparation is active;
+there has been no Play Console change, upload, tester enrollment or release.

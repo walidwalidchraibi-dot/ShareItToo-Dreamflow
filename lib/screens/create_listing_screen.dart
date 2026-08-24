@@ -1373,6 +1373,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ),
                 ),
               ]),
+              const SizedBox(height: 10),
+              Semantics(
+                liveRegion: false,
+                label: PrivatePilotConfig.blueOceanStageANonBindingNotice,
+                child: const Text(
+                  PrivatePilotConfig.blueOceanStageANonBindingNotice,
+                  style: TextStyle(fontSize: 13.5, height: 1.4),
+                ),
+              ),
               const SizedBox(height: 12),
               CheckboxListTile(
                 value: _blueOceanConsentAccepted,
