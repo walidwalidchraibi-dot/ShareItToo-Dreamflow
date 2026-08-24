@@ -554,7 +554,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     try {
       final assistant = await BackendRepository.reviewBlueOceanListingDraft(
         draftId: draftId,
-        review: _blueOceanReviewPayload(finalPublication: false),
+        review: _blueOceanReviewPayload(finalPublication: true),
       );
       if (!mounted) return;
       setState(() {

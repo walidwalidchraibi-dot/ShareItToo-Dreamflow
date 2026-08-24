@@ -89,6 +89,14 @@ test('client and server use separate authenticated review and exact publication 
   assert.match(app, /req\.body\?\.explicitAction !== 'Anzeige veröffentlichen'/u);
   assert.match(app, /blue_ocean\.listing\.published_by_owner/u);
   assert.match(app, /autoPublishAllowed: false/u);
+  assert.match(
+    screen,
+    /reviewBlueOceanListingDraft\([\s\S]*_blueOceanReviewPayload\(finalPublication: true\)/u,
+  );
+  assert.doesNotMatch(
+    screen,
+    /reviewBlueOceanListingDraft\([\s\S]*_blueOceanReviewPayload\(finalPublication: false\)/u,
+  );
 });
 
 test('accessibility and recovery do not rely on color alone', () => {
