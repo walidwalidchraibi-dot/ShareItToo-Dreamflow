@@ -295,6 +295,8 @@ node --test test/tool/run_r9_database_recovery.test.mjs
 node --check tool/validate_r9_database_recovery.mjs
 node --test test/tool/validate_r9_database_recovery.test.mjs
 node tool/validate_r9_database_recovery.mjs
+node --check tool/run_r10_clean_reproducibility.mjs
+node --test test/tool/run_r10_clean_reproducibility.test.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
