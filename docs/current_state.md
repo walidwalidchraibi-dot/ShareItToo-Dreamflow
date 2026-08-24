@@ -2228,6 +2228,25 @@ regression `32677182050` and CodeQL `32677182040` are successful at exact N12
 implementation commit `8ded33b8ed7c84d307014263b678c3fd9177038c`.
 N13 final verification and decision-dossier assembly is active.
 
+## Stage A Blue Ocean N13 final regression and handover (2026-08-24)
+
+The compact 13-part decision dossier and a machine-checkable final evidence
+artifact now cover repository/PR state, CI, the listing assistant, image
+privacy, Price Engine V2, the exact synthetic cohort comparison, Heilbronn,
+Google Play Internal preparation, blockers, costs, accepted/deferred risks,
+the HOLD recommendation and all six owner tokens.
+
+N13 focused verification is green with 119 Backend domain tests, 125 artifact/
+policy tests, a fresh and cleaned PostgreSQL 16 cluster, dependency and tracked-
+history secret audits, and the full CI-metadata/candidate-rollover regression.
+That complete run includes 725 Backend tests plus one documented skip, 387
+Flutter tests plus one documented skip, the reviewed analyzer-debt ratchet,
+privacy/retention and 167-scenario Support traceability, Web/Wasm, loopback
+smoke and Android debug with 448 tasks. Exact N13 GitHub regression and CodeQL,
+final Drive upload and final clean/synchronized tree verification remain
+pending. No live, paid, human, device, Store, Cloud or Production boundary was
+crossed.
+
 The exact analyzer snapshot ratcheted `132 -> 122`, with
 `use_build_context_synchronously` `10 -> 0` and the item-overlay context bucket
 `10 -> 0`; all other buckets remained identical. Fifty-four focused

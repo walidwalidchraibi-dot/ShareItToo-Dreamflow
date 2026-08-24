@@ -371,6 +371,9 @@ node --test test/tool/blue_ocean_n12_owner_action_pack_wiring.test.mjs
 node --check tool/validate_blue_ocean_n12_owner_action_pack.mjs
 node --test test/tool/validate_blue_ocean_n12_owner_action_pack.test.mjs
 node tool/validate_blue_ocean_n12_owner_action_pack.mjs
+node --check tool/validate_blue_ocean_n13_final_handover.mjs
+node --test test/tool/validate_blue_ocean_n13_final_handover.test.mjs
+node tool/validate_blue_ocean_n13_final_handover.mjs
 node --check tool/validate_current_head_android_large_text_main_navigation.mjs
 node --test test/tool/validate_current_head_android_large_text_main_navigation.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then
