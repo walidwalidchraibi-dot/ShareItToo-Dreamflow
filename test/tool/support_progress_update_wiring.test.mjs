@@ -31,6 +31,10 @@ test('SUP-043 binds apology and new checkpoint to reviewed publication', () => {
   assert.match(messages, /support_progress_update_publication_required/u);
   assert.match(messages, /assertSupportMessageNextUpdateBindingCurrent/u);
   assert.match(workflow, /SET next_action = \$2,[\s\S]*next_update_at = \$3/u);
+  assert.match(
+    workflow,
+    /updated_at = GREATEST\(\$4, updated_at \+ INTERVAL '1 microsecond'\)/u,
+  );
   assert.match(workflow, /progressUpdatePublication: true/u);
   assert.match(app, /progress-updates\/:progressUpdateId\/publication/u);
 });

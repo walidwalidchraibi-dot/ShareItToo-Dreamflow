@@ -268,7 +268,7 @@ export async function publishSupportProgressUpdate(client, {
         SET next_action = $2,
             next_update_at = $3,
             lock_version = lock_version + 1,
-            updated_at = $4
+            updated_at = GREATEST($4, updated_at + INTERVAL '1 microsecond')
       WHERE id = $1 AND lock_version = $5
         AND date_trunc('milliseconds', next_update_at)
           = date_trunc('milliseconds', $6::timestamptz)
