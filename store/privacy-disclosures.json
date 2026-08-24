@@ -844,7 +844,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "70049366e2431eb654de3943d2f8dea248cc6b7804bbdf44b200481cccc242ad"
+      "sha256": "bb6c5a2570ea6b25006b552c21b63e8ada973f338cfb8add3110587b2108c7cb"
     },
     {
       "path": "backend/src/rate_limit_policy.js",

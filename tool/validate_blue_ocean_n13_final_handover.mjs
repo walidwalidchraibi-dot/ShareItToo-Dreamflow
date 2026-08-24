@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { lstatSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { readRepositoryFile } from './read_repository_file.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath = 'docs/evidence/blue-ocean/n13-final-regression-handover-20260824.json';
@@ -41,9 +42,7 @@ function exact(actual, expected) {
 }
 
 function source(repositoryRoot, path) {
-  const absolute = resolve(repositoryRoot, path);
-  if (lstatSync(absolute).isSymbolicLink()) fail(`N13 source must not be a symbolic link: ${path}`);
-  return readFileSync(absolute, 'utf8');
+  return readRepositoryFile(repositoryRoot, path, { label: `N13 source ${path}` });
 }
 
 function json(repositoryRoot, path) {

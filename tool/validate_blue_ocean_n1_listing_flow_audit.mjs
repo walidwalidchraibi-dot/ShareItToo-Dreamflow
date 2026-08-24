@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { lstatSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { readRepositoryFile } from './read_repository_file.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath = 'docs/evidence/blue-ocean/n1-listing-flow-audit-20260823.json';
@@ -22,9 +23,7 @@ function allFalse(value) {
 }
 
 function requireMarkers(repositoryRoot, path, markers) {
-  const absolute = resolve(repositoryRoot, path);
-  if (lstatSync(absolute).isSymbolicLink()) fail(`N1 source must not be a symbolic link: ${path}`);
-  const content = readFileSync(absolute, 'utf8');
+  const content = readRepositoryFile(repositoryRoot, path, { label: `N1 source ${path}` });
   for (const marker of markers) {
     if (!content.includes(marker)) fail(`N1 preserved source marker missing in ${path}: ${marker}`);
   }
@@ -34,7 +33,9 @@ export function validateBlueOceanN1ListingFlowAudit({
   repositoryRoot = root,
   evidence,
 } = {}) {
-  const value = evidence ?? JSON.parse(readFileSync(resolve(repositoryRoot, evidencePath), 'utf8'));
+  const value = evidence ?? JSON.parse(readRepositoryFile(repositoryRoot, evidencePath, {
+    label: 'N1 evidence',
+  }));
   if (value.schemaVersion !== 1
       || value.kind !== 'sit-stage-a-blue-ocean-n1-listing-flow-audit'
       || value.status !== 'verified-ready-for-n2'

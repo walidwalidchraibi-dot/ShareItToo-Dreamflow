@@ -1,7 +1,7 @@
-# Current Work Package: autonomous non-live launch-readiness continuation
+# Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **active under Walid's exceptional no-artificial-stop instruction;
-non-live and fail-closed** on 21.08.2026.
+Status: **R0/P0 security contradiction remediation active; non-live and
+fail-closed** on 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -15,7 +15,38 @@ changes, Store submission, PR merge, or invented legal/operator/provider
 approval. A missing external fact remains false and blocks only its dependent
 lane.
 
-## Active package
+## Active 48H package
+
+The new R0–R17 runway is separate from and does not continue the completed
+N0–N13 goal. It ends at `48H_REMOTE_READINESS_DECISION` and cannot create a
+further autonomous runway.
+
+R0 independently found a material mismatch at baseline HEAD
+`6d4e66e1d832b33d50ec1c44e624e45d635eff12`: the Regression and CodeQL
+workflows were green, but GitHub Advanced Security PR check `97290219956`
+failed with 22 new high-severity findings. Nine findings concern missing
+rate-limiting on the three Blue-Ocean listing mutation routes; thirteen concern
+check-then-read filesystem races in the N1–N13 evidence validators.
+
+The bounded P0 correction is implemented locally: all three mutation routes
+share a dedicated pre-authentication limiter, and all N1–N13 validators read
+through one repository-contained, descriptor-based `O_NOFOLLOW` helper. The
+Backend route test proves that the first 30 unauthenticated requests are
+rejected normally and request 31 is rate-limited. Dedicated path tests cover
+regular files, traversal, directories, final symlinks and intermediate-symlink
+escape. Source-inventory hashes are updated exactly. Focused Backend, validator,
+privacy and wiring checks are green. The complete candidate-rollover regression
+passes in CI metadata mode with 725 Backend tests plus one documented skip,
+PostgreSQL 16, 387 Flutter tests plus one documented skip, Web/Wasm and the
+448-task Android debug build. The strict local Store handoff remains correctly
+on HOLD because its historical owner-only AAB is unavailable; it was not
+silently bypassed or rebuilt. Exact GitHub Advanced Security re-verification
+remains pending before R1 may start.
+
+No Production, VPS, DNS, Cloud, Firebase/Play owner-console, payment, provider,
+real-person pilot, PR merge or destructive Git action is part of this package.
+
+## Completed package history
 
 `S1_SUPPORT_CASE_FOUNDATION` is implemented and verified at commit
 `64874b9eba0b6b2fca85f1c4f3cdfed0d702f095`. GitHub Actions run

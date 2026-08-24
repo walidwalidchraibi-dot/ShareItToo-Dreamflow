@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { lstatSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import { readRepositoryFile } from './read_repository_file.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath = 'docs/evidence/blue-ocean/n4-image-privacy-pipeline-20260823.json';
@@ -21,9 +22,7 @@ function allFalse(value) {
 }
 
 function source(repositoryRoot, path) {
-  const absolute = resolve(repositoryRoot, path);
-  if (lstatSync(absolute).isSymbolicLink()) fail(`N4 source must not be a symbolic link: ${path}`);
-  return readFileSync(absolute, 'utf8');
+  return readRepositoryFile(repositoryRoot, path, { label: `N4 source ${path}` });
 }
 
 function requireMarkers(content, path, markers) {
@@ -36,7 +35,7 @@ export function validateBlueOceanN4ImagePrivacyPipeline({
   repositoryRoot = root,
   evidence,
 } = {}) {
-  const value = evidence ?? JSON.parse(readFileSync(resolve(repositoryRoot, evidencePath), 'utf8'));
+  const value = evidence ?? JSON.parse(source(repositoryRoot, evidencePath));
   if (value.schemaVersion !== 1
       || value.kind !== 'sit-stage-a-blue-ocean-n4-image-privacy-pipeline'
       || ![

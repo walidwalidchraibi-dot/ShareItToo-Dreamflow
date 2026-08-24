@@ -82,3 +82,28 @@ test('the public account-deletion information page is not action-rate-limited', 
     }
   });
 });
+
+test('Blue-Ocean listing mutations share a dedicated pre-authentication rate limit', async () => {
+  await withServer(async (baseUrl) => {
+    const paths = [
+      '/v1/blue-ocean/listing-drafts/analyze',
+      '/v1/blue-ocean/listing-drafts/synthetic-draft/review',
+      '/v1/blue-ocean/listing-drafts/synthetic-draft/publish',
+    ];
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const response = await fetch(`${baseUrl}${paths[attempt % paths.length]}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      assert.equal(response.status, 401);
+    }
+    const blocked = await fetch(`${baseUrl}${paths[0]}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    });
+    assert.equal(blocked.status, 429);
+    assert.equal((await blocked.json()).error, 'rate_limit_exceeded');
+  });
+});

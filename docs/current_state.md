@@ -1,6 +1,24 @@
 # ShareItToo Current State
 
-Verified: 2026-08-22 on the Mac mini.
+Verified: 2026-08-24 on the Mac mini.
+
+## Current 48H readiness state
+
+- The previous N0–N13 goal remains closed at `STAGE_A_BLUE_OCEAN_DECISION`.
+- A separate R0–R17 non-live runway is active and must end at
+  `48H_REMOTE_READINESS_DECISION`.
+- Baseline commit `18ae00c82c108d5b1d6478d354c385f11cc83da4` records
+  the independently observed R0 state.
+- GitHub workflows were green at the preceding product HEAD, but the GitHub
+  Advanced Security PR check exposed 22 new high-severity findings. That newer
+  PR security result overrides any green-readiness interpretation.
+- A bounded P0 correction for the three missing Blue-Ocean rate limits and the
+  N1–N13 filesystem races is implemented locally. Focused tests and the full
+  candidate-rollover regression in CI metadata mode are green. The strict
+  local Store gate still fails closed on its known missing owner-only AAB;
+  exact GitHub Advanced Security closure is required before R1 begins.
+- PR #7 remains Draft and unmerged. All live, paid, external-provider and
+  owner-console boundaries remain closed.
 
 ## Repository baseline
 

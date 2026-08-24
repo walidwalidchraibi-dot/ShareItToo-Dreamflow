@@ -61,3 +61,23 @@ test('every general API route remains behind the global limiter', () => {
     assert.equal(rateLimitPolicy.includes(contract), true, `missing policy: ${contract}`);
   }
 });
+
+test('Blue-Ocean listing mutations retain a dedicated bounded limiter before authentication', () => {
+  assert.match(
+    backendApp,
+    /const blueOceanListingMutationLimiter = rateLimit\(\{ windowMs: 15 \* 60_000, limit: 30,[^\n]+\}\);/u,
+  );
+  for (const route of [
+    '/v1/blue-ocean/listing-drafts/analyze',
+    '/v1/blue-ocean/listing-drafts/:id/review',
+    '/v1/blue-ocean/listing-drafts/:id/publish',
+  ]) {
+    assert.equal(
+      backendApp.includes(
+        `app.post('${route}', blueOceanListingMutationLimiter, requireAuth, requireActiveAccount, requireUnsuspendedScope('listing')`,
+      ),
+      true,
+      `missing dedicated pre-authentication limiter: ${route}`,
+    );
+  }
+});

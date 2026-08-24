@@ -1667,6 +1667,7 @@ export function createApp({
   const supportMessageDraftLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportMessageReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportMessagePublishLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const blueOceanListingMutationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: config.supportEvidence.maxFileBytes, files: 1, fields: 4 },
@@ -3068,7 +3069,7 @@ export function createApp({
     res.json({ listings: result.rows.map((row) => row.payload) });
   }));
 
-  app.post('/v1/blue-ocean/listing-drafts/analyze', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+  app.post('/v1/blue-ocean/listing-drafts/analyze', blueOceanListingMutationLimiter, requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     assertBlueOceanListingTechnicalAccess();
     const images = await loadBlueOceanListingImages({
       ownerId: req.auth.userId,
@@ -3112,7 +3113,7 @@ export function createApp({
     });
   }));
 
-  app.post('/v1/blue-ocean/listing-drafts/:id/review', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+  app.post('/v1/blue-ocean/listing-drafts/:id/review', blueOceanListingMutationLimiter, requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     assertBlueOceanListingTechnicalAccess();
     const draftId = safeText(req.params.id, 160);
     const stored = await loadBlueOceanDraft(pool, {
@@ -3159,7 +3160,7 @@ export function createApp({
     });
   }));
 
-  app.post('/v1/blue-ocean/listing-drafts/:id/publish', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+  app.post('/v1/blue-ocean/listing-drafts/:id/publish', blueOceanListingMutationLimiter, requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     assertBlueOceanListingTechnicalAccess();
     if (req.body?.explicitAction !== 'Anzeige veröffentlichen') {
       throw new HttpError(409, 'blue_ocean_explicit_publication_required');
