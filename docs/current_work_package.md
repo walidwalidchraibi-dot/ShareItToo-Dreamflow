@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R7 and R13 exact
-verified; R8 concurrency/load/race testing active; non-live and
+verified; R8 locally verified with exact GitHub CI pending; non-live and
 fail-closed** on
 24.08.2026.
 
@@ -175,6 +175,27 @@ PR code-scanning alerts. The API image was not published and no signed
 candidate was built. The separate GitGuardian failure remains the documented
 pre-existing 250-commit PR-history finding; no credential detail was inspected.
 R7 is closed and R8 begins.
+
+### R8 bounded concurrency and race testing
+
+R8 completed a bounded local run with 120 synthetic accounts, at most 24
+concurrent workers and all 13 required workflow classes. A red-first test found
+that standard owner listing edits incremented a server revision without
+checking the client-observed revision, allowing two concurrent 200 responses.
+The retained compare-and-swap correction returns the server-owned catalog
+revision, requires it on full edits and gives one writer success while the stale
+writer receives `listing_revision_conflict`.
+
+After correction the retained run reports zero double bookings, double
+publication, duplicate money state, lost updates, cross-account leakage,
+deadlocks, rollback defects, idempotency defects and stale-state acceptance.
+The final test does not rotate source addresses; the existing regression gate
+rejected that intermediate attempt. PostgreSQL cleanup completed and no
+credential, external provider call or real-money action was retained. Backend,
+fresh PostgreSQL, analyzer zero, 393 Flutter passes plus one documented skip,
+Web/Wasm, loopback smoke and the 448-task Android debug build are locally green.
+Exact GitHub Regression and CodeQL verification remains pending before R8 can
+close and R9 can begin.
 
 ### R13 local Codex authentication clarification
 

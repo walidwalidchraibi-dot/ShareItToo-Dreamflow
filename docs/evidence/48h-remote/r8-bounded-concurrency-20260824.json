@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r8-bounded-concurrency",
-  "status": "implemented-bounded-run-and-targeted-tests-passed-full-regression-pending",
+  "status": "verified-local-r8-regression-passed-ci-pending",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -92,7 +92,7 @@
     "flutterAnalyze": "passed-zero-issues",
     "r8ArtifactValidatorTests": "passed-6",
     "r8ArtifactValidator": "passed",
-    "fullTechnicalRegression": "pending",
+    "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },

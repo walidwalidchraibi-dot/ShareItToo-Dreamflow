@@ -1,6 +1,6 @@
 # 48H R8 bounded concurrency and race testing
 
-Status: **IMPLEMENTED — BOUNDED RUN AND TARGETED TESTS GREEN; FULL REGRESSION PENDING**
+Status: **LOCAL VERIFIED — FULL REGRESSION GREEN; EXACT GITHUB CI PENDING**
 
 R8 exercises 120 repository-owned synthetic accounts with at most 24
 concurrent workers against an ephemeral loopback application and PostgreSQL 16
@@ -49,12 +49,15 @@ release workaround remains.
 
 The bounded runner, two runner tests, two rate-limit isolation tests, fresh
 PostgreSQL integration, Backend suite (746 passes and one documented
-PostgreSQL skip), five Flutter catalog tests and analyzer-zero gate pass at
-implementation head `74daf0a462a240649a647c5b9c00e5568c5af3ed`.
-Full technical regression and exact GitHub Regression/CodeQL verification are
-still pending. No external provider, real person, real money, Production,
-Cloud, Firebase, Payment, Store, VPS, DNS, pilot activation, public release or
-PR merge is part of R8.
+PostgreSQL skip), five targeted Flutter catalog tests and analyzer-zero gate
+pass at implementation head
+`74daf0a462a240649a647c5b9c00e5568c5af3ed`. The complete candidate-rollover
+technical regression is also green in CI-metadata mode: analyzer zero, 393
+Flutter passes plus one documented skip, separate Google-only profile, Web/Wasm,
+loopback smoke and the 448-task Android debug build all pass. Exact GitHub
+Regression/CodeQL verification is still pending. No external provider, real
+person, real money, Production, Cloud, Firebase, Payment, Store, VPS, DNS,
+pilot activation, public release or PR merge is part of R8.
 
 After exact local and GitHub verification, R8 closes and the next package is
 `R9`.

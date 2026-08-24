@@ -17,10 +17,9 @@ function validate(changed = evidence) {
   return validateR8BoundedConcurrency({ repositoryRoot: root, evidence: changed });
 }
 
-test('accepts the exact targeted-green R8 bounded observation', () => {
+test('accepts the exact locally verified R8 bounded observation', () => {
   assert.deepEqual(validate(), {
-    status:
-      'implemented-bounded-run-and-targeted-tests-passed-full-regression-pending',
+    status: 'verified-local-r8-regression-passed-ci-pending',
     accountCount: 120,
     maximumConcurrentWorkers: 24,
     nextPackage: 'R9',
