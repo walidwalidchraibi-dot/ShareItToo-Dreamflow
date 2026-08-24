@@ -2206,6 +2206,25 @@ loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
 CodeQL verification are pending for the N11 implementation commit. N12 owner
 action-pack preparation is active; all live and paid boundaries remain closed.
 
+## Stage A Blue Ocean N12 owner action pack (2026-08-24)
+
+N12 prepares the complete owner decision surface in exactly six sections:
+free/no-account, owner login, physical device, external contract, paid/cost
+approval and later-only actions. It covers private operator configuration,
+optional OpenAI provider setup behind an unapproved EUR 5 hard cap, Google
+Play Internal Testing, later Firebase checks, real roles, Apple/iOS, scanner,
+PSP, authentic economics and Heilbronn Wave-0 without performing any of them.
+
+The two professional-review risk markers remain explicit and unresolved. The
+six top-level owner tokens are exact, and all account, billing, Console,
+participant, device, contract, provider, production and activation boundaries
+remain closed. Eight wiring tests and seven evidence-validator tests pass. The
+complete CI-metadata/candidate-rollover regression is green with 725 Backend
+tests plus one documented skip, 387 Flutter tests plus one documented skip,
+Web/Wasm, loopback smoke and Android debug with 448 tasks. Exact GitHub
+regression and CodeQL are pending for the N12 implementation commit. N13 final
+verification and decision-dossier assembly is active.
+
 The exact analyzer snapshot ratcheted `132 -> 122`, with
 `use_build_context_synchronously` `10 -> 0` and the item-overlay context bucket
 `10 -> 0`; all other buckets remained identical. Fifty-four focused

@@ -3253,9 +3253,22 @@ skip, Web/Wasm, loopback smoke and Android debug. Exact GitHub regression and
 CodeQL results remain pending for the N11 implementation commit. The hooks are
 optional defense in depth and no app/build/runtime path depends on them.
 
-## Active package: Stage A Blue Ocean N12
+## Verification package: Stage A Blue Ocean N12
 
-N12 now assembles the final owner-action pack with separate FREE, OWNER LOGIN,
-PHYSICAL DEVICE, EXTERNAL CONTRACT, PAID and LATER sections. It records exact
-gates and prerequisites only; it does not contact third parties, activate a
-service, spend money or change any live environment.
+N12 assembles the final owner-action pack with exactly six separate FREE,
+OWNER LOGIN, PHYSICAL DEVICE, EXTERNAL CONTRACT, PAID and LATER sections. It
+binds all required prerequisites, costs, accepted/deferred risks and exact
+reply tokens while keeping every live and paid boundary closed. Eight wiring
+tests and seven evidence-validator tests pass. The complete CI-metadata/
+candidate-rollover regression is green with 725 Backend tests plus one
+documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
+loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
+CodeQL remain pending for the N12 implementation commit.
+
+## Active package: Stage A Blue Ocean N13
+
+N13 now runs and consolidates the final Stage-A Blue Ocean gate set, closes
+exact-commit CI evidence, prepares the compact decision dossier and updates
+the approved Drive handover if its write path is available. It must not merge
+PR #7 or perform provider, billing, Play Console, tester, device, Firebase,
+Production, Cloud, VPS, DNS, payment, public-release or human-pilot changes.
