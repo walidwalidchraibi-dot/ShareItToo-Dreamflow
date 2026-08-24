@@ -256,8 +256,10 @@ reviewed 14 permissions, backup/cleartext disabled and no unexpected AI,
 payment or provider enablement. Project output is 3,208,463 KiB under 5 GiB;
 fresh temporary package caches are 6,119,769 KiB under their separate 8-GiB
 cap, and all are removed. Focused runner/metadata/validator/wiring tests and the
-retained validator are green. The independent GitHub clean-checkout job,
-Regression and CodeQL remain pending before R10 closes and R11 begins.
+retained validator are green. The post-PF18 finding is retained as
+`TD-R10-001` in the separate R10 technical-debt register so the historical PF18
+snapshot stays immutable. The independent GitHub clean-checkout job, Regression
+and CodeQL remain pending before R10 closes and R11 begins.
 
 ### R13 local Codex authentication clarification
 

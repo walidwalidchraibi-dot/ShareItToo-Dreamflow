@@ -49,4 +49,7 @@ API billing, credential extraction, PR merge or publication is part of R10.
 The committed validator is fail-closed for exact local evidence and supports a
 separate structural execution mode for a detached GitHub PR-head checkout. R10
 closes only after that independent job, normal Regression and CodeQL are bound
-to exact successful checks. R11 is next after that closure.
+to exact successful checks. The post-PF18 finding and its permanent exit
+contract are retained separately in
+`docs/operations/48H_R10_TECHNICAL_DEBT_2026-08-24.md`; the historical PF18
+21-item snapshot remains unchanged. R11 is next after that closure.
