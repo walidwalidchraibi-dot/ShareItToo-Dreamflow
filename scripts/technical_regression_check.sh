@@ -258,6 +258,11 @@ node --test test/tool/android_local_qa_update_gate.test.mjs
 node --test test/tool/android_local_qa_update_evidence.test.mjs
 node --check tool/run_android_local_qa_backend.mjs
 node --test backend/test/local_qa_server_boundary.test.js
+node --check tool/codex_local_dev.mjs
+node --test test/tool/codex_local_dev.test.mjs
+node --check tool/validate_r13_codex_auth_local_dev.mjs
+node --test test/tool/validate_r13_codex_auth_local_dev.test.mjs
+node tool/validate_r13_codex_auth_local_dev.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

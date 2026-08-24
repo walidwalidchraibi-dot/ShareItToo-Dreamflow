@@ -24,7 +24,17 @@ Verified: 2026-08-24 on the Mac mini.
   `c451a3d6f8f5dbe501439ed678b66689b23cfecd`: Android 17/API 37, installed
   `1.0.0+2026082302`, canonical signing relationship, healthy ADB/boot/storage
   state and no private-media access. The existing debug artifact is the same
-  version and differently signed; no installation was attempted. R2 is next.
+  version and differently signed; no installation was attempted.
+- R2 installed canonical-signed local QA build `1.0.0+2026082303` as an update
+  over `1.0.0+2026082302` without uninstall, signature drift or app-data
+  replacement. Independent verification passed at commit `e751279`; R3 is
+  active on a loopback-only, ephemeral, mock/zero-cent local test backend.
+- The direct R13 clarification is classified
+  `CODEX_AUTH_LOCAL_DEV_SUPPORTED`. `codex_local_dev` is implemented as a
+  disabled-by-default, synthetic-fixture-only developer adapter. One real
+  Codex evaluation passed through the strict N2/N3 authority boundary under
+  the existing ChatGPT login with no API billing environment, credential
+  extraction, runtime wiring, price authority or publication.
 
 ## Repository baseline
 

@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1 safe device audit
-complete and R2 current-source candidate next; non-live and fail-closed** on
+Status: **R0/P0 security contradiction verified closed; R1 and R2 complete;
+R3 active and R13 local Codex evaluation verified; non-live and fail-closed** on
 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -60,6 +60,31 @@ debug artifact is differently signed and cannot preserve installed data, so no
 install was attempted and `PHYSICAL_ACTION_REQUIRED` is recorded for that
 debug path. R2 will evaluate a newer canonical Internal-only candidate before
 any device write.
+
+### R2 Pixel local QA update
+
+R2 installed and independently verified canonical local QA build
+`1.0.0+2026082303` as an in-place update over `1.0.0+2026082302`. Signature,
+first-install identity and nonzero app-data identity were preserved; the app
+launch is now checked deterministically with Android `am start -W`. Evidence is
+closed at commit `e751279`. R3 continues against a loopback-only ephemeral
+PostgreSQL/backend harness with mock listing AI and zero-cent budget.
+
+### R13 local Codex authentication clarification
+
+Official Codex documentation plus the actual local `codex login status`
+support the exact classification `CODEX_AUTH_LOCAL_DEV_SUPPORTED`. The new
+`codex_local_dev` adapter is disabled by default, refuses API-key/custom
+endpoint environments, permits only repository-owned synthetic fixtures and
+uses ephemeral read-only `codex exec` with model tools disabled. Its output is
+revalidated through the existing N2/N3 draft and authority rules and is never
+wired into the SIT runtime.
+
+One explicitly enabled synthetic Bohrmaschinen evaluation passed with the
+existing ChatGPT login, no API billing environment, no credentials extracted,
+no owner confirmations, no authoritative price and no publication. R13 does
+not authorize consumer-auth reuse for SIT users or production. R3 remains the
+next active 48H package.
 
 ## Completed package history
 

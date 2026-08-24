@@ -13,7 +13,7 @@
     },
     {
       "path": "backend/src/server.js",
-      "sha256": "daf423035b9fa3280ad5fd90d0a6da585314bbf13a48f387640fbc557a89a42c"
+      "sha256": "1847a7e4a3d837a0e4bb5202c75dff4745be9481a8a8a221d37a3a17604d45dd"
     },
     {
       "path": "backend/src/credential_cleanup.js",
@@ -229,7 +229,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "5ee9273dbec69b9e8baa83f0b317d3c7509205e0cde91f81f9766910b61cc2b6"
+      "sha256": "9ecbae09403790d810568c21eef814d364f59c46d988c60f8ca45159af472faf"
     },
     {
       "path": "backend/src/notifications.js",
