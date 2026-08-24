@@ -8,6 +8,7 @@ import {
   knownD8MetadataNormalizedSha256,
   parseAaptBadging,
   parseAaptPermissions,
+  selectFlutterRuntimePayloadEntries,
 } from '../../tool/run_r10_clean_reproducibility.mjs';
 
 const technicalRegression = readFileSync(
@@ -139,6 +140,28 @@ test('normalizes only the exact known DEX header and D8 checksum metadata', () =
   assert.throws(
     () => knownD8MetadataNormalizedSha256(Buffer.from('not-a-dex')),
     /r10_invalid_dex_entry/u,
+  );
+});
+
+test('selects only the Flutter runtime payload for debug or AOT artifacts', () => {
+  assert.deepEqual(selectFlutterRuntimePayloadEntries([
+    'assets/flutter_assets/kernel_blob.bin',
+    'classes.dex',
+  ]), {
+    format: 'debug-kernel-blob',
+    entries: ['assets/flutter_assets/kernel_blob.bin'],
+  });
+  assert.deepEqual(selectFlutterRuntimePayloadEntries([
+    'lib/arm64-v8a/libapp.so',
+    'lib/armeabi-v7a/libapp.so',
+    'assets/flutter_assets/kernel_blob.bin',
+  ]), {
+    format: 'aot-libapp',
+    entries: ['lib/arm64-v8a/libapp.so', 'lib/armeabi-v7a/libapp.so'],
+  });
+  assert.throws(
+    () => selectFlutterRuntimePayloadEntries(['classes.dex']),
+    /r10_flutter_runtime_payload_missing/u,
   );
 });
 

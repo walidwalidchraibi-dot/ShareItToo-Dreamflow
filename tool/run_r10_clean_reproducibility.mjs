@@ -192,6 +192,20 @@ export function knownD8MetadataNormalizedSha256(bytes) {
   return sha256(normalized);
 }
 
+export function selectFlutterRuntimePayloadEntries(entries) {
+  const appLibraries = entries.filter((entry) => /(^|\/)libapp\.so$/u.test(entry));
+  if (appLibraries.length > 0) {
+    return Object.freeze({ format: 'aot-libapp', entries: Object.freeze(appLibraries) });
+  }
+  const debugKernels = entries.filter(
+    (entry) => entry === 'assets/flutter_assets/kernel_blob.bin',
+  );
+  if (debugKernels.length === 1) {
+    return Object.freeze({ format: 'debug-kernel-blob', entries: Object.freeze(debugKernels) });
+  }
+  fail('r10_flutter_runtime_payload_missing');
+}
+
 async function exists(candidate) {
   try {
     await access(candidate, fsConstants.F_OK);
@@ -458,12 +472,12 @@ async function runtimeConfiguration(checkout, manifest, compiledPayload) {
 }
 
 async function compiledAppPayload(apk) {
-  const listing = (await runCommand('unzip', ['-Z1', apk], {
+  const entries = (await runCommand('unzip', ['-Z1', apk], {
     label: 'list APK compiled payload',
-  })).stdout.split(/\r?\n/u).filter((entry) => /(^|\/)libapp\.so$/u.test(entry));
-  if (listing.length === 0) fail('r10_apk_libapp_missing');
+  })).stdout.split(/\r?\n/u).filter(Boolean);
+  const selection = selectFlutterRuntimePayloadEntries(entries);
   const buffers = [];
-  for (const entry of listing) {
+  for (const entry of selection.entries) {
     const result = await new Promise((resolve, reject) => {
       const child = spawn('unzip', ['-p', apk, entry], { stdio: ['ignore', 'pipe', 'pipe'] });
       const chunks = [];
@@ -479,7 +493,11 @@ async function compiledAppPayload(apk) {
     });
     buffers.push(result);
   }
-  return Buffer.concat(buffers);
+  return Object.freeze({
+    format: selection.format,
+    entries: selection.entries,
+    bytes: Buffer.concat(buffers),
+  });
 }
 
 async function androidCharacteristics(checkout, apk, aapt) {
@@ -523,7 +541,11 @@ async function androidCharacteristics(checkout, apk, aapt) {
     identity,
     permissions,
     policies,
-    runtimeConfiguration: await runtimeConfiguration(checkout, manifest, payload),
+    runtimePayload: Object.freeze({
+      format: payload.format,
+      entries: payload.entries,
+    }),
+    runtimeConfiguration: await runtimeConfiguration(checkout, manifest, payload.bytes),
   });
 }
 
