@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import {
   chmodSync,
   closeSync,
-  existsSync,
+  constants,
   mkdirSync,
   mkdtempSync,
   openSync,
@@ -151,8 +151,24 @@ function writeSyntheticSession({ email, password }) {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   chmodSync(directory, 0o700);
   const path = resolve(directory, 'session.json');
-  if (existsSync(path)) fail('A previous local QA session manifest still exists.');
-  writeFileSync(path, `${JSON.stringify({
+  let descriptor;
+  try {
+    descriptor = openSync(
+      path,
+      constants.O_WRONLY
+        | constants.O_CREAT
+        | constants.O_EXCL
+        | constants.O_NOFOLLOW,
+      0o600,
+    );
+  } catch (error) {
+    if (error?.code === 'EEXIST') {
+      fail('A previous local QA session manifest still exists.');
+    }
+    fail('Transient local QA session manifest could not be created securely.');
+  }
+  try {
+    writeFileSync(descriptor, `${JSON.stringify({
     schemaVersion: 1,
     kind: 'sit-android-local-qa-transient-session',
     synthetic: true,
@@ -160,8 +176,13 @@ function writeSyntheticSession({ email, password }) {
     email,
     password,
     createdAt: new Date().toISOString(),
-  })}\n`, { mode: 0o600 });
-  chmodSync(path, 0o600);
+    })}\n`);
+  } catch {
+    rmSync(path, { force: true });
+    fail('Transient local QA session manifest could not be written.');
+  } finally {
+    closeSync(descriptor);
+  }
   return path;
 }
 

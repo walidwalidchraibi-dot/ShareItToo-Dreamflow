@@ -44,6 +44,8 @@ test('ADB reverse and transient credentials are removed on shutdown', () => {
   assert.match(runner, /'reverse',\s*\n\s*'--remove'/u);
   assert.match(runner, /if \(sessionPath\) rmSync\(sessionPath, \{ force: true \}\)/u);
   assert.match(runner, /chmodSync\(directory, 0o700\)/u);
-  assert.match(runner, /chmodSync\(path, 0o600\)/u);
+  assert.match(runner, /constants\.O_EXCL/u);
+  assert.match(runner, /constants\.O_NOFOLLOW/u);
+  assert.doesNotMatch(runner, /existsSync\(path\)/u);
   assert.match(runner, /waitForUnexpectedExit\(backendChild\)/u);
 });
