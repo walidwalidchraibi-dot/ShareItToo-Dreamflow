@@ -1,7 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1 safe device audit
-next; non-live and fail-closed** on 24.08.2026.
+complete and R2 current-source candidate next; non-live and fail-closed** on
+24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -48,6 +49,17 @@ begin.
 
 No Production, VPS, DNS, Cloud, Firebase/Play owner-console, payment, provider,
 real-person pilot, PR merge or destructive Git action is part of this package.
+
+### R1 Pixel safe device audit
+
+R1 completed read-only at audit HEAD
+`c451a3d6f8f5dbe501439ed678b66689b23cfecd`. The authorized Pixel 7 Pro runs
+Android 17/API 37; SIT `1.0.0+2026082302` is present, running and canonically
+signed, with approximately 24 GB available device storage. The same-version
+debug artifact is differently signed and cannot preserve installed data, so no
+install was attempted and `PHYSICAL_ACTION_REQUIRED` is recorded for that
+debug path. R2 will evaluate a newer canonical Internal-only candidate before
+any device write.
 
 ## Completed package history
 

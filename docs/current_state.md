@@ -20,6 +20,11 @@ Verified: 2026-08-24 on the Mac mini.
   known missing owner-only AAB.
 - PR #7 remains Draft and unmerged. All live, paid, external-provider and
   owner-console boundaries remain closed.
+- R1 read-only Pixel audit passed at source HEAD
+  `c451a3d6f8f5dbe501439ed678b66689b23cfecd`: Android 17/API 37, installed
+  `1.0.0+2026082302`, canonical signing relationship, healthy ADB/boot/storage
+  state and no private-media access. The existing debug artifact is the same
+  version and differently signed; no installation was attempted. R2 is next.
 
 ## Repository baseline
 
