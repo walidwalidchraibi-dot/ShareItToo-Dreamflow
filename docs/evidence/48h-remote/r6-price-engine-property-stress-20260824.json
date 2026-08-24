@@ -15,6 +15,7 @@
   "findingsClosed": {
     "weakFarCohortCouldOutvoteStrongNearEvidence": true,
     "documentedLowerDemandClampWasUnreachable": true,
+    "historicalN7LowerDemandFixtureWasStale": true,
     "unknownRecommendationFieldsWereIgnored": true,
     "workaroundIntroduced": false
   },

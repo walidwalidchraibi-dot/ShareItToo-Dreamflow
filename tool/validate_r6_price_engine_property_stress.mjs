@@ -57,6 +57,7 @@ export function validateR6PriceEnginePropertyStress({
   if (!exact(value.findingsClosed, {
     weakFarCohortCouldOutvoteStrongNearEvidence: true,
     documentedLowerDemandClampWasUnreachable: true,
+    historicalN7LowerDemandFixtureWasStale: true,
     unknownRecommendationFieldsWereIgnored: true,
     workaroundIntroduced: false,
   }) || !exact(value.permanentCorrections, {
@@ -205,6 +206,12 @@ export function validateR6PriceEnginePropertyStress({
     'length: 4_999',
     'expectedByDays',
     'regional_price_request_schema_invalid',
+  ]);
+  const historicalCorpusPath =
+    'backend/test/fixtures/blue_ocean_n7_evaluation_corpus.json';
+  requireMarkers(source(repositoryRoot, historicalCorpusPath), historicalCorpusPath, [
+    '"id": "demand-low-ratio-bound"',
+    '"expectedBasisPoints": 9000',
   ]);
   const regressionPath = 'scripts/technical_regression_check.sh';
   requireMarkers(source(repositoryRoot, regressionPath), regressionPath, [

@@ -68,7 +68,7 @@
     { "id": "effective-sample-shrinkage", "runner": "shrinkage", "expected": "fallback_retained" },
     { "id": "demand-below-threshold", "runner": "demand", "requests": 19, "listings": 10, "expectedBasisPoints": 10000 },
     { "id": "demand-upper-clamp", "runner": "demand", "requests": 100, "listings": 10, "expectedBasisPoints": 11000 },
-    { "id": "demand-low-ratio-bound", "runner": "demand", "requests": 20, "listings": 10000000, "expectedBasisPoints": 9500 },
+    { "id": "demand-low-ratio-bound", "runner": "demand", "requests": 20, "listings": 10000000, "expectedBasisPoints": 9000 },
     { "id": "synthetic-weight-zero", "runner": "synthetic", "expected": "excluded" },
     { "id": "three-owner-options", "runner": "owner_options", "expected": "ordered_editable" },
     { "id": "duration-pricing", "runner": "duration", "expected": "five_editable_tiers" },

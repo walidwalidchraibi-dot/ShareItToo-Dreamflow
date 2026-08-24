@@ -131,6 +131,10 @@ source, confidence, owner-option, duration, quote and synthetic-zero-learning
 requirements. The fixed-seed stress run passes 2,000 cases with 16,651
 synthetic observations and exact digest
 `3e9fb6e3cd65b9efb8a6197de60c9b62812abfc9a93ca86ef3ebc1ba59462ed7`.
+A first exact GitHub Backend run found one historical N7 synthetic demand
+fixture that still expected the old unreachable 0.95 lower value. It is now
+permanently rebound and R6-validator-bound to the reachable 0.90 clamp; no
+timing, retry or CI-only workaround was introduced.
 A fresh repository-owned PostgreSQL 16 run applied all 69 migrations twice,
 exercised the Blue Ocean workflow and returned `passed-and-cleaned`. The full
 candidate-rollover technical regression passes in CI metadata mode, including

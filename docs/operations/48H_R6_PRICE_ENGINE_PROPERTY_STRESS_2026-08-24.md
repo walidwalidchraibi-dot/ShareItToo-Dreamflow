@@ -32,6 +32,11 @@ authoritative price field past server recomputation. Owner override remains
 allowed only as the explicit owner-selected price and still requires owner
 confirmation.
 
+The first exact GitHub Backend run then exposed one historical N7 fixture that
+still expected the former unreachable 0.95 low-ratio result. The fixture is now
+permanently rebound to the reachable R6 lower clamp of 0.90 and is source-bound
+by the R6 validator. No timing, retry or CI-only accommodation was added.
+
 Because the output algorithm changed, the engine version is
 `R6-2026-08-24.1`. Additive migration 069 preserves historical N5 snapshots,
 accepts the new version and refuses rollback when an R6 snapshot exists. It
