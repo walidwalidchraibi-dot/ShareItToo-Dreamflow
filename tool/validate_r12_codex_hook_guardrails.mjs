@@ -115,11 +115,26 @@ export function validateR12CodexHookGuardrails({ repositoryRoot = root, evidence
         || !/^[a-f0-9]{40}$/u.test(verification.implementationCommit ?? '')
         || !Number.isSafeInteger(verification.regressionRunId)
         || verification.regressionConclusion !== 'success'
+        || !Number.isSafeInteger(verification.flutterJobId)
+        || !Number.isSafeInteger(verification.backendJobId)
+        || !Number.isSafeInteger(verification.postgresJobId)
+        || !Number.isSafeInteger(verification.cleanCheckoutJobId)
+        || verification.signedCandidateBuilt !== false
+        || verification.parallelStressExecuted !== false
+        || verification.apiImagePublished !== false
         || !Number.isSafeInteger(verification.codeqlRunId)
         || verification.codeqlConclusion !== 'success'
         || !Number.isSafeInteger(verification.advancedSecurityCheckId)
         || verification.advancedSecurityConclusion !== 'success'
-        || verification.newAlerts !== 0) {
+        || verification.newAlerts !== 0
+        || !exact(verification.preExistingExternalHistoryCheck, {
+          provider: 'GitGuardian',
+          checkId: 97579664956,
+          conclusion: 'failure',
+          historicalFindingReinspected: false,
+          credentialDetailsInspected: false,
+          classifiedAsR12Regression: false,
+        })) {
       fail('R12 GitHub verification is invalid.');
     }
   } else if (value.githubVerification !== undefined) {

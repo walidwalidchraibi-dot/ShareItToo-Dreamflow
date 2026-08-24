@@ -1,6 +1,6 @@
 # 48H R12 Codex hook guardrails
 
-Status: **IMPLEMENTED LOCALLY — FULL REGRESSION PASSED — GITHUB CI PENDING**
+Status: **VERIFIED — READY FOR R14**
 
 R12 hardens the existing optional repository-local Codex hooks using only the
 official `hooks.json` lifecycle. It adds no product/runtime import, paid
@@ -92,3 +92,15 @@ code have no reference to either file.
 
 No production, VPS, DNS, Cloud, Firebase, Payment, KYC, Store, public release,
 PR merge or protected-branch mutation was performed.
+
+## Exact verification
+
+Implementation commit `a8dbb0c508ca9e20e6836e3ce7eb667c3d163c46`
+passed GitHub Regression `32773678462`, including backend job `97579674980`,
+PostgreSQL job `97579674963`, Flutter job `97579674656` and clean-checkout job
+`97579674982`. CodeQL workflow `32773678533` and Advanced Security check
+`97580266868` passed with zero annotations. Signed-candidate build, explicit
+parallel stress and API-image publication remained skipped. The unchanged
+external GitGuardian history check `97579664956` remained failed; its finding
+and any credential detail were not inspected and it is not classified as an
+R12 regression. PR #7 remained Draft, open and unmerged.

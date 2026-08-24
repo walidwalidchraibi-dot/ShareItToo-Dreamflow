@@ -1,8 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R11 and R13 exact
-verified; R12 implemented locally with full regression green and GitHub CI
-pending;
+verified; R12 exact verified and R14 active;
 non-live and fail-closed** on
 24.08.2026.
 
@@ -313,9 +312,14 @@ N11/R12 focused suite. HOOK-E creates the required sanitized
 `docs/SIT_PENDING_GATE_<ID>.md` atomically while preserving the minimized Git
 metadata record. Syntax, 10 N11 compatibility tests, 12 R12 behavior tests, six
 evidence-validator tests and the full candidate-rollover regression pass.
-Exact GitHub verification remains pending. The changed hook definition remains
+Exact implementation commit `a8dbb0c508ca9e20e6836e3ce7eb667c3d163c46`
+passed Regression `32773678462`, including clean-checkout job `97579674982`,
+CodeQL `32773678533` and Advanced Security check `97580266868` with zero
+annotations. Signed-candidate, parallel-stress and API-image publication stayed
+skipped. The pre-existing GitGuardian history check remained separately failed
+and was not inspected. The changed hook definition remains
 untrusted until the official Codex trust review; R12 has not activated or
-bypassed it and has made no live mutation.
+bypassed it and has made no live mutation. R12 is closed and R14 begins.
 
 ### R13 local Codex authentication clarification
 

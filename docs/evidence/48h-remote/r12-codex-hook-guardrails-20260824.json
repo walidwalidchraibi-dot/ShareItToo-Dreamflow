@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r12-codex-hook-autonomy-guardrails",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed-ready-for-r14",
   "implementationBaseHead": "86a7be546b33b3b9b1a9b40ba2d4b765c8bdee4f",
   "officialSupport": {
     "documentation": "https://learn.chatgpt.com/docs/hooks",
@@ -44,8 +44,33 @@
     "artifactValidatorTests": "passed-6",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationCommit": "a8dbb0c508ca9e20e6836e3ce7eb667c3d163c46",
+    "regressionRunId": 32773678462,
+    "regressionConclusion": "success",
+    "flutterJobId": 97579674656,
+    "backendJobId": 97579674980,
+    "postgresJobId": 97579674963,
+    "cleanCheckoutJobId": 97579674982,
+    "signedCandidateBuilt": false,
+    "parallelStressExecuted": false,
+    "apiImagePublished": false,
+    "codeqlRunId": 32773678533,
+    "codeqlConclusion": "success",
+    "advancedSecurityCheckId": 97580266868,
+    "advancedSecurityConclusion": "success",
+    "newAlerts": 0,
+    "preExistingExternalHistoryCheck": {
+      "provider": "GitGuardian",
+      "checkId": 97579664956,
+      "conclusion": "failure",
+      "historicalFindingReinspected": false,
+      "credentialDetailsInspected": false,
+      "classifiedAsR12Regression": false
+    }
   },
   "limitations": [
     "hooks-are-defense-in-depth-not-a-complete-enforcement-boundary",

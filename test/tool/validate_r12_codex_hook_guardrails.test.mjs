@@ -57,15 +57,34 @@ test('rejects live mutations or credential extraction', () => {
 
 test('rejects premature or malformed GitHub verification', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-focused-tests-passed-full-regression-pending';
+  premature.focusedVerification.fullTechnicalRegression = 'pending';
+  premature.focusedVerification.githubRegression = 'pending';
+  premature.focusedVerification.githubCodeql = 'pending';
   premature.githubVerification = {
     implementationCommit: '0'.repeat(40),
     regressionRunId: 1,
     regressionConclusion: 'success',
-    codeqlRunId: 2,
+    flutterJobId: 2,
+    backendJobId: 3,
+    postgresJobId: 4,
+    cleanCheckoutJobId: 5,
+    signedCandidateBuilt: false,
+    parallelStressExecuted: false,
+    apiImagePublished: false,
+    codeqlRunId: 6,
     codeqlConclusion: 'success',
-    advancedSecurityCheckId: 3,
+    advancedSecurityCheckId: 7,
     advancedSecurityConclusion: 'success',
     newAlerts: 0,
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      checkId: 8,
+      conclusion: 'failure',
+      historicalFindingReinspected: false,
+      credentialDetailsInspected: false,
+      classifiedAsR12Regression: false,
+    },
   };
   assert.throws(() => validate(premature), /cannot bind GitHub/u);
 
@@ -78,11 +97,26 @@ test('rejects premature or malformed GitHub verification', () => {
     implementationCommit: 'bad',
     regressionRunId: 1,
     regressionConclusion: 'success',
-    codeqlRunId: 2,
+    flutterJobId: 2,
+    backendJobId: 3,
+    postgresJobId: 4,
+    cleanCheckoutJobId: 5,
+    signedCandidateBuilt: false,
+    parallelStressExecuted: false,
+    apiImagePublished: false,
+    codeqlRunId: 6,
     codeqlConclusion: 'success',
-    advancedSecurityCheckId: 3,
+    advancedSecurityCheckId: 7,
     advancedSecurityConclusion: 'success',
     newAlerts: 0,
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      checkId: 97579664956,
+      conclusion: 'failure',
+      historicalFindingReinspected: false,
+      credentialDetailsInspected: false,
+      classifiedAsR12Regression: false,
+    },
   };
   assert.throws(() => validate(malformed), /GitHub verification/u);
 });
