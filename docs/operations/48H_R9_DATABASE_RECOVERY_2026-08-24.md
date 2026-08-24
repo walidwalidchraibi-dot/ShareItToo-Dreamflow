@@ -1,6 +1,6 @@
 # 48H R9 database migration, backup and restore
 
-Status: **LOCAL VERIFIED — FULL REGRESSION GREEN; EXACT GITHUB CI PENDING**
+Status: **VERIFIED — LOCAL REGRESSION, GITHUB REGRESSION AND CODEQL GREEN**
 
 R9 runs only against a repository-owned PostgreSQL 16 cluster bound to
 `127.0.0.1`. It creates four temporary databases for the current source,
@@ -58,7 +58,13 @@ runner contract tests, three CI wiring tests, five evidence-validator tests and
 the artifact validator are green. The complete candidate-rollover technical
 regression is also green in CI-metadata mode: analyzer zero, 393 Flutter passes
 plus one documented skip, the separate Google-only profile, Web/Wasm, loopback
-smoke and the 448-task Android debug build all pass. Exact GitHub
-Regression/CodeQL verification remains pending. No Production, VPS, Cloud,
-Payment, real-user, real-money, PR-merge or history-rewrite action is part of
-R9. After exact local and GitHub verification, R9 closes and R10 begins.
+smoke and the 448-task Android debug build all pass. Exact verified head
+`8bd608ebbdd798118867d80412a5948e3eee26cf` passed GitHub Regression
+`32755197710`, including the repository-owned R9 recovery stage, CodeQL
+workflow `32755197705` and Advanced Security check `97521988626`, with zero
+open PR code-scanning alerts. The API image was built but not published;
+explicit parallel stability and signed-candidate creation were not requested.
+The separate GitGuardian failure remains the documented pre-existing
+250-commit PR-history finding; no credential detail was inspected. No
+Production, VPS, Cloud, Payment, real-user, real-money, PR-merge or
+history-rewrite action is part of R9. R9 is closed and R10 begins.

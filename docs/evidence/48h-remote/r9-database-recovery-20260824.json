@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r9-database-recovery",
-  "status": "verified-local-r9-regression-passed-ci-pending",
+  "status": "verified-r9-regression-and-codeql-passed",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -113,8 +113,46 @@
     "artifactValidatorTests": "passed-5",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationHead": "c249221e64c0ede0d1918a431200069064dd3558",
+    "verifiedHead": "8bd608ebbdd798118867d80412a5948e3eee26cf",
+    "regression": {
+      "runId": 32755197710,
+      "conclusion": "success",
+      "postgresJobId": 97521209463,
+      "postgresConclusion": "success",
+      "r9RecoveryExecuted": true,
+      "backendJobId": 97521209332,
+      "backendConclusion": "success",
+      "flutterJobId": 97521208951,
+      "flutterConclusion": "success",
+      "parallelStabilityExecuted": false,
+      "signedCandidateBuilt": false,
+      "apiImageBuilt": true,
+      "apiImagePublished": false,
+      "publishApiImageJobId": 97523186151,
+      "publishApiImageConclusion": "skipped"
+    },
+    "codeql": {
+      "workflowRunId": 32755197705,
+      "workflowConclusion": "success",
+      "advancedSecurityCheckId": 97521988626,
+      "advancedSecurityConclusion": "success",
+      "newAlerts": 0
+    },
+    "preExistingExternalHistoryCheck": {
+      "provider": "GitGuardian",
+      "documentedBaseCommit": "e64defd0df62fb047c6fbc90733e4caf318ac7c4",
+      "documentedBaseCheckId": 97395091283,
+      "currentCheckId": 97521000640,
+      "currentConclusion": "failure",
+      "reportedPullRequestCommitScope": 250,
+      "credentialDetailsInspected": false,
+      "classifiedAsR9Regression": false
+    }
   },
   "limitations": {
     "isolatedLocalPostgresOnly": true,

@@ -19,7 +19,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact implementation-head R9 recovery evidence', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-r9-regression-passed-ci-pending',
+    status: 'verified-r9-regression-and-codeql-passed',
     migrations: 69,
     tables: 136,
     nextPackage: 'R10',
@@ -48,8 +48,15 @@ test('rejects a weakened restore or rollback proof', () => {
 
 test('rejects a premature GitHub claim or live action', () => {
   const github = structuredClone(evidence);
+  github.status = 'verified-local-r9-regression-passed-ci-pending';
+  github.verification.githubRegression = 'pending';
+  github.verification.githubCodeql = 'pending';
   github.githubVerification = {};
   assert.throws(() => validate(github), /must not claim GitHub/u);
+
+  const changedCheck = structuredClone(evidence);
+  changedCheck.githubVerification.codeql.newAlerts = 1;
+  assert.throws(() => validate(changedCheck), /exact GitHub verification/u);
 
   const live = structuredClone(evidence);
   live.boundaries.productionChanged = true;

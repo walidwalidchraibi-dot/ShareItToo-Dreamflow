@@ -103,21 +103,44 @@ export function validateR9DatabaseRecovery({
   if (!githubPassed && value.githubVerification !== undefined) {
     fail('R9 pending evidence must not claim GitHub verification.');
   }
-  if (githubPassed) {
-    const github = value.githubVerification;
-    if (github?.implementationHead !== implementationHead
-        || !/^[0-9a-f]{40}$/u.test(github?.verifiedHead ?? '')
-        || github?.regression?.conclusion !== 'success'
-        || github?.regression?.postgresConclusion !== 'success'
-        || github?.regression?.backendConclusion !== 'success'
-        || github?.regression?.flutterConclusion !== 'success'
-        || github?.regression?.apiImagePublished !== false
-        || github?.codeql?.workflowConclusion !== 'success'
-        || github?.codeql?.advancedSecurityConclusion !== 'success'
-        || github?.codeql?.newAlerts !== 0) {
-      fail('R9 exact GitHub verification is invalid.');
-    }
-  }
+  if (githubPassed && !exact(value.githubVerification, {
+    implementationHead,
+    verifiedHead: '8bd608ebbdd798118867d80412a5948e3eee26cf',
+    regression: {
+      runId: 32755197710,
+      conclusion: 'success',
+      postgresJobId: 97521209463,
+      postgresConclusion: 'success',
+      r9RecoveryExecuted: true,
+      backendJobId: 97521209332,
+      backendConclusion: 'success',
+      flutterJobId: 97521208951,
+      flutterConclusion: 'success',
+      parallelStabilityExecuted: false,
+      signedCandidateBuilt: false,
+      apiImageBuilt: true,
+      apiImagePublished: false,
+      publishApiImageJobId: 97523186151,
+      publishApiImageConclusion: 'skipped',
+    },
+    codeql: {
+      workflowRunId: 32755197705,
+      workflowConclusion: 'success',
+      advancedSecurityCheckId: 97521988626,
+      advancedSecurityConclusion: 'success',
+      newAlerts: 0,
+    },
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      documentedBaseCommit: 'e64defd0df62fb047c6fbc90733e4caf318ac7c4',
+      documentedBaseCheckId: 97395091283,
+      currentCheckId: 97521000640,
+      currentConclusion: 'failure',
+      reportedPullRequestCommitScope: 250,
+      credentialDetailsInspected: false,
+      classifiedAsR9Regression: false,
+    },
+  })) fail('R9 exact GitHub verification is invalid.');
   if (!exact(value.limitations, {
     isolatedLocalPostgresOnly: true,
     productionBackupEvaluated: false,

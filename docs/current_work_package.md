@@ -1,8 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R8 and R13 exact
-verified; R9 locally verified with exact GitHub CI pending; non-live and
-fail-closed** on
+Status: **R0/P0 security contradiction verified closed; R1–R9 and R13 exact
+verified; R10 active; non-live and fail-closed** on
 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -220,11 +219,16 @@ PostgreSQL job itself green and then caught an eager `pg` import in the
 dependency-free Flutter unit-test job. `pg` is now loaded only inside the exact
 recovery execution, with no hidden install, retry or timing workaround. The
 local cluster and archive are removed and no synthetic credential is retained.
-Targeted tests, the R9 validator and the
-complete local technical regression are green, including analyzer zero, 393
-Flutter passes plus one documented skip, Web/Wasm, loopback smoke and the
-448-task Android debug build. Exact GitHub verification remains pending before
-R9 closes and R10 begins.
+Targeted tests, the R9 validator and the complete local technical regression
+are green, including analyzer zero, 393 Flutter passes plus one documented
+skip, Web/Wasm, loopback smoke and the 448-task Android debug build. Exact
+verified head `8bd608ebbdd798118867d80412a5948e3eee26cf` passed GitHub
+Regression `32755197710`, including the R9 recovery stage, CodeQL workflow
+`32755197705` and Advanced Security check `97521988626`, with zero open PR
+code-scanning alerts. The API image was not published and no signed candidate
+was built. The separate GitGuardian failure remains the documented pre-existing
+250-commit PR-history finding; no credential detail was inspected. R9 is closed
+and R10 begins.
 
 ### R13 local Codex authentication clarification
 
