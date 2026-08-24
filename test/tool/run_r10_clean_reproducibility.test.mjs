@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   assertSafeR10TempRoot,
   compareApkInventories,
+  knownD8MetadataNormalizedSha256,
   parseAaptBadging,
   parseAaptPermissions,
 } from '../../tool/run_r10_clean_reproducibility.mjs';
@@ -64,14 +65,21 @@ test('distinguishes byte identity, metadata-only drift and payload drift', () =>
     sha256: 'a'.repeat(64),
     entries: [
       { name: 'AndroidManifest.xml', sha256: '1'.repeat(64) },
-      { name: 'classes.dex', sha256: '2'.repeat(64) },
+      {
+        name: 'classes.dex',
+        sha256: '2'.repeat(64),
+        normalizedKnownMetadataSha256: '9'.repeat(64),
+      },
     ],
   };
   assert.deepEqual(compareApkInventories(first, structuredClone(first)), {
     classification: 'byte-identical',
     byteIdentical: true,
-    payloadIdentical: true,
+    extractedEntriesIdentical: true,
+    knownEquivalent: true,
     differingEntries: [],
+    knownD8MetadataOnlyEntries: [],
+    unexplainedDifferingEntries: [],
   });
 
   const metadataOnly = structuredClone(first);
@@ -79,18 +87,59 @@ test('distinguishes byte identity, metadata-only drift and payload drift', () =>
   assert.deepEqual(compareApkInventories(first, metadataOnly), {
     classification: 'zip-container-or-signing-metadata-only',
     byteIdentical: false,
-    payloadIdentical: true,
+    extractedEntriesIdentical: true,
+    knownEquivalent: true,
     differingEntries: [],
+    knownD8MetadataOnlyEntries: [],
+    unexplainedDifferingEntries: [],
   });
 
-  const changed = structuredClone(metadataOnly);
-  changed.entries[1].sha256 = '3'.repeat(64);
-  assert.deepEqual(compareApkInventories(first, changed), {
-    classification: 'payload-drift',
+  const d8Metadata = structuredClone(metadataOnly);
+  d8Metadata.entries[1].sha256 = '3'.repeat(64);
+  assert.deepEqual(compareApkInventories(first, d8Metadata), {
+    classification: 'd8-synthetic-checksum-metadata-only',
     byteIdentical: false,
-    payloadIdentical: false,
+    extractedEntriesIdentical: false,
+    knownEquivalent: true,
     differingEntries: ['classes.dex'],
+    knownD8MetadataOnlyEntries: ['classes.dex'],
+    unexplainedDifferingEntries: [],
   });
+
+  const changed = structuredClone(d8Metadata);
+  changed.entries[1].normalizedKnownMetadataSha256 = '8'.repeat(64);
+  assert.deepEqual(compareApkInventories(first, changed), {
+    classification: 'unexplained-payload-drift',
+    byteIdentical: false,
+    extractedEntriesIdentical: false,
+    knownEquivalent: false,
+    differingEntries: ['classes.dex'],
+    knownD8MetadataOnlyEntries: [],
+    unexplainedDifferingEntries: ['classes.dex'],
+  });
+});
+
+test('normalizes only the exact known DEX header and D8 checksum metadata', () => {
+  const first = Buffer.alloc(128, 0x61);
+  first.write('dex\n', 0, 'ascii');
+  first.write('~~~{"Lexample;":"123456789"}', 48, 'ascii');
+  const second = Buffer.from(first);
+  second.fill(0x62, 8, 32);
+  second.write('abcdef012', second.indexOf('123456789'), 'ascii');
+  assert.equal(
+    knownD8MetadataNormalizedSha256(first),
+    knownD8MetadataNormalizedSha256(second),
+  );
+
+  second[40] = 0x63;
+  assert.notEqual(
+    knownD8MetadataNormalizedSha256(first),
+    knownD8MetadataNormalizedSha256(second),
+  );
+  assert.throws(
+    () => knownD8MetadataNormalizedSha256(Buffer.from('not-a-dex')),
+    /r10_invalid_dex_entry/u,
+  );
 });
 
 test('the complete technical gate retains the R10 contract tests', () => {

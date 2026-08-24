@@ -139,24 +139,57 @@ export function parseAaptPermissions(value) {
 }
 
 export function compareApkInventories(first, second) {
-  const firstEntries = new Map(first.entries.map((entry) => [entry.name, entry.sha256]));
-  const secondEntries = new Map(second.entries.map((entry) => [entry.name, entry.sha256]));
+  const firstEntries = new Map(first.entries.map((entry) => [entry.name, entry]));
+  const secondEntries = new Map(second.entries.map((entry) => [entry.name, entry]));
   const names = [...new Set([...firstEntries.keys(), ...secondEntries.keys()])].sort();
   const differingEntries = names.filter(
-    (name) => firstEntries.get(name) !== secondEntries.get(name),
+    (name) => firstEntries.get(name)?.sha256 !== secondEntries.get(name)?.sha256,
+  );
+  const knownD8MetadataOnlyEntries = differingEntries.filter((name) => {
+    const left = firstEntries.get(name);
+    const right = secondEntries.get(name);
+    return /^classes\d*\.dex$/u.test(name)
+      && left?.normalizedKnownMetadataSha256 !== undefined
+      && left.normalizedKnownMetadataSha256 === right?.normalizedKnownMetadataSha256;
+  });
+  const unexplainedDifferingEntries = differingEntries.filter(
+    (name) => !knownD8MetadataOnlyEntries.includes(name),
   );
   const byteIdentical = first.sha256 === second.sha256;
-  const payloadIdentical = differingEntries.length === 0;
+  const extractedEntriesIdentical = differingEntries.length === 0;
+  const knownEquivalent = unexplainedDifferingEntries.length === 0;
   return Object.freeze({
     classification: byteIdentical
       ? 'byte-identical'
-      : payloadIdentical
+      : extractedEntriesIdentical
         ? 'zip-container-or-signing-metadata-only'
-        : 'payload-drift',
+        : knownEquivalent
+          ? 'd8-synthetic-checksum-metadata-only'
+          : 'unexplained-payload-drift',
     byteIdentical,
-    payloadIdentical,
+    extractedEntriesIdentical,
+    knownEquivalent,
     differingEntries,
+    knownD8MetadataOnlyEntries,
+    unexplainedDifferingEntries,
   });
+}
+
+export function knownD8MetadataNormalizedSha256(bytes) {
+  const normalized = Buffer.from(bytes);
+  if (normalized.length < 32 || normalized.subarray(0, 4).toString('ascii') !== 'dex\n') {
+    fail('r10_invalid_dex_entry');
+  }
+  normalized.fill(0, 8, 32);
+  const ascii = normalized.toString('latin1');
+  for (const match of ascii.matchAll(/~~~\{[^}\0]+\}/gu)) {
+    const value = match[0];
+    for (const checksum of value.matchAll(/:"([0-9a-f]{9})"/gu)) {
+      const hashOffset = match.index + checksum.index + 2;
+      normalized.fill(0x30, hashOffset, hashOffset + 9);
+    }
+  }
+  return sha256(normalized);
 }
 
 async function exists(candidate) {
@@ -356,7 +389,11 @@ async function apkInventory(apk, extractionRoot) {
   const entries = [];
   for (const relative of files) {
     const bytes = await readFile(path.join(extractionRoot, relative));
-    entries.push(Object.freeze({ name: relative, bytes: bytes.length, sha256: sha256(bytes) }));
+    const entry = { name: relative, bytes: bytes.length, sha256: sha256(bytes) };
+    if (/^classes\d*\.dex$/u.test(relative)) {
+      entry.normalizedKnownMetadataSha256 = knownD8MetadataNormalizedSha256(bytes);
+    }
+    entries.push(Object.freeze(entry));
   }
   return Object.freeze({
     bytes: (await stat(apk)).size,
@@ -629,7 +666,7 @@ export async function executeR10CleanReproducibility({
     const firstInventory = await apkInventory(firstApk, path.join(artifacts, 'first-extracted'));
     const secondInventory = await apkInventory(secondApk, path.join(artifacts, 'second-extracted'));
     const reproduction = compareApkInventories(firstInventory, secondInventory);
-    if (!reproduction.payloadIdentical) fail('r10_equivalent_apk_payload_drift');
+    if (!reproduction.knownEquivalent) fail('r10_equivalent_apk_payload_drift');
     const android = await androidCharacteristics(checkout, secondApk, aapt);
 
     const afterInventories = await sourceInventories(checkout);
@@ -699,6 +736,17 @@ export async function executeR10CleanReproducibility({
           entries: secondInventory.entries.length,
         },
         reproduction,
+        knownNondeterminism: reproduction.classification === 'd8-synthetic-checksum-metadata-only'
+          ? {
+              mechanism: 'D8 synthetic-class checksum metadata',
+              normalizedBytes: [
+                'DEX header checksum and SHA-1 signature bytes 8-31',
+                'nine-hex-digit values in the embedded D8 synthetic-class checksum map',
+              ],
+              affectedEntries: reproduction.knownD8MetadataOnlyEntries,
+              rawBinaryIdentityClaimed: false,
+            }
+          : null,
         ...android,
       },
       ciAndCodeql: {
@@ -709,7 +757,7 @@ export async function executeR10CleanReproducibility({
         debugArtifactOnly: true,
         signedInternalArtifactBuilt: false,
         binaryIdentityClaimedOnlyWhenRawShaMatches: reproduction.byteIdentical,
-        metadataOnlyClassificationRequiresEqualExtractedPayload: true,
+        knownMetadataClassificationRequiresExactNormalizedEntryMatch: true,
         retainedBuildArtifact: false,
       },
       cleanup: {
