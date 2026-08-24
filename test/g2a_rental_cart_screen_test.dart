@@ -107,4 +107,36 @@ void main() {
     expect(find.textContaining('Reservierung erstellt'), findsNothing);
     expect(find.text('Technische Mehrfachanfrage'), findsNothing);
   });
+
+  testWidgets('torn legacy cart stays preserved behind a retryable load error',
+      (tester) async {
+    const itemsRaw =
+        '{"schemaVersion":1,"revision":4,"items":[],"reservationCreated":false}';
+    const projectsRaw = '{"schemaVersion":1,"revision":3,"projects":[]}';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'items': '[]',
+      'wishlists_meta_v1': '[]',
+      'wishlist_assign_v1': '{}',
+      'rental_cart_v1': itemsRaw,
+      'project_cart_v1': projectsRaw,
+    });
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<LocalizationController>(
+        create: (_) => LocalizationController(),
+        child: const MaterialApp(home: RentalCartScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Mietkorb konnte nicht geladen werden'), findsOneWidget);
+    expect(find.text('Bitte versuche es erneut.'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('rental_cart_v1'), itemsRaw);
+    expect(prefs.getString('project_cart_v1'), projectsRaw);
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
 }

@@ -73,7 +73,6 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   }
 
   Future<void> _addProject() async {
-    final controller = TextEditingController();
     final title = await AppPopup.showCustom<String>(
       context,
       icon: Icons.create_new_folder_outlined,
@@ -81,9 +80,8 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
       showCloseIcon: false,
       showLeading: false,
       showAccentLine: false,
-      body: _CreateWishlistPopupBody(controller: controller),
+      body: const _CreateWishlistPopupBody(),
     );
-    controller.dispose();
     if (title == null || title.trim().isEmpty) return;
     try {
       await DataService.addRentalCartProject(title: title);
@@ -268,7 +266,6 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   }
 
   Future<void> _addCustomList() async {
-    final controller = TextEditingController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final name = await AppPopup.showCustom<String>(
       context,
@@ -278,7 +275,7 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
       showLeading: false,
       showAccentLine: false,
       cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
-      body: _CreateWishlistPopupBody(controller: controller),
+      body: const _CreateWishlistPopupBody(),
     );
     if (name != null && name.isNotEmpty) {
       await DataService.addCustomWishlist(name);
@@ -1103,9 +1100,22 @@ double _wishlistDetailChildAspectRatio(BuildContext context) {
   return (base + extra).clamp(0.82, 1.0);
 }
 
-class _CreateWishlistPopupBody extends StatelessWidget {
-  final TextEditingController controller;
-  const _CreateWishlistPopupBody({required this.controller});
+class _CreateWishlistPopupBody extends StatefulWidget {
+  const _CreateWishlistPopupBody();
+
+  @override
+  State<_CreateWishlistPopupBody> createState() =>
+      _CreateWishlistPopupBodyState();
+}
+
+class _CreateWishlistPopupBodyState extends State<_CreateWishlistPopupBody> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1139,11 +1149,11 @@ class _CreateWishlistPopupBody extends StatelessWidget {
               ),
             ),
             TextField(
-              controller: controller,
+              controller: _controller,
               autofocus: true,
               textInputAction: TextInputAction.done,
               onSubmitted: (value) =>
-                  Navigator.of(context).maybePop(controller.text.trim()),
+                  Navigator.of(context).maybePop(_controller.text.trim()),
               style: TextStyle(
                   color: isDark ? Colors.white : AppTheme.textPrimary(context),
                   fontSize: 15),
@@ -1190,7 +1200,7 @@ class _CreateWishlistPopupBody extends StatelessWidget {
               Expanded(
                 child: FilledButton(
                   onPressed: () =>
-                      Navigator.of(context).maybePop(controller.text.trim()),
+                      Navigator.of(context).maybePop(_controller.text.trim()),
                   style: FilledButton.styleFrom(
                       backgroundColor: cs.primary,
                       foregroundColor: Colors.white,

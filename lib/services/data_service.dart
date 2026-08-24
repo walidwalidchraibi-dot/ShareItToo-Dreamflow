@@ -812,7 +812,15 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     final categoriesJson = prefs.getString(_categoriesKey);
     if (categoriesJson == null) {
-      await _initializeSampleData();
+      // Categories are application reference data. Recreate only that cache:
+      // the historical all-demo initializer also rewrote users, listings,
+      // reviews and currentUser, so a missing category key could destroy an
+      // otherwise intact migrated/local account state.
+      final categories = _buildDemoCategories();
+      await prefs.setString(
+        _categoriesKey,
+        jsonEncode(categories.map((category) => category.toJson()).toList()),
+      );
       return getCategories();
     }
     final List<dynamic> categoriesList = jsonDecode(categoriesJson);
@@ -889,21 +897,29 @@ class DataService {
     }
     final itemsJson = prefs.getString(_itemsKey);
     if (itemsJson == null) {
+      if (!_allowDemoSeedDataInRuntime) return const <Item>[];
       await _initializeSampleData();
       return getItems();
     }
     List<dynamic> itemsList;
     try {
-      itemsList = jsonDecode(itemsJson);
-    } catch (e) {
-      // If decoding fails entirely, reset with fresh demo data
+      final decoded = jsonDecode(itemsJson);
+      if (decoded is! List) {
+        throw const FormatException('Invalid local listings document');
+      }
+      itemsList = decoded;
+    } catch (error) {
+      if (!_allowDemoSeedDataInRuntime) {
+        throw const FormatException('Invalid local listings document');
+      }
       await _initializeSampleData();
       return getItems();
     }
 
-    // If storage exists but is empty (e.g., after a one-time purge), reseed demo listings
-    // so the app doesn't appear broken on Explore/My Listings.
     if (itemsList.isEmpty) {
+      // An empty catalog is a valid migrated, first-run or intentionally
+      // purged state. Never turn it into demo data in a real runtime.
+      if (!_allowDemoSeedDataInRuntime) return const <Item>[];
       try {
         await resetItemsAndSeedFive(force: true);
       } catch (e) {
@@ -1061,6 +1077,7 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     final usersJson = prefs.getString(_usersKey);
     if (usersJson == null) {
+      if (!_allowDemoSeedDataInRuntime) return const <User>[];
       await _initializeSampleData();
       return getUsers();
     }
@@ -2741,21 +2758,53 @@ class DataService {
       throw const FormatException('Invalid local rental cart document');
     }
     final items = itemDocument['items'];
-    final projects = projectDocument['projects'];
+    final canonicalProjects = itemDocument['projects'];
+    final legacyProjects = projectDocument['projects'];
     if (items != null && items is! List) {
       throw const FormatException('Invalid local rental cart items');
     }
-    if (projects != null && projects is! List) {
+    if (canonicalProjects != null && canonicalProjects is! List) {
       throw const FormatException('Invalid local rental cart projects');
+    }
+    if (legacyProjects != null && legacyProjects is! List) {
+      throw const FormatException('Invalid local rental cart projects');
+    }
+
+    // New writes keep the complete cart in the rental-cart document, which is
+    // one atomic SharedPreferences value. The project document remains a
+    // compatibility mirror only. This makes a process stop between the two
+    // writes recoverable without combining different revisions.
+    if (canonicalProjects is List) {
+      return RentalCart.fromJson(<String, dynamic>{
+        'schemaVersion': 1,
+        'revision': (itemDocument['revision'] as num?)?.toInt() ?? 0,
+        'reservationCreated': false,
+        'projects': canonicalProjects,
+        'items': items ?? const <dynamic>[],
+      }, localDeviceOnly: true);
+    }
+
+    final itemRevision = (itemDocument['revision'] as num?)?.toInt();
+    final projectRevision = (projectDocument['revision'] as num?)?.toInt();
+    if (itemsRaw != null &&
+        itemsRaw.isNotEmpty &&
+        projectsRaw != null &&
+        projectsRaw.isNotEmpty &&
+        itemRevision != null &&
+        projectRevision != null &&
+        itemRevision != projectRevision) {
+      throw const FormatException(
+        'Mismatched legacy local rental cart revisions',
+      );
     }
     return RentalCart.fromJson(<String, dynamic>{
       'schemaVersion': 1,
       'revision': max(
-        (itemDocument['revision'] as num?)?.toInt() ?? 0,
-        (projectDocument['revision'] as num?)?.toInt() ?? 0,
+        itemRevision ?? 0,
+        projectRevision ?? 0,
       ),
       'reservationCreated': false,
-      'projects': projects ?? const <dynamic>[],
+      'projects': legacyProjects ?? const <dynamic>[],
       'items': items ?? const <dynamic>[],
     }, localDeviceOnly: true);
   }
@@ -2769,6 +2818,7 @@ class DataService {
         'schemaVersion': 1,
         'revision': revision,
         'reservationCreated': false,
+        'projects': cart.projects.map((project) => project.toJson()).toList(),
         'items': cart.items.map((item) => item.toJson()).toList(),
       }),
     );

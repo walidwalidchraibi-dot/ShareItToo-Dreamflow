@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "d29f23cbc65c1ae74dc02d4c37f3d8c9c5d37618ac75e5e53d1d160d14d7c69a"
+      "sha256": "36213e163d06c124c3ecf921419be882bb0e376b74b85d87d6cb89c6a7681e37"
     },
     {
       "path": "lib/services/backend_repository.dart",
@@ -732,7 +732,7 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "3b4442c43e43d17045319c030fe850670340b29f977dcf480b7412df8f53bae7"
+      "sha256": "25c5afc8fe2d5d19004dfe27d6d1bc2c45f64036146cd61fd2b8f4487694bb28"
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",

@@ -329,6 +329,11 @@ node --check tool/validate_r17_two_day_priority_queue.mjs
 node --test test/tool/r17_two_day_priority_queue_wiring.test.mjs
 node --test test/tool/validate_r17_two_day_priority_queue.test.mjs
 node tool/validate_r17_two_day_priority_queue.mjs
+node --check tool/validate_rw0_reduced_wave0_product_journey.mjs
+node --test \
+  test/tool/rw0_reduced_wave0_journey_wiring.test.mjs \
+  test/tool/validate_rw0_reduced_wave0_product_journey.test.mjs
+node tool/validate_rw0_reduced_wave0_product_journey.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -821,6 +826,14 @@ flutter test --reporter expanded \
 flutter test --reporter expanded \
   --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
   test/private_pilot_stage_a_non_binding_profile.dart
+
+# Exercise the complete reduced R17 product journey under its exact local-only
+# profile. This test may publish only a synthetic in-memory/local listing and
+# keeps every binding, payment, provider and release surface closed.
+flutter test --reporter expanded \
+  --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
+  --dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=true \
+  test/reduced_wave0_product_journey_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

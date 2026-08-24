@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-rw0-reduced-wave0-product-journey",
+  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "implementationBaseHead": "4937a88ff07dd6378e1c52ca4f264e564a669ef4",
+  "architecture": "docs/architecture/rw0-reduced-wave0-automated-product-journey-2026-08-25.md",
+  "report": "docs/operations/RW0_REDUCED_WAVE0_AUTOMATED_PRODUCT_JOURNEY_2026-08-25.md",
+  "predecessor": {
+    "package": "R17",
+    "evidence": "docs/evidence/48h-remote/r17-two-day-priority-queue-20260825.json",
+    "closureHead": "4937a88ff07dd6378e1c52ca4f264e564a669ef4"
+  },
+  "scope": {
+    "allowed": [
+      "listing-draft-and-explicit-local-publication",
+      "search",
+      "project-and-saved",
+      "non-reserving-cart",
+      "structured-feedback",
+      "restart-and-failure-recovery"
+    ],
+    "excluded": [
+      "rental-request-and-contract",
+      "accept-or-reject",
+      "payment-refund-payout",
+      "handover-return-damage-needs-review",
+      "g3-g4-g5-release-surfaces"
+    ],
+    "syntheticOnly": true,
+    "localDeviceOnly": true
+  },
+  "findings": [
+    {
+      "id": "RW0-P1-CATALOG-BOOTSTRAP-001",
+      "state": "resolved-and-tested",
+      "resolution": "missing-reference-cache-cannot-rewrite-account-or-listing-stores"
+    },
+    {
+      "id": "RW0-P1-DEMO-RESEED-002",
+      "state": "resolved-and-tested",
+      "resolution": "missing-empty-or-malformed-runtime-catalog-fails-nondestructively"
+    },
+    {
+      "id": "RW0-P1-CART-ATOMICITY-003",
+      "state": "resolved-and-tested",
+      "resolution": "complete-canonical-snapshot-recovers-and-torn-legacy-state-fails-closed"
+    },
+    {
+      "id": "RW0-P1-DIALOG-LIFECYCLE-004",
+      "state": "resolved-and-tested",
+      "resolution": "controller-owned-until-dialog-widget-disposal"
+    },
+    {
+      "id": "RW0-P2-SEARCH-A11Y-005",
+      "state": "resolved-and-tested",
+      "resolution": "named-toggled-48dp-save-action"
+    }
+  ],
+  "verification": {
+    "flutterAnalyze": "passed-zero-issues",
+    "defaultFlutterSuite": "passed-400-two-documented-profile-skips",
+    "exactReducedWave0Profile": "passed-1",
+    "catalogIntegrityTests": "passed-5",
+    "cartFocusedTests": "passed-7",
+    "rw0WiringTests": "passed-6",
+    "privacyRetentionTests": "passed-70",
+    "privacyValidator": "passed-draft-not-approval",
+    "retentionValidator": "passed-draft-execution-blocked",
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "pending",
+    "githubCodeql": "pending"
+  },
+  "sourceInventory": [
+    {
+      "path": "lib/services/data_service.dart",
+      "sha256": "36213e163d06c124c3ecf921419be882bb0e376b74b85d87d6cb89c6a7681e37"
+    },
+    {
+      "path": "lib/screens/search_results_screen.dart",
+      "sha256": "7568638eaa4a18a0b92d33d51b817f871e2afdd583d22407e80b09d64a217ace"
+    },
+    {
+      "path": "lib/screens/wishlists_screen.dart",
+      "sha256": "25c5afc8fe2d5d19004dfe27d6d1bc2c45f64036146cd61fd2b8f4487694bb28"
+    },
+    {
+      "path": "scripts/technical_regression_check.sh",
+      "sha256": "1d3a11ca5ac71111beb8b7bc7dc82410d2f3b5a9431c3cd77e886b7f4ad38acc"
+    },
+    {
+      "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+      "sha256": "aad46205b3bd64eb8b54fb8dcec630f0481b5d57c8fa85f3d8b76731a558b646"
+    },
+    {
+      "path": "test/data_service_non_destructive_catalog_bootstrap_test.dart",
+      "sha256": "6eee73929ee524849172e70fda46f112f1bf1e919a983410a07d1ed6bb0b6aca"
+    },
+    {
+      "path": "test/g2a_rental_cart_screen_test.dart",
+      "sha256": "069ecb61a3d34c04f037a63d52186af755d27e057de071aace34745b2ca5822a"
+    },
+    {
+      "path": "test/g2b_rental_cart_persistence_test.dart",
+      "sha256": "e7b1538d8a58e980b3572a71b8455159e84147e897e66241a85def76a1970b8b"
+    },
+    {
+      "path": "test/reduced_wave0_product_journey_test.dart",
+      "sha256": "a95c0c2c4f6e02dbe4d0bd0e5df09dcbfc580514c3fcecf998f8de9f3d4ca0b9"
+    },
+    {
+      "path": "test/public_profile_screen_logic_test.dart",
+      "sha256": "b4654140cdfb09c9449dcd7f4ed03c1cdfb6489d70c5864a916e620a1a6d63c5"
+    },
+    {
+      "path": "test/review_metrics_service_test.dart",
+      "sha256": "a32dcb49e9223f12fa7936b0f54de42741a755a8c2d310c2924237ae6ffac543"
+    },
+    {
+      "path": "test/tool/rw0_reduced_wave0_journey_wiring.test.mjs",
+      "sha256": "f64e1ab51db7027fde2042ed65dc528ad6d9f06ea7eff40e665d0ba2ef24dd1e"
+    },
+    {
+      "path": "store/privacy-disclosures.json",
+      "sha256": "5f30a17e53862cddf9752f9d53c3d30a148eec6f9bb575107a213329ff84d197"
+    },
+    {
+      "path": "store/retention-deletion-readiness.json",
+      "sha256": "4d98ba8b2ab27dbc92362f5471db0f1f325dc33ba213f4cdf1d9f503a25f39aa"
+    },
+    {
+      "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
+      "sha256": "b54340ecb669405c549245d9ecc798a71161236c5f0296eb471820dd02080cc3"
+    }
+  ],
+  "gates": {
+    "BUILD_READY": "not-granted",
+    "PLAY_UPLOAD_APPROVED": "not-granted",
+    "HUMAN_PILOT_ACTIVATED": "not-granted",
+    "PR7_MERGE_APPROVED": "not-granted",
+    "R17_GITGUARDIAN_HISTORY_REVIEW_COMPLETE": "not-granted"
+  },
+  "boundaries": {
+    "credentialValueReadOrCopied": false,
+    "candidateBuiltOrUploaded": false,
+    "pixelChanged": false,
+    "testerContacted": false,
+    "humanPilotActivated": false,
+    "providerCalled": false,
+    "apiBillingCreated": false,
+    "paymentChanged": false,
+    "firebaseOrPlayChanged": false,
+    "productionChanged": false,
+    "vpsChanged": false,
+    "dnsChanged": false,
+    "cloudChanged": false,
+    "publicReleasePerformed": false,
+    "pullRequestMerged": false,
+    "historyRewritten": false
+  }
+}

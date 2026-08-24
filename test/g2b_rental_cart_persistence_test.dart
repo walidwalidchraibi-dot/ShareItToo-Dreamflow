@@ -40,7 +40,25 @@ void main() {
         jsonDecode(prefs.getString('project_cart_v1')!) as Map;
     expect(itemDocument['reservationCreated'], isFalse);
     expect(itemDocument['items'], hasLength(1));
+    expect(itemDocument['projects'], hasLength(1));
     expect(projectDocument['projects'], hasLength(1));
+    expect(itemDocument['revision'], projectDocument['revision']);
+
+    // Simulate a process stop after the atomic canonical write but before its
+    // compatibility mirror was refreshed. The complete canonical snapshot is
+    // sufficient to recover both sides without combining revisions.
+    await prefs.setString(
+      'project_cart_v1',
+      jsonEncode(<String, dynamic>{
+        'schemaVersion': 1,
+        'revision': (itemDocument['revision'] as int) - 1,
+        'projects': const <dynamic>[],
+      }),
+    );
+    final recovered = await DataService.getRentalCart();
+    expect(recovered.projects.single.title, 'Renovierung');
+    expect(recovered.items.single.listingId, item.id);
+    expect(recovered.revision, itemDocument['revision']);
 
     final withoutProject =
         await DataService.removeRentalCartProject(project.id);
@@ -63,6 +81,26 @@ void main() {
       DataService.exportSavedItemsForPrivacy(),
       throwsA(isA<FormatException>()),
     );
+  });
+
+  test('legacy split cart revisions fail closed without changing either store',
+      () async {
+    const itemsRaw =
+        '{"schemaVersion":1,"revision":4,"items":[],"reservationCreated":false}';
+    const projectsRaw = '{"schemaVersion":1,"revision":3,"projects":[]}';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'rental_cart_v1': itemsRaw,
+      'project_cart_v1': projectsRaw,
+    });
+
+    await expectLater(
+      DataService.getRentalCart(),
+      throwsA(isA<FormatException>()),
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('rental_cart_v1'), itemsRaw);
+    expect(prefs.getString('project_cart_v1'), projectsRaw);
   });
 
   test('pending guest sync cannot cross account boundaries', () {

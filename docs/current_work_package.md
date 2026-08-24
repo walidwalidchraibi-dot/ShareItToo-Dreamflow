@@ -1,9 +1,29 @@
-# Current Work Package: 48H remote device, pilot and release hardening
+# Current Work Package: RW0 reduced Wave-0 automated product journey
 
-Status: **R0/P0 security contradiction verified closed; R1–R16 exact
-verified and R17 exact regression / CodeQL green;
-non-live and fail-closed** on
-25.08.2026.
+Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING;
+NON-LIVE AND FAIL-CLOSED** on 25.08.2026.
+
+R17 and the bounded 48H runway are closed at exact head
+`4937a88ff07dd6378e1c52ca4f264e564a669ef4`. RW0 is a separate successor
+package. It retains one deterministic synthetic journey across the exact
+reduced Stage-A participant surface: listing draft and explicit local
+publication, search, Gemerkt/project, non-reserving cart, structured feedback,
+restart and failure recovery.
+
+Red-first coverage found and permanently closed five gaps: destructive demo
+catalog reseeding, non-atomic split cart state, a dialog-controller lifecycle
+fault, and an inaccessible search save control. Binding rental requests,
+accept/reject, contracts, payment/refund/payout, handover/return/damage,
+`needsReview`, and release-locked G3/G4/G5 surfaces remain explicitly excluded
+and fail closed. The default Flutter suite passes 400 tests with two documented
+special-profile skips; the exact RW0 profile and all focused integrity checks
+pass. The complete candidate-rollover technical regression also passes in CI
+metadata mode, including Web/Wasm smoke and the 448-task Android debug build.
+Bounded commit/push and exact GitHub Regression/CodeQL verification remain.
+
+No candidate, Pixel, tester, external provider, paid service, Production, VPS,
+DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential
+inspection or history rewrite is authorized by RW0.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -17,7 +37,7 @@ changes, Store submission, PR merge, or invented legal/operator/provider
 approval. A missing external fact remains false and blocks only its dependent
 lane.
 
-## Active 48H package
+## Closed predecessor: 48H package
 
 The new R0–R17 runway is separate from and does not continue the completed
 N0–N13 goal. It ends at `48H_REMOTE_READINESS_DECISION` and cannot create a

@@ -424,83 +424,110 @@ class _SquareTitleOnlyCard extends StatefulWidget {
 class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => ItemDetailsOverlay.showFullPage(context,
-          item: widget.item, fresh: true),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Stack(children: [
-          Positioned.fill(
-              child: AppImage(
-                  url: widget.item.photos.isNotEmpty
-                      ? widget.item.photos.first
-                      : '',
-                  fit: BoxFit.cover)),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                  borderRadius: BorderRadius.circular(18)),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.0),
-                      Colors.black.withValues(alpha: 0.55),
-                    ]),
+    final openLabel = 'Anzeige öffnen: ${widget.item.title}';
+    final favoriteLabel = widget.isFavorite
+        ? 'Aus Gemerkt entfernen: ${widget.item.title}'
+        : 'Unter Gemerkt speichern: ${widget.item.title}';
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      button: true,
+      label: openLabel,
+      child: GestureDetector(
+        onTap: () => ItemDetailsOverlay.showFullPage(context,
+            item: widget.item, fresh: true),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(children: [
+            Positioned.fill(
+                child: AppImage(
+                    url: widget.item.photos.isNotEmpty
+                        ? widget.item.photos.first
+                        : '',
+                    fit: BoxFit.cover)),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                    borderRadius: BorderRadius.circular(18)),
               ),
-              child: Text(widget.item.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700, color: Colors.white)),
             ),
-          ),
-          if (widget.onFavoriteToggle != null)
             Positioned(
-              top: 8,
-              right: 8,
-              child: InkWell(
-                onTap: widget.onFavoriteToggle,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shape: BoxShape.circle),
-                  child: Icon(
-                      widget.isFavorite
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      size: 16,
-                      color: widget.isFavorite
-                          ? Colors.pinkAccent
-                          : Colors.black54),
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.0),
+                        Colors.black.withValues(alpha: 0.55),
+                      ]),
+                ),
+                child: Text(widget.item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            ),
+            if (widget.onFavoriteToggle != null)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Semantics(
+                  button: true,
+                  toggled: widget.isFavorite,
+                  label: favoriteLabel,
+                  child: Tooltip(
+                    message: favoriteLabel,
+                    child: InkWell(
+                      onTap: widget.onFavoriteToggle,
+                      borderRadius: BorderRadius.circular(24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minWidth: kMinInteractiveDimension,
+                          minHeight: kMinInteractiveDimension,
+                        ),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                shape: BoxShape.circle),
+                            child: Icon(
+                                widget.isFavorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                size: 16,
+                                color: widget.isFavorite
+                                    ? Colors.pinkAccent
+                                    : Colors.black54),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: (widget.item.verificationStatus == 'approved' ||
+                      widget.item.verificationStatus == 'verified')
+                  ? const Icon(Icons.verified,
+                      size: 16, color: Color(0xFF22C55E))
+                  : const Tooltip(
+                      message: 'Nicht verifiziert',
+                      child: Icon(Icons.verified_outlined,
+                          size: 16, color: Colors.grey)),
             ),
-          Positioned(
-            top: 8,
-            left: 8,
-            child: (widget.item.verificationStatus == 'approved' ||
-                    widget.item.verificationStatus == 'verified')
-                ? const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E))
-                : const Tooltip(
-                    message: 'Nicht verifiziert',
-                    child: Icon(Icons.verified_outlined,
-                        size: 16, color: Colors.grey)),
-          ),
-        ]),
+          ]),
+        ),
       ),
     );
   }

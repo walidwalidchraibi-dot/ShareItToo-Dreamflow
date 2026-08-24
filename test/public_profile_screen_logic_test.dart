@@ -11,6 +11,19 @@ import 'package:lendify/services/data_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  User seededReviewUser(String id) => User(
+        id: id,
+        displayName: 'Seed $id',
+        email: '$id@example.invalid',
+        preferredLanguage: 'de-DE',
+        isVerified: true,
+        isBanned: false,
+        role: 'user',
+        avgRating: 5,
+        reviewCount: 0,
+        createdAt: DateTime(2025, 1, 1),
+      );
+
   test('eigenes öffentliches profil zeigt nur Profil teilen', () {
     expect(
       buildPublicProfileMenuActions(
@@ -228,6 +241,11 @@ void main() {
     );
     SharedPreferences.setMockInitialValues({
       'current_user': jsonEncode(viewer.toJson()),
+      'users': jsonEncode([
+        seededReviewUser('u1').toJson(),
+        viewer.toJson(),
+        seededReviewUser('u7').toJson(),
+      ]),
     });
 
     final reviews = await DataService.getReviewSummariesForUser('u2');
