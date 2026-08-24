@@ -29,7 +29,7 @@ fingerprints, migration inventory and data digests match exactly.
 The restored database has zero unvalidated constraints, missing migration rows,
 checksum mismatches or tested owner/draft/price-snapshot orphans. The retained
 archive hash is
-`38e18e02eec0d0e6aee08e006d8f896894e14972f10fb25cb12561cf83244c0a`;
+`c318ed2a0f797b1e765c8c949395894f41713fc0c5153954fa8eb255999590e0`;
 the archive itself is deliberately removed with the temporary cluster.
 
 ## Older-state upgrade and rollback guards
@@ -45,7 +45,15 @@ evidence, the Support 032, Listing-AI 066 and Price Engine 069 down migrations
 all refuse with their exact fail-closed errors. The restored data digest stays
 unchanged after all attempts.
 
-Implementation head `bfbbc94629b60f7df0862de3dc60ef6376cda959`, three
+The first GitHub Regression at evidence head
+`c53a43981cc44777c276527801475136d109d1c3` confirmed the new PostgreSQL R9
+job itself green, then found that the Flutter unit-test job imported `pg`
+before executing a database run even though that job intentionally has no
+Backend dependencies. The permanent correction loads `pg` only inside the
+exact recovery execution. It does not install a hidden dependency in the
+Flutter job and adds no retry, timing or parallelism accommodation.
+
+Implementation head `c249221e64c0ede0d1918a431200069064dd3558`, three
 runner contract tests, three CI wiring tests, five evidence-validator tests and
 the artifact validator are green. The complete candidate-rollover technical
 regression is also green in CI-metadata mode: analyzer zero, 393 Flutter passes

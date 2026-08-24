@@ -11,7 +11,7 @@ import { readRepositoryFile } from './read_repository_file.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath = 'docs/evidence/48h-remote/r9-database-recovery-20260824.json';
-const implementationHead = 'bfbbc94629b60f7df0862de3dc60ef6376cda959';
+const implementationHead = 'c249221e64c0ede0d1918a431200069064dd3558';
 
 function fail(message) {
   throw new Error(message);
@@ -52,6 +52,15 @@ export function validateR9DatabaseRecovery({
       })) {
     fail('R9 evidence identity is invalid.');
   }
+  if (!exact(value.ciRedFirstFinding, {
+    failingHead: 'c53a43981cc44777c276527801475136d109d1c3',
+    regressionRunId: 32754735549,
+    postgresR9JobPassed: true,
+    flutterUnitImportFailed: 'backend-pg-loaded-before-execution',
+    permanentCorrection: 'lazy-load-pg-only-inside-exact-recovery-execution',
+    dependencyInstalledOutsidePostgresJob: false,
+    retryOrTimingWorkaround: false,
+  })) fail('R9 CI red-first finding is invalid.');
 
   validateR9Observation(value.observation);
   const observation = value.observation;
@@ -73,7 +82,7 @@ export function validateR9DatabaseRecovery({
         triggerCount: 163,
       })
       || observation.backupRestore.archiveSha256
-        !== '38e18e02eec0d0e6aee08e006d8f896894e14972f10fb25cb12561cf83244c0a') {
+      !== 'c318ed2a0f797b1e765c8c949395894f41713fc0c5153954fa8eb255999590e0') {
     fail('R9 retained observation is not the exact implementation-head run.');
   }
 

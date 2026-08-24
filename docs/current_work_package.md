@@ -204,7 +204,7 @@ finding; no credential detail was inspected. R8 is closed and R9 begins.
 ### R9 database migration, backup and restore
 
 R9 now has a repository-owned PostgreSQL 16 recovery runner at implementation
-head `bfbbc94629b60f7df0862de3dc60ef6376cda959`. It starts from zero public
+head `c249221e64c0ede0d1918a431200069064dd3558`. It starts from zero public
 tables, applies all 69 checksum-bound migrations, proves the second run changes
 no ledger entry and fingerprints the complete 136-table schema. A bounded
 synthetic dataset is dumped in PostgreSQL custom format and restored into a
@@ -215,8 +215,12 @@ A representative migration-027 state upgrades through migration 069 while
 preserving four users, two listings and one cart item. The empty R6 down path is
 transaction-tested and rolled back; with retained evidence, Support 032,
 Listing-AI 066 and Price Engine 069 all refuse destructive rollback and leave
-the restored digest unchanged. The local cluster and archive are removed and
-no synthetic credential is retained. Targeted tests, the R9 validator and the
+the restored digest unchanged. The first GitHub Regression proved the R9
+PostgreSQL job itself green and then caught an eager `pg` import in the
+dependency-free Flutter unit-test job. `pg` is now loaded only inside the exact
+recovery execution, with no hidden install, retry or timing workaround. The
+local cluster and archive are removed and no synthetic credential is retained.
+Targeted tests, the R9 validator and the
 complete local technical regression are green, including analyzer zero, 393
 Flutter passes plus one documented skip, Web/Wasm, loopback smoke and the
 448-task Android debug build. Exact GitHub verification remains pending before
