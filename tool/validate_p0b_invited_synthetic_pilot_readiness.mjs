@@ -18,7 +18,7 @@ const expectedRepoSources = Object.freeze([
   Object.freeze(['assets/legal/de/legal_review_intake_p0b_20260821.json', '2ce69106a3ea06ad6fa08a365a22716bf1342c44b107fa03cdda5a399e165696']),
   Object.freeze(['docs/operations/p0b-ops-role-delegate-absence-gate.json', 'e872221ce222f5fc715b25f3a6104b1c76760d17b59e8603731aa6af90b5ad98']),
   Object.freeze(['docs/evidence/p0b-next/signed-device-evidence.json', '9c7ec43fe113177095220514a07b238d0a2ed4177aaecb623590447fecce23aa']),
-  Object.freeze(['docs/evidence/p0b-next/psp-sandbox-e2e-evidence.json', 'ce0becb34b17a875c259c150ff10f0abfb3f1914d9122d2b02c64f688b65c372']),
+  Object.freeze(['docs/evidence/p0b-next/psp-sandbox-e2e-evidence.json', '479936b89a59210ef9f8a942ad1eaa142a67c3a30113b65ae41d141ce76a1ba8']),
   Object.freeze(['backend/src/config.js', '9ecbae09403790d810568c21eef814d364f59c46d988c60f8ca45159af472faf']),
   Object.freeze(['backend/src/private_pilot_domain.js', 'bcc1f29927c15a29f4027b0ad731349bedced0bc445e0ce19aeff808d6fcbeee']),
   Object.freeze(['backend/src/invited_synthetic_pilot_readiness_gate.js', 'f8567c4293283a0e2b547a8d1fb758f8fc7b5bdf90df8ecffd7e0afc38991032']),
