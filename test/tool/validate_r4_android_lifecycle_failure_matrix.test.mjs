@@ -22,7 +22,7 @@ function validate(changed = evidence) {
 
 test('accepts all 28 bounded R4 lifecycle and failure cases', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-r4-full-regression-passed-ci-pending',
+    status: 'verified-r4-regression-and-codeql-passed',
     cases: 28,
     physicalDevice: 'Pixel 7 Pro',
     fatalOrAnrEntries: 0,
@@ -82,8 +82,10 @@ test('rejects recovery of gates, raw bytes or automatic publication', () => {
 
 test('rejects premature CI claims, live changes and secret-shaped evidence', () => {
   const ci = structuredClone(evidence);
-  ci.status = 'verified-r4-regression-and-codeql-passed';
-  assert.throws(() => validate(ci), /verification record/u);
+  ci.status = 'verified-r4-full-regression-passed-ci-pending';
+  ci.verification.githubRegression = 'pending';
+  ci.verification.githubCodeql = 'pending';
+  assert.throws(() => validate(ci), /must not claim GitHub/u);
 
   const live = structuredClone(evidence);
   live.boundaries.productionChanged = true;

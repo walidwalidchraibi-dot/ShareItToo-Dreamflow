@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r4-android-lifecycle-failure-matrix",
-  "status": "verified-r4-full-regression-passed-ci-pending",
+  "status": "verified-r4-regression-and-codeql-passed",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -241,8 +241,35 @@
     "privacyDisclosureValidator": "passed-draft-fail-closed",
     "retentionValidator": "passed-draft-fail-closed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "implementationCommit": "a843e33e7b86d2e7fd1a8dec288a834af51f49fc",
+    "verifiedHead": "c7dba0d0af5d00c5e2b4c5439bf0002e1185a9c5",
+    "regression": {
+      "runId": 32736181817,
+      "conclusion": "success",
+      "postgresJobId": 97459436744,
+      "postgresConclusion": "success",
+      "flutterJobId": 97459437155,
+      "flutterConclusion": "success",
+      "backendJobId": 97459437367,
+      "backendConclusion": "success",
+      "parallelStabilityExecuted": false,
+      "signedCandidateBuilt": false,
+      "apiImageBuilt": true,
+      "apiImagePublished": false,
+      "publishApiImageJobId": 97461834174,
+      "publishApiImageConclusion": "skipped"
+    },
+    "codeql": {
+      "workflowRunId": 32736181796,
+      "workflowConclusion": "success",
+      "advancedSecurityCheckId": 97459435293,
+      "advancedSecurityConclusion": "success",
+      "newAlerts": 0
+    }
   },
   "limitations": {
     "physicalCandidatePrecedesR4Implementation": true,

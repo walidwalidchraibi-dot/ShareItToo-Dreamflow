@@ -1,6 +1,6 @@
 # 48H R4 Android lifecycle and failure matrix
 
-Status: **PHYSICAL AND FULL LOCAL REGRESSION VERIFIED — GITHUB CI PENDING**
+Status: **COMPLETE — PHYSICAL, REGRESSION AND CODEQL VERIFIED**
 
 R4 covers all 28 lifecycle and failure cases named by the active 48-hour goal.
 The implementation is commit
@@ -73,11 +73,20 @@ with no issues, both privacy/retention validators and the complete local
 PostgreSQL scenario. The full technical regression also passed in the bounded
 candidate-rollover CI metadata mode, including 391 Flutter tests with one
 documented skip, the Google-only profile test, Web/Wasm build, loopback smoke
-and the 448-task Android debug build. Exact-head GitHub Regression/CodeQL
-verification remains pending and is deliberately not claimed by this state.
+and the 448-task Android debug build.
+
+GitHub Regression run `32736181817` passed on exact head
+`c7dba0d0af5d00c5e2b4c5439bf0002e1185a9c5`: PostgreSQL job
+`97459436744`, Flutter job `97459437155` and backend job `97459437367`
+all completed successfully. The workflow-dispatch-only parallel-stability step
+and the signed Android candidate step were skipped. The backend API image was
+built inside CI, but publish job `97461834174` was skipped, so no registry or
+runtime changed. CodeQL run `32736181796` and advanced-security check
+`97459435293` passed on the same exact head; the repository's open code-scanning
+alert query returned zero alerts.
 
 R4 made no production, cloud, Firebase, payment, Store, VPS, DNS, pilot,
 external-AI, API-billing, real-money, public-release or PR-merge change. No
 temporary timing, rate-limit, parallelism or toolchain workaround was made a
-permanent prerequisite. After the full regression and CI binding, the next
-package is `R5_REPEATED_DEVICE_STABILITY`.
+permanent prerequisite. R4 is complete and the next package is
+`R5_REPEATED_DEVICE_STABILITY`.

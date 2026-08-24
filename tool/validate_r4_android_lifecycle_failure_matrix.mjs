@@ -10,6 +10,8 @@ const evidencePath =
   'docs/evidence/48h-remote/r4-android-lifecycle-failure-matrix-20260824.json';
 const r4ImplementationCommit =
   'a843e33e7b86d2e7fd1a8dec288a834af51f49fc';
+const verifiedHead =
+  'c7dba0d0af5d00c5e2b4c5439bf0002e1185a9c5';
 const physicalCandidateCommit =
   '19fc3221bc3879788db9c48b70a89a33656116b6';
 
@@ -240,18 +242,25 @@ export function validateR4AndroidLifecycleFailureMatrix({
   if (githubPassed) {
     const github = value.githubVerification;
     if (github?.implementationCommit !== r4ImplementationCommit
-        || !/^[0-9a-f]{40}$/u.test(github.verifiedHead ?? '')
+        || github.verifiedHead !== verifiedHead
         || github.regression?.conclusion !== 'success'
-        || !Number.isInteger(github.regression?.runId)
-        || github.regression.runId <= 0
+        || github.regression.runId !== 32736181817
+        || github.regression.postgresJobId !== 97459436744
+        || github.regression.postgresConclusion !== 'success'
+        || github.regression.flutterJobId !== 97459437155
+        || github.regression.flutterConclusion !== 'success'
+        || github.regression.backendJobId !== 97459437367
+        || github.regression.backendConclusion !== 'success'
+        || github.regression.parallelStabilityExecuted !== false
         || github.regression.signedCandidateBuilt !== false
+        || github.regression.apiImageBuilt !== true
         || github.regression.apiImagePublished !== false
+        || github.regression.publishApiImageJobId !== 97461834174
+        || github.regression.publishApiImageConclusion !== 'skipped'
         || github.codeql?.workflowConclusion !== 'success'
-        || !Number.isInteger(github.codeql?.workflowRunId)
-        || github.codeql.workflowRunId <= 0
+        || github.codeql.workflowRunId !== 32736181796
         || github.codeql.advancedSecurityConclusion !== 'success'
-        || !Number.isInteger(github.codeql?.advancedSecurityCheckId)
-        || github.codeql.advancedSecurityCheckId <= 0
+        || github.codeql.advancedSecurityCheckId !== 97459435293
         || github.codeql.newAlerts !== 0) {
       fail('R4 GitHub verification is invalid.');
     }
