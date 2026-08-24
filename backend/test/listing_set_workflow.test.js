@@ -310,6 +310,53 @@ test('resolution shows a set only when all required items have current item quot
   );
 });
 
+test('G5 availability drift stays item-bound and requires request-time revalidation', async () => {
+  const client = {
+    async query(statement) {
+      assert.match(statement, /WITH current_version AS/u);
+      return { rowCount: 2, rows: currentRows({ kind: 'one_stop_set' }) };
+    },
+  };
+  let availabilityRevision = 40;
+  const result = await resolveListingSet(client, {
+    actorId: 'renter-0001',
+    listingSetId: setId,
+    raw: { startDate: '2026-09-10', endDate: '2026-09-12' },
+    quoteCandidate: async (_client, { raw, persist }) => {
+      assert.equal(persist, false);
+      availabilityRevision += 1;
+      const totalMinor = raw.listingId === 'listing-0001' ? 1000 : 1500;
+      return {
+        quoteId: null,
+        quoteHash: crypto.createHash('sha256')
+          .update(`${raw.listingId}:${totalMinor}:${availabilityRevision}`)
+          .digest('hex'),
+        quotedAt: '2026-08-21T00:00:00.000Z',
+        preview: true,
+        listingId: raw.listingId,
+        availabilityRevision,
+        quote: {
+          currency: 'EUR',
+          rentalSubtotalMinor: totalMinor - 100,
+          platformFeeMinor: 100,
+          totalMinor,
+          ownerPayoutMinor: totalMinor - 100,
+          securityDepositMinor: 0,
+        },
+      };
+    },
+  });
+
+  assert.deepEqual(
+    result.items.map((item) => item.quote.availabilityRevision),
+    [41, 42],
+  );
+  assert.equal(result.serverTruth.revalidationRequiredBeforeRequest, true);
+  assert.equal(result.serverTruth.quotePersisted, false);
+  assert.equal(result.serverTruth.reservationCreated, false);
+  assert.equal(result.serverTruth.paymentCreated, false);
+});
+
 test('discovery omits unavailable sets and ranks only by the approved handover signal', async () => {
   const rows = new Map([
     ['listing_set_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', currentRows({

@@ -657,6 +657,25 @@ function listingPayload(raw, {
   }
 }
 
+function requiredListingCatalogRevision(raw) {
+  const revision = Number(raw?.catalogRevision);
+  if (!Number.isSafeInteger(revision) || revision < 1) {
+    throw new HttpError(400, 'listing_revision_required');
+  }
+  return revision;
+}
+
+function ownedListingPayload(payload, catalogRevision) {
+  const revision = Number(catalogRevision);
+  if (!Number.isSafeInteger(revision) || revision < 1) {
+    throw new Error('invalid_listing_catalog_revision');
+  }
+  return {
+    ...ensureObject(payload, 'invalid_stored_listing'),
+    catalogRevision: revision,
+  };
+}
+
 function listingProjectionValues(payload) {
   const projection = listingProjection(payload);
   return [
@@ -3063,10 +3082,19 @@ export function createApp({
 
   app.get('/v1/listings/mine', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await pool.query(
-      `SELECT payload FROM listings WHERE owner_id = $1 ORDER BY created_at DESC LIMIT 500`,
+      `SELECT payload, catalog_revision
+         FROM listings
+        WHERE owner_id = $1
+        ORDER BY created_at DESC
+        LIMIT 500`,
       [req.auth.userId],
     );
-    res.json({ listings: result.rows.map((row) => row.payload) });
+    res.json({
+      listings: result.rows.map((row) => ownedListingPayload(
+        row.payload,
+        row.catalog_revision,
+      )),
+    });
   }));
 
   app.post('/v1/blue-ocean/listing-drafts/analyze', blueOceanListingMutationLimiter, requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
@@ -3173,7 +3201,8 @@ export function createApp({
     if (!stored.revision) throw new HttpError(409, 'blue_ocean_draft_has_no_revision');
     if (stored.row.status === 'published') {
       const replay = await pool.query(
-        `SELECT listing.payload, receipt.revision_payload_sha256
+        `SELECT listing.payload, listing.catalog_revision,
+                receipt.revision_payload_sha256
            FROM listings AS listing
            JOIN listing_ai_publication_receipts AS receipt
              ON receipt.listing_id = listing.id
@@ -3187,7 +3216,10 @@ export function createApp({
         throw new HttpError(500, 'blue_ocean_publication_receipt_missing');
       }
       res.set('Cache-Control', 'private, no-store').status(200).json({
-        listing: replay.rows[0].payload,
+        listing: ownedListingPayload(
+          replay.rows[0].payload,
+          replay.rows[0].catalog_revision,
+        ),
         assistant: {
           draftId,
           status: 'published',
@@ -3251,7 +3283,7 @@ export function createApp({
            $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
            $17, $18, $19, $20, $21, $22, $23, $24::timestamptz,
            $25::timestamptz, $26::timestamptz
-         ) RETURNING payload`,
+         ) RETURNING payload, catalog_revision`,
         [
           id,
           req.auth.userId,
@@ -3301,7 +3333,12 @@ export function createApp({
           autoPublishAllowed: false,
         },
       });
-      return { listing: inserted.rows[0].payload };
+      return {
+        listing: ownedListingPayload(
+          inserted.rows[0].payload,
+          inserted.rows[0].catalog_revision,
+        ),
+      };
     });
     let g5ContinuationLinked = false;
     let g5ContinuationStatus = req.body?.supplyEnrichmentLink == null
@@ -3391,7 +3428,7 @@ export function createApp({
            $17, $18, $19, $20, $21, $22, $23, $24::timestamptz,
            $25::timestamptz, $26::timestamptz
          )
-         RETURNING payload`,
+         RETURNING payload, catalog_revision`,
         [
           id,
           req.auth.userId,
@@ -3449,7 +3486,12 @@ export function createApp({
       return inserted;
     });
     publishToAll({ type: 'changed', resource: 'listings' });
-    res.status(201).json({ listing: result.rows[0].payload });
+    res.status(201).json({
+      listing: ownedListingPayload(
+        result.rows[0].payload,
+        result.rows[0].catalog_revision,
+      ),
+    });
   }));
 
   app.post('/v1/listings/:id/supply-enrichment', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
@@ -3602,6 +3644,7 @@ export function createApp({
     if (existing.rows[0].moderation_status !== 'active') {
       throw new HttpError(409, 'listing_locked_by_moderation');
     }
+    const expectedRevision = requiredListingCatalogRevision(req.body);
     const payload = listingPayload(req.body, {
       id,
       ownerId: req.auth.userId,
@@ -3627,7 +3670,10 @@ export function createApp({
              published_at = CASE WHEN $6 = 'active' THEN COALESCE(published_at, $23::timestamptz) ELSE published_at END,
              ended_at = $24::timestamptz
          WHERE id = $1
-         RETURNING payload`,
+           AND owner_id = $25
+           AND catalog_revision = $26
+           AND moderation_status = 'active'
+         RETURNING payload, catalog_revision`,
         [
           id,
           JSON.stringify(payload),
@@ -3635,8 +3681,13 @@ export function createApp({
           financials.pricePerDayMinor,
           financials.securityDepositMinor,
           ...projection,
+          req.auth.userId,
+          expectedRevision,
         ],
       );
+      if (!updated.rowCount) {
+        throw new HttpError(409, 'listing_revision_conflict');
+      }
       await bindListingUploads(client, {
         listingId: id,
         ownerId: req.auth.userId,
@@ -3663,7 +3714,12 @@ export function createApp({
       return updated;
     });
     publishToAll({ type: 'changed', resource: 'listings' });
-    res.json({ listing: result.rows[0].payload });
+    res.json({
+      listing: ownedListingPayload(
+        result.rows[0].payload,
+        result.rows[0].catalog_revision,
+      ),
+    });
   }));
 
   app.patch('/v1/listings/:id/status', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
@@ -3701,7 +3757,7 @@ export function createApp({
              )
          WHERE id = $1 AND owner_id = $2 AND catalog_version = 1
            AND moderation_status = 'active'
-         RETURNING payload`,
+         RETURNING payload, catalog_revision`,
         [id, req.auth.userId, isActive, status],
       );
       if (updated.rowCount) {
@@ -3716,7 +3772,12 @@ export function createApp({
     });
     if (!result.rowCount) throw new HttpError(404, 'listing_not_found');
     publishToAll({ type: 'changed', resource: 'listings' });
-    res.json({ listing: result.rows[0].payload });
+    res.json({
+      listing: ownedListingPayload(
+        result.rows[0].payload,
+        result.rows[0].catalog_revision,
+      ),
+    });
   }));
 
   app.delete('/v1/listings/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {

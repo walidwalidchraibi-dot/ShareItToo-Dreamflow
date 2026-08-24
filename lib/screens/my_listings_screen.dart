@@ -67,40 +67,18 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
 
   Future<void> _changeStatus(Item it, String status) async {
     await DataService.updateItemStatus(itemId: it.id, status: status);
+    final refreshedItems = await DataService.getItems();
     if (!mounted) return;
+    Item? refreshed;
+    for (final item in refreshedItems) {
+      if (item.id == it.id) {
+        refreshed = item;
+        break;
+      }
+    }
+    if (refreshed == null) return;
     setState(() {
-      _items = _items.map((e) {
-        if (e.id != it.id) return e;
-        return Item(
-          id: e.id,
-          ownerId: e.ownerId,
-          title: e.title,
-          description: e.description,
-          categoryId: e.categoryId,
-          subcategory: e.subcategory,
-          tags: e.tags,
-          pricePerDay: e.pricePerDay,
-          currency: e.currency,
-          priceUnit: e.priceUnit,
-          priceRaw: e.priceRaw,
-          photos: e.photos,
-          locationText: e.locationText,
-          lat: e.lat,
-          lng: e.lng,
-          geohash: e.geohash,
-          condition: e.condition,
-          minDays: e.minDays,
-          maxDays: e.maxDays,
-          createdAt: e.createdAt,
-          isActive: status == 'active',
-          verificationStatus: e.verificationStatus,
-          city: e.city,
-          country: e.country,
-          status: status,
-          endedAt: status == 'ended' ? DateTime.now() : e.endedAt,
-          timesLent: e.timesLent,
-        );
-      }).toList();
+      _items = _items.map((e) => e.id == it.id ? refreshed! : e).toList();
     });
   }
 

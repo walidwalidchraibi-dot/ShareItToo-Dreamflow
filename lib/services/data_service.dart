@@ -2517,14 +2517,18 @@ class DataService {
     for (int i = 0; i < list.length; i++) {
       final map = Map<String, dynamic>.from(list[i] as Map);
       if (map['id'].toString() == itemId.toString()) {
-        final isActive = status == 'active';
-        map['status'] = status;
-        map['isActive'] = isActive;
-        if (status == 'ended') {
-          map['endedAt'] = DateTime.now().toIso8601String();
+        if (remoteListing != null) {
+          list[i] = remoteListing;
+        } else {
+          final isActive = status == 'active';
+          map['status'] = status;
+          map['isActive'] = isActive;
+          if (status == 'ended') {
+            map['endedAt'] = DateTime.now().toIso8601String();
+          }
+          list[i] = map;
         }
         mutated = true;
-        list[i] = map;
         break;
       }
     }

@@ -1427,6 +1427,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         LongRentalDiscount(days: _tier3Days, discountPercent: _tier3Pct),
       ]..sort((a, b) => a.days.compareTo(b.days))),
       privateStatusConfirmed: _privateStatusConfirmed,
+      catalogRevision: ex.catalogRevision,
     );
 
     await DataService.updateItem(updated);

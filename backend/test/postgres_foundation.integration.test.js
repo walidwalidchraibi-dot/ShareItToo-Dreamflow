@@ -11,8 +11,39 @@ import pg from 'pg';
 import sharp from 'sharp';
 
 import { createEphemeralAcceptancePassword } from '../ops/ephemeral_acceptance_password.mjs';
+import {
+  r8ConcurrentPrivacyExportAccounts,
+  r8MaximumConcurrentWorkers,
+  r8SyntheticAccountCount,
+} from '../../tool/r8_bounded_concurrency_contract.mjs';
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
+
+const r8SyntheticAccounts = Object.freeze(Array.from(
+  { length: r8SyntheticAccountCount },
+  (_, index) => Object.freeze({
+    id: `r8-user-${String(index + 1).padStart(3, '0')}`,
+    email: `r8-user-${String(index + 1).padStart(3, '0')}@example.invalid`,
+    sessionId: `90000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+  }),
+));
+
+async function mapWithBoundedConcurrency(values, maximumWorkers, operation) {
+  const results = new Array(values.length);
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(maximumWorkers, values.length) },
+    async () => {
+      while (nextIndex < values.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await operation(values[index], index);
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}
 
 function humanStatementDecision({
   facts,
@@ -1424,6 +1455,31 @@ if (!databaseUrl) {
            ($8, 'support', 'Support test')`,
         Object.values(sessionIds),
       );
+      await setupPool.query(
+        `INSERT INTO users (
+           id, email, profile, role, account_status, email_verified_at
+         )
+         SELECT account.id, account.email, '{}'::jsonb, 'user', 'active', now()
+           FROM unnest($1::text[], $2::text[]) AS account(id, email)`,
+        [
+          r8SyntheticAccounts.map((account) => account.id),
+          r8SyntheticAccounts.map((account) => account.email),
+        ],
+      );
+      await setupPool.query(
+        `INSERT INTO auth_sessions (id, user_id, device_label)
+         SELECT account.session_id::uuid, account.user_id,
+                'R8 bounded concurrency synthetic session'
+           FROM unnest($1::text[], $2::text[])
+                AS account(session_id, user_id)`,
+        [
+          r8SyntheticAccounts.map((account) => account.sessionId),
+          r8SyntheticAccounts.map((account) => account.id),
+        ],
+      );
+      for (const account of r8SyntheticAccounts) {
+        sessionIds[account.id] = account.sessionId;
+      }
       const {
         liftUserSuspension,
         setUserSuspension,
@@ -1984,6 +2040,8 @@ if (!databaseUrl) {
       );
       const { drainNotificationOutbox } = await import('../src/notifications.js');
       const { applyProviderEvent } = await import('../src/payment_workflow.js');
+      const { buildAccountExport } = await import('../src/privacy_export.js');
+      const { createSupportCase } = await import('../src/support_case_workflow.js');
       const { hashActionToken, hashPassword, signAccessToken } = await import('../src/security.js');
       applicationPool = pool;
       const adminPassword = createEphemeralAcceptancePassword();
@@ -2092,6 +2150,129 @@ if (!databaseUrl) {
         Authorization: `Bearer ${tokenFor('renter-b')}`,
         'Content-Type': 'application/json',
       };
+
+      await restartApplicationServer();
+      const r8CohortResults = await mapWithBoundedConcurrency(
+        r8SyntheticAccounts,
+        r8MaximumConcurrentWorkers,
+        async (account, index) => {
+          const headers = {
+            Authorization: `Bearer ${tokenFor(account.id)}`,
+            'Content-Type': 'application/json',
+          };
+          const cartItemId = `r8-cart-${String(index + 1).padStart(3, '0')}`;
+          const supportIdempotencyKey = `r8-support-${String(index + 1).padStart(3, '0')}`;
+          const [cartResponse, support, preflightResponse] = await Promise.all([
+            fetch(`${baseUrl}/v1/rental-cart/items/${cartItemId}`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({
+                listingId: 'listing-1',
+                startDate: '2026-11-10',
+                endDate: '2026-11-12',
+                sortOrder: 0,
+              }),
+            }),
+            inTransaction((client) => createSupportCase(client, {
+              actor: { id: account.id, role: 'user' },
+              idempotencyKey: supportIdempotencyKey,
+              operatingMode: 'simulation',
+              raw: {
+                caseType: 'general_help',
+                caseSubType: 'app_error_or_display',
+                summary: `R8 synthetischer Supportfall ${index + 1}.`,
+                immediateDanger: false,
+                safetyTriage: {
+                  version: 'sit_support_safety_triage_v1',
+                  packetVersion: 'SIT_SUPPORT_PACKET_V1_2026-08-20',
+                  guidanceVersion: 'T-003@1.0.0',
+                  immediateDanger: false,
+                  guidanceShown: false,
+                },
+                issueScope: {
+                  version: 'sit_support_single_issue_scope_v1',
+                  singleIssueConfirmed: true,
+                  separationGuidanceShown: false,
+                },
+              },
+            }), { deadlockRetries: 2 }),
+            fetch(`${baseUrl}/v1/account/deletion-preflight`, { headers }),
+          ]);
+          assert.equal(cartResponse.status, 200);
+          assert.equal(preflightResponse.status, 200);
+          const cart = (await cartResponse.json()).cart;
+          const preflight = await preflightResponse.json();
+          assert.deepEqual(cart.items.map((item) => item.id), [cartItemId]);
+          assert.equal(cart.reservationCreated, false);
+          assert.equal(support.replayed, false);
+          assert.equal(support.supportCase.operatingMode, 'simulation');
+          assert.equal(preflight.canDelete, true);
+          assert.deepEqual(preflight.blockers, []);
+          return {
+            accountId: account.id,
+            cartItemId,
+            supportCaseId: support.supportCase.id,
+          };
+        },
+      );
+      assert.equal(r8CohortResults.length, r8SyntheticAccountCount);
+      assert.equal(
+        new Set(r8CohortResults.map((result) => result.supportCaseId)).size,
+        r8SyntheticAccountCount,
+      );
+      const r8CohortDatabaseState = await setupPool.query(
+        `SELECT
+           (SELECT count(*)::int
+              FROM rental_carts
+             WHERE user_id = ANY($1::text[])) AS cart_count,
+           (SELECT count(*)::int
+              FROM rental_cart_items AS item
+              JOIN rental_carts AS cart ON cart.id = item.cart_id
+             WHERE cart.user_id = ANY($1::text[])) AS cart_item_count,
+           (SELECT count(*)::int
+              FROM support_cases
+             WHERE reporter_user_id = ANY($1::text[])) AS support_case_count,
+           (SELECT count(DISTINCT reporter_user_id)::int
+              FROM support_cases
+             WHERE reporter_user_id = ANY($1::text[])) AS support_reporter_count`,
+        [r8SyntheticAccounts.map((account) => account.id)],
+      );
+      assert.deepEqual(r8CohortDatabaseState.rows[0], {
+        cart_count: r8SyntheticAccountCount,
+        cart_item_count: r8SyntheticAccountCount,
+        support_case_count: r8SyntheticAccountCount,
+        support_reporter_count: r8SyntheticAccountCount,
+      });
+
+      const r8PrivacyAccounts = r8SyntheticAccounts.slice(
+        0,
+        r8ConcurrentPrivacyExportAccounts,
+      );
+      await mapWithBoundedConcurrency(
+        r8PrivacyAccounts,
+        Math.min(6, r8MaximumConcurrentWorkers),
+        async (account, index) => {
+          const exported = await inTransaction(async (client) => {
+            await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+            return buildAccountExport(client, account.id);
+          });
+          assert.equal(exported.account.id, account.id);
+          assert.deepEqual(
+            exported.marketplace.rentalCart.items.map(
+              (item) => item.client_item_id,
+            ),
+            [`r8-cart-${String(index + 1).padStart(3, '0')}`],
+          );
+          assert.deepEqual(
+            exported.communication.support.cases.map(
+              (supportCaseEntry) => supportCaseEntry.id,
+            ),
+            [r8CohortResults[index].supportCaseId],
+          );
+        },
+      );
+      await restartApplicationServer();
+
       const createSupportIntake = () => fetch(`${baseUrl}/v1/support/cases`, {
         method: 'POST',
         headers: {
@@ -3638,12 +3819,22 @@ if (!databaseUrl) {
            (SELECT count(*)::int FROM payments) AS payments`,
       )).rows[0];
 
-      const counterInitial = await runBookingGroupCommand((client) => requestBookingGroup(client, {
+      const requestCounterGroup = () => runBookingGroupCommand((client) => requestBookingGroup(client, {
         actor: groupActors.renter,
         raw: groupRequest,
         idempotencyKey: 'g3c-request-counter-path',
         privatePilotAllowedRegions: groupPrivateRegions,
       }));
+      const concurrentCounterRequests = await Promise.all([
+        requestCounterGroup(),
+        requestCounterGroup(),
+      ]);
+      const counterInitial = concurrentCounterRequests.find(
+        (result) => result.replayed === false,
+      );
+      const counterInitialReplay = concurrentCounterRequests.find(
+        (result) => result.replayed === true,
+      );
       assert.equal(counterInitial.group.state, 'requested');
       assert.equal(counterInitial.group.positions.length, 2);
       assert.equal(counterInitial.quote.itemCount, 2);
@@ -3652,12 +3843,6 @@ if (!databaseUrl) {
         counterInitial.quote.items.reduce((total, item) => total + item.totalMinor, 0),
       );
       assert.equal(counterInitial.replayed, false);
-      const counterInitialReplay = await runBookingGroupCommand((client) => requestBookingGroup(client, {
-        actor: groupActors.renter,
-        raw: groupRequest,
-        idempotencyKey: 'g3c-request-counter-path',
-        privatePilotAllowedRegions: groupPrivateRegions,
-      }));
       assert.equal(counterInitialReplay.replayed, true);
       assert.equal(counterInitialReplay.group.id, counterInitial.group.id);
 
@@ -4173,8 +4358,15 @@ if (!databaseUrl) {
           }),
         },
       );
-      const cartItemResponse = await cartItemRequest();
-      assert.equal(cartItemResponse.status, 200);
+      const concurrentCartItemResponses = await Promise.all([
+        cartItemRequest(),
+        cartItemRequest(),
+      ]);
+      assert.deepEqual(
+        concurrentCartItemResponses.map((response) => response.status),
+        [200, 200],
+      );
+      const cartItemResponse = concurrentCartItemResponses[0];
       const rentalCart = (await cartItemResponse.json()).cart;
       assert.equal(rentalCart.reservationCreated, false);
       assert.equal(rentalCart.projects[0].id, 'project_move_1');
@@ -4182,7 +4374,6 @@ if (!databaseUrl) {
       assert.equal(rentalCart.items[0].quoteStatus, 'current');
       assert.equal(rentalCart.items[0].quote.preview, true);
       assert.equal(rentalCart.items[0].quote.quoteId, null);
-      assert.equal((await cartItemRequest()).status, 200);
       const persistedCartItems = await setupPool.query(
         `SELECT count(*)::int AS count FROM rental_cart_items AS item
           JOIN rental_carts AS cart ON cart.id = item.cart_id
@@ -4691,13 +4882,33 @@ if (!databaseUrl) {
         },
         supplyEnrichmentLink: g5_failure_after_main_publication,
       };
-      const blueOceanPublishResponse = await fetch(
+      const sendBlueOceanPublish = () => fetch(
         `${baseUrl}/v1/blue-ocean/listing-drafts/${encodeURIComponent(blueOceanDraftId)}/publish`,
         {
           method: 'POST',
           headers: renterAHeaders,
           body: JSON.stringify(blueOceanPublishRequest),
         },
+      );
+      const concurrentBlueOceanPublishResponses = await Promise.all([
+        sendBlueOceanPublish(),
+        sendBlueOceanPublish(),
+      ]);
+      assert.deepEqual(
+        concurrentBlueOceanPublishResponses
+          .map((response) => response.status)
+          .sort(),
+        [201, 409],
+      );
+      const blueOceanPublishResponse = concurrentBlueOceanPublishResponses.find(
+        (response) => response.status === 201,
+      );
+      const blockedConcurrentPublication = concurrentBlueOceanPublishResponses.find(
+        (response) => response.status === 409,
+      );
+      assert.equal(
+        (await blockedConcurrentPublication.json()).error,
+        'blue_ocean_draft_closed',
       );
       assert.equal(blueOceanPublishResponse.status, 201);
       const blueOceanPublish = await blueOceanPublishResponse.json();
@@ -4714,14 +4925,7 @@ if (!databaseUrl) {
         blueOceanPublish.assistant.g5ContinuationFailureCode,
         'listing_supply_enrichment_failed',
       );
-      const blueOceanPublishReplayResponse = await fetch(
-        `${baseUrl}/v1/blue-ocean/listing-drafts/${encodeURIComponent(blueOceanDraftId)}/publish`,
-        {
-          method: 'POST',
-          headers: renterAHeaders,
-          body: JSON.stringify(blueOceanPublishRequest),
-        },
-      );
+      const blueOceanPublishReplayResponse = await sendBlueOceanPublish();
       assert.equal(blueOceanPublishReplayResponse.status, 200);
       assert.match(
         blueOceanPublishReplayResponse.headers.get('cache-control'),
@@ -4816,6 +5020,7 @@ if (!databaseUrl) {
       assert.equal(createdLifecycleListing.ownerId, 'owner');
       assert.equal(createdLifecycleListing.status, 'active');
       assert.equal(createdLifecycleListing.availabilityMode, 'calendar');
+      assert.equal(createdLifecycleListing.catalogRevision, 1);
 
       const processedUpload = await setupPool.query(
         `SELECT mime_type, byte_size, thumbnail_mime_type, thumbnail_byte_size,
@@ -4881,6 +5086,23 @@ if (!databaseUrl) {
         `SELECT count(*)::int AS count FROM listings WHERE id = 'listing-foreign'`,
       )).rows[0].count, 0);
 
+      const missingListingRevision = await fetch(
+        `${baseUrl}/v1/listings/listing-lifecycle`,
+        {
+          method: 'PUT',
+          headers: ownerHeaders,
+          body: JSON.stringify({
+            ...lifecycleListing,
+            title: 'Bosch edit without revision',
+          }),
+        },
+      );
+      assert.equal(missingListingRevision.status, 400);
+      assert.equal(
+        (await missingListingRevision.json()).error,
+        'listing_revision_required',
+      );
+
       const updateLifecycleListing = await fetch(`${baseUrl}/v1/listings/listing-lifecycle`, {
         method: 'PUT',
         headers: ownerHeaders,
@@ -4890,6 +5112,7 @@ if (!databaseUrl) {
           title: 'Bosch professional drill set',
           pricePerDay: 22,
           priceRaw: 22,
+          catalogRevision: createdLifecycleListing.catalogRevision,
         }),
       });
       assert.equal(updateLifecycleListing.status, 200);
@@ -4897,6 +5120,55 @@ if (!databaseUrl) {
       assert.equal(updatedLifecycleListing.ownerId, 'owner');
       assert.equal(updatedLifecycleListing.title, 'Bosch professional drill set');
       assert.equal(updatedLifecycleListing.pricePerDay, 22);
+      assert.equal(updatedLifecycleListing.catalogRevision, 2);
+
+      const concurrentListingRevision = Number((await setupPool.query(
+        `SELECT catalog_revision
+           FROM listings
+          WHERE id = 'listing-lifecycle'`,
+      )).rows[0].catalog_revision);
+      const concurrentListingEdit = (suffix) => fetch(
+        `${baseUrl}/v1/listings/listing-lifecycle`,
+        {
+          method: 'PUT',
+          headers: ownerHeaders,
+          body: JSON.stringify({
+            ...lifecycleListing,
+            title: `Bosch concurrent edit ${suffix}`,
+            pricePerDay: 22,
+            priceRaw: 22,
+            catalogRevision: concurrentListingRevision,
+          }),
+        },
+      );
+      const concurrentListingResponses = await Promise.all([
+        concurrentListingEdit('alpha'),
+        concurrentListingEdit('beta'),
+      ]);
+      assert.deepEqual(
+        concurrentListingResponses.map((response) => response.status).sort(),
+        [200, 409],
+      );
+      const staleListingResponse = concurrentListingResponses.find(
+        (response) => response.status === 409,
+      );
+      assert.equal(
+        (await staleListingResponse.json()).error,
+        'listing_revision_conflict',
+      );
+      const concurrentListingRow = (await setupPool.query(
+        `SELECT payload, catalog_revision
+           FROM listings
+          WHERE id = 'listing-lifecycle'`,
+      )).rows[0];
+      assert.equal(
+        Number(concurrentListingRow.catalog_revision),
+        concurrentListingRevision + 1,
+      );
+      assert.match(
+        concurrentListingRow.payload.title,
+        /^Bosch concurrent edit (?:alpha|beta)$/u,
+      );
 
       await setupPool.query(
         `UPDATE listings
@@ -4925,6 +5197,7 @@ if (!databaseUrl) {
             title: 'Bosch restored after rollback',
             pricePerDay: 22,
             priceRaw: 22,
+            catalogRevision: Number(quarantinedLifecycle.rows[0].catalog_revision),
           }),
         },
       );
@@ -5651,13 +5924,19 @@ if (!databaseUrl) {
       assert.equal(connectStatus.status, 200);
       assert.equal((await connectStatus.json()).account.ready, true);
 
-      const b8ListingPayload = (await setupPool.query(
-        `SELECT payload FROM listings WHERE id = 'listing-1'`,
-      )).rows[0].payload;
+      const b8ListingRow = (await setupPool.query(
+        `SELECT payload, catalog_revision FROM listings WHERE id = 'listing-1'`,
+      )).rows[0];
+      const b8ListingPayload = b8ListingRow.payload;
       const b8ListingUpdate = await fetch(`${baseUrl}/v1/listings/listing-1`, {
         method: 'PUT',
         headers: ownerHeaders,
-        body: JSON.stringify({ ...b8ListingPayload, deposit: 60, protectionModel: 'standard' }),
+        body: JSON.stringify({
+          ...b8ListingPayload,
+          catalogRevision: Number(b8ListingRow.catalog_revision),
+          deposit: 60,
+          protectionModel: 'standard',
+        }),
       });
       assert.equal(b8ListingUpdate.status, 200);
       const neutralizedListing = (await b8ListingUpdate.json()).listing;
@@ -8314,7 +8593,7 @@ if (!databaseUrl) {
         userId: 'recovery-user',
         kind: 'reset_password',
       }));
-      const recoveryConfirm = await fetch(
+      const recoveryConfirmRequest = () => fetch(
         `${baseUrl}/v1/auth/password-reset/confirm`,
         {
           method: 'POST',
@@ -8327,21 +8606,21 @@ if (!databaseUrl) {
           }),
         },
       );
+      const concurrentRecoveryResponses = await Promise.all([
+        recoveryConfirmRequest(),
+        recoveryConfirmRequest(),
+      ]);
+      assert.deepEqual(
+        concurrentRecoveryResponses.map((response) => response.status).sort(),
+        [200, 400],
+      );
+      const recoveryConfirm = concurrentRecoveryResponses.find(
+        (response) => response.status === 200,
+      );
       assert.equal(recoveryConfirm.status, 200);
       assert.deepEqual(await recoveryConfirm.json(), { changed: true });
-
-      const recoveryReuse = await fetch(
-        `${baseUrl}/v1/auth/password-reset/confirm`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            token: recoveryToken,
-            password: createEphemeralAcceptancePassword(),
-          }),
-        },
+      const recoveryReuse = concurrentRecoveryResponses.find(
+        (response) => response.status === 400,
       );
       assert.equal(recoveryReuse.status, 400);
       assert.equal((await recoveryReuse.json()).error, 'invalid_or_expired_reset_link');

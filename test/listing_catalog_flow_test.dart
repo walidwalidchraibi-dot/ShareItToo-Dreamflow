@@ -38,6 +38,20 @@ void main() {
     QaRuntimeService.reset();
   });
 
+  test('owner listing catalog revision round-trips without client invention',
+      () {
+    final source = buildTestItem(id: 'revisioned', ownerId: 'owner-a');
+    expect(source.catalogRevision, 1);
+
+    final revisioned = Item.fromJson({
+      ...source.toJson(),
+      'catalogRevision': 7,
+    });
+
+    expect(revisioned.catalogRevision, 7);
+    expect(revisioned.toJson()['catalogRevision'], 7);
+  });
+
   test('public catalog excludes paused listings and applies combined filters',
       () async {
     final drill = withCatalogState(

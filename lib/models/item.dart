@@ -50,6 +50,8 @@ class Item {
   final String availabilityMode;
   final bool approximateLocation;
   final bool privateStatusConfirmed;
+  // Server-owned optimistic-concurrency token for owner mutations.
+  final int catalogRevision;
 
   const Item({
     required this.id,
@@ -90,6 +92,7 @@ class Item {
     this.availabilityMode = 'calendar',
     this.approximateLocation = false,
     this.privateStatusConfirmed = false,
+    this.catalogRevision = 1,
   }) : priceRaw = priceRaw ?? pricePerDay;
 
   factory Item.fromJson(Map<String, dynamic> json) {
@@ -157,6 +160,7 @@ class Item {
       availabilityMode: (json['availabilityMode'] as String?) ?? 'calendar',
       approximateLocation: json['approximateLocation'] == true,
       privateStatusConfirmed: json['privateStatusConfirmed'] == true,
+      catalogRevision: (json['catalogRevision'] as num?)?.toInt() ?? 1,
     );
   }
 
@@ -200,6 +204,7 @@ class Item {
         'availabilityMode': availabilityMode,
         'approximateLocation': approximateLocation,
         'privateStatusConfirmed': privateStatusConfirmed,
+        'catalogRevision': catalogRevision,
       };
 }
 

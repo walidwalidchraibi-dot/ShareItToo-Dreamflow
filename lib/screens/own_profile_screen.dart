@@ -173,33 +173,17 @@ class _ListingsTabState extends State<_ListingsTab> {
 
   Future<void> _changeStatus(Item it, String status) async {
     await DataService.updateItemStatus(itemId: it.id, status: status);
-    final updated = Item(
-      id: it.id,
-      ownerId: it.ownerId,
-      title: it.title,
-      description: it.description,
-      categoryId: it.categoryId,
-      subcategory: it.subcategory,
-      tags: it.tags,
-      pricePerDay: it.pricePerDay,
-      currency: it.currency,
-      photos: it.photos,
-      locationText: it.locationText,
-      lat: it.lat,
-      lng: it.lng,
-      geohash: it.geohash,
-      condition: it.condition,
-      minDays: it.minDays,
-      maxDays: it.maxDays,
-      createdAt: it.createdAt,
-      isActive: status == 'active',
-      verificationStatus: it.verificationStatus,
-      city: it.city,
-      country: it.country,
-      status: status,
-      endedAt: status == 'ended' ? DateTime.now() : it.endedAt,
-    );
-    setState(() { _items = _items.map((e) => e.id == it.id ? updated : e).toList(); });
+    final refreshedItems = await DataService.getItems();
+    if (!mounted) return;
+    Item? refreshed;
+    for (final item in refreshedItems) {
+      if (item.id == it.id) {
+        refreshed = item;
+        break;
+      }
+    }
+    if (refreshed == null) return;
+    setState(() { _items = _items.map((e) => e.id == it.id ? refreshed! : e).toList(); });
   }
 
   @override
