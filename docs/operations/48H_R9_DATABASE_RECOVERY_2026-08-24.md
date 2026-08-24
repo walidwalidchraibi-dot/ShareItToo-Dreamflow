@@ -1,6 +1,6 @@
 # 48H R9 database migration, backup and restore
 
-Status: **TARGETED VERIFIED — EXACT LOCAL RECOVERY GREEN; FULL REGRESSION PENDING**
+Status: **LOCAL VERIFIED — FULL REGRESSION GREEN; EXACT GITHUB CI PENDING**
 
 R9 runs only against a repository-owned PostgreSQL 16 cluster bound to
 `127.0.0.1`. It creates four temporary databases for the current source,
@@ -47,7 +47,10 @@ unchanged after all attempts.
 
 Implementation head `bfbbc94629b60f7df0862de3dc60ef6376cda959`, three
 runner contract tests, three CI wiring tests, five evidence-validator tests and
-the artifact validator are green. Full technical regression and exact GitHub
-Regression/CodeQL verification remain pending. No Production, VPS, Cloud,
+the artifact validator are green. The complete candidate-rollover technical
+regression is also green in CI-metadata mode: analyzer zero, 393 Flutter passes
+plus one documented skip, the separate Google-only profile, Web/Wasm, loopback
+smoke and the 448-task Android debug build all pass. Exact GitHub
+Regression/CodeQL verification remains pending. No Production, VPS, Cloud,
 Payment, real-user, real-money, PR-merge or history-rewrite action is part of
 R9. After exact local and GitHub verification, R9 closes and R10 begins.

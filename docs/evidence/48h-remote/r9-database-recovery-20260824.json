@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r9-database-recovery",
-  "status": "implemented-r9-recovery-and-targeted-tests-passed-full-regression-pending",
+  "status": "verified-local-r9-regression-passed-ci-pending",
   "observedOn": "2026-08-24",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -103,7 +103,7 @@
     "ciWiringTests": "passed-3",
     "artifactValidatorTests": "passed-5",
     "artifactValidator": "passed",
-    "fullTechnicalRegression": "pending",
+    "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },

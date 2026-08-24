@@ -19,7 +19,7 @@ function validate(changed = evidence) {
 
 test('accepts the exact implementation-head R9 recovery evidence', () => {
   assert.deepEqual(validate(), {
-    status: 'implemented-r9-recovery-and-targeted-tests-passed-full-regression-pending',
+    status: 'verified-local-r9-regression-passed-ci-pending',
     migrations: 69,
     tables: 136,
     nextPackage: 'R10',

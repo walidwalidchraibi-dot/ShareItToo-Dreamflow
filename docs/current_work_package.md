@@ -1,7 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R8 and R13 exact
-verified; R9 active; non-live and fail-closed** on
+verified; R9 locally verified with exact GitHub CI pending; non-live and
+fail-closed** on
 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
@@ -215,9 +216,11 @@ preserving four users, two listings and one cart item. The empty R6 down path is
 transaction-tested and rolled back; with retained evidence, Support 032,
 Listing-AI 066 and Price Engine 069 all refuse destructive rollback and leave
 the restored digest unchanged. The local cluster and archive are removed and
-no synthetic credential is retained. Targeted tests and the R9 validator are
-green; the full technical regression and exact GitHub verification remain
-pending before R9 closes and R10 begins.
+no synthetic credential is retained. Targeted tests, the R9 validator and the
+complete local technical regression are green, including analyzer zero, 393
+Flutter passes plus one documented skip, Web/Wasm, loopback smoke and the
+448-task Android debug build. Exact GitHub verification remains pending before
+R9 closes and R10 begins.
 
 ### R13 local Codex authentication clarification
 
