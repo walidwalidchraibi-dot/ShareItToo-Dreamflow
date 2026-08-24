@@ -269,6 +269,9 @@ node --test test/tool/validate_r3_blue_ocean_pixel_flow.test.mjs
 node tool/validate_r3_blue_ocean_pixel_flow.mjs
 node --check tool/diagnose_r4_android_lifecycle.mjs
 node --test test/tool/diagnose_r4_android_lifecycle.test.mjs
+node --check tool/validate_r4_android_lifecycle_failure_matrix.mjs
+node --test test/tool/validate_r4_android_lifecycle_failure_matrix.test.mjs
+node tool/validate_r4_android_lifecycle_failure_matrix.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
