@@ -53,7 +53,15 @@ export async function runR5RepeatedPostgresStability({
   const durations = [];
   for (let index = 0; index < r5RequiredRepeatedRuns; index += 1) {
     const started = finiteNonNegative(clock(), 'start clock');
-    const result = await runIntegration();
+    let result;
+    try {
+      result = await runIntegration();
+    } catch (error) {
+      fail(
+        `R5 fresh integration run ${index + 1} failed: `
+          + `${error?.message ?? 'unknown integration failure'}`,
+      );
+    }
     const finished = finiteNonNegative(clock(), 'finish clock');
     if (finished < started
         || result?.status !== 'passed-and-cleaned'

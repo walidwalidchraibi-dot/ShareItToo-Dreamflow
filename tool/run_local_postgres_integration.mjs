@@ -30,8 +30,8 @@ function compactFailureOutput(value) {
   return value.trim().split(/\r?\n/u).slice(-8).join('\n').slice(0, 2_000);
 }
 
-function commandError(command, code, stderr) {
-  const detail = compactFailureOutput(stderr);
+function commandError(command, code, stderr, stdout = '') {
+  const detail = compactFailureOutput(`${stderr}\n${stdout}`);
   return new Error(
     `${path.basename(command)} failed with exit ${code}` +
       (detail === '' ? '.' : `: ${detail}`),
@@ -66,7 +66,7 @@ async function runCommand(command, args, {
         resolve({ stdout, stderr });
         return;
       }
-      reject(commandError(command, code ?? signal ?? 'unknown', stderr));
+      reject(commandError(command, code ?? signal ?? 'unknown', stderr, stdout));
     });
   });
 }

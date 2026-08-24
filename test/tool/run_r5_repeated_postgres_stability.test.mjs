@@ -89,6 +89,26 @@ test('R5 stops immediately on an incomplete or dirty integration result', async 
   assert.equal(runs, 4);
 });
 
+test('R5 identifies the exact repeated run when the integration throws', async () => {
+  let runs = 0;
+  await assert.rejects(
+    runR5RepeatedPostgresStability({
+      runIntegration: async () => {
+        runs += 1;
+        if (runs === 5) throw new Error('deterministic_child_failure');
+        return passed;
+      },
+      clock: (() => {
+        let value = 0;
+        return () => value += 1;
+      })(),
+      readResources: () => resources(0),
+    }),
+    /run 5 failed: deterministic_child_failure/u,
+  );
+  assert.equal(runs, 5);
+});
+
 test('R5 rejects invalid clocks and dependency injection', async () => {
   await assert.rejects(
     runR5RepeatedPostgresStability({ runIntegration: null }),
