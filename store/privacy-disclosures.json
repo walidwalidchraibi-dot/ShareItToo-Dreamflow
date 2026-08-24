@@ -16,7 +16,7 @@
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
-      "sha256": "d19335b5352d780fee39dcd98d57ba08cd279834bfab3db4a26028be597497a0"
+      "sha256": "a168143258648d2cd0aa6ec4a80ac35dcc4faab69570a5bc8ccd47ce13ea48e9"
     },
     {
       "path": "ios/Runner/Info.plist",

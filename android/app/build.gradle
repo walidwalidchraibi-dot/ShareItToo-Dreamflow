@@ -25,6 +25,22 @@ if (keystorePropertiesFile.exists()) {
 def releaseRequested = gradle.startParameter.taskNames.any {
     it.toLowerCase().contains('release')
 }
+def localInternalQaRequested =
+        System.getenv('SIT_LOCAL_INTERNAL_QA_SIGNING') == '1'
+if (localInternalQaRequested &&
+        System.getenv('SIT_CONFIRM_LOCAL_INTERNAL_QA') != '1') {
+    throw new GradleException(
+            'Local Internal QA signing requires SIT_CONFIRM_LOCAL_INTERNAL_QA=1.'
+    )
+}
+if (localInternalQaRequested && !gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains('debug')
+}) {
+    throw new GradleException(
+            'Local Internal QA signing is permitted only for an explicit debug task.'
+    )
+}
+releaseRequested = releaseRequested || localInternalQaRequested
 def requiredSigningProperties = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
 def crashlyticsNativeSymbolUploadRequested =
         System.getenv('SIT_CRASHLYTICS_NATIVE_SYMBOL_UPLOAD') == '1'
@@ -97,9 +113,19 @@ android {
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders.sitUsesCleartextTraffic = "false"
     }
 
     buildTypes {
+        debug {
+            if (localInternalQaRequested) {
+                // R2 local-device QA only: preserve the canonical installed
+                // app signature while retaining non-release-only G3/G4/G5
+                // technical surfaces. Ordinary debug builds stay unchanged.
+                signingConfig = signingConfigs.getByName("release")
+                manifestPlaceholders.sitUsesCleartextTraffic = "true"
+            }
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
             if (crashlyticsNativeSymbolUploadRequested) {

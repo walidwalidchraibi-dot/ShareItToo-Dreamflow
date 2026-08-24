@@ -22,11 +22,11 @@
       },
       {
         "path": "store/privacy-disclosures.json",
-        "sha256": "ba7cdfd2f6b322945354d84ca2e724baf4558cb8ea9160990ba67d3916661df6"
+        "sha256": "b8c39ecc0d82a3512fd87133785bbb07edbddf4023c6379a22e8cc6a4c74e5a9"
       },
       {
         "path": "store/retention-deletion-readiness.json",
-        "sha256": "1e615695c22ab7dbe371fda407e56a5f270755044825c7696eb86b62bae75bad"
+        "sha256": "db134fc27b224737c30ebff30ba51e365d97deddb33a495ba98dd656feb52c92"
       }
     ]
   },
