@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n12-owner-action-pack",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n13",
   "capturedAt": "2026-08-24T00:32:00Z",
   "implementationBaseHead": "31bdfb9fff0b423c85508d1b9944f3588a56d70c",
   "packRef": "docs/operations/BLUE_OCEAN_OWNER_ACTION_PACK.md",
@@ -52,8 +52,15 @@
     "artifactValidatorTests": "passed-7",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
+  },
+  "exactGitHubVerification": {
+    "headSha": "8ded33b8ed7c84d307014263b678c3fd9177038c",
+    "regressionRunId": 32677182050,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32677182040,
+    "codeqlConclusion": "success"
   },
   "boundaries": {
     "thirdPartyContacted": false,

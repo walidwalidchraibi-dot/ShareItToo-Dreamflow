@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n11-codex-local-guardrails",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n12",
   "capturedAt": "2026-08-24T00:20:00Z",
   "implementationBaseHead": "9533d4351c64d1b3df2b37b97e4ec0e9496f020e",
   "officialSupport": {
@@ -43,8 +43,15 @@
     "artifactValidatorTests": "passed-7",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
+  },
+  "exactGitHubVerification": {
+    "headSha": "31bdfb9fff0b423c85508d1b9944f3588a56d70c",
+    "regressionRunId": 32676272328,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32676272346,
+    "codeqlConclusion": "success"
   },
   "boundaries": {
     "hookTrustedOrActivatedByN11": false,

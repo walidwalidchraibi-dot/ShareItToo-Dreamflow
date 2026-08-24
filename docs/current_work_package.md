@@ -3220,8 +3220,9 @@ non-binding, no-money and non-public. Six operator-domain tests, two checker
 tests, four Wave-0 wiring tests and seven evidence-validator tests pass. The
 complete candidate-rollover regression is green with 725 Backend tests plus
 one documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
-loopback smoke and Android debug. Exact GitHub regression and CodeQL results
-remain pending for the N9 implementation commit; no pilot was activated.
+loopback smoke and Android debug. Exact GitHub regression `32675356026` and
+CodeQL `32675356015` are successful at implementation commit
+`b606e2864b6ab429a9dd64c04280968720454581`; no pilot was activated.
 
 ## Verification package: Stage A Blue Ocean N10
 
@@ -3234,8 +3235,9 @@ without changing `pubspec.yaml`, building an AAB or claiming an exact artifact.
 Eight wiring tests and seven evidence-validator tests pass. The complete
 candidate-rollover regression is green with 725 Backend tests plus one
 documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
-loopback smoke and Android debug. Exact GitHub regression and CodeQL results
-remain pending for the N10 implementation commit.
+loopback smoke and Android debug. Exact GitHub regression `32675709874` and
+CodeQL `32675709863` are successful at implementation commit
+`9533d4351c64d1b3df2b37b97e4ec0e9496f020e`.
 
 ## Verification package: Stage A Blue Ocean N11
 
@@ -3249,9 +3251,10 @@ Official support is now verified. The smallest repo-local setup implements
 trust review still pending. Ten behavior tests and seven evidence-validator
 tests pass. The complete candidate-rollover regression is green with 725
 Backend tests plus one documented skip, 387 Flutter tests plus one documented
-skip, Web/Wasm, loopback smoke and Android debug. Exact GitHub regression and
-CodeQL results remain pending for the N11 implementation commit. The hooks are
-optional defense in depth and no app/build/runtime path depends on them.
+skip, Web/Wasm, loopback smoke and Android debug. Exact GitHub regression
+`32676272328` and CodeQL `32676272346` are successful at implementation commit
+`31bdfb9fff0b423c85508d1b9944f3588a56d70c`. The hooks are optional defense
+in depth and no app/build/runtime path depends on them.
 
 ## Verification package: Stage A Blue Ocean N12
 
@@ -3263,7 +3266,8 @@ tests and seven evidence-validator tests pass. The complete CI-metadata/
 candidate-rollover regression is green with 725 Backend tests plus one
 documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
 loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
-CodeQL remain pending for the N12 implementation commit.
+CodeQL are successful in runs `32677182050` and `32677182040` at exact N12
+implementation commit `8ded33b8ed7c84d307014263b678c3fd9177038c`.
 
 ## Active package: Stage A Blue Ocean N13
 

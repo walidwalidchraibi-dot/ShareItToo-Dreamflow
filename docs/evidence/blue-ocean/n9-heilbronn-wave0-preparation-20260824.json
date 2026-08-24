@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n9-heilbronn-wave0-preparation",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n10",
   "capturedAt": "2026-08-24T00:32:00Z",
   "implementationBaseHead": "9ba15e519edf1fdec01e4bdf74a94c9c03bd0ea8",
   "wave": {
@@ -59,8 +59,15 @@
     "artifactValidatorTests": "passed-7",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
+  },
+  "exactGitHubVerification": {
+    "headSha": "b606e2864b6ab429a9dd64c04280968720454581",
+    "regressionRunId": 32675356026,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32675356015,
+    "codeqlConclusion": "success"
   },
   "boundaries": {
     "humanPilotActivated": false,

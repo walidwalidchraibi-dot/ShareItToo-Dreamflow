@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-stage-a-blue-ocean-n10-google-play-internal-testing-preparation",
-  "status": "implemented-full-regression-passed-ci-pending",
+  "status": "verified-ready-for-n11",
   "capturedAt": "2026-08-24T00:08:00Z",
   "implementationBaseHead": "b606e2864b6ab429a9dd64c04280968720454581",
   "planRef": "store/google-play/blue-ocean-internal-testing-plan.json",
@@ -26,8 +26,15 @@
     "artifactValidatorTests": "passed-7",
     "artifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-mode",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed"
+  },
+  "exactGitHubVerification": {
+    "headSha": "9533d4351c64d1b3df2b37b97e4ec0e9496f020e",
+    "regressionRunId": 32675709874,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32675709863,
+    "codeqlConclusion": "success"
   },
   "boundaries": {
     "aabBuilt": false,

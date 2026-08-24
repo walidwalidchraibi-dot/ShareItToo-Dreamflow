@@ -2203,8 +2203,10 @@ Ten hook behavior tests and seven evidence-validator tests pass. The complete
 candidate-rollover regression is green with 725 Backend tests plus one
 documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
 loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
-CodeQL verification are pending for the N11 implementation commit. N12 owner
-action-pack preparation is active; all live and paid boundaries remain closed.
+CodeQL are successful at exact N11 implementation commit
+`31bdfb9fff0b423c85508d1b9944f3588a56d70c` in runs `32676272328` and
+`32676272346`. N13 final verification is active; all live and paid boundaries
+remain closed.
 
 ## Stage A Blue Ocean N12 owner action pack (2026-08-24)
 
@@ -2222,8 +2224,9 @@ remain closed. Eight wiring tests and seven evidence-validator tests pass. The
 complete CI-metadata/candidate-rollover regression is green with 725 Backend
 tests plus one documented skip, 387 Flutter tests plus one documented skip,
 Web/Wasm, loopback smoke and Android debug with 448 tasks. Exact GitHub
-regression and CodeQL are pending for the N12 implementation commit. N13 final
-verification and decision-dossier assembly is active.
+regression `32677182050` and CodeQL `32677182040` are successful at exact N12
+implementation commit `8ded33b8ed7c84d307014263b678c3fd9177038c`.
+N13 final verification and decision-dossier assembly is active.
 
 The exact analyzer snapshot ratcheted `132 -> 122`, with
 `use_build_context_synchronously` `10 -> 0` and the item-overlay context bucket
@@ -3623,9 +3626,9 @@ Six operator-domain tests, two checker tests, four Wave-0 wiring tests and seven
 evidence-validator tests pass. The complete candidate-rollover regression is
 green with 725 Backend tests plus one documented skip, 387 Flutter tests plus
 one documented skip, Web/Wasm, loopback smoke and Android debug with 448 tasks.
-Exact GitHub regression and CodeQL verification are pending for the N9
-implementation commit. N10 Internal Testing handoff preparation is active;
-there has been no Play Console change, upload, tester enrollment or release.
+Exact GitHub regression `32675356026` and CodeQL `32675356015` are successful
+at N9 implementation commit `b606e2864b6ab429a9dd64c04280968720454581`.
+There has been no Play Console change, upload, tester enrollment or release.
 
 ## Stage A Blue Ocean N10 Internal Testing handoff (2026-08-24)
 
@@ -3646,7 +3649,7 @@ artifacts are hard stops.
 Eight plan-wiring tests and seven evidence-validator tests pass. The complete
 candidate-rollover regression is green with 725 Backend tests plus one
 documented skip, 387 Flutter tests plus one documented skip, Web/Wasm,
-loopback smoke and Android debug with 448 tasks. Exact GitHub regression and
-CodeQL verification are pending for the N10 implementation commit. N11 local
-guardrail support evaluation is active; Play Console and all live systems are
-unchanged.
+loopback smoke and Android debug with 448 tasks. Exact GitHub regression
+`32675709874` and CodeQL `32675709863` are successful at N10 implementation
+commit `9533d4351c64d1b3df2b37b97e4ec0e9496f020e`. Play Console and all live
+systems are unchanged.

@@ -77,6 +77,9 @@ test('rejects live mutation or weakened rollback preservation', () => {
 
 test('rejects premature or malformed GitHub verification', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-full-regression-passed-ci-pending';
+  premature.targetedVerification.githubRegression = 'pending';
+  premature.targetedVerification.githubCodeql = 'pending';
   premature.exactGitHubVerification = {
     headSha: '0'.repeat(40), regressionRunId: 1, regressionConclusion: 'success',
     codeqlRunId: 2, codeqlConclusion: 'success',
@@ -84,10 +87,6 @@ test('rejects premature or malformed GitHub verification', () => {
   assert.throws(() => validate(premature), /cannot bind exact GitHub/u);
 
   const final = structuredClone(evidence);
-  final.status = 'verified-ready-for-n11';
-  final.targetedVerification.fullTechnicalRegression = 'passed-candidate-rollover-mode';
-  final.targetedVerification.githubRegression = 'passed';
-  final.targetedVerification.githubCodeql = 'passed';
   final.exactGitHubVerification = {
     headSha: 'bad', regressionRunId: 1, regressionConclusion: 'success',
     codeqlRunId: 2, codeqlConclusion: 'success',
