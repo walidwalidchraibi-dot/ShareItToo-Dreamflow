@@ -114,3 +114,17 @@ UNREVIEWED_RISK_ACCEPTED
 These markers are not professional approval. R0 is complete with one material
 P0 contradiction: remediate and independently re-check the 22 GitHub Advanced
 Security findings before proceeding to R1.
+
+## P0 closure after baseline
+
+The contradiction was corrected without changing any live system. At exact
+implementation commit `6ca3afb69635ecab9a64384d626f39a2e8db7c9e`:
+
+- regression run `32711284861` passed;
+- CodeQL workflow run `32711284922` passed;
+- GitHub Advanced Security check `97383538142` passed.
+
+The three Blue-Ocean mutation routes now share a dedicated limiter before
+authentication, and all N1–N13 validators use a repository-contained atomic
+file reader. R1 is unblocked. The historical owner-only AAB is still absent,
+so the strict local Store handoff remains a truthful, separate HOLD.

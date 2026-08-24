@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-48h-r0-code-scanning-p0-remediation",
-  "status": "implemented-ci-metadata-regression-passed-exact-github-pending",
+  "status": "verified-ready-for-r1",
   "date": "2026-08-24",
   "baseline": {
     "productHead": "6d4e66e1d832b33d50ec1c44e624e45d635eff12",
@@ -40,6 +40,7 @@
     ]
   },
   "verification": {
+    "implementationHead": "6ca3afb69635ecab9a64384d626f39a2e8db7c9e",
     "javascriptSyntax": "passed",
     "securityAndWiringTests": "passed-21",
     "releaseEndpointTests": "passed-5",
@@ -49,9 +50,18 @@
     "retentionDeletionValidator": "passed",
     "fullTechnicalRegression": "passed-ci-metadata-candidate-rollover",
     "strictLocalStoreHandoff": "hold-private-owner-only-aab-unavailable",
-    "exactGitHubRegression": "pending",
-    "exactGitHubCodeqlWorkflow": "pending",
-    "exactGitHubAdvancedSecurity": "pending"
+    "exactGitHubRegression": {
+      "runId": 32711284861,
+      "conclusion": "success"
+    },
+    "exactGitHubCodeqlWorkflow": {
+      "runId": 32711284922,
+      "conclusion": "success"
+    },
+    "exactGitHubAdvancedSecurity": {
+      "checkRunId": 97383538142,
+      "conclusion": "success"
+    }
   },
   "boundaries": {
     "deviceChanged": false,
@@ -69,8 +79,7 @@
     "historyRewritten": false
   },
   "risks": [
-    "strict local Store handoff remains fail-closed because the historical private AAB is unavailable",
-    "GitHub Advanced Security has not yet re-evaluated the correction"
+    "strict local Store handoff remains fail-closed because the historical private AAB is unavailable"
   ],
   "rollback": "Use a normal inverse commit; do not rewrite Git history.",
   "nextPackageAfterExactClosure": "R1_PIXEL_7_PRO_SAFE_DEVICE_AUDIT"

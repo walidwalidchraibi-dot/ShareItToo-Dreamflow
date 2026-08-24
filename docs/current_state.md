@@ -12,11 +12,12 @@ Verified: 2026-08-24 on the Mac mini.
 - GitHub workflows were green at the preceding product HEAD, but the GitHub
   Advanced Security PR check exposed 22 new high-severity findings. That newer
   PR security result overrides any green-readiness interpretation.
-- A bounded P0 correction for the three missing Blue-Ocean rate limits and the
-  N1–N13 filesystem races is implemented locally. Focused tests and the full
-  candidate-rollover regression in CI metadata mode are green. The strict
-  local Store gate still fails closed on its known missing owner-only AAB;
-  exact GitHub Advanced Security closure is required before R1 begins.
+- The bounded P0 correction for the three missing Blue-Ocean rate limits and
+  the N1–N13 filesystem races is verified at implementation commit
+  `6ca3afb69635ecab9a64384d626f39a2e8db7c9e`. Regression `32711284861`,
+  CodeQL workflow `32711284922` and Advanced Security check `97383538142`
+  pass. R1 may begin. The strict local Store gate still fails closed on its
+  known missing owner-only AAB.
 - PR #7 remains Draft and unmerged. All live, paid, external-provider and
   owner-console boundaries remain closed.
 

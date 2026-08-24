@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction remediation active; non-live and
-fail-closed** on 24.08.2026.
+Status: **R0/P0 security contradiction verified closed; R1 safe device audit
+next; non-live and fail-closed** on 24.08.2026.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when
@@ -40,8 +40,11 @@ passes in CI metadata mode with 725 Backend tests plus one documented skip,
 PostgreSQL 16, 387 Flutter tests plus one documented skip, Web/Wasm and the
 448-task Android debug build. The strict local Store handoff remains correctly
 on HOLD because its historical owner-only AAB is unavailable; it was not
-silently bypassed or rebuilt. Exact GitHub Advanced Security re-verification
-remains pending before R1 may start.
+silently bypassed or rebuilt. At exact implementation commit
+`6ca3afb69635ecab9a64384d626f39a2e8db7c9e`, GitHub regression run
+`32711284861`, CodeQL workflow `32711284922` and Advanced Security check
+`97383538142` all pass. The 22-alert P0 contradiction is closed and R1 may
+begin.
 
 No Production, VPS, DNS, Cloud, Firebase/Play owner-console, payment, provider,
 real-person pilot, PR merge or destructive Git action is part of this package.
