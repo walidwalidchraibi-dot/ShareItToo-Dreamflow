@@ -90,6 +90,7 @@ export function archiveAndroidReleaseCandidate({
       manifest.commit !== expectedCommit ||
       manifest.channel !== 'internal' ||
       manifest.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
+      typeof manifest.blueOceanListingAssistantEnabled !== 'boolean' ||
       manifest.firebaseConfigured !== true ||
       manifest.signingCertificateSha256 !== canonicalSigningCertificateSha256 ||
       manifest.androidBinaryPrivacyScan !== 'passed' ||
@@ -144,6 +145,7 @@ export function archiveAndroidReleaseCandidate({
       versionName: expectedVersionName,
       buildNumber: expectedBuildNumber,
       commit: expectedCommit,
+      blueOceanListingAssistantEnabled: manifest.blueOceanListingAssistantEnabled,
     },
     archiveDirectoryName,
     files,

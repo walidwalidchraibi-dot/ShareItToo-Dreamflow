@@ -375,6 +375,35 @@ is green at implementation head
 CodeQL workflow `32777252976` and Advanced Security check `97591639936`, with
 zero open PR code-scanning alerts. R14 is closed and R15 begins.
 
+### R15 Google Play Internal Testing ready pack
+
+R15 prepares one later owner sequence without accessing Play Console or
+creating an AAB. `BUILD_READY`, `PLAY_UPLOAD_APPROVED` and
+`HUMAN_PILOT_ACTIVATED` are three independent, currently ungranted gates. The
+pack includes the exact candidate/preflight/hash-binding sequence, German
+release notes, Internal-track and opt-in steps, data-preserving update,
+rollback, privacy/feedback, tester-removal and pilot-shutdown instructions.
+
+The release builder now accepts the Blue Ocean listing-assistant flag only for
+the non-public Internal/Staging lane, binds its state into the private archive
+manifest and can require the canonical upload certificate without claiming a
+public Store submission. A value-free local preflight at head `dd70f27` passed
+canonical Android signing, Android Firebase configuration with Analytics off
+and the release preflight without creating artifacts. The new exact R15
+control combination remains pending the clean implementation commit.
+
+The feature matrix records the actual signed-release truth rather than the
+broader debug-QA envelope: V5.2/G2 and the Blue Ocean core are buildable, while
+external Listing AI remains disabled/manual-fallback and the G3, G4 and G5
+technical UIs remain release-mode locked. Those tasks must be `not-run`; the
+reduced candidate can reach `BUILD_READY`, but the full N9 G3/G4/G5 envelope
+cannot reach `HUMAN_PILOT_ACTIVATED` without a separate legal/internal-release
+decision and exact candidate proof. Payment, telemetry, FCM, Support evidence
+upload, public signup and public release remain off. Focused signing/archive,
+R15 wiring and artifact-validator tests pass. The complete technical regression
+also passes in candidate-rollover CI metadata mode. Exact clean-head preflight
+and GitHub verification are pending.
+
 ## Completed package history
 
 `S1_SUPPORT_CASE_FOUNDATION` is implemented and verified at commit

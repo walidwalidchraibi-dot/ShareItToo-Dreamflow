@@ -6,6 +6,30 @@ CHANNEL="${SIT_RELEASE_CHANNEL:-internal}"
 API_BASE_URL="${SIT_API_BASE_URL:-https://staging.shareittoo.com/api/v1}"
 REQUIRE_CLEAN="${SIT_REQUIRE_CLEAN:-1}"
 
+case "${SIT_BLUE_OCEAN_LISTING_ASSISTANT:-0}" in
+  1|true) blue_ocean_listing_assistant=true ;;
+  0|false|'') blue_ocean_listing_assistant=false ;;
+  *)
+    echo "ERROR: SIT_BLUE_OCEAN_LISTING_ASSISTANT must be 0, 1, false, or true." >&2
+    exit 1
+    ;;
+esac
+case "${SIT_REQUIRE_CANONICAL_SIGNING:-0}" in
+  1|true) require_canonical_signing=true ;;
+  0|false|'') require_canonical_signing=false ;;
+  *)
+    echo "ERROR: SIT_REQUIRE_CANONICAL_SIGNING must be 0, 1, false, or true." >&2
+    exit 1
+    ;;
+esac
+if [[ "$blue_ocean_listing_assistant" == "true" &&
+      ("$CHANNEL" != "internal" ||
+       "$API_BASE_URL" != "https://staging.shareittoo.com/api/v1" ||
+       "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1") ]]; then
+  echo "ERROR: Blue Ocean listing assistance is restricted to the non-public Internal Staging candidate." >&2
+  exit 1
+fi
+
 cd "$ROOT"
 
 if [[ "$REQUIRE_CLEAN" == "1" ]] && [[ -n "$(git status --porcelain)" ]]; then
@@ -83,6 +107,7 @@ common_args=(
   "--dart-define=SIT_BUILD_NUMBER=$build_number"
   "--dart-define=SIT_RELEASE_CHANNEL=$CHANNEL"
   "--dart-define=SIT_BUNDLE_ID=com.shareittoo.app"
+  "--dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=$blue_ocean_listing_assistant"
 )
 
 social_google_enabled=false
@@ -242,9 +267,10 @@ signing_certificate_sha256="$("$build_tools/apksigner" verify --print-certs "$ap
   exit 1
 }
 canonical_signing_certificate_sha256="098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
-if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" && \
+if [[ ("${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" || \
+       "$require_canonical_signing" == "true") && \
       "$signing_certificate_sha256" != "$canonical_signing_certificate_sha256" ]]; then
-  echo "ERROR: Store candidate is not signed by the canonical ShareItToo upload certificate." >&2
+  echo "ERROR: Candidate is not signed by the canonical ShareItToo upload certificate." >&2
   exit 1
 fi
 "$build_tools/aapt" dump badging "$apk" | grep -Fq "package: name='com.shareittoo.app' versionCode='$build_number' versionName='$build_name'" || {
@@ -286,6 +312,7 @@ printf '%s\n' \
   "  \"commit\": \"$commit\"," \
   "  \"channel\": \"$CHANNEL\"," \
   "  \"apiBaseUrl\": \"$API_BASE_URL\"," \
+  "  \"blueOceanListingAssistantEnabled\": $blue_ocean_listing_assistant," \
   "  \"firebaseConfigured\": $firebase_configured," \
   "  \"signingCertificateSha256\": \"$signing_certificate_sha256\"," \
   "  \"createdAt\": \"$created_at\"," \

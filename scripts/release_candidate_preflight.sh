@@ -267,7 +267,9 @@ master_description="$(file assets/images/shareittoo_app_icon_master.png)"
 
 [[ -f android/key.properties ]] || \
   fail "android/key.properties is required for a signed release build."
-if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
+if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ||
+      "${SIT_REQUIRE_CANONICAL_SIGNING:-0}" == "1" ||
+      "${SIT_REQUIRE_CANONICAL_SIGNING:-}" == "true" ]]; then
   node tool/validate_android_signing_config.mjs --require-canonical
 else
   node tool/validate_android_signing_config.mjs

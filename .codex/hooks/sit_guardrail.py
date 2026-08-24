@@ -163,6 +163,13 @@ PACKAGE_COMPLETION_COMMANDS = {
         ("node", "--test", "test/tool/validate_r14_heilbronn_wave0_operations.test.mjs"),
         ("node", "tool/validate_r14_heilbronn_wave0_operations.mjs"),
     ),
+    "R15_GOOGLE_PLAY_INTERNAL_READY_PACK": (
+        ("node", "--test", "test/tool/validate_android_signing_config.test.mjs"),
+        ("node", "--test", "test/tool/archive_android_release_candidate.test.mjs"),
+        ("node", "--test", "test/tool/r15_google_play_internal_ready_pack_wiring.test.mjs"),
+        ("node", "--test", "test/tool/validate_r15_google_play_internal_ready_pack.test.mjs"),
+        ("node", "tool/validate_r15_google_play_internal_ready_pack.mjs"),
+    ),
 }
 
 

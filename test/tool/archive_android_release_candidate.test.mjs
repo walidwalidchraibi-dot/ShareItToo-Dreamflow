@@ -42,6 +42,7 @@ async function fixture(mutate = () => {}) {
     commit,
     channel: 'internal',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+    blueOceanListingAssistantEnabled: false,
     firebaseConfigured: true,
     signingCertificateSha256: certificate,
     androidBinaryPrivacyScan: 'passed',
@@ -76,6 +77,7 @@ test('archives and verifies the exact candidate without exposing its path', asyn
   assert.equal(result.archiveDirectoryName, `${buildNumber}-${commit}`);
   assert.equal(result.boundaries.overwriteAllowed, false);
   assert.equal(result.boundaries.externalUploadPerformed, false);
+  assert.equal(result.candidate.blueOceanListingAssistantEnabled, false);
   assert.equal(JSON.stringify(result).includes(data.root), false);
   const archived = join(data.archiveRoot, result.archiveDirectoryName, data.aabName);
   assert.deepEqual(await readFile(archived), Buffer.from('exact-aab'));
