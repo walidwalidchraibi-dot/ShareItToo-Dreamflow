@@ -1,6 +1,6 @@
 # 48H R7 image privacy and Listing-AI contract hardening
 
-Status: **LOCAL VERIFIED — TARGETED AND FULL REGRESSION GREEN; CI PENDING**
+Status: **VERIFIED — TARGETED, FULL REGRESSION AND CODEQL GREEN**
 
 R7 retains a deterministic 26-case adversarial matrix for the complete image
 privacy and Listing-AI output boundary. No real image, real user data, external
@@ -40,5 +40,11 @@ DNS, pilot activation, public release or PR merge occurred. Six R7 artifact
 validator tests, the artifact validator, Backend suite (746 tests, one
 documented PostgreSQL skip), fresh PostgreSQL integration, analyzer-zero gate,
 Flutter suite (392 passes, one documented skip), Web/Wasm build, loopback smoke
-and the 448-task Android debug build are green. R7 can close only after exact
-GitHub Regression/CodeQL evidence is green. The next package is `R8`.
+and the 448-task Android debug build are green. Exact verified head
+`213ff569323000eb122cc4bb0fd249bcae42a04e` passed GitHub Regression
+`32748369738`, CodeQL workflow `32748369753` and Advanced Security check
+`97499820023`, with zero open PR code-scanning alerts. The API image was built
+but not published; explicit parallel stability and signed-candidate creation
+were not requested. The separate GitGuardian failure remains the documented
+pre-existing 250-commit PR-history finding; no credential detail was inspected.
+R7 is closed and the next package is `R8`.

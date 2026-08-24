@@ -9,6 +9,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath =
   'docs/evidence/48h-remote/r7-image-privacy-ai-contract-20260824.json';
 const implementationHead = 'e5010d51507a74bd339cceb3d15c33ed72179dc7';
+const verifiedHead = '213ff569323000eb122cc4bb0fd249bcae42a04e';
 
 function fail(message) {
   throw new Error(message);
@@ -119,8 +120,44 @@ export function validateR7ImagePrivacyAiContract({
   if (!githubPassed && value.githubVerification !== undefined) {
     fail('R7 pending evidence must not claim GitHub verification.');
   }
-  if (githubPassed && !value.githubVerification) {
-    fail('R7 verified evidence requires exact GitHub verification.');
+  if (githubPassed && !exact(value.githubVerification, {
+    implementationHead,
+    verifiedHead,
+    regression: {
+      runId: 32748369738,
+      conclusion: 'success',
+      postgresJobId: 97499177979,
+      postgresConclusion: 'success',
+      backendJobId: 97499178321,
+      backendConclusion: 'success',
+      flutterJobId: 97499178242,
+      flutterConclusion: 'success',
+      parallelStabilityExecuted: false,
+      signedCandidateBuilt: false,
+      apiImageBuilt: true,
+      apiImagePublished: false,
+      publishApiImageJobId: 97501305544,
+      publishApiImageConclusion: 'skipped',
+    },
+    codeql: {
+      workflowRunId: 32748369753,
+      workflowConclusion: 'success',
+      advancedSecurityCheckId: 97499820023,
+      advancedSecurityConclusion: 'success',
+      newAlerts: 0,
+    },
+    preExistingExternalHistoryCheck: {
+      provider: 'GitGuardian',
+      documentedBaseCommit: 'e64defd0df62fb047c6fbc90733e4caf318ac7c4',
+      documentedBaseCheckId: 97395091283,
+      currentCheckId: 97499160187,
+      currentConclusion: 'failure',
+      reportedPullRequestCommitScope: 250,
+      credentialDetailsInspected: false,
+      classifiedAsR7Regression: false,
+    },
+  })) {
+    fail('R7 exact GitHub verification is invalid.');
   }
 
   if (!exact(value.limitations, {

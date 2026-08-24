@@ -17,9 +17,9 @@ function validate(changed = evidence) {
   return validateR7ImagePrivacyAiContract({ repositoryRoot: root, evidence: changed });
 }
 
-test('accepts the exact locally regression-verified R7 adversarial evidence', () => {
+test('accepts the exact GitHub-verified R7 adversarial evidence', () => {
   assert.deepEqual(validate(), {
-    status: 'verified-local-r7-regression-passed-ci-pending',
+    status: 'verified-r7-regression-and-codeql-passed',
     adversarialCases: 26,
     nextPackage: 'R8',
   });
@@ -61,8 +61,15 @@ test('rejects erased red-first evidence or a permanent workaround', () => {
 
 test('rejects premature GitHub claims and any live boundary', () => {
   const github = structuredClone(evidence);
+  github.status = 'verified-local-r7-regression-passed-ci-pending';
+  github.verification.githubRegression = 'pending';
+  github.verification.githubCodeql = 'pending';
   github.githubVerification = {};
   assert.throws(() => validate(github), /must not claim GitHub/u);
+
+  const changed = structuredClone(evidence);
+  changed.githubVerification.codeql.newAlerts = 1;
+  assert.throws(() => validate(changed), /exact GitHub verification/u);
 
   const live = structuredClone(evidence);
   live.boundaries.externalAiProviderCalled = true;

@@ -1,7 +1,7 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
-Status: **R0/P0 security contradiction verified closed; R1–R6 and R13 exact
-verified; R7 image privacy/AI contract hardening active; non-live and
+Status: **R0/P0 security contradiction verified closed; R1–R7 and R13 exact
+verified; R8 concurrency/load/race testing active; non-live and
 fail-closed** on
 24.08.2026.
 
@@ -168,7 +168,13 @@ artifact-validator tests and the validator pass. The complete local technical
 regression is green with the 746-test Backend suite, fresh PostgreSQL,
 analyzer-zero, 392 Flutter passes plus one documented skip, Web/Wasm, loopback
 smoke and the 448-task Android debug build. Exact GitHub Regression and CodeQL
-checks remain to be completed before R8.
+checks are green at verified head
+`213ff569323000eb122cc4bb0fd249bcae42a04e`: Regression `32748369738`, CodeQL
+workflow `32748369753` and Advanced Security check `97499820023`, with zero open
+PR code-scanning alerts. The API image was not published and no signed
+candidate was built. The separate GitGuardian failure remains the documented
+pre-existing 250-commit PR-history finding; no credential detail was inspected.
+R7 is closed and R8 begins.
 
 ### R13 local Codex authentication clarification
 
