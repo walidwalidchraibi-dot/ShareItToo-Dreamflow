@@ -45,6 +45,16 @@ test('rejects incomplete participant materials or severity guidance', () => {
   assert.throws(() => validate(severity), /participant-material/u);
 });
 
+test('rejects a retry or timing workaround instead of the R9 cleanup debt exit', () => {
+  const retry = structuredClone(evidence);
+  retry.technicalDebtClosure.permanentTimingOrRetryWorkaroundAdded = true;
+  assert.throws(() => validate(retry), /Technical Debt closure/u);
+
+  const hiddenPoolErrors = structuredClone(evidence);
+  hiddenPoolErrors.technicalDebtClosure.unexpectedPoolErrorsRemainFatal = false;
+  assert.throws(() => validate(hiddenPoolErrors), /Technical Debt closure/u);
+});
+
 test('rejects activation, enrollment or physical-meeting overclaims', () => {
   const active = structuredClone(evidence);
   active.activationState.humanPilotActivated = true;
@@ -76,6 +86,7 @@ test('rejects premature or malformed GitHub verification', () => {
 
   const malformed = structuredClone(evidence);
   malformed.status = 'verified-regression-and-codeql-passed-ready-for-r15';
+  malformed.technicalDebtClosure.closure = 'verified-in-follow-up-regression';
   malformed.focusedVerification.fullTechnicalRegression = 'passed-candidate-rollover-ci-metadata-mode';
   malformed.focusedVerification.githubRegression = 'passed';
   malformed.focusedVerification.githubCodeql = 'passed-no-new-alerts';

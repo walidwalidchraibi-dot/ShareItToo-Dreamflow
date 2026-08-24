@@ -118,12 +118,23 @@ export function validateR14HeilbronnWave0Operations({ repositoryRoot = root, evi
     n9WiringTests: 'passed-4',
     n9ArtifactValidatorTests: 'passed-7',
     n9ArtifactValidator: 'passed',
-    r14ArtifactValidatorTests: 'passed-7',
+    r14ArtifactValidatorTests: 'passed-8',
     r14ArtifactValidator: 'passed',
     fullTechnicalRegression: fullPassed ? 'passed-candidate-rollover-ci-metadata-mode' : 'pending',
     githubRegression: githubPassed ? 'passed' : 'pending',
     githubCodeql: githubPassed ? 'passed-no-new-alerts' : 'pending',
   })) fail('R14 verification record is invalid.');
+  if (!exact(value.technicalDebtClosure, {
+    finding: 'r9-postgres-pool-administrative-shutdown-unhandled',
+    discoveredByRegressionRunId: 32776316335,
+    failedJobId: 97588090203,
+    observedPostgresCode: '57P01',
+    closure: githubPassed
+      ? 'verified-in-follow-up-regression'
+      : 'passed-unit-and-three-fresh-local-proofs-ci-pending',
+    unexpectedPoolErrorsRemainFatal: true,
+    permanentTimingOrRetryWorkaroundAdded: false,
+  })) fail('R14 R9 shutdown Technical Debt closure is invalid.');
   if (githubPassed) {
     const verification = value.githubVerification;
     if (!verification

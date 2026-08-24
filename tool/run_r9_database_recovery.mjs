@@ -606,8 +606,27 @@ function databaseUrl(port, database) {
   return `postgresql://${databaseUser}@127.0.0.1:${port}/${database}`;
 }
 
-function createPool(PoolClass, port, database) {
-  return new PoolClass({ connectionString: databaseUrl(port, database), max: 4 });
+export function attachR9PoolErrorBoundary(pool, cleanupState) {
+  if (!pool || typeof pool.on !== 'function'
+      || cleanupState?.serverStopping !== false
+      || !Array.isArray(cleanupState.unexpectedPoolErrors)) {
+    fail('r9_pool_error_boundary_invalid');
+  }
+  pool.on('error', (error) => {
+    const expectedAdministrativeShutdown = cleanupState.serverStopping === true
+      && error?.code === '57P01';
+    if (!expectedAdministrativeShutdown) {
+      cleanupState.unexpectedPoolErrors.push(error);
+    }
+  });
+  return pool;
+}
+
+function createPool(PoolClass, port, database, cleanupState) {
+  return attachR9PoolErrorBoundary(
+    new PoolClass({ connectionString: databaseUrl(port, database), max: 4 }),
+    cleanupState,
+  );
 }
 
 async function closePools(pools) {
@@ -757,6 +776,23 @@ export async function executeR9DatabaseRecovery({
   let result = null;
   let port = null;
   const pools = [];
+  const poolCleanupState = {
+    serverStopping: false,
+    unexpectedPoolErrors: [],
+  };
+  let reportedPoolErrorCount = 0;
+  const foldUnexpectedPoolErrors = () => {
+    const unreported = poolCleanupState.unexpectedPoolErrors.slice(
+      reportedPoolErrorCount,
+    );
+    reportedPoolErrorCount = poolCleanupState.unexpectedPoolErrors.length;
+    if (unreported.length > 0) {
+      primaryError = new AggregateError(
+        [primaryError, ...unreported].filter(Boolean),
+        'r9_unexpected_pool_error',
+      );
+    }
+  };
 
   try {
     await runCommand(postgres('initdb'), [
@@ -787,13 +823,20 @@ export async function executeR9DatabaseRecovery({
       ], { cwd: root, env: commandEnvironment });
     }
 
-    const sourcePool = createPool(PoolClass, port, databaseNames.source);
-    const restoredPool = createPool(PoolClass, port, databaseNames.restored);
-    const legacyPool = createPool(PoolClass, port, databaseNames.legacy);
+    const sourcePool = createPool(
+      PoolClass, port, databaseNames.source, poolCleanupState,
+    );
+    const restoredPool = createPool(
+      PoolClass, port, databaseNames.restored, poolCleanupState,
+    );
+    const legacyPool = createPool(
+      PoolClass, port, databaseNames.legacy, poolCleanupState,
+    );
     const rollbackControlPool = createPool(
       PoolClass,
       port,
       databaseNames.rollbackControl,
+      poolCleanupState,
     );
     pools.push(sourcePool, restoredPool, legacyPool, rollbackControlPool);
 
@@ -955,6 +998,9 @@ export async function executeR9DatabaseRecovery({
     } catch (error) {
       primaryError ??= error;
     }
+    await new Promise((resolve) => setImmediate(resolve));
+    foldUnexpectedPoolErrors();
+    poolCleanupState.serverStopping = true;
     if (serverStarted) {
       try {
         await runCommand(postgres('pg_ctl'), [
@@ -973,6 +1019,8 @@ export async function executeR9DatabaseRecovery({
         }
       }
     }
+    await new Promise((resolve) => setImmediate(resolve));
+    foldUnexpectedPoolErrors();
     if (!(primaryError instanceof AggregateError
         && primaryError.message === 'r9_postgres_stop_failed_temp_root_retained')) {
       try {

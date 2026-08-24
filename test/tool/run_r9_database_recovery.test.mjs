@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import {
+  attachR9PoolErrorBoundary,
   assertSafeR9TempRoot,
   r9RequiredMigrationCount,
   runR9DatabaseRecovery,
@@ -141,4 +143,32 @@ test('rejects live scope, retained credentials and unsafe cleanup roots', () => 
     () => assertSafeR9TempRoot(path.join(os.tmpdir(), 'unrelated')),
     /unsafe_r9_temp_root/u,
   );
+});
+
+test('suppresses only PostgreSQL administrative stop errors inside deliberate cleanup', () => {
+  const pool = new EventEmitter();
+  const cleanupState = {
+    serverStopping: false,
+    unexpectedPoolErrors: [],
+  };
+  assert.equal(attachR9PoolErrorBoundary(pool, cleanupState), pool);
+
+  const earlyAdministrativeStop = Object.assign(
+    new Error('terminating connection due to administrator command'),
+    { code: '57P01' },
+  );
+  pool.emit('error', earlyAdministrativeStop);
+  assert.deepEqual(cleanupState.unexpectedPoolErrors, [earlyAdministrativeStop]);
+
+  cleanupState.unexpectedPoolErrors.length = 0;
+  cleanupState.serverStopping = true;
+  pool.emit('error', Object.assign(new Error('expected cleanup stop'), { code: '57P01' }));
+  assert.deepEqual(cleanupState.unexpectedPoolErrors, []);
+
+  const differentShutdownError = Object.assign(
+    new Error('unexpected connection reset'),
+    { code: 'ECONNRESET' },
+  );
+  pool.emit('error', differentShutdownError);
+  assert.deepEqual(cleanupState.unexpectedPoolErrors, [differentShutdownError]);
 });

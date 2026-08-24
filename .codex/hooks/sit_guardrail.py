@@ -157,6 +157,7 @@ PACKAGE_COMPLETION_COMMANDS = {
         ("node", "tool/validate_r12_codex_hook_guardrails.mjs"),
     ),
     "R14_HEILBRONN_WAVE0_OPERATIONS": (
+        ("node", "--test", "test/tool/run_r9_database_recovery.test.mjs"),
         ("node", "--test", "test/tool/blue_ocean_n9_wave0_wiring.test.mjs"),
         ("node", "--test", "test/tool/validate_blue_ocean_n9_heilbronn_wave0.test.mjs"),
         ("node", "--test", "test/tool/validate_r14_heilbronn_wave0_operations.test.mjs"),

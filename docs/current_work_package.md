@@ -353,10 +353,20 @@ required post-task plus five Blue-Ocean value questions. The future tester
 instruction no longer contains a stale
 hard-coded build and instead requires the exact later R15 candidate handoff.
 
-Four N9 wiring tests, seven N9 validator tests and seven R14 validator tests
+Four N9 wiring tests, seven N9 validator tests and eight R14 validator tests
 pass. The complete technical regression also passes in candidate-rollover CI
 metadata mode, including backend, Flutter, Web smoke and Android debug build.
 The materials contain no tester identities or observed human results.
+
+The first pushed R14 regression (`32776316335`, PostgreSQL job `97588090203`)
+exposed an R9 cleanup race: `pg-pool` could emit PostgreSQL administrative
+shutdown `57P01` after the isolated server entered its deliberate stop. The R9
+runner now installs an explicit pool error boundary. It suppresses only
+`57P01` inside that deliberate shutdown window; the same error before shutdown
+and every different pool error remain fatal. The focused contract test passes
+and three fresh, full local PostgreSQL 16 backup/restore/rollback runs each
+passed and cleaned their temporary cluster. No retry, delay or timing
+workaround was retained. Follow-up GitHub verification is pending.
 No person was contacted, no real photo collected, no physical meeting or
 provider call authorized, no candidate approved and no Pilot, Play, Payment,
 Firebase, Production, Cloud, VPS or DNS state changed. Exact GitHub Regression,

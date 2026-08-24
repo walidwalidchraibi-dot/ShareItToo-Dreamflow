@@ -58,11 +58,20 @@
     "n9WiringTests": "passed-4",
     "n9ArtifactValidatorTests": "passed-7",
     "n9ArtifactValidator": "passed",
-    "r14ArtifactValidatorTests": "passed-7",
+    "r14ArtifactValidatorTests": "passed-8",
     "r14ArtifactValidator": "passed",
     "fullTechnicalRegression": "passed-candidate-rollover-ci-metadata-mode",
     "githubRegression": "pending",
     "githubCodeql": "pending"
+  },
+  "technicalDebtClosure": {
+    "finding": "r9-postgres-pool-administrative-shutdown-unhandled",
+    "discoveredByRegressionRunId": 32776316335,
+    "failedJobId": 97588090203,
+    "observedPostgresCode": "57P01",
+    "closure": "passed-unit-and-three-fresh-local-proofs-ci-pending",
+    "unexpectedPoolErrorsRemainFatal": true,
+    "permanentTimingOrRetryWorkaroundAdded": false
   },
   "boundaries": {
     "realPersonDataStored": false,
