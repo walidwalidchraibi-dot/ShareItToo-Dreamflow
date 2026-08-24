@@ -415,6 +415,23 @@ clean-checkout job; CodeQL workflow `32780091762` and Advanced Security check
 built or uploaded, and every owner/live gate remains closed. R15 is closed and
 R16 begins.
 
+### R16 PR #7 pilot freeze and integration review
+
+R16 audits the exact R15 closure head `2fed8f02b0e333b445e2cc4540b7a32da0d48bc9`.
+PR #7 remains open, Draft, mergeable but blocked, with 2,249 changed files and
+1,038 commits ahead of `main` and zero behind. The current 69-up/42-down
+migration order, six reviewer groups, rollback map, feature truth and exact
+future normal-merge procedure are bound in a new machine-readable review.
+
+Three direct findings enter R17: the owner-only unresolved GitGuardian signal
+for one possible historical secret across 250 PR commits; the Stage-A
+non-binding goal versus the enabled binding checkout; and the full Wave-0
+G3/G4/G5 task list versus hard release-mode UI locks. No credential value was
+inspected, and no merge, history rewrite or live mutation occurred. Seventeen
+focused tests, the retained validator and the complete local candidate-rollover
+technical regression are green; the exact freeze commit and GitHub checks are
+next.
+
 ## Completed package history
 
 `S1_SUPPORT_CASE_FOUNDATION` is implemented and verified at commit

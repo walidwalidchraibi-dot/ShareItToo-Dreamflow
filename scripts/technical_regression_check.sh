@@ -321,6 +321,10 @@ node --check tool/validate_r15_google_play_internal_ready_pack.mjs
 node --test test/tool/r15_google_play_internal_ready_pack_wiring.test.mjs
 node --test test/tool/validate_r15_google_play_internal_ready_pack.test.mjs
 node tool/validate_r15_google_play_internal_ready_pack.mjs
+node --check tool/validate_r16_pr7_pilot_freeze_integration_review.mjs
+node --test test/tool/r16_pr7_pilot_freeze_integration_review_wiring.test.mjs
+node --test test/tool/validate_r16_pr7_pilot_freeze_integration_review.test.mjs
+node tool/validate_r16_pr7_pilot_freeze_integration_review.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
