@@ -10,12 +10,16 @@ reduced Stage-A participant surface: listing draft and explicit local
 publication, search, Gemerkt/project, non-reserving cart, structured feedback,
 restart and failure recovery.
 
-Red-first coverage found and permanently closed five gaps: destructive demo
-catalog reseeding, non-atomic split cart state, a dialog-controller lifecycle
-fault, and an inaccessible search save control. Binding rental requests,
-accept/reject, contracts, payment/refund/payout, handover/return/damage,
-`needsReview`, and release-locked G3/G4/G5 surfaces remain explicitly excluded
-and fail closed. The default Flutter suite passes 400 tests with two documented
+Red-first coverage and exact CI found and permanently closed six gaps:
+destructive demo catalog reseeding, non-atomic split cart state, a
+dialog-controller lifecycle fault, an inaccessible search save control, and a
+static synthetic-login fixture detected by the exact history scanner. The
+current fixture is generated at runtime and its immutable historical false
+positive is narrowly reviewed; working-tree findings can never inherit that
+exception. Binding rental requests, accept/reject, contracts,
+payment/refund/payout, handover/return/damage, `needsReview`, and release-locked
+G3/G4/G5 surfaces remain explicitly excluded and fail closed. The default
+Flutter suite passes 400 tests with two documented
 special-profile skips; the exact RW0 profile and all focused integrity checks
 pass. The complete candidate-rollover technical regression also passes in CI
 metadata mode, including Web/Wasm smoke and the 448-task Android debug build.

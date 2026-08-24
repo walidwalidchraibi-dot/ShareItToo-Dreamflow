@@ -11,11 +11,13 @@ Verified: 2026-08-25 on the Mac mini.
   listing draft and explicit local publication through search, Gemerkt,
   project, non-reserving cart, structured feedback, restart and failure
   recovery.
-- Five red-first findings are resolved and permanently tested: catalog reads
+- Six red-first/CI findings are resolved and permanently tested: catalog reads
   cannot destructively reseed demo accounts/listings; the local cart now has
   one atomic canonical snapshot and rejects torn legacy state; dialog text
   ownership lasts through route disposal; and the search save control is
-  named, stateful and at least 48dp.
+  named, stateful and at least 48dp. The synthetic login fixture is generated
+  at runtime; its already-pushed false-positive commit is narrowly recorded in
+  the immutable reviewed-history baseline and grants no working-tree exception.
 - The default Flutter suite passes 400 tests with two documented exact-profile
   skips. The exact RW0 profile, focused integrity checks, analyzer and bounded
   evidence validator pass. The complete candidate-rollover technical regression

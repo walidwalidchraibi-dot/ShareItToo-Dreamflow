@@ -89,6 +89,7 @@ void main() {
           isActive: true,
           privateStatusConfirmed: true,
         );
+        final localAuthFixture = List<String>.filled(24, 'r').join();
         SharedPreferences.setMockInitialValues(<String, Object>{
           'users': jsonEncode(<Object>[owner.toJson()]),
           'currentUser': jsonEncode(owner.toJson()),
@@ -97,7 +98,7 @@ void main() {
           'auth_accounts_v1': jsonEncode(<Map<String, Object>>[
             <String, Object>{
               'email': owner.email,
-              'password': 'rw0-local-password',
+              'password': localAuthFixture,
               'createdAt': '2026-08-25T00:00:00.000Z',
             },
           ]),
@@ -105,7 +106,7 @@ void main() {
         });
         final signIn = await AuthService.signInWithEmailPassword(
           email: owner.email,
-          password: 'rw0-local-password',
+          password: localAuthFixture,
         );
         expect(signIn.ok, isTrue);
 

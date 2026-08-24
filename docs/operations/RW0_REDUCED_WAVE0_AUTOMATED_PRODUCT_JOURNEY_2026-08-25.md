@@ -11,7 +11,7 @@ participant surface: explicit listing publication, search, Gemerkt, project,
 non-reserving cart, informative Stage-A review, structured feedback and process
 restart. It also retains deterministic missing/corrupt/torn-storage checks.
 
-The run found and permanently corrected five product gaps documented in
+The run found and permanently corrected six product/security gaps documented in
 `docs/architecture/rw0-reduced-wave0-automated-product-journey-2026-08-25.md`.
 No retry, reduced concurrency, timing relaxation or CI-only bypass was added.
 
@@ -36,7 +36,7 @@ Verified local results:
 - exact Reduced Wave-0 profile: one passed;
 - non-destructive catalog tests: five passed;
 - cart service/surface focused set: seven passed;
-- RW0 wiring: six passed;
+- RW0 wiring: seven passed;
 - privacy and retention validator tests: 70 passed;
 - privacy and retention manifests: valid and still honestly draft/blocked.
 - full technical regression in candidate-rollover CI metadata mode: passed,

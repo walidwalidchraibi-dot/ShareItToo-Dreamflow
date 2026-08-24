@@ -23,7 +23,7 @@ test('accepts the exact bounded RW0 journey', () => {
     status: evidence.status,
     allowedSurfaces: 6,
     excludedSurfaces: 5,
-    resolvedFindings: 5,
+    resolvedFindings: 6,
     fullTechnicalRegression: evidence.verification.fullTechnicalRegression,
   });
 });

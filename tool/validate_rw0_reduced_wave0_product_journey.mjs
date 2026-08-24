@@ -11,6 +11,7 @@ const evidencePath =
   'docs/evidence/48h-remote/rw0-reduced-wave0-product-journey-20260825.json';
 
 const sourcePaths = [
+  'backend/ops/secret_scan_history_baseline.json',
   'lib/services/data_service.dart',
   'lib/screens/search_results_screen.dart',
   'lib/screens/wishlists_screen.dart',
@@ -106,6 +107,7 @@ export function validateRw0ReducedWave0ProductJourney({
     'RW0-P1-CART-ATOMICITY-003',
     'RW0-P1-DIALOG-LIFECYCLE-004',
     'RW0-P2-SEARCH-A11Y-005',
+    'RW0-P1-SECRET-SCAN-FIXTURE-006',
   ];
   if (!Array.isArray(value.findings)
       || !exact(value.findings.map(({ id }) => id), expectedFindings)
@@ -122,7 +124,7 @@ export function validateRw0ReducedWave0ProductJourney({
     exactReducedWave0Profile: 'passed-1',
     catalogIntegrityTests: 'passed-5',
     cartFocusedTests: 'passed-7',
-    rw0WiringTests: 'passed-6',
+    rw0WiringTests: 'passed-7',
     privacyRetentionTests: 'passed-70',
     privacyValidator: 'passed-draft-not-approval',
     retentionValidator: 'passed-draft-execution-blocked',

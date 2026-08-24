@@ -53,6 +53,11 @@ surfaces retain their release-mode locks.
    the controller with its actual widget lifecycle.
 5. The search-result favorite action lacked an explicit accessible state/name
    and a guaranteed 48 dp target. Both are now retained.
+6. Exact GitHub CI correctly rejected the first commit because its synthetic
+   local login used a static password-shaped property. The current fixture is
+   generated at runtime. The immutable false-positive commit is recorded only
+   by rule, commit and path in the repository's exact reviewed-history
+   baseline; the working tree can never inherit that exception.
 
 ## Scale consequence
 

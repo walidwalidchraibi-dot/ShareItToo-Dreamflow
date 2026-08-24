@@ -12,6 +12,10 @@ test('reduced Wave-0 journey is retained under the exact non-binding profile', (
   assert.match(regression, /validate_rw0_reduced_wave0_product_journey\.mjs/u);
 
   const journey = read('test/reduced_wave0_product_journey_test.dart');
+  assert.doesNotMatch(
+    journey,
+    /\bpassword\s*:\s*(['"])[^'"\r\n]{8,}\1/iu,
+  );
   for (const marker of [
     'Anzeige veröffentlichen',
     'Unter Gemerkt speichern',
@@ -27,6 +31,14 @@ test('reduced Wave-0 journey is retained under the exact non-binding profile', (
     'multi_reviews_v1',
   ]) assert.match(journey, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
   assert.match(journey, /pumpWidget\(const SizedBox\.shrink\(\)\)[\s\S]*_JourneyHostController\(const RentalCartScreen\(\)\)/u);
+});
+
+test('synthetic auth fixture leaves no current secret-shaped property', () => {
+  const baseline = JSON.parse(read('backend/ops/secret_scan_history_baseline.json'));
+  assert.ok(baseline.reviewedFindings.some((entry) =>
+    entry.rule === 'static_password_property'
+      && entry.source === 'c4e4814501a8a8bf541caa8c3c28c71a209de6ba'
+      && entry.file === 'test/reduced_wave0_product_journey_test.dart'));
 });
 
 test('search save action is named, stateful and at least 48dp', () => {

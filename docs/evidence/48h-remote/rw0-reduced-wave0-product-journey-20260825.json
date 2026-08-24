@@ -54,6 +54,11 @@
       "id": "RW0-P2-SEARCH-A11Y-005",
       "state": "resolved-and-tested",
       "resolution": "named-toggled-48dp-save-action"
+    },
+    {
+      "id": "RW0-P1-SECRET-SCAN-FIXTURE-006",
+      "state": "resolved-and-tested",
+      "resolution": "runtime-generated-current-fixture-and-exact-immutable-history-review"
     }
   ],
   "verification": {
@@ -62,7 +67,7 @@
     "exactReducedWave0Profile": "passed-1",
     "catalogIntegrityTests": "passed-5",
     "cartFocusedTests": "passed-7",
-    "rw0WiringTests": "passed-6",
+    "rw0WiringTests": "passed-7",
     "privacyRetentionTests": "passed-70",
     "privacyValidator": "passed-draft-not-approval",
     "retentionValidator": "passed-draft-execution-blocked",
@@ -71,6 +76,10 @@
     "githubCodeql": "pending"
   },
   "sourceInventory": [
+    {
+      "path": "backend/ops/secret_scan_history_baseline.json",
+      "sha256": "c907ded312f6ce994be9e8671147ffec8fabf72dfcb91b8fa59a18a54a61d498"
+    },
     {
       "path": "lib/services/data_service.dart",
       "sha256": "36213e163d06c124c3ecf921419be882bb0e376b74b85d87d6cb89c6a7681e37"
@@ -105,7 +114,7 @@
     },
     {
       "path": "test/reduced_wave0_product_journey_test.dart",
-      "sha256": "a95c0c2c4f6e02dbe4d0bd0e5df09dcbfc580514c3fcecf998f8de9f3d4ca0b9"
+      "sha256": "a7db8a739aa0ec5c554bfa4c5a9d32fe35106bc1be87a0daeac52d6a3d3fef00"
     },
     {
       "path": "test/public_profile_screen_logic_test.dart",
@@ -117,7 +126,7 @@
     },
     {
       "path": "test/tool/rw0_reduced_wave0_journey_wiring.test.mjs",
-      "sha256": "f64e1ab51db7027fde2042ed65dc528ad6d9f06ea7eff40e665d0ba2ef24dd1e"
+      "sha256": "0066c94b5b306b5441bc271c16d9c2251ac929b218e298285bcb7462ece62d9b"
     },
     {
       "path": "store/privacy-disclosures.json",
