@@ -61,7 +61,7 @@ function randomIdSequence(values = ids) {
   return () => values[index++];
 }
 
-test('analysis derivatives strip EXIF, resize, compress and use opaque safe names', async () => {
+test('analysis derivatives strip EXIF/GPS, resize, compress and use opaque safe names', async () => {
   const bytes = await sourceImage({ metadata: true });
   const originalCopy = Buffer.from(bytes);
   assert.ok((await sharp(bytes).metadata()).exif);
@@ -93,6 +93,7 @@ test('analysis derivatives strip EXIF, resize, compress and use opaque safe name
   assert.ok(metadata.width <= 1280);
   assert.ok(metadata.height <= 1280);
   assert.equal(metadata.exif, undefined);
+  assert.equal(metadata.gps, undefined);
   assert.equal(metadata.icc, undefined);
   assert.equal(metadata.xmp, undefined);
   assert.equal(auditEvents.at(-1).cleanupCompleted, true);

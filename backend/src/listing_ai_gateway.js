@@ -19,7 +19,14 @@ import {
 
 const listFieldKeys = new Set(['accessories', 'projectTags', 'useCases']);
 const claimConfirmationFields = new Set(['condition', 'accessories', 'replacementValueMinor']);
-const unsupportedClaimPattern = /(?:garantierte nachfrage|garantiertes einkommen|zertifiziert sicher|voll funktionsf[aä]hig garantiert|keine versteckten sch[aä]den|rechtlich konform garantiert)/iu;
+export const listingAiUnsupportedClaimPolicyVersion = 'R7-2026-08-24.1';
+const unsupportedClaimPatterns = Object.freeze([
+  /(?:garantierte nachfrage|garantiertes einkommen|keine versteckten sch[aä]den|rechtlich konform garantiert)/iu,
+  /\b(?:(?:ce|t[uü]v|gs|din(?:\s*en)?|iso)\s*[-–—]?\s*(?:zertifiziert|gepr[uü]ft|konform)|zertifiziert(?:e[rsnm]?|\s+sicher)?)\b/iu,
+  /\b(?:(?:voll|vollst[aä]ndig|komplett|einwandfrei|100\s*%)\s+funktionsf[aä]hig|funktioniert\s+(?:einwandfrei|problemlos|garantiert))\b/iu,
+  /\b(?:(?:eigent[uü]mer(?:schaft)?|besitz|vermieter)\s+(?:best[aä]tigt|nachgewiesen|verifiziert|garantiert)|nachweislich\s+im\s+besitz|geh[oö]rt\s+(?:dem|der)\s+(?:vermieter|anbieter|eigent[uü]mer))\b/iu,
+  /\b(?:marktpreis|marktwert|markt[uü]blicher\s+preis|marktgerechter\s+preis)\b/iu,
+]);
 const promptLikePattern = /(?:ignore (?:all|previous)|system prompt|developer message|folge (?:diesen|meinen) anweisungen|ignoriere (?:alle|vorherigen))/iu;
 
 function fieldValueSchema(key) {
@@ -233,7 +240,8 @@ function assertNoUnsupportedClaims(value) {
   const queue = [value];
   while (queue.length > 0) {
     const entry = queue.pop();
-    if (typeof entry === 'string' && unsupportedClaimPattern.test(entry)) {
+    if (typeof entry === 'string'
+        && unsupportedClaimPatterns.some((pattern) => pattern.test(entry))) {
       fail(400, 'listing_ai_unsupported_claim_rejected');
     }
     if (Array.isArray(entry)) queue.push(...entry);
