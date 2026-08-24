@@ -30,6 +30,10 @@ if (jwtSecret.length < 32) {
 const deploymentEnvironment = (process.env.DEPLOYMENT_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development')
   .trim()
   .toLowerCase();
+const bindHost = (process.env.BIND_HOST ?? '0.0.0.0').trim();
+if (!['0.0.0.0', '127.0.0.1', '::1'].includes(bindHost)) {
+  throw new Error('BIND_HOST must be an explicit supported bind address');
+}
 const listingAiGateway = readListingAiGatewayConfiguration(process.env, {
   deploymentEnvironment,
 });
@@ -299,6 +303,7 @@ if (supportEvidenceIntakeEnabled && deploymentEnvironment === 'production') {
 
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
+  bindHost,
   databaseUrl: required('DATABASE_URL'),
   jwtSecret,
   corsOrigins: csv(process.env.CORS_ORIGINS),

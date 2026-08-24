@@ -25,8 +25,8 @@ async function main() {
   const server = http.createServer(app);
   attachRealtime(server);
 
-  server.listen(config.port, '0.0.0.0', () => {
-    console.log(`[shareittoo-api] listening on :${config.port}`);
+  server.listen(config.port, config.bindHost, () => {
+    console.log(`[shareittoo-api] listening on ${config.bindHost}:${config.port}`);
   });
   const notificationTimer = setInterval(() => {
     void drainNotificationOutbox().catch((error) => {
