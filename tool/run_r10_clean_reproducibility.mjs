@@ -256,9 +256,34 @@ async function generatedFootprint(checkout, cacheRoot) {
   for (const relative of paths) {
     byPath[relative] = Math.ceil(await directorySizeBytes(path.join(checkout, relative)) / 1024);
   }
-  byPath['isolated-package-caches'] = Math.ceil(await directorySizeBytes(cacheRoot) / 1024);
-  const totalKiB = Object.values(byPath).reduce((sum, value) => sum + value, 0);
-  return Object.freeze({ pathsKiB: Object.freeze(byPath), totalKiB });
+  const projectGeneratedKiB = Object.values(byPath).reduce((sum, value) => sum + value, 0);
+  const isolatedPackageCachesKiB = Math.ceil(await directorySizeBytes(cacheRoot) / 1024);
+  return Object.freeze({
+    pathsKiB: Object.freeze(byPath),
+    projectGeneratedKiB,
+    isolatedPackageCachesKiB,
+    totalKiB: projectGeneratedKiB + isolatedPackageCachesKiB,
+  });
+}
+
+export function validateR10GeneratedFootprint(value, {
+  maximumProjectGeneratedKiB = 5 * 1024 * 1024,
+  maximumIsolatedPackageCachesKiB = 5 * 1024 * 1024,
+} = {}) {
+  if (value.projectGeneratedKiB > maximumProjectGeneratedKiB) {
+    fail('r10_project_generated_footprint_exceeds_bound');
+  }
+  if (value.isolatedPackageCachesKiB > maximumIsolatedPackageCachesKiB) {
+    fail('r10_isolated_package_cache_exceeds_bound');
+  }
+  if (value.totalKiB !== value.projectGeneratedKiB + value.isolatedPackageCachesKiB) {
+    fail('r10_generated_footprint_total_invalid');
+  }
+  return Object.freeze({
+    maximumProjectGeneratedKiB,
+    maximumIsolatedPackageCachesKiB,
+    withinBounds: true,
+  });
 }
 
 async function gitFiles(root, pathspecs) {
@@ -634,7 +659,10 @@ export async function executeR10CleanReproducibility({
     };
     const aapt = await resolveAapt(androidSdkRoot);
     const beforeFootprint = await generatedFootprint(checkout, cacheRoot);
-    if (beforeFootprint.totalKiB !== 0) fail('r10_clean_checkout_generated_footprint_not_zero');
+    if (beforeFootprint.projectGeneratedKiB !== 0
+        || beforeFootprint.isolatedPackageCachesKiB !== 0) {
+      fail('r10_clean_checkout_generated_footprint_not_zero');
+    }
     const beforeInventories = await sourceInventories(checkout);
     const toolchain = await captureToolchain(checkout, env);
     const commands = {};
@@ -698,7 +726,7 @@ export async function executeR10CleanReproducibility({
     )).stdout.trim();
     if (finalStatus !== '') fail('r10_build_changed_tracked_checkout');
     const afterFootprint = await generatedFootprint(checkout, cacheRoot);
-    if (afterFootprint.totalKiB > 5 * 1024 * 1024) fail('r10_generated_footprint_exceeds_bound');
+    const footprintBounds = validateR10GeneratedFootprint(afterFootprint);
 
     evidence = {
       schemaVersion: 1,
@@ -739,8 +767,7 @@ export async function executeR10CleanReproducibility({
       generatedFootprint: {
         before: beforeFootprint,
         after: afterFootprint,
-        maximumKiB: 5 * 1024 * 1024,
-        withinBound: true,
+        ...footprintBounds,
       },
       android: {
         buildType: 'debug',

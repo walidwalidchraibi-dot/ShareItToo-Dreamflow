@@ -9,6 +9,7 @@ import {
   parseAaptBadging,
   parseAaptPermissions,
   selectFlutterRuntimePayloadEntries,
+  validateR10GeneratedFootprint,
 } from '../../tool/run_r10_clean_reproducibility.mjs';
 
 const technicalRegression = readFileSync(
@@ -163,6 +164,42 @@ test('selects only the Flutter runtime payload for debug or AOT artifacts', () =
     () => selectFlutterRuntimePayloadEntries(['classes.dex']),
     /r10_flutter_runtime_payload_missing/u,
   );
+});
+
+test('bounds project output separately from intentionally fresh package caches', () => {
+  assert.deepEqual(validateR10GeneratedFootprint({
+    projectGeneratedKiB: 4_000,
+    isolatedPackageCachesKiB: 3_000,
+    totalKiB: 7_000,
+  }, {
+    maximumProjectGeneratedKiB: 5_000,
+    maximumIsolatedPackageCachesKiB: 5_000,
+  }), {
+    maximumProjectGeneratedKiB: 5_000,
+    maximumIsolatedPackageCachesKiB: 5_000,
+    withinBounds: true,
+  });
+  assert.throws(() => validateR10GeneratedFootprint({
+    projectGeneratedKiB: 5_001,
+    isolatedPackageCachesKiB: 1,
+    totalKiB: 5_002,
+  }, {
+    maximumProjectGeneratedKiB: 5_000,
+    maximumIsolatedPackageCachesKiB: 5_000,
+  }), /r10_project_generated_footprint_exceeds_bound/u);
+  assert.throws(() => validateR10GeneratedFootprint({
+    projectGeneratedKiB: 1,
+    isolatedPackageCachesKiB: 5_001,
+    totalKiB: 5_002,
+  }, {
+    maximumProjectGeneratedKiB: 5_000,
+    maximumIsolatedPackageCachesKiB: 5_000,
+  }), /r10_isolated_package_cache_exceeds_bound/u);
+  assert.throws(() => validateR10GeneratedFootprint({
+    projectGeneratedKiB: 1,
+    isolatedPackageCachesKiB: 1,
+    totalKiB: 3,
+  }), /r10_generated_footprint_total_invalid/u);
 });
 
 test('the complete technical gate retains the R10 contract tests', () => {
