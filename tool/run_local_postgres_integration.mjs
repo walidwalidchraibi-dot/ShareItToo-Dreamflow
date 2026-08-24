@@ -163,7 +163,11 @@ export async function runLocalPostgresIntegration({
   nodeBin = process.execPath,
   environment = process.env,
   temporaryBase = os.tmpdir(),
+  inheritTestOutput = true,
 } = {}) {
+  if (typeof inheritTestOutput !== 'boolean') {
+    throw new Error('postgres_test_output_mode_invalid');
+  }
   const root = path.resolve(repositoryRoot);
   const resolvedBinDir = await resolvePostgresBinDir({
     environment,
@@ -257,7 +261,7 @@ export async function runLocalPostgresIntegration({
       '--throw-deprecation',
       '--import', './backend/test_setup.js',
       '--test', 'backend/test/postgres_foundation.integration.test.js',
-    ], { env: testEnvironment, inherit: true });
+    ], { env: testEnvironment, inherit: inheritTestOutput });
   } catch (error) {
     primaryError = error;
   } finally {

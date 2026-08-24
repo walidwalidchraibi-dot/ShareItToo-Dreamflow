@@ -127,6 +127,25 @@ test('runs readiness, isolated database and integration before guaranteed cleanu
   assert.match(log, /pg_ctl\|.* -m fast stop\|/u);
 });
 
+test('accepts quiet integration output mode and rejects non-boolean modes', async (t) => {
+  const fixture = await fakeFixture(t);
+  const result = await runLocalPostgresIntegration({
+    repositoryRoot: fixture.root,
+    postgresBinDir: fixture.bin,
+    nodeBin: path.join(fixture.bin, 'node'),
+    environment: fixture.environment,
+    temporaryBase: fixture.temporaryBase,
+    inheritTestOutput: false,
+  });
+  assert.equal(result.status, 'passed-and-cleaned');
+  assert.deepEqual(await readdir(fixture.temporaryBase), []);
+
+  await assert.rejects(
+    runLocalPostgresIntegration({ inheritTestOutput: 'quiet' }),
+    /postgres_test_output_mode_invalid/u,
+  );
+});
+
 test('cleans the cluster and stops PostgreSQL when the integration fails', async (t) => {
   const fixture = await fakeFixture(t);
   const environment = {

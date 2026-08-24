@@ -272,6 +272,10 @@ node --test test/tool/diagnose_r4_android_lifecycle.test.mjs
 node --check tool/validate_r4_android_lifecycle_failure_matrix.mjs
 node --test test/tool/validate_r4_android_lifecycle_failure_matrix.test.mjs
 node tool/validate_r4_android_lifecycle_failure_matrix.mjs
+node --check tool/run_r5_repeated_postgres_stability.mjs
+node --test test/tool/run_r5_repeated_postgres_stability.test.mjs
+node --check tool/diagnose_r5_android_repeated_stability.mjs
+node --test test/tool/diagnose_r5_android_repeated_stability.test.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
