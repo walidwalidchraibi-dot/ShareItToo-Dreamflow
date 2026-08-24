@@ -63,6 +63,21 @@ test('regional price, duration and V5.2 fee preview stay editable and simulation
   assert.match(screen, /Reine Simulation ohne Zahlung/u);
 });
 
+test('every automatic or manual daily-price change invalidates owner confirmation', () => {
+  const invalidations = screen.match(
+    /_blueOceanConfirmations\['owner_price'\] = false;/gu,
+  ) ?? [];
+  assert.ok(invalidations.length >= 4);
+  assert.match(
+    screen,
+    /recommendedDailyMinor[\s\S]*_priceCtrl\.text =[\s\S]*_blueOceanConfirmations\['owner_price'\] = false;/u,
+  );
+  assert.match(
+    screen,
+    /_PricePerDayInput\([\s\S]*onChanged:[\s\S]*_blueOceanConfirmations\['owner_price'\] = false;/u,
+  );
+});
+
 test('client and server use separate authenticated review and exact publication actions', () => {
   assert.match(repository, /\/blue-ocean\/listing-drafts\/analyze/u);
   assert.match(repository, /\/blue-ocean\/listing-drafts\/\$\{Uri\.encodeComponent\(draftId\)\}\/review/u);

@@ -565,6 +565,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           final minor = recommendation['recommendedDailyMinor'];
           if (minor is num) {
             _priceCtrl.text = (minor / 100).toStringAsFixed(2);
+            _blueOceanConfirmations['owner_price'] = false;
           }
         }
       });
@@ -1292,6 +1293,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     if (price > max) price = max;
     _priceCtrl.text =
         price.toStringAsFixed(price.truncateToDouble() == price ? 0 : 2);
+    if (_blueOceanDraftId != null) {
+      _blueOceanConfirmations['owner_price'] = false;
+    }
   }
 
   Widget _buildBlueOceanAssistantCard(BuildContext context) {
@@ -2210,6 +2214,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           controller: _priceCtrl,
                           onChanged: (_) => setState(() {
                             _priceTouched = true;
+                            if (_blueOceanDraftId != null) {
+                              _blueOceanConfirmations['owner_price'] = false;
+                            }
                           }),
                           validator: (v) {
                             final n =

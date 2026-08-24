@@ -9,6 +9,7 @@ import {
   startCrashlyticsCleanupWorker,
 } from './crashlytics_cleanup.js';
 import { initializeDatabase, pool } from './db.js';
+import { createLocalQaSyntheticImageScreeningOptions } from './local_qa_synthetic_image_screening.js';
 import { attachRealtime } from './realtime.js';
 import { verifyMailer } from './mailer.js';
 import { drainNotificationOutbox } from './notifications.js';
@@ -21,7 +22,9 @@ async function main() {
   await initializeDatabase();
   await verifyMailer();
 
-  const app = createApp();
+  const app = createApp(createLocalQaSyntheticImageScreeningOptions({
+    configuration: config,
+  }));
   const server = http.createServer(app);
   attachRealtime(server);
 

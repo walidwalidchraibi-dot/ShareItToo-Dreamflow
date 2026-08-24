@@ -26,6 +26,7 @@ test('local QA harness stays ephemeral, mock-only and zero-billing', () => {
     "DEPLOYMENT_ENVIRONMENT: 'test'",
     "SIT_LISTING_AI_PROVIDER: 'mock'",
     "SIT_LISTING_AI_BUDGET_CENTS: '0'",
+    "SIT_LOCAL_QA_SYNTHETIC_IMAGE_SCREENING: 'true'",
     "PAYMENT_TRANSPORT: 'memory'",
     "STRIPE_LIVEMODE: 'false'",
     "FIREBASE_AUTH_ENABLED: 'false'",
@@ -38,6 +39,7 @@ test('local QA harness stays ephemeral, mock-only and zero-billing', () => {
   assert.match(runner, /transientCredentialsOwnerOnly: true/u);
   assert.match(runner, /containsCredentials: false/u);
   assert.doesNotMatch(runner, /OPENAI_API_KEY|CODEX_API_KEY/u);
+  assert.match(server, /createLocalQaSyntheticImageScreeningOptions/u);
 });
 
 test('ADB reverse and transient credentials are removed on shutdown', () => {
@@ -48,4 +50,10 @@ test('ADB reverse and transient credentials are removed on shutdown', () => {
   assert.match(runner, /constants\.O_NOFOLLOW/u);
   assert.doesNotMatch(runner, /existsSync\(path\)/u);
   assert.match(runner, /waitForUnexpectedExit\(backendChild\)/u);
+  assert.match(runner, /waitForChildClose\(child, 12_000\)/u);
+  assert.match(runner, /child\.kill\('SIGKILL'\)/u);
+  assert.match(runner, /waitForChildClose\(child, 5_000\)/u);
+  assert.match(runner, /server\.closeIdleConnections\?\.\(\)/u);
+  assert.match(runner, /server\.closeAllConnections\?\.\(\)/u);
+  assert.match(runner, /Local QA API proxy termination deadline expired\./u);
 });

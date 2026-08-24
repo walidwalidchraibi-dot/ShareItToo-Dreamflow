@@ -84,6 +84,32 @@ function waitForUnexpectedExit(child) {
   });
 }
 
+function waitForChildClose(child, timeoutMs) {
+  if (child.exitCode !== null) return Promise.resolve(true);
+  return new Promise((resolvePromise) => {
+    let timer;
+    const closed = () => {
+      clearTimeout(timer);
+      resolvePromise(true);
+    };
+    child.once('close', closed);
+    timer = setTimeout(() => {
+      child.off('close', closed);
+      resolvePromise(false);
+    }, timeoutMs);
+  });
+}
+
+async function terminateChild(child) {
+  if (child.exitCode !== null) return;
+  child.kill('SIGTERM');
+  if (await waitForChildClose(child, 12_000)) return;
+  child.kill('SIGKILL');
+  if (!(await waitForChildClose(child, 5_000))) {
+    fail('Local QA backend termination deadline expired.');
+  }
+}
+
 async function waitForReady(url, backendChild, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -135,7 +161,25 @@ async function listenLoopback(server, port) {
 
 async function closeServer(server) {
   if (!server.listening) return;
-  await new Promise((resolvePromise) => server.close(resolvePromise));
+  await new Promise((resolvePromise, reject) => {
+    let forceTimer;
+    let failureTimer;
+    const finish = (error) => {
+      clearTimeout(forceTimer);
+      clearTimeout(failureTimer);
+      if (error) reject(error);
+      else resolvePromise();
+    };
+    server.close(finish);
+    server.closeIdleConnections?.();
+    forceTimer = setTimeout(() => {
+      server.closeAllConnections?.();
+      failureTimer = setTimeout(
+        () => finish(new Error('Local QA API proxy termination deadline expired.')),
+        5_000,
+      );
+    }, 12_000);
+  });
 }
 
 function writeSyntheticSession({ email, password }) {
@@ -263,6 +307,7 @@ async function main() {
       SIT_LISTING_AI_PROVIDER: 'mock',
       SIT_LISTING_AI_MODEL: 'listing-ai-mock-v1',
       SIT_LISTING_AI_BUDGET_CENTS: '0',
+      SIT_LOCAL_QA_SYNTHETIC_IMAGE_SCREENING: 'true',
       FIREBASE_AUTH_ENABLED: 'false',
       FIREBASE_PHONE_VERIFICATION_ENABLED: 'false',
       PUBLIC_COMPLIANCE_APPROVED: 'false',
@@ -356,9 +401,12 @@ async function main() {
     } catch {
       primaryError ??= new Error('Local QA API proxy cleanup failed.');
     }
-    if (backendChild && backendChild.exitCode === null) {
-      backendChild.kill('SIGTERM');
-      await new Promise((resolvePromise) => backendChild.once('close', resolvePromise));
+    if (backendChild) {
+      try {
+        await terminateChild(backendChild);
+      } catch {
+        primaryError ??= new Error('Local QA backend cleanup failed.');
+      }
     }
     if (logDescriptor !== undefined) closeSync(logDescriptor);
     if (postgresStarted) {
