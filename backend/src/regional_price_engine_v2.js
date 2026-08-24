@@ -526,13 +526,40 @@ function freshnessInfluenceTier(row) {
   return 3;
 }
 
-function capWeakerCohort(rows, tierForRow) {
+function influenceVector(row) {
+  return [
+    sourceInfluenceTier[row.observation.sourceType],
+    geographyInfluenceTier(row.observation),
+    similarityInfluenceTier(row),
+    freshnessInfluenceTier(row),
+  ];
+}
+
+function dominates(left, right) {
+  return left.every((value, index) => value <= right[index])
+    && left.some((value, index) => value < right[index]);
+}
+
+function boundWeakerEvidenceInfluence(rows) {
   if (rows.length < 2) return { rows, excluded: [], applied: false };
-  const strongestTier = Math.min(...rows.map(tierForRow));
+  const groups = new Map();
+  for (const row of rows) {
+    const vector = influenceVector(row);
+    const key = vector.join(':');
+    const group = groups.get(key) ?? { vector, rows: [] };
+    group.rows.push(row);
+    groups.set(key, group);
+  }
+  const values = [...groups.values()];
+  const frontierKeys = new Set(values
+    .filter((candidate) => !values.some((other) => (
+      other !== candidate && dominates(other.vector, candidate.vector)
+    )))
+    .map((entry) => entry.vector.join(':')));
   const strongerTotal = rows
-    .filter((row) => tierForRow(row) === strongestTier)
+    .filter((row) => frontierKeys.has(influenceVector(row).join(':')))
     .reduce((sum, row) => sum + row.weightMicro, 0);
-  const weaker = rows.filter((row) => tierForRow(row) > strongestTier);
+  const weaker = rows.filter((row) => !frontierKeys.has(influenceVector(row).join(':')));
   const weakerTotal = weaker.reduce((sum, row) => sum + row.weightMicro, 0);
   const cap = Math.floor(
     (strongerTotal * weakerEvidenceAggregateCapBasisPoints) / basisPointScale,
@@ -543,7 +570,7 @@ function capWeakerCohort(rows, tierForRow) {
   const excluded = [];
   const adjusted = [];
   for (const row of rows) {
-    if (tierForRow(row) === strongestTier) {
+    if (frontierKeys.has(influenceVector(row).join(':'))) {
       adjusted.push(row);
       continue;
     }
@@ -558,24 +585,6 @@ function capWeakerCohort(rows, tierForRow) {
     adjusted.push({ ...row, weightMicro: boundedWeight });
   }
   return { rows: adjusted, excluded, applied: true };
-}
-
-function boundWeakerEvidenceInfluence(rows) {
-  let current = rows;
-  const excluded = [];
-  let applied = false;
-  for (const tierForRow of [
-    (row) => sourceInfluenceTier[row.observation.sourceType],
-    (row) => geographyInfluenceTier(row.observation),
-    similarityInfluenceTier,
-    freshnessInfluenceTier,
-  ]) {
-    const bounded = capWeakerCohort(current, tierForRow);
-    current = bounded.rows;
-    excluded.push(...bounded.excluded);
-    applied ||= bounded.applied;
-  }
-  return { rows: current, excluded, applied };
 }
 
 function evaluateObservations({ observations, target, asOf }) {
