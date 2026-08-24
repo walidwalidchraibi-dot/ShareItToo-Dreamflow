@@ -308,6 +308,12 @@ node --test test/tool/audit_r11_android_security_surface.test.mjs
 node --check tool/validate_r11_android_security_surface.mjs
 node --test test/tool/validate_r11_android_security_surface.test.mjs
 node tool/validate_r11_android_security_surface.mjs
+python3 -B -c 'import ast, pathlib; ast.parse(pathlib.Path(".codex/hooks/sit_guardrail.py").read_text())'
+node --test test/tool/blue_ocean_n11_codex_hook_behavior.test.mjs
+node --test test/tool/r12_codex_hook_guardrails.test.mjs
+node --check tool/validate_r12_codex_hook_guardrails.mjs
+node --test test/tool/validate_r12_codex_hook_guardrails.test.mjs
+node tool/validate_r12_codex_hook_guardrails.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

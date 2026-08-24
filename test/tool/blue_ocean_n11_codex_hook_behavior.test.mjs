@@ -23,6 +23,10 @@ async function repository(t, content = 'safe staged text\n') {
   t.after(() => rm(directory, { recursive: true, force: true }));
   const initialized = spawnSync('git', ['init', '-q', directory], { encoding: 'utf8' });
   assert.equal(initialized.status, 0, initialized.stderr);
+  const switched = spawnSync('git', ['-C', directory, 'switch', '-q', '-c', 'codex/test-hook'], {
+    encoding: 'utf8',
+  });
+  assert.equal(switched.status, 0, switched.stderr);
   await writeFile(join(directory, 'fixture.txt'), content);
   const added = spawnSync('git', ['-C', directory, 'add', 'fixture.txt'], { encoding: 'utf8' });
   assert.equal(added.status, 0, added.stderr);

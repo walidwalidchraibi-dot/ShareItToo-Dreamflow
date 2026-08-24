@@ -1,7 +1,8 @@
 # Current Work Package: 48H remote device, pilot and release hardening
 
 Status: **R0/P0 security contradiction verified closed; R1–R11 and R13 exact
-verified; R12 active;
+verified; R12 implemented locally with full regression green and GitHub CI
+pending;
 non-live and fail-closed** on
 24.08.2026.
 
@@ -295,6 +296,26 @@ Signed-candidate, parallel-stress and API publication remained skipped; PR #7
 stayed Draft, open and unmerged. The separate GitGuardian failure remains the
 documented pre-existing 250-commit history finding; no credential detail was
 inspected. R11 is closed and R12 begins.
+
+### R12 Codex hook autonomy guardrails
+
+R12 hardens the existing optional repository-local Codex Hooks without adding
+a product/runtime dependency or changing the user-level Codex configuration.
+HOOK-A blocks probable command/staged credentials and signing containers
+without printing matched material. HOOK-B expands the exact-gated destructive
+Git policy to rebase, squash, deletion and protected-branch mutation. HOOK-C
+expands the known live boundary across production/remote hosts, Cloud/DNS,
+Store/public release, real Payment/KYC/money and provider-billing paths.
+
+HOOK-D now fails closed on an unknown package and permits the exact R12 GREEN
+marker only after whitespace checks, a clean known worktree and the complete
+N11/R12 focused suite. HOOK-E creates the required sanitized
+`docs/SIT_PENDING_GATE_<ID>.md` atomically while preserving the minimized Git
+metadata record. Syntax, 10 N11 compatibility tests, 12 R12 behavior tests, six
+evidence-validator tests and the full candidate-rollover regression pass.
+Exact GitHub verification remains pending. The changed hook definition remains
+untrusted until the official Codex trust review; R12 has not activated or
+bypassed it and has made no live mutation.
 
 ### R13 local Codex authentication clarification
 

@@ -34,7 +34,7 @@
             "type": "command",
             "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/sit_guardrail.py\" stop",
             "timeout": 5,
-            "statusMessage": "Recording a declared SIT pending gate"
+            "statusMessage": "Checking SIT completion or recording a pending gate"
           }
         ]
       }
