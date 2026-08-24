@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   installCurrentHeadAndroidCandidateUpdate,
   parseAndroidInstalledPackageSnapshot,
+  preflightCurrentHeadAndroidCandidateUpdate,
 } from '../../tool/install_current_head_android_candidate_update.mjs';
 
 const certificate = 'a'.repeat(64);
@@ -68,7 +69,17 @@ function fixture({
       installed = true;
       return installResult;
     }
-    if (adbArgs[0] === 'shell' && adbArgs[1] === 'monkey') return 'Events injected: 1';
+    if (adbArgs.join(' ') === 'shell am start -W -n com.shareittoo.app/.MainActivity') {
+      return [
+        'Starting: Intent { cmp=com.shareittoo.app/.MainActivity }',
+        'Status: ok',
+        'Activity: com.shareittoo.app/.MainActivity',
+        'ThisTime: 285',
+        'TotalTime: 285',
+        'WaitTime: 288',
+        'Complete',
+      ].join('\n');
+    }
     if (adbArgs.join(' ') === 'shell dumpsys activity activities') {
       return 'mResumedActivity: ActivityRecord com.shareittoo.app/.MainActivity';
     }
@@ -120,6 +131,24 @@ test('installs only a strictly newer signed candidate and proves app data identi
   );
   assert.equal(JSON.stringify(evidence).includes(device.serial), false);
   assert.equal(JSON.stringify(evidence).includes('/private/'), false);
+});
+
+test('preflight proves update eligibility without writing to the device', () => {
+  const data = fixture();
+  const evidence = preflightCurrentHeadAndroidCandidateUpdate({
+    commandRunner: data.commandRunner,
+    device,
+    candidate,
+    certificateInspector: () => certificate,
+    capturedAt: '2026-08-24T12:00:00.000Z',
+  });
+  assert.equal(evidence.status, 'eligible-no-device-write-performed');
+  assert.equal(evidence.conditions.exactPackageIdentity, true);
+  assert.equal(evidence.conditions.deviceAlreadyUnlocked, true);
+  assert.equal(evidence.boundaries.deviceWritePerformed, false);
+  assert.equal(data.commands.some((args) => args[0] === 'install'), false);
+  assert.equal(JSON.stringify(evidence).includes(device.serial), false);
+  assert.equal(JSON.stringify(evidence).includes(certificate), false);
 });
 
 test('rejects a non-newer build before any install command', () => {

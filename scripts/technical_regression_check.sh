@@ -251,6 +251,10 @@ node --check tool/validate_current_head_android_release_archive.mjs
 node --test test/tool/validate_current_head_android_release_archive.test.mjs
 node --check tool/install_current_head_android_candidate_update.mjs
 node --test test/tool/install_current_head_android_candidate_update.test.mjs
+node --check tool/validate_android_local_qa_candidate.mjs
+node --test test/tool/android_local_qa_candidate.test.mjs
+node --check tool/prepare_android_local_qa_update.mjs
+node --test test/tool/android_local_qa_update_gate.test.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

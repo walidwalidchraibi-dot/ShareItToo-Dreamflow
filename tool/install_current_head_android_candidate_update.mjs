@@ -140,42 +140,12 @@ function inspectBytesCertificate({ bytes, certificateInspector }) {
   }
 }
 
-function launchAndVerifyForeground(commandRunner, adbPath, device, applicationId) {
-  const launch = currentHeadAndroidAdb(commandRunner, adbPath, device, [
-    'shell',
-    'monkey',
-    '-p',
-    applicationId,
-    '-c',
-    'android.intent.category.LAUNCHER',
-    '1',
-  ]);
-  if (!/Events injected:\s*1/u.test(launch)) {
-    fail('Updated ShareItToo candidate did not launch.');
-  }
-  const activities = currentHeadAndroidAdb(
-    commandRunner,
-    adbPath,
-    device,
-    ['shell', 'dumpsys', 'activity', 'activities'],
-  );
-  const escaped = applicationId.replaceAll('.', '\\.');
-  if (!new RegExp(
-    `(?:mResumedActivity|topResumedActivity|ResumedActivity:).*${escaped}/`,
-    'u',
-  ).test(activities)) {
-    fail('Updated ShareItToo candidate did not become the foreground activity.');
-  }
-}
-
-export function installCurrentHeadAndroidCandidateUpdate({
-  commandRunner = defaultCurrentHeadAndroidCommandRunner,
-  adbPath = 'adb',
+function verifyCurrentHeadAndroidCandidateUpdatePrerequisites({
+  commandRunner,
+  adbPath,
   device,
-  deviceSummary,
   candidate,
   certificateInspector,
-  capturedAt = new Date().toISOString(),
 }) {
   assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device);
   const candidateCertificate = normalizeCertificate(
@@ -206,6 +176,95 @@ export function installCurrentHeadAndroidCandidateUpdate({
   if (installedBeforeCertificate !== candidateCertificate) {
     fail('Candidate certificate does not match the currently installed app.');
   }
+  return { before, candidateCertificate };
+}
+
+export function preflightCurrentHeadAndroidCandidateUpdate({
+  commandRunner = defaultCurrentHeadAndroidCommandRunner,
+  adbPath = 'adb',
+  device,
+  candidate,
+  certificateInspector,
+  capturedAt = new Date().toISOString(),
+}) {
+  const { before } = verifyCurrentHeadAndroidCandidateUpdatePrerequisites({
+    commandRunner,
+    adbPath,
+    device,
+    candidate,
+    certificateInspector,
+  });
+  return Object.freeze({
+    schemaVersion: 1,
+    kind: 'android-data-preserving-direct-update-preflight',
+    status: 'eligible-no-device-write-performed',
+    capturedAt,
+    applicationId: candidate.applicationId,
+    installedVersion: `${before.versionName}+${before.buildNumber}`,
+    candidateVersion: `${candidate.versionName}+${candidate.buildNumber}`,
+    conditions: Object.freeze({
+      exactPackageIdentity: true,
+      candidateSignatureMatchesArchiveAndInstalledApp: true,
+      strictlyNewerBuild: true,
+      replaceInstallOnly: true,
+      uninstallOrResetRequired: false,
+      deviceAlreadyUnlocked: true,
+      postInstallDataIdentityVerificationRequired: true,
+    }),
+    boundaries: Object.freeze({
+      deviceWritePerformed: false,
+      containsRawDeviceIdentifiers: false,
+      containsPrivateFilesystemPaths: false,
+      containsSigningDigests: false,
+    }),
+  });
+}
+
+function launchAndVerifyForeground(commandRunner, adbPath, device, applicationId) {
+  const launch = currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell',
+    'am',
+    'start',
+    '-W',
+    '-n',
+    `${applicationId}/.MainActivity`,
+  ]);
+  if (!/^Status:\s*ok\s*$/mu.test(launch)
+      || !new RegExp(`^Activity:\\s*${applicationId.replaceAll('.', '\\.')}\/`, 'mu')
+        .test(launch)) {
+    fail('Updated ShareItToo candidate did not complete a deterministic activity start.');
+  }
+  const activities = currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'dumpsys', 'activity', 'activities'],
+  );
+  const escaped = applicationId.replaceAll('.', '\\.');
+  if (!new RegExp(
+    `(?:mResumedActivity|topResumedActivity|ResumedActivity:).*${escaped}/`,
+    'u',
+  ).test(activities)) {
+    fail('Updated ShareItToo candidate did not become the foreground activity.');
+  }
+}
+
+export function installCurrentHeadAndroidCandidateUpdate({
+  commandRunner = defaultCurrentHeadAndroidCommandRunner,
+  adbPath = 'adb',
+  device,
+  deviceSummary,
+  candidate,
+  certificateInspector,
+  capturedAt = new Date().toISOString(),
+}) {
+  const { before, candidateCertificate } = verifyCurrentHeadAndroidCandidateUpdatePrerequisites({
+    commandRunner,
+    adbPath,
+    device,
+    candidate,
+    certificateInspector,
+  });
 
   const installResult = currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'install',

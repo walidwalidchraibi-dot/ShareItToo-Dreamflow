@@ -103,6 +103,25 @@ test('accepts the exact owner-only local QA candidate without exposing paths or 
   assert.equal(JSON.stringify(result).includes(value.directory), false);
 });
 
+test('returns private installation facts only behind the explicit in-process option', async () => {
+  const value = fixture();
+  const result = await validateAndroidLocalQaCandidate({
+    root: value.root,
+    candidateDirectory: value.directory,
+    expectedCommit: commit,
+    commandRunner: runner,
+    apksignerPath: 'apksigner',
+    aaptPath: 'aapt',
+    includePrivateArtifact: true,
+  });
+  assert.equal(result.applicationId, 'com.shareittoo.app');
+  assert.equal(result.buildNumber, '2026082303');
+  assert.equal(result.apkPath, resolve(value.directory, apkName));
+  assert.equal(result.signingCertificateSha256, canonicalAndroidSigningCertificateSha256);
+  assert.equal(result.apiBaseUrl, 'http://127.0.0.1:18080/api/v1');
+  assert.equal(result.firebaseConfigured, false);
+});
+
 test('rejects a live boundary or noncanonical signature', async () => {
   const value = fixture();
   value.manifest.boundaries.providerCallPerformed = true;

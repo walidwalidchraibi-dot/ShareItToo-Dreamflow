@@ -84,6 +84,7 @@ export async function validateAndroidLocalQaCandidate({
   commandRunner = defaultRunner,
   apksignerPath,
   aaptPath,
+  includePrivateArtifact = false,
 } = {}) {
   const repositoryRoot = resolve(root ?? fileURLToPath(new URL('../', import.meta.url)));
   const commit = expectedCommit ?? String(commandRunner('git', ['rev-parse', 'HEAD'], {
@@ -167,6 +168,23 @@ export async function validateAndroidLocalQaCandidate({
     `package: name='${applicationId}' versionCode='${buildNumber}' versionName='${versionName}'`,
   )) {
     fail('R2 APK package identity is invalid.');
+  }
+  if (includePrivateArtifact === true) {
+    return Object.freeze({
+      applicationId,
+      bundleId: applicationId,
+      versionName,
+      buildNumber,
+      commit,
+      releaseChannel: configuration.releaseChannel,
+      apiBaseUrl: configuration.apiBaseUrl,
+      firebaseConfigured: false,
+      apkSha256: manifest.artifact.apkSha256,
+      signingCertificateSha256: certificate,
+      privacyScan: 'local-qa-archive-verified',
+      apkPath,
+      configuration: Object.freeze({ ...configuration }),
+    });
   }
   return Object.freeze({
     status: 'verified-owner-only-not-installed',
