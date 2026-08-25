@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 
@@ -21,31 +24,74 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
   late TabController _tabController;
   List<Item> _items = [];
   bool _canCreateListings = false;
+  bool _loading = true;
+  bool _actionBusy = false;
+  String? _loadError;
+  String? _currentUserId;
+  StreamSubscription<String>? _persistenceSubscription;
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator = SharedPersistenceRefreshCoordinator();
 
   @override
   void initState() {
     super.initState();
     final init = widget.initialTabIndex.clamp(0, 1);
     _tabController = TabController(length: 2, vsync: this, initialIndex: init);
+    _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key != SharedPersistenceSync.listingCatalogKey) return;
+      _refreshCoordinator.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        await _load();
+      });
+    });
     _load();
   }
 
   @override
   void dispose() {
+    _persistenceSubscription?.cancel();
+    _refreshCoordinator.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    final user = await DataService.getCurrentUser();
-    final all = await DataService.getItems();
-    if (!mounted) return;
-    setState(() {
-      _canCreateListings = user != null && !user.isBanned;
-      final owned = all.where((e) => e.ownerId == user?.id).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      _items = owned;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+        _currentUserId = null;
+        _canCreateListings = false;
+        _items = const <Item>[];
+      });
+    }
+    try {
+      final user = await DataService.getCurrentUser();
+      final expectedUserId = user?.id.trim() ?? '';
+      if (expectedUserId.isEmpty) {
+        throw StateError('Für deine Anzeigen ist eine Anmeldung erforderlich.');
+      }
+      final all = await DataService.getItems();
+      final rechecked = await DataService.getCurrentUser();
+      if (rechecked?.id.trim() != expectedUserId) {
+        throw StateError('Das angemeldete Konto hat sich geändert.');
+      }
+      if (!mounted) return;
+      setState(() {
+        _currentUserId = expectedUserId;
+        _canCreateListings = !user!.isBanned;
+        _items = all.where((item) => item.ownerId == expectedUserId).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _currentUserId = null;
+        _canCreateListings = false;
+        _items = const <Item>[];
+        _loading = false;
+        _loadError = 'Deine Anzeigen konnten nicht sicher geladen werden.';
+      });
+    }
   }
 
   Future<void> _startCreateListing() async {
@@ -56,7 +102,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
     if (!mounted) return;
     if (created != null) {
       await _load();
-      if (!mounted) return;
+      if (!mounted || _loadError != null) return;
       AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Anzeige erstellt', message: created.title);
     }
   }
@@ -65,21 +111,61 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
   List<Item> _listedItems(List<Item> src) => src.where((e) => e.status != 'draft').toList();
   List<Item> _draftItems(List<Item> src) => src.where((e) => e.status == 'draft').toList();
 
-  Future<void> _changeStatus(Item it, String status) async {
-    await DataService.updateItemStatus(itemId: it.id, status: status);
-    final refreshedItems = await DataService.getItems();
-    if (!mounted) return;
-    Item? refreshed;
-    for (final item in refreshedItems) {
-      if (item.id == it.id) {
-        refreshed = item;
-        break;
+  Future<bool> _runOwnerMutation(Future<void> Function() mutation) async {
+    if (_actionBusy || _currentUserId == null) return false;
+    final expectedUserId = _currentUserId!;
+    setState(() => _actionBusy = true);
+    try {
+      await mutation();
+      final rechecked = await DataService.getCurrentUser();
+      if (rechecked?.id != expectedUserId) {
+        throw StateError('Das angemeldete Konto hat sich geändert.');
       }
+      await _load();
+      if (_loadError != null) {
+        throw StateError('Die Anzeige konnte nicht sicher neu geladen werden.');
+      }
+      return true;
+    } catch (_) {
+      await _load();
+      if (mounted) {
+        AppPopup.error(
+          context,
+          title: 'Änderung nicht gespeichert',
+          message: 'Die Anzeige blieb unverändert. Prüfe deine Anmeldung und versuche es erneut.',
+        );
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _actionBusy = false);
     }
-    if (refreshed == null) return;
-    setState(() {
-      _items = _items.map((e) => e.id == it.id ? refreshed! : e).toList();
-    });
+  }
+
+  Future<bool> _changeStatus(Item it, String status) => _runOwnerMutation(
+        () => DataService.updateItemStatus(itemId: it.id, status: status),
+      );
+
+  Future<bool> _deleteListing(Item item) => _runOwnerMutation(
+        () => DataService.deleteItemById(item.id),
+      );
+
+  Widget _buildBody(LocalizationController l10n) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return _MyListingsLoadFailure(
+        message: _loadError!,
+        onRetry: _load,
+      );
+    }
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildItemsGrid(_listedItems(_items), l10n, emptyKind: _EmptyKind.listed),
+        _buildItemsGrid(_draftItems(_items), l10n, emptyKind: _EmptyKind.savedForLater),
+      ],
+    );
   }
 
   @override
@@ -133,22 +219,17 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildItemsGrid(_listedItems(_items), l10n, emptyKind: _EmptyKind.listed),
-          _buildItemsGrid(_draftItems(_items), l10n, emptyKind: _EmptyKind.savedForLater),
-        ],
-      ),
+      body: _buildBody(l10n),
     );
   }
 
   Widget _buildItemsGrid(List<Item> visible, LocalizationController l10n, {required _EmptyKind emptyKind}) {
+    final compact = MediaQuery.sizeOf(context).width < 360;
     return visible.isEmpty
         ? _MyListingsEmptyState(kind: emptyKind, onTapCreate: _startCreateListing, canCreate: _canCreateListings)
         : GridView.builder(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.02),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: compact ? 0.78 : 1.02),
             itemCount: visible.length,
             itemBuilder: (_, i) {
               final it = visible[i];
@@ -174,7 +255,14 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                         Row(children: [
                           Text('${it.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textPrimary(context))),
                           const SizedBox(width: 4),
-                          Text(l10n.t('pro Tag'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary(context))),
+                          Expanded(
+                            child: Text(
+                              l10n.t('pro Tag'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary(context)),
+                            ),
+                          ),
                         ]),
                         const SizedBox(height: 4),
                         Row(children: [
@@ -182,12 +270,13 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                           const Spacer(),
                           PopupMenuButton<String>(
                             tooltip: 'Status ändern',
+                            enabled: !_actionBusy,
                             onSelected: (v) async {
                               if (it.status == 'draft') {
                                 switch (v) {
                                   case 'publish':
-                                    await _changeStatus(it, 'active');
-                                    if (mounted) {
+                                    final changed = await _changeStatus(it, 'active');
+                                    if (mounted && changed) {
                                       AppPopup.toast(context, icon: Icons.check_circle, title: 'Anzeige veröffentlicht');
                                     }
                                     break;
@@ -200,7 +289,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                                     if (!mounted) return;
                                     if (res == 'drafts') {
                                       // Jump to the "für später gespeichert" tab first
-                                       _tabController.animateTo(1);
+                                      _tabController.animateTo(1);
                                       // Ensure UI has settled before showing the popup
                                       WidgetsBinding.instance.addPostFrameCallback((_) {
                                         if (!mounted) return;
@@ -215,15 +304,14 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                                     }
                                     break;
                                   case 'delete':
-                                    await DataService.deleteItemById(it.id);
-                                    await _load();
-                                    if (mounted) {
+                                    final deleted = await _deleteListing(it);
+                                    if (mounted && deleted) {
                                       AppPopup.toast(context, icon: Icons.delete_outline, title: 'Entwurf gelöscht');
                                     }
                                     break;
                                 }
                               } else {
-                                _changeStatus(it, v);
+                                await _changeStatus(it, v);
                               }
                             },
                             itemBuilder: (context) {
@@ -250,6 +338,58 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
               );
             },
           );
+  }
+}
+
+class _MyListingsLoadFailure extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _MyListingsLoadFailure({
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Semantics(
+          label: '$message Lokale Daten bleiben unverändert. Erneut laden.',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Lokale Daten bleiben unverändert.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: OutlinedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Erneut laden'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

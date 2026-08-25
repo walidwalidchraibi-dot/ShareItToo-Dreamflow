@@ -168,11 +168,11 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
+      "sha256": "a87c4fa5ff83bbb99ea5052f4ccbe66837136ad544785c759216b214d0d8f23f"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
-      "sha256": "810584fa5f6bc85268d3b0b5459774f1a27c19db13c11be2b3458faa117323d8"
+      "sha256": "99eca84a27186239f0bac3f720e9b763aed22b5d6150656e4ea06a3025d6a39e"
     },
     {
       "path": "lib/services/account_deletion_service.dart",
@@ -180,7 +180,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "615da1ab21fb85bf7783a9f0f4c4ff112c5bb15b21aab5004514a6d3cb9674a0"
+      "sha256": "7238b1f7221924dd9e29c11bd21d0728993f820a124b92a685a9aaf1e8734b48"
     },
     {
       "path": "lib/screens/blocked_users_screen.dart",
@@ -212,31 +212,31 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "c6789444b8a2ccabe962f1fdbbedd1efaadae03d16676fbba4193f751e36cca6"
+      "sha256": "01c075018fb6c220bbbaebfd59108db1b3804bff2cb82d76b542073c566350d1"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "0a12978245f5e2f1fab7adf9a41101a53852f31115626d2de8ee9c14064caded"
+      "sha256": "233277576dca28405321357fd3486a0c51e5ad24237fafc5d37901fce52d6466"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "f28941b74f79387b854254244b68b62fa84bf1dd469b20db9b7abf1c19e9194b"
+      "sha256": "833ef321f49ae29d894a02fc200de5c324accd811fccf6c5b6ea1c3a157710b1"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
-      "sha256": "227328b15c41318d5863ac60c14a550b6cd3d65f26f16fe55123f87d65ea30de"
+      "sha256": "1d91c305aa2f78a31291080ca301bfb35f631adf5197d5dc50e18ccaa304e9fd"
     },
     {
       "path": "tool/validate_privacy_disclosures.mjs",
-      "sha256": "45fa71c2e52b9f48959f4cab49fa3f98c12a82f054ac44742d9d381f727faf36"
+      "sha256": "12ec337b5978fd4cdcfb036302cde68622276042e8cb8b5073770ae444d4ffb5"
     },
     {
       "path": "tool/validate_retention_deletion_readiness.mjs",
-      "sha256": "c8cd74d01bf6bdeda7a2952c08228c9b5ae73bbf743ed33b697951be64f0dbb2"
+      "sha256": "eb783f694e4a06c5f73965a2b391c8e27b2ae083c999ff7bd14473b9a21cf88a"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "ee5c64fa68090f5bc81fcdfd6f1c3087899ad743699ba6621e28c8adf9de7ef7"
+      "sha256": "ddafc4f8c7f50f7a292327c946325d4e357e21b113b875ba62e5934b7d15f6a8"
     },
     {
       "path": "test/rw5_local_safety_privacy_principal_isolation_test.dart",

@@ -133,3 +133,26 @@ Komfortdaten und der kontospezifische Thread-Tombstone bereinigt; gemeinsame
 Mietanfrage-, Timeline- und Handover-Daten bleiben fuer Gegenpartei und
 Legal-/Audit-Kontinuitaet bestehen. RW6 erfindet keine Aufbewahrungsfrist und
 aendert weder Backend-Autoritaet noch Rechts-, Produktions- oder Live-Gates.
+
+## Aktueller Nachfolger RW7
+
+RW7 ergaenzt die Lifecycle-Wahrheit fuer den geraetelokalen Anzeigenkatalog.
+Oeffentliche Katalog-Reads bleiben kontofrei; lokale Create-, Edit-, Status-,
+Delete- und Loeschkonto-Deaktivierungswrites verlangen eine passende aktuelle
+Auth-Session und den exakten Anzeigeninhaber. Writes sind serialisiert,
+read-back-verifiziert und durch `catalogRevision` gegen veraltete Edits
+geschuetzt.
+
+Das `items`-Dokument ist auf 1.000 eindeutige Eintraege und 32 MiB begrenzt.
+Fehlerhafte oder doppelte Eintraege schliessen den gesamten Read, ohne den
+bytegetreuen Altstand teilweise zu bereinigen. Kapazitaets- oder Schreibfehler
+entfernen keine Fotos und keine anderen Anzeigen. Die fruehere automatische
+Loeschung beendeter Anzeigen nach 60 Tagen ist entfernt, weil keine genehmigte
+Aufbewahrungsentscheidung dafuer vorliegt.
+
+Der lokale Privacy-Export enthaelt nur Anzeigen des aktuell authentifizierten
+Kontos. Bestaetigte lokale Kontoloeschung beendet dessen Anzeigen und behaelt
+die Datensaetze ohne erfundene Frist. Andere oeffentliche Cache-Eintraege werden
+weder dem Konto zugerechnet noch exportiert. Rechts-, Backend-Autoritaets-,
+Produktions-, Provider-, Payment-, Store- und Live-Gates bleiben unveraendert
+offen.

@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/review_metrics_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/user_avatar.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class OwnProfileScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -20,28 +24,71 @@ class OwnProfileScreen extends StatefulWidget {
 class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerProviderStateMixin {
   User? _user;
   List<Item> _myItems = [];
+  bool _loading = true;
+  String? _loadError;
   late TabController _tabController;
   final TextEditingController _bioCtrl = TextEditingController();
+  StreamSubscription<String>? _persistenceSubscription;
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator = SharedPersistenceRefreshCoordinator();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 4));
+    _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key != SharedPersistenceSync.listingCatalogKey) return;
+      _refreshCoordinator.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        await _load();
+      });
+    });
     _load();
   }
 
   Future<void> _load() async {
-    final u = await DataService.getCurrentUser();
-    final items = await DataService.getItems();
-    setState(() {
-      _user = u;
-      _myItems = items.where((e) => e.ownerId == u?.id).toList();
-      _bioCtrl.text = _user?.bio ?? '';
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+        _user = null;
+        _myItems = const <Item>[];
+        _bioCtrl.clear();
+      });
+    }
+    try {
+      final user = await DataService.getCurrentUser();
+      final expectedUserId = user?.id.trim() ?? '';
+      if (expectedUserId.isEmpty) {
+        throw StateError('Für dein Profil ist eine Anmeldung erforderlich.');
+      }
+      final items = await DataService.getItems();
+      final rechecked = await DataService.getCurrentUser();
+      if (rechecked?.id.trim() != expectedUserId) {
+        throw StateError('Das angemeldete Konto hat sich geändert.');
+      }
+      if (!mounted) return;
+      setState(() {
+        _user = user;
+        _myItems = items.where((item) => item.ownerId == expectedUserId).toList();
+        _bioCtrl.text = user!.bio ?? '';
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _user = null;
+        _myItems = const <Item>[];
+        _bioCtrl.clear();
+        _loading = false;
+        _loadError = 'Dein Profil konnte nicht sicher geladen werden.';
+      });
+    }
   }
 
   @override
   void dispose() {
+    _persistenceSubscription?.cancel();
+    _refreshCoordinator.dispose();
     _tabController.dispose();
     _bioCtrl.dispose();
     super.dispose();
@@ -75,13 +122,17 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
           ],
         ),
       ),
-      body: TabBarView(controller: _tabController, children: [
-        _ListingsTab(items: _myItems),
-        _InterestsTab(user: _user, onChanged: _updateUserInterests),
-        const _BookingsHistoryTab(),
-        _ReviewsTab(avgRating: avg, reviewCount: count),
-        _AboutMeTab(user: _user, metrics: metrics, bioCtrl: _bioCtrl, onBioSaved: _saveBio),
-      ]),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _loadError != null
+              ? _OwnProfileLoadFailure(message: _loadError!, onRetry: _load)
+              : TabBarView(controller: _tabController, children: [
+                  _ListingsTab(items: _myItems),
+                  _InterestsTab(user: _user, onChanged: _updateUserInterests),
+                  const _BookingsHistoryTab(),
+                  _ReviewsTab(avgRating: avg, reviewCount: count),
+                  _AboutMeTab(user: _user, metrics: metrics, bioCtrl: _bioCtrl, onBioSaved: _saveBio),
+                ]),
     );
   }
 
@@ -143,6 +194,58 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
   }
 }
 
+class _OwnProfileLoadFailure extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
+
+  const _OwnProfileLoadFailure({
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Semantics(
+          label: '$message Lokale Daten bleiben unverändert. Erneut laden.',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Lokale Daten bleiben unverändert.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: OutlinedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Erneut laden'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ListingsTab extends StatefulWidget {
   final List<Item> items;
   const _ListingsTab({required this.items});
@@ -153,9 +256,23 @@ class _ListingsTab extends StatefulWidget {
 class _ListingsTabState extends State<_ListingsTab> {
   late List<Item> _items;
   String _bucket = 'active'; // active | requests | paused | draft
+  bool _actionBusy = false;
+  String? _loadError;
 
   @override
-  void initState() { super.initState(); _items = List.of(widget.items); }
+  void initState() {
+    super.initState();
+    _items = List.of(widget.items);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ListingsTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items != widget.items) {
+      _items = List<Item>.of(widget.items);
+      _loadError = null;
+    }
+  }
 
   List<Item> _applyBucket(List<Item> src) {
     switch (_bucket) {
@@ -171,19 +288,57 @@ class _ListingsTabState extends State<_ListingsTab> {
     }
   }
 
-  Future<void> _changeStatus(Item it, String status) async {
-    await DataService.updateItemStatus(itemId: it.id, status: status);
-    final refreshedItems = await DataService.getItems();
-    if (!mounted) return;
-    Item? refreshed;
-    for (final item in refreshedItems) {
-      if (item.id == it.id) {
-        refreshed = item;
-        break;
+  Future<void> _reload() async {
+    try {
+      final current = await DataService.getCurrentUser();
+      final expectedUserId = current?.id.trim() ?? '';
+      if (expectedUserId.isEmpty) {
+        throw StateError('Für deine Anzeigen ist eine Anmeldung erforderlich.');
       }
+      final items = await DataService.getItems();
+      final rechecked = await DataService.getCurrentUser();
+      if (rechecked?.id.trim() != expectedUserId) {
+        throw StateError('Das angemeldete Konto hat sich geändert.');
+      }
+      if (!mounted) return;
+      setState(() {
+        _items = items.where((item) => item.ownerId == expectedUserId).toList();
+        _loadError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _items = const <Item>[];
+        _loadError = 'Deine Anzeigen konnten nicht sicher geladen werden.';
+      });
     }
-    if (refreshed == null) return;
-    setState(() { _items = _items.map((e) => e.id == it.id ? refreshed! : e).toList(); });
+  }
+
+  Future<void> _changeStatus(Item item, String status) async {
+    if (_actionBusy) return;
+    setState(() => _actionBusy = true);
+    try {
+      final current = await DataService.getCurrentUser();
+      if (current?.id != item.ownerId) {
+        throw StateError('Die Anzeige gehört zu einem anderen Konto.');
+      }
+      await DataService.updateItemStatus(itemId: item.id, status: status);
+      await _reload();
+      if (_loadError != null) {
+        throw StateError('Die Anzeige konnte nicht sicher neu geladen werden.');
+      }
+    } catch (_) {
+      await _reload();
+      if (mounted) {
+        AppPopup.error(
+          context,
+          title: 'Änderung nicht gespeichert',
+          message: 'Die Anzeige blieb unverändert. Prüfe deine Anmeldung und versuche es erneut.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionBusy = false);
+    }
   }
 
   @override
@@ -209,12 +364,17 @@ class _ListingsTabState extends State<_ListingsTab> {
     );
 
     Widget content;
-    if (visible.isEmpty) {
+    if (_loadError != null) {
+      content = _OwnProfileLoadFailure(
+        message: _loadError!,
+        onRetry: _reload,
+      );
+    } else if (visible.isEmpty) {
       content = Center(child: Text(l10n.t('Keine Anzeigen'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white70)));
     } else {
       content = GridView.builder(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 3/4),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 3 / 4),
         itemCount: visible.length,
         itemBuilder: (_, i) {
           final it = visible[i];
@@ -226,32 +386,35 @@ class _ListingsTabState extends State<_ListingsTab> {
             child: Container(
               decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(12)), child: AspectRatio(aspectRatio: 16/9, child: AppImage(url: it.photos.isNotEmpty ? it.photos.first : '', fit: BoxFit.cover))),
-                Padding(padding: const EdgeInsets.all(8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(it.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 2),
-                  Row(children: [
-                    Text('${it.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
-                    const SizedBox(width: 4),
-                    Text(context.watch<LocalizationController>().t('pro Tag'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
-                  ]),
-                  const SizedBox(height: 6),
-                  Row(children: [
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(8)), child: Text(statusLabel, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white))),
-                    const Spacer(),
-                    PopupMenuButton<String>(
-                      tooltip: 'Status ändern',
-                      onSelected: (v) => _changeStatus(it, v),
-                      itemBuilder: (context) => [
-                        if (it.status != 'active') const PopupMenuItem(value: 'active', child: Text('Aktivieren')),
-                        if (it.status != 'paused') const PopupMenuItem(value: 'paused', child: Text('Pausieren')),
-                        if (it.status != 'ended') const PopupMenuItem(value: 'ended', child: Text('Beenden')),
-                        if (it.status == 'draft') const PopupMenuItem(value: 'active', child: Text('Veröffentlichen')),
-                      ],
-                      child: const Icon(Icons.more_vert, color: Colors.white70),
-                    )
-                  ])
-                ]))
+                ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(12)), child: AspectRatio(aspectRatio: 16 / 9, child: AppImage(url: it.photos.isNotEmpty ? it.photos.first : '', fit: BoxFit.cover))),
+                Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(it.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Row(children: [
+                        Text('${it.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
+                        const SizedBox(width: 4),
+                        Text(context.watch<LocalizationController>().t('pro Tag'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(8)), child: Text(statusLabel, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white))),
+                        const Spacer(),
+                        PopupMenuButton<String>(
+                          tooltip: 'Status ändern',
+                          enabled: !_actionBusy,
+                          onSelected: (v) => _changeStatus(it, v),
+                          itemBuilder: (context) => [
+                            if (it.status != 'active') const PopupMenuItem(value: 'active', child: Text('Aktivieren')),
+                            if (it.status != 'paused') const PopupMenuItem(value: 'paused', child: Text('Pausieren')),
+                            if (it.status != 'ended') const PopupMenuItem(value: 'ended', child: Text('Beenden')),
+                            if (it.status == 'draft') const PopupMenuItem(value: 'active', child: Text('Veröffentlichen')),
+                          ],
+                          child: const Icon(Icons.more_vert, color: Colors.white70),
+                        )
+                      ])
+                    ]))
               ]),
             ),
           );
@@ -267,7 +430,9 @@ class _ListingsTabState extends State<_ListingsTab> {
 }
 
 class _BucketChip extends StatelessWidget {
-  final String label; final bool selected; final VoidCallback onTap;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
   const _BucketChip({required this.label, required this.selected, required this.onTap});
   @override
   Widget build(BuildContext context) {
@@ -305,25 +470,28 @@ class _InterestsTabState extends State<_InterestsTab> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Wrap(spacing: 8, runSpacing: 8, children: _allTags.map((t) {
-        final selected = _interests.contains(t);
-        return FilterChip(
-          label: Text(t, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
-          selected: selected,
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
-          selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
-          onSelected: (v) {
-            setState(() {
-              if (v) {
-                _interests.add(t);
-              } else {
-                _interests.remove(t);
-              }
-            });
-            widget.onChanged(_interests);
-          },
-        );
-      }).toList()),
+      child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _allTags.map((t) {
+            final selected = _interests.contains(t);
+            return FilterChip(
+              label: Text(t, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
+              selected: selected,
+              backgroundColor: Colors.white.withValues(alpha: 0.08),
+              selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+              onSelected: (v) {
+                setState(() {
+                  if (v) {
+                    _interests.add(t);
+                  } else {
+                    _interests.remove(t);
+                  }
+                });
+                widget.onChanged(_interests);
+              },
+            );
+          }).toList()),
     );
   }
 }
@@ -350,7 +518,8 @@ class _BookingsHistoryTab extends StatelessWidget {
             child: Row(children: [
               AppImage(url: b['image']!, width: 72, height: 72, fit: BoxFit.cover, borderRadius: BorderRadius.circular(10)),
               const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(b['title']!, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Text(b['dates']!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
@@ -365,7 +534,8 @@ class _BookingsHistoryTab extends StatelessWidget {
 }
 
 class _ReviewsTab extends StatefulWidget {
-  final double avgRating; final int reviewCount;
+  final double avgRating;
+  final int reviewCount;
   const _ReviewsTab({required this.avgRating, required this.reviewCount});
   @override
   State<_ReviewsTab> createState() => _ReviewsTabState();
@@ -453,8 +623,7 @@ class _ReviewsTabState extends State<_ReviewsTab> {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (city != null && city.isNotEmpty)
-                    Text('$city, Deutschland', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                  if (city != null && city.isNotEmpty) Text('$city, Deutschland', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
                   const SizedBox(height: 4),
                   Text(entry.review.comment, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
                 ],
@@ -476,7 +645,10 @@ class _ReviewsTabState extends State<_ReviewsTab> {
 }
 
 class _AboutMeTab extends StatelessWidget {
-  final User? user; final _UserMetrics metrics; final TextEditingController bioCtrl; final ValueChanged<String> onBioSaved;
+  final User? user;
+  final _UserMetrics metrics;
+  final TextEditingController bioCtrl;
+  final ValueChanged<String> onBioSaved;
   const _AboutMeTab({required this.user, required this.metrics, required this.bioCtrl, required this.onBioSaved});
   @override
   Widget build(BuildContext context) {
@@ -491,7 +663,8 @@ class _AboutMeTab extends StatelessWidget {
             borderColor: Colors.white.withValues(alpha: 0.12),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Text(u?.displayName ?? '', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
               const SizedBox(width: 6),
@@ -517,7 +690,6 @@ class _AboutMeTab extends StatelessWidget {
         const SizedBox(height: 12),
         Text(context.watch<LocalizationController>().t('Leistung'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
         const SizedBox(height: 8),
-
         Row(children: [
           Expanded(child: _MetricTile(title: context.watch<LocalizationController>().t('Ø Reaktionszeit'), value: metrics.responseTimeMinutes == null ? context.watch<LocalizationController>().t('Noch keine Daten') : '${metrics.responseTimeMinutes!.toStringAsFixed(0)} Min')),
           const SizedBox(width: 8),
@@ -529,7 +701,8 @@ class _AboutMeTab extends StatelessWidget {
 }
 
 class _MetricTile extends StatelessWidget {
-  final String title; final String value;
+  final String title;
+  final String value;
   const _MetricTile({required this.title, required this.value});
   @override
   Widget build(BuildContext context) {
@@ -546,6 +719,8 @@ class _MetricTile extends StatelessWidget {
 }
 
 class _UserMetrics {
-  final double trustScore; final double? responseTimeMinutes; final double? cancellationRate;
+  final double trustScore;
+  final double? responseTimeMinutes;
+  final double? cancellationRate;
   const _UserMetrics({required this.trustScore, required this.responseTimeMinutes, required this.cancellationRate});
 }

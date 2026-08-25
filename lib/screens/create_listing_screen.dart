@@ -1105,6 +1105,14 @@ class _CreateListingScreenState extends State<CreateListingScreen>
     setState(() => _submitBusy = true);
     try {
       await _performSubmit(forceInactive: forceInactive);
+    } catch (_) {
+      if (!mounted) return;
+      AppPopup.error(
+        context,
+        title: 'Anzeige nicht gespeichert',
+        message:
+            'Fotos und Eingaben bleiben erhalten. Prüfe deine Anmeldung und den verfügbaren Gerätespeicher und versuche es erneut.',
+      );
     } finally {
       if (mounted) setState(() => _submitBusy = false);
     }
@@ -1425,7 +1433,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       catalogRevision: ex.catalogRevision,
     );
 
-    await DataService.updateItem(updated);
+    final savedUpdate = await DataService.updateItem(updated);
     if (!mounted) return;
     if (forceInactive) {
       // Save edits only: return to "Meine Anzeigen" → drafts.
@@ -1435,7 +1443,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       Navigator.of(context).pop('drafts');
     } else {
       // Publish and show the same popup in Explore
-      DataService.setLastCreateEvent(updated, draft: false);
+      DataService.setLastCreateEvent(savedUpdate, draft: false);
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigation()),
         (route) => false,

@@ -522,6 +522,10 @@ function assertSourceContracts(root, sourceTexts) {
     '_maxLocalMessageThreads = 1000',
     '_maxLocalNotifications = 5000',
     '_maxLocalTimelineEvents = 5000',
+    '_maxLocalListings = 1000',
+    '_decodeListingsStrict(',
+    'exportOwnedListingsForPrivacy()',
+    'deactivateAllListingsForUser(',
   ]) {
     if (!localOperationalRecords.includes(marker)) {
       fail(`Local operational state is missing the retention control: ${marker}.`);
@@ -536,6 +540,11 @@ function assertSourceContracts(root, sourceTexts) {
     /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
   )].length !== 2) {
     fail('Both confirmed account deletion paths must apply operational-record cleanup.');
+  }
+  if ([...operationalDeletion.matchAll(
+    /DataService\.deactivateAllListingsForUser\(user\.id\)/gu,
+  )].length !== 1) {
+    fail('The local confirmed account deletion path must retain ended owner listings.');
   }
   const rentalCartRetention = text(root, sourceTexts, 'backend/src/retention_inventory.js');
   for (const dataset of [
@@ -1851,6 +1860,19 @@ export function validateRetentionDeletionReadiness({
         !== 'current-account-and-participant-only'
       || controls.localOperationalRecords?.retentionPeriodInvented !== false
       || controls.localOperationalRecords?.backendAuthorityChanged !== false
+      || controls.localListingCatalog?.status
+        !== 'implemented-authenticated-owner-scoped-local-fallback'
+      || controls.localListingCatalog?.accountDeletion
+        !== 'current-owner-listings-ended-and-retained'
+      || controls.localListingCatalog?.corruptData
+        !== 'preserve-exact-raw-and-fail-closed'
+      || controls.localListingCatalog?.capacityPolicy
+        !== 'maximum-1000-reject-overflow-without-media-pruning'
+      || controls.localListingCatalog?.privacyExport
+        !== 'current-owner-listings-only'
+      || controls.localListingCatalog?.automaticEndedListingDeletion !== false
+      || controls.localListingCatalog?.retentionPeriodInvented !== false
+      || controls.localListingCatalog?.backendAuthorityChanged !== false
       || controls.retentionExecutionPreflight?.status
         !== 'implemented-fail-closed-policy-and-staging-gates-open'
       || controls.retentionExecutionPreflight?.executionAllowed !== false

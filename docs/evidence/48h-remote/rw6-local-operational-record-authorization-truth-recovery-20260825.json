@@ -173,7 +173,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "615da1ab21fb85bf7783a9f0f4c4ff112c5bb15b21aab5004514a6d3cb9674a0"
+      "sha256": "7238b1f7221924dd9e29c11bd21d0728993f820a124b92a685a9aaf1e8734b48"
     },
     {
       "path": "lib/services/account_deletion_service.dart",
@@ -181,7 +181,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
+      "sha256": "a87c4fa5ff83bbb99ea5052f4ccbe66837136ad544785c759216b214d0d8f23f"
     },
     {
       "path": "lib/services/notification_cta_resolver.dart",
@@ -189,39 +189,39 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "c6789444b8a2ccabe962f1fdbbedd1efaadae03d16676fbba4193f751e36cca6"
+      "sha256": "01c075018fb6c220bbbaebfd59108db1b3804bff2cb82d76b542073c566350d1"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "0a12978245f5e2f1fab7adf9a41101a53852f31115626d2de8ee9c14064caded"
+      "sha256": "233277576dca28405321357fd3486a0c51e5ad24237fafc5d37901fce52d6466"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "f28941b74f79387b854254244b68b62fa84bf1dd469b20db9b7abf1c19e9194b"
+      "sha256": "833ef321f49ae29d894a02fc200de5c324accd811fccf6c5b6ea1c3a157710b1"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
-      "sha256": "227328b15c41318d5863ac60c14a550b6cd3d65f26f16fe55123f87d65ea30de"
+      "sha256": "1d91c305aa2f78a31291080ca301bfb35f631adf5197d5dc50e18ccaa304e9fd"
     },
     {
       "path": "tool/validate_privacy_disclosures.mjs",
-      "sha256": "45fa71c2e52b9f48959f4cab49fa3f98c12a82f054ac44742d9d381f727faf36"
+      "sha256": "12ec337b5978fd4cdcfb036302cde68622276042e8cb8b5073770ae444d4ffb5"
     },
     {
       "path": "tool/validate_retention_deletion_readiness.mjs",
-      "sha256": "c8cd74d01bf6bdeda7a2952c08228c9b5ae73bbf743ed33b697951be64f0dbb2"
+      "sha256": "eb783f694e4a06c5f73965a2b391c8e27b2ae083c999ff7bd14473b9a21cf88a"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "a4e3b7e54d588bf34330b5e5c38798a262890f6af54152a5b0eae53c8975c0dd"
+      "sha256": "14ce70c68fe05fec527702796a1cb5f662c46f279b4f84dfd7b9a01163acde39"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "d86c54fc1c7d8b300b873ca2831c3aeb1f067d8e97a41efc2ec033c55d17d262"
+      "sha256": "f7c7f1e23a9a3da32ffad18ae0684f215274105a0a031f2e2e3fbc9df9abc5eb"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "ee5c64fa68090f5bc81fcdfd6f1c3087899ad743699ba6621e28c8adf9de7ef7"
+      "sha256": "ddafc4f8c7f50f7a292327c946325d4e357e21b113b875ba62e5934b7d15f6a8"
     },
     {
       "path": "test/data_service_booking_rules_test.dart",
@@ -273,7 +273,7 @@
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",
-      "sha256": "d7940b7b48fbc1fd8409cf15562124e2a9d6bac6aebacecc95d58ae5532ff97b"
+      "sha256": "70fc54b9125dc30b5f0fa547ec11b1d988d50cb55208164cb30d3c3a0ac2b18e"
     },
     {
       "path": "docs/architecture/rw6-local-operational-record-authorization-truth-recovery-2026-08-25.md",

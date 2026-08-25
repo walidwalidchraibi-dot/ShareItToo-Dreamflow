@@ -72,6 +72,7 @@ export function validateG2DataLifecycle({
     'currentSavedItems',
     'localSafetyPrivacy',
     'localOperationalRecords',
+    'localListingCatalog',
     'persistentData',
     'boundaries',
   ], 'G2 lifecycle manifest');
@@ -241,6 +242,55 @@ export function validateG2DataLifecycle({
     fail('Local operational-record lifecycle is incomplete or overstated.');
   }
 
+  const listingCatalog = object(
+    lifecycle.localListingCatalog,
+    'localListingCatalog',
+  );
+  exactKeys(listingCatalog, [
+    'runtimeStatus',
+    'storageScope',
+    'storageKey',
+    'dataClasses',
+    'readScope',
+    'mutationIdentityBinding',
+    'corruptionPolicy',
+    'capacityPolicy',
+    'mutationPolicy',
+    'exportStatus',
+    'accountDeletionStatus',
+    'retentionRule',
+    'backendAuthority',
+  ], 'localListingCatalog');
+  exactArray(listingCatalog.dataClasses, [
+    'public-listing-content-and-media',
+    'listing-location-and-pricing',
+    'owner-and-lifecycle-metadata',
+  ], 'localListingCatalog.dataClasses');
+  if (listingCatalog.runtimeStatus
+        !== 'active-local-fallback-authenticated-owner-scoped'
+      || listingCatalog.storageScope
+        !== 'local-device-shared-preferences-remote-authoritative-when-enabled'
+      || listingCatalog.storageKey !== 'items'
+      || listingCatalog.readScope !== 'public-catalog-read'
+      || listingCatalog.mutationIdentityBinding
+        !== 'matching-auth-session-and-exact-listing-owner'
+      || listingCatalog.corruptionPolicy
+        !== 'fail-closed-preserve-exact-raw-no-partial-rewrite'
+      || listingCatalog.capacityPolicy
+        !== 'maximum-1000-reject-overflow-without-media-pruning'
+      || listingCatalog.mutationPolicy
+        !== 'serialized-verified-session-rechecked-and-revision-guarded'
+      || listingCatalog.exportStatus
+        !== 'implemented-current-owner-local-section'
+      || listingCatalog.accountDeletionStatus
+        !== 'current-owner-listings-ended-and-retained-no-period-invented'
+      || listingCatalog.retentionRule
+        !== 'no-automatic-60-day-deletion-no-period-invented'
+      || listingCatalog.backendAuthority
+        !== 'remote-authoritative-when-enabled-local-qa-fallback-otherwise') {
+    fail('Local listing-catalog lifecycle is incomplete or overstated.');
+  }
+
   const persistent = object(lifecycle.persistentData, 'persistentData');
   exactKeys(persistent, ['rentalCart', 'projectCart'], 'persistentData');
   const rentalCart = object(persistent.rentalCart, 'persistentData.rentalCart');
@@ -383,6 +433,10 @@ export function validateG2DataLifecycle({
     '_decodeNotificationsStrict(',
     '_decodeRentalRequestsStrict(',
     '_decodeTimelineStrict(',
+    '_decodeListingsStrict(',
+    '_maxLocalListings = 1000',
+    'exportOwnedListingsForPrivacy()',
+    'deactivateAllListingsForUser(',
   ], 'DataService G2B lifecycle');
   const syncStart = dataService.indexOf('syncGuestRentalCartAfterAuthentication');
   const syncEnd = dataService.indexOf('static Future<RentalCart> getRentalCart', syncStart);

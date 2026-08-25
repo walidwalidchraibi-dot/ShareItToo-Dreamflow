@@ -1615,6 +1615,47 @@ export function validatePrivacyDisclosures({
       || localOperationalRecords.backendAuthorityChanged !== false) {
     fail('Local operational-record privacy disclosure is incomplete or overstated.');
   }
+  const localListingCatalog = object(
+    privacy.localListingCatalog,
+    'localListingCatalog',
+  );
+  assertExactKeys(localListingCatalog, [
+    'status',
+    'dataClasses',
+    'publicCache',
+    'identityBinding',
+    'corruptionPolicy',
+    'privacyExport',
+    'confirmedAccountDeletion',
+    'retentionPeriodInvented',
+    'containsCredentials',
+    'externalTransferAdded',
+    'backendAuthorityChanged',
+  ], 'localListingCatalog');
+  if (localListingCatalog.status
+        !== 'implemented-local-fallback-authenticated-owner-scoped'
+      || !Array.isArray(localListingCatalog.dataClasses)
+      || localListingCatalog.dataClasses.join(',') !== [
+        'public-listing-content-and-media',
+        'listing-location-and-pricing',
+        'owner-and-lifecycle-metadata',
+      ].join(',')
+      || localListingCatalog.publicCache
+        !== 'may-contain-public-listings-owned-by-other-accounts'
+      || localListingCatalog.identityBinding
+        !== 'matching-auth-session-and-exact-listing-owner-for-mutations'
+      || localListingCatalog.corruptionPolicy
+        !== 'preserve-exact-raw-and-fail-closed'
+      || localListingCatalog.privacyExport
+        !== 'current-owner-listings-only'
+      || localListingCatalog.confirmedAccountDeletion
+        !== 'current-owner-listings-ended-and-retained'
+      || localListingCatalog.retentionPeriodInvented !== false
+      || localListingCatalog.containsCredentials !== false
+      || localListingCatalog.externalTransferAdded !== false
+      || localListingCatalog.backendAuthorityChanged !== false) {
+    fail('Local listing-catalog privacy disclosure is incomplete or overstated.');
+  }
   const operationalDataService = sourceText(
     root,
     sourceTexts,
@@ -1625,10 +1666,24 @@ export function validatePrivacyDisclosures({
     'clearOperationalRecordsForAccountDeletion(',
     "'unattributedLegacyNotificationsExcluded': true",
     "'scope': 'current-authenticated-account'",
+    'exportOwnedListingsForPrivacy()',
+    'deactivateAllListingsForUser(',
+    '_decodeListingsStrict(',
+    '_maxLocalListings = 1000',
   ]) {
     if (!operationalDataService.includes(marker)) {
       fail(`Local operational-record privacy coverage is missing ${marker}.`);
     }
+  }
+  const privacyInfoSource = sourceText(
+    root,
+    sourceTexts,
+    'lib/screens/privacy_info_screen.dart',
+  );
+  if (!privacyInfoSource.includes(
+    "'ownedListings': await DataService.exportOwnedListingsForPrivacy()",
+  )) {
+    fail('Privacy UI is missing the current-owner local listing export.');
   }
   const operationalDeletion = sourceText(
     root,

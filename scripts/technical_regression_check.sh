@@ -364,6 +364,11 @@ node --test \
   test/tool/rw6_local_operational_authorization_truth_recovery_wiring.test.mjs \
   test/tool/validate_rw6_local_operational_authorization_truth_recovery.test.mjs
 node tool/validate_rw6_local_operational_authorization_truth_recovery.mjs
+node --check tool/validate_rw7_local_listing_catalog_authorization_durability.mjs
+node --test \
+  test/tool/rw7_local_listing_catalog_authorization_durability_wiring.test.mjs \
+  test/tool/validate_rw7_local_listing_catalog_authorization_durability.test.mjs
+node tool/validate_rw7_local_listing_catalog_authorization_durability.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -899,6 +904,11 @@ flutter test --reporter expanded \
 # corruption preservation, capacity, deletion/export and stale-UI matrix.
 flutter test --reporter expanded \
   test/rw6_local_operational_authorization_truth_recovery_test.dart
+
+# Retain RW7's deterministic authenticated owner, corruption, capacity,
+# revision, retention, export/deletion, process recreation and stale-UI matrix.
+flutter test --reporter expanded \
+  test/rw7_local_listing_catalog_authorization_durability_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

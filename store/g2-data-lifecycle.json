@@ -88,6 +88,25 @@
     "retentionRule": "no-period-invented-shared-records-retained-for-counterparty-and-legal-audit-continuity",
     "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
   },
+  "localListingCatalog": {
+    "runtimeStatus": "active-local-fallback-authenticated-owner-scoped",
+    "storageScope": "local-device-shared-preferences-remote-authoritative-when-enabled",
+    "storageKey": "items",
+    "dataClasses": [
+      "public-listing-content-and-media",
+      "listing-location-and-pricing",
+      "owner-and-lifecycle-metadata"
+    ],
+    "readScope": "public-catalog-read",
+    "mutationIdentityBinding": "matching-auth-session-and-exact-listing-owner",
+    "corruptionPolicy": "fail-closed-preserve-exact-raw-no-partial-rewrite",
+    "capacityPolicy": "maximum-1000-reject-overflow-without-media-pruning",
+    "mutationPolicy": "serialized-verified-session-rechecked-and-revision-guarded",
+    "exportStatus": "implemented-current-owner-local-section",
+    "accountDeletionStatus": "current-owner-listings-ended-and-retained-no-period-invented",
+    "retentionRule": "no-automatic-60-day-deletion-no-period-invented",
+    "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
+  },
   "persistentData": {
     "rentalCart": {
       "runtimeStatus": "active-guest-local-principal-account-server",

@@ -657,7 +657,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
+      "sha256": "a87c4fa5ff83bbb99ea5052f4ccbe66837136ad544785c759216b214d0d8f23f"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -701,7 +701,7 @@
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
-      "sha256": "c411534def03c78a7d00c616fcb7cf0f2700ad56c23168e1dd9c5db641eb93ab"
+      "sha256": "6fec99a30e9a8161ef0468775886b1604fdf862fc20cb4fcf9b4d7ff2b849fea"
     },
     {
       "path": "lib/screens/explore_screen.dart",
@@ -741,11 +741,11 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "615da1ab21fb85bf7783a9f0f4c4ff112c5bb15b21aab5004514a6d3cb9674a0"
+      "sha256": "7238b1f7221924dd9e29c11bd21d0728993f820a124b92a685a9aaf1e8734b48"
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "c6789444b8a2ccabe962f1fdbbedd1efaadae03d16676fbba4193f751e36cca6"
+      "sha256": "01c075018fb6c220bbbaebfd59108db1b3804bff2cb82d76b542073c566350d1"
     }
   ],
   "implementedControls": {
@@ -795,6 +795,16 @@
       "corruptData": "preserve-exact-raw-and-fail-closed",
       "capacityPolicy": "reject-overflow-without-pruning",
       "privacyExport": "current-account-and-participant-only",
+      "retentionPeriodInvented": false,
+      "backendAuthorityChanged": false
+    },
+    "localListingCatalog": {
+      "status": "implemented-authenticated-owner-scoped-local-fallback",
+      "accountDeletion": "current-owner-listings-ended-and-retained",
+      "corruptData": "preserve-exact-raw-and-fail-closed",
+      "capacityPolicy": "maximum-1000-reject-overflow-without-media-pruning",
+      "privacyExport": "current-owner-listings-only",
+      "automaticEndedListingDeletion": false,
       "retentionPeriodInvented": false,
       "backendAuthorityChanged": false
     },

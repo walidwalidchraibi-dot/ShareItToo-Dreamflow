@@ -84,7 +84,7 @@
   "sourceInventory": [
     {
       "path": "lib/screens/create_listing_screen.dart",
-      "sha256": "c411534def03c78a7d00c616fcb7cf0f2700ad56c23168e1dd9c5db641eb93ab"
+      "sha256": "6fec99a30e9a8161ef0468775886b1604fdf862fc20cb4fcf9b4d7ff2b849fea"
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
@@ -100,7 +100,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "ee5c64fa68090f5bc81fcdfd6f1c3087899ad743699ba6621e28c8adf9de7ef7"
+      "sha256": "ddafc4f8c7f50f7a292327c946325d4e357e21b113b875ba62e5934b7d15f6a8"
     },
     {
       "path": "test/reduced_wave0_accessibility_resilience_test.dart",

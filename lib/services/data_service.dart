@@ -228,6 +228,8 @@ class DataService {
   static const int _maxLocalNotifications = 5000;
   static const int _maxLocalTimelineEvents = 5000;
   static const int _maxLocalRentalRequests = 1000;
+  static const int _maxLocalListings = 1000;
+  static const int _maxLocalListingDocumentBytes = 32 * 1024 * 1024;
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
@@ -243,6 +245,9 @@ class DataService {
       _LocalMutationQueue();
   static final _LocalMutationQueue _handoverMutationQueue =
       _LocalMutationQueue();
+  static final _LocalMutationQueue _listingMutationQueue =
+      _LocalMutationQueue();
+  static bool _failNextListingPersistenceForTesting = false;
 
   static Future<T> _runWishlistForCurrentPrincipal<T>(
     Future<T> Function(LocalPrincipalIdentity principal) operation,
@@ -368,6 +373,134 @@ class DataService {
     if (!accepted || prefs.containsKey(key)) {
       throw StateError('Local persistence removal failed for $key.');
     }
+  }
+
+  static List<Item> _decodeListingsStrict(String raw) {
+    if (utf8.encode(raw).length > _maxLocalListingDocumentBytes) {
+      throw const FormatException('Invalid local listings document');
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List || decoded.length > _maxLocalListings) {
+        throw const FormatException('Invalid local listings document');
+      }
+      final ids = <String>{};
+      final items = <Item>[];
+      for (final entry in decoded) {
+        if (entry is! Map) {
+          throw const FormatException('Invalid local listing entry');
+        }
+        final map = Map<String, dynamic>.from(entry);
+        final tags = map['tags'];
+        final photos = map['photos'];
+        final discounts = map['longRentalDiscounts'];
+        if (tags != null &&
+            (tags is! List ||
+                tags.length > 50 ||
+                tags.any((value) => value is! String || value.length > 200))) {
+          throw const FormatException('Invalid local listing tags');
+        }
+        if (photos != null &&
+            (photos is! List ||
+                photos.length > 20 ||
+                photos.any((value) => value is! String))) {
+          throw const FormatException('Invalid local listing photos');
+        }
+        if (discounts != null) {
+          if (discounts is! List || discounts.length > 20) {
+            throw const FormatException('Invalid local listing discounts');
+          }
+          for (final value in discounts) {
+            if (value is! Map ||
+                value['days'] is! num ||
+                value['discountPercent'] is! num) {
+              throw const FormatException('Invalid local listing discount');
+            }
+            final days = (value['days'] as num).toInt();
+            final percent = (value['discountPercent'] as num).toDouble();
+            if (days <= 0 ||
+                !percent.isFinite ||
+                percent < 0 ||
+                percent > 100) {
+              throw const FormatException('Invalid local listing discount');
+            }
+          }
+        }
+        final item = Item.fromJson(map);
+        if (item.id.trim().isEmpty ||
+            item.id.length > 256 ||
+            !ids.add(item.id) ||
+            item.ownerId.trim().isEmpty ||
+            item.ownerId.length > 256 ||
+            item.title.trim().isEmpty ||
+            item.title.length > 300 ||
+            item.description.length > 20000 ||
+            item.categoryId.trim().isEmpty ||
+            item.categoryId.length > 256 ||
+            item.subcategory.length > 256 ||
+            item.locationText.length > 1000 ||
+            item.city.length > 256 ||
+            item.country.length > 32 ||
+            !item.pricePerDay.isFinite ||
+            item.pricePerDay < 0 ||
+            !item.priceRaw.isFinite ||
+            item.priceRaw < 0 ||
+            !item.lat.isFinite ||
+            !item.lng.isFinite ||
+            item.catalogRevision < 1 ||
+            !const <String>{'active', 'paused', 'ended', 'draft'}
+                .contains(item.status)) {
+          throw const FormatException('Invalid local listing entry');
+        }
+        items.add(item);
+      }
+      return items;
+    } catch (error) {
+      if (error is FormatException) rethrow;
+      throw const FormatException('Invalid local listings document');
+    }
+  }
+
+  static Future<void> _persistListings(
+    SharedPreferences prefs,
+    List<Item> items,
+  ) async {
+    if (items.length > _maxLocalListings) {
+      throw StateError('Der lokale Anzeigenkatalog ist voll.');
+    }
+    final encoded = jsonEncode(items.map((item) => item.toJson()).toList());
+    _decodeListingsStrict(encoded);
+    final previous = prefs.getString(_itemsKey);
+    try {
+      if (_failNextListingPersistenceForTesting) {
+        _failNextListingPersistenceForTesting = false;
+        throw StateError('Synthetic local listing persistence failure.');
+      }
+      await _writePreferenceString(prefs, _itemsKey, encoded);
+    } catch (_) {
+      final current = prefs.getString(_itemsKey);
+      if (current != previous) {
+        final restored = previous == null
+            ? await prefs.remove(_itemsKey)
+            : await prefs.setString(_itemsKey, previous);
+        if (!restored || prefs.getString(_itemsKey) != previous) {
+          throw StateError(
+            'Lokale Anzeigen konnten nicht gespeichert oder wiederhergestellt werden.',
+          );
+        }
+      }
+      rethrow;
+    }
+  }
+
+  static List<Item> _readListingsStrict(SharedPreferences prefs) {
+    final raw = prefs.getString(_itemsKey);
+    return raw == null ? <Item>[] : _decodeListingsStrict(raw);
+  }
+
+  @visibleForTesting
+  static void failNextListingPersistenceForTesting() {
+    _failNextListingPersistenceForTesting = true;
   }
 
   /// Read-only backend refreshes update the local cache but must not announce
@@ -1400,132 +1533,59 @@ class DataService {
     String? blueOceanDraftId,
     Map<String, dynamic>? blueOceanReview,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final itemsJson = prefs.getString(_itemsKey);
-    final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = blueOceanDraftId != null && blueOceanReview != null
-          ? await BackendRepository.publishBlueOceanListing(
-              draftId: blueOceanDraftId,
-              review: blueOceanReview,
-              listing: item.toJson(),
-              supplyEnrichmentLink: supplyEnrichmentLink,
-            )
-          : await BackendRepository.createListing(
-              item.toJson(),
-              supplyEnrichmentLink: supplyEnrichmentLink,
-            );
-      final saved = Item.fromJson(remote);
-      list.removeWhere(
-        (entry) =>
-            entry is Map && entry['id']?.toString() == saved.id.toString(),
-      );
-      list.add(saved.toJson());
-      await prefs.setString(_itemsKey, jsonEncode(list));
-      return saved;
-    }
-    // Compute next numeric id
-    int maxId = 0;
-    for (final e in list) {
-      final idStr = (e as Map)['id']?.toString() ?? '0';
-      final id = int.tryParse(idStr) ?? 0;
-      if (id > maxId) maxId = id;
-    }
-    final nextId = (maxId + 1).toString();
-    final toStore = Item(
-      id: nextId,
-      ownerId: item.ownerId,
-      title: item.title,
-      description: item.description,
-      categoryId: item.categoryId,
-      subcategory: item.subcategory,
-      tags: item.tags,
-      pricePerDay: item.pricePerDay,
-      currency: item.currency,
-      priceUnit: item.priceUnit,
-      priceRaw: item.priceRaw,
-      autoApplyDiscounts: item.autoApplyDiscounts,
-      longRentalDiscounts: item.longRentalDiscounts,
-      photos: item.photos,
-      locationText: item.locationText,
-      lat: item.lat,
-      lng: item.lng,
-      geohash: item.geohash,
-      condition: item.condition,
-      minDays: item.minDays,
-      maxDays: item.maxDays,
-      createdAt: item.createdAt,
-      isActive: item.isActive,
-      verificationStatus: item.verificationStatus,
-      city: item.city,
-      country: item.country,
-      status: item.status,
-      endedAt: item.endedAt,
-      timesLent: item.timesLent,
-      offersDeliveryAtDropoff: item.offersDeliveryAtDropoff,
-      offersPickupAtReturn: item.offersPickupAtReturn,
-      offersExpressAtDropoff: item.offersExpressAtDropoff,
-      maxDeliveryKmAtDropoff: item.maxDeliveryKmAtDropoff,
-      maxPickupKmAtReturn: item.maxPickupKmAtReturn,
-      cancellationPolicy: item.cancellationPolicy,
+    final current = await _requireCurrentOperationalUser(
+      requestedUserId: item.ownerId,
     );
-    list.add(toStore.toJson());
-
-    Future<void> persist(List<dynamic> payload) async {
-      await prefs.setString(_itemsKey, jsonEncode(payload));
-    }
-
-    // Try to persist, falling back to photo sanitation when web storage quota is exceeded.
-    try {
-      await persist(list);
-    } catch (e) {
-      debugPrint(
-        '[DataService] addItem persist failed, attempting to shrink payload: $e',
-      );
-      // 1) Remove oversized inline images and keep at most three uploaded URLs.
-      List<dynamic> shrunk = list.map((raw) {
-        try {
-          final m = Map<String, dynamic>.from(raw as Map);
-          final photos = (m['photos'] as List?)
-                  ?.map((p) => p?.toString() ?? '')
-                  .where((s) => s.isNotEmpty)
-                  .toList() ??
-              <String>[];
-          final limited = <String>[];
-          int idx = 0;
-          for (final p in photos) {
-            if (idx >= 3) break;
-            if (!p.startsWith('data:')) {
-              limited.add(p);
-            }
-            idx++;
-          }
-          m['photos'] = limited;
-          return m;
-        } catch (_) {
-          return raw;
-        }
-      }).toList();
-      try {
-        await persist(shrunk);
-      } catch (e2) {
-        debugPrint(
-          '[DataService] addItem persist still failing after shrink: $e2',
-        );
-        // 2) Last resort: strip photos entirely to guarantee saving
-        final stripped = shrunk.map((raw) {
-          try {
-            final m = Map<String, dynamic>.from(raw as Map);
-            m['photos'] = <String>[];
-            return m;
-          } catch (_) {
-            return raw;
-          }
-        }).toList();
-        await persist(stripped);
+    return _listingMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      final items = _readListingsStrict(prefs);
+      if (items.length >= _maxLocalListings) {
+        throw StateError('Der lokale Anzeigenkatalog ist voll.');
       }
-    }
-    return toStore;
+
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = blueOceanDraftId != null && blueOceanReview != null
+            ? await BackendRepository.publishBlueOceanListing(
+                draftId: blueOceanDraftId,
+                review: blueOceanReview,
+                listing: item.toJson(),
+                supplyEnrichmentLink: supplyEnrichmentLink,
+              )
+            : await BackendRepository.createListing(
+                item.toJson(),
+                supplyEnrichmentLink: supplyEnrichmentLink,
+              );
+        await _assertCurrentOperationalUserId(current.id);
+        final saved = Item.fromJson(remote);
+        if (saved.ownerId != current.id) {
+          throw StateError(
+              'Die gespeicherte Anzeige gehört zu einem anderen Konto.');
+        }
+        items.removeWhere((entry) => entry.id == saved.id);
+        items.add(saved);
+        await _persistListings(prefs, items);
+        SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
+        return saved;
+      }
+
+      var maxId = 0;
+      for (final entry in items) {
+        final id = int.tryParse(entry.id) ?? 0;
+        if (id > maxId) maxId = id;
+      }
+      final toStore = Item.fromJson(<String, dynamic>{
+        ...item.toJson(),
+        'id': (maxId + 1).toString(),
+        'ownerId': current.id,
+        'catalogRevision': 1,
+      });
+      await _assertCurrentOperationalUserId(current.id);
+      items.add(toStore);
+      await _persistListings(prefs, items);
+      SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
+      return toStore;
+    });
   }
 
   static Future<List<Category>> getCategories() async {
@@ -1611,19 +1671,9 @@ class DataService {
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       try {
         final remote = await BackendRepository.getListings();
-        final items = <Item>[];
-        for (final entry in remote) {
-          try {
-            items.add(Item.fromJson(entry));
-          } catch (error) {
-            debugPrint('[DataService] skipped invalid remote listing: $error');
-          }
-        }
+        final items = _decodeListingsStrict(jsonEncode(remote));
         items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        await prefs.setString(
-          _itemsKey,
-          jsonEncode(items.map((item) => item.toJson()).toList()),
-        );
+        await _persistListings(prefs, items);
         return items;
       } catch (error) {
         debugPrint('[DataService] remote listings load failed: $error');
@@ -1636,13 +1686,9 @@ class DataService {
       await _initializeSampleData();
       return getItems();
     }
-    List<dynamic> itemsList;
+    List<Item> items;
     try {
-      final decoded = jsonDecode(itemsJson);
-      if (decoded is! List) {
-        throw const FormatException('Invalid local listings document');
-      }
-      itemsList = decoded;
+      items = _decodeListingsStrict(itemsJson);
     } catch (error) {
       if (!_allowDemoSeedDataInRuntime) {
         throw const FormatException('Invalid local listings document');
@@ -1651,7 +1697,7 @@ class DataService {
       return getItems();
     }
 
-    if (itemsList.isEmpty) {
+    if (items.isEmpty) {
       // An empty catalog is a valid migrated, first-run or intentionally
       // purged state. Never turn it into demo data in a real runtime.
       if (!_allowDemoSeedDataInRuntime) return const <Item>[];
@@ -1664,50 +1710,6 @@ class DataService {
       return getItems();
     }
 
-    // Parse defensively: skip corrupted entries instead of failing the whole load
-    final List<Item> parsed = [];
-    bool mutated = false;
-    for (final raw in itemsList) {
-      try {
-        final map = Map<String, dynamic>.from(raw as Map);
-        parsed.add(Item.fromJson(map));
-      } catch (e) {
-        // Skip bad entry and mark mutated so we can sanitize storage
-        mutated = true;
-        debugPrint(
-          '[DataService] Skipped corrupted item entry: $e',
-        );
-      }
-    }
-    if (mutated) {
-      await prefs.setString(
-        _itemsKey,
-        jsonEncode(parsed.map((e) => e.toJson()).toList()),
-      );
-    }
-    List<Item> items = parsed;
-
-    // Auto-clean: delete "ended" items older than 60 days
-    final now = DateTime.now();
-    final filtered = <Item>[];
-    bool mutatedAging = false;
-    for (final it in items) {
-      if (it.status == 'ended' && it.endedAt != null) {
-        final diff = now.difference(it.endedAt!).inDays;
-        if (diff >= 60) {
-          mutatedAging = true;
-          continue;
-        }
-      }
-      filtered.add(it);
-    }
-    if (mutatedAging) {
-      await prefs.setString(
-        _itemsKey,
-        jsonEncode(filtered.map((e) => e.toJson()).toList()),
-      );
-      items = filtered;
-    }
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items;
   }
@@ -3199,34 +3201,32 @@ class DataService {
   }
 
   static Future<void> deactivateAllListingsForUser(String userId) async {
-    try {
+    await _requireCurrentOperationalUser(requestedUserId: userId);
+    await _listingMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(userId);
       final prefs = await SharedPreferences.getInstance();
-      final itemsJson = prefs.getString(_itemsKey);
-      if (itemsJson == null || itemsJson.isEmpty) return;
-      final decoded = jsonDecode(itemsJson);
-      if (decoded is! List) return;
-
-      bool mutated = false;
-      for (int i = 0; i < decoded.length; i++) {
-        if (decoded[i] is! Map) continue;
-        final map = Map<String, dynamic>.from(decoded[i] as Map);
-        if (map['ownerId']?.toString() != userId) continue;
-
-        if ((map['status']?.toString() ?? 'active') == 'ended') continue;
-        map['status'] = 'ended';
-        map['isActive'] = false;
-        map['endedAt'] = DateTime.now().toIso8601String();
-        decoded[i] = map;
+      final items = _readListingsStrict(prefs);
+      var mutated = false;
+      final endedAt = DateTime.now().toIso8601String();
+      for (var index = 0; index < items.length; index++) {
+        final item = items[index];
+        if (item.ownerId != userId || item.status == 'ended') continue;
+        items[index] = Item.fromJson(<String, dynamic>{
+          ...item.toJson(),
+          'status': 'ended',
+          'isActive': false,
+          'endedAt': endedAt,
+          'catalogRevision': item.catalogRevision + 1,
+        });
         mutated = true;
       }
-
       if (mutated) {
-        await prefs.setString(_itemsKey, jsonEncode(decoded));
+        await _assertCurrentOperationalUserId(userId);
+        await _persistListings(prefs, items);
+        SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
         debugPrint('[DataService] Deactivated all listings for user $userId');
       }
-    } catch (e) {
-      debugPrint('[DataService] deactivateAllListingsForUser failed: $e');
-    }
+    });
   }
 
   static Future<void> archiveAllMessageThreadsForUser(String userId) async {
@@ -3274,130 +3274,136 @@ class DataService {
     required String itemId,
     required String status,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    Map<String, dynamic>? remoteListing;
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      remoteListing = await BackendRepository.updateListingStatus(
-        id: itemId,
-        status: status,
-      );
+    if (!const <String>{'active', 'paused', 'ended', 'draft'}
+        .contains(status)) {
+      throw StateError('Ungültiger Anzeigenstatus.');
     }
-    final itemsJson = prefs.getString(_itemsKey);
-    final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
-    bool mutated = false;
-    for (int i = 0; i < list.length; i++) {
-      final map = Map<String, dynamic>.from(list[i] as Map);
-      if (map['id'].toString() == itemId.toString()) {
-        if (remoteListing != null) {
-          list[i] = remoteListing;
-        } else {
-          final isActive = status == 'active';
-          map['status'] = status;
-          map['isActive'] = isActive;
-          if (status == 'ended') {
-            map['endedAt'] = DateTime.now().toIso8601String();
-          }
-          list[i] = map;
-        }
-        mutated = true;
-        break;
+    final current = await _requireCurrentOperationalUser();
+    await _listingMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      final items = _readListingsStrict(prefs);
+      final index = items.indexWhere((item) => item.id == itemId);
+      if (index < 0 && (!BackendConfig.enabled || QaRuntimeService.isEnabled)) {
+        throw StateError('Die lokale Anzeige wurde nicht gefunden.');
       }
-    }
-    if (!mutated && remoteListing != null) {
-      list.add(remoteListing);
-      mutated = true;
-    }
-    if (mutated) {
-      await prefs.setString(_itemsKey, jsonEncode(list));
-    }
+      if (index >= 0 && items[index].ownerId != current.id) {
+        throw StateError('Die lokale Anzeige gehört zu einem anderen Konto.');
+      }
+
+      Item effective;
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.updateListingStatus(
+          id: itemId,
+          status: status,
+        );
+        await _assertCurrentOperationalUserId(current.id);
+        effective = Item.fromJson(remote);
+        if (effective.ownerId != current.id) {
+          throw StateError(
+              'Die gespeicherte Anzeige gehört zu einem anderen Konto.');
+        }
+      } else {
+        final existing = items[index];
+        effective = Item.fromJson(<String, dynamic>{
+          ...existing.toJson(),
+          'status': status,
+          'isActive': status == 'active',
+          'endedAt':
+              status == 'ended' ? DateTime.now().toIso8601String() : null,
+          'catalogRevision': existing.catalogRevision + 1,
+        });
+      }
+      if (index < 0) {
+        if (items.length >= _maxLocalListings) {
+          throw StateError('Der lokale Anzeigenkatalog ist voll.');
+        }
+        items.add(effective);
+      } else {
+        items[index] = effective;
+      }
+      await _assertCurrentOperationalUserId(current.id);
+      await _persistListings(prefs, items);
+      SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
+    });
   }
 
-  static Future<void> updateItem(Item updated) async {
-    final prefs = await SharedPreferences.getInstance();
-    var effectiveUpdated = updated;
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = await BackendRepository.updateListing(updated.toJson());
-      effectiveUpdated = Item.fromJson(remote);
-    }
-    final itemsJson = prefs.getString(_itemsKey);
-    final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
-    bool mutated = false;
-    for (int i = 0; i < list.length; i++) {
-      final map = Map<String, dynamic>.from(list[i] as Map);
-      if (map['id'].toString() == effectiveUpdated.id.toString()) {
-        list[i] = effectiveUpdated.toJson();
-        mutated = true;
-        break;
+  static Future<Item> updateItem(Item updated) async {
+    final current = await _requireCurrentOperationalUser(
+      requestedUserId: updated.ownerId,
+    );
+    return _listingMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      final items = _readListingsStrict(prefs);
+      final index = items.indexWhere((item) => item.id == updated.id);
+      if (index < 0 && (!BackendConfig.enabled || QaRuntimeService.isEnabled)) {
+        throw StateError('Die lokale Anzeige wurde nicht gefunden.');
       }
-    }
-    if (!mutated) list.add(effectiveUpdated.toJson());
-    Future<void> persist(List<dynamic> payload) async {
-      await prefs.setString(_itemsKey, jsonEncode(payload));
-    }
+      if (index >= 0 && items[index].ownerId != current.id) {
+        throw StateError('Die lokale Anzeige gehört zu einem anderen Konto.');
+      }
 
-    try {
-      await persist(list);
-    } catch (e) {
-      debugPrint(
-        '[DataService] updateItem persist failed, attempting to shrink payload: $e',
-      );
-      // Shrink photos across all items without inventing replacement listings or media.
-      List<dynamic> shrunk = list.map((raw) {
-        try {
-          final m = Map<String, dynamic>.from(raw as Map);
-          final photos = (m['photos'] as List?)
-                  ?.map((p) => p?.toString() ?? '')
-                  .where((s) => s.isNotEmpty)
-                  .toList() ??
-              <String>[];
-          final limited = <String>[];
-          int idx = 0;
-          for (final p in photos) {
-            if (idx >= 3) break;
-            if (!p.startsWith('data:')) {
-              limited.add(p);
-            }
-            idx++;
-          }
-          m['photos'] = limited;
-          return m;
-        } catch (_) {
-          return raw;
+      Item effectiveUpdated;
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.updateListing(updated.toJson());
+        await _assertCurrentOperationalUserId(current.id);
+        effectiveUpdated = Item.fromJson(remote);
+        if (effectiveUpdated.ownerId != current.id) {
+          throw StateError(
+              'Die gespeicherte Anzeige gehört zu einem anderen Konto.');
         }
-      }).toList();
-      try {
-        await persist(shrunk);
-      } catch (e2) {
-        debugPrint(
-          '[DataService] updateItem persist still failing after shrink: $e2',
-        );
-        final stripped = shrunk.map((raw) {
-          try {
-            final m = Map<String, dynamic>.from(raw as Map);
-            m['photos'] = <String>[];
-            return m;
-          } catch (_) {
-            return raw;
-          }
-        }).toList();
-        await persist(stripped);
+      } else {
+        final existing = items[index];
+        if (updated.catalogRevision != existing.catalogRevision) {
+          throw StateError(
+            'Die Anzeige wurde zwischenzeitlich geändert. Bitte neu laden.',
+          );
+        }
+        effectiveUpdated = Item.fromJson(<String, dynamic>{
+          ...updated.toJson(),
+          'ownerId': existing.ownerId,
+          'catalogRevision': existing.catalogRevision + 1,
+        });
       }
-    }
+
+      if (index < 0) {
+        if (items.length >= _maxLocalListings) {
+          throw StateError('Der lokale Anzeigenkatalog ist voll.');
+        }
+        items.add(effectiveUpdated);
+      } else {
+        items[index] = effectiveUpdated;
+      }
+      await _assertCurrentOperationalUserId(current.id);
+      await _persistListings(prefs, items);
+      SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
+      return effectiveUpdated;
+    });
   }
 
   static Future<void> deleteItemById(String itemId) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      await BackendRepository.deleteListing(itemId);
-    }
-    final itemsJson = prefs.getString(_itemsKey);
-    if (itemsJson == null) return;
-    final List<dynamic> list = jsonDecode(itemsJson);
-    final before = list.length;
-    list.removeWhere((e) => (e as Map)['id'].toString() == itemId.toString());
-    if (list.length != before) {
-      await prefs.setString(_itemsKey, jsonEncode(list));
-    }
+    final current = await _requireCurrentOperationalUser();
+    await _listingMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      final items = _readListingsStrict(prefs);
+      final index = items.indexWhere((item) => item.id == itemId);
+      if (index < 0) {
+        throw StateError('Die lokale Anzeige wurde nicht gefunden.');
+      }
+      if (items[index].ownerId != current.id) {
+        throw StateError('Die lokale Anzeige gehört zu einem anderen Konto.');
+      }
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.deleteListing(itemId);
+        await _assertCurrentOperationalUserId(current.id);
+      }
+      items.removeAt(index);
+      await _assertCurrentOperationalUserId(current.id);
+      await _persistListings(prefs, items);
+      SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
+    });
   }
 
   static bool isPublicCatalogItem(Item item) =>
@@ -4300,6 +4306,30 @@ class DataService {
             ).toJson(),
       'syncPending': cartBucket.syncOwnerToken != null,
     };
+  }
+
+  /// Device-local listing cache entries owned by the current authenticated
+  /// account. Public listings owned by other accounts remain on-device but are
+  /// excluded from this account-scoped export.
+  static Future<Map<String, dynamic>> exportOwnedListingsForPrivacy() async {
+    final current = await _requireCurrentOperationalUser();
+    return _listingMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      final owned = _readListingsStrict(prefs)
+          .where((item) => item.ownerId == current.id)
+          .map((item) => item.toJson())
+          .toList();
+      await _assertCurrentOperationalUserId(current.id);
+      return <String, dynamic>{
+        'schemaVersion': 1,
+        'scope': 'current-authenticated-account',
+        'accountId': current.id,
+        'storageKey': _itemsKey,
+        'listings': owned,
+        'otherAccountsPublicCacheExcluded': true,
+      };
+    });
   }
 
   /// Local operational records attributable to the current signed-in account.
