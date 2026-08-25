@@ -105,6 +105,43 @@ void main() {
     expect(prefs.getString('items'), raw);
   });
 
+  test('legacy local email session remains exact-current-owner scoped',
+      () async {
+    final ownedByA = buildTestItem(id: 'rw7-local-a', ownerId: accountA.id);
+    final ownedByB = buildTestItem(id: 'rw7-local-b', ownerId: accountB.id);
+    SharedPreferences.setMockInitialValues(
+      catalogState(<Item>[ownedByA, ownedByB]),
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('currentUser', jsonEncode(accountA.toJson()));
+    await prefs.setString(
+      'auth_session_v1',
+      jsonEncode(<String, Object>{
+        'email': accountA.email,
+        'createdAt': '2026-08-25T12:00:00.000Z',
+      }),
+    );
+
+    await DataService.updateItemStatus(
+      itemId: ownedByA.id,
+      status: 'paused',
+    );
+    await expectLater(
+      DataService.updateItemStatus(itemId: ownedByB.id, status: 'paused'),
+      throwsStateError,
+    );
+
+    final persisted = await DataService.getItems();
+    expect(
+      persisted.singleWhere((item) => item.id == ownedByA.id).status,
+      'paused',
+    );
+    expect(
+      persisted.singleWhere((item) => item.id == ownedByB.id).status,
+      'active',
+    );
+  });
+
   test('stale cached profile cannot authorize a listing mutation', () async {
     final owned = buildTestItem(id: 'rw7-a-item', ownerId: accountA.id);
     final raw = jsonEncode(<Object>[owned.toJson()]);

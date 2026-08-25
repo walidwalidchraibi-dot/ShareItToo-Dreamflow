@@ -274,7 +274,11 @@ class DataService {
     }
     if (!QaRuntimeService.isEnabled) {
       final session = await AuthService.readSession();
-      if ((session?.userId ?? '').trim() != current.id.trim()) {
+      if (!_sessionMatchesOperationalUser(
+        session,
+        userId: current.id,
+        email: current.email,
+      )) {
         throw StateError(
           'Das lokale Profil gehört nicht zur aktuellen Kontositzung.',
         );
@@ -289,12 +293,27 @@ class DataService {
     return current;
   }
 
+  static bool _sessionMatchesOperationalUser(
+    AuthSession? session, {
+    required String userId,
+    required String email,
+  }) {
+    if (session == null) return false;
+    final sessionUserId = (session.userId ?? '').trim();
+    if (sessionUserId.isNotEmpty) return sessionUserId == userId.trim();
+    if (BackendConfig.enabled) return false;
+    final normalizedEmail = email.trim().toLowerCase();
+    return normalizedEmail.isNotEmpty &&
+        session.email.trim().toLowerCase() == normalizedEmail;
+  }
+
   /// Side-effect-free session recheck for queued or remote work. Unlike
   /// [getCurrentUser], this never initializes QA fixtures while another local
   /// mutation queue is already held.
   static Future<void> _assertCurrentOperationalUserId(
-    String expectedUserId,
-  ) async {
+    String expectedUserId, {
+    String? expectedEmail,
+  }) async {
     final expected = expectedUserId.trim();
     if (expected.isEmpty) {
       throw StateError(
@@ -309,7 +328,46 @@ class DataService {
       return;
     }
     final session = await AuthService.readSession();
-    if ((session?.userId ?? '').trim() != expected) {
+    final sessionUserId = (session?.userId ?? '').trim();
+    var normalizedEmail = expectedEmail?.trim().toLowerCase() ?? '';
+    User? localCurrent;
+    if (sessionUserId.isEmpty && !BackendConfig.enabled) {
+      // Local debug accounts historically bind the authenticated principal by
+      // normalized email. Recheck the exact cached profile without triggering
+      // fixture initialization while the caller's mutation queue is held.
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_currentUserKey);
+      if (raw == null || raw.isEmpty) {
+        throw StateError('Die lokale Kontositzung hat sich geändert.');
+      }
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map) {
+          throw const FormatException('Invalid current user');
+        }
+        localCurrent = User.fromJson(Map<String, dynamic>.from(decoded));
+        final currentEmail = localCurrent.email.trim().toLowerCase();
+        if (localCurrent.id.trim() != expected ||
+            currentEmail.isEmpty ||
+            (normalizedEmail.isNotEmpty &&
+                currentEmail != normalizedEmail)) {
+          throw StateError('Die lokale Kontositzung hat sich geändert.');
+        }
+        normalizedEmail = currentEmail;
+      } catch (error) {
+        if (error is StateError) rethrow;
+        throw StateError('Die lokale Kontositzung hat sich geändert.');
+      }
+    }
+    if (!_sessionMatchesOperationalUser(
+      session,
+      userId: expected,
+      email: normalizedEmail,
+    )) {
+      throw StateError('Die lokale Kontositzung hat sich geändert.');
+    }
+    if (sessionUserId.isNotEmpty) return;
+    if (localCurrent == null) {
       throw StateError('Die lokale Kontositzung hat sich geändert.');
     }
   }
@@ -1537,7 +1595,10 @@ class DataService {
       requestedUserId: item.ownerId,
     );
     return _listingMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       final prefs = await SharedPreferences.getInstance();
       final items = _readListingsStrict(prefs);
       if (items.length >= _maxLocalListings) {
@@ -1556,7 +1617,10 @@ class DataService {
                 item.toJson(),
                 supplyEnrichmentLink: supplyEnrichmentLink,
               );
-        await _assertCurrentOperationalUserId(current.id);
+        await _assertCurrentOperationalUserId(
+          current.id,
+          expectedEmail: current.email,
+        );
         final saved = Item.fromJson(remote);
         if (saved.ownerId != current.id) {
           throw StateError(
@@ -1580,7 +1644,10 @@ class DataService {
         'ownerId': current.id,
         'catalogRevision': 1,
       });
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       items.add(toStore);
       await _persistListings(prefs, items);
       SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
@@ -3201,9 +3268,13 @@ class DataService {
   }
 
   static Future<void> deactivateAllListingsForUser(String userId) async {
-    await _requireCurrentOperationalUser(requestedUserId: userId);
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     await _listingMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(userId);
+      await _assertCurrentOperationalUserId(
+        userId,
+        expectedEmail: current.email,
+      );
       final prefs = await SharedPreferences.getInstance();
       final items = _readListingsStrict(prefs);
       var mutated = false;
@@ -3221,7 +3292,10 @@ class DataService {
         mutated = true;
       }
       if (mutated) {
-        await _assertCurrentOperationalUserId(userId);
+        await _assertCurrentOperationalUserId(
+          userId,
+          expectedEmail: current.email,
+        );
         await _persistListings(prefs, items);
         SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
         debugPrint('[DataService] Deactivated all listings for user $userId');
@@ -3280,7 +3354,10 @@ class DataService {
     }
     final current = await _requireCurrentOperationalUser();
     await _listingMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       final prefs = await SharedPreferences.getInstance();
       final items = _readListingsStrict(prefs);
       final index = items.indexWhere((item) => item.id == itemId);
@@ -3297,7 +3374,10 @@ class DataService {
           id: itemId,
           status: status,
         );
-        await _assertCurrentOperationalUserId(current.id);
+        await _assertCurrentOperationalUserId(
+          current.id,
+          expectedEmail: current.email,
+        );
         effective = Item.fromJson(remote);
         if (effective.ownerId != current.id) {
           throw StateError(
@@ -3322,7 +3402,10 @@ class DataService {
       } else {
         items[index] = effective;
       }
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       await _persistListings(prefs, items);
       SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
     });
@@ -3333,7 +3416,10 @@ class DataService {
       requestedUserId: updated.ownerId,
     );
     return _listingMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       final prefs = await SharedPreferences.getInstance();
       final items = _readListingsStrict(prefs);
       final index = items.indexWhere((item) => item.id == updated.id);
@@ -3347,7 +3433,10 @@ class DataService {
       Item effectiveUpdated;
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         final remote = await BackendRepository.updateListing(updated.toJson());
-        await _assertCurrentOperationalUserId(current.id);
+        await _assertCurrentOperationalUserId(
+          current.id,
+          expectedEmail: current.email,
+        );
         effectiveUpdated = Item.fromJson(remote);
         if (effectiveUpdated.ownerId != current.id) {
           throw StateError(
@@ -3375,7 +3464,10 @@ class DataService {
       } else {
         items[index] = effectiveUpdated;
       }
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       await _persistListings(prefs, items);
       SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
       return effectiveUpdated;
@@ -3385,7 +3477,10 @@ class DataService {
   static Future<void> deleteItemById(String itemId) async {
     final current = await _requireCurrentOperationalUser();
     await _listingMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       final prefs = await SharedPreferences.getInstance();
       final items = _readListingsStrict(prefs);
       final index = items.indexWhere((item) => item.id == itemId);
@@ -3397,10 +3492,16 @@ class DataService {
       }
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         await BackendRepository.deleteListing(itemId);
-        await _assertCurrentOperationalUserId(current.id);
+        await _assertCurrentOperationalUserId(
+          current.id,
+          expectedEmail: current.email,
+        );
       }
       items.removeAt(index);
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       await _persistListings(prefs, items);
       SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
     });
@@ -4314,13 +4415,19 @@ class DataService {
   static Future<Map<String, dynamic>> exportOwnedListingsForPrivacy() async {
     final current = await _requireCurrentOperationalUser();
     return _listingMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       final prefs = await SharedPreferences.getInstance();
       final owned = _readListingsStrict(prefs)
           .where((item) => item.ownerId == current.id)
           .map((item) => item.toJson())
           .toList();
-      await _assertCurrentOperationalUserId(current.id);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
       return <String, dynamic>{
         'schemaVersion': 1,
         'scope': 'current-authenticated-account',

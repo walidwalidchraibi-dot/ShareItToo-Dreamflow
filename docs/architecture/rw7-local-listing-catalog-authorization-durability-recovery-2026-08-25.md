@@ -11,6 +11,12 @@ create, edit, status, delete and confirmed-account-deletion deactivation require
 a current profile backed by the matching auth session. The requested owner and
 the stored listing owner must both equal that current account.
 
+Backend sessions require their exact server user id. The supported legacy
+local developer session has no server user id, so it is accepted only when its
+normalized authenticated email matches the exact cached current profile; every
+queued recheck rereads that profile without initializing fixtures. A mismatched
+id, email, profile or account transition fails closed.
+
 When the backend is enabled it remains authoritative and retains its R8 server
 revision contract. The local/QA fallback uses the existing `catalogRevision` as
 an optimistic-concurrency token: creates start at revision 1 and every accepted
@@ -59,12 +65,12 @@ revision rather than presenting the stale pre-write object.
 ## Deterministic proof and exclusions
 
 The synthetic matrix covers account A, guest and account B; foreign owner and
-listing ids; stale cached profiles; corrupt and duplicate entries; retention;
-concurrent creates; stale revisions; missing targets; full capacity; injected
-write failure and queue recovery; privacy export; scoped deletion deactivation;
-process-style recreation; compact retry; and open-screen account replacement.
-There are no sleeps, timing allowances or reduced-parallelism correctness
-requirements.
+listing ids; exact legacy local email-session binding; stale cached profiles;
+corrupt and duplicate entries; retention; concurrent creates; stale revisions;
+missing targets; full capacity; injected write failure and queue recovery;
+privacy export; scoped deletion deactivation; process-style recreation; compact
+retry; and open-screen account replacement. There are no sleeps, timing
+allowances or reduced-parallelism correctness requirements.
 
 RW7 changes no booking, contract, acceptance, quote, payment, refund, payout,
 handover, return, damage, `needsReview`, listing content/moderation policy,

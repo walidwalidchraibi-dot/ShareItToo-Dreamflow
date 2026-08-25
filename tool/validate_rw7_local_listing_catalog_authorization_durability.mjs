@@ -130,9 +130,9 @@ export function validateRw7LocalListingCatalogAuthorizationDurability({
   const fullPassed = value.status !== statuses[0];
   const githubPassed = value.status === statuses[2];
   if (value.verification?.changedFileAnalyze !== 'passed-zero-issues'
-      || value.verification?.focusedRw7Flutter !== 'passed-14'
+      || value.verification?.focusedRw7Flutter !== 'passed-15'
       || value.verification?.defaultFlutter
-        !== 'passed-485-with-3-documented-profile-skips'
+        !== 'passed-486-with-3-documented-profile-skips'
       || value.verification?.lifecyclePrivacyRetentionProvider !== 'passed'
       || value.verification?.rw7WiringTests !== 'passed'
       || value.verification?.fullTechnicalRegression

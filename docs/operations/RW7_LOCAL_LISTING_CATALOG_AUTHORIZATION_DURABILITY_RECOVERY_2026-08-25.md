@@ -35,8 +35,8 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 
 ## Current evidence
 
-- Focused RW7 Flutter matrix: 14 passed.
-- Default Flutter matrix: 485 passed with three documented exact-profile skips.
+- Focused RW7 Flutter matrix: 15 passed.
+- Default Flutter matrix: 486 passed with three documented exact-profile skips.
 - Changed-file analyzer: zero issues.
 - G2 lifecycle, privacy, retention and provider-readiness validators: passed;
   provider result remains `prepared-hold`, 0/10 decisions and not externally
@@ -49,6 +49,8 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 - Public catalog reads remain available without an owner session.
 - Local owner mutations require matching current profile, auth session and
   stored owner.
+- Legacy local developer sessions bind by exact normalized session/profile
+  email only when no server user id exists; backend sessions remain id-bound.
 - Corrupt or duplicate entries preserve the exact raw document and fail closed.
 - The catalog accepts at most 1,000 entries; overflow rejects without pruning.
 - Storage failure preserves prior bytes and a rejected operation does not poison

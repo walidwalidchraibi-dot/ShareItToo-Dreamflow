@@ -107,7 +107,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "a87c4fa5ff83bbb99ea5052f4ccbe66837136ad544785c759216b214d0d8f23f"
+      "sha256": "96588fb0928939b99ec3c0448ba438ed192032856b2707a20324d6615fbe1b4a"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
