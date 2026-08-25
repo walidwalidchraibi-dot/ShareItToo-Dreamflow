@@ -192,7 +192,7 @@
     {"path": "tool/validate_privacy_disclosures.mjs", "sha256": "18a94aaf01a1dcf8b9ad46289440963ed46d50714533dd79760a6b0ae16ee32b"},
     {"path": "tool/validate_retention_deletion_readiness.mjs", "sha256": "e6bb84c5dffcfa15b61358fc6ddbc87be7a1cbc13b462d6f3fef89743b2e13b3"},
     {"path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs", "sha256": "4da2f4df078ce7fc6d8a58b040208deb953ce2f3ef1f62ed2afc63eadff49ec4"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "05faf062a6054774ef205538fe24189e40cd19e10156573f19e9db60057ebdc1"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "109b6d3244ca45aabd778c2ce7d0fc9159309fd4e3fd173e01db6d0479fcc5ce"},
     {"path": "test/rw9_local_account_profile_authorization_durability_test.dart", "sha256": "4312a9b9eef3060d2332d9325b9adbe441ba872f5400d0d9b0470ec3a048d1b2"},
     {"path": "test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs", "sha256": "d6de9f8256a0843857f23d541b5497d2b2eabd15bad8bdc3380e43539b5989c5"},
     {"path": "test/tool/profile_info_async_lifecycle_wiring.test.mjs", "sha256": "940510493484295c689629b1138abd6be01ffa188fb2337fe5e1b5ab3e98171c"},

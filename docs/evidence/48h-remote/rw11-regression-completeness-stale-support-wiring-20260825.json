@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-rw11-regression-completeness-stale-support-wiring",
+  "status": "implemented-complete-tool-inventory-passed-full-regression-pending",
+  "implementationBaseHead": "5ad324704db716e39f8b79347167d24813f1596a",
+  "implementationHead": null,
+  "architecture": "docs/architecture/rw11-regression-completeness-stale-support-wiring-2026-08-25.md",
+  "report": "docs/operations/RW11_REGRESSION_COMPLETENESS_STALE_SUPPORT_WIRING_2026-08-25.md",
+  "predecessor": {
+    "package": "RW10",
+    "evidence": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
+    "verifiedImplementationHead": "d72e18eb607bb3f9ed7baf09ab7212f3ef695ee5",
+    "closureCommit": "5ad324704db716e39f8b79347167d24813f1596a"
+  },
+  "scope": {
+    "allowed": [
+      "sup094-current-atomic-boundary-assertion-repair",
+      "sup151-152-conditional-blocked-visibility-assertion-repair",
+      "complete-repository-owned-node-tool-test-execution",
+      "red-first-permanent-regression-registration-guard",
+      "mechanical-predecessor-regression-script-hash-refresh",
+      "deterministic-local-and-ci-regression-evidence"
+    ],
+    "excluded": [
+      "product-runtime-and-backend-behavior-change",
+      "rw10-product-or-evidence-semantic-change",
+      "timing-retry-parallelism-reduction-and-test-exclusion",
+      "production-vps-dns-cloud-firebase-store-and-play",
+      "payment-provider-ai-pilot-real-money-and-real-support-traffic",
+      "legal-owner-gitguardian-pr-merge-and-history-rewrite"
+    ],
+    "localOnly": true,
+    "productBehaviorChanged": false,
+    "timingWorkaroundAllowed": false,
+    "testParallelismReductionAllowed": false,
+    "toolTestExclusionAllowed": false
+  },
+  "findings": [
+    {
+      "id": "RW11-P0-DORMANT-TOOL-TEST-INVENTORY-001",
+      "state": "resolved-and-tested",
+      "classification": "regression-governance-gap",
+      "resolution": "The supported regression now executes the complete test/tool wildcard before longer platform gates, and a red-first wiring test permanently requires that exact unconditional invocation."
+    },
+    {
+      "id": "RW11-P1-SUP094-ATOMICITY-ASSERTION-DRIFT-002",
+      "state": "resolved-and-tested",
+      "classification": "stale-assertion-drift",
+      "resolution": "The assertion now requires the transactional backend harassment endpoint and principal-isolated local atomic method while forbidding the obsolete split BlockedUsersService call."
+    },
+    {
+      "id": "RW11-P1-SUP151152-VISIBILITY-ASSERTION-DRIFT-003",
+      "state": "resolved-and-tested",
+      "classification": "stale-assertion-drift",
+      "resolution": "The assertion now binds the formatted conditional collection and its non-empty blocked-user source instead of requiring a one-line FilterPill spelling."
+    }
+  ],
+  "historyAudit": {
+    "sup094OriginalCommit": "3aff92398633876605db1b51c29207cad99e1e84",
+    "sup094CurrentBoundaryCommit": "2dfb487cd3b4f4ebd59d184f1a5186f1da455672",
+    "sup151152OriginalCommit": "3f96e93e721dcf5daef948ca7370856511293829",
+    "productRegressionFound": false
+  },
+  "inventoryAudit": {
+    "baselineRepositoryOwnedFiles": 322,
+    "baselineDirectlyNamedFiles": 273,
+    "baselineNotDirectlyNamedFiles": 49,
+    "closureRepositoryOwnedFiles": 324,
+    "executionPattern": "node --test test/tool/*.test.mjs",
+    "excludedFiles": [],
+    "standardNodeParallelism": true
+  },
+  "verification": {
+    "redFirstCompletenessGuard": "failed-before-fix",
+    "focusedCorrectedMatrix": "passed-7",
+    "completeToolInventory": "passed-1867",
+    "completeToolInventorySkipped": 0,
+    "fullTechnicalRegression": "pending",
+    "githubRegression": "pending",
+    "githubCodeql": "pending"
+  },
+  "localRegression": null,
+  "githubVerification": null,
+  "ratchetAudit": {
+    "cause": "RW11 makes every repository-owned Node tool test part of the supported regression and repairs two static assertions to follow the already accepted stronger implementation boundaries.",
+    "productSourceChanged": false,
+    "privacyManifestChanged": false,
+    "retentionManifestChanged": false,
+    "providerDecisionChanged": false,
+    "providerGateChanged": false,
+    "rw10SemanticsChanged": false,
+    "predecessorRefreshes": [
+      "RW0 through RW10 source inventories are mechanically refreshed only for the supported regression script hash; their findings, implementation heads, verification states and gates remain unchanged.",
+      "S4J and S3X product sources, accepted decisions and package evidence remain unchanged; only their stale static wiring assertions are corrected."
+    ]
+  },
+  "ratchets": {
+    "privacyManifestSha256": "e5ae03d2d63a858a65d571e0ec92c9a9462a90f33ec73ee6a66ba3afed5b800e",
+    "retentionManifestSha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38",
+    "activeProviderEvidenceSha256": "3d55d0bfa5d45a1ecd7fbf1d2dea1782e3c4f00b31d2050a668382d4052e0ef0",
+    "activeProviderState": "prepared-hold",
+    "completedOwnerDecisions": 0,
+    "requiredOwnerDecisions": 10,
+    "externalReadiness": false
+  },
+  "gates": {
+    "BUILD_READY": "not-granted",
+    "PLAY_UPLOAD_APPROVED": "not-granted",
+    "HUMAN_PILOT_ACTIVATED": "not-granted",
+    "PR7_MERGE_APPROVED": "not-granted",
+    "R17_GITGUARDIAN_HISTORY_REVIEW_COMPLETE": "not-granted"
+  },
+  "boundaries": {
+    "productRuntimeChanged": false,
+    "backendRuntimeChanged": false,
+    "productionChanged": false,
+    "vpsChanged": false,
+    "dnsChanged": false,
+    "cloudChanged": false,
+    "firebaseChanged": false,
+    "storeChanged": false,
+    "paymentChanged": false,
+    "realMoneyUsed": false,
+    "realSupportTrafficSent": false,
+    "realProviderTrafficSent": false,
+    "externalAiRuntimeEnabled": false,
+    "candidateCreated": false,
+    "deviceGateClaimed": false,
+    "legalApprovalChanged": false,
+    "gitHistoryRewritten": false,
+    "prMerged": false
+  },
+  "residualRisks": [
+    "Static wiring assertions complement but do not replace behavioral Backend, Flutter and PostgreSQL coverage.",
+    "The complete wildcard intentionally duplicates package-specific Node invocations and adds a small deterministic runtime cost until the long script is separately consolidated.",
+    "The distinct RW10 post-service success-popup epoch window remains open for a separately bounded product correction and is not claimed closed by RW11."
+  ],
+  "sourceInventory": [
+    {"path": "backend/src/app.js", "sha256": "1cc0c82c567d8ae7e37a3125f5dd4ed90d257073cd800e33c8a2bd0b7dd692a5"},
+    {"path": "backend/src/moderation_workflow.js", "sha256": "534253d5bcdcb541b73740d9b58e7b70568397dc9f53e04fa28ef2c8158a912a"},
+    {"path": "lib/screens/messages_screen.dart", "sha256": "80d4c76a2f4913ffabdb928eaca24216486bb1a7c05791ab83e0d261f8dc0672"},
+    {"path": "lib/services/backend_repository.dart", "sha256": "f818303d43404c16ef821927890a30619bbeffb88744b420c28d1e1d2af37672"},
+    {"path": "lib/services/local_safety_privacy_service.dart", "sha256": "562c0926c5e558ba643784d60fc4b66cfa0d17c6b2644cfb20b854700bcb4436"},
+    {"path": "lib/services/user_reports_service.dart", "sha256": "94399bb6798ee4132f0b2ba15f1c3dbf2f755729029410b6d91057e5409f107c"},
+    {"path": "docs/architecture/s4j-non-acute-harassment-block-report-2026-08-22.md", "sha256": "e86872b44543aca403185c50b938b65e3c04a5b1164c8a1b05e774428fdf5263"},
+    {"path": "docs/decisions/ADR-073-atomic-non-acute-harassment-block-report.md", "sha256": "276c33c94f7028b61d0bcbbc3795ba9913ae052989d0e11d1431f5a67e35b53c"},
+    {"path": "docs/architecture/s3x-support-case-ui-accessibility-2026-08-22.md", "sha256": "665415f7ce5e6951ae14b9533f3041459d3f08e8b13c6ed7b77bf512cacc52dc"},
+    {"path": "docs/decisions/ADR-061-support-case-semantic-order-and-empty-blocked-filter.md", "sha256": "60b783937f4e241f30c57ef556eb596150d43395df5d5602c5c8ee4d36b0ff93"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "109b6d3244ca45aabd778c2ce7d0fc9159309fd4e3fd173e01db6d0479fcc5ce"},
+    {"path": "test/tool/harassment_block_report_wiring.test.mjs", "sha256": "4b9ab9f84d9c608104fbde2e6a76f5ca2b6a3890caa59e01e9ca69326b03a8b8"},
+    {"path": "test/tool/support_case_ui_accessibility_wiring.test.mjs", "sha256": "8daf23c9dd2156d8d46d600c9ae3173ae83816c2dcb134d9859503d59ae5163a"},
+    {"path": "test/tool/rw11_regression_completeness_wiring.test.mjs", "sha256": "e6a9ecf7cda2115d1605b54339d2696bc7edd66f2304bc162d39cbdfedfb13a0"},
+    {"path": "test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs", "sha256": "385465ebc414928fbabfec6ff02f5999645316d508b1c9c058ca5cb69fad9d72"},
+    {"path": "tool/validate_rw11_regression_completeness_stale_support_wiring.mjs", "sha256": "2b7e4e45cef395745e139844b7810612d1324f1fdb5df7112245545b7faf9c35"},
+    {"path": "docs/architecture/rw11-regression-completeness-stale-support-wiring-2026-08-25.md", "sha256": "5af1eb425481b11e07a202d6d8771dff5ea896c2b0ba52788e7e4dd8affcd493"},
+    {"path": "docs/operations/RW11_REGRESSION_COMPLETENESS_STALE_SUPPORT_WIRING_2026-08-25.md", "sha256": "6ad68e805eb0cb96c02ede0d6f1bb5cb63df57887bd747c1dbd93081cec1616c"}
+  ]
+}

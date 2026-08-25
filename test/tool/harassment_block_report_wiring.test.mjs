@@ -35,7 +35,12 @@ test('SUP-094 binds report, direct-contact block and neutral review atomically',
   assert.match(workflow, /moderationAccountMeasureTaken: false/u);
   assert.match(workflow, /externalActionTaken: false/u);
   assert.match(repository, /createHarassmentBlockReport/u);
-  assert.match(service, /BlockedUsersService\.blockUser/u);
+  assert.match(service, /BackendRepository\.createHarassmentBlockReport\(/u);
+  assert.match(
+    service,
+    /LocalSafetyPrivacyService\.addHarassmentReportAndBlock\(/u,
+  );
+  assert.doesNotMatch(service, /BlockedUsersService\.blockUser/u);
   assert.match(screen, /Blockieren und melden/u);
   assert.match(screen, /noch kein Verstoß und keine Schuld festgestellt/u);
 });

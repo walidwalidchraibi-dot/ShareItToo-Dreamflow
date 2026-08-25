@@ -221,7 +221,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "05faf062a6054774ef205538fe24189e40cd19e10156573f19e9db60057ebdc1"
+      "sha256": "109b6d3244ca45aabd778c2ce7d0fc9159309fd4e3fd173e01db6d0479fcc5ce"
     },
     {
       "path": "test/data_service_booking_rules_test.dart",

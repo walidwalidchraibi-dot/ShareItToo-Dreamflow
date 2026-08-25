@@ -200,7 +200,7 @@
     {"path": "tool/validate_privacy_disclosures.mjs", "sha256": "18a94aaf01a1dcf8b9ad46289440963ed46d50714533dd79760a6b0ae16ee32b"},
     {"path": "tool/validate_retention_deletion_readiness.mjs", "sha256": "e6bb84c5dffcfa15b61358fc6ddbc87be7a1cbc13b462d6f3fef89743b2e13b3"},
     {"path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs", "sha256": "4da2f4df078ce7fc6d8a58b040208deb953ce2f3ef1f62ed2afc63eadff49ec4"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "05faf062a6054774ef205538fe24189e40cd19e10156573f19e9db60057ebdc1"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "109b6d3244ca45aabd778c2ce7d0fc9159309fd4e3fd173e01db6d0479fcc5ce"},
     {"path": "test/b10_release_truthfulness_test.dart", "sha256": "76c3426428f748a279a11c067cbbb960b6d557563ce1902fd1767c084fe46e2b"},
     {"path": "test/rw10_local_security_control_truthfulness_test.dart", "sha256": "5371a9597aa701a5cba9edcdf2857943aba57ab32e12630054c46f464e07b409"},
     {"path": "test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs", "sha256": "06511e23a822aca21add96dcb9823fa2272708682ef1f57e42ca48d318da2e34"},

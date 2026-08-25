@@ -41,6 +41,11 @@ flutter --version
 
 dart --version
 
+# Permanent completeness gate: the shell glob expands every repository-owned
+# Node tool test, including files added after this script was last edited.
+# The package-specific invocations below remain for localized failure context.
+node --test test/tool/*.test.mjs
+
 bash scripts/test_temp_fixture_boundedness.sh
 
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
@@ -384,6 +389,11 @@ node --test \
   test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs \
   test/tool/validate_rw10_local_security_control_truthfulness.test.mjs
 node tool/validate_rw10_local_security_control_truthfulness.mjs
+node --check tool/validate_rw11_regression_completeness_stale_support_wiring.mjs
+node --test \
+  test/tool/rw11_regression_completeness_wiring.test.mjs \
+  test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs
+node tool/validate_rw11_regression_completeness_stale_support_wiring.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs

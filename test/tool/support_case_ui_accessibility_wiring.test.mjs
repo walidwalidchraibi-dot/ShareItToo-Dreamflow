@@ -43,6 +43,7 @@ test('SUP-151 and SUP-152 retain appeal visibility and hide an empty blocked tab
   );
   assert.match(
     messages,
-    /if \(showBlocked\)[\s\S]*_FilterPill\(label: 'Blockiert'/u,
+    /if \(showBlocked\) \.\.\.\[[\s\S]*?_FilterPill\([\s\S]*?label: 'Blockiert'/u,
   );
+  assert.match(messages, /showBlocked: _blockedUserIds\.isNotEmpty/u);
 });
