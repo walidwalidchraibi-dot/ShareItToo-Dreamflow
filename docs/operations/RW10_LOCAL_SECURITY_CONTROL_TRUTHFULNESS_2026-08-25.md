@@ -45,12 +45,13 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
   repository secret scan. The current test builds those inputs at runtime and
   the exact immutable historical rule/commit/file tuple is reviewed in the
   existing baseline.
-- Full local technical regression on replacement candidate
-  `f02c5e0900f26f7e7a12be87911e1d744ddf42c7`: passed with normal
+- Full local technical regression on exact implementation candidate
+  `d72e18eb607bb3f9ed7baf09ab7212f3ef695ee5`: passed with normal
   parallelism, 523 Flutter tests, three documented skips, analyzer zero, Web
   and Wasm build checks, loopback smoke, repository secret scan and Android
   debug 448 tasks/minSdk 24.
-- Exact-head GitHub Regression and CodeQL: pending.
+- Exact-head GitHub Regression 32846034530 and CodeQL 32846034621: passed;
+  zero open code-scanning alerts.
 
 ## Operational behavior
 
@@ -83,8 +84,8 @@ regression passed on the first candidate. The subsequent clean-checkout secret
 scan finding was a synthetic RW10 test fixture, not a product or owner
 credential: fixture literals were removed from the current tree, the immutable
 historical tuple was reviewed narrowly, and working-tree findings remain
-unconditionally forbidden. Replacement-candidate full regression passed;
-exact-head GitHub checks remain pending.
+unconditionally forbidden. Exact-head replacement-candidate local full
+regression, GitHub Regression and CodeQL all passed.
 
 ## Recovery and rollback
 

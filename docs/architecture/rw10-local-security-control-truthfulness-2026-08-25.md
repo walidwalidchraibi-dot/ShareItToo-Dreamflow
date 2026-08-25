@@ -1,8 +1,8 @@
 # RW10 local security-control truthfulness
 
 Date: 2026-08-25
-State: local full regression passed on replacement implementation candidate
-`f02c5e0900f26f7e7a12be87911e1d744ddf42c7`; exact-head CI pending
+State: verified local full regression, GitHub Regression and CodeQL passed on
+exact implementation head `d72e18eb607bb3f9ed7baf09ab7212f3ef695ee5`
 
 ## Decision
 
