@@ -54,6 +54,9 @@ class AuthService {
     SharedPersistenceSync.notify(
       SharedPersistenceSync.localSafetyPrivacyStateKey,
     );
+    SharedPersistenceSync.notify(
+      SharedPersistenceSync.accountSecurityStateKey,
+    );
   }
 
   @visibleForTesting
@@ -170,6 +173,71 @@ class AuthService {
     } finally {
       _sessionClearing = false;
       _refreshInFlight = null;
+    }
+  }
+
+  /// Removes a backend session only when the exact expected principal is still
+  /// stored. The comparison and removal invocation are deliberately adjacent,
+  /// so a successor sign-in is never selected as the removal target.
+  ///
+  /// This narrow path is used after a server-authoritative password change or
+  /// logout-all response. It intentionally does not run the broader best-effort
+  /// logout cleanup, because that cleanup could act on a successor principal.
+  static Future<bool> clearSessionIfMatches({
+    required String userId,
+    required String sessionId,
+    required String email,
+  }) async {
+    _sessionGeneration += 1;
+    _sessionClearing = true;
+    _refreshInFlight = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_sessionKey);
+      if (!_storedRemoteSessionMatches(
+        raw,
+        userId: userId,
+        sessionId: sessionId,
+        email: email,
+      )) {
+        return false;
+      }
+      final removed = await prefs.remove(_sessionKey);
+      if (!removed) return false;
+      _notifyLocalPrincipalChanged();
+      return prefs.getString(_sessionKey) == null;
+    } catch (error) {
+      debugPrint(
+        '[AuthService] conditional session clear failed: '
+        '${error.runtimeType}',
+      );
+      return false;
+    } finally {
+      _sessionClearing = false;
+      _refreshInFlight = null;
+    }
+  }
+
+  static bool _storedRemoteSessionMatches(
+    String? raw, {
+    required String userId,
+    required String sessionId,
+    required String email,
+  }) {
+    if (raw == null || raw.isEmpty) return false;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return false;
+      final map = Map<String, dynamic>.from(decoded);
+      return map['userId'] is String &&
+          (map['userId'] as String).trim() == userId.trim() &&
+          map['sessionId'] is String &&
+          (map['sessionId'] as String).trim() == sessionId.trim() &&
+          map['email'] is String &&
+          (map['email'] as String).trim().toLowerCase() ==
+              email.trim().toLowerCase();
+    } catch (_) {
+      return false;
     }
   }
 

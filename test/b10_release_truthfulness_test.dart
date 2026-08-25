@@ -247,7 +247,13 @@ void main() {
       expect(source, isNot(contains('VerificationScreen')));
     }
     expect(security, contains('Keine lokale Demo-Verifizierung'));
-    expect(security, contains('!BackendConfig.enabled && !kReleaseMode'));
+    expect(security, contains('AccountSecurityService'));
+    expect(security, contains('_securityService.isAvailable'));
+    expect(
+        security, isNot(contains('!BackendConfig.enabled && !kReleaseMode')));
+    expect(security, isNot(contains('setSecuritySettings')));
+    expect(security, isNot(contains('_toggleTwoFactor')));
+    expect(security, isNot(contains('Future<void>.delayed')));
   });
 
   test(

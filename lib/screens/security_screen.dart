@@ -1,316 +1,296 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart'
-    show debugPrint, kIsWeb, kReleaseMode, defaultTargetPlatform, TargetPlatform;
+    show TargetPlatform, debugPrint, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/security.dart';
 import 'package:lendify/screens/login_screen.dart';
-import 'package:lendify/services/auth_service.dart';
-import 'package:lendify/services/backend_config.dart';
-import 'package:lendify/services/backend_repository.dart';
-import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/account_security_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 
 class SecurityScreen extends StatefulWidget {
-  const SecurityScreen({super.key});
+  final AccountSecurityService? securityService;
+
+  const SecurityScreen({super.key, this.securityService});
 
   @override
   State<SecurityScreen> createState() => _SecurityScreenState();
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  bool _loading = true;
-
-  // Password
+  late final AccountSecurityService _securityService;
+  StreamSubscription<String>? _securityStateSubscription;
   final _currentCtrl = TextEditingController();
   final _nextCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
+
+  bool _loading = true;
   bool _pwBusy = false;
+  bool _devicesBusy = false;
   bool _pwObscureCurrent = true;
   bool _pwObscureNext = true;
   bool _pwObscureConfirm = true;
-
-  // 2FA
-  bool _twoFactorEnabled = false;
-  String _twoFactorMethod = 'sms';
-  bool _twoFactorBusy = false;
-
-  // Devices
+  String? _loadError;
   List<SecurityDevice> _devices = const [];
-  bool _devicesBusy = false;
+  int _loadRevision = 0;
+  int _securityEpoch = 0;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _securityService = widget.securityService ?? const AccountSecurityService();
+    _securityStateSubscription =
+        SharedPersistenceSync.changes.listen(_handleSecurityStateChange);
+    unawaited(_load());
   }
 
   @override
   void dispose() {
+    _loadRevision += 1;
+    _securityEpoch += 1;
+    _securityStateSubscription?.cancel();
     _currentCtrl.dispose();
     _nextCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
   }
 
+  void _handleSecurityStateChange(String key) {
+    if (key != SharedPersistenceSync.accountSecurityStateKey) return;
+    _securityEpoch += 1;
+    _loadRevision += 1;
+    _clearPasswordFields();
+    if (!mounted) return;
+    setState(() {
+      _devices = const [];
+      _loadError = null;
+      _pwBusy = false;
+      _devicesBusy = false;
+      _loading = _securityService.isAvailable;
+    });
+    if (_securityService.isAvailable) unawaited(_load());
+  }
+
+  void _clearPasswordFields() {
+    _currentCtrl.clear();
+    _nextCtrl.clear();
+    _confirmCtrl.clear();
+  }
+
   Future<void> _load() async {
-    try {
-      final s = await DataService.getSecuritySettings();
-      final d = BackendConfig.enabled
-          ? (await BackendRepository.getAuthSessions())
-              .map(SecurityDevice.fromJson)
-              .toList()
-          : await DataService.getSignedInDevices();
-      if (!mounted) return;
+    final revision = ++_loadRevision;
+    if (!_securityService.isAvailable) {
+      if (!mounted || revision != _loadRevision) return;
       setState(() {
-        _twoFactorEnabled = s.enabled;
-        _twoFactorMethod = s.method;
-        _devices = d;
+        _devices = const [];
+        _loadError = null;
         _loading = false;
       });
-    } catch (e) {
-      debugPrint('[SecurityScreen] load failed: $e');
-      if (!mounted) return;
-      setState(() => _loading = false);
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _devices = const [];
+        _loadError = null;
+        _loading = true;
+      });
+    }
+    try {
+      final devices = await _securityService.getSessions();
+      if (!mounted || revision != _loadRevision) return;
+      setState(() {
+        _devices = devices;
+        _loading = false;
+      });
+    } catch (error) {
+      debugPrint('[SecurityScreen] load failed: ${error.runtimeType}');
+      if (!mounted || revision != _loadRevision) return;
+      setState(() {
+        _devices = const [];
+        _loadError = 'Die serverbestätigten Sicherheitsdaten konnten nicht '
+            'geladen werden.';
+        _loading = false;
+      });
     }
   }
 
   bool get _passwordValid {
     final current = _currentCtrl.text;
     final next = _nextCtrl.text;
-    final confirm = _confirmCtrl.text;
     return current.isNotEmpty &&
         _validateNewPassword(next) == null &&
-        next == confirm;
+        next == _confirmCtrl.text;
   }
 
-  String? _validateNewPassword(String v) {
-    final s = v.trim();
-    if (s.length < 10) return 'Mindestens 10 Zeichen';
-    final hasLetter = RegExp(r'\p{L}', unicode: true).hasMatch(s);
-    final hasNumber = RegExp(r'\d').hasMatch(s);
-    if (!hasLetter) return 'Mindestens ein Buchstabe';
-    if (!hasNumber) return 'Mindestens eine Zahl';
+  String? _validateNewPassword(String value) {
+    final password = value.trim();
+    if (password.length < 10) return 'Mindestens 10 Zeichen';
+    if (password.length > 1024) return 'Passwort ist zu lang';
+    if (!RegExp(r'\p{L}', unicode: true).hasMatch(password)) {
+      return 'Mindestens ein Buchstabe';
+    }
+    if (!RegExp(r'\d').hasMatch(password)) {
+      return 'Mindestens eine Zahl';
+    }
     return null;
   }
 
   Future<void> _changePassword() async {
-    if (!_passwordValid || _pwBusy) return;
+    if (!_securityService.isAvailable || !_passwordValid || _pwBusy) return;
+    final operationEpoch = _securityEpoch;
     setState(() => _pwBusy = true);
     try {
-      if (BackendConfig.enabled) {
-        await BackendRepository.changePassword(
-          currentPassword: _currentCtrl.text,
-          newPassword: _nextCtrl.text,
-        );
-        await AuthService.clearSession();
-        if (!mounted) return;
-        await AppPopup.success(
-          context,
-          title: 'Passwort geändert',
-          message: 'Bitte melde dich erneut an.',
-        );
-        if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (_) => false,
-        );
-        return;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 650));
+      await _securityService.changePassword(
+        currentPassword: _currentCtrl.text,
+        newPassword: _nextCtrl.text,
+      );
       if (!mounted) return;
-      _currentCtrl.clear();
-      _nextCtrl.clear();
-      _confirmCtrl.clear();
+      _clearPasswordFields();
       setState(() {});
-      AppPopup.success(context, title: 'Passwort geändert');
-    } catch (e) {
-      debugPrint('[SecurityScreen] changePassword failed: $e');
+      await AppPopup.success(
+        context,
+        title: 'Passwort geändert',
+        message: 'Bitte melde dich erneut an.',
+      );
       if (!mounted) return;
-      AppPopup.error(
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    } catch (error) {
+      debugPrint(
+          '[SecurityScreen] changePassword failed: ${error.runtimeType}');
+      if (!mounted || operationEpoch != _securityEpoch) return;
+      await AppPopup.error(
         context,
         title: 'Passwort nicht geändert',
-        message: 'Bitte prüfe deine Eingaben und versuche es erneut.',
+        message: 'Die serverseitige Bestätigung ist fehlgeschlagen. '
+            'Bitte prüfe deine Sitzung und versuche es erneut.',
       );
     } finally {
-      if (mounted) setState(() => _pwBusy = false);
-    }
-  }
-
-  Future<void> _toggleTwoFactor(bool enabled) async {
-    if (_twoFactorBusy) return;
-    setState(() => _twoFactorBusy = true);
-    try {
-      final next = SecuritySettings(enabled: enabled, method: _twoFactorMethod);
-      await DataService.setSecuritySettings(next);
-      if (!mounted) return;
-      setState(() => _twoFactorEnabled = enabled);
-    } catch (e) {
-      debugPrint('[SecurityScreen] setSecuritySettings failed: $e');
-      if (!mounted) return;
-      AppPopup.error(
-        context,
-        title: 'Zwei-Faktor-Schutz nicht gespeichert',
-        message: 'Bitte versuche es erneut.',
-      );
-    } finally {
-      if (mounted) setState(() => _twoFactorBusy = false);
-    }
-  }
-
-  Future<void> _openTwoFactorSetupSheet() async {
-    if (_twoFactorBusy) return;
-    final theme = Theme.of(context);
-    final chosen = await showModalBottomSheet<String>(
-      context: context,
-      useSafeArea: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return _TwoFactorSetupSheet(
-          initialMethod: _twoFactorMethod,
-          primary: theme.colorScheme.primary,
-        );
-      },
-    );
-    if (!mounted || chosen == null) return;
-    await _setTwoFactorMethod(chosen);
-    if (!mounted) return;
-    await _toggleTwoFactor(true);
-  }
-
-  Future<void> _setTwoFactorMethod(String method) async {
-    if (_twoFactorBusy) return;
-    setState(() {
-      _twoFactorMethod = method;
-      _twoFactorBusy = true;
-    });
-    try {
-      await DataService.setSecuritySettings(
-          SecuritySettings(enabled: _twoFactorEnabled, method: method));
-    } catch (e) {
-      debugPrint('[SecurityScreen] setTwoFactorMethod failed: $e');
-    } finally {
-      if (mounted) setState(() => _twoFactorBusy = false);
+      if (mounted && operationEpoch == _securityEpoch) {
+        setState(() => _pwBusy = false);
+      }
     }
   }
 
   Future<void> _signOutDevice(SecurityDevice device) async {
-    if (_devicesBusy) return;
-    final ok = await showDialog<bool>(
+    if (!_securityService.isAvailable || _devicesBusy || device.isThisDevice) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
           context: context,
           barrierDismissible: true,
-          builder: (ctx) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             title: const Text('Gerät abmelden?'),
             content: Text('Du wirst auf „${device.name}“ abgemeldet.'),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Abbrechen')),
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Abbrechen'),
+              ),
               FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Abmelden')),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Abmelden'),
+              ),
             ],
           ),
         ) ??
         false;
-    if (!ok) return;
+    if (!confirmed || !mounted) return;
 
+    final operationEpoch = _securityEpoch;
     setState(() => _devicesBusy = true);
     try {
-      final next = _devices.where((d) => d.id != device.id).toList();
-      if (BackendConfig.enabled) {
-        await BackendRepository.revokeAuthSession(device.id);
-      } else {
-        await DataService.setSignedInDevices(next);
-      }
-      if (!mounted) return;
-      setState(() => _devices = next);
-    } catch (e) {
-      debugPrint('[SecurityScreen] signOutDevice failed: $e');
-      if (!mounted) return;
-      AppPopup.error(
+      await _securityService.revokeSession(device.id);
+      if (!mounted || operationEpoch != _securityEpoch) return;
+      setState(() {
+        _devices = _devices.where((entry) => entry.id != device.id).toList();
+      });
+    } catch (error) {
+      debugPrint('[SecurityScreen] revokeSession failed: ${error.runtimeType}');
+      if (!mounted || operationEpoch != _securityEpoch) return;
+      await AppPopup.error(
         context,
         title: 'Gerät nicht abgemeldet',
-        message: 'Bitte versuche es erneut.',
+        message: 'Die serverseitige Bestätigung ist fehlgeschlagen. '
+            'Bitte lade die Sitzungsliste erneut.',
       );
     } finally {
-      if (mounted) setState(() => _devicesBusy = false);
+      if (mounted && operationEpoch == _securityEpoch) {
+        setState(() => _devicesBusy = false);
+      }
     }
   }
 
   Future<void> _logoutAllDevices() async {
-    if (_devicesBusy) return;
-    final ok = await showDialog<bool>(
+    if (!_securityService.isAvailable || _devicesBusy) return;
+    final confirmed = await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             title: const Text('Alle Geräte abmelden?'),
             content: const Text(
-                'Alle Sitzungen werden sofort beendet. Du musst dich anschließend neu anmelden.'),
+              'Alle serverseitigen Sitzungen werden beendet. Du musst dich '
+              'anschließend neu anmelden.',
+            ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Abbrechen')),
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Abbrechen'),
+              ),
               FilledButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Alle abmelden')),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Alle abmelden'),
+              ),
             ],
           ),
         ) ??
         false;
-    if (!ok) return;
+    if (!confirmed || !mounted) return;
+
+    final operationEpoch = _securityEpoch;
     setState(() => _devicesBusy = true);
     try {
-      if (BackendConfig.enabled) {
-        await BackendRepository.logoutAllSessions();
-        await AuthService.clearSession();
-        if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (_) => false,
-        );
-      } else {
-        await DataService.setSignedInDevices(const []);
-        if (mounted) setState(() => _devices = const []);
-      }
-    } catch (e) {
-      debugPrint('[SecurityScreen] logoutAllDevices failed: $e');
-      if (mounted) {
-        AppPopup.error(
-          context,
-          title: 'Geräte nicht abgemeldet',
-          message: 'Bitte versuche es erneut.',
-        );
-      }
+      await _securityService.logoutAllSessions();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    } catch (error) {
+      debugPrint('[SecurityScreen] logoutAll failed: ${error.runtimeType}');
+      if (!mounted || operationEpoch != _securityEpoch) return;
+      await AppPopup.error(
+        context,
+        title: 'Geräte nicht abgemeldet',
+        message: 'Die serverseitige Bestätigung ist fehlgeschlagen. '
+            'Deine lokale Sitzung bleibt unverändert.',
+      );
     } finally {
-      if (mounted) setState(() => _devicesBusy = false);
+      if (mounted && operationEpoch == _securityEpoch) {
+        setState(() => _devicesBusy = false);
+      }
     }
   }
 
   String _deviceNameThisPlatform() {
     if (kIsWeb) return 'Browser';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.iOS:
-        return 'iPhone';
-      case TargetPlatform.android:
-        return 'Android';
-      case TargetPlatform.macOS:
-        return 'Mac';
-      case TargetPlatform.windows:
-        return 'Windows';
-      case TargetPlatform.linux:
-        return 'Linux';
-      case TargetPlatform.fuchsia:
-        return 'Gerät';
-    }
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.iOS => 'iPhone',
+      TargetPlatform.android => 'Android',
+      TargetPlatform.macOS => 'Mac',
+      TargetPlatform.windows => 'Windows',
+      TargetPlatform.linux => 'Linux',
+      TargetPlatform.fuchsia => 'Gerät',
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
     return Stack(children: [
       Positioned.fill(
         child: BackdropFilter(
@@ -329,362 +309,289 @@ class _SecurityScreenState extends State<SecurityScreen> {
           title: const Text('Sicherheit'),
           centerTitle: true,
           leading: IconButton(
-              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).maybePop()),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
         ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : SafeArea(
-                top: false,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                      16, kToolbarHeight + 18, 16, 22),
+        body: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              16,
+              kToolbarHeight + 18,
+              16,
+              22,
+            ),
+            children: [
+              Text(
+                'Sicherheit',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Sicherheitsaktionen werden erst nach einer serverseitigen '
+                'Bestätigung als erfolgreich angezeigt.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white70,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const _SectionHeader(
+                title: 'Identitätsverifizierung',
+                icon: Icons.verified_user_outlined,
+              ),
+              const SizedBox(height: 10),
+              const _UnavailableCard(
+                title: 'Noch nicht verfügbar',
+                message: 'Keine lokale Demo-Verifizierung. Bis ein geprüfter '
+                    'Anbieter angebunden und '
+                    'freigegeben ist, nimmt ShareItToo keine Ausweise oder '
+                    'Selfies entgegen.',
+              ),
+              const SizedBox(height: 18),
+              const _SectionHeader(title: 'Passwort', icon: Icons.lock_outline),
+              const SizedBox(height: 10),
+              if (_securityService.isAvailable)
+                _passwordCard(theme)
+              else
+                const _UnavailableCard(
+                  title: 'Kontosicherheit ist offline nicht verfügbar.',
+                  message: 'Ohne serverseitige Anmeldung kann ShareItToo das '
+                      'aktuelle Passwort weder prüfen noch ändern. Es wird '
+                      'kein lokaler Erfolg simuliert.',
+                ),
+              const SizedBox(height: 18),
+              const _SectionHeader(
+                title: 'Zwei‑Faktor‑Authentifizierung',
+                icon: Icons.phonelink_lock_outlined,
+              ),
+              const SizedBox(height: 10),
+              const _UnavailableCard(
+                title: 'Zwei-Faktor-Schutz ist noch nicht verfügbar.',
+                message: 'Eine lokale Einstellung schützt keine Anmeldung. '
+                    'Aktivierung und Codes bleiben bis zu einem '
+                    'serverautoritativen Flow deaktiviert.',
+              ),
+              const SizedBox(height: 18),
+              const _SectionHeader(
+                title: 'Angemeldete Geräte',
+                icon: Icons.devices_outlined,
+              ),
+              const SizedBox(height: 10),
+              if (_securityService.isAvailable)
+                _deviceCard(theme)
+              else
+                const _UnavailableCard(
+                  title: 'Keine lokale Sitzungsliste',
+                  message: 'Geräte und Abmeldungen werden nur aus einer '
+                      'serverbestätigten Kontositzung angezeigt. Demo-Geräte '
+                      'sind keine Kontowahrheit.',
+                ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.10),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Sicherheit',
-                        style: theme.textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Schütze dein Konto und bestätige deine Identität, um Vertrauen auf der Plattform aufzubauen.',
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: Colors.white70, height: 1.45),
-                    ),
-                    const SizedBox(height: 18),
-                    _SectionHeader(
-                        title: 'Identitätsverifizierung',
-                        icon: Icons.verified_user_outlined),
-                    const SizedBox(height: 10),
-                    _SectionCard(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _StatusPill(
-                              icon: Icons.schedule_outlined,
-                              label: 'Noch nicht verfügbar',
-                              tone: _PillTone.neutral,
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Vor dem Produktionsstart wird ein geprüfter Identitätsanbieter angebunden. Bis dahin nimmt ShareItToo keine Ausweise oder Selfies entgegen.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white70, height: 1.45),
-                            ),
-                            const SizedBox(height: 10),
-                            _MiniBullets(items: const [
-                              'Keine lokale Demo-Verifizierung',
-                              'Keine Speicherung von Ausweisen oder Selfies',
-                              'Freigabe erst nach sicherer Anbieteranbindung',
-                            ]),
-                          ]),
-                    ),
-                    const SizedBox(height: 18),
-                    _SectionHeader(title: 'Passwort', icon: Icons.lock_outline),
-                    const SizedBox(height: 10),
-                    _SectionCard(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextField(
-                              controller: _currentCtrl,
-                              obscureText: _pwObscureCurrent,
-                              onChanged: (_) => setState(() {}),
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                labelText: 'Aktuelles Passwort',
-                                suffixIcon: IconButton(
-                                  tooltip: _pwObscureCurrent
-                                      ? 'Anzeigen'
-                                      : 'Verbergen',
-                                  onPressed: () => setState(() =>
-                                      _pwObscureCurrent = !_pwObscureCurrent),
-                                  icon: Icon(_pwObscureCurrent
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _nextCtrl,
-                              obscureText: _pwObscureNext,
-                              onChanged: (_) => setState(() {}),
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.password_outlined),
-                                labelText: 'Neues Passwort',
-                                errorText: _nextCtrl.text.isEmpty
-                                    ? null
-                                    : _validateNewPassword(_nextCtrl.text),
-                                suffixIcon: IconButton(
-                                  tooltip:
-                                      _pwObscureNext ? 'Anzeigen' : 'Verbergen',
-                                  onPressed: () => setState(
-                                      () => _pwObscureNext = !_pwObscureNext),
-                                  icon: Icon(_pwObscureNext
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _confirmCtrl,
-                              obscureText: _pwObscureConfirm,
-                              onChanged: (_) => setState(() {}),
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    const Icon(Icons.check_circle_outline),
-                                labelText: 'Neues Passwort bestätigen',
-                                errorText: _confirmCtrl.text.isEmpty
-                                    ? null
-                                    : (_confirmCtrl.text == _nextCtrl.text
-                                        ? null
-                                        : 'Passwörter stimmen nicht überein'),
-                                suffixIcon: IconButton(
-                                  tooltip: _pwObscureConfirm
-                                      ? 'Anzeigen'
-                                      : 'Verbergen',
-                                  onPressed: () => setState(() =>
-                                      _pwObscureConfirm = !_pwObscureConfirm),
-                                  icon: Icon(_pwObscureConfirm
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            _MiniBullets(items: const [
-                              'Mindestens 10 Zeichen',
-                              'Mindestens ein Buchstabe',
-                              'Mindestens eine Zahl'
-                            ]),
-                            const SizedBox(height: 14),
-                            FilledButton(
-                              onPressed: _passwordValid && !_pwBusy
-                                  ? _changePassword
-                                  : null,
-                              style: FilledButton.styleFrom(
-                                  backgroundColor: primary),
-                              child: _pwBusy
-                                  ? const SizedBox(
-                                      height: 18,
-                                      width: 18,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white),
-                                    )
-                                  : const Text('Passwort ändern',
-                                      style: TextStyle(color: Colors.white)),
-                            ),
-                          ]),
-                    ),
-                    const SizedBox(height: 18),
-                    if (!BackendConfig.enabled && !kReleaseMode) ...[
-                      _SectionHeader(
-                          title: 'Zwei‑Faktor‑Authentifizierung',
-                          icon: Icons.phonelink_lock_outlined),
-                      const SizedBox(height: 10),
-                      _SectionCard(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Aktiviere eine zusätzliche Sicherheitsebene für dein Konto.',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70, height: 1.45),
-                              ),
-                              const SizedBox(height: 12),
-                              Row(children: [
-                                Expanded(
-                                  child: _StatusPill(
-                                    icon: _twoFactorEnabled
-                                        ? Icons.check_circle_rounded
-                                        : Icons.remove_circle_outline,
-                                    label: _twoFactorEnabled
-                                        ? 'Aktiviert'
-                                        : 'Deaktiviert',
-                                    tone: _twoFactorEnabled
-                                        ? _PillTone.success
-                                        : _PillTone.neutral,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                if (_twoFactorEnabled)
-                                  TextButton(
-                                    onPressed: _twoFactorBusy
-                                        ? null
-                                        : () => _toggleTwoFactor(false),
-                                    child: const Text('Deaktivieren',
-                                        style: TextStyle(color: Colors.white)),
-                                  ),
-                              ]),
-                              const SizedBox(height: 12),
-                              if (_twoFactorEnabled)
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.06),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                        color: Colors.white
-                                            .withValues(alpha: 0.10)),
-                                  ),
-                                  child: Row(children: [
-                                    Icon(
-                                      _twoFactorMethod == 'sms'
-                                          ? Icons.sms_outlined
-                                          : Icons.shield_outlined,
-                                      color: primary,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        _twoFactorMethod == 'sms'
-                                            ? 'Methode: SMS‑Code'
-                                            : 'Methode: Authenticator‑App',
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                                color: Colors.white70,
-                                                height: 1.35),
-                                      ),
-                                    ),
-                                    TextButton(
-                                      onPressed: _twoFactorBusy
-                                          ? null
-                                          : () async {
-                                              final method =
-                                                  await showModalBottomSheet<
-                                                      String>(
-                                                context: context,
-                                                useSafeArea: true,
-                                                isScrollControlled: true,
-                                                backgroundColor:
-                                                    Colors.transparent,
-                                                builder: (ctx) =>
-                                                    _TwoFactorSetupSheet(
-                                                  initialMethod:
-                                                      _twoFactorMethod,
-                                                  primary: primary,
-                                                  showEnableButton: false,
-                                                ),
-                                              );
-                                              if (!mounted || method == null) {
-                                                return;
-                                              }
-                                              await _setTwoFactorMethod(method);
-                                            },
-                                      child: const Text('Ändern',
-                                          style:
-                                              TextStyle(color: Colors.white)),
-                                    ),
-                                  ]),
-                                )
-                              else
-                                FilledButton.icon(
-                                  onPressed: _twoFactorBusy
-                                      ? null
-                                      : _openTwoFactorSetupSheet,
-                                  icon: const Icon(Icons.verified_user_outlined,
-                                      color: Colors.white),
-                                  label: const Text(
-                                      '2‑Faktor‑Authentifizierung aktivieren',
-                                      style: TextStyle(color: Colors.white)),
-                                ),
-                            ]),
+                    Icon(Icons.info_outline_rounded,
+                        color: theme.colorScheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Teile dein Passwort niemals mit anderen. Bei einer '
+                        'unklaren oder abgelaufenen Sitzung melde dich neu an.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white70,
+                          height: 1.45,
+                        ),
                       ),
-                      const SizedBox(height: 18),
-                    ],
-                    _SectionHeader(
-                        title: 'Angemeldete Geräte',
-                        icon: Icons.devices_outlined),
-                    const SizedBox(height: 10),
-                    _SectionCard(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'Hier siehst du, auf welchen Geräten dein Konto aktuell angemeldet ist.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.white70, height: 1.45),
-                            ),
-                            const SizedBox(height: 12),
-                            if (_devices.isEmpty)
-                              Text('Keine Geräte gefunden.',
-                                  style: theme.textTheme.bodySmall
-                                      ?.copyWith(color: Colors.white60))
-                            else
-                              for (final d in _devices) ...[
-                                _DeviceTile(
-                                  device: d,
-                                  isThisDevice: d.isThisDevice,
-                                  thisPlatformName: _deviceNameThisPlatform(),
-                                  onSignOut: (d.isThisDevice || _devicesBusy)
-                                      ? null
-                                      : () => _signOutDevice(d),
-                                ),
-                                if (d.id != _devices.last.id)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    child: Divider(
-                                        height: 1,
-                                        thickness: 1,
-                                        color: Colors.white
-                                            .withValues(alpha: 0.10)),
-                                  ),
-                              ],
-                            const SizedBox(height: 4),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                'Dieses Gerät: ${_deviceNameThisPlatform()}',
-                                style: theme.textTheme.bodySmall
-                                    ?.copyWith(color: Colors.white60),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed:
-                                  _devicesBusy ? null : _logoutAllDevices,
-                              icon: const Icon(Icons.logout_outlined),
-                              label: const Text('Alle Geräte abmelden'),
-                            ),
-                          ]),
-                    ),
-                    const SizedBox(height: 18),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.10)),
-                      ),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.info_outline_rounded, color: primary),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Teile dein Passwort niemals mit anderen und überprüfe regelmäßig deine Sicherheits­einstellungen.',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70, height: 1.45),
-                              ),
-                            ),
-                          ]),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
       ),
     ]);
   }
+
+  Widget _passwordCard(ThemeData theme) => _SectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _currentCtrl,
+              obscureText: _pwObscureCurrent,
+              onChanged: (_) => setState(() {}),
+              autofillHints: const [AutofillHints.password],
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.lock_outline),
+                labelText: 'Aktuelles Passwort',
+                suffixIcon: IconButton(
+                  tooltip: _pwObscureCurrent ? 'Anzeigen' : 'Verbergen',
+                  onPressed: () => setState(
+                    () => _pwObscureCurrent = !_pwObscureCurrent,
+                  ),
+                  icon: Icon(
+                    _pwObscureCurrent
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _nextCtrl,
+              obscureText: _pwObscureNext,
+              onChanged: (_) => setState(() {}),
+              autofillHints: const [AutofillHints.newPassword],
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.password_outlined),
+                labelText: 'Neues Passwort',
+                errorText: _nextCtrl.text.isEmpty
+                    ? null
+                    : _validateNewPassword(_nextCtrl.text),
+                suffixIcon: IconButton(
+                  tooltip: _pwObscureNext ? 'Anzeigen' : 'Verbergen',
+                  onPressed: () =>
+                      setState(() => _pwObscureNext = !_pwObscureNext),
+                  icon: Icon(
+                    _pwObscureNext
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _confirmCtrl,
+              obscureText: _pwObscureConfirm,
+              onChanged: (_) => setState(() {}),
+              autofillHints: const [AutofillHints.newPassword],
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.check_circle_outline),
+                labelText: 'Neues Passwort bestätigen',
+                errorText: _confirmCtrl.text.isEmpty
+                    ? null
+                    : (_confirmCtrl.text == _nextCtrl.text
+                        ? null
+                        : 'Passwörter stimmen nicht überein'),
+                suffixIcon: IconButton(
+                  tooltip: _pwObscureConfirm ? 'Anzeigen' : 'Verbergen',
+                  onPressed: () => setState(
+                    () => _pwObscureConfirm = !_pwObscureConfirm,
+                  ),
+                  icon: Icon(
+                    _pwObscureConfirm
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Mindestens 10 Zeichen, ein Buchstabe und eine Zahl.',
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+            ),
+            const SizedBox(height: 14),
+            FilledButton(
+              onPressed: _passwordValid && !_pwBusy ? _changePassword : null,
+              child: _pwBusy
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Passwort ändern',
+                      style: TextStyle(color: Colors.white),
+                    ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _deviceCard(ThemeData theme) => _SectionCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Nur aktuell serverbestätigte Sitzungen werden angezeigt.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white70,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_loadError != null) ...[
+              Text(
+                _loadError!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: BrandColors.danger,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _devicesBusy ? null : _load,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Erneut laden'),
+              ),
+            ] else ...[
+              for (var index = 0; index < _devices.length; index++) ...[
+                _DeviceTile(
+                  device: _devices[index],
+                  isThisDevice: _devices[index].isThisDevice,
+                  thisPlatformName: _deviceNameThisPlatform(),
+                  onSignOut: _devices[index].isThisDevice || _devicesBusy
+                      ? null
+                      : () => _signOutDevice(_devices[index]),
+                ),
+                if (index + 1 < _devices.length)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Colors.white.withValues(alpha: 0.10),
+                    ),
+                  ),
+              ],
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _devicesBusy ? null : _logoutAllDevices,
+                icon: const Icon(Icons.logout_outlined),
+                label: const Text('Alle Geräte abmelden'),
+              ),
+            ],
+          ],
+        ),
+      );
 }
 
 class _SectionHeader extends StatelessWidget {
   final String title;
   final IconData icon;
+
   const _SectionHeader({required this.title, required this.icon});
 
   @override
@@ -694,110 +601,101 @@ class _SectionHeader extends StatelessWidget {
       Icon(icon, size: 18, color: theme.colorScheme.primary),
       const SizedBox(width: 10),
       Expanded(
-          child: Text(title,
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800))),
+        child: Text(
+          title,
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ),
     ]);
   }
 }
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
+
   const _SectionCard({required this.child});
 
   @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: child,
+      );
+}
+
+class _UnavailableCard extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const _UnavailableCard({required this.title, required this.message});
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+    final theme = Theme.of(context);
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _StatusPill(
+            icon: Icons.schedule_outlined,
+            label: 'Nicht aktiv',
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white70,
+              height: 1.45,
+            ),
+          ),
+        ],
       ),
-      child: child,
     );
   }
 }
-
-enum _PillTone { success, danger, neutral }
 
 class _StatusPill extends StatelessWidget {
   final IconData icon;
   final String label;
-  final _PillTone tone;
-  const _StatusPill(
-      {required this.icon, required this.label, required this.tone});
+
+  const _StatusPill({required this.icon, required this.label});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final Color bg;
-    final Color border;
-    final Color fg;
-    switch (tone) {
-      case _PillTone.success:
-        bg = BrandColors.success.withValues(alpha: 0.18);
-        border = BrandColors.success.withValues(alpha: 0.35);
-        fg = BrandColors.success;
-        break;
-      case _PillTone.danger:
-        bg = BrandColors.danger.withValues(alpha: 0.18);
-        border = BrandColors.danger.withValues(alpha: 0.35);
-        fg = BrandColors.danger;
-        break;
-      case _PillTone.neutral:
-        bg = Colors.white.withValues(alpha: 0.08);
-        border = Colors.white.withValues(alpha: 0.14);
-        fg = theme.colorScheme.primary;
-        break;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: border)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 18, color: fg),
-        const SizedBox(width: 8),
-        Flexible(
-            child: Text(label,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800))),
-      ]),
-    );
-  }
-}
-
-class _MiniBullets extends StatelessWidget {
-  final List<String> items;
-  const _MiniBullets({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final t in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Icon(Icons.check_rounded,
-                    size: 16, color: theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: Text(t,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: Colors.white70, height: 1.35))),
-            ]),
+  Widget build(BuildContext context) => Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
           ),
-      ],
-    );
-  }
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 18, color: Colors.white70),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ]),
+        ),
+      );
 }
 
 class _DeviceTile extends StatelessWidget {
@@ -805,20 +703,22 @@ class _DeviceTile extends StatelessWidget {
   final bool isThisDevice;
   final String thisPlatformName;
   final VoidCallback? onSignOut;
-  const _DeviceTile(
-      {required this.device,
-      required this.isThisDevice,
-      required this.thisPlatformName,
-      required this.onSignOut});
+
+  const _DeviceTile({
+    required this.device,
+    required this.isThisDevice,
+    required this.thisPlatformName,
+    required this.onSignOut,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final rawName = device.name.trim();
-    final deviceName = isThisDevice &&
-            (rawName.isEmpty || rawName == 'Unbekanntes Gerät')
-        ? thisPlatformName
-        : (rawName.isEmpty ? 'Unbekanntes Gerät' : rawName);
+    final deviceName =
+        isThisDevice && (rawName.isEmpty || rawName == 'Unbekanntes Gerät')
+            ? thisPlatformName
+            : (rawName.isEmpty ? 'Unbekanntes Gerät' : rawName);
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
         width: 38,
@@ -827,11 +727,12 @@ class _DeviceTile extends StatelessWidget {
           color: theme.colorScheme.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.22)),
+            color: theme.colorScheme.primary.withValues(alpha: 0.22),
+          ),
         ),
         child: Center(
-            child:
-                Icon(device.icon, color: theme.colorScheme.primary, size: 18)),
+          child: Icon(device.icon, color: theme.colorScheme.primary, size: 18),
+        ),
       ),
       const SizedBox(width: 10),
       Expanded(
@@ -841,14 +742,18 @@ class _DeviceTile extends StatelessWidget {
               child: Text(
                 deviceName + (isThisDevice ? ' (Dieses Gerät)' : ''),
                 style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white, fontWeight: FontWeight.w800),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             if (onSignOut != null)
               TextButton(
                 onPressed: onSignOut,
-                child: const Text('Abmelden',
-                    style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Abmelden',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
           ]),
           const SizedBox(height: 2),
@@ -859,188 +764,5 @@ class _DeviceTile extends StatelessWidget {
         ]),
       ),
     ]);
-  }
-}
-
-class _TwoFactorSetupSheet extends StatefulWidget {
-  final String initialMethod;
-  final Color primary;
-  final bool showEnableButton;
-  const _TwoFactorSetupSheet(
-      {required this.initialMethod,
-      required this.primary,
-      this.showEnableButton = true});
-
-  @override
-  State<_TwoFactorSetupSheet> createState() => _TwoFactorSetupSheetState();
-}
-
-class _TwoFactorSetupSheetState extends State<_TwoFactorSetupSheet> {
-  late String _method;
-
-  @override
-  void initState() {
-    super.initState();
-    _method = widget.initialMethod;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: MediaQuery.viewInsetsOf(context),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.82),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-        child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(children: [
-                Expanded(
-                    child: Text('2‑Faktor‑Authentifizierung',
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w900))),
-                IconButton(
-                  tooltip: 'Schließen',
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.close_rounded, color: Colors.white),
-                ),
-              ]),
-              const SizedBox(height: 6),
-              Text(
-                'Wähle eine Methode. Beim Login musst du dann zusätzlich einen Code bestätigen.',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: Colors.white70, height: 1.4),
-              ),
-              const SizedBox(height: 14),
-              _TwoFactorMethodTile(
-                title: 'SMS‑Code',
-                subtitle: 'Code wird per SMS gesendet.',
-                icon: Icons.sms_outlined,
-                primary: widget.primary,
-                selected: _method == 'sms',
-                onTap: () => setState(() => _method = 'sms'),
-              ),
-              const SizedBox(height: 10),
-              _TwoFactorMethodTile(
-                title: 'Authenticator‑App',
-                subtitle: 'Bestätigung über z. B. Google Authenticator.',
-                icon: Icons.shield_outlined,
-                primary: widget.primary,
-                selected: _method == 'auth',
-                onTap: () => setState(() => _method = 'auth'),
-              ),
-              const SizedBox(height: 16),
-              if (widget.showEnableButton)
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(_method),
-                  style:
-                      FilledButton.styleFrom(backgroundColor: widget.primary),
-                  child: const Text('Aktivieren',
-                      style: TextStyle(color: Colors.white)),
-                )
-              else
-                FilledButton(
-                  onPressed: () => Navigator.of(context).pop(_method),
-                  style:
-                      FilledButton.styleFrom(backgroundColor: widget.primary),
-                  child: const Text('Speichern',
-                      style: TextStyle(color: Colors.white)),
-                ),
-            ]),
-      ),
-    );
-  }
-}
-
-class _TwoFactorMethodTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color primary;
-  final bool selected;
-  final VoidCallback onTap;
-  const _TwoFactorMethodTile({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.primary,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: selected
-                ? primary.withValues(alpha: 0.12)
-                : Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: selected
-                    ? primary.withValues(alpha: 0.45)
-                    : Colors.white.withValues(alpha: 0.10)),
-          ),
-          child: Row(children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: selected
-                    ? primary.withValues(alpha: 0.18)
-                    : Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: selected
-                        ? primary.withValues(alpha: 0.45)
-                        : Colors.white.withValues(alpha: 0.10)),
-              ),
-              child: Center(
-                  child: Icon(icon,
-                      color: selected ? primary : Colors.white70, size: 20)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white, fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: Colors.white70, height: 1.35)),
-                  ]),
-            ),
-            const SizedBox(width: 10),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 140),
-              child: selected
-                  ? const Icon(Icons.check_circle_rounded,
-                      key: ValueKey('on'), color: Colors.white)
-                  : Icon(Icons.circle_outlined,
-                      key: const ValueKey('off'),
-                      color: Colors.white.withValues(alpha: 0.35)),
-            ),
-          ]),
-        ),
-      ),
-    );
   }
 }

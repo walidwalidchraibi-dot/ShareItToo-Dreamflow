@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
 import 'auth_service.dart';
@@ -58,6 +59,26 @@ class BackendRepository {
         .toList();
   }
 
+  static List<Map<String, dynamic>> _strictMaps(Object? value) {
+    if (value is! List) {
+      throw const FormatException('Expected a server list.');
+    }
+    final result = <Map<String, dynamic>>[];
+    for (final entry in value) {
+      if (entry is! Map) {
+        throw const FormatException('Expected a server object.');
+      }
+      result.add(Map<String, dynamic>.from(entry));
+    }
+    return result;
+  }
+
+  @visibleForTesting
+  static List<Map<String, dynamic>> strictAuthSessionsForTesting(
+    Object? value,
+  ) =>
+      _strictMaps(value);
+
   static Future<Map<String, dynamic>> getCurrentProfile() async {
     final response = await _authorized(method: 'GET', path: '/auth/me');
     return Map<String, dynamic>.from(response['user'] as Map);
@@ -65,7 +86,7 @@ class BackendRepository {
 
   static Future<List<Map<String, dynamic>>> getAuthSessions() async {
     final response = await _authorized(method: 'GET', path: '/auth/sessions');
-    return _maps(response['sessions']);
+    return _strictMaps(response['sessions']);
   }
 
   static Future<void> revokeAuthSession(String sessionId) async {

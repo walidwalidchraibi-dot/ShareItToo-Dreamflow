@@ -16,6 +16,7 @@ class SharedPersistenceSync {
       'local_safety_privacy_state_v1';
   static const String listingCatalogKey = 'items';
   static const String reviewReputationKey = 'multi_reviews_v1';
+  static const String accountSecurityStateKey = 'account_security_state_v1';
   static const String legacyWishlistStateKey = 'wishlist_state_v2';
   static const String legacyRentalCartKey = 'rental_cart_v1';
 
@@ -33,6 +34,7 @@ class SharedPersistenceSync {
     localSafetyPrivacyStateKey,
     listingCatalogKey,
     reviewReputationKey,
+    accountSecurityStateKey,
     legacyWishlistStateKey,
     legacyRentalCartKey,
   };

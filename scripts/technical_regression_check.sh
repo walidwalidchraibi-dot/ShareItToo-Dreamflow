@@ -379,6 +379,11 @@ node --test \
   test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs \
   test/tool/validate_rw9_local_account_profile_authorization_durability.test.mjs
 node tool/validate_rw9_local_account_profile_authorization_durability.mjs
+node --check tool/validate_rw10_local_security_control_truthfulness.mjs
+node --test \
+  test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs \
+  test/tool/validate_rw10_local_security_control_truthfulness.test.mjs
+node tool/validate_rw10_local_security_control_truthfulness.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -929,6 +934,11 @@ flutter test --reporter expanded \
 # corruption, capacity, privacy export and deactivation boundary matrix.
 flutter test --reporter expanded \
   test/rw9_local_account_profile_authorization_durability_test.dart
+
+# Retain RW10's server-authoritative account-security, strict session-list,
+# exact-session clear, stale-response and offline truthfulness matrix.
+flutter test --reporter expanded \
+  test/rw10_local_security_control_truthfulness_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

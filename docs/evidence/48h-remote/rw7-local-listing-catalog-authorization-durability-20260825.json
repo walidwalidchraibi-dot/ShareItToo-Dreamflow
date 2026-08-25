@@ -114,8 +114,8 @@
   },
   "ratchets": {
     "reason": "validated-local-listing-lifecycle-privacy-and-retention-source-change",
-    "privacyManifestSha256": "703a8d7cfddc5b7210521136f81db24cdf04c8ff00a66b8fbe11a9fdf6dfe6e4",
-    "retentionManifestSha256": "c870b4f9ae98640482abfb8b4f836d99c05a51742cc1af6cd00ebfdf184fe34b",
+    "privacyManifestSha256": "e5ae03d2d63a858a65d571e0ec92c9a9462a90f33ec73ee6a66ba3afed5b800e",
+    "retentionManifestSha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -169,11 +169,11 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "963ee2538ef822d677eea7e001cf3936574af95b28e1d9d1af3452cac0435bef"
+      "sha256": "11bad619a4bf652e91c50fc493b892632407e9d0858c596267181431bb2bb5f5"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
-      "sha256": "27c5e17a28e4746ebcc9b7655ec8e96e4b6a0fe64ccece4868d55e2893bfd655"
+      "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"
     },
     {
       "path": "store/g2-data-lifecycle.json",
@@ -181,11 +181,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "703a8d7cfddc5b7210521136f81db24cdf04c8ff00a66b8fbe11a9fdf6dfe6e4"
+      "sha256": "e5ae03d2d63a858a65d571e0ec92c9a9462a90f33ec73ee6a66ba3afed5b800e"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "c870b4f9ae98640482abfb8b4f836d99c05a51742cc1af6cd00ebfdf184fe34b"
+      "sha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -201,15 +201,15 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "c79c2a3dfb3fd12d5abef08bce5f65db0ae82b023ed23e7404107a08bb939057"
+      "sha256": "4da2f4df078ce7fc6d8a58b040208deb953ce2f3ef1f62ed2afc63eadff49ec4"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "2dff22f3b4e4e77f85191434ea39a08fc202d0287313babbbf32fde4e240a0fe"
+      "sha256": "3d55d0bfa5d45a1ecd7fbf1d2dea1782e3c4f00b31d2050a668382d4052e0ef0"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "3671bde997ceba90f7b1d973ec37d147db0fd6b7b15721d046f775210f225c33"
+      "sha256": "05faf062a6054774ef205538fe24189e40cd19e10156573f19e9db60057ebdc1"
     },
     {
       "path": "test/rw7_local_listing_catalog_authorization_durability_test.dart",

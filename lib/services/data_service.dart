@@ -30,7 +30,6 @@ import 'package:lendify/models/review.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/models/message.dart';
-import 'package:lendify/models/security.dart';
 import 'package:lendify/utils/booking_flow_policy.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 
@@ -847,103 +846,6 @@ class DataService {
       }
     }
     return MessageThread.fromJson(raw);
-  }
-
-  // Security
-  static const String _securitySettingsKey = 'security_settings_v1';
-  static const String _signedInDevicesKey = 'signed_in_devices_v1';
-
-  static Future<SecuritySettings> getSecuritySettings() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_securitySettingsKey);
-      if (raw == null || raw.isEmpty) {
-        return const SecuritySettings(enabled: false, method: 'sms');
-      }
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      return SecuritySettings.fromJson(map);
-    } catch (e) {
-      debugPrint('[DataService] getSecuritySettings failed: $e');
-      return const SecuritySettings(enabled: false, method: 'sms');
-    }
-  }
-
-  static Future<void> setSecuritySettings(SecuritySettings settings) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _securitySettingsKey,
-        jsonEncode(settings.toJson()),
-      );
-    } catch (e) {
-      debugPrint('[DataService] setSecuritySettings failed: $e');
-    }
-  }
-
-  static Future<List<SecurityDevice>> getSignedInDevices() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_signedInDevicesKey);
-      if (raw == null || raw.isEmpty) {
-        final seeded = _seedSignedInDevices();
-        await prefs.setString(
-          _signedInDevicesKey,
-          jsonEncode(seeded.map((e) => e.toJson()).toList()),
-        );
-        return seeded;
-      }
-      final list = jsonDecode(raw);
-      if (list is! List) return const [];
-      final parsed = <SecurityDevice>[];
-      for (final e in list) {
-        if (e is Map) {
-          parsed.add(
-            SecurityDevice.fromJson(e.map((k, v) => MapEntry(k.toString(), v))),
-          );
-        }
-      }
-      return parsed;
-    } catch (e) {
-      debugPrint('[DataService] getSignedInDevices failed: $e');
-      return const [];
-    }
-  }
-
-  static Future<void> setSignedInDevices(List<SecurityDevice> devices) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _signedInDevicesKey,
-        jsonEncode(devices.map((e) => e.toJson()).toList()),
-      );
-    } catch (e) {
-      debugPrint('[DataService] setSignedInDevices failed: $e');
-    }
-  }
-
-  static List<SecurityDevice> _seedSignedInDevices() {
-    final now = DateTime.now();
-    return [
-      SecurityDevice(
-        id: 'this',
-        name: 'Dieses Gerät',
-        location: 'Aktuell',
-        lastActive: now,
-        isThisDevice: true,
-      ),
-      SecurityDevice(
-        id: 'dev_2',
-        name: 'Chrome Browser',
-        location: 'Stuttgart',
-        lastActive: now.subtract(const Duration(days: 1, hours: 3)),
-      ),
-      SecurityDevice(
-        id: 'dev_3',
-        name: 'iPhone',
-        location: 'Berlin',
-        lastActive: now.subtract(const Duration(hours: 6)),
-      ),
-    ];
   }
 
   // Runtime timers for express confirmation deadlines (not persisted). We also

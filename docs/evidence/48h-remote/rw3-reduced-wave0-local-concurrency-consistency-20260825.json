@@ -92,11 +92,11 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "963ee2538ef822d677eea7e001cf3936574af95b28e1d9d1af3452cac0435bef"
+      "sha256": "11bad619a4bf652e91c50fc493b892632407e9d0858c596267181431bb2bb5f5"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
-      "sha256": "27c5e17a28e4746ebcc9b7655ec8e96e4b6a0fe64ccece4868d55e2893bfd655"
+      "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"
     },
     {
       "path": "lib/services/shared_persistence_sync_web.dart",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "3671bde997ceba90f7b1d973ec37d147db0fd6b7b15721d046f775210f225c33"
+      "sha256": "05faf062a6054774ef205538fe24189e40cd19e10156573f19e9db60057ebdc1"
     },
     {
       "path": "test/reduced_wave0_local_state_truth_recovery_test.dart",
