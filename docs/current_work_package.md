@@ -1,6 +1,6 @@
 # Current Work Package: RW4 local principal isolation
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION PASSED; CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 on 25.08.2026.
 
 RW3 is closed at documentation commit
@@ -31,7 +31,10 @@ checks and changed-file analysis are green. Permanent RW4 validator wiring is
 green. The complete technical regression passes with analyzer zero issues,
 default Flutter 440 passed and three documented skips, exact profiles,
 Web/Wasm loopback smoke, Android debug assembly with 448 tasks and the resource
-guard. Commit/push and exact GitHub verification are the remaining steps.
+guard. Exact implementation head
+`f11335b74b88365a4f42c0bc748966d9b58d85d7` passed GitHub Regression
+`32805997938` and CodeQL `32805997934`, with zero open code-scanning alerts.
+PR #7 remains Draft, open and unmerged.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
 implementation head `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub

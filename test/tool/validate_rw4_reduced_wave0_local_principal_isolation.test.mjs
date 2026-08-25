@@ -22,12 +22,22 @@ function validate(evidence = clone(baseEvidence), sourceTexts = {}) {
 
 test('accepts the exact bounded RW4 package', () => {
   assert.deepEqual(validate(), {
-    status: 'implemented-full-technical-regression-passed-ci-pending',
+    status: 'verified-regression-and-codeql-passed',
     allowedSurfaces: 9,
     excludedSurfaces: 5,
     resolvedFindings: 9,
     fullTechnicalRegression: 'passed',
   });
+});
+
+test('rejects changed exact GitHub verification', () => {
+  const head = clone(baseEvidence);
+  head.githubVerification.head = '0'.repeat(40);
+  assert.throws(() => validate(head), /exact GitHub verification/u);
+
+  const alerts = clone(baseEvidence);
+  alerts.githubVerification.openCodeScanningAlerts = 1;
+  assert.throws(() => validate(alerts), /exact GitHub verification/u);
 });
 
 test('rejects a changed live gate or boundary', () => {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw4-reduced-wave0-local-principal-isolation",
-  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "9af5c768279e501a0e3288affea4c403c2baf178",
   "architecture": "docs/architecture/rw4-reduced-wave0-local-principal-isolation-2026-08-25.md",
   "report": "docs/operations/RW4_REDUCED_WAVE0_LOCAL_PRINCIPAL_ISOLATION_2026-08-25.md",
@@ -89,8 +89,16 @@
     "g2LifecycleAndPredecessorWiring": "passed-20",
     "rw4WiringTests": "passed-7",
     "fullTechnicalRegression": "passed",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "head": "f11335b74b88365a4f42c0bc748966d9b58d85d7",
+    "regressionRunId": 32805997938,
+    "codeqlRunId": 32805997934,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
   },
   "sourceInventory": [
     {

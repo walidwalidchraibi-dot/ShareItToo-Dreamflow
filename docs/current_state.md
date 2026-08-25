@@ -112,8 +112,10 @@ Verified: 2026-08-25 on the Mac mini.
   checks and changed-file analysis are green. The complete candidate-rollover
   technical regression also passes: analyzer zero issues, default Flutter 440
   passed with three documented skips, exact RW profiles, Web/Wasm loopback
-  smoke, Android debug assembly with 448 tasks and resource guard. Commit/push
-  and exact GitHub Regression/CodeQL verification remain pending. No timing,
+  smoke, Android debug assembly with 448 tasks and resource guard. Exact
+  implementation head `f11335b74b88365a4f42c0bc748966d9b58d85d7`
+  passed GitHub Regression `32805997938` and CodeQL `32805997934`, with zero
+  open code-scanning alerts. PR #7 remains Draft, open and unmerged. No timing,
   retry, parallelism or rate-limit workaround is retained.
 
 ## Current 48H readiness state

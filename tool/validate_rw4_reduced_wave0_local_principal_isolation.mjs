@@ -137,9 +137,9 @@ export function validateRw4ReducedWave0LocalPrincipalIsolation({
   if (githubPassed) {
     const github = value.githubVerification;
     if (!github
-        || !/^[a-f0-9]{40}$/u.test(github.head ?? '')
-        || !Number.isSafeInteger(github.regressionRunId)
-        || !Number.isSafeInteger(github.codeqlRunId)
+        || github.head !== 'f11335b74b88365a4f42c0bc748966d9b58d85d7'
+        || github.regressionRunId !== 32805997938
+        || github.codeqlRunId !== 32805997934
         || github.regressionConclusion !== 'success'
         || github.codeqlConclusion !== 'success'
         || github.openCodeScanningAlerts !== 0) {

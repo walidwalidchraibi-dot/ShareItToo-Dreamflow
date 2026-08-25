@@ -1,6 +1,6 @@
 # RW4 reduced Wave-0 local principal isolation
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION PASSED; CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 Baseline closure commit: `9af5c768279e501a0e3288affea4c403c2baf178`
 
@@ -44,7 +44,11 @@ mode. It includes all repository validators, analyzer with zero issues, the
 default Flutter suite with 440 passed and three documented exact-profile skips,
 all exact RW profiles, Web/Wasm debug build and loopback smoke, Android debug
 assembly with 448 tasks, merged-artifact checks and the release-host resource
-guard. No candidate was signed, installed or uploaded.
+guard. Exact implementation head
+`f11335b74b88365a4f42c0bc748966d9b58d85d7` passed GitHub Regression
+`32805997938` and CodeQL `32805997934`, with zero open code-scanning alerts.
+PR #7 remains Draft, open and unmerged. No candidate was signed, installed or
+uploaded.
 
 ## Rollback
 
