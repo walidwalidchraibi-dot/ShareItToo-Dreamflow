@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw8-local-review-reputation-authorization-durability",
-  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "c0bbdfff21d5e4cbba549030fd9bd9a37d77c632",
   "implementationHead": "9d4780f0d7ebd88bc2521ae38d77203e181ecda6",
   "architecture": "docs/architecture/rw8-local-review-reputation-authorization-durability-recovery-2026-08-25.md",
@@ -101,8 +101,8 @@
     "lifecyclePrivacyRetentionProvider": "passed",
     "rw8WiringTests": "passed",
     "fullTechnicalRegression": "passed",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "localRegression": {
     "head": "9d4780f0d7ebd88bc2521ae38d77203e181ecda6",
@@ -117,7 +117,14 @@
     "androidDebugTasks": 448,
     "androidMinSdk": 24
   },
-  "githubVerification": null,
+  "githubVerification": {
+    "head": "9d4780f0d7ebd88bc2521ae38d77203e181ecda6",
+    "regressionRunId": 32830068534,
+    "codeqlRunId": 32830068632,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
   "ratchetAudit": {
     "cause": "RW8 added validated local review lifecycle, privacy and retention coverage and therefore changed the bound manifest hashes; the provider evidence changed only to bind those reviewed manifest hashes.",
     "providerDecisionChanged": false,
@@ -246,7 +253,7 @@
     },
     {
       "path": "test/tool/validate_rw8_local_review_reputation_authorization_durability.test.mjs",
-      "sha256": "3d73bd86feb20a457c8cdd8ab37cf921185a55f79c57d529399f4936e42fb2cd"
+      "sha256": "89c5e367d6288c764ec6512d16a49e12e1830f491d1b817222f8dacb37460471"
     },
     {
       "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
@@ -258,11 +265,11 @@
     },
     {
       "path": "docs/architecture/rw8-local-review-reputation-authorization-durability-recovery-2026-08-25.md",
-      "sha256": "c42499bad5c5529be930c2ff33e874c04ec38d8554a11b5446754bd72b962ce5"
+      "sha256": "a574b673ac3092a8cdd8bbb3ce37b22ebc3d49d598d397c5521a565efddf0fd2"
     },
     {
       "path": "docs/operations/RW8_LOCAL_REVIEW_REPUTATION_AUTHORIZATION_DURABILITY_RECOVERY_2026-08-25.md",
-      "sha256": "516286767b96c8eba255d19bbc0e8a1aed943a95de3ac0ad47e0fc3c2960f465"
+      "sha256": "83685b8de9aeb9f3d688a17f3e0eb5efcf937c4858632f09eae2b2fdfcab326c"
     }
   ]
 }

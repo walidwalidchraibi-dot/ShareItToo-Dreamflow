@@ -2,7 +2,7 @@
 
 Date: 2026-08-25
 State: implementation candidate `9d4780f0d7ebd88bc2521ae38d77203e181ecda6`;
-full local regression passed; exact-head GitHub verification pending
+full local regression and exact-head GitHub verification passed
 
 ## Decision
 
@@ -78,6 +78,12 @@ fixture now supplies its review explicitly, while RW8 independently proves that
 missing review storage remains empty. RW0's bound hash for that test was then
 mechanically refreshed. All affected validators and the final full regression
 passed.
+
+Exact-head GitHub Regression `32830068534` passed on rerun attempt 2 after its
+first attempt was canceled only by the branch concurrency policy when the local
+evidence commit entered the queue. CodeQL `32830068632` passed on the same
+candidate and the repository reported zero open code-scanning alerts. The
+canceled first attempt is not used as success evidence.
 
 RW8 changes no contract, quote, acceptance, payment, refund, payout, handover,
 return, damage, moderation decision, production schema, provider, AI, candidate,

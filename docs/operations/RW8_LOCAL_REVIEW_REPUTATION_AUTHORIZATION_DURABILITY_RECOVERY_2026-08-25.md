@@ -49,8 +49,10 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
   workaround; 496 default-profile Flutter tests passed with three documented
   profile skips, analyzer reported zero issues, Web debug plus loopback smoke
   passed, and Android debug completed 448 tasks with binary `minSdk 24`.
-- Exact-head GitHub Regression remains pending; exact-head CodeQL has started
-  independently and is not claimed here until the complete pair is verified.
+- Exact-head GitHub Regression `32830068534` passed on attempt 2 and CodeQL
+  `32830068632` passed on the same candidate; open code-scanning alerts: zero.
+  Regression attempt 1 was canceled only by the branch concurrency policy and
+  is not counted as success evidence.
 
 ## Ratchet audit
 

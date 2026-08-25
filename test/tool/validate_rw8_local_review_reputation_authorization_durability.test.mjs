@@ -50,6 +50,10 @@ test('rejects premature full regression or GitHub claims', () => {
   assert.throws(() => validate(regression), /verification truth/u);
 
   const github = clone(baseEvidence);
+  github.status =
+    'implemented-full-technical-regression-passed-ci-pending';
+  github.verification.githubRegression = 'pending';
+  github.verification.githubCodeql = 'pending';
   github.githubVerification = {
     head: '0'.repeat(40),
     regressionRunId: 1,
