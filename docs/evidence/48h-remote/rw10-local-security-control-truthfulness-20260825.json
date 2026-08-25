@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw10-local-security-control-truthfulness",
-  "status": "implemented-focused-passed-full-technical-regression-pending",
+  "status": "implemented-full-technical-regression-passed-ci-pending",
   "implementationBaseHead": "3f42924f297f758d0e4f62a3a78562d075494658",
-  "implementationHead": null,
+  "implementationHead": "f02c5e0900f26f7e7a12be87911e1d744ddf42c7",
   "architecture": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md",
   "report": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md",
   "predecessor": {
@@ -106,11 +106,23 @@
     "rw10PlusB10Flutter": "passed-34",
     "privacyRetentionProvider": "passed",
     "rw10WiringTests": "passed-8",
-    "fullTechnicalRegression": "pending",
+    "fullTechnicalRegression": "passed",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },
-  "localRegression": null,
+  "localRegression": {
+    "head": "f02c5e0900f26f7e7a12be87911e1d744ddf42c7",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "flutterPassed": 523,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24
+  },
   "githubVerification": null,
   "ratchetAudit": {
     "cause": "RW10 retired local password, two-factor and device-session simulation and introduced strict server-session decoding plus exact conditional local auth-session clearing. Privacy and retention source bindings therefore changed; active-provider evidence changed only to bind those reviewed hashes.",
@@ -121,7 +133,7 @@
       "B10 is tightened to require the server-bound account-security service and forbid the retired debug two-factor condition, local settings mutation and timed password success; no prior guard is relaxed.",
       "Every predecessor, privacy, retention and active-provider validator must pass before the RW10 implementation candidate is frozen."
     ],
-    "verification": "RW0 through RW10 package validators, privacy, retention and provider hold passed before the first candidate. Its exact-head GitHub Regression rejected synthetic static-password fixture shape; the current tree now builds those fixtures at runtime and the immutable historical tuple is narrowly reviewed. Replacement-candidate full regression and exact-head GitHub checks remain pending."
+    "verification": "RW0 through RW10 package validators, privacy, retention and provider hold passed. The first candidate's exact-head GitHub Regression rejected synthetic static-password fixture shape; the current tree builds those fixtures at runtime and the immutable historical tuple is narrowly reviewed. Replacement-candidate full regression and repository secret scan passed; exact-head GitHub checks remain pending."
   },
   "ratchets": {
     "reason": "retired-local-security-simulation-and-exact-session-clear-source-change",
@@ -187,7 +199,7 @@
     {"path": "test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs", "sha256": "06511e23a822aca21add96dcb9823fa2272708682ef1f57e42ca48d318da2e34"},
     {"path": "test/tool/validate_rw10_local_security_control_truthfulness.test.mjs", "sha256": "ecec0be574ff2af59771f4fc1ee28dbdfc3290e29463e9d5a943b928eeffae25"},
     {"path": "tool/validate_rw10_local_security_control_truthfulness.mjs", "sha256": "7fb727719059145119107975c85124b24ff297a2907660002b9066136d2a91fe"},
-    {"path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md", "sha256": "9425a7112efce21b76673c5d1b2138015b1417307861e19a8e29507f84f00c54"},
-    {"path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md", "sha256": "da05e7038c373d399429fa0f958b9cad6652eb68bcc2bc6b000e4be701db0a31"}
+    {"path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md", "sha256": "5962da01f6ade6b2a6d35e44017e83ea58cd386ed19f4af85e53e5557a5ec654"},
+    {"path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md", "sha256": "837179a799bb7399de998401be02afa3b0239b0e1f480915540fe20c51798821"}
   ]
 }

@@ -44,7 +44,12 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
   Regression rejected its synthetic static-password fixture shape during the
   repository secret scan. The current test builds those inputs at runtime and
   the exact immutable historical rule/commit/file tuple is reviewed in the
-  existing baseline. Replacement-candidate full local regression is pending.
+  existing baseline.
+- Full local technical regression on replacement candidate
+  `f02c5e0900f26f7e7a12be87911e1d744ddf42c7`: passed with normal
+  parallelism, 523 Flutter tests, three documented skips, analyzer zero, Web
+  and Wasm build checks, loopback smoke, repository secret scan and Android
+  debug 448 tasks/minSdk 24.
 - Exact-head GitHub Regression and CodeQL: pending.
 
 ## Operational behavior
@@ -78,7 +83,7 @@ regression passed on the first candidate. The subsequent clean-checkout secret
 scan finding was a synthetic RW10 test fixture, not a product or owner
 credential: fixture literals were removed from the current tree, the immutable
 historical tuple was reviewed narrowly, and working-tree findings remain
-unconditionally forbidden. Replacement-candidate full regression and
+unconditionally forbidden. Replacement-candidate full regression passed;
 exact-head GitHub checks remain pending.
 
 ## Recovery and rollback
