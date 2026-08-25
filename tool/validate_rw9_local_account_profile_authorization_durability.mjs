@@ -33,6 +33,7 @@ const sourcePaths = [
   'scripts/technical_regression_check.sh',
   'test/rw9_local_account_profile_authorization_durability_test.dart',
   'test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs',
+  'test/tool/profile_info_async_lifecycle_wiring.test.mjs',
   'test/tool/validate_rw9_local_account_profile_authorization_durability.test.mjs',
   'tool/validate_rw9_local_account_profile_authorization_durability.mjs',
   'docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md',
@@ -192,7 +193,7 @@ export function validateRw9LocalAccountProfileAuthorizationDurability({
   if (value.ratchetAudit?.providerDecisionChanged !== false
       || value.ratchetAudit?.providerGateChanged !== false
       || !Array.isArray(value.ratchetAudit?.predecessorSourceInventoryRefreshes)
-      || value.ratchetAudit.predecessorSourceInventoryRefreshes.length !== 2
+      || value.ratchetAudit.predecessorSourceInventoryRefreshes.length !== 3
       || typeof value.ratchetAudit?.cause !== 'string'
       || typeof value.ratchetAudit?.verification !== 'string') {
     fail('RW9 ratchet audit is invalid.');

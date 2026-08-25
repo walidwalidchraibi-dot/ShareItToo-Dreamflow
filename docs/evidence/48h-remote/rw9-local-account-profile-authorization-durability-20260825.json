@@ -111,6 +111,7 @@
     "providerGateChanged": false,
     "predecessorSourceInventoryRefreshes": [
       "RW0 through RW8 hashes were mechanically refreshed only where the shared DataService, profile UI, account deletion, regression, lifecycle, privacy, retention, provider or compliance source changed.",
+      "The existing profile async-lifecycle ratchet was updated only to require the field-scoped updateCurrentUserProfile result and the same mounted checks before toast and navigation; no lifecycle guard was relaxed.",
       "Each predecessor package validator must pass again before the RW9 implementation candidate is frozen."
     ],
     "verification": "Focused package, lifecycle, privacy, retention and provider checks passed; complete predecessor and technical regression remains pending."
@@ -161,7 +162,7 @@
     {"path": "lib/screens/explore_screen.dart", "sha256": "f4264251557105a8acfae8768b17cf6fc25affc47c0bf338afccd5a987fac909"},
     {"path": "lib/screens/own_profile_screen.dart", "sha256": "aadb8ad831e8bd7958ce0156a549af5075583ee1bb6d9df89adc82cd84d8a044"},
     {"path": "lib/screens/privacy_info_screen.dart", "sha256": "8df3edaf407df822ce1ccd0479262e4b986c90c15a79abfcc87ea6ad320b2171"},
-    {"path": "lib/screens/profile_info_screen.dart", "sha256": "83d43e1918064581dd66329570608d742baf4911bb84d3184652f2a63d2c14ef"},
+    {"path": "lib/screens/profile_info_screen.dart", "sha256": "b3c15690eacab913ecf17b4540cddeecc8fc722011f0cb6d52e33a2fa4901733"},
     {"path": "lib/screens/register_screen.dart", "sha256": "20b39c1fe1ed941879808ae74a18d37abeb7f4dbcfbafef7c1d09fe4bc46509e"},
     {"path": "store/g2-data-lifecycle.json", "sha256": "64c73fe3792bc52c3a278eed0a53690da7533a949f37a41572564488647f369a"},
     {"path": "store/privacy-disclosures.json", "sha256": "703a8d7cfddc5b7210521136f81db24cdf04c8ff00a66b8fbe11a9fdf6dfe6e4"},
@@ -174,8 +175,9 @@
     {"path": "scripts/technical_regression_check.sh", "sha256": "3671bde997ceba90f7b1d973ec37d147db0fd6b7b15721d046f775210f225c33"},
     {"path": "test/rw9_local_account_profile_authorization_durability_test.dart", "sha256": "4312a9b9eef3060d2332d9325b9adbe441ba872f5400d0d9b0470ec3a048d1b2"},
     {"path": "test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs", "sha256": "d6de9f8256a0843857f23d541b5497d2b2eabd15bad8bdc3380e43539b5989c5"},
+    {"path": "test/tool/profile_info_async_lifecycle_wiring.test.mjs", "sha256": "940510493484295c689629b1138abd6be01ffa188fb2337fe5e1b5ab3e98171c"},
     {"path": "test/tool/validate_rw9_local_account_profile_authorization_durability.test.mjs", "sha256": "e71c4e3f6284d852725810351dffea321ca332e6cad62eaa7c0241ad45812dc4"},
-    {"path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs", "sha256": "6f3c7092aa0ed6b02afefc8ff727daae1f33f8677d2a3fa1172b16b07351b97c"},
+    {"path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs", "sha256": "2696ac77e5491eee8058816210f76032d94d64b0f2115b1dffb753d4f7e2625d"},
     {"path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md", "sha256": "c9336c11f10270bff1127cce568106d48461e1f6ffb00c2dd08119401c8b5a20"},
     {"path": "docs/architecture/rw9-local-account-profile-authorization-durability-recovery-2026-08-25.md", "sha256": "8ae214294f19ece29cdfd6b347700febda1d1539f8da7d3dfc1f1448bd567242"},
     {"path": "docs/operations/RW9_LOCAL_ACCOUNT_PROFILE_AUTHORIZATION_DURABILITY_RECOVERY_2026-08-25.md", "sha256": "01365b0f5794bf5bb47af9adf0ab782f91ee579f8de4e8a884e56566ed9ee13c"}

@@ -14,11 +14,12 @@ test('late profile-load failure cannot update disposed state', () => {
   );
 });
 
-test('successful save rechecks lifecycle after its toast before navigation', () => {
+test('successful profile patch rechecks lifecycle and refreshes local state', () => {
   assert.match(
     source,
-    /setCurrentUser\(updated\);\s+if \(!mounted\) return;\s+await AppPopup\.toast\(context,[\s\S]*?if \(!mounted\) return;\s+Navigator\.of\(context\)\.maybePop\(\);/u,
+    /final updated = await DataService\.updateCurrentUserProfile\([\s\S]*?\);\s+if \(!mounted\) return;\s+setState\(\(\) => _user = updated\);\s+await AppPopup\.toast\(context,[\s\S]*?if \(!mounted\) return;\s+Navigator\.of\(context\)\.maybePop\(\);/u,
   );
+  assert.doesNotMatch(source, /DataService\.setCurrentUser\(/u);
 });
 
 test('profile lifecycle fix contains no timing or lint accommodation', () => {

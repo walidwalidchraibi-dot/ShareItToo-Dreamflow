@@ -204,7 +204,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
     final displayName = '${_firstNameCtrl.text.trim()} ${_lastNameCtrl.text.trim()}'.trim();
     setState(() => _saving = true);
     try {
-      await DataService.updateCurrentUserProfile(
+      final updated = await DataService.updateCurrentUserProfile(
         expectedUserId: u.id,
         updates: {
           CurrentUserProfileField.displayName: displayName,
@@ -221,6 +221,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
         },
       );
       if (!mounted) return;
+      setState(() => _user = updated);
       await AppPopup.toast(context, icon: Icons.check_circle_outline, title: l10n.t('Gespeichert'));
       if (!mounted) return;
       Navigator.of(context).maybePop();
