@@ -41,11 +41,17 @@ test('rejects finding or verification contradictions', () => {
   finding.findings.pop();
   assert.throws(() => validate(finding), /finding set/u);
   const regression = structuredClone(evidence);
-  regression.verification.fullTechnicalRegression = 'passed';
+  regression.verification.fullTechnicalRegression =
+    evidence.verification.fullTechnicalRegression === 'passed' ? 'pending' : 'passed';
   assert.throws(() => validate(regression), /verification truth/u);
   const github = structuredClone(evidence);
-  github.githubVerification = { head: '0'.repeat(40) };
-  assert.throws(() => validate(github), /must be absent/u);
+  if (github.githubVerification === undefined) {
+    github.githubVerification = { head: '0'.repeat(40) };
+    assert.throws(() => validate(github), /must be absent/u);
+  } else {
+    github.githubVerification.openCodeScanningAlerts = 1;
+    assert.throws(() => validate(github), /exact GitHub verification/u);
+  }
 });
 
 test('rejects external gates and source drift', () => {
