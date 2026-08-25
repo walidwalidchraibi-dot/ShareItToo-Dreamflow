@@ -13,7 +13,7 @@ node --test \
   test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs
 node --test test/tool/*.test.mjs
 node tool/validate_rw11_regression_completeness_stale_support_wiring.mjs
-SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
+CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
   bash scripts/technical_regression_check.sh
 ```
 
@@ -41,8 +41,17 @@ separately reviewed reason before changing supported coverage.
 - Corrected focused matrix: 7 passed.
 - Complete tool inventory under normal Node test-runner settings: 1,867
   passed, zero failed, zero skipped.
-- Full technical regression and exact-head GitHub Regression/CodeQL: pending
-  until the implementation candidate is committed.
+- Full local technical regression on exact implementation candidate
+  `7768651bf63d266fb8d98f75f2883536e77adde0`: passed with normal
+  parallelism, all 1,867 tool tests and zero skips, 523 Flutter tests with
+  three documented profile skips, analyzer zero, Web/Wasm checks, loopback
+  smoke and Android debug 448 tasks/minSdk 24.
+- The standard local release-artifact gate correctly stopped because the
+  private bound AAB was unavailable. The repository-supported Mac-mini
+  `CI=true` metadata path then passed; it proves metadata and debug reach only
+  and does not claim the private AAB, Store upload or a device gate.
+- Exact-head GitHub Regression `32849768221` and CodeQL `32849768459`:
+  passed; zero open GitHub code-scanning alerts.
 
 ## Ratchet and rollback
 

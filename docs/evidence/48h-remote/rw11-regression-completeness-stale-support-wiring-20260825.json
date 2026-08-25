@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw11-regression-completeness-stale-support-wiring",
-  "status": "implemented-complete-tool-inventory-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "5ad324704db716e39f8b79347167d24813f1596a",
-  "implementationHead": null,
+  "implementationHead": "7768651bf63d266fb8d98f75f2883536e77adde0",
   "architecture": "docs/architecture/rw11-regression-completeness-stale-support-wiring-2026-08-25.md",
   "report": "docs/operations/RW11_REGRESSION_COMPLETENESS_STALE_SUPPORT_WIRING_2026-08-25.md",
   "predecessor": {
@@ -75,12 +75,35 @@
     "focusedCorrectedMatrix": "passed-7",
     "completeToolInventory": "passed-1867",
     "completeToolInventorySkipped": 0,
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "7768651bf63d266fb8d98f75f2883536e77adde0",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "completeToolInventoryPassed": 1867,
+    "completeToolInventorySkipped": 0,
+    "flutterPassed": 523,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed-with-wasm-dry-run",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24,
+    "privateReleaseArtifact": "unavailable-ci-metadata-validated",
+    "storeOrDeviceGateClaimed": false
+  },
+  "githubVerification": {
+    "head": "7768651bf63d266fb8d98f75f2883536e77adde0",
+    "regressionRunId": 32849768221,
+    "codeqlRunId": 32849768459,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
   "ratchetAudit": {
     "cause": "RW11 makes every repository-owned Node tool test part of the supported regression and repairs two static assertions to follow the already accepted stronger implementation boundaries.",
     "productSourceChanged": false,
@@ -150,9 +173,9 @@
     {"path": "test/tool/harassment_block_report_wiring.test.mjs", "sha256": "4b9ab9f84d9c608104fbde2e6a76f5ca2b6a3890caa59e01e9ca69326b03a8b8"},
     {"path": "test/tool/support_case_ui_accessibility_wiring.test.mjs", "sha256": "8daf23c9dd2156d8d46d600c9ae3173ae83816c2dcb134d9859503d59ae5163a"},
     {"path": "test/tool/rw11_regression_completeness_wiring.test.mjs", "sha256": "e6a9ecf7cda2115d1605b54339d2696bc7edd66f2304bc162d39cbdfedfb13a0"},
-    {"path": "test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs", "sha256": "385465ebc414928fbabfec6ff02f5999645316d508b1c9c058ca5cb69fad9d72"},
+    {"path": "test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs", "sha256": "4193ccb0c8ebd25d3eacc2443e71b4b92468f6855d3116c06acb6b0254640b31"},
     {"path": "tool/validate_rw11_regression_completeness_stale_support_wiring.mjs", "sha256": "2b7e4e45cef395745e139844b7810612d1324f1fdb5df7112245545b7faf9c35"},
-    {"path": "docs/architecture/rw11-regression-completeness-stale-support-wiring-2026-08-25.md", "sha256": "5af1eb425481b11e07a202d6d8771dff5ea896c2b0ba52788e7e4dd8affcd493"},
-    {"path": "docs/operations/RW11_REGRESSION_COMPLETENESS_STALE_SUPPORT_WIRING_2026-08-25.md", "sha256": "6ad68e805eb0cb96c02ede0d6f1bb5cb63df57887bd747c1dbd93081cec1616c"}
+    {"path": "docs/architecture/rw11-regression-completeness-stale-support-wiring-2026-08-25.md", "sha256": "cf87216854e3b685b038feb62de5ce747c039c88863086ad9b391ea8cb4054fd"},
+    {"path": "docs/operations/RW11_REGRESSION_COMPLETENESS_STALE_SUPPORT_WIRING_2026-08-25.md", "sha256": "f55668a8e38c2ef3eb45a8bda3a8d503ed7f34a5468dee581ef0afd87983135d"}
   ]
 }

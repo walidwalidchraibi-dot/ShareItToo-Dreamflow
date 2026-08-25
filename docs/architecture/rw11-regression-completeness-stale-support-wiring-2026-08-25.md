@@ -1,8 +1,8 @@
 # RW11 regression completeness and stale support wiring
 
 Date: 2026-08-25
-State: implemented; complete local tool inventory passed; full technical
-regression and exact-head GitHub verification pending
+State: verified; complete local technical regression and exact-head GitHub
+Regression/CodeQL passed
 
 ## Decision
 
@@ -75,3 +75,18 @@ correction and deterministic UI test.
 RW11 changes no production, VPS, DNS, Cloud, Firebase, Store/Play, payment,
 support traffic, provider, AI runtime, pilot, real-money, legal-owner,
 GitGuardian-finding-content, PR-merge or Git-history state.
+
+## Verification closure
+
+The exact implementation head is
+`7768651bf63d266fb8d98f75f2883536e77adde0`. Its local full regression used
+normal test parallelism and no timing accommodation: 1,867 tool tests passed
+with zero skips, analyzer reported zero issues, 523 Flutter tests passed with
+three documented profile skips, and Web/Wasm, loopback smoke and Android debug
+448 tasks/minSdk 24 passed. The Mac-mini metadata-only path does not claim the
+unavailable private AAB, Store upload or a device result.
+
+GitHub Regression `32849768221` and CodeQL `32849768459` both succeeded on the
+same implementation head, with zero open GitHub code-scanning alerts. PR #7
+remains open, Draft, clean and unmerged. Every live and owner gate remains
+closed.
