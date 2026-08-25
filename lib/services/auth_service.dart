@@ -133,6 +133,22 @@ class AuthService {
     }
   }
 
+  /// Returns true only when the persisted auth-session key is definitely
+  /// absent. A malformed value or a storage read failure is not equivalent to
+  /// a confirmed sign-out and therefore fails closed as false.
+  static Future<bool> isStoredSessionDefinitelyAbsent() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return !prefs.containsKey(_sessionKey);
+    } catch (error) {
+      debugPrint(
+        '[AuthService] stored session absence check failed: '
+        '${error.runtimeType}',
+      );
+      return false;
+    }
+  }
+
   static Future<void> clearSession() async {
     _sessionGeneration += 1;
     _sessionClearing = true;

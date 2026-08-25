@@ -2,7 +2,37 @@ import 'package:flutter/foundation.dart' show protected;
 import 'package:lendify/models/security.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/backend_repository.dart';
+
+enum PasswordChangeFailureKind {
+  rejected,
+  confirmedLocalFinalizationFailed,
+  outcomeUnknown,
+}
+
+class PasswordChangeFailure implements Exception {
+  final PasswordChangeFailureKind kind;
+  final bool localSessionDefinitelyCleared;
+
+  const PasswordChangeFailure._(
+    this.kind, {
+    this.localSessionDefinitelyCleared = false,
+  });
+
+  const PasswordChangeFailure.rejected()
+      : this._(PasswordChangeFailureKind.rejected);
+
+  const PasswordChangeFailure.confirmedLocalFinalizationFailed()
+      : this._(PasswordChangeFailureKind.confirmedLocalFinalizationFailed);
+
+  const PasswordChangeFailure.outcomeUnknown({
+    required bool localSessionDefinitelyCleared,
+  }) : this._(
+          PasswordChangeFailureKind.outcomeUnknown,
+          localSessionDefinitelyCleared: localSessionDefinitelyCleared,
+        );
+}
 
 /// Server-authoritative account security controls.
 ///
@@ -44,6 +74,12 @@ class AccountSecurityService {
         currentPassword: currentPassword,
         newPassword: newPassword,
       );
+
+  /// UI success may be emitted only while the local auth-session key is still
+  /// definitely absent after the server-confirmed action. An active,
+  /// malformed, successor or unreadable session all fail closed as false.
+  Future<bool> isLocalSessionDefinitelyAbsent() =>
+      AuthService.isStoredSessionDefinitelyAbsent();
 
   @protected
   Future<bool> clearCurrentSessionIfMatches({
@@ -90,21 +126,58 @@ class AccountSecurityService {
       throw ArgumentError('Ungültige Passwortlänge.');
     }
     final marker = await _requireCurrentSession();
-    await changeRemotePassword(
-      currentPassword: currentPassword,
-      newPassword: newPassword,
-    );
-    await _assertSameCurrentSession(marker);
-    final cleared = await clearCurrentSessionIfMatches(
-      userId: marker.userId,
-      sessionId: marker.sessionId,
-      email: marker.email,
-    );
-    if (!cleared || await readSession() != null) {
-      throw StateError(
-        'Die bestätigte Passwortänderung konnte lokal nicht sicher abgeschlossen werden.',
+    try {
+      await changeRemotePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
       );
+    } on BackendException catch (error) {
+      if (_isDefinitePasswordRejection(error)) {
+        throw const PasswordChangeFailure.rejected();
+      }
+      throw await _unknownPasswordChangeOutcome(marker);
+    } catch (_) {
+      throw await _unknownPasswordChangeOutcome(marker);
     }
+    try {
+      await _assertSameCurrentSession(marker);
+      final cleared = await clearCurrentSessionIfMatches(
+        userId: marker.userId,
+        sessionId: marker.sessionId,
+        email: marker.email,
+      );
+      if (!cleared || !await isLocalSessionDefinitelyAbsent()) {
+        throw const PasswordChangeFailure.confirmedLocalFinalizationFailed();
+      }
+    } on PasswordChangeFailure {
+      rethrow;
+    } catch (_) {
+      throw const PasswordChangeFailure.confirmedLocalFinalizationFailed();
+    }
+  }
+
+  static bool _isDefinitePasswordRejection(BackendException error) =>
+      const <int>{400, 401, 403, 404, 409, 422, 429}
+          .contains(error.statusCode) &&
+      error.code != 'invalid_server_response';
+
+  Future<PasswordChangeFailure> _unknownPasswordChangeOutcome(
+    _AccountSecuritySessionMarker marker,
+  ) async {
+    var definitelyCleared = false;
+    try {
+      final cleared = await clearCurrentSessionIfMatches(
+        userId: marker.userId,
+        sessionId: marker.sessionId,
+        email: marker.email,
+      );
+      definitelyCleared = cleared && await isLocalSessionDefinitelyAbsent();
+    } catch (_) {
+      definitelyCleared = false;
+    }
+    return PasswordChangeFailure.outcomeUnknown(
+      localSessionDefinitelyCleared: definitelyCleared,
+    );
   }
 
   Future<void> logoutAllSessions() async {

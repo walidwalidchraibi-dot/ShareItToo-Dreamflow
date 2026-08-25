@@ -228,7 +228,13 @@ void main() {
         currentPassword: _currentCredential,
         newPassword: _replacementCredential,
       ),
-      throwsStateError,
+      throwsA(
+        isA<PasswordChangeFailure>().having(
+          (failure) => failure.kind,
+          'kind',
+          PasswordChangeFailureKind.confirmedLocalFinalizationFailed,
+        ),
+      ),
     );
     expect(stalePasswordService.clearCount, 0);
     expect(stalePasswordService.session, _sessionB);
@@ -241,7 +247,13 @@ void main() {
         currentPassword: _currentCredential,
         newPassword: _replacementCredential,
       ),
-      throwsStateError,
+      throwsA(
+        isA<PasswordChangeFailure>().having(
+          (failure) => failure.kind,
+          'kind',
+          PasswordChangeFailureKind.confirmedLocalFinalizationFailed,
+        ),
+      ),
     );
     expect(replacementDuringPasswordClear.clearCount, 1);
     expect(replacementDuringPasswordClear.session, _sessionB);
@@ -544,4 +556,7 @@ class _FakeSecurityService extends AccountSecurityService {
     session = null;
     return true;
   }
+
+  @override
+  Future<bool> isLocalSessionDefinitelyAbsent() async => session == null;
 }

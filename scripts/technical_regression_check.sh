@@ -394,6 +394,11 @@ node --test \
   test/tool/rw11_regression_completeness_wiring.test.mjs \
   test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs
 node tool/validate_rw11_regression_completeness_stale_support_wiring.mjs
+node --check tool/validate_rw12_security_success_ui_principal_epoch.mjs
+node --test \
+  test/tool/rw12_security_success_ui_principal_epoch_wiring.test.mjs \
+  test/tool/validate_rw12_security_success_ui_principal_epoch.test.mjs
+node tool/validate_rw12_security_success_ui_principal_epoch.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -949,6 +954,11 @@ flutter test --reporter expanded \
 # exact-session clear, stale-response and offline truthfulness matrix.
 flutter test --reporter expanded \
   test/rw10_local_security_control_truthfulness_test.dart
+
+# Retain RW12's deterministic post-service account-A/account-B success-UI
+# epoch boundary and fail-closed definite-local-session-absence matrix.
+flutter test --reporter expanded \
+  test/rw12_security_success_ui_principal_epoch_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

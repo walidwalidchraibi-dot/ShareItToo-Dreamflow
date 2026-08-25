@@ -148,6 +148,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
         newPassword: _nextCtrl.text,
       );
       if (!mounted) return;
+      final successEpoch = _securityEpoch;
+      if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+      if (!mounted || successEpoch != _securityEpoch) return;
       _clearPasswordFields();
       setState(() {});
       await AppPopup.success(
@@ -155,19 +158,60 @@ class _SecurityScreenState extends State<SecurityScreen> {
         title: 'Passwort geändert',
         message: 'Bitte melde dich erneut an.',
       );
-      if (!mounted) return;
+      if (!mounted || successEpoch != _securityEpoch) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (_) => false,
       );
+    } on PasswordChangeFailure catch (error) {
+      debugPrint(
+        '[SecurityScreen] changePassword outcome: ${error.kind.name}',
+      );
+      if (!mounted) return;
+      final outcomeEpoch = _securityEpoch;
+      if (error.localSessionDefinitelyCleared) {
+        if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+        if (!mounted || outcomeEpoch != _securityEpoch) return;
+      } else if (operationEpoch != _securityEpoch) {
+        return;
+      }
+      _clearPasswordFields();
+      setState(() {});
+      final (title, message) = switch (error.kind) {
+        PasswordChangeFailureKind.rejected => (
+            'Passwort nicht geändert',
+            'Der Server hat die Änderung abgelehnt. '
+                'Bitte prüfe deine Eingaben und versuche es erneut.',
+          ),
+        PasswordChangeFailureKind.confirmedLocalFinalizationFailed => (
+            'Passwort serverseitig geändert',
+            'Die lokale Abmeldung konnte nicht sicher bestätigt werden. '
+                'Schließe die App und melde dich erneut an.',
+          ),
+        PasswordChangeFailureKind.outcomeUnknown => (
+            'Ergebnis der Passwortänderung unklar',
+            'Die Serverantwort ist nicht angekommen. Melde dich neu an und '
+                'prüfe das neue Passwort, bevor du die Änderung erneut sendest.',
+          ),
+      };
+      await AppPopup.error(context, title: title, message: message);
+      if (!mounted || outcomeEpoch != _securityEpoch) return;
+      if (error.localSessionDefinitelyCleared) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        );
+      }
     } catch (error) {
       debugPrint(
           '[SecurityScreen] changePassword failed: ${error.runtimeType}');
       if (!mounted || operationEpoch != _securityEpoch) return;
+      _clearPasswordFields();
+      setState(() {});
       await AppPopup.error(
         context,
         title: 'Passwort nicht geändert',
-        message: 'Die serverseitige Bestätigung ist fehlgeschlagen. '
+        message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
             'Bitte prüfe deine Sitzung und versuche es erneut.',
       );
     } finally {
