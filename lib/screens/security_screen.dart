@@ -300,18 +300,62 @@ class _SecurityScreenState extends State<SecurityScreen> {
     try {
       await _securityService.logoutAllSessions();
       if (!mounted) return;
+      final successEpoch = _securityEpoch;
+      if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+      if (!mounted || successEpoch != _securityEpoch) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (_) => false,
       );
+    } on LogoutAllFailure catch (error) {
+      debugPrint('[SecurityScreen] logoutAll outcome: ${error.kind.name}');
+      if (!mounted) return;
+      final outcomeEpoch = _securityEpoch;
+      if (error.localSessionDefinitelyCleared) {
+        if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+        if (!mounted || outcomeEpoch != _securityEpoch) return;
+      } else if (operationEpoch != _securityEpoch) {
+        return;
+      }
+      if (error.kind != LogoutAllFailureKind.rejected) {
+        setState(() {
+          _devices = const [];
+          _loadError = null;
+        });
+      }
+      final (title, message) = switch (error.kind) {
+        LogoutAllFailureKind.rejected => (
+            'Geräte nicht abgemeldet',
+            'Der Server hat die Abmeldung abgelehnt. '
+                'Bitte lade die Sitzungsliste erneut.',
+          ),
+        LogoutAllFailureKind.confirmedLocalFinalizationFailed => (
+            'Geräte serverseitig abgemeldet',
+            'Die lokale Abmeldung konnte nicht sicher bestätigt werden. '
+                'Schließe die App und melde dich erneut an.',
+          ),
+        LogoutAllFailureKind.outcomeUnknown => (
+            'Ergebnis der Geräteabmeldung unklar',
+            'Die Serverantwort ist nicht angekommen. Melde dich neu an und '
+                'prüfe deine Sitzungen, bevor du die Aktion erneut sendest.',
+          ),
+      };
+      await AppPopup.error(context, title: title, message: message);
+      if (!mounted || outcomeEpoch != _securityEpoch) return;
+      if (error.localSessionDefinitelyCleared) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        );
+      }
     } catch (error) {
       debugPrint('[SecurityScreen] logoutAll failed: ${error.runtimeType}');
       if (!mounted || operationEpoch != _securityEpoch) return;
       await AppPopup.error(
         context,
         title: 'Geräte nicht abgemeldet',
-        message: 'Die serverseitige Bestätigung ist fehlgeschlagen. '
-            'Deine lokale Sitzung bleibt unverändert.',
+        message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
+            'Bitte prüfe deine Sitzung und versuche es erneut.',
       );
     } finally {
       if (mounted && operationEpoch == _securityEpoch) {

@@ -34,6 +34,34 @@ class PasswordChangeFailure implements Exception {
         );
 }
 
+enum LogoutAllFailureKind {
+  rejected,
+  confirmedLocalFinalizationFailed,
+  outcomeUnknown,
+}
+
+class LogoutAllFailure implements Exception {
+  final LogoutAllFailureKind kind;
+  final bool localSessionDefinitelyCleared;
+
+  const LogoutAllFailure._(
+    this.kind, {
+    this.localSessionDefinitelyCleared = false,
+  });
+
+  const LogoutAllFailure.rejected() : this._(LogoutAllFailureKind.rejected);
+
+  const LogoutAllFailure.confirmedLocalFinalizationFailed()
+      : this._(LogoutAllFailureKind.confirmedLocalFinalizationFailed);
+
+  const LogoutAllFailure.outcomeUnknown({
+    required bool localSessionDefinitelyCleared,
+  }) : this._(
+          LogoutAllFailureKind.outcomeUnknown,
+          localSessionDefinitelyCleared: localSessionDefinitelyCleared,
+        );
+}
+
 /// Server-authoritative account security controls.
 ///
 /// The device-local fallback deliberately implements none of these controls.
@@ -182,18 +210,55 @@ class AccountSecurityService {
 
   Future<void> logoutAllSessions() async {
     final marker = await _requireCurrentSession();
-    await logoutAllRemoteSessions();
-    await _assertSameCurrentSession(marker);
-    final cleared = await clearCurrentSessionIfMatches(
-      userId: marker.userId,
-      sessionId: marker.sessionId,
-      email: marker.email,
-    );
-    if (!cleared || await readSession() != null) {
-      throw StateError(
-        'Die bestätigte Abmeldung konnte lokal nicht sicher abgeschlossen werden.',
-      );
+    try {
+      await logoutAllRemoteSessions();
+    } on BackendException catch (error) {
+      if (_isDefiniteLogoutAllRejection(error)) {
+        throw const LogoutAllFailure.rejected();
+      }
+      throw await _unknownLogoutAllOutcome(marker);
+    } catch (_) {
+      throw await _unknownLogoutAllOutcome(marker);
     }
+    try {
+      await _assertSameCurrentSession(marker);
+      final cleared = await clearCurrentSessionIfMatches(
+        userId: marker.userId,
+        sessionId: marker.sessionId,
+        email: marker.email,
+      );
+      if (!cleared || !await isLocalSessionDefinitelyAbsent()) {
+        throw const LogoutAllFailure.confirmedLocalFinalizationFailed();
+      }
+    } on LogoutAllFailure {
+      rethrow;
+    } catch (_) {
+      throw const LogoutAllFailure.confirmedLocalFinalizationFailed();
+    }
+  }
+
+  static bool _isDefiniteLogoutAllRejection(BackendException error) =>
+      const <int>{400, 401, 403, 404, 409, 422, 429}
+          .contains(error.statusCode) &&
+      error.code != 'invalid_server_response';
+
+  Future<LogoutAllFailure> _unknownLogoutAllOutcome(
+    _AccountSecuritySessionMarker marker,
+  ) async {
+    var definitelyCleared = false;
+    try {
+      final cleared = await clearCurrentSessionIfMatches(
+        userId: marker.userId,
+        sessionId: marker.sessionId,
+        email: marker.email,
+      );
+      definitelyCleared = cleared && await isLocalSessionDefinitelyAbsent();
+    } catch (_) {
+      definitelyCleared = false;
+    }
+    return LogoutAllFailure.outcomeUnknown(
+      localSessionDefinitelyCleared: definitelyCleared,
+    );
   }
 
   Future<_AccountSecuritySessionMarker> _requireCurrentSession() async {

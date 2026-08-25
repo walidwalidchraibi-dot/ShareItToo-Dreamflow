@@ -266,7 +266,16 @@ void main() {
 
     final staleLogoutService = _FakeSecurityService(session: _sessionA)
       ..replaceSessionDuringLogoutAll = true;
-    await expectLater(staleLogoutService.logoutAllSessions(), throwsStateError);
+    await expectLater(
+      staleLogoutService.logoutAllSessions(),
+      throwsA(
+        isA<LogoutAllFailure>().having(
+          (failure) => failure.kind,
+          'kind',
+          LogoutAllFailureKind.confirmedLocalFinalizationFailed,
+        ),
+      ),
+    );
     expect(staleLogoutService.clearCount, 0);
     expect(staleLogoutService.session, _sessionB);
 
@@ -275,7 +284,13 @@ void main() {
     )..replaceSessionDuringClear = true;
     await expectLater(
       replacementDuringLogoutClear.logoutAllSessions(),
-      throwsStateError,
+      throwsA(
+        isA<LogoutAllFailure>().having(
+          (failure) => failure.kind,
+          'kind',
+          LogoutAllFailureKind.confirmedLocalFinalizationFailed,
+        ),
+      ),
     );
     expect(replacementDuringLogoutClear.clearCount, 1);
     expect(replacementDuringLogoutClear.session, _sessionB);

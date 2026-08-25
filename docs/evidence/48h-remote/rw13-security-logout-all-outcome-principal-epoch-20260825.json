@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-rw13-security-logout-all-outcome-principal-epoch",
+  "status": "implemented-focused-passed-full-regression-pending",
+  "implementationBaseHead": "fcfdbc352185d3bf50a735478f03e32ffe709767",
+  "implementationHead": null,
+  "architecture": "docs/architecture/rw13-security-logout-all-outcome-principal-epoch-2026-08-25.md",
+  "report": "docs/operations/RW13_SECURITY_LOGOUT_ALL_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md",
+  "predecessor": {
+    "package": "RW12",
+    "evidence": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
+    "verifiedImplementationHead": "0a13df419f4abd5e30858503f4e93f23c9e9d9f1",
+    "closureCommit": "fcfdbc352185d3bf50a735478f03e32ffe709767"
+  },
+  "scope": {
+    "allowed": [
+      "logout-all-post-service-principal-epoch-navigation-guard",
+      "three-way-logout-all-result-truth",
+      "exact-invoking-account-session-containment",
+      "fail-closed-definite-local-session-absence",
+      "stale-session-list-invalidation-after-non-rejection",
+      "red-first-account-a-to-account-b-widget-regression",
+      "mechanical-predecessor-hash-refresh",
+      "deterministic-local-and-ci-regression-evidence"
+    ],
+    "excluded": [
+      "backend-route-schema-and-auth-provider-change",
+      "single-remote-device-revocation-expansion",
+      "timing-retry-parallelism-reduction-and-test-exclusion",
+      "production-vps-dns-cloud-firebase-store-and-play",
+      "payment-provider-ai-pilot-real-money-and-live-traffic",
+      "legal-owner-gitguardian-pr-merge-and-history-rewrite"
+    ],
+    "syntheticOnly": true,
+    "localOnly": true,
+    "timingWorkaroundAllowed": false,
+    "testParallelismReductionAllowed": false,
+    "liveAuthTrafficAllowed": false
+  },
+  "findings": [
+    {
+      "id": "RW13-P0-POST-LOGOUT-STALE-NAVIGATION-001",
+      "state": "resolved-and-tested",
+      "resolution": "A red-first widget test proved that Account A logout-all completion navigated to login after Account B activated; navigation now requires definite local absence and a stable post-service security epoch."
+    },
+    {
+      "id": "RW13-P0-LOGOUT-OUTCOME-COLLAPSE-002",
+      "state": "resolved-and-tested",
+      "resolution": "Explicit rejection, server-confirmed local-finalization failure and timeout/transport/5xx/invalid-response unknown outcome now use distinct typed results and user wording."
+    },
+    {
+      "id": "RW13-P1-DECODED-NULL-ABSENCE-003",
+      "state": "resolved-and-tested",
+      "resolution": "Logout-all no longer treats the general decoded session reader as absence proof and instead requires the fail-closed stored-key definite-absence query."
+    },
+    {
+      "id": "RW13-P1-STALE-DEVICE-CACHE-AFTER-NON-REJECTION-004",
+      "state": "resolved-and-tested",
+      "resolution": "Confirmed-local-failure and unknown outcomes discard the no-longer-trustworthy cached device list without representing it as a server-confirmed empty list."
+    }
+  ],
+  "stateModel": {
+    "successEligible": "server-confirmed-and-session-key-definitely-absent-and-post-service-epoch-stable",
+    "rejected": "allowlisted-structured-4xx-only",
+    "confirmedLocalFinalizationFailed": "server-confirmed-but-exact-local-finalization-not-proved",
+    "outcomeUnknown": "timeout-transport-5xx-or-invalid-response",
+    "successForbidden": [
+      "successor-account-active",
+      "session-key-present-valid-malformed-or-opaque",
+      "session-storage-unreadable",
+      "epoch-or-widget-changed"
+    ],
+    "serverConfirmedEmptySessions": "distinct-from-discarded-cache-load-error-and-not-yet-loaded"
+  },
+  "verification": {
+    "redFirstAccountSwitch": "failed-login-navigation-visible-before-fix",
+    "focusedRw13Flutter": "passed-12",
+    "rw10Rw12Rw13B10Flutter": "passed-58",
+    "changedFileAnalyze": "passed-zero-issues",
+    "rw13WiringTests": "passed-10",
+    "completeToolInventory": "passed-1887",
+    "completeToolInventorySkipped": 0,
+    "privacyRetentionProvider": "passed",
+    "predecessorValidators": "passed",
+    "fullTechnicalRegression": "pending",
+    "githubRegression": "pending",
+    "githubCodeql": "pending"
+  },
+  "inventoryAudit": {
+    "predecessorRepositoryOwnedFiles": 326,
+    "closureRepositoryOwnedFiles": 328,
+    "predecessorPassedTests": 1877,
+    "closurePassedTests": 1887,
+    "skippedTests": 0,
+    "executionPattern": "node --test test/tool/*.test.mjs",
+    "standardNodeParallelism": true
+  },
+  "localRegression": null,
+  "githubVerification": null,
+  "ratchetAudit": {
+    "cause": "SecurityScreen gained logout-all post-service epoch and cache guards, AccountSecurityService gained typed logout-all outcome containment, RW10 expectations follow the stronger typed contract, and the supported regression gained RW13 checks.",
+    "privacyDisclosureSemanticsChanged": false,
+    "retentionSemanticsChanged": false,
+    "providerDecisionChanged": false,
+    "providerGateChanged": false,
+    "rw12SemanticsChanged": false,
+    "mechanicalRefreshes": [
+      "Privacy, retention and active-provider artifacts are revalidated without semantic or decision changes.",
+      "RW0 through RW11 source inventories are refreshed only for the supported regression script and directly changed shared RW10 sources where listed.",
+      "RW12 source inventory is refreshed only for changed shared security sources and the supported regression script; its findings, implementation head, CI results, gates and semantics remain unchanged."
+    ]
+  },
+  "ratchets": {
+    "privacyManifestSha256": "87e276a0526c7ff4aa33096b3f0d59478ebec6cd6ff8d4cd08d7273f5963c05c",
+    "retentionManifestSha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38",
+    "activeProviderEvidenceSha256": "0cac48ceff4552b1a0c89faba9f484b24261be02f0f1c9dd1fd9471ef6aa99ca",
+    "activeProviderState": "prepared-hold",
+    "completedOwnerDecisions": 0,
+    "requiredOwnerDecisions": 10,
+    "externalReadiness": false
+  },
+  "gates": {
+    "BUILD_READY": "not-granted",
+    "PLAY_UPLOAD_APPROVED": "not-granted",
+    "HUMAN_PILOT_ACTIVATED": "not-granted",
+    "PR7_MERGE_APPROVED": "not-granted",
+    "R17_GITGUARDIAN_HISTORY_REVIEW_COMPLETE": "not-granted"
+  },
+  "boundaries": {
+    "backendRuntimeChanged": false,
+    "productionChanged": false,
+    "vpsChanged": false,
+    "dnsChanged": false,
+    "cloudChanged": false,
+    "firebaseChanged": false,
+    "storeChanged": false,
+    "paymentChanged": false,
+    "realMoneyUsed": false,
+    "realAuthTrafficSent": false,
+    "realProviderTrafficSent": false,
+    "realSupportTrafficSent": false,
+    "externalAiRuntimeEnabled": false,
+    "realTesterEnrolled": false,
+    "candidateCreated": false,
+    "deviceGateClaimed": false,
+    "legalApprovalChanged": false,
+    "gitHistoryRewritten": false,
+    "prMerged": false
+  },
+  "residualRisks": [
+    "The existing backend logout-all transaction was inspected but not exercised against a live environment in RW13.",
+    "A hard process or OS termination can interrupt non-transactional local session cleanup; no success is claimed in that path.",
+    "The separate single-remote-device revocation path still presents timeout and transport failures as a binary failure.",
+    "An already rendered error popup is not forcibly dismissed if a later account switch occurs during its animation; post-popup navigation remains epoch-suppressed."
+  ],
+  "sourceInventory": [
+    {"path": "backend/src/app.js", "sha256": "1cc0c82c567d8ae7e37a3125f5dd4ed90d257073cd800e33c8a2bd0b7dd692a5"},
+    {"path": "lib/screens/security_screen.dart", "sha256": "d6e92639b0ee49e55c1a01be30aa671d97f05fd2cec2004d96f5b1814c4c713f"},
+    {"path": "lib/services/account_security_service.dart", "sha256": "77a3f1d77317c69afee91284655951e791974989028c9762127e0e8772367fad"},
+    {"path": "lib/services/auth_service.dart", "sha256": "0f1a8d02a85b1fb794893924a57025b60c0a6f50fb0e0a73c4436d1dacc5a706"},
+    {"path": "lib/services/backend_repository.dart", "sha256": "f818303d43404c16ef821927890a30619bbeffb88744b420c28d1e1d2af37672"},
+    {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
+    {"path": "store/privacy-disclosures.json", "sha256": "87e276a0526c7ff4aa33096b3f0d59478ebec6cd6ff8d4cd08d7273f5963c05c"},
+    {"path": "store/retention-deletion-readiness.json", "sha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38"},
+    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "0cac48ceff4552b1a0c89faba9f484b24261be02f0f1c9dd1fd9471ef6aa99ca"},
+    {"path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json", "sha256": "45f296f0fb8104797fcf339793f259e0904de87e0e437f4fe54ac1ea379dc32a"},
+    {"path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json", "sha256": "54bc777091c6793e55471810872e9070db1bf5b9c671c9493ec3e70b08e52344"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "957099215f093acbb9c67680a8b1a9d137107bf86d9694d4ee8d2d2aa0c66427"},
+    {"path": "test/rw10_local_security_control_truthfulness_test.dart", "sha256": "f99873d38327caa82f4f501795718688a62db5c83fc1cc0efc0c9ff650c7fb57"},
+    {"path": "test/rw13_security_logout_all_outcome_principal_epoch_test.dart", "sha256": "b920e4491e8e814ad7d43c7767411cbe21eea8a54936ef6c816ec0fb9391f0af"},
+    {"path": "test/tool/rw13_security_logout_all_outcome_principal_epoch_wiring.test.mjs", "sha256": "9e4f23d1113bb3e30f881838f97fced16e3b9337cfe12d6d82651abd63573164"},
+    {"path": "test/tool/validate_rw13_security_logout_all_outcome_principal_epoch.test.mjs", "sha256": "90190636a98ecd3cc2fbd9c59281dd0d9e0adcdf5d078bce3505ce47494f25f7"},
+    {"path": "tool/validate_rw13_security_logout_all_outcome_principal_epoch.mjs", "sha256": "4a625b100bc3636c84a3bbca2a535c78557ebc16a8d9f53440ef97ad1e2d194d"},
+    {"path": "docs/architecture/rw13-security-logout-all-outcome-principal-epoch-2026-08-25.md", "sha256": "477197cbab20106ff77cf887394336e9b93d402df00280c2e54239801ca4913a"},
+    {"path": "docs/operations/RW13_SECURITY_LOGOUT_ALL_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md", "sha256": "a04779b0afad14b8ce7657cd6ab5b6eb146402e9eb7576cf906dba41c2c812dc"}
+  ]
+}
