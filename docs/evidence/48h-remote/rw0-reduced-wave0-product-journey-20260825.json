@@ -126,7 +126,7 @@
     },
     {
       "path": "test/public_profile_screen_logic_test.dart",
-      "sha256": "b4654140cdfb09c9449dcd7f4ed03c1cdfb6489d70c5864a916e620a1a6d63c5"
+      "sha256": "950fae5b5c45a0d0fe4cb3632a05e4c69f6138a953b047a2ae341cbfef4559e5"
     },
     {
       "path": "test/review_metrics_service_test.dart",
