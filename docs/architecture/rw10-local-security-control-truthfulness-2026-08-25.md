@@ -1,8 +1,8 @@
 # RW10 local security-control truthfulness
 
 Date: 2026-08-25
-State: implementation complete; full technical regression and exact-head CI
-pending
+State: local full regression passed on implementation candidate
+`e6fd3d7d932654edfa956e430a1dce1df3768e94`; exact-head CI pending
 
 ## Decision
 

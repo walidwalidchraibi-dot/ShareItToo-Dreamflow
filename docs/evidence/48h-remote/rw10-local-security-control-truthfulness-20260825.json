@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw10-local-security-control-truthfulness",
-  "status": "implemented-focused-passed-full-technical-regression-pending",
+  "status": "implemented-full-technical-regression-passed-ci-pending",
   "implementationBaseHead": "3f42924f297f758d0e4f62a3a78562d075494658",
-  "implementationHead": null,
+  "implementationHead": "e6fd3d7d932654edfa956e430a1dce1df3768e94",
   "architecture": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md",
   "report": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md",
   "predecessor": {
@@ -101,11 +101,23 @@
     "rw10PlusB10Flutter": "passed-34",
     "privacyRetentionProvider": "passed",
     "rw10WiringTests": "passed-8",
-    "fullTechnicalRegression": "pending",
+    "fullTechnicalRegression": "passed",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },
-  "localRegression": null,
+  "localRegression": {
+    "head": "e6fd3d7d932654edfa956e430a1dce1df3768e94",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "flutterPassed": 523,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24
+  },
   "githubVerification": null,
   "ratchetAudit": {
     "cause": "RW10 retired local password, two-factor and device-session simulation and introduced strict server-session decoding plus exact conditional local auth-session clearing. Privacy and retention source bindings therefore changed; active-provider evidence changed only to bind those reviewed hashes.",
@@ -116,7 +128,7 @@
       "B10 is tightened to require the server-bound account-security service and forbid the retired debug two-factor condition, local settings mutation and timed password success; no prior guard is relaxed.",
       "Every predecessor, privacy, retention and active-provider validator must pass before the RW10 implementation candidate is frozen."
     ],
-    "verification": "Pending full predecessor and package validator rerun, standard local full technical regression and exact-candidate GitHub Regression/CodeQL."
+    "verification": "RW0 through RW10 package validators, privacy, retention, provider hold and the standard local full technical regression passed; exact-candidate GitHub Regression/CodeQL remain pending."
   },
   "ratchets": {
     "reason": "retired-local-security-simulation-and-exact-session-clear-source-change",
@@ -181,7 +193,7 @@
     {"path": "test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs", "sha256": "06511e23a822aca21add96dcb9823fa2272708682ef1f57e42ca48d318da2e34"},
     {"path": "test/tool/validate_rw10_local_security_control_truthfulness.test.mjs", "sha256": "71ca6e9105f2a42ea5b9797b747cede5ba9be40560ae186d3372531512b6ade1"},
     {"path": "tool/validate_rw10_local_security_control_truthfulness.mjs", "sha256": "42f69db2a1989684f814d478bf9a6762d22adff97126ebb472919aed60c3585a"},
-    {"path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md", "sha256": "87b14bad1f1c6a66e1f9f28583e79200b335b55f99773d6ac5ab7a78acc064e9"},
-    {"path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md", "sha256": "3e966c4d00b2f1cb8306f56d8601129ad352fb1bfb6ef8a80be45fb39d3ff6f2"}
+    {"path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md", "sha256": "7d8e05da3bab6207c9d74273c5675c3b754e824f3f8715b218214007588d3baa"},
+    {"path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md", "sha256": "b25abb9185bb9b0fd013dbe79c2eb371afcc050712f740356a889de96bd8994e"}
   ]
 }

@@ -39,7 +39,10 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 - Focused RW10 Flutter matrix: 13 passed.
 - RW10 plus B10 release-truthfulness matrix: 34 passed.
 - Changed-file analyzer: zero issues.
-- Full local technical regression: pending.
+- Full local technical regression on
+  `e6fd3d7d932654edfa956e430a1dce1df3768e94`: passed with normal
+  parallelism, 523 Flutter tests, three documented skips, analyzer zero, Web
+  loopback smoke passed and Android debug 448 tasks/minSdk 24 passed.
 - Exact-head GitHub Regression and CodeQL: pending.
 
 ## Operational behavior
@@ -63,11 +66,13 @@ change only where their source hashes require refresh. Active-provider evidence
 changes only to bind those reviewed hashes; its decision must remain
 `prepared-hold`, 0/10 owner decisions and externally not ready.
 
-Predecessor source inventories are refreshed mechanically only where shared
+Predecessor source inventories were refreshed mechanically only where shared
 `AuthService`, `BackendRepository`, `DataService`, persistence-sync or the
 supported regression changed. B10 is tightened to require the server-bound
 service and to forbid the old debug two-factor exception, local setter and
-timed fake password success. No earlier safety condition is relaxed.
+timed fake password success. No earlier safety condition was relaxed. All
+predecessor and declaration validators and the standard local full technical
+regression passed; exact-head GitHub checks remain pending.
 
 ## Recovery and rollback
 
