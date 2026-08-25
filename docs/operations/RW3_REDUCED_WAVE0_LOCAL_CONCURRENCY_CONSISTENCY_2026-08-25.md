@@ -1,6 +1,6 @@
 # RW3 reduced Wave-0 local concurrency and cross-surface consistency
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 Baseline closure commit: `c3ac3b6be4cbd4813c33f24ff629f8d7419243fa`
 
@@ -38,8 +38,9 @@ events. The implementation resolves each finding without a delay, retry,
 serial test mode, rate-limit accommodation or timing threshold. The complete
 candidate-rollover technical regression passes in CI-metadata mode, including
 the full Flutter suite, Web/Wasm build and loopback smoke, Android debug build
-and repository resource guard. Exact GitHub Regression/CodeQL verification
-remains pending.
+and repository resource guard. Exact implementation head
+`f7a49899b51e733041878dba86bebf5737fac023` passed GitHub Regression
+`32802063600` and CodeQL `32802063601`, with zero open code-scanning alerts.
 
 ## Rollback
 

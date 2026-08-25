@@ -87,8 +87,11 @@ Verified: 2026-08-25 on the Mac mini.
   and changed-file analysis reports zero issues. The complete candidate-
   rollover technical regression also passes in CI-metadata mode, including the
   full Flutter suite, Web/Wasm build and loopback smoke, Android debug assembly
-  with 448 tasks and the repository resource guard. Exact GitHub Regression/
-  CodeQL verification remains pending.
+  with 448 tasks and the repository resource guard. Exact implementation head
+  `f7a49899b51e733041878dba86bebf5737fac023` passed GitHub Regression
+  `32802063600` and CodeQL `32802063601`, with zero open code-scanning alerts.
+  PR #7 remains Draft and unmerged; the historical GitGuardian owner-review
+  gate remains open.
 
 ## Current 48H readiness state
 

@@ -1,6 +1,6 @@
 # RW3 reduced Wave-0 local concurrency and cross-surface consistency
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 ## Decision
 

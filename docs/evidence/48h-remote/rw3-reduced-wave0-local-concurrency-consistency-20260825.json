@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw3-reduced-wave0-local-concurrency-consistency",
-  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "c3ac3b6be4cbd4813c33f24ff629f8d7419243fa",
   "architecture": "docs/architecture/rw3-reduced-wave0-local-concurrency-consistency-2026-08-25.md",
   "report": "docs/operations/RW3_REDUCED_WAVE0_LOCAL_CONCURRENCY_CONSISTENCY_2026-08-25.md",
@@ -78,8 +78,16 @@
     "g2LifecycleAndWiringTests": "passed-9",
     "rw3WiringTests": "passed-6",
     "fullTechnicalRegression": "passed",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "head": "f7a49899b51e733041878dba86bebf5737fac023",
+    "regressionRunId": 32802063600,
+    "codeqlRunId": 32802063601,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
   },
   "sourceInventory": [
     {

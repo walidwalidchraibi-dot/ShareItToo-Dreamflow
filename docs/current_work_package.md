@@ -1,6 +1,6 @@
 # Current Work Package: RW3 local concurrency and cross-surface consistency
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN; CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 on 25.08.2026.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
@@ -59,8 +59,11 @@ exact-profile skips, nine G2 lifecycle/wiring checks, six RW3 wiring checks and
 changed-file analysis pass. The complete candidate-rollover technical
 regression also passes in CI-metadata mode, including the full Flutter suite,
 Web/Wasm build and loopback smoke, Android debug assembly with 448 tasks and the
-repository resource guard. Exact GitHub Regression/CodeQL verification remains
-pending.
+repository resource guard. Exact implementation head
+`f7a49899b51e733041878dba86bebf5737fac023` passed GitHub Regression
+`32802063600` and CodeQL `32802063601`, with zero open code-scanning alerts.
+PR #7 remains Draft and unmerged, and the historical GitGuardian owner-review
+gate remains open.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential
