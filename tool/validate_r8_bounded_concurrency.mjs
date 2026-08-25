@@ -235,7 +235,9 @@ export function validateR8BoundedConcurrency({
   const dataPath = 'lib/services/data_service.dart';
   requireMarkers(source(repositoryRoot, dataPath), dataPath, [
     'effectiveUpdated = Item.fromJson(remote);',
-    'list[i] = remoteListing;',
+    'effective = Item.fromJson(remote);',
+    'items[index] = effectiveUpdated;',
+    'items[index] = effective;',
   ]);
   const rateLimitPath =
     'backend/test/postgres_rate_limit_isolation_contract.test.js';
