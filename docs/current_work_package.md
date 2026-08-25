@@ -1,7 +1,7 @@
 # Current Work Package: RW1 accessibility and resilience matrix
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING;
-NON-LIVE AND FAIL-CLOSED** on 25.08.2026.
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN; NON-LIVE AND FAIL-CLOSED**
+on 25.08.2026.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
 implementation head `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub
@@ -20,8 +20,14 @@ documented profile skip; the exact Stage-A/Blue-Ocean profile passes six.
 Changed-file analyzer, adjacent Flutter/lifecycle sets, RW1 wiring and the
 evidence validator pass. The complete candidate-rollover technical regression
 passes, including Web/Wasm smoke, Android debug assembly and the repository
-resource guard. Exact commit-bound GitHub Regression/CodeQL verification
-remains.
+resource guard. Implementation commit
+`eef58764ec9057748c2124689a40e9d96553acc6` exposed only a hard-coded
+clean-execution date check after the clean run itself passed. Permanent
+correction head `13bf29bce7911bf95e339ff61744c678aeafdce4` accepts valid ISO
+calendar dates while keeping retained historical evidence date-bound. Exact
+GitHub Regression `32795007748` and CodeQL `32795007746` pass at that head,
+including the unchanged clean-checkout proof, with zero open code-scanning
+alerts and no retry or timing workaround.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential

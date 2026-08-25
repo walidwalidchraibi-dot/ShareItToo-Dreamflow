@@ -1,6 +1,6 @@
 # RW1 reduced Wave-0 accessibility and resilience matrix
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 ## Decision
 
@@ -53,4 +53,13 @@ reinterpreted as live offline certification.
 The complete candidate-rollover technical regression passed unchanged after
 the fixes, including the full Flutter suite, the exact RW0 and RW1 profiles,
 Web/Wasm smoke, Android debug assembly and the repository resource guard.
-Exact GitHub Regression and CodeQL verification remain pending.
+Implementation commit `eef58764ec9057748c2124689a40e9d96553acc6`
+identified one independent clean-checkout validator defect at the UTC date
+boundary. The clean execution itself passed; only the validator's hard-coded
+historical date rejected the new valid execution date. Correction commit
+`13bf29bce7911bf95e339ff61744c678aeafdce4` accepts real ISO calendar dates for
+execution evidence while retaining the historical artifact's exact date.
+At that exact correction head, GitHub Regression `32795007748` and CodeQL
+`32795007746` passed, including the unchanged clean-checkout proof, with zero
+open code-scanning alerts. No retry, timing relaxation or local-only workaround
+is part of the retained path.

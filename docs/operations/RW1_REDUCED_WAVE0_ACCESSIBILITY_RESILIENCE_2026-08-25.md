@@ -1,6 +1,6 @@
 # RW1 reduced Wave-0 accessibility and resilience matrix
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 Baseline closure commit: `ccdc1ec`
 
@@ -40,6 +40,24 @@ The complete candidate-rollover technical regression passes with the same
 committed test and build path, including Web/Wasm smoke, Android debug assembly
 and the repository resource guard.
 
+## Exact GitHub closure
+
+- RW1 implementation commit:
+  `eef58764ec9057748c2124689a40e9d96553acc6`;
+- first Regression `32793801223`: the clean-checkout execution completed, but
+  its final validator rejected the valid `2026-08-25` execution date because it
+  was hard-coded to the retained historical artifact's `2026-08-24` date;
+- deterministic validator correction:
+  `13bf29bce7911bf95e339ff61744c678aeafdce4`, with valid ISO calendar-date tests
+  and the historical artifact still bound to its exact date;
+- exact correction-head Regression `32795007748`: success, including Backend,
+  PostgreSQL, Flutter/Android and the 14:32 clean-checkout job;
+- exact correction-head CodeQL `32795007746`: success;
+- open GitHub code-scanning alerts after both workflows: zero.
+
+The correction is a permanent deterministic rule, not a retry, serial-test,
+rate-limit, timing or local-toolchain workaround.
+
 ## Rollback
 
 The package is additive UI layout/test work. A rollback may revert the bounded
@@ -53,6 +71,4 @@ rollback.
 `BUILD_READY`, `PLAY_UPLOAD_APPROVED`, `HUMAN_PILOT_ACTIVATED`, external AI,
 Payment and `PR7_MERGE_APPROVED` remain ungranted. The separate historical
 GitGuardian owner review remains open. Full local regression and exact GitHub
-Regression/CodeQL verification do not authorize any live action. Full local
-regression is green; commit-bound GitHub Regression/CodeQL verification is the
-remaining internal check.
+Regression/CodeQL verification are green and do not authorize any live action.

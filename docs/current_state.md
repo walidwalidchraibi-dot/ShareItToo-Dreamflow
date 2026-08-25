@@ -39,8 +39,13 @@ Verified: 2026-08-25 on the Mac mini.
   analyzer, 16 adjacent Flutter checks, 16 async/lifecycle source-contract
   checks, four RW1 wiring tests and the evidence validator pass. The complete
   candidate-rollover technical regression also passes, including Web/Wasm
-  smoke, Android debug assembly and the repository resource guard. Exact
-  commit-bound GitHub Regression/CodeQL verification remains pending.
+  smoke, Android debug assembly and the repository resource guard. The first
+  implementation-head Regression `32793801223` exposed only a hard-coded UTC
+  execution-date defect after its clean run itself passed. Deterministic
+  correction head `13bf29bce7911bf95e339ff61744c678aeafdce4` passed exact
+  GitHub Regression `32795007748` and CodeQL `32795007746`, including the
+  unchanged clean-checkout proof, with zero open code-scanning alerts. No retry
+  or timing workaround was retained.
 
 ## Current 48H readiness state
 

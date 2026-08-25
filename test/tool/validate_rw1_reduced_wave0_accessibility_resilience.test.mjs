@@ -44,6 +44,10 @@ test('rejects contradictory regression or premature GitHub truth', () => {
   regression.verification.fullTechnicalRegression = 'pending';
   assert.throws(() => validate(regression), /verification truth/u);
   const github = structuredClone(evidence);
+  github.status = 'implemented-full-technical-regression-passed-ci-pending';
+  github.verification.githubRegression = 'pending';
+  github.verification.githubCodeql = 'pending';
+  delete github.githubVerification;
   github.githubVerification = { head: '0'.repeat(40) };
   assert.throws(() => validate(github), /must be absent/u);
 });

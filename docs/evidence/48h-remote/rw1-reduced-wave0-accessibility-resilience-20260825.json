@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw1-reduced-wave0-accessibility-resilience",
-  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "ccdc1ec981d0f520605bf5900ccc0ae4e9fad787",
   "architecture": "docs/architecture/rw1-reduced-wave0-accessibility-resilience-2026-08-25.md",
   "report": "docs/operations/RW1_REDUCED_WAVE0_ACCESSIBILITY_RESILIENCE_2026-08-25.md",
@@ -67,8 +67,16 @@
     "adjacentLifecycleWiringTests": "passed-16",
     "rw1WiringTests": "passed-4",
     "fullTechnicalRegression": "passed",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "head": "13bf29bce7911bf95e339ff61744c678aeafdce4",
+    "regressionRunId": 32795007748,
+    "regressionConclusion": "success",
+    "codeqlRunId": 32795007746,
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
   },
   "sourceInventory": [
     {
