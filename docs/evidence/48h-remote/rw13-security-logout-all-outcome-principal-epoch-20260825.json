@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw13-security-logout-all-outcome-principal-epoch",
-  "status": "implemented-focused-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "fcfdbc352185d3bf50a735478f03e32ffe709767",
-  "implementationHead": null,
+  "implementationHead": "1011ef52d8c9f15b80798242cb5e0368b75af53e",
   "architecture": "docs/architecture/rw13-security-logout-all-outcome-principal-epoch-2026-08-25.md",
   "report": "docs/operations/RW13_SECURITY_LOGOUT_ALL_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md",
   "predecessor": {
@@ -82,9 +82,9 @@
     "completeToolInventorySkipped": 0,
     "privacyRetentionProvider": "passed",
     "predecessorValidators": "passed",
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "inventoryAudit": {
     "predecessorRepositoryOwnedFiles": 326,
@@ -95,8 +95,31 @@
     "executionPattern": "node --test test/tool/*.test.mjs",
     "standardNodeParallelism": true
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "1011ef52d8c9f15b80798242cb5e0368b75af53e",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "completeToolInventoryPassed": 1887,
+    "completeToolInventorySkipped": 0,
+    "flutterPassed": 547,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed-with-wasm-dry-run",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24,
+    "privateReleaseArtifact": "unavailable-ci-metadata-validated",
+    "storeOrDeviceGateClaimed": false
+  },
+  "githubVerification": {
+    "head": "1011ef52d8c9f15b80798242cb5e0368b75af53e",
+    "regressionRunId": 32862708601,
+    "codeqlRunId": 32862708673,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
   "ratchetAudit": {
     "cause": "SecurityScreen gained logout-all post-service epoch and cache guards, AccountSecurityService gained typed logout-all outcome containment, RW10 expectations follow the stronger typed contract, and the supported regression gained RW13 checks.",
     "privacyDisclosureSemanticsChanged": false,
@@ -171,7 +194,7 @@
     {"path": "test/tool/rw13_security_logout_all_outcome_principal_epoch_wiring.test.mjs", "sha256": "9e4f23d1113bb3e30f881838f97fced16e3b9337cfe12d6d82651abd63573164"},
     {"path": "test/tool/validate_rw13_security_logout_all_outcome_principal_epoch.test.mjs", "sha256": "90190636a98ecd3cc2fbd9c59281dd0d9e0adcdf5d078bce3505ce47494f25f7"},
     {"path": "tool/validate_rw13_security_logout_all_outcome_principal_epoch.mjs", "sha256": "4a625b100bc3636c84a3bbca2a535c78557ebc16a8d9f53440ef97ad1e2d194d"},
-    {"path": "docs/architecture/rw13-security-logout-all-outcome-principal-epoch-2026-08-25.md", "sha256": "477197cbab20106ff77cf887394336e9b93d402df00280c2e54239801ca4913a"},
-    {"path": "docs/operations/RW13_SECURITY_LOGOUT_ALL_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md", "sha256": "a04779b0afad14b8ce7657cd6ab5b6eb146402e9eb7576cf906dba41c2c812dc"}
+    {"path": "docs/architecture/rw13-security-logout-all-outcome-principal-epoch-2026-08-25.md", "sha256": "bdb5e4c1516bf7cee39ef23591e8bb8b6d552c67b0b1777148d143fc3d399d04"},
+    {"path": "docs/operations/RW13_SECURITY_LOGOUT_ALL_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md", "sha256": "6cfa91618be97237493bcfcc1292d6499c75ad0f1f62a661ba819c2fdb40477f"}
   ]
 }

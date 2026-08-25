@@ -1,7 +1,7 @@
 # RW13 security logout-all outcome and principal epoch
 
 Date: 2026-08-25
-State: implementation focused checks passed; full regression and exact-head CI pending
+State: verified; implementation, full local regression and exact-head CI passed
 
 ## Decision
 
@@ -67,6 +67,17 @@ all three service outcomes, exact Account A containment, Account B preservation,
 three distinct UI messages and unknown-outcome epoch handling. The combined
 RW10 + RW12 + RW13 + B10 matrix passes 58 tests, and changed-file analysis has
 zero issues.
+
+The supported full regression passed at implementation head
+`1011ef52d8c9f15b80798242cb5e0368b75af53e` under standard parallelism: 1,887
+repository-owned tool tests passed with zero skips, 547 Flutter tests passed
+with the three documented profile skips, analyzer reported zero issues, and
+Web/Wasm, loopback smoke and Android debug (448 tasks, `minSdk 24`) passed. No
+timing, retry, worker-reduction or test-exclusion workaround was used.
+
+GitHub Regression run `32862708601` and CodeQL run `32862708673` both passed
+against that exact implementation head. The branch had zero open GitHub code
+scanning alerts at closure recording time.
 
 ## Separation and exclusions
 
