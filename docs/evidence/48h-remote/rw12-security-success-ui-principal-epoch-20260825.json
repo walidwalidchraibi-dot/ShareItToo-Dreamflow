@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw12-security-success-ui-principal-epoch",
-  "status": "implemented-focused-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "521f565a77faecd8de006f355c8fced4b363a8d6",
-  "implementationHead": null,
+  "implementationHead": "0a13df419f4abd5e30858503f4e93f23c9e9d9f1",
   "architecture": "docs/architecture/rw12-security-success-ui-principal-epoch-2026-08-25.md",
   "report": "docs/operations/RW12_SECURITY_SUCCESS_UI_PRINCIPAL_EPOCH_2026-08-25.md",
   "predecessor": {
@@ -81,9 +81,9 @@
     "completeToolInventorySkipped": 0,
     "privacyRetentionProvider": "passed",
     "predecessorValidators": "passed",
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "inventoryAudit": {
     "predecessorRepositoryOwnedFiles": 324,
@@ -94,8 +94,31 @@
     "executionPattern": "node --test test/tool/*.test.mjs",
     "standardNodeParallelism": true
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "0a13df419f4abd5e30858503f4e93f23c9e9d9f1",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "completeToolInventoryPassed": 1877,
+    "completeToolInventorySkipped": 0,
+    "flutterPassed": 535,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed-with-wasm-dry-run",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24,
+    "privateReleaseArtifact": "unavailable-ci-metadata-validated",
+    "storeOrDeviceGateClaimed": false
+  },
+  "githubVerification": {
+    "head": "0a13df419f4abd5e30858503f4e93f23c9e9d9f1",
+    "regressionRunId": 32857019933,
+    "codeqlRunId": 32857019848,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
   "ratchetAudit": {
     "cause": "AuthService gained a fail-closed definite-session-absence query, SecurityScreen gained post-service epoch guards, Web persistence sync gained the account-security key, and the supported regression gained RW12 package checks.",
     "privacyDisclosureSemanticsChanged": false,
@@ -215,11 +238,11 @@
     },
     {
       "path": "docs/architecture/rw12-security-success-ui-principal-epoch-2026-08-25.md",
-      "sha256": "b8e97decf76df437b2a342961008c5c574f7482edabb17622e548b048357c3b3"
+      "sha256": "1e970efe83e0b3dd6e7c8dde43ad7f880ed8996851d7b01222796b977580751c"
     },
     {
       "path": "docs/operations/RW12_SECURITY_SUCCESS_UI_PRINCIPAL_EPOCH_2026-08-25.md",
-      "sha256": "9a94d886911de1b0a4fa869f29b86cb81f947b18dcc04726ef3a966a4a24b61e"
+      "sha256": "8854ef7db2eb5375bdcb7c34a082ed574122c06bb9a0e9e851f1931b77cdf2fc"
     }
   ]
 }

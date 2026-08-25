@@ -38,6 +38,21 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 The Mac-mini `CI=true` branch is metadata-only. It cannot prove the unavailable
 private AAB, a Store upload or a physical-device result.
 
+## Current verification
+
+- Exact implementation head:
+  `0a13df419f4abd5e30858503f4e93f23c9e9d9f1`.
+- Full technical regression: passed with standard parallelism, no retry, sleep,
+  exclusion or worker reduction.
+- Tool inventory: 1,877 passed, zero skipped.
+- Flutter: 535 passed with three documented profile skips; analyzer zero.
+- Web/Wasm and loopback smoke: passed.
+- Android debug: 448 tasks passed, minSdk 24.
+- Private release AAB, Store and device proof: not claimed.
+- Exact-head GitHub Regression `32857019933` and CodeQL `32857019848`:
+  passed; zero open GitHub code-scanning alerts.
+- PR #7 remains Draft, open, clean and unmerged.
+
 ## Operational invariant
 
 - Never emit password-change success from an error, malformed session, active or

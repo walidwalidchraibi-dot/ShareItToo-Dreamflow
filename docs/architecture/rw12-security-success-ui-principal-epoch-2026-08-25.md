@@ -1,7 +1,8 @@
 # RW12 security success UI principal epoch
 
 Date: 2026-08-25
-State: implementation focused checks passed; full regression and exact-head CI pending
+State: verified; full local technical regression and exact-head GitHub
+Regression/CodeQL passed
 
 ## Decision
 
@@ -66,6 +67,16 @@ The supported complete Node inventory now discovers 326 files and passes 1,877
 tests with zero skips under normal test-runner parallelism. RW12 contributes two
 new files and ten permanent Node package tests; twelve focused Flutter tests
 cover the behavioral matrix. There is no exclusion list.
+
+The supported full technical regression passed on exact implementation head
+`0a13df419f4abd5e30858503f4e93f23c9e9d9f1`: all 1,877 tool tests passed with
+zero skips, 535 Flutter tests passed with three documented profile skips,
+analyzer issues remained zero, Web/Wasm and loopback smoke passed, and the
+Android debug build completed 448 tasks at minSdk 24. The Mac-mini `CI=true`
+path validates metadata and debug reach only; it does not prove the unavailable
+private release AAB, Store upload or physical-device gate. Exact-head GitHub
+Regression `32857019933` and CodeQL `32857019848` passed with zero open GitHub
+code-scanning alerts.
 
 ## Account-switch propagation
 
