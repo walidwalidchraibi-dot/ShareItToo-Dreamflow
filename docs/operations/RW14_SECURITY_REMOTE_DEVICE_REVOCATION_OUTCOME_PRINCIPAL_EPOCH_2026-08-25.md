@@ -36,6 +36,17 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 The Mac-mini `CI=true` path is metadata-only and cannot prove a private release
 AAB, Store upload or physical-device result.
 
+At implementation head `38a89e67acefcdc1f756dabc7febd5f1ab9f9813`, this full
+regression passed with standard parallelism: 1,897 repository-owned tool tests
+passed with zero skips, 558 Flutter tests passed with the three documented
+profile skips, analyzer reported zero issues, Web/Wasm and loopback smoke
+passed, and Android debug passed 448 tasks at `minSdk 24`. No timing, retry,
+parallelism-reduction or test-exclusion workaround was used.
+
+GitHub Regression run `32868503103` and CodeQL run `32868503117` both passed
+against that exact implementation head, with zero open GitHub code-scanning
+alerts at closure recording time.
+
 ## Operational invariant
 
 - Bind a device confirmation to the security epoch before opening its dialog.

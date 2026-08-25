@@ -1,7 +1,7 @@
 # RW14 remote-device revocation outcome and principal epoch
 
 Date: 2026-08-25
-State: implementation focused checks passed; full regression and exact-head CI pending
+State: verified; implementation, full local regression and exact-head CI passed
 
 ## Decision
 
@@ -62,6 +62,17 @@ suppression without relying only on an event, stale-prompt suppression and
 open-popup dismissal on account switch.
 
 The combined RW10 + RW12 + RW13 + RW14 + B10 matrix passes 69 tests.
+
+The supported full regression passed at implementation head
+`38a89e67acefcdc1f756dabc7febd5f1ab9f9813` under standard parallelism: 1,897
+repository-owned tool tests passed with zero skips, 558 Flutter tests passed
+with the three documented profile skips, analyzer reported zero issues, and
+Web/Wasm, loopback smoke and Android debug (448 tasks, `minSdk 24`) passed. No
+timing, retry, worker-reduction or test-exclusion workaround was used.
+
+GitHub Regression run `32868503103` and CodeQL run `32868503117` both passed
+against that exact implementation head. The branch had zero open GitHub code
+scanning alerts at closure recording time.
 
 ## Separation and exclusions
 

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw14-security-remote-device-revocation-outcome-principal-epoch",
-  "status": "implemented-focused-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "4b724c495278caf862906d69dceefb748428b463",
-  "implementationHead": null,
+  "implementationHead": "38a89e67acefcdc1f756dabc7febd5f1ab9f9813",
   "architecture": "docs/architecture/rw14-security-remote-device-revocation-outcome-principal-epoch-2026-08-25.md",
   "report": "docs/operations/RW14_SECURITY_REMOTE_DEVICE_REVOCATION_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md",
   "predecessor": {
@@ -79,9 +79,9 @@
     "completeToolInventorySkipped": 0,
     "privacyRetentionProvider": "passed",
     "predecessorValidators": "passed",
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "inventoryAudit": {
     "predecessorRepositoryOwnedFiles": 328,
@@ -92,8 +92,31 @@
     "executionPattern": "node --test test/tool/*.test.mjs",
     "standardNodeParallelism": true
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "38a89e67acefcdc1f756dabc7febd5f1ab9f9813",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "completeToolInventoryPassed": 1897,
+    "completeToolInventorySkipped": 0,
+    "flutterPassed": 558,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed-with-wasm-dry-run",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24,
+    "privateReleaseArtifact": "unavailable-ci-metadata-validated",
+    "storeOrDeviceGateClaimed": false
+  },
+  "githubVerification": {
+    "head": "38a89e67acefcdc1f756dabc7febd5f1ab9f9813",
+    "regressionRunId": 32868503103,
+    "codeqlRunId": 32868503117,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
   "ratchetAudit": {
     "cause": "SecurityScreen gained pre-dialog and presentation epoch guards plus explicit cache invalidation, AccountSecurityService gained typed single-target result and principal proof, RW10 expectations follow the stronger result contract, and the supported regression gained RW14 checks.",
     "privacyDisclosureSemanticsChanged": false,
@@ -168,7 +191,7 @@
     {"path": "test/tool/rw14_security_remote_device_revocation_outcome_principal_epoch_wiring.test.mjs", "sha256": "8c1618ebfaa0682d617b75cb19c63e77d369802d777b64cac4ea2e96e5070a52"},
     {"path": "test/tool/validate_rw14_security_remote_device_revocation_outcome_principal_epoch.test.mjs", "sha256": "406fb8ae11f5014924ae0648992b7b19e037cad664bc719f0f7dd5139e09a558"},
     {"path": "tool/validate_rw14_security_remote_device_revocation_outcome_principal_epoch.mjs", "sha256": "f48a77ed7f2760b9d649780bbe326ec679a4dfabbf6121526fe883b8ae549732"},
-    {"path": "docs/architecture/rw14-security-remote-device-revocation-outcome-principal-epoch-2026-08-25.md", "sha256": "e99055ca7ef1a9e4fb22d61a99fe498f881109050743ca188dd6c3369947d870"},
-    {"path": "docs/operations/RW14_SECURITY_REMOTE_DEVICE_REVOCATION_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md", "sha256": "f15fe9b53dd3853a13738655e05fa9b6ac0cce2bb78f0c443cb8621deb3b435c"}
+    {"path": "docs/architecture/rw14-security-remote-device-revocation-outcome-principal-epoch-2026-08-25.md", "sha256": "c0511b86602c775cdd6a1b447934f9971b729b9ff179725d3406cf778b69cb84"},
+    {"path": "docs/operations/RW14_SECURITY_REMOTE_DEVICE_REVOCATION_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md", "sha256": "087041efcb59343dceb7b83d281f058a97459e99068c89fd7634bb8c3db85aa2"}
   ]
 }
