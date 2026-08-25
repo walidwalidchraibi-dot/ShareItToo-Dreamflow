@@ -34,6 +34,13 @@ function requireExact(actual, expected, message) {
   if (!exact(actual, expected)) fail(message);
 }
 
+function isIsoCalendarDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(value ?? '')) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.valueOf())
+    && parsed.toISOString().slice(0, 10) === value;
+}
+
 export function validateR10TechnicalDebtDocument(value) {
   if (!value.includes('Status: **TD-R10-001 AND TD-R10-002 CLOSED — EXACT CI VERIFIED**')
       || !value.includes('deliberately separate from the immutable 21-item PF18 snapshot')
@@ -235,10 +242,13 @@ export function validateR10CleanReproducibility(value, { executionOnly = false }
   const expectedStatus = executionOnly
     ? 'verified-local-clean-checkout-ci-pending'
     : 'verified-clean-checkout-regression-and-codeql-passed';
+  const observedOnValid = executionOnly
+    ? isIsoCalendarDate(value?.observedOn)
+    : value?.observedOn === '2026-08-24';
   if (value?.schemaVersion !== 1
       || value?.kind !== 'sit-48h-r10-clean-reproducibility'
       || value?.status !== expectedStatus
-      || value?.observedOn !== '2026-08-24') {
+      || !observedOnValid) {
     fail('R10 evidence identity or status is invalid.');
   }
   if (value.source?.branch !== 'codex/master-workflow-20260808'

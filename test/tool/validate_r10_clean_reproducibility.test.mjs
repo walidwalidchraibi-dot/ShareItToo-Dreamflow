@@ -40,7 +40,14 @@ test('accepts a structurally exact detached CI execution result', () => {
   ci.source.checkoutHead = 'a'.repeat(40);
   ci.toolchain.node = 'v22.99.1';
   ci.commands.fullTechnicalRegression.durationSeconds = 700;
+  ci.observedOn = '2026-08-25';
   assert.equal(validate(ci, { executionOnly: true }).implementationHead, 'a'.repeat(40));
+
+  ci.observedOn = '2026-02-31';
+  assert.throws(
+    () => validate(ci, { executionOnly: true }),
+    /evidence identity or status/u,
+  );
 });
 
 test('retains the separate post-PF18 technical-debt exit contract', () => {
