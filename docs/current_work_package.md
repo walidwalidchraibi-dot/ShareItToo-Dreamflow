@@ -1,6 +1,6 @@
 # Current Work Package: RW6 local operational-record authorization recovery
 
-Status: **IMPLEMENTED LOCALLY — FULL REGRESSION PASSED — CI PENDING**
+Status: **RW6 VERIFIED AND CLOSED**
 on 25.08.2026.
 
 RW4 is closed at documentation commit
@@ -70,7 +70,10 @@ are green. The two auth-boundary integration files add 9 passing checks. The
 complete CI-metadata-mode regression passes with analyzer zero issues, default
 Flutter 471 and three documented skips, exact RW profiles, Web/Wasm, Android
 debug assembly with 448 tasks, minSdk 24 and the resource guard. Exact GitHub
-verification is pending. The ordinary local Store-handoff validator remains
+Regression `32818242417` and CodeQL `32818242414` pass implementation head
+`bb0d651b133b048084758dd558d52ae5d09242ee`, with zero open code-scanning
+alerts. PR #7 remains open, Draft, unmerged and `CLEAN`. The ordinary local
+Store-handoff validator remains
 separately blocked by its absent historical private AAB; no candidate evidence
 was changed or reused for RW6.
 

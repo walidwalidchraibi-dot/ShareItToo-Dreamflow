@@ -46,7 +46,9 @@ with three documented profile skips, every exact RW profile, Web/Wasm, Android
 debug assembly with 448 tasks, minSdk 24 and the resource guard. The ordinary
 local Store-handoff path stops before that matrix because the older bound
 private AAB is absent; RW6 neither recreates nor relabels that candidate.
-Exact GitHub checks remain pending in this pre-commit evidence state.
+Exact implementation head `bb0d651b133b048084758dd558d52ae5d09242ee`
+passes GitHub Regression `32818242417` and CodeQL `32818242414`, with zero open
+code-scanning alerts. PR #7 remains open, Draft, unmerged and `CLEAN`.
 
 RW6 changes the privacy and retention manifests, whose exact hashes are also
 ratcheted by the active infrastructure/provider readiness validator. Its two

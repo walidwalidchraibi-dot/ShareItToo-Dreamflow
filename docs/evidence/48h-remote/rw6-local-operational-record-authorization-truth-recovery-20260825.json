@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw6-local-operational-record-authorization-truth-recovery",
-  "status": "implemented-focused-matrix-passed-full-technical-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "ddce25d34c40477ad0fdb9718ac570e3a31334b7",
+  "implementationHead": "bb0d651b133b048084758dd558d52ae5d09242ee",
   "architecture": "docs/architecture/rw6-local-operational-record-authorization-truth-recovery-2026-08-25.md",
   "report": "docs/operations/RW6_LOCAL_OPERATIONAL_RECORD_AUTHORIZATION_TRUTH_RECOVERY_2026-08-25.md",
   "predecessor": {
@@ -108,9 +109,17 @@
     "adjacentAccountBookingFlutter": "passed",
     "lifecyclePrivacyRetention": "passed",
     "rw6WiringTests": "passed",
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "head": "bb0d651b133b048084758dd558d52ae5d09242ee",
+    "regressionRunId": 32818242417,
+    "codeqlRunId": 32818242414,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
   },
   "gates": {
     "BUILD_READY": "not-granted",
@@ -260,7 +269,7 @@
     },
     {
       "path": "test/tool/validate_rw6_local_operational_authorization_truth_recovery.test.mjs",
-      "sha256": "2ab65b7e65fbe15db8acd69c8dab622d53a7169d7729f8e0e9cdaf1be3853c91"
+      "sha256": "b06e82c0c8f2c3c5e220da6ee7205e523b6430f3e39b405bd95e95bcc9a35bee"
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",
@@ -272,7 +281,7 @@
     },
     {
       "path": "docs/operations/RW6_LOCAL_OPERATIONAL_RECORD_AUTHORIZATION_TRUTH_RECOVERY_2026-08-25.md",
-      "sha256": "14ae5162e0cddf7e57ad5a26f66546dda8000dc4192e268594483d2298f09ae3"
+      "sha256": "74e071b8b3ae7c6a87ccd53c49486774ec66c4438982b259ec7ef088011aa34e"
     }
   ]
 }

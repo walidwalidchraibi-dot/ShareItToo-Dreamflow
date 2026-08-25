@@ -154,10 +154,12 @@ Verified: 2026-08-25 on the Mac mini.
   auth-boundary integration checks pass. The full CI-metadata-mode technical
   regression passes with analyzer zero issues, default Flutter 471 plus three
   documented skips, exact RW profiles, Web/Wasm, Android 448 tasks, minSdk 24
-  and the resource guard. Exact GitHub verification remains pending. The
-  ordinary local Store-handoff path remains separately blocked by its absent
-  historical private AAB; RW6 changes no candidate evidence and no live or
-  owner gate.
+  and the resource guard. Exact implementation head
+  `bb0d651b133b048084758dd558d52ae5d09242ee` passes GitHub Regression
+  `32818242417` and CodeQL `32818242414`, with zero open code-scanning alerts.
+  PR #7 remains open, Draft, unmerged and `CLEAN`. The ordinary local Store-
+  handoff path remains separately blocked by its absent historical private AAB;
+  RW6 changes no candidate evidence and no live or owner gate.
 
 ## Current 48H readiness state
 
