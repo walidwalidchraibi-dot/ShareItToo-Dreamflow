@@ -41,8 +41,15 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 - G2 lifecycle, privacy, retention and provider-readiness validators: passed;
   provider result remains `prepared-hold`, 0/10 decisions and not externally
   ready.
-- Full technical regression and GitHub Regression/CodeQL remain pending until
-  the implementation commit exists.
+- Complete local technical regression: passed at
+  `33d1766467dbfdbbabe0d12823ac76e4614b7224` with analyzer zero, default
+  Flutter 486 passed and three documented exact-profile skips, every exact RW
+  profile, Web/Wasm, loopback Web smoke, Android debug 448 tasks and minSdk 24.
+- GitHub Regression `32825143509`: success at the exact implementation head,
+  including backend, PostgreSQL, Flutter and R10 clean reproducibility.
+- GitHub CodeQL `32825143456`: success at the exact implementation head; the
+  repository had zero open CodeQL alerts when the evidence was closed.
+- PR #7 remains open, Draft and unmerged. No release or external gate changed.
 
 ## Operational behavior
 

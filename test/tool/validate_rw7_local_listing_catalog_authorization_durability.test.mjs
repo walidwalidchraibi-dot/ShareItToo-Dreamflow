@@ -45,12 +45,13 @@ test('rejects a changed live gate or boundary', () => {
 
 test('rejects premature full regression or GitHub claims', () => {
   const regression = clone(baseEvidence);
-  regression.verification.fullTechnicalRegression = 'passed';
+  regression.status =
+    'implemented-default-flutter-passed-full-technical-regression-pending';
   assert.throws(() => validate(regression), /verification truth/u);
 
   const github = clone(baseEvidence);
-  github.githubVerification = { head: 'invented' };
-  assert.throws(() => validate(github), /cannot claim GitHub/u);
+  delete github.githubVerification;
+  assert.throws(() => validate(github), /GitHub verification/u);
 });
 
 test('rejects reordered missing or stale source inventory', () => {

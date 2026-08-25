@@ -1,7 +1,7 @@
 # RW7 local listing-catalog authorization, durability and recovery
 
 Date: 2026-08-25
-State: implemented locally; full regression and GitHub verification pending
+State: verified locally and on GitHub at implementation head
 
 ## Decision
 
@@ -77,3 +77,10 @@ handover, return, damage, `needsReview`, listing content/moderation policy,
 production backend schema, external AI/provider, candidate, device, Play,
 Firebase, Store, VPS, DNS, Cloud, pilot, real-money, legal-owner, PR-merge,
 GitGuardian-content or Git-history gate.
+
+The exact implementation head is
+`33d1766467dbfdbbabe0d12823ac76e4614b7224`. The complete local technical
+regression, GitHub Regression run `32825143509`, GitHub CodeQL run
+`32825143456`, and the zero-open-CodeQL-alert check all passed for that head.
+PR #7 remains open, Draft and unmerged; this verification does not authorize a
+merge or any external activation.
