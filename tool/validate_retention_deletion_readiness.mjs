@@ -1892,6 +1892,20 @@ export function validateRetentionDeletionReadiness({
         !== 'current-account-authored-and-received-only'
       || controls.localReviewReputation?.retentionPeriodInvented !== false
       || controls.localReviewReputation?.backendAuthorityChanged !== false
+      || controls.localAccountProfile?.status
+        !== 'implemented-authenticated-current-account-scoped-local-fallback'
+      || controls.localAccountProfile?.accountDeletion
+        !== 'exact-current-profile-anonymized-current-cache-and-session-cleared'
+      || controls.localAccountProfile?.otherPublicProfiles
+        !== 'retained-as-public-cache-until-app-data-clear'
+      || controls.localAccountProfile?.corruptData
+        !== 'preserve-exact-raw-and-fail-closed'
+      || controls.localAccountProfile?.capacityPolicy
+        !== 'maximum-1000-profiles-and-16-mib-document-reject-overflow-without-pruning'
+      || controls.localAccountProfile?.privacyExport
+        !== 'current-account-profile-only-other-cache-and-auth-session-excluded'
+      || controls.localAccountProfile?.retentionPeriodInvented !== false
+      || controls.localAccountProfile?.backendAuthorityChanged !== false
       || controls.retentionExecutionPreflight?.status
         !== 'implemented-fail-closed-policy-and-staging-gates-open'
       || controls.retentionExecutionPreflight?.executionAllowed !== false

@@ -202,21 +202,24 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
     final birthDate = (birthYear == null) ? null : DateTime(birthYear, 1, 1);
 
     final displayName = '${_firstNameCtrl.text.trim()} ${_lastNameCtrl.text.trim()}'.trim();
-    final updated = u.copyWith(
-      displayName: displayName,
-      bio: _bioCtrl.text.trim().isEmpty ? null : _bioCtrl.text.trim(),
-      birthDate: birthDate,
-      city: _cityCtrl.text.trim().isEmpty ? null : _cityCtrl.text.trim(),
-      // We store the selected avatar locally (data:image...) so it renders across the app.
-      photoURL: _photoDraft?.trim().isEmpty ?? true ? null : _photoDraft,
-      languages: _languages.toList(),
-      interests: _interests.toList(),
-      // Ensure we don't accidentally store a full address in the public override.
-      homeLocation: null,
-    );
     setState(() => _saving = true);
     try {
-      await DataService.setCurrentUser(updated);
+      await DataService.updateCurrentUserProfile(
+        expectedUserId: u.id,
+        updates: {
+          CurrentUserProfileField.displayName: displayName,
+          CurrentUserProfileField.bio:
+              _bioCtrl.text.trim().isEmpty ? null : _bioCtrl.text.trim(),
+          CurrentUserProfileField.birthDate: birthDate,
+          CurrentUserProfileField.city:
+              _cityCtrl.text.trim().isEmpty ? null : _cityCtrl.text.trim(),
+          CurrentUserProfileField.photoURL:
+              _photoDraft?.trim().isEmpty ?? true ? null : _photoDraft,
+          CurrentUserProfileField.languages: _languages.toList(),
+          CurrentUserProfileField.interests: _interests.toList(),
+          CurrentUserProfileField.homeLocation: null,
+        },
+      );
       if (!mounted) return;
       await AppPopup.toast(context, icon: Icons.check_circle_outline, title: l10n.t('Gespeichert'));
       if (!mounted) return;
@@ -405,7 +408,9 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                             final year = int.tryParse(raw);
                             final now = DateTime.now().year;
                             if (year == null) return 'Ungültiges Jahr';
-                            if (year < 1900 || year > now - 14) return 'Bitte korrektes Jahr eingeben';
+                            if (year < 1900 || year > now - 14) {
+                              return 'Bitte korrektes Jahr eingeben';
+                            }
                             return null;
                           },
                           textInputAction: TextInputAction.next,

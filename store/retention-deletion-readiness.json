@@ -649,7 +649,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "5b9b3d2b5cc7e9feb5242f6ae560d972a6ae9f00d799ba371b400c0c549e1d3c"
+      "sha256": "c9ed7cf809bd54bfced8f79885e7278764f85b44f9ccecda12982465a2be30ef"
     },
     {
       "path": "lib/services/blue_ocean_draft_recovery_service.dart",
@@ -657,7 +657,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "8f7e66f8bdf0af381d83aebcbb019323e648be640680091fa030984e38204d6b"
+      "sha256": "963ee2538ef822d677eea7e001cf3936574af95b28e1d9d1af3452cac0435bef"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -705,7 +705,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "da435bdb0cdd32c640c96c361f39f66722ea44a40aed7dde79cee5ee1688bbd9"
+      "sha256": "f4264251557105a8acfae8768b17cf6fc25affc47c0bf338afccd5a987fac909"
     },
     {
       "path": "lib/widgets/supply_enrichment_dialog.dart",
@@ -741,11 +741,11 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "f35452b74d52817d272ceb124aad3c3f45e444ebf1d357b83009bc6c8ae65f5e"
+      "sha256": "8df3edaf407df822ce1ccd0479262e4b986c90c15a79abfcc87ea6ad320b2171"
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "4f21707c039707ce64e589c3e24d21823f73c9ac4162f61767d321621c6b116e"
+      "sha256": "64c73fe3792bc52c3a278eed0a53690da7533a949f37a41572564488647f369a"
     }
   ],
   "implementedControls": {
@@ -815,6 +815,16 @@
       "capacityPolicy": "maximum-1000-per-document-reject-overflow-without-pruning",
       "demoSeedPolicy": "explicit-qa-bootstrap-only-no-read-time-seeding",
       "privacyExport": "current-account-authored-and-received-only",
+      "retentionPeriodInvented": false,
+      "backendAuthorityChanged": false
+    },
+    "localAccountProfile": {
+      "status": "implemented-authenticated-current-account-scoped-local-fallback",
+      "accountDeletion": "exact-current-profile-anonymized-current-cache-and-session-cleared",
+      "otherPublicProfiles": "retained-as-public-cache-until-app-data-clear",
+      "corruptData": "preserve-exact-raw-and-fail-closed",
+      "capacityPolicy": "maximum-1000-profiles-and-16-mib-document-reject-overflow-without-pruning",
+      "privacyExport": "current-account-profile-only-other-cache-and-auth-session-excluded",
       "retentionPeriodInvented": false,
       "backendAuthorityChanged": false
     },

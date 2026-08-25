@@ -182,3 +182,31 @@ erneuten Versuch, statt Eingaben zu verwerfen, falschen Erfolg oder eine leere
 Historie zu behaupten. Rechts-, Moderations-, Backend-Autoritaets-,
 Produktions-, Provider-, Payment-, Store- und Live-Gates bleiben unveraendert
 offen.
+
+## Aktueller Nachfolger RW9
+
+RW9 ergaenzt die Lifecycle-Wahrheit fuer das geraetelokale Konto- und
+Profil-Fallback. Die beiden Spiegel `currentUser` und `users` werden als
+strikte, begrenzte Dokumente gelesen; unvollstaendige, doppelte oder
+fehlerhafte Identitaeten bleiben bytegetreu erhalten und schlagen geschlossen
+fehl. Nutzernahe Profil-Aenderungen sind feldbegrenzt, an die exakte aktuelle
+Auth-Session gebunden und koennen optionale Felder explizit loeschen.
+Identitaet, Verifikation, Moderation, Rolle, Auszahlung, Reputation und
+Deaktivierung sind nicht caller-mutable.
+
+Profilwrites laufen serialisiert, pruefen beide Spiegel nach dem Schreiben und
+stellen bei einem erkannten Fehler deren exakten vorherigen Stand wieder her.
+Der Cache ist auf 1.000 Profile und 16 MiB begrenzt; Ueberlauf loescht keine
+vorhandenen Profile. Profil-, Kontakt-, Adress- und Social-Oberflaechen melden
+Fehler ehrlich und verwenden keine veralteten Vollprofil-Snapshots mehr. Der
+lokale Modus kann weder eine E-Mail-Adresse aendern noch einen
+Verifikationsstatus simulieren.
+
+Der lokale Privacy-Export enthaelt nur das Profil des aktuell
+authentifizierten Kontos und schliesst andere oeffentliche Cache-Profile sowie
+Auth-Session-Material aus. Lokale Kontoanonymisierung ist ebenfalls
+exakt-kontogebunden, folgt erst nach den anderen kontospezifischen
+Loeschschritten und wird vor der Session-/Current-Cache-Loeschung paarweise
+gespeichert. Andere oeffentliche Cache-Profile bleiben unberuehrt; es wird
+keine Aufbewahrungsfrist erfunden. Backend-Autoritaets-, Rechts-, Produktions-,
+Provider-, Payment-, Store- und Live-Gates bleiben unveraendert offen.

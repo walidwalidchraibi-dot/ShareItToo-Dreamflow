@@ -402,27 +402,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
     setState(() => _currentUserCity = selected);
     final user = await DataService.getCurrentUser();
     if (user != null) {
-      final updated = model.User(
-        id: user.id,
-        displayName: user.displayName,
-        email: user.email,
-        phone: user.phone,
-        photoURL: user.photoURL,
-        bio: user.bio,
-        city: selected,
-        country: user.country,
-        preferredLanguage: user.preferredLanguage,
-        isVerified: user.isVerified,
-        isBanned: user.isBanned,
-        role: user.role,
-        payoutAccountId: user.payoutAccountId,
-        avgRating: user.avgRating,
-        reviewCount: user.reviewCount,
-        createdAt: user.createdAt,
-        languages: user.languages,
-        interests: user.interests,
+      await DataService.updateCurrentUserProfile(
+        expectedUserId: user.id,
+        updates: {
+          CurrentUserProfileField.city: selected,
+        },
       );
-      await DataService.setCurrentUser(updated);
       if (!mounted) return;
       AppPopup.toast(context,
           icon: Icons.place, title: 'Standort aktualisiert: $selected');

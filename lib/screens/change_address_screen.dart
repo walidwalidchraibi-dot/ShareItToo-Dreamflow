@@ -72,11 +72,14 @@ class _ChangeAddressScreenState extends State<ChangeAddressScreen> {
         return;
       }
       final derivedCity = DataService.deriveCityFromAddress(line);
-      final updated = current.copyWith(
-        homeLocation: line,
-        city: derivedCity.isNotEmpty ? derivedCity : current.city,
+      await DataService.updateCurrentUserProfile(
+        expectedUserId: current.id,
+        updates: {
+          CurrentUserProfileField.homeLocation: line,
+          if (derivedCity.isNotEmpty)
+            CurrentUserProfileField.city: derivedCity,
+        },
       );
-      await DataService.setCurrentUser(updated);
       if (!mounted) return;
       await AppPopup.success(context, title: 'Adresse gespeichert');
       if (!mounted) return;

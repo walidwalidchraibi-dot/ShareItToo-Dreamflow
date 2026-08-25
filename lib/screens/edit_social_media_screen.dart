@@ -105,14 +105,16 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
         if (mounted) Navigator.of(context).maybePop();
         return;
       }
-      final updated = current.copyWith(
-        socialX: x.isEmpty ? null : x,
-        socialInstagram: ig.isEmpty ? null : ig,
-        socialFacebook: fb.isEmpty ? null : fb,
-        socialTiktok: tt.isEmpty ? null : tt,
-        socialSnapchat: sc.isEmpty ? null : sc,
+      await DataService.updateCurrentUserProfile(
+        expectedUserId: current.id,
+        updates: {
+          CurrentUserProfileField.socialX: x.isEmpty ? null : x,
+          CurrentUserProfileField.socialInstagram: ig.isEmpty ? null : ig,
+          CurrentUserProfileField.socialFacebook: fb.isEmpty ? null : fb,
+          CurrentUserProfileField.socialTiktok: tt.isEmpty ? null : tt,
+          CurrentUserProfileField.socialSnapchat: sc.isEmpty ? null : sc,
+        },
       );
-      await DataService.setCurrentUser(updated);
       if (!mounted) return;
       await AppPopup.success(context, title: 'Social-Media-Profile gespeichert');
       if (!mounted) return;

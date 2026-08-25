@@ -374,6 +374,11 @@ node --test \
   test/tool/rw8_local_review_reputation_authorization_durability_wiring.test.mjs \
   test/tool/validate_rw8_local_review_reputation_authorization_durability.test.mjs
 node tool/validate_rw8_local_review_reputation_authorization_durability.mjs
+node --check tool/validate_rw9_local_account_profile_authorization_durability.mjs
+node --test \
+  test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs \
+  test/tool/validate_rw9_local_account_profile_authorization_durability.test.mjs
+node tool/validate_rw9_local_account_profile_authorization_durability.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -919,6 +924,11 @@ flutter test --reporter expanded \
 # concurrency, capacity, privacy/export, process recreation and retry matrix.
 flutter test --reporter expanded \
   test/rw8_local_review_reputation_authorization_durability_test.dart
+
+# Retain RW9's exact-account field patch, paired-document durability,
+# corruption, capacity, privacy export and deactivation boundary matrix.
+flutter test --reporter expanded \
+  test/rw9_local_account_profile_authorization_durability_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

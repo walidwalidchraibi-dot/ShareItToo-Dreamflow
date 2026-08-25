@@ -146,54 +146,46 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
 
   void _updateUserInterests(List<String> interests) async {
     if (_user == null) return;
-    final updated = User(
-      id: _user!.id,
-      displayName: _user!.displayName,
-      email: _user!.email,
-      phone: _user!.phone,
-      photoURL: _user!.photoURL,
-      bio: _user!.bio,
-      city: _user!.city,
-      country: _user!.country,
-      preferredLanguage: _user!.preferredLanguage,
-      isVerified: _user!.isVerified,
-      isBanned: _user!.isBanned,
-      role: _user!.role,
-      payoutAccountId: _user!.payoutAccountId,
-      avgRating: _user!.avgRating,
-      reviewCount: _user!.reviewCount,
-      createdAt: _user!.createdAt,
-      languages: _user!.languages,
-      interests: interests,
-    );
-    await DataService.setCurrentUser(updated);
-    setState(() => _user = updated);
+    try {
+      final updated = await DataService.updateCurrentUserProfile(
+        expectedUserId: _user!.id,
+        updates: {
+          CurrentUserProfileField.interests: interests,
+        },
+      );
+      if (mounted) setState(() => _user = updated);
+    } catch (error) {
+      debugPrint('[OwnProfile] interest save failed: $error');
+      if (mounted) {
+        AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: 'Speichern fehlgeschlagen',
+        );
+      }
+    }
   }
 
   void _saveBio(String bio) async {
     if (_user == null) return;
-    final updated = User(
-      id: _user!.id,
-      displayName: _user!.displayName,
-      email: _user!.email,
-      phone: _user!.phone,
-      photoURL: _user!.photoURL,
-      bio: bio,
-      city: _user!.city,
-      country: _user!.country,
-      preferredLanguage: _user!.preferredLanguage,
-      isVerified: _user!.isVerified,
-      isBanned: _user!.isBanned,
-      role: _user!.role,
-      payoutAccountId: _user!.payoutAccountId,
-      avgRating: _user!.avgRating,
-      reviewCount: _user!.reviewCount,
-      createdAt: _user!.createdAt,
-      languages: _user!.languages,
-      interests: _user!.interests,
-    );
-    await DataService.setCurrentUser(updated);
-    setState(() => _user = updated);
+    try {
+      final updated = await DataService.updateCurrentUserProfile(
+        expectedUserId: _user!.id,
+        updates: {
+          CurrentUserProfileField.bio: bio.trim().isEmpty ? null : bio.trim(),
+        },
+      );
+      if (mounted) setState(() => _user = updated);
+    } catch (error) {
+      debugPrint('[OwnProfile] bio save failed: $error');
+      if (mounted) {
+        AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: 'Speichern fehlgeschlagen',
+        );
+      }
+    }
   }
 
   _UserMetrics _computeMetrics({required double avgRating, required int reviewCount, required bool isVerified}) {

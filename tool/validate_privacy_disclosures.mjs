@@ -1699,6 +1699,50 @@ export function validatePrivacyDisclosures({
       || localReviewReputation.backendAuthorityChanged !== false) {
     fail('Local review/reputation privacy disclosure is incomplete or overstated.');
   }
+  const localAccountProfile = object(
+    privacy.localAccountProfile,
+    'localAccountProfile',
+  );
+  assertExactKeys(localAccountProfile, [
+    'status',
+    'dataClasses',
+    'publicCache',
+    'identityBinding',
+    'protectedFields',
+    'corruptionPolicy',
+    'privacyExport',
+    'confirmedAccountDeletion',
+    'retentionPeriodInvented',
+    'containsCredentials',
+    'externalTransferAdded',
+    'backendAuthorityChanged',
+  ], 'localAccountProfile');
+  if (localAccountProfile.status
+        !== 'implemented-local-fallback-authenticated-current-account-scoped'
+      || !Array.isArray(localAccountProfile.dataClasses)
+      || localAccountProfile.dataClasses.join(',') !== [
+        'public-profile-and-visibility-preferences',
+        'private-contact-address-and-approximate-location',
+        'account-identity-verification-moderation-payout-and-reputation',
+      ].join(',')
+      || localAccountProfile.publicCache
+        !== 'may-contain-public-profiles-owned-by-other-accounts'
+      || localAccountProfile.identityBinding
+        !== 'matching-auth-session-and-exact-current-account-for-field-patches'
+      || localAccountProfile.protectedFields
+        !== 'identity-verification-moderation-payout-reputation-and-deactivation'
+      || localAccountProfile.corruptionPolicy
+        !== 'preserve-exact-raw-and-fail-closed'
+      || localAccountProfile.privacyExport
+        !== 'current-account-profile-only-other-cache-and-auth-session-excluded'
+      || localAccountProfile.confirmedAccountDeletion
+        !== 'exact-current-account-profile-anonymized-and-current-cache-cleared'
+      || localAccountProfile.retentionPeriodInvented !== false
+      || localAccountProfile.containsCredentials !== false
+      || localAccountProfile.externalTransferAdded !== false
+      || localAccountProfile.backendAuthorityChanged !== false) {
+    fail('Local account/profile privacy disclosure is incomplete or overstated.');
+  }
   const operationalDataService = sourceText(
     root,
     sourceTexts,
@@ -1717,6 +1761,10 @@ export function validatePrivacyDisclosures({
     '_decodeClassicReviewsStrict(',
     '_decodeMultiReviewsStrict(',
     '_maxLocalReviews = 1000',
+    'exportCurrentAccountProfileForPrivacy()',
+    'updateCurrentUserProfile(',
+    '_decodeLocalUsersStrict(',
+    '_maxLocalUsers = 1000',
   ]) {
     if (!operationalDataService.includes(marker)) {
       fail(`Local operational-record privacy coverage is missing ${marker}.`);
@@ -1736,6 +1784,13 @@ export function validatePrivacyDisclosures({
     "'reviews': await DataService.exportReviewRecordsForPrivacy()",
   )) {
     fail('Privacy UI is missing the current-account local review export.');
+  }
+  if (!privacyInfoSource.includes(
+    "'accountProfile':",
+  ) || !privacyInfoSource.includes(
+    'await DataService.exportCurrentAccountProfileForPrivacy()',
+  )) {
+    fail('Privacy UI is missing the exact-current local account/profile export.');
   }
   const operationalDeletion = sourceText(
     root,

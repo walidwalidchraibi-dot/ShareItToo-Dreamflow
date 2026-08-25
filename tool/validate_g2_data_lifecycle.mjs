@@ -74,6 +74,7 @@ export function validateG2DataLifecycle({
     'localOperationalRecords',
     'localListingCatalog',
     'localReviewReputation',
+    'localAccountProfile',
     'persistentData',
     'boundaries',
   ], 'G2 lifecycle manifest');
@@ -346,6 +347,62 @@ export function validateG2DataLifecycle({
     fail('Local review/reputation lifecycle is incomplete or overstated.');
   }
 
+  const accountProfile = object(
+    lifecycle.localAccountProfile,
+    'localAccountProfile',
+  );
+  exactKeys(accountProfile, [
+    'runtimeStatus',
+    'storageScope',
+    'storageKeys',
+    'dataClasses',
+    'readScope',
+    'mutationIdentityBinding',
+    'protectedFieldPolicy',
+    'corruptionPolicy',
+    'capacityPolicy',
+    'mutationPolicy',
+    'exportStatus',
+    'accountDeletionStatus',
+    'retentionRule',
+    'backendAuthority',
+  ], 'localAccountProfile');
+  exactArray(accountProfile.storageKeys, [
+    'currentUser',
+    'users',
+  ], 'localAccountProfile.storageKeys');
+  exactArray(accountProfile.dataClasses, [
+    'public-profile-and-visibility-preferences',
+    'private-contact-address-and-approximate-location',
+    'account-identity-verification-moderation-payout-and-reputation',
+  ], 'localAccountProfile.dataClasses');
+  if (accountProfile.runtimeStatus
+        !== 'active-local-fallback-authenticated-current-account-scoped'
+      || accountProfile.storageScope
+        !== 'local-device-shared-preferences-remote-authoritative-when-enabled'
+      || accountProfile.readScope
+        !== 'exact-current-account-plus-public-profile-cache'
+      || accountProfile.mutationIdentityBinding
+        !== 'matching-auth-session-and-exact-current-account-field-patch'
+      || accountProfile.protectedFieldPolicy
+        !== 'identity-verification-moderation-payout-reputation-and-deactivation-not-caller-mutable'
+      || accountProfile.corruptionPolicy
+        !== 'fail-closed-preserve-exact-raw-no-read-time-normalization'
+      || accountProfile.capacityPolicy
+        !== 'maximum-1000-profiles-and-16-mib-document-reject-overflow-without-pruning'
+      || accountProfile.mutationPolicy
+        !== 'serialized-verified-paired-current-and-cache-write-with-exact-rollback'
+      || accountProfile.exportStatus
+        !== 'implemented-current-account-profile-only-cache-and-session-excluded'
+      || accountProfile.accountDeletionStatus
+        !== 'exact-current-account-profile-anonymized-then-current-session-cache-cleared'
+      || accountProfile.retentionRule
+        !== 'current-cache-cleared-on-logout-or-deletion-anonymized-public-entry-retained-no-period-invented'
+      || accountProfile.backendAuthority
+        !== 'remote-authoritative-when-enabled-local-qa-fallback-otherwise') {
+    fail('Local account/profile lifecycle is incomplete or overstated.');
+  }
+
   const persistent = object(lifecycle.persistentData, 'persistentData');
   exactKeys(persistent, ['rentalCart', 'projectCart'], 'persistentData');
   const rentalCart = object(persistent.rentalCart, 'persistentData.rentalCart');
@@ -498,6 +555,12 @@ export function validateG2DataLifecycle({
     '_maxLocalReviews = 1000',
     'exportReviewRecordsForPrivacy()',
     "'sharedPublicReviewsRetainedAfterDeletion': true",
+    '_accountProfileMutationQueue',
+    '_decodeLocalUsersStrict(',
+    '_maxLocalUsers = 1000',
+    'updateCurrentUserProfile(',
+    'exportCurrentAccountProfileForPrivacy()',
+    'anonymizeAndDeactivateUser(',
   ], 'DataService G2B lifecycle');
   const syncStart = dataService.indexOf('syncGuestRentalCartAfterAuthentication');
   const syncEnd = dataService.indexOf('static Future<RentalCart> getRentalCart', syncStart);

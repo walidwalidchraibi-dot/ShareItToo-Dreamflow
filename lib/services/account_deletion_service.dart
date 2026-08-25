@@ -201,12 +201,16 @@ class AccountDeletionService {
         await DataService.clearCurrentUserAndMarkDeleted();
         return;
       }
-      await DataService.anonymizeAndDeactivateUser(userId: user.id);
       await DataService.deactivateAllListingsForUser(user.id);
       await DataService.clearOperationalRecordsForAccountDeletion(user.id);
       await DataService.clearSavedItemsForAccountDeletion();
       await LocalSafetyPrivacyService.clearCurrentPrincipal();
       await FirebaseRuntime.deleteInstallationForAccountDeletion();
+      // Keep the exact authenticated account available while dependent local
+      // records are scoped, then anonymize the paired account/profile mirrors
+      // as the final data mutation before session removal.
+      await DataService.anonymizeAndDeactivateUser(userId: user.id);
+      await AuthService.clearSession();
       await DataService.clearCurrentUserAndMarkDeleted();
     } catch (e) {
       debugPrint('[AccountDeletionService] deleteAccount failed: $e');

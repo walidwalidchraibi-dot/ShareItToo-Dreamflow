@@ -95,6 +95,47 @@ class _LocalMutationQueue {
   }
 }
 
+/// Mutable fields of the device-local profile fallback.
+///
+/// Identity, authorization, verification, moderation, payout and reputation
+/// fields are intentionally absent. A `null` map value is an explicit clear.
+enum CurrentUserProfileField {
+  displayName,
+  phone,
+  photoURL,
+  bio,
+  city,
+  country,
+  preferredLanguage,
+  languages,
+  interests,
+  workTitle,
+  hobbies,
+  homeLocation,
+  favoriteSong,
+  showWork,
+  showHobbies,
+  showHomeLocation,
+  showBioPublic,
+  showLanguagesPublic,
+  showInterestsPublic,
+  showFavoriteSong,
+  homeLat,
+  homeLng,
+  birthDate,
+  socialX,
+  socialFacebook,
+  socialInstagram,
+  socialTiktok,
+  socialSnapchat,
+  addressStreet,
+  addressHouseNumber,
+  addressPostalCode,
+  addressCity,
+  addressCountry,
+  addressExtra,
+}
+
 class _LocalWishlistState {
   final int revision;
   final List<Map<String, dynamic>> lists;
@@ -233,6 +274,11 @@ class DataService {
   static const int _maxLocalReviews = 1000;
   static const int _maxLocalReviewDocumentBytes = 8 * 1024 * 1024;
   static const int _maxLocalReviewNoteLength = 2000;
+  static const int _maxLocalUsers = 1000;
+  static const int _maxLocalUserDocumentBytes = 16 * 1024 * 1024;
+  static const int _maxLocalProfileStringLength = 10000;
+  static const int _maxLocalProfilePhotoUrlLength = 8 * 1024 * 1024;
+  static const int _maxLocalProfileListEntries = 100;
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
@@ -251,11 +297,19 @@ class DataService {
   static final _LocalMutationQueue _listingMutationQueue =
       _LocalMutationQueue();
   static final _LocalMutationQueue _reviewMutationQueue = _LocalMutationQueue();
+  static final _LocalMutationQueue _accountProfileMutationQueue =
+      _LocalMutationQueue();
   static bool _failNextListingPersistenceForTesting = false;
   static bool _failNextReviewPersistenceForTesting = false;
+  static bool _failNextAccountProfilePersistenceForTesting = false;
+  static bool _clearSessionDuringNextAccountProfilePersistenceForTesting =
+      false;
 
   @visibleForTesting
   static int get maxLocalReviewsForTesting => _maxLocalReviews;
+
+  @visibleForTesting
+  static int get maxLocalUsersForTesting => _maxLocalUsers;
 
   static Future<T> _runWishlistForCurrentPrincipal<T>(
     Future<T> Function(LocalPrincipalIdentity principal) operation,
@@ -279,6 +333,9 @@ class DataService {
     if (current == null || current.id.trim().isEmpty) {
       throw StateError(
           'Für lokale Kontodaten ist eine Anmeldung erforderlich.');
+    }
+    if (current.isDeactivated) {
+      throw StateError('Das lokale Konto ist deaktiviert.');
     }
     if (!QaRuntimeService.isEnabled) {
       final session = await AuthService.readSession();
@@ -1892,6 +1949,210 @@ class DataService {
     await prefs.setBool(_seedFiveFlagKey, true);
   }
 
+  static User _decodeLocalUserStrict(
+    Object? raw, {
+    required String context,
+  }) {
+    if (raw is! Map) {
+      throw FormatException('$context enthält keinen Profildatensatz.');
+    }
+    final map = Map<String, dynamic>.from(raw);
+    String requiredString(String key) {
+      final value = map[key];
+      if (value is! String ||
+          value.trim().isEmpty ||
+          value.length > _maxLocalProfileStringLength) {
+        throw FormatException('$context enthält ein ungültiges Feld: $key.');
+      }
+      return value;
+    }
+
+    requiredString('id');
+    requiredString('displayName');
+    requiredString('email');
+    requiredString('preferredLanguage');
+    requiredString('role');
+    final createdAt = map['createdAt'];
+    if (createdAt is! String || DateTime.tryParse(createdAt) == null) {
+      throw FormatException('$context enthält keinen gültigen Zeitstempel.');
+    }
+    for (final key in const <String>[
+      'emailVerified',
+      'phoneVerified',
+      'isVerified',
+      'isBanned',
+      'isDeactivated',
+      'showWork',
+      'showHobbies',
+      'showHomeLocation',
+      'showBioPublic',
+      'showLanguagesPublic',
+      'showInterestsPublic',
+      'showFavoriteSong',
+    ]) {
+      if (map.containsKey(key) && map[key] is! bool) {
+        throw FormatException('$context enthält ein ungültiges Feld: $key.');
+      }
+    }
+    final rating = map['avgRating'];
+    if (rating is! num || !rating.toDouble().isFinite) {
+      throw FormatException('$context enthält eine ungültige Bewertung.');
+    }
+    final reviewCount = map['reviewCount'];
+    if (reviewCount is! num ||
+        reviewCount.toInt() != reviewCount ||
+        reviewCount.toInt() < 0) {
+      throw FormatException('$context enthält eine ungültige Bewertungszahl.');
+    }
+    for (final key in const <String>['homeLat', 'homeLng']) {
+      final value = map[key];
+      if (value != null && (value is! num || !value.toDouble().isFinite)) {
+        throw FormatException('$context enthält ein ungültiges Feld: $key.');
+      }
+    }
+    for (final key in const <String>['birthDate', 'deactivatedAt']) {
+      final value = map[key];
+      if (value != null &&
+          (value is! String || DateTime.tryParse(value) == null)) {
+        throw FormatException('$context enthält ein ungültiges Feld: $key.');
+      }
+    }
+    for (final key in const <String>['languages', 'interests']) {
+      final value = map[key];
+      if (value is! List || value.length > _maxLocalProfileListEntries) {
+        throw FormatException('$context enthält eine ungültige Liste: $key.');
+      }
+      for (final entry in value) {
+        if (entry is! String || entry.length > _maxLocalProfileStringLength) {
+          throw FormatException('$context enthält eine ungültige Liste: $key.');
+        }
+      }
+    }
+    for (final entry in map.entries) {
+      if (entry.value is String &&
+          (entry.value as String).length > _maxLocalProfileStringLength &&
+          entry.key != 'photoURL') {
+        throw FormatException(
+          '$context enthält ein zu langes Feld: ${entry.key}.',
+        );
+      }
+    }
+    return User.fromJson(map);
+  }
+
+  static List<User> _decodeLocalUsersStrict(String raw) {
+    if (utf8.encode(raw).length > _maxLocalUserDocumentBytes) {
+      throw const FormatException('Der lokale Profilbestand ist zu groß.');
+    }
+    final decoded = jsonDecode(raw);
+    if (decoded is! List || decoded.length > _maxLocalUsers) {
+      throw const FormatException('Der lokale Profilbestand ist ungültig.');
+    }
+    final users = <User>[];
+    final ids = <String>{};
+    final emails = <String>{};
+    for (var index = 0; index < decoded.length; index++) {
+      final user = _decodeLocalUserStrict(
+        decoded[index],
+        context: 'Lokales Profil ${index + 1}',
+      );
+      final id = user.id.trim();
+      final email = user.email.trim().toLowerCase();
+      if (!ids.add(id) || !emails.add(email)) {
+        throw const FormatException(
+          'Der lokale Profilbestand enthält mehrdeutige Konten.',
+        );
+      }
+      users.add(user);
+    }
+    return users;
+  }
+
+  static User _decodeCurrentUserStrict(String raw) {
+    if (utf8.encode(raw).length > _maxLocalUserDocumentBytes) {
+      throw const FormatException('Das lokale Kontoprofil ist zu groß.');
+    }
+    return _decodeLocalUserStrict(
+      jsonDecode(raw),
+      context: 'Lokales Kontoprofil',
+    );
+  }
+
+  static bool _sameLocalUserDocument(User left, User right) =>
+      jsonEncode(left.toJson()) == jsonEncode(right.toJson());
+
+  static Future<bool> _restorePreferenceString(
+    SharedPreferences prefs,
+    String key,
+    String? value,
+  ) =>
+      value == null ? prefs.remove(key) : prefs.setString(key, value);
+
+  static Future<void> _persistAccountProfileDocumentsVerified({
+    required SharedPreferences prefs,
+    required User current,
+    required List<User> users,
+    Future<void> Function()? verifyAuthorization,
+  }) async {
+    final previousCurrent = prefs.getString(_currentUserKey);
+    final previousUsers = prefs.getString(_usersKey);
+    final nextCurrent = jsonEncode(current.toJson());
+    final nextUsers = jsonEncode(users.map((entry) => entry.toJson()).toList());
+    _decodeCurrentUserStrict(nextCurrent);
+    final validatedUsers = _decodeLocalUsersStrict(nextUsers);
+    if (!validatedUsers.any((entry) => entry.id == current.id)) {
+      throw StateError('Das aktuelle Profil fehlt im lokalen Profilbestand.');
+    }
+    try {
+      await verifyAuthorization?.call();
+      final usersWritten = await prefs.setString(_usersKey, nextUsers);
+      if (!usersWritten || prefs.getString(_usersKey) != nextUsers) {
+        throw StateError('Der lokale Profilbestand wurde nicht gespeichert.');
+      }
+      if (_clearSessionDuringNextAccountProfilePersistenceForTesting) {
+        _clearSessionDuringNextAccountProfilePersistenceForTesting = false;
+        await AuthService.clearSession();
+      }
+      if (_failNextAccountProfilePersistenceForTesting) {
+        _failNextAccountProfilePersistenceForTesting = false;
+        throw StateError(
+            'Synthetic local account profile persistence failure.');
+      }
+      final currentWritten =
+          await prefs.setString(_currentUserKey, nextCurrent);
+      if (!currentWritten || prefs.getString(_currentUserKey) != nextCurrent) {
+        throw StateError('Das lokale Kontoprofil wurde nicht gespeichert.');
+      }
+      _decodeLocalUsersStrict(prefs.getString(_usersKey)!);
+      final persistedCurrent =
+          _decodeCurrentUserStrict(prefs.getString(_currentUserKey)!);
+      if (persistedCurrent.id != current.id) {
+        throw StateError('Das lokale Kontoprofil ist nicht konsistent.');
+      }
+      await verifyAuthorization?.call();
+    } catch (error) {
+      final usersRestored = await _restorePreferenceString(
+        prefs,
+        _usersKey,
+        previousUsers,
+      );
+      final currentRestored = await _restorePreferenceString(
+        prefs,
+        _currentUserKey,
+        previousCurrent,
+      );
+      if (!usersRestored ||
+          !currentRestored ||
+          prefs.getString(_usersKey) != previousUsers ||
+          prefs.getString(_currentUserKey) != previousCurrent) {
+        throw StateError(
+          'Profil-Speicherfehler; der vorherige Stand konnte nicht vollständig wiederhergestellt werden.',
+        );
+      }
+      rethrow;
+    }
+  }
+
   static Future<List<User>> getUsers() async {
     final prefs = await SharedPreferences.getInstance();
     final usersJson = prefs.getString(_usersKey);
@@ -1900,50 +2161,10 @@ class DataService {
       await _initializeSampleData();
       return getUsers();
     }
-    final List<dynamic> usersList = jsonDecode(usersJson);
-    bool mutated = false;
-    final fixed = usersList.map((e) {
-      final map = Map<String, dynamic>.from(e as Map);
-      if (!map.containsKey('createdAt') ||
-          map['createdAt'] == null ||
-          (map['createdAt'] as String).isEmpty) {
-        map['createdAt'] = DateTime.now().toIso8601String();
-        mutated = true;
-      }
-      if (!map.containsKey('avgRating') || map['avgRating'] == null) {
-        map['avgRating'] = 0.0;
-        mutated = true;
-      }
-      if (!map.containsKey('reviewCount') || map['reviewCount'] == null) {
-        map['reviewCount'] = 0;
-        mutated = true;
-      }
-      final isDeactivated = map['isDeactivated'] == true;
-      final id = map['id']?.toString();
-      if (!isDeactivated && id != null) {
-        final override = _seedForId(id);
-        if (override != null) {
-          if (map['displayName'] != override.$1) {
-            map['displayName'] = override.$1;
-            mutated = true;
-          }
-          if (map['photoURL'] != override.$2) {
-            map['photoURL'] = override.$2;
-            mutated = true;
-          }
-        }
-      }
-      return map;
-    }).toList();
-
-    var users = fixed.map((json) => User.fromJson(json)).toList();
-    users = await _applyCentralReviewStatsToUsers(users);
-
-    final correctedJson = users.map((user) => user.toJson()).toList();
-    if (mutated || jsonEncode(fixed) != jsonEncode(correctedJson)) {
-      await prefs.setString(_usersKey, jsonEncode(correctedJson));
-    }
-    return users;
+    final users = _decodeLocalUsersStrict(usersJson);
+    // Reputation is derived for presentation only. Reads never rewrite the
+    // account document or normalize malformed user-owned state.
+    return _applyCentralReviewStatsToUsers(users);
   }
 
   static Future<User?> getCurrentUser() async {
@@ -1982,17 +2203,7 @@ class DataService {
     }
 
     Future<String?> safeReadCurrentUser() async {
-      try {
-        return prefs.getString(_currentUserKey);
-      } catch (e) {
-        debugPrint(
-          '[DataService] currentUser malformed; clearing persisted value: $e',
-        );
-        try {
-          await prefs.remove(_currentUserKey);
-        } catch (_) {}
-        return null;
-      }
+      return prefs.getString(_currentUserKey);
     }
 
     String? userJson = await safeReadCurrentUser();
@@ -2042,39 +2253,10 @@ class DataService {
       }
       final again = await safeReadCurrentUser();
       if (again == null || again.isEmpty) return null;
-      return User.fromJson(jsonDecode(again) as Map<String, dynamic>);
+      return _decodeCurrentUserStrict(again);
     }
 
-    final Map<String, dynamic> map =
-        jsonDecode(userJson) as Map<String, dynamic>;
-    bool mutated = false;
-    if (!map.containsKey('createdAt') ||
-        (map['createdAt'] == null || (map['createdAt'] as String).isEmpty)) {
-      map['createdAt'] = DateTime.now().toIso8601String();
-      mutated = true;
-    }
-    if (!map.containsKey('avgRating') || map['avgRating'] == null) {
-      map['avgRating'] = 0.0;
-      mutated = true;
-    }
-    if (!map.containsKey('reviewCount') || map['reviewCount'] == null) {
-      map['reviewCount'] = 0;
-      mutated = true;
-    }
-
-    final isDeactivated = map['isDeactivated'] == true;
-    if (!isDeactivated) {
-      final id = map['id']?.toString();
-      if (id != null) {
-        final override = _seedForId(id);
-        if (override != null && map['photoURL'] != override.$2) {
-          map['photoURL'] = override.$2;
-          mutated = true;
-        }
-      }
-    }
-
-    var user = User.fromJson(map);
+    var user = _decodeCurrentUserStrict(userJson);
 
     try {
       final users = await getUsers();
@@ -2089,7 +2271,6 @@ class DataService {
           avgRating: corrected.avgRating,
           reviewCount: corrected.reviewCount,
         );
-        mutated = true;
       }
     } catch (_) {}
 
@@ -2103,16 +2284,11 @@ class DataService {
           emailVerified: true,
           phoneVerified: true,
         );
-        mutated = true;
       }
       if (preview == DeveloperUserState.loggedIn && user.isVerified == true) {
         user = user.copyWith(isVerified: false);
-        mutated = true;
       }
     } catch (_) {}
-    if (mutated) {
-      await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
-    }
     await _ensureQaMessagesAndNotificationsForUserOnce(user.id);
     return user;
   }
@@ -3110,11 +3286,12 @@ class DataService {
   }
 
   static Future<void> setCurrentUser(User user) async {
+    // Trusted authentication/registration hydration path. User-facing profile
+    // edits must use updateCurrentUserProfile so protected fields stay closed.
     if (QaRuntimeService.isEnabled) {
       QaRuntimeService.setRuntimeUserJson(user.toJson());
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
     var effectiveUser = user;
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final remote = await BackendRepository.updateCurrentProfile(
@@ -3122,11 +3299,259 @@ class DataService {
       );
       effectiveUser = User.fromJson(remote);
     }
-    await prefs.setString(
-      _currentUserKey,
-      jsonEncode(effectiveUser.toJson()),
-    );
-    await _upsertCachedUser(prefs, effectiveUser);
+    await _accountProfileMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_usersKey);
+      final users = raw == null
+          ? <User>[]
+          : List<User>.from(_decodeLocalUsersStrict(raw));
+      final index = users.indexWhere((entry) => entry.id == effectiveUser.id);
+      if (index >= 0) {
+        users[index] = effectiveUser;
+      } else {
+        if (users.length >= _maxLocalUsers) {
+          throw StateError('Der lokale Profilbestand ist voll.');
+        }
+        users.add(effectiveUser);
+      }
+      await _persistAccountProfileDocumentsVerified(
+        prefs: prefs,
+        current: effectiveUser,
+        users: users,
+      );
+    });
+  }
+
+  static Object? _validatedProfileFieldValue(
+    CurrentUserProfileField field,
+    Object? value,
+  ) {
+    const nullableStrings = <CurrentUserProfileField>{
+      CurrentUserProfileField.phone,
+      CurrentUserProfileField.bio,
+      CurrentUserProfileField.city,
+      CurrentUserProfileField.country,
+      CurrentUserProfileField.workTitle,
+      CurrentUserProfileField.hobbies,
+      CurrentUserProfileField.homeLocation,
+      CurrentUserProfileField.favoriteSong,
+      CurrentUserProfileField.socialX,
+      CurrentUserProfileField.socialFacebook,
+      CurrentUserProfileField.socialInstagram,
+      CurrentUserProfileField.socialTiktok,
+      CurrentUserProfileField.socialSnapchat,
+      CurrentUserProfileField.addressStreet,
+      CurrentUserProfileField.addressHouseNumber,
+      CurrentUserProfileField.addressPostalCode,
+      CurrentUserProfileField.addressCity,
+      CurrentUserProfileField.addressCountry,
+      CurrentUserProfileField.addressExtra,
+    };
+    const requiredStrings = <CurrentUserProfileField>{
+      CurrentUserProfileField.displayName,
+      CurrentUserProfileField.preferredLanguage,
+    };
+    const booleanFields = <CurrentUserProfileField>{
+      CurrentUserProfileField.showWork,
+      CurrentUserProfileField.showHobbies,
+      CurrentUserProfileField.showHomeLocation,
+      CurrentUserProfileField.showBioPublic,
+      CurrentUserProfileField.showLanguagesPublic,
+      CurrentUserProfileField.showInterestsPublic,
+      CurrentUserProfileField.showFavoriteSong,
+    };
+    if (nullableStrings.contains(field)) {
+      if (value != null &&
+          (value is! String || value.length > _maxLocalProfileStringLength)) {
+        throw ArgumentError('Ungültiger Profilwert für ${field.name}.');
+      }
+      return value;
+    }
+    if (field == CurrentUserProfileField.photoURL) {
+      if (value != null &&
+          (value is! String || value.length > _maxLocalProfilePhotoUrlLength)) {
+        throw ArgumentError('Ungültiger Profilwert für ${field.name}.');
+      }
+      return value;
+    }
+    if (requiredStrings.contains(field)) {
+      if (value is! String ||
+          value.trim().isEmpty ||
+          value.length > _maxLocalProfileStringLength) {
+        throw ArgumentError('Ungültiger Profilwert für ${field.name}.');
+      }
+      return value.trim();
+    }
+    if (booleanFields.contains(field)) {
+      if (value is! bool) {
+        throw ArgumentError('Ungültiger Profilwert für ${field.name}.');
+      }
+      return value;
+    }
+    if (field == CurrentUserProfileField.languages ||
+        field == CurrentUserProfileField.interests) {
+      if (value is! List<String> ||
+          value.length > _maxLocalProfileListEntries ||
+          value.any((entry) => entry.length > _maxLocalProfileStringLength)) {
+        throw ArgumentError('Ungültiger Profilwert für ${field.name}.');
+      }
+      return List<String>.unmodifiable(value);
+    }
+    if (field == CurrentUserProfileField.homeLat ||
+        field == CurrentUserProfileField.homeLng) {
+      if (value != null && (value is! num || !value.toDouble().isFinite)) {
+        throw ArgumentError('Ungültiger Profilwert für ${field.name}.');
+      }
+      return value == null ? null : (value as num).toDouble();
+    }
+    if (field == CurrentUserProfileField.birthDate) {
+      if (value != null && value is! DateTime) {
+        throw ArgumentError('Ungültiger Profilwert für ${field.name}.');
+      }
+      return (value as DateTime?)?.toIso8601String();
+    }
+    throw ArgumentError('Nicht unterstütztes Profilfeld: ${field.name}.');
+  }
+
+  static Future<User> updateCurrentUserProfile({
+    required String expectedUserId,
+    required Map<CurrentUserProfileField, Object?> updates,
+  }) async {
+    if (updates.isEmpty) {
+      return _requireCurrentOperationalUser(requestedUserId: expectedUserId);
+    }
+    final captured =
+        await _requireCurrentOperationalUser(requestedUserId: expectedUserId);
+    final validatedUpdates = <String, Object?>{};
+    for (final entry in updates.entries) {
+      validatedUpdates[entry.key.name] =
+          _validatedProfileFieldValue(entry.key, entry.value);
+    }
+    return _accountProfileMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(
+        captured.id,
+        expectedEmail: captured.email,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final currentRaw = prefs.getString(_currentUserKey);
+      final usersRaw = prefs.getString(_usersKey);
+      if (currentRaw == null || usersRaw == null) {
+        throw StateError('Der lokale Profilstand ist unvollständig.');
+      }
+      final current = _decodeCurrentUserStrict(currentRaw);
+      if (current.id != captured.id ||
+          current.email.trim().toLowerCase() !=
+              captured.email.trim().toLowerCase()) {
+        throw StateError('Die lokale Kontositzung hat sich geändert.');
+      }
+      final users = List<User>.from(_decodeLocalUsersStrict(usersRaw));
+      final index = users.indexWhere((entry) => entry.id == current.id);
+      if (index < 0 || !_sameLocalUserDocument(users[index], current)) {
+        throw StateError(
+          'Das aktuelle Profil fehlt oder weicht vom Profilbestand ab.',
+        );
+      }
+      final nextJson = Map<String, dynamic>.from(current.toJson())
+        ..addAll(validatedUpdates);
+      if (validatedUpdates.containsKey(CurrentUserProfileField.phone.name) &&
+          nextJson['phone'] != current.phone) {
+        nextJson['phoneVerified'] = false;
+      }
+      var next = _decodeLocalUserStrict(
+        nextJson,
+        context: 'Aktualisiertes lokales Kontoprofil',
+      );
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.updateCurrentProfile(
+          next.toJson(),
+        );
+        next = _decodeLocalUserStrict(
+          remote,
+          context: 'Aktualisiertes Backend-Kontoprofil',
+        );
+      }
+      if (next.id != current.id ||
+          next.email != current.email ||
+          next.role != current.role ||
+          next.isVerified != current.isVerified ||
+          next.isBanned != current.isBanned ||
+          next.payoutAccountId != current.payoutAccountId ||
+          next.avgRating != current.avgRating ||
+          next.reviewCount != current.reviewCount ||
+          next.createdAt != current.createdAt ||
+          next.isDeactivated != current.isDeactivated ||
+          next.deactivatedAt != current.deactivatedAt ||
+          next.emailVerified != current.emailVerified) {
+        throw StateError(
+            'Geschützte Kontofelder dürfen nicht geändert werden.');
+      }
+      users[index] = next;
+      await _assertCurrentOperationalUserId(
+        captured.id,
+        expectedEmail: captured.email,
+      );
+      await _persistAccountProfileDocumentsVerified(
+        prefs: prefs,
+        current: next,
+        users: users,
+        verifyAuthorization: () => _assertCurrentOperationalUserId(
+          captured.id,
+          expectedEmail: captured.email,
+        ),
+      );
+      return next;
+    });
+  }
+
+  /// Device-local account/profile data for an owner-requested privacy export.
+  /// Other cached public profiles and authentication-session material are
+  /// intentionally excluded.
+  static Future<Map<String, dynamic>>
+      exportCurrentAccountProfileForPrivacy() async {
+    final captured = await _requireCurrentOperationalUser();
+    return _accountProfileMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(
+        captured.id,
+        expectedEmail: captured.email,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final currentRaw = prefs.getString(_currentUserKey);
+      final usersRaw = prefs.getString(_usersKey);
+      if (currentRaw == null || usersRaw == null) {
+        throw StateError('Der lokale Profilstand ist unvollständig.');
+      }
+      final current = _decodeCurrentUserStrict(currentRaw);
+      final users = _decodeLocalUsersStrict(usersRaw);
+      final cached = users.where((entry) => entry.id == current.id).toList();
+      if (current.id != captured.id ||
+          current.email != captured.email ||
+          cached.length != 1 ||
+          !_sameLocalUserDocument(cached.single, current)) {
+        throw StateError('Der lokale Profilstand ist nicht konsistent.');
+      }
+      await _assertCurrentOperationalUserId(
+        captured.id,
+        expectedEmail: captured.email,
+      );
+      return <String, dynamic>{
+        'scope': 'current-authenticated-account',
+        'accountId': current.id,
+        'profile': current.toJson(),
+        'otherCachedProfilesExcluded': true,
+        'authenticationSessionExcluded': true,
+        'sharedPublicReputationRetainedSeparately': true,
+      };
+    });
+  }
+
+  @visibleForTesting
+  static void failNextAccountProfilePersistenceForTesting() {
+    _failNextAccountProfilePersistenceForTesting = true;
+  }
+
+  @visibleForTesting
+  static void clearSessionDuringNextAccountProfilePersistenceForTesting() {
+    _clearSessionDuringNextAccountProfilePersistenceForTesting = true;
   }
 
   static Future<void> clearCurrentUser() async {
@@ -3134,8 +3559,13 @@ class DataService {
       QaRuntimeService.clearRuntimeUser();
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_currentUserKey);
+    await _accountProfileMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      if (!await prefs.remove(_currentUserKey) ||
+          prefs.containsKey(_currentUserKey)) {
+        throw StateError('Das lokale Kontoprofil wurde nicht entfernt.');
+      }
+    });
   }
 
   static Future<void> syncCurrentUserForSessionEmail(String email) async {
@@ -3145,9 +3575,7 @@ class DataService {
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final remote = await BackendRepository.getCurrentProfile();
       final user = User.fromJson(remote);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
-      await _upsertCachedUser(prefs, user);
+      await setCurrentUser(user);
       return;
     }
 
@@ -3169,109 +3597,120 @@ class DataService {
     }
   }
 
-  static Future<void> _upsertCachedUser(
-    SharedPreferences prefs,
-    User user,
-  ) async {
-    List<dynamic> users = <dynamic>[];
-    final raw = prefs.getString(_usersKey);
-    if (raw != null && raw.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is List) users = decoded;
-      } catch (_) {}
-    }
-    final index = users.indexWhere(
-      (entry) => entry is Map && entry['id']?.toString() == user.id,
-    );
-    if (index >= 0) {
-      users[index] = user.toJson();
-    } else {
-      users.add(user.toJson());
-    }
-    await prefs.setString(_usersKey, jsonEncode(users));
-  }
-
   static Future<void> clearCurrentUserAndMarkDeleted() async {
-    try {
+    await _accountProfileMutationQueue.run(() async {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_accountDeletedKey, true);
-      await prefs.remove(_currentUserKey);
+      final previousCurrent = prefs.getString(_currentUserKey);
+      final hadDeletedMarker = prefs.containsKey(_accountDeletedKey);
+      final previousDeletedMarker = prefs.getBool(_accountDeletedKey);
+      try {
+        if (!await prefs.setBool(_accountDeletedKey, true) ||
+            prefs.getBool(_accountDeletedKey) != true ||
+            !await prefs.remove(_currentUserKey) ||
+            prefs.containsKey(_currentUserKey)) {
+          throw StateError('Das lokale Kontoprofil wurde nicht entfernt.');
+        }
+      } catch (error) {
+        await _restorePreferenceString(
+          prefs,
+          _currentUserKey,
+          previousCurrent,
+        );
+        if (hadDeletedMarker) {
+          await prefs.setBool(_accountDeletedKey, previousDeletedMarker!);
+        } else {
+          await prefs.remove(_accountDeletedKey);
+        }
+        rethrow;
+      }
       debugPrint(
         '[DataService] Account marked deleted and current user cleared',
       );
-    } catch (e) {
-      debugPrint('[DataService] clearCurrentUserAndMarkDeleted failed: $e');
-    }
+    });
   }
 
   static Future<void> anonymizeAndDeactivateUser({
     required String userId,
   }) async {
-    try {
+    final captured =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
+    await _accountProfileMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(
+        captured.id,
+        expectedEmail: captured.email,
+      );
       final prefs = await SharedPreferences.getInstance();
       final usersJson = prefs.getString(_usersKey);
-      if (usersJson == null || usersJson.isEmpty) return;
-      final decoded = jsonDecode(usersJson);
-      if (decoded is! List) return;
-
+      final currentJson = prefs.getString(_currentUserKey);
+      if (usersJson == null || currentJson == null) {
+        throw StateError('Der lokale Profilstand ist unvollständig.');
+      }
+      final current = _decodeCurrentUserStrict(currentJson);
+      if (current.id != captured.id || current.email != captured.email) {
+        throw StateError('Die lokale Kontositzung hat sich geändert.');
+      }
+      final users = List<User>.from(_decodeLocalUsersStrict(usersJson));
+      final index = users.indexWhere((entry) => entry.id == captured.id);
+      if (index < 0 || !_sameLocalUserDocument(users[index], current)) {
+        throw StateError(
+          'Das aktuelle Profil fehlt oder weicht vom Profilbestand ab.',
+        );
+      }
       final now = DateTime.now();
-      bool mutated = false;
-      for (int i = 0; i < decoded.length; i++) {
-        if (decoded[i] is! Map) continue;
-        final map = Map<String, dynamic>.from(decoded[i] as Map);
-        if (map['id']?.toString() != userId) continue;
-
-        map['displayName'] = 'Gelöschter Nutzer';
-        map['photoURL'] = null;
-        map['bio'] = null;
-        map['interests'] = const <String>[];
-        map['languages'] = const <String>[];
-        map['email'] = 'deleted+$userId@shareittoo.invalid';
-        map['phone'] = null;
-        map['emailVerified'] = false;
-        map['phoneVerified'] = false;
-        map['isVerified'] = false;
-        map['workTitle'] = null;
-        map['hobbies'] = null;
-        map['homeLocation'] = null;
-        map['favoriteSong'] = null;
-        map['showWork'] = false;
-        map['showHobbies'] = false;
-        map['showHomeLocation'] = false;
-        map['showBioPublic'] = false;
-        map['showFavoriteSong'] = false;
-        map['homeLat'] = null;
-        map['homeLng'] = null;
-        map['birthDate'] = null;
-        map['socialX'] = null;
-        map['socialFacebook'] = null;
-        map['socialInstagram'] = null;
-        map['socialTiktok'] = null;
-        map['socialSnapchat'] = null;
-
-        map['addressStreet'] = null;
-        map['addressHouseNumber'] = null;
-        map['addressPostalCode'] = null;
-        map['addressCity'] = null;
-        map['addressCountry'] = null;
-        map['addressExtra'] = null;
-
-        map['isDeactivated'] = true;
-        map['deactivatedAt'] = now.toIso8601String();
-
-        decoded[i] = map;
-        mutated = true;
-        break;
-      }
-
-      if (mutated) {
-        await prefs.setString(_usersKey, jsonEncode(decoded));
-        debugPrint('[DataService] User $userId anonymized/deactivated');
-      }
-    } catch (e) {
-      debugPrint('[DataService] anonymizeAndDeactivateUser failed: $e');
-    }
+      final anonymized = _decodeLocalUserStrict(
+        <String, dynamic>{
+          ...current.toJson(),
+          'displayName': 'Gelöschter Nutzer',
+          'email': 'deleted+${current.id}@shareittoo.invalid',
+          'phone': null,
+          'emailVerified': false,
+          'phoneVerified': false,
+          'photoURL': null,
+          'bio': null,
+          'city': null,
+          'country': null,
+          'isVerified': false,
+          'payoutAccountId': null,
+          'languages': const <String>[],
+          'interests': const <String>[],
+          'workTitle': null,
+          'hobbies': null,
+          'homeLocation': null,
+          'favoriteSong': null,
+          'showWork': false,
+          'showHobbies': false,
+          'showHomeLocation': false,
+          'showBioPublic': false,
+          'showLanguagesPublic': false,
+          'showInterestsPublic': false,
+          'showFavoriteSong': false,
+          'homeLat': null,
+          'homeLng': null,
+          'birthDate': null,
+          'socialX': null,
+          'socialFacebook': null,
+          'socialInstagram': null,
+          'socialTiktok': null,
+          'socialSnapchat': null,
+          'addressStreet': null,
+          'addressHouseNumber': null,
+          'addressPostalCode': null,
+          'addressCity': null,
+          'addressCountry': null,
+          'addressExtra': null,
+          'isDeactivated': true,
+          'deactivatedAt': now.toIso8601String(),
+        },
+        context: 'Anonymisiertes lokales Kontoprofil',
+      );
+      users[index] = anonymized;
+      await _persistAccountProfileDocumentsVerified(
+        prefs: prefs,
+        current: anonymized,
+        users: users,
+      );
+      debugPrint('[DataService] User $userId anonymized/deactivated');
+    });
   }
 
   static Future<void> deactivateAllListingsForUser(String userId) async {
@@ -6129,13 +6568,6 @@ class DataService {
     ),
   ];
 
-  static (String name, String photo)? _seedForId(String id) {
-    for (final seed in _userSeeds) {
-      if (seed.$1 == id) return (seed.$2, seed.$3);
-    }
-    return null;
-  }
-
   static List<User> _buildDemoUsers() {
     final now = DateTime.now();
     final cities = _cities.keys.toList();
@@ -7663,10 +8095,7 @@ class DataService {
         try {
           final remote = await BackendRepository.getPublicProfile(id);
           if (remote != null) {
-            final user = User.fromJson(remote);
-            final prefs = await SharedPreferences.getInstance();
-            await _upsertCachedUser(prefs, user);
-            return user;
+            return User.fromJson(remote);
           }
         } catch (error) {
           debugPrint('[DataService] public profile load failed: $error');

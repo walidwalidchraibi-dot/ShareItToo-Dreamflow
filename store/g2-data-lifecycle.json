@@ -129,6 +129,29 @@
     "retentionRule": "no-period-invented-shared-reputation-records-retained",
     "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
   },
+  "localAccountProfile": {
+    "runtimeStatus": "active-local-fallback-authenticated-current-account-scoped",
+    "storageScope": "local-device-shared-preferences-remote-authoritative-when-enabled",
+    "storageKeys": [
+      "currentUser",
+      "users"
+    ],
+    "dataClasses": [
+      "public-profile-and-visibility-preferences",
+      "private-contact-address-and-approximate-location",
+      "account-identity-verification-moderation-payout-and-reputation"
+    ],
+    "readScope": "exact-current-account-plus-public-profile-cache",
+    "mutationIdentityBinding": "matching-auth-session-and-exact-current-account-field-patch",
+    "protectedFieldPolicy": "identity-verification-moderation-payout-reputation-and-deactivation-not-caller-mutable",
+    "corruptionPolicy": "fail-closed-preserve-exact-raw-no-read-time-normalization",
+    "capacityPolicy": "maximum-1000-profiles-and-16-mib-document-reject-overflow-without-pruning",
+    "mutationPolicy": "serialized-verified-paired-current-and-cache-write-with-exact-rollback",
+    "exportStatus": "implemented-current-account-profile-only-cache-and-session-excluded",
+    "accountDeletionStatus": "exact-current-account-profile-anonymized-then-current-session-cache-cleared",
+    "retentionRule": "current-cache-cleared-on-logout-or-deletion-anonymized-public-entry-retained-no-period-invented",
+    "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
+  },
   "persistentData": {
     "rentalCart": {
       "runtimeStatus": "active-guest-local-principal-account-server",

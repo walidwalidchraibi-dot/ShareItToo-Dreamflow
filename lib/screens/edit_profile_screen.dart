@@ -24,6 +24,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _showHomeLocation = false;
   bool _showBioPublic = true;
   bool _showFavoriteSong = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _load() async {
     final u = await DataService.getCurrentUser();
+    if (!mounted) return;
     setState(() {
       _user = u;
       _workCtrl.text = u?.workTitle ?? '';
@@ -59,40 +61,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
-    if (_user == null) return;
-    final updated = User(
-      id: _user!.id,
-      displayName: _user!.displayName,
-      email: _user!.email,
-      phone: _user!.phone,
-      photoURL: _user!.photoURL,
-      bio: _bioCtrl.text,
-      city: _user!.city,
-      country: _user!.country,
-      preferredLanguage: _user!.preferredLanguage,
-      isVerified: _user!.isVerified,
-      isBanned: _user!.isBanned,
-      role: _user!.role,
-      payoutAccountId: _user!.payoutAccountId,
-      avgRating: _user!.avgRating,
-      reviewCount: _user!.reviewCount,
-      createdAt: _user!.createdAt,
-      languages: _user!.languages,
-      interests: _user!.interests,
-      workTitle: _workCtrl.text.isEmpty ? null : _workCtrl.text,
-      hobbies: _hobbiesCtrl.text.isEmpty ? null : _hobbiesCtrl.text,
-      homeLocation: _homeLocCtrl.text.isEmpty ? null : _homeLocCtrl.text,
-      favoriteSong: _favSongCtrl.text.isEmpty ? null : _favSongCtrl.text,
-      showWork: _showWork,
-      showHobbies: _showHobbies,
-      showHomeLocation: _showHomeLocation,
-      showBioPublic: _showBioPublic,
-      showFavoriteSong: _showFavoriteSong,
-    );
-    await DataService.setCurrentUser(updated);
-    if (!mounted) return;
-    AppPopup.toast(context, icon: Icons.check_circle_outline, title: context.read<LocalizationController>().t('Gespeichert'));
-    Navigator.of(context).maybePop();
+    final current = _user;
+    if (current == null || _saving) return;
+    setState(() => _saving = true);
+    try {
+      final updated = await DataService.updateCurrentUserProfile(
+        expectedUserId: current.id,
+        updates: {
+          CurrentUserProfileField.workTitle:
+              _workCtrl.text.trim().isEmpty ? null : _workCtrl.text.trim(),
+          CurrentUserProfileField.hobbies:
+              _hobbiesCtrl.text.trim().isEmpty ? null : _hobbiesCtrl.text.trim(),
+          CurrentUserProfileField.homeLocation:
+              _homeLocCtrl.text.trim().isEmpty ? null : _homeLocCtrl.text.trim(),
+          CurrentUserProfileField.favoriteSong:
+              _favSongCtrl.text.trim().isEmpty ? null : _favSongCtrl.text.trim(),
+          CurrentUserProfileField.bio:
+              _bioCtrl.text.trim().isEmpty ? null : _bioCtrl.text.trim(),
+          CurrentUserProfileField.showWork: _showWork,
+          CurrentUserProfileField.showHobbies: _showHobbies,
+          CurrentUserProfileField.showHomeLocation: _showHomeLocation,
+          CurrentUserProfileField.showBioPublic: _showBioPublic,
+          CurrentUserProfileField.showFavoriteSong: _showFavoriteSong,
+        },
+      );
+      if (!mounted) return;
+      setState(() => _user = updated);
+      AppPopup.toast(
+        context,
+        icon: Icons.check_circle_outline,
+        title: context.read<LocalizationController>().t('Gespeichert'),
+      );
+      Navigator.of(context).maybePop();
+    } catch (error) {
+      debugPrint('[EditProfile] save failed: $error');
+      if (mounted) {
+        AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: 'Speichern fehlgeschlagen',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -122,7 +134,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 _TextAreaTile(label: l10n.t('Über mich'), controller: _bioCtrl, icon: Icons.person_outline),
                 _SwitchTile(title: l10n.t('Über mich öffentlich anzeigen'), value: _showBioPublic, onChanged: (v) => setState(() => _showBioPublic = v)),
                 const SizedBox(height: 20),
-                SizedBox(width: double.infinity, child: FilledButton(onPressed: _save, child: Text(l10n.t('Speichern')))),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _save,
+                    child: _saving
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.t('Speichern')),
+                  ),
+                ),
               ]),
             ),
     );

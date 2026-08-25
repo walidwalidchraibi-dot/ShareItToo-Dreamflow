@@ -40,7 +40,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "f35452b74d52817d272ceb124aad3c3f45e444ebf1d357b83009bc6c8ae65f5e"
+      "sha256": "8df3edaf407df822ce1ccd0479262e4b986c90c15a79abfcc87ea6ad320b2171"
     },
     {
       "path": "backend/src/account_actions.js",
@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "8f7e66f8bdf0af381d83aebcbb019323e648be640680091fa030984e38204d6b"
+      "sha256": "963ee2538ef822d677eea7e001cf3936574af95b28e1d9d1af3452cac0435bef"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -844,7 +844,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "5b9b3d2b5cc7e9feb5242f6ae560d972a6ae9f00d799ba371b400c0c549e1d3c"
+      "sha256": "c9ed7cf809bd54bfced8f79885e7278764f85b44f9ccecda12982465a2be30ef"
     },
     {
       "path": "lib/services/blue_ocean_draft_recovery_service.dart",
@@ -860,7 +860,7 @@
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
-      "sha256": "e0e08663f291e335179e411d3003b0976bf3420e35999bcc2940fcdb2e6509f8"
+      "sha256": "2a031b7d9b7cf2ccf9120e19b0aa7b2c38ede451997301fd251a3f703ae85cfc"
     },
     {
       "path": "lib/openai/openai_config.dart",
@@ -888,7 +888,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "da435bdb0cdd32c640c96c361f39f66722ea44a40aed7dde79cee5ee1688bbd9"
+      "sha256": "f4264251557105a8acfae8768b17cf6fc25affc47c0bf338afccd5a987fac909"
     },
     {
       "path": "lib/widgets/supply_enrichment_dialog.dart",
@@ -916,7 +916,7 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "4f21707c039707ce64e589c3e24d21823f73c9ac4162f61767d321621c6b116e"
+      "sha256": "64c73fe3792bc52c3a278eed0a53690da7533a949f37a41572564488647f369a"
     }
   ],
   "localDevicePrincipalState": {
@@ -981,6 +981,24 @@
     "demoSeedPolicy": "explicit-qa-bootstrap-only-no-read-time-seeding",
     "privacyExport": "current-account-authored-and-received-reviews-only",
     "confirmedAccountDeletion": "shared-public-reviews-retained-with-account-anonymization",
+    "retentionPeriodInvented": false,
+    "containsCredentials": false,
+    "externalTransferAdded": false,
+    "backendAuthorityChanged": false
+  },
+  "localAccountProfile": {
+    "status": "implemented-local-fallback-authenticated-current-account-scoped",
+    "dataClasses": [
+      "public-profile-and-visibility-preferences",
+      "private-contact-address-and-approximate-location",
+      "account-identity-verification-moderation-payout-and-reputation"
+    ],
+    "publicCache": "may-contain-public-profiles-owned-by-other-accounts",
+    "identityBinding": "matching-auth-session-and-exact-current-account-for-field-patches",
+    "protectedFields": "identity-verification-moderation-payout-reputation-and-deactivation",
+    "corruptionPolicy": "preserve-exact-raw-and-fail-closed",
+    "privacyExport": "current-account-profile-only-other-cache-and-auth-session-excluded",
+    "confirmedAccountDeletion": "exact-current-account-profile-anonymized-and-current-cache-cleared",
     "retentionPeriodInvented": false,
     "containsCredentials": false,
     "externalTransferAdded": false,

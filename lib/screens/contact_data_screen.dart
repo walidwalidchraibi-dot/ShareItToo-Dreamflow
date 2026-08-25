@@ -262,7 +262,14 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     final addressLine = _composeAddressLine();
 
     final emailChanged = newEmail != current.email;
-    final phoneChanged = newPhone != (current.phone ?? '');
+
+    if (!BackendConfig.enabled && emailChanged) {
+      setState(() {
+        _generalError =
+            'Die E-Mail-Adresse kann nur über den bestätigten Anmeldeweg geändert werden.';
+      });
+      return;
+    }
 
     String? emailChangePassword;
     if (BackendConfig.enabled && emailChanged) {
@@ -297,28 +304,25 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
         }
       }
 
-      final effectiveEmail =
-          BackendConfig.enabled && emailChanged ? current.email : newEmail;
-      final updated = current.copyWith(
-        email: effectiveEmail,
-        phone: newPhone,
-        emailVerified: BackendConfig.enabled
-            ? current.emailVerified
-            : (emailChanged ? false : current.emailVerified),
-        phoneVerified: phoneChanged ? false : current.phoneVerified,
-        addressStreet: _streetCtrl.text.trim(),
-        addressHouseNumber: _houseNumberCtrl.text.trim(),
-        addressPostalCode: _postalCodeCtrl.text.trim(),
-        addressCity: _cityCtrl.text.trim(),
-        addressCountry: _countryCtrl.text.trim(),
-        addressExtra:
-            _extraCtrl.text.trim().isEmpty ? null : _extraCtrl.text.trim(),
-        // Keep legacy fields in sync for existing parts of the app.
-        homeLocation: addressLine,
-        city: _cityCtrl.text.trim(),
-        country: _countryCtrl.text.trim(),
+      final updated = await DataService.updateCurrentUserProfile(
+        expectedUserId: current.id,
+        updates: {
+          CurrentUserProfileField.phone:
+              newPhone.isEmpty ? null : newPhone,
+          CurrentUserProfileField.addressStreet: _streetCtrl.text.trim(),
+          CurrentUserProfileField.addressHouseNumber:
+              _houseNumberCtrl.text.trim(),
+          CurrentUserProfileField.addressPostalCode:
+              _postalCodeCtrl.text.trim(),
+          CurrentUserProfileField.addressCity: _cityCtrl.text.trim(),
+          CurrentUserProfileField.addressCountry: _countryCtrl.text.trim(),
+          CurrentUserProfileField.addressExtra:
+              _extraCtrl.text.trim().isEmpty ? null : _extraCtrl.text.trim(),
+          CurrentUserProfileField.homeLocation: addressLine,
+          CurrentUserProfileField.city: _cityCtrl.text.trim(),
+          CurrentUserProfileField.country: _countryCtrl.text.trim(),
+        },
       );
-      await DataService.setCurrentUser(updated);
       if (!mounted) return;
       setState(() => _user = updated);
       if (BackendConfig.enabled && emailChanged) {
@@ -599,6 +603,16 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       return;
     }
 
+    if (!BackendConfig.enabled) {
+      AppPopup.info(
+        context,
+        title: 'Bestätigung nicht verfügbar',
+        message:
+            'Eine E-Mail gilt erst nach Prüfung durch den unterstützten Anmeldeweg als bestätigt.',
+      );
+      return;
+    }
+
     final sent = await AuthService.requestEmailVerification(_emailCtrl.text);
     if (!mounted) return;
     if (!sent) {
@@ -651,29 +665,22 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                               try {
                                 final u = _user;
                                 if (u == null) return;
-                                late final User updated;
-                                if (BackendConfig.enabled) {
-                                  await DataService
-                                      .syncCurrentUserForSessionEmail(
-                                    _emailCtrl.text.trim(),
+                                await DataService
+                                    .syncCurrentUserForSessionEmail(
+                                  _emailCtrl.text.trim(),
+                                );
+                                final updated =
+                                    await DataService.getCurrentUser();
+                                if (updated == null ||
+                                    !updated.emailVerified) {
+                                  if (!context.mounted) return;
+                                  AppPopup.info(
+                                    context,
+                                    title: 'Link noch nicht bestätigt',
+                                    message:
+                                        'Öffne zuerst den neuesten Bestätigungslink in deiner E-Mail.',
                                   );
-                                  final refreshed =
-                                      await DataService.getCurrentUser();
-                                  if (refreshed == null ||
-                                      !refreshed.emailVerified) {
-                                    if (!context.mounted) return;
-                                    AppPopup.info(
-                                      context,
-                                      title: 'Link noch nicht bestätigt',
-                                      message:
-                                          'Öffne zuerst den neuesten Bestätigungslink in deiner E-Mail.',
-                                    );
-                                    return;
-                                  }
-                                  updated = refreshed;
-                                } else {
-                                  updated = u.copyWith(emailVerified: true);
-                                  await DataService.setCurrentUser(updated);
+                                  return;
                                 }
                                 if (!context.mounted) return;
                                 if (!mounted) return;
@@ -705,9 +712,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      BackendConfig.enabled
-                          ? 'Der Link ist 24 Stunden gültig und kann nur einmal verwendet werden.'
-                          : 'Im lokalen Demo-Modus wird die Bestätigung simuliert.',
+                      'Der Link ist 24 Stunden gültig und kann nur einmal verwendet werden.',
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
@@ -799,9 +804,14 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                   try {
                                     final current = _user;
                                     if (current == null) return;
-                                    final updated = current.copyWith(
-                                        homeLat: lat, homeLng: lng);
-                                    await DataService.setCurrentUser(updated);
+                                    final updated = await DataService
+                                        .updateCurrentUserProfile(
+                                      expectedUserId: current.id,
+                                      updates: {
+                                        CurrentUserProfileField.homeLat: lat,
+                                        CurrentUserProfileField.homeLng: lng,
+                                      },
+                                    );
                                     if (!mounted || !sheetContext.mounted) {
                                       return;
                                     }
