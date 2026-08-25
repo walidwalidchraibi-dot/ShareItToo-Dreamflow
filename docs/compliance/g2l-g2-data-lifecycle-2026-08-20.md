@@ -39,13 +39,14 @@ Retention-Abdeckung scheitert fail-closed.
 
 ## Geaenderte Laufzeit und Artefakte
 
-- `DataService` exportiert die drei realen lokalen Speicherbereiche
-  `saved_item_ids`, `wishlists_meta_v1` und `wishlist_assign_v1` in einem
-  separaten `localDevice.savedItems`-Abschnitt.
+- `DataService` exportiert die vier realen lokalen Speicherbereiche
+  `saved_item_ids`, den atomaren kanonischen Stand `wishlist_state_v2` sowie
+  die kompatiblen Spiegel `wishlists_meta_v1` und `wishlist_assign_v1` in
+  einem separaten `localDevice.savedItems`-Abschnitt.
 - Fehlerhaftes lokales JSON wird nicht still ausgelassen; der Export bricht
   sichtbar ab, statt einen unvollstaendigen Datensatz als vollstaendig
   auszugeben.
-- Beide bestaetigten Kontoloeschungspfade entfernen exakt diese drei lokalen
+- Beide bestaetigten Kontoloeschungspfade entfernen exakt diese vier lokalen
   Bereiche. Unabhaengige Geraeteeinstellungen bleiben erhalten.
 - Die Privacy-Info nennt lokale Merklisten in Zweck, Export und Loeschung.
 - Die aktuelle Privacy-Oberflaeche nennt die lokale Aufbewahrungsgrenze und

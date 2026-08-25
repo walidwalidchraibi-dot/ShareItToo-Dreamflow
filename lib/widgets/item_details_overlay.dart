@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart' as f;
@@ -7,6 +8,7 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
@@ -129,11 +131,20 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   String? _wishlistId;
   bool _wishlistStateKnown = false;
   bool _wishlistStateLoading = true;
+  final SharedPersistenceRefreshCoordinator _wishlistRefreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
+  StreamSubscription<String>? _savedStateSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadWishlist();
+    _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.wishlistStateKey ||
+          key == SharedPersistenceSync.savedItemsKey) {
+        unawaited(_wishlistRefreshCoordinator.schedule(_loadWishlist));
+      }
+    });
+    unawaited(_wishlistRefreshCoordinator.schedule(_loadWishlist));
   }
 
   Future<void> _share() async {
@@ -179,6 +190,8 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     // so that the next time a user opens any listing it starts fresh.
     DataService.clearSavedDateRange(widget.item.id);
     DataService.clearSavedDeliverySelection(widget.item.id);
+    _wishlistRefreshCoordinator.dispose();
+    _savedStateSubscription?.cancel();
     _pc.dispose();
     super.dispose();
   }
@@ -253,7 +266,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   Future<void> _addToWishlist() async {
     if (_wishlistStateLoading) return;
     if (!_wishlistStateKnown) {
-      await _loadWishlist();
+      await _wishlistRefreshCoordinator.schedule(_loadWishlist);
       if (!_wishlistStateKnown && mounted) {
         await AppPopup.toast(
           context,
@@ -662,11 +675,14 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   String? _wishlistId;
   bool _wishlistStateKnown = false;
   bool _wishlistStateLoading = true;
+  final SharedPersistenceRefreshCoordinator _wishlistRefreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
+  StreamSubscription<String>? _savedStateSubscription;
 
   Future<void> _toggleWishlistFromMenu() async {
     if (_wishlistStateLoading) return;
     if (!_wishlistStateKnown) {
-      await _reloadWishlistState();
+      await _wishlistRefreshCoordinator.schedule(_reloadWishlistState);
       if (!_wishlistStateKnown && mounted) {
         await AppPopup.toast(
           context,
@@ -763,6 +779,14 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   @override
   void initState() {
     super.initState();
+    _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.wishlistStateKey ||
+          key == SharedPersistenceSync.savedItemsKey) {
+        unawaited(
+          _wishlistRefreshCoordinator.schedule(_reloadWishlistState),
+        );
+      }
+    });
     // Ensure the page always starts scrolled to the very top on open
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -772,7 +796,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
         // The scroll controller may not have clients during the first frame.
       }
     });
-    _reloadWishlistState();
+    unawaited(_wishlistRefreshCoordinator.schedule(_reloadWishlistState));
     if (widget.fresh == true) {
       // Clear any previously saved selection so page opens as if brand new
       // Do not await; fire-and-forget to avoid delaying initial build
@@ -798,6 +822,8 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     // Clear any saved state so the next open is pristine wherever it comes from
     DataService.clearSavedDateRange(widget.item.id);
     DataService.clearSavedDeliverySelection(widget.item.id);
+    _wishlistRefreshCoordinator.dispose();
+    _savedStateSubscription?.cancel();
     _pc.dispose();
     _sc.dispose();
     super.dispose();

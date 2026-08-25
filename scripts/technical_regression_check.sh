@@ -344,6 +344,11 @@ node --test \
   test/tool/rw2_reduced_wave0_local_state_truth_recovery_wiring.test.mjs \
   test/tool/validate_rw2_reduced_wave0_local_state_truth_recovery.test.mjs
 node tool/validate_rw2_reduced_wave0_local_state_truth_recovery.mjs
+node --check tool/validate_rw3_reduced_wave0_local_concurrency_consistency.mjs
+node --test \
+  test/tool/rw3_reduced_wave0_local_concurrency_consistency_wiring.test.mjs \
+  test/tool/validate_rw3_reduced_wave0_local_concurrency_consistency.test.mjs
+node tool/validate_rw3_reduced_wave0_local_concurrency_consistency.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -857,6 +862,11 @@ flutter test --reporter expanded \
 # retry, process-recreation and compact semantic error-state matrix explicitly.
 flutter test --reporter expanded \
   test/reduced_wave0_local_state_truth_recovery_test.dart
+
+# Retain RW3's deterministic local read-modify-write race, atomic saved-state,
+# process-recreation, event propagation and compact recovery matrix explicitly.
+flutter test --reporter expanded \
+  test/reduced_wave0_local_concurrency_consistency_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

@@ -9,6 +9,9 @@ class SharedPersistenceSync {
   static const String rentalRequestsKey = 'rental_requests';
   static const String messageThreadsKey = 'message_threads_v1';
   static const String handoverReturnStateKey = 'handover_return_state_v1';
+  static const String savedItemsKey = 'saved_items';
+  static const String wishlistStateKey = 'wishlist_state_v2';
+  static const String rentalCartKey = 'rental_cart_v1';
 
   static const Set<String> _bookingKeys = {
     rentalRequestsKey,
@@ -16,12 +19,19 @@ class SharedPersistenceSync {
     handoverReturnStateKey,
   };
 
+  static const Set<String> _sharedKeys = {
+    ..._bookingKeys,
+    savedItemsKey,
+    wishlistStateKey,
+    rentalCartKey,
+  };
+
   static final Map<String, Timer> _catchUpRetryTimers = <String, Timer>{};
 
   static Stream<String> get changes => sharedPersistenceChanges;
 
   static void notify(String key) {
-    if (affectsBookingSync(key)) {
+    if (isSharedPersistenceKey(key)) {
       notifySharedPersistenceChange(key);
     }
   }
@@ -53,17 +63,19 @@ class SharedPersistenceSync {
 
   static bool affectsBookingSync(String key) => _bookingKeys.contains(key);
 
+  static bool isSharedPersistenceKey(String key) => _sharedKeys.contains(key);
+
   /// Converts the browser storage key used by shared_preferences_web back to
   /// the logical SharedPreferences key consumed by the app.
   static String? logicalKeyFromStorageKey(String? storageKey) {
     final value = storageKey?.trim() ?? '';
     if (value.isEmpty) return null;
-    if (_bookingKeys.contains(value)) return value;
+    if (_sharedKeys.contains(value)) return value;
 
     const prefix = 'flutter.';
     if (!value.startsWith(prefix)) return null;
     final logicalKey = value.substring(prefix.length);
-    return _bookingKeys.contains(logicalKey) ? logicalKey : null;
+    return _sharedKeys.contains(logicalKey) ? logicalKey : null;
   }
 
   /// SharedPreferences keeps an in-memory cache. A storage event from another

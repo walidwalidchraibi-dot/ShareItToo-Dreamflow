@@ -12,6 +12,9 @@ const Set<String> _watchedKeys = {
   'rental_requests',
   'message_threads_v1',
   'handover_return_state_v1',
+  'saved_items',
+  'wishlist_state_v2',
+  'rental_cart_v1',
 };
 
 Stream<String> get sharedPersistenceChanges {

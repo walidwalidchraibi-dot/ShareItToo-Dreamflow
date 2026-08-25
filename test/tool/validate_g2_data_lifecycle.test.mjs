@@ -19,7 +19,7 @@ function validate({ lifecycleManifest = clone(baseLifecycle), sourceTexts = {} }
 test('accepts active local and account-bound persistent G2B data', () => {
   assert.deepEqual(validate(), {
     state: 'g2b-persistent-cart-active',
-    currentSavedItemKeyCount: 3,
+    currentSavedItemKeyCount: 4,
     persistentCartEnabled: true,
     projectCartEnabled: true,
     reservationCreatedByCart: false,

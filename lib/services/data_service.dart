@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:collection';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart'
-    show debugPrint, kDebugMode, listEquals, mapEquals, visibleForTesting;
+    show debugPrint, kDebugMode, listEquals, visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
@@ -31,6 +32,79 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/security.dart';
 import 'package:lendify/utils/booking_flow_policy.dart';
 import 'package:lendify/utils/total_subtitle.dart';
+
+class _QueuedLocalMutation {
+  final Future<Object?> Function() operation;
+  final void Function(Object? value) complete;
+  final void Function(Object error, StackTrace stackTrace) completeError;
+
+  const _QueuedLocalMutation({
+    required this.operation,
+    required this.complete,
+    required this.completeError,
+  });
+}
+
+class _LocalMutationQueue {
+  final Queue<_QueuedLocalMutation> _pending = Queue<_QueuedLocalMutation>();
+  bool _running = false;
+
+  Future<T> run<T>(Future<T> Function() operation) {
+    final result = Completer<T>();
+    _pending.add(_QueuedLocalMutation(
+      operation: () async => operation(),
+      complete: (value) => result.complete(value as T),
+      completeError: result.completeError,
+    ));
+    _startIfIdle();
+    return result.future;
+  }
+
+  void _startIfIdle() {
+    if (_running) return;
+    _running = true;
+    unawaited(_drain());
+  }
+
+  Future<void> _drain() async {
+    while (_pending.isNotEmpty) {
+      final queued = _pending.removeFirst();
+      Object? value;
+      Object? failure;
+      StackTrace? failureStack;
+      try {
+        value = await queued.operation();
+      } catch (error, stackTrace) {
+        failure = error;
+        failureStack = stackTrace;
+      }
+      final becameIdle = _pending.isEmpty;
+      if (becameIdle) _running = false;
+      if (failure != null) {
+        queued.completeError(failure, failureStack!);
+      } else {
+        queued.complete(value);
+      }
+      if (becameIdle) {
+        if (_pending.isNotEmpty) _startIfIdle();
+        return;
+      }
+    }
+    _running = false;
+  }
+}
+
+class _LocalWishlistState {
+  final int revision;
+  final List<Map<String, dynamic>> lists;
+  final Map<String, String> assignments;
+
+  const _LocalWishlistState({
+    required this.revision,
+    required this.lists,
+    required this.assignments,
+  });
+}
 
 class RentalRequestTransitionResult {
   final bool success;
@@ -78,6 +152,7 @@ class DataService {
   // Wishlists
   static const String _wishlistsMetaKey = 'wishlists_meta_v1';
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
+  static const String _wishlistStateKey = 'wishlist_state_v2';
   static const String _rentalCartKey = 'rental_cart_v1';
   static const String _projectCartKey = 'project_cart_v1';
   static const String _rentalCartSyncOwnerKey = 'rental_cart_sync_owner_v1';
@@ -85,6 +160,10 @@ class DataService {
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
+  static final _LocalMutationQueue _wishlistMutationQueue =
+      _LocalMutationQueue();
+  static final _LocalMutationQueue _rentalCartMutationQueue =
+      _LocalMutationQueue();
 
   static Future<void> _writePreferenceString(
     SharedPreferences prefs,
@@ -2770,7 +2849,7 @@ class DataService {
         .toList();
   }
 
-  static Future<RentalCart> _readLocalRentalCart() async {
+  static Future<RentalCart> _readLocalRentalCartUnlocked() async {
     final prefs = await SharedPreferences.getInstance();
     final itemsRaw = prefs.getString(_rentalCartKey);
     final projectsRaw = prefs.getString(_projectCartKey);
@@ -2835,6 +2914,9 @@ class DataService {
     }, localDeviceOnly: true);
   }
 
+  static Future<RentalCart> _readLocalRentalCart() =>
+      _rentalCartMutationQueue.run(_readLocalRentalCartUnlocked);
+
   static Future<void> _writeLocalRentalCart(RentalCart cart) async {
     final prefs = await SharedPreferences.getInstance();
     final revision = max(1, cart.revision);
@@ -2861,6 +2943,7 @@ class DataService {
         'projects': cart.projects.map((project) => project.toJson()).toList(),
       }),
     );
+    SharedPersistenceSync.notify(SharedPersistenceSync.rentalCartKey);
   }
 
   static String _rentalCartClientId(String prefix) {
@@ -2921,11 +3004,16 @@ class DataService {
 
   /// Copies guest intent into the authenticated account. Local guest data is
   /// removed only after every idempotent server upsert has completed.
-  static Future<bool> syncGuestRentalCartAfterAuthentication() async {
+  static Future<bool> syncGuestRentalCartAfterAuthentication() =>
+      _rentalCartMutationQueue.run(
+        _syncGuestRentalCartAfterAuthenticationUnlocked,
+      );
+
+  static Future<bool> _syncGuestRentalCartAfterAuthenticationUnlocked() async {
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return false;
     final session = await AuthService.readSession();
     if (session == null) return false;
-    final local = await _readLocalRentalCart();
+    final local = await _readLocalRentalCartUnlocked();
     final prefs = await SharedPreferences.getInstance();
     if (local.projects.isEmpty && local.items.isEmpty) {
       await prefs.remove(_rentalCartSyncOwnerKey);
@@ -2965,6 +3053,7 @@ class DataService {
     await prefs.remove(_rentalCartKey);
     await prefs.remove(_projectCartKey);
     await prefs.remove(_rentalCartSyncOwnerKey);
+    SharedPersistenceSync.notify(SharedPersistenceSync.rentalCartKey);
     return true;
   }
 
@@ -3027,32 +3116,34 @@ class DataService {
         projectId: projectId,
       ));
     }
-    await _assertUnboundLocalRentalCart();
-    final cart = await _readLocalRentalCart();
-    if (cart.items.length >= 100) {
-      throw StateError('Der Mietkorb kann höchstens 100 Artikel enthalten.');
-    }
-    final next = RentalCart(
-      revision: cart.revision + 1,
-      reservationCreated: false,
-      localDeviceOnly: true,
-      projects: cart.projects,
-      items: <RentalCartItem>[
-        ...cart.items,
-        RentalCartItem(
-          id: id,
-          listingId: item.id,
-          projectId: projectId,
-          startDate: range.start,
-          endDate: range.end,
-          sortOrder: cart.items.length,
-          quoteStatus: 'needs_recheck',
-          listing: item.toJson(),
-        ),
-      ],
-    );
-    await _writeLocalRentalCart(next);
-    return next;
+    return _rentalCartMutationQueue.run(() async {
+      await _assertUnboundLocalRentalCart();
+      final cart = await _readLocalRentalCartUnlocked();
+      if (cart.items.length >= 100) {
+        throw StateError('Der Mietkorb kann höchstens 100 Artikel enthalten.');
+      }
+      final next = RentalCart(
+        revision: cart.revision + 1,
+        reservationCreated: false,
+        localDeviceOnly: true,
+        projects: cart.projects,
+        items: <RentalCartItem>[
+          ...cart.items,
+          RentalCartItem(
+            id: id,
+            listingId: item.id,
+            projectId: projectId,
+            startDate: range.start,
+            endDate: range.end,
+            sortOrder: cart.items.length,
+            quoteStatus: 'needs_recheck',
+            listing: item.toJson(),
+          ),
+        ],
+      );
+      await _writeLocalRentalCart(next);
+      return next;
+    });
   }
 
   static Future<RentalCart> removeRentalCartItem(String id) async {
@@ -3061,33 +3152,35 @@ class DataService {
         await BackendRepository.deleteRentalCartItem(id),
       );
     }
-    await _assertUnboundLocalRentalCart();
-    final cart = await _readLocalRentalCart();
-    final next = RentalCart(
-      revision: cart.revision + 1,
-      reservationCreated: false,
-      localDeviceOnly: true,
-      projects: cart.projects,
-      items: cart.items.where((item) => item.id != id).toList(),
-    );
-    await _writeLocalRentalCart(next);
-    return next;
+    return _rentalCartMutationQueue.run(() async {
+      await _assertUnboundLocalRentalCart();
+      final cart = await _readLocalRentalCartUnlocked();
+      final next = RentalCart(
+        revision: cart.revision + 1,
+        reservationCreated: false,
+        localDeviceOnly: true,
+        projects: cart.projects,
+        items: cart.items.where((item) => item.id != id).toList(),
+      );
+      await _writeLocalRentalCart(next);
+      return next;
+    });
   }
 
   static Future<RentalCart> assignRentalCartItemToProject({
     required String itemId,
     String? projectId,
   }) async {
-    final cart = await getRentalCart();
-    final item = cart.items.firstWhere(
-      (entry) => entry.id == itemId,
-      orElse: () => throw StateError('Mietkorb-Artikel nicht gefunden.'),
-    );
-    if (projectId != null &&
-        !cart.projects.any((project) => project.id == projectId)) {
-      throw StateError('Mietkorb-Projekt nicht gefunden.');
-    }
     if (await _hasBackendSession()) {
+      final cart = await getRentalCart();
+      final item = cart.items.firstWhere(
+        (entry) => entry.id == itemId,
+        orElse: () => throw StateError('Mietkorb-Artikel nicht gefunden.'),
+      );
+      if (projectId != null &&
+          !cart.projects.any((project) => project.id == projectId)) {
+        throw StateError('Mietkorb-Projekt nicht gefunden.');
+      }
       return RentalCart.fromJson(await BackendRepository.putRentalCartItem(
         id: item.id,
         listingId: item.listingId,
@@ -3097,32 +3190,43 @@ class DataService {
         sortOrder: item.sortOrder,
       ));
     }
-    await _assertUnboundLocalRentalCart();
-    final next = RentalCart(
-      revision: cart.revision + 1,
-      reservationCreated: false,
-      localDeviceOnly: true,
-      projects: cart.projects,
-      items: cart.items
-          .map((entry) => entry.id == itemId
-              ? RentalCartItem(
-                  id: entry.id,
-                  listingId: entry.listingId,
-                  projectId: projectId,
-                  startDate: entry.startDate,
-                  endDate: entry.endDate,
-                  sortOrder: entry.sortOrder,
-                  quoteStatus: entry.quoteStatus,
-                  quoteErrorCode: entry.quoteErrorCode,
-                  quoteRecheckedAt: entry.quoteRecheckedAt,
-                  quote: entry.quote,
-                  listing: entry.listing,
-                )
-              : entry)
-          .toList(),
-    );
-    await _writeLocalRentalCart(next);
-    return next;
+    return _rentalCartMutationQueue.run(() async {
+      await _assertUnboundLocalRentalCart();
+      final cart = await _readLocalRentalCartUnlocked();
+      cart.items.firstWhere(
+        (entry) => entry.id == itemId,
+        orElse: () => throw StateError('Mietkorb-Artikel nicht gefunden.'),
+      );
+      if (projectId != null &&
+          !cart.projects.any((project) => project.id == projectId)) {
+        throw StateError('Mietkorb-Projekt nicht gefunden.');
+      }
+      final next = RentalCart(
+        revision: cart.revision + 1,
+        reservationCreated: false,
+        localDeviceOnly: true,
+        projects: cart.projects,
+        items: cart.items
+            .map((entry) => entry.id == itemId
+                ? RentalCartItem(
+                    id: entry.id,
+                    listingId: entry.listingId,
+                    projectId: projectId,
+                    startDate: entry.startDate,
+                    endDate: entry.endDate,
+                    sortOrder: entry.sortOrder,
+                    quoteStatus: entry.quoteStatus,
+                    quoteErrorCode: entry.quoteErrorCode,
+                    quoteRecheckedAt: entry.quoteRecheckedAt,
+                    quote: entry.quote,
+                    listing: entry.listing,
+                  )
+                : entry)
+            .toList(),
+      );
+      await _writeLocalRentalCart(next);
+      return next;
+    });
   }
 
   static Future<RentalCartProject> addRentalCartProject({
@@ -3149,25 +3253,27 @@ class DataService {
       );
       return cart.projects.firstWhere((entry) => entry.id == project.id);
     }
-    await _assertUnboundLocalRentalCart();
-    final cart = await _readLocalRentalCart();
-    if (cart.projects.length >= 20) {
-      throw StateError('Der Mietkorb kann höchstens 20 Projekte enthalten.');
-    }
-    final nextProject = RentalCartProject(
-      id: project.id,
-      title: project.title,
-      answers: project.answers,
-      sortOrder: cart.projects.length,
-    );
-    await _writeLocalRentalCart(RentalCart(
-      revision: cart.revision + 1,
-      reservationCreated: false,
-      localDeviceOnly: true,
-      projects: <RentalCartProject>[...cart.projects, nextProject],
-      items: cart.items,
-    ));
-    return nextProject;
+    return _rentalCartMutationQueue.run(() async {
+      await _assertUnboundLocalRentalCart();
+      final cart = await _readLocalRentalCartUnlocked();
+      if (cart.projects.length >= 20) {
+        throw StateError('Der Mietkorb kann höchstens 20 Projekte enthalten.');
+      }
+      final nextProject = RentalCartProject(
+        id: project.id,
+        title: project.title,
+        answers: project.answers,
+        sortOrder: cart.projects.length,
+      );
+      await _writeLocalRentalCart(RentalCart(
+        revision: cart.revision + 1,
+        reservationCreated: false,
+        localDeviceOnly: true,
+        projects: <RentalCartProject>[...cart.projects, nextProject],
+        items: cart.items,
+      ));
+      return nextProject;
+    });
   }
 
   static Future<RentalCart> removeRentalCartProject(String id) async {
@@ -3176,32 +3282,34 @@ class DataService {
         await BackendRepository.deleteRentalCartProject(id),
       );
     }
-    await _assertUnboundLocalRentalCart();
-    final cart = await _readLocalRentalCart();
-    final next = RentalCart(
-      revision: cart.revision + 1,
-      reservationCreated: false,
-      localDeviceOnly: true,
-      projects: cart.projects.where((project) => project.id != id).toList(),
-      items: cart.items
-          .map((item) => item.projectId == id
-              ? RentalCartItem(
-                  id: item.id,
-                  listingId: item.listingId,
-                  startDate: item.startDate,
-                  endDate: item.endDate,
-                  sortOrder: item.sortOrder,
-                  quoteStatus: item.quoteStatus,
-                  quoteErrorCode: item.quoteErrorCode,
-                  quoteRecheckedAt: item.quoteRecheckedAt,
-                  quote: item.quote,
-                  listing: item.listing,
-                )
-              : item)
-          .toList(),
-    );
-    await _writeLocalRentalCart(next);
-    return next;
+    return _rentalCartMutationQueue.run(() async {
+      await _assertUnboundLocalRentalCart();
+      final cart = await _readLocalRentalCartUnlocked();
+      final next = RentalCart(
+        revision: cart.revision + 1,
+        reservationCreated: false,
+        localDeviceOnly: true,
+        projects: cart.projects.where((project) => project.id != id).toList(),
+        items: cart.items
+            .map((item) => item.projectId == id
+                ? RentalCartItem(
+                    id: item.id,
+                    listingId: item.listingId,
+                    startDate: item.startDate,
+                    endDate: item.endDate,
+                    sortOrder: item.sortOrder,
+                    quoteStatus: item.quoteStatus,
+                    quoteErrorCode: item.quoteErrorCode,
+                    quoteRecheckedAt: item.quoteRecheckedAt,
+                    quote: item.quote,
+                    listing: item.listing,
+                  )
+                : item)
+            .toList(),
+      );
+      await _writeLocalRentalCart(next);
+      return next;
+    });
   }
 
   static Future<RentalCart> recheckRentalCart() async {
@@ -3209,37 +3317,39 @@ class DataService {
       await _syncCompatibleGuestCartForCurrentSession();
       return RentalCart.fromJson(await BackendRepository.recheckRentalCart());
     }
-    await _assertUnboundLocalRentalCart();
-    final cart = await _readLocalRentalCart();
-    final checked = <RentalCartItem>[];
-    for (final item in cart.items) {
-      final available = await checkAvailability(
-        itemId: item.listingId,
-        start: item.startDate,
-        end: item.endDate,
+    return _rentalCartMutationQueue.run(() async {
+      await _assertUnboundLocalRentalCart();
+      final cart = await _readLocalRentalCartUnlocked();
+      final checked = <RentalCartItem>[];
+      for (final item in cart.items) {
+        final available = await checkAvailability(
+          itemId: item.listingId,
+          start: item.startDate,
+          end: item.endDate,
+        );
+        checked.add(RentalCartItem(
+          id: item.id,
+          listingId: item.listingId,
+          projectId: item.projectId,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          sortOrder: item.sortOrder,
+          quoteStatus: available ? 'needs_recheck' : 'unavailable',
+          quoteErrorCode: available ? null : 'booking_period_unavailable',
+          quoteRecheckedAt: DateTime.now(),
+          listing: item.listing,
+        ));
+      }
+      final next = RentalCart(
+        revision: cart.revision + 1,
+        reservationCreated: false,
+        localDeviceOnly: true,
+        projects: cart.projects,
+        items: checked,
       );
-      checked.add(RentalCartItem(
-        id: item.id,
-        listingId: item.listingId,
-        projectId: item.projectId,
-        startDate: item.startDate,
-        endDate: item.endDate,
-        sortOrder: item.sortOrder,
-        quoteStatus: available ? 'needs_recheck' : 'unavailable',
-        quoteErrorCode: available ? null : 'booking_period_unavailable',
-        quoteRecheckedAt: DateTime.now(),
-        listing: item.listing,
-      ));
-    }
-    final next = RentalCart(
-      revision: cart.revision + 1,
-      reservationCreated: false,
-      localDeviceOnly: true,
-      projects: cart.projects,
-      items: checked,
-    );
-    await _writeLocalRentalCart(next);
-    return next;
+      await _writeLocalRentalCart(next);
+      return next;
+    });
   }
 
   /// Returns only the local saved-item state that belongs in a user-requested
@@ -3247,33 +3357,16 @@ class DataService {
   /// export; this section also covers any not-yet-synced guest cart.
   static Future<Map<String, dynamic>> exportSavedItemsForPrivacy() async {
     final prefs = await SharedPreferences.getInstance();
-
-    final savedLists = <Map<String, dynamic>>[];
-    final listsRaw = prefs.getString(_wishlistsMetaKey);
-    if (listsRaw != null && listsRaw.isNotEmpty) {
-      final decoded = jsonDecode(listsRaw);
-      if (decoded is! List) {
-        throw const FormatException('Invalid saved-list metadata');
-      }
-      for (final entry in decoded) {
-        if (entry is! Map) {
-          throw const FormatException('Invalid saved-list entry');
-        }
-        savedLists.add(Map<String, dynamic>.from(entry));
-      }
-    }
-
-    final assignments = <String, String>{};
-    final assignmentsRaw = prefs.getString(_wishlistAssignKey);
-    if (assignmentsRaw != null && assignmentsRaw.isNotEmpty) {
-      final decoded = jsonDecode(assignmentsRaw);
-      if (decoded is! Map) {
-        throw const FormatException('Invalid saved-item assignments');
-      }
-      for (final entry in decoded.entries) {
-        assignments[entry.key.toString()] = entry.value.toString();
-      }
-    }
+    final wishlistState = await _wishlistMutationQueue.run(() async {
+      final state = _readWishlistState(prefs);
+      return _LocalWishlistState(
+        revision: state.revision,
+        lists: state.lists
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .toList(),
+        assignments: Map<String, String>.from(state.assignments),
+      );
+    });
 
     final legacySavedItemIds = List<String>.from(
         prefs.getStringList(_savedItemsKey) ?? const <String>[])
@@ -3292,6 +3385,7 @@ class DataService {
       'binding': 'non-binding-no-reservation',
       'storageKeys': const <String>[
         _savedItemsKey,
+        _wishlistStateKey,
         _wishlistsMetaKey,
         _wishlistAssignKey,
         _rentalCartKey,
@@ -3299,8 +3393,8 @@ class DataService {
         _rentalCartSyncOwnerKey,
       ],
       'legacySavedItemIds': legacySavedItemIds,
-      'lists': savedLists,
-      'itemAssignments': assignments,
+      'lists': wishlistState.lists,
+      'itemAssignments': wishlistState.assignments,
       'persistentRentalCart': true,
       'persistentProjectCart': true,
       'rentalCart': localCartVisible
@@ -3317,40 +3411,49 @@ class DataService {
   /// Removes only local Gemerkt data after account deletion has already been
   /// confirmed. Unrelated device preferences remain untouched.
   static Future<void> clearSavedItemsForAccountDeletion() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_savedItemsKey);
-    await prefs.remove(_wishlistsMetaKey);
-    await prefs.remove(_wishlistAssignKey);
-    await prefs.remove(_rentalCartKey);
-    await prefs.remove(_projectCartKey);
-    await prefs.remove(_rentalCartSyncOwnerKey);
+    await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_savedItemsKey);
+      await prefs.remove(_wishlistStateKey);
+      await prefs.remove(_wishlistsMetaKey);
+      await prefs.remove(_wishlistAssignKey);
+      SharedPersistenceSync.notify(SharedPersistenceSync.wishlistStateKey);
+      SharedPersistenceSync.notify(SharedPersistenceSync.savedItemsKey);
+    });
+    await _rentalCartMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_rentalCartKey);
+      await prefs.remove(_projectCartKey);
+      await prefs.remove(_rentalCartSyncOwnerKey);
+      SharedPersistenceSync.notify(SharedPersistenceSync.rentalCartKey);
+    });
   }
 
   static Future<Set<String>> getSavedItemIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final legacy = prefs.getStringList(_savedItemsKey) ?? <String>[];
-    final assignments = _decodeWishlistAssignments(
-      prefs.getString(_wishlistAssignKey),
-    );
-    if (assignments.isNotEmpty) {
-      await _ensureDefaultWishlists();
-      final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
-      _validateWishlistAssignmentTargets(assignments, lists);
-    }
-    final wishlistIds = assignments.keys.toSet();
-    final out = <String>{...legacy, ...wishlistIds};
-    return out;
+    return _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = await _readWishlistStateWithDefaults(prefs);
+      final legacy = prefs.getStringList(_savedItemsKey) ?? <String>[];
+      return <String>{...legacy, ...state.assignments.keys};
+    });
   }
 
   static Future<void> toggleSavedItem(String itemId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final current = prefs.getStringList(_savedItemsKey) ?? <String>[];
-    if (current.contains(itemId)) {
-      current.remove(itemId);
-    } else {
-      current.add(itemId);
-    }
-    await prefs.setStringList(_savedItemsKey, current);
+    await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getStringList(_savedItemsKey) ?? <String>[];
+      if (current.contains(itemId)) {
+        current.remove(itemId);
+      } else {
+        current.add(itemId);
+      }
+      final accepted = await prefs.setStringList(_savedItemsKey, current);
+      if (!accepted ||
+          !listEquals(prefs.getStringList(_savedItemsKey), current)) {
+        throw StateError('Local saved-item persistence failed.');
+      }
+      SharedPersistenceSync.notify(SharedPersistenceSync.savedItemsKey);
+    });
   }
 
   // ===== Wishlists (manual selection) =====
@@ -3433,12 +3536,48 @@ class DataService {
     }
   }
 
-  /// Ensure the three default wishlists exist. Non-destructive if already present.
-  static Future<void> _ensureDefaultWishlists() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = _decodeWishlistMetadata(
-      prefs.getString(_wishlistsMetaKey),
+  static _LocalWishlistState _readWishlistState(
+    SharedPreferences prefs,
+  ) {
+    final canonicalRaw = prefs.getString(_wishlistStateKey);
+    if (canonicalRaw == null) {
+      return _LocalWishlistState(
+        revision: 0,
+        lists: _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey)),
+        assignments: _decodeWishlistAssignments(
+          prefs.getString(_wishlistAssignKey),
+        ),
+      );
+    }
+    if (canonicalRaw.isEmpty) {
+      throw const FormatException('Invalid saved-state document');
+    }
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(canonicalRaw);
+    } catch (_) {
+      throw const FormatException('Invalid saved-state document');
+    }
+    if (decoded is! Map ||
+        decoded['schemaVersion'] != 1 ||
+        decoded['revision'] is! int ||
+        (decoded['revision'] as int) < 1 ||
+        decoded['lists'] is! List ||
+        decoded['assignments'] is! Map) {
+      throw const FormatException('Invalid saved-state document');
+    }
+    final state = _LocalWishlistState(
+      revision: decoded['revision'] as int,
+      lists: _decodeWishlistMetadata(jsonEncode(decoded['lists'])),
+      assignments: _decodeWishlistAssignments(
+        jsonEncode(decoded['assignments']),
+      ),
     );
+    _validateWishlistAssignmentTargets(state.assignments, state.lists);
+    return state;
+  }
+
+  static bool _addDefaultWishlists(List<Map<String, dynamic>> list) {
     final ids = list.map((entry) => entry['id'] as String).toSet();
     var mutated = false;
     if (!ids.contains(wlSoonId)) {
@@ -3457,22 +3596,77 @@ class DataService {
       list.add({'id': wlAgainId, 'name': 'Wieder mieten', 'system': true});
       mutated = true;
     }
-    if (mutated) {
-      await _writePreferenceString(
-        prefs,
-        _wishlistsMetaKey,
-        jsonEncode(list),
+    return mutated;
+  }
+
+  static Future<_LocalWishlistState> _writeWishlistState(
+    SharedPreferences prefs,
+    _LocalWishlistState state,
+  ) async {
+    _validateWishlistAssignmentTargets(state.assignments, state.lists);
+    final revision = max(1, state.revision);
+    final canonical = jsonEncode(<String, dynamic>{
+      'schemaVersion': 1,
+      'revision': revision,
+      'lists': state.lists,
+      'assignments': state.assignments,
+    });
+    await _writePreferenceString(prefs, _wishlistStateKey, canonical);
+
+    // These two keys remain rollback-compatible mirrors. The canonical value
+    // above is the sole read source once present, so an interruption here
+    // cannot create a torn visible state or turn a successful commit into a
+    // reported failure.
+    final metadataMirrored = await prefs.setString(
+      _wishlistsMetaKey,
+      jsonEncode(state.lists),
+    );
+    final assignmentsMirrored = await prefs.setString(
+      _wishlistAssignKey,
+      jsonEncode(state.assignments),
+    );
+    if (!metadataMirrored || !assignmentsMirrored) {
+      debugPrint(
+        '[DataService] saved-state compatibility mirror remains stale; '
+        'canonical revision $revision is authoritative',
       );
     }
+    SharedPersistenceSync.notify(SharedPersistenceSync.wishlistStateKey);
+    return _LocalWishlistState(
+      revision: revision,
+      lists: state.lists,
+      assignments: state.assignments,
+    );
+  }
+
+  static Future<_LocalWishlistState> _readWishlistStateWithDefaults(
+    SharedPreferences prefs,
+  ) async {
+    var state = _readWishlistState(prefs);
+    final addedDefaults = _addDefaultWishlists(state.lists);
+    _validateWishlistAssignmentTargets(state.assignments, state.lists);
+    if (addedDefaults) {
+      state = await _writeWishlistState(
+        prefs,
+        _LocalWishlistState(
+          revision: state.revision + 1,
+          lists: state.lists,
+          assignments: state.assignments,
+        ),
+      );
+    }
+    return state;
   }
 
   /// Returns all wishlists, with system lists first in the canonical order.
   static Future<List<Map<String, dynamic>>> getWishlists() async {
-    final prefs = await SharedPreferences.getInstance();
-    await _ensureDefaultWishlists();
-    final out = _decodeWishlistMetadata(
-      prefs.getString(_wishlistsMetaKey),
-    );
+    final out = await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = await _readWishlistStateWithDefaults(prefs);
+      return state.lists
+          .map((entry) => Map<String, dynamic>.from(entry))
+          .toList();
+    });
     // Sort: system first in order soon, later, again; then custom by name
     out.sort((a, b) {
       final as = a['system'] == true;
@@ -3496,21 +3690,27 @@ class DataService {
 
   /// Adds a new custom wishlist with the provided [name]. Returns the new id.
   static Future<String> addCustomWishlist(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await _ensureDefaultWishlists();
     final normalized = name.trim();
     if (normalized.isEmpty || normalized.length > 120) {
       throw ArgumentError.value(name, 'name', 'Ungültiger Merklistenname');
     }
-    final id = 'wl_${DateTime.now().microsecondsSinceEpoch}';
-    final list = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
-    list.add({'id': id, 'name': normalized, 'system': false});
-    await _writePreferenceString(
-      prefs,
-      _wishlistsMetaKey,
-      jsonEncode(list),
-    );
-    return id;
+    return _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = _readWishlistState(prefs);
+      _addDefaultWishlists(state.lists);
+      _validateWishlistAssignmentTargets(state.assignments, state.lists);
+      final id = _rentalCartClientId('wl');
+      state.lists.add({'id': id, 'name': normalized, 'system': false});
+      await _writeWishlistState(
+        prefs,
+        _LocalWishlistState(
+          revision: state.revision + 1,
+          lists: state.lists,
+          assignments: state.assignments,
+        ),
+      );
+      return id;
+    });
   }
 
   /// Deletes a custom wishlist by id (no-op for system lists). Also clears its assignments.
@@ -3518,53 +3718,24 @@ class DataService {
     if (id == wlSoonId || id == wlLaterId || id == wlAgainId) {
       return; // cannot delete system
     }
-    final prefs = await SharedPreferences.getInstance();
-    final list = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
-    final originalLength = list.length;
-    list.removeWhere((entry) => entry['id'] == id);
-    if (list.length == originalLength) return;
-    final assignments = _decodeWishlistAssignments(
-      prefs.getString(_wishlistAssignKey),
-    );
-    assignments.removeWhere((_, listId) => listId == id);
-    await _writePreferenceString(
-      prefs,
-      _wishlistAssignKey,
-      jsonEncode(assignments),
-    );
-    await _writePreferenceString(
-      prefs,
-      _wishlistsMetaKey,
-      jsonEncode(list),
-    );
-  }
-
-  static Future<void> _writeWishlistMetadata(
-    SharedPreferences prefs,
-    List<Map<String, dynamic>> list,
-  ) async {
-    await _writePreferenceString(
-      prefs,
-      _wishlistsMetaKey,
-      jsonEncode(list),
-    );
-  }
-
-  static Future<void> _writeWishlistAssignments(
-    SharedPreferences prefs,
-    Map<String, String> assignments,
-  ) async {
-    await _writePreferenceString(
-      prefs,
-      _wishlistAssignKey,
-      jsonEncode(assignments),
-    );
-    final persisted = _decodeWishlistAssignments(
-      prefs.getString(_wishlistAssignKey),
-    );
-    if (!mapEquals(persisted, assignments)) {
-      throw StateError('Local saved-item assignment verification failed.');
-    }
+    await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = _readWishlistState(prefs);
+      _addDefaultWishlists(state.lists);
+      _validateWishlistAssignmentTargets(state.assignments, state.lists);
+      final originalLength = state.lists.length;
+      state.lists.removeWhere((entry) => entry['id'] == id);
+      if (state.lists.length == originalLength) return;
+      state.assignments.removeWhere((_, listId) => listId == id);
+      await _writeWishlistState(
+        prefs,
+        _LocalWishlistState(
+          revision: state.revision + 1,
+          lists: state.lists,
+          assignments: state.assignments,
+        ),
+      );
+    });
   }
 
   /// Renames a custom wishlist. No-op for system lists.
@@ -3583,33 +3754,41 @@ class DataService {
         'Ungültiger Merklistenname',
       );
     }
-    final prefs = await SharedPreferences.getInstance();
-    final list = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
-    var mutated = false;
-    for (final entry in list) {
-      if (entry['id'] == id) {
-        if (entry['system'] != true) {
-          entry['name'] = normalized;
-          mutated = true;
+    await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = _readWishlistState(prefs);
+      _addDefaultWishlists(state.lists);
+      _validateWishlistAssignmentTargets(state.assignments, state.lists);
+      var mutated = false;
+      for (final entry in state.lists) {
+        if (entry['id'] == id) {
+          if (entry['system'] != true) {
+            entry['name'] = normalized;
+            mutated = true;
+          }
+          break;
         }
-        break;
       }
-    }
-    if (mutated) await _writeWishlistMetadata(prefs, list);
+      if (mutated) {
+        await _writeWishlistState(
+          prefs,
+          _LocalWishlistState(
+            revision: state.revision + 1,
+            lists: state.lists,
+            assignments: state.assignments,
+          ),
+        );
+      }
+    });
   }
 
   /// Returns the wishlist id the item currently belongs to, or null.
   static Future<String?> getWishlistForItem(String itemId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final map = _decodeWishlistAssignments(
-      prefs.getString(_wishlistAssignKey),
-    );
-    final listId = map[itemId];
-    if (listId == null) return null;
-    await _ensureDefaultWishlists();
-    final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
-    _validateWishlistAssignmentTargets(map, lists);
-    return listId;
+    return _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = await _readWishlistStateWithDefaults(prefs);
+      return state.assignments[itemId];
+    });
   }
 
   /// Assigns an item to a wishlist (one list at a time).
@@ -3617,41 +3796,55 @@ class DataService {
     if (itemId.trim().isEmpty || listId.trim().isEmpty) {
       throw ArgumentError('Item and saved-list IDs must not be empty.');
     }
-    final prefs = await SharedPreferences.getInstance();
-    await _ensureDefaultWishlists();
-    final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
-    if (!lists.any((entry) => entry['id'] == listId)) {
-      throw StateError('Saved-list target does not exist.');
-    }
-    final map = _decodeWishlistAssignments(
-      prefs.getString(_wishlistAssignKey),
-    );
-    map[itemId] = listId;
-    await _writeWishlistAssignments(prefs, map);
+    await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = _readWishlistState(prefs);
+      _addDefaultWishlists(state.lists);
+      _validateWishlistAssignmentTargets(state.assignments, state.lists);
+      if (!state.lists.any((entry) => entry['id'] == listId)) {
+        throw StateError('Saved-list target does not exist.');
+      }
+      state.assignments[itemId] = listId;
+      await _writeWishlistState(
+        prefs,
+        _LocalWishlistState(
+          revision: state.revision + 1,
+          lists: state.lists,
+          assignments: state.assignments,
+        ),
+      );
+    });
   }
 
   /// Removes an item from any wishlist.
   static Future<void> removeItemFromWishlist(String itemId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final map = _decodeWishlistAssignments(
-      prefs.getString(_wishlistAssignKey),
-    );
-    if (map.remove(itemId) != null) {
-      await _writeWishlistAssignments(prefs, map);
-    }
+    await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = _readWishlistState(prefs);
+      _addDefaultWishlists(state.lists);
+      _validateWishlistAssignmentTargets(state.assignments, state.lists);
+      if (state.assignments.remove(itemId) != null) {
+        await _writeWishlistState(
+          prefs,
+          _LocalWishlistState(
+            revision: state.revision + 1,
+            lists: state.lists,
+            assignments: state.assignments,
+          ),
+        );
+      }
+    });
   }
 
   /// Returns items grouped by wishlist id.
   static Future<Map<String, List<Item>>> getItemsByWishlist() async {
     final Map<String, List<Item>> out = {};
     final items = await getItems();
-    final prefs = await SharedPreferences.getInstance();
-    final map = _decodeWishlistAssignments(
-      prefs.getString(_wishlistAssignKey),
-    );
-    await _ensureDefaultWishlists();
-    final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
-    _validateWishlistAssignmentTargets(map, lists);
+    final map = await _wishlistMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final state = await _readWishlistStateWithDefaults(prefs);
+      return Map<String, String>.from(state.assignments);
+    });
     for (final it in items) {
       final id = map[it.id] ?? '';
       if (id.isEmpty) continue;
@@ -3706,7 +3899,7 @@ class DataService {
     await prefs.remove(_currentUserKey);
     // Ensure wishlists are initialized once demo data is set up.
     try {
-      await _ensureDefaultWishlists();
+      await getWishlists();
     } catch (e) {
       debugPrint(
         '[DataService] ensureDefaultWishlists failed: $e',

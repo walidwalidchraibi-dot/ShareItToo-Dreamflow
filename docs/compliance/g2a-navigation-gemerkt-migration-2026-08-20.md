@@ -50,8 +50,10 @@ Paymentlogik ein.
 
 ## Daten, Kompatibilitaet und Deep Links
 
-- `wishlists_meta_v1` und `wishlist_assign_v1` bleiben die einzigen
-  Persistenzschluessel fuer diesen Bestand.
+- Zum G2A-Abschluss waren `wishlists_meta_v1` und `wishlist_assign_v1` die
+  einzigen Persistenzschluessel fuer diesen Bestand. RW3 fuehrt
+  `wishlist_state_v2` als atomare kanonische Quelle ein; die beiden alten
+  Werte bleiben nur kompatible Spiegel und werden nicht destruktiv migriert.
 - Ein Regressionstest liest bestehende Metadaten und Zuordnungen und weist
   nach, dass beide gespeicherten Werte bytegleich bleiben.
 - Es wurden weder `rental_cart_v1` noch `project_cart_v1` oder entsprechende

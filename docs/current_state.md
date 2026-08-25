@@ -2,7 +2,7 @@
 
 Verified: 2026-08-25 on the Mac mini.
 
-## Current RW2 state
+## Current RW3 state
 
 - RW0 is closed at documentation commit
   `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`. Its exact synthetic, local-only
@@ -66,6 +66,29 @@ Verified: 2026-08-25 on the Mac mini.
   `32798603243` and CodeQL `32798603261`, with zero open code-scanning alerts.
   No retry or timing workaround was retained. GitGuardian's separate
   historical owner-review gate remains open.
+- RW2 is closed at documentation commit
+  `c3ac3b6be4cbd4813c33f24ff629f8d7419243fa`. RW3 is a separate successor
+  package and keeps the same reduced, non-binding Stage-A boundary.
+- RW3 resolves lost-update and torn-state risks in local Gemerkt and Mietkorb
+  read-modify-write paths. Idle-resetting mutation queues preserve invocation
+  order without sleeps or reduced test parallelism. `wishlist_state_v2` is now
+  the verified atomic source for folder metadata and assignments; the two V1
+  keys remain compatibility mirrors and are never combined across revisions.
+- Successful canonical Gemerkt, legacy saved-ID and Mietkorb commits emit exact
+  logical change events. Coalescing listeners update already-open Explore,
+  search, Gemerkt/folder, item-card, item-detail and Mietkorb surfaces while a
+  corrupt revision remains an explicit unknown/error state rather than an
+  empty or successful state.
+- The focused RW3 matrix passes nine deterministic tests: concurrent
+  assignments, list creation and cart additions; rejected-operation recovery;
+  interrupted mirror/process recreation; exact event propagation; open-screen
+  refresh; and compact 320 by 568 dp / 200 percent corruption recovery. The
+  adjacent RW0/RW1/RW2, G2 persistence/lifecycle and source-wiring sets pass,
+  and changed-file analysis reports zero issues. The complete candidate-
+  rollover technical regression also passes in CI-metadata mode, including the
+  full Flutter suite, Web/Wasm build and loopback smoke, Android debug assembly
+  with 448 tasks and the repository resource guard. Exact GitHub Regression/
+  CodeQL verification remains pending.
 
 ## Current 48H readiness state
 

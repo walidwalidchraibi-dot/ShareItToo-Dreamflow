@@ -11,6 +11,7 @@ import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/config/supply_enrichment_technical_config.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/widgets/search_header.dart';
 import 'package:lendify/widgets/category_icon_row.dart';
 import 'package:lendify/widgets/search_overlay.dart';
@@ -46,6 +47,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final ScrollController _scrollController = ScrollController();
   final PageController _feedPager = PageController();
   final ScrollController _ctrlGuests = ScrollController();
+  final SharedPersistenceRefreshCoordinator _savedRefreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
+  StreamSubscription<String>? _savedStateSubscription;
 
   List<Item> _items = [];
 // Map fine category id -> coarse/top-level category label
@@ -104,15 +108,36 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void initState() {
     super.initState();
+    _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.wishlistStateKey ||
+          key == SharedPersistenceSync.savedItemsKey) {
+        unawaited(_savedRefreshCoordinator.schedule(_reloadSavedState));
+      }
+    });
     _loadData();
   }
 
   @override
   void dispose() {
+    _savedRefreshCoordinator.dispose();
+    _savedStateSubscription?.cancel();
     _scrollController.dispose();
     _feedPager.dispose();
     _ctrlGuests.dispose();
     super.dispose();
+  }
+
+  Future<void> _reloadSavedState() async {
+    try {
+      final saved = await DataService.getSavedItemIds();
+      final session = await AuthService.readSession();
+      if (!mounted) return;
+      setState(() => _savedIds = session == null ? <String>{} : saved);
+    } catch (error) {
+      debugPrint(
+        '[Explore] saved state refresh failed (${error.runtimeType})',
+      );
+    }
   }
 
   Future<void> _loadData() async {

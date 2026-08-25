@@ -1,6 +1,6 @@
-# Current Work Package: RW2 local-state truth and recovery
+# Current Work Package: RW3 local concurrency and cross-surface consistency
 
-Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
+Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN; CI PENDING**
 on 25.08.2026.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
@@ -37,6 +37,30 @@ The implementation commit is `657406dccc4732394f89a6df2ea0d7a4fef51035`;
 the follow-up retained a deterministic lifecycle-aware evidence mutation and
 no retry or timing workaround. GitGuardian's separate historical owner-review
 gate remains open.
+
+RW2 is closed at documentation commit
+`c3ac3b6be4cbd4813c33f24ff629f8d7419243fa`. RW3 is a separate successor
+package. It serializes local Gemerkt and Mietkorb read-modify-write operations
+without sleeps, retries, timing thresholds or reduced test parallelism. A
+rejected operation cannot poison later queue work, and an idle queue does not
+retain an execution-zone dependency.
+
+`wishlist_state_v2` is the verified atomic source for folder metadata and item
+assignments. The V1 metadata and assignment keys remain rollback-compatible
+mirrors only; a process interruption between mirror writes cannot expose a
+torn revision. The local lifecycle export and confirmed account-deletion purge
+now include the canonical key.
+
+Committed Gemerkt and Mietkorb revisions emit exact logical events. Coalescing
+listeners refresh open Explore, search, Gemerkt/folder, item-card, item-detail
+and Mietkorb surfaces while preserving unknown/error state on corrupt input.
+Nine focused deterministic Flutter tests, 34 adjacent checks with two retained
+exact-profile skips, nine G2 lifecycle/wiring checks, six RW3 wiring checks and
+changed-file analysis pass. The complete candidate-rollover technical
+regression also passes in CI-metadata mode, including the full Flutter suite,
+Web/Wasm build and loopback smoke, Android debug assembly with 448 tasks and the
+repository resource guard. Exact GitHub Regression/CodeQL verification remains
+pending.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential

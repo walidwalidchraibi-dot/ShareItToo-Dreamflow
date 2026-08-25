@@ -10,6 +10,7 @@
     "runtimeStatus": "active-local-device",
     "binding": "non-binding-no-reservation",
     "storageScope": "local-device-shared-preferences",
+    "canonicalKey": "wishlist_state_v2",
     "legacyKeys": [
       "saved_item_ids",
       "wishlists_meta_v1",

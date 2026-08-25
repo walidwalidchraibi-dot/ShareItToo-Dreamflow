@@ -28,8 +28,9 @@ test('user-owned saved state fails closed while category reference data self-hea
     '_decodeWishlistMetadata',
     '_decodeWishlistAssignments',
     '_validateWishlistAssignmentTargets',
+    "_wishlistStateKey = 'wishlist_state_v2'",
     'rebuilding invalid category cache',
-    'Local saved-item assignment verification failed.',
+    'canonical revision $revision is authoritative',
   ]) assert.match(service, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
   assert.doesNotMatch(
     service,

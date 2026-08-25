@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -246,11 +249,27 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   String? listId; // null means not in any list
   bool _loading = true;
   bool _stateKnown = false;
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
+  StreamSubscription<String>? _savedStateSubscription;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.wishlistStateKey ||
+          key == SharedPersistenceSync.savedItemsKey) {
+        unawaited(_refreshCoordinator.schedule(_load));
+      }
+    });
+    unawaited(_refreshCoordinator.schedule(_load));
+  }
+
+  @override
+  void dispose() {
+    _refreshCoordinator.dispose();
+    _savedStateSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -279,7 +298,7 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   Future<void> _onTap() async {
     if (_loading) return;
     if (!_stateKnown) {
-      await _load();
+      await _refreshCoordinator.schedule(_load);
       return;
     }
     try {

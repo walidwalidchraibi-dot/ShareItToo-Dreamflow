@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:lendify/config/booking_group_technical_config.dart';
@@ -9,6 +11,7 @@ import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/private_pilot_checkout_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
@@ -34,6 +37,9 @@ class WishlistsScreen extends RentalCartScreen {
 }
 
 class _RentalCartScreenState extends State<RentalCartScreen> {
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
+  StreamSubscription<String>? _savedStateSubscription;
   bool _loading = true;
   RentalCart _rentalCart = const RentalCart(localDeviceOnly: true);
   String? _busyCartItemId;
@@ -47,7 +53,21 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   @override
   void initState() {
     super.initState();
-    _reload();
+    _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.wishlistStateKey ||
+          key == SharedPersistenceSync.savedItemsKey ||
+          key == SharedPersistenceSync.rentalCartKey) {
+        unawaited(_refreshCoordinator.schedule(_reload));
+      }
+    });
+    unawaited(_refreshCoordinator.schedule(_reload));
+  }
+
+  @override
+  void dispose() {
+    _refreshCoordinator.dispose();
+    _savedStateSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _reload() async {
@@ -775,6 +795,9 @@ class _WishlistFolderDetail extends StatefulWidget {
 }
 
 class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
+  StreamSubscription<String>? _savedStateSubscription;
   bool _loading = true;
   List<Item> _items = const [];
   bool _editMode = false;
@@ -787,7 +810,20 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
   void initState() {
     super.initState();
     _title = widget.title;
-    _load();
+    _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.wishlistStateKey ||
+          key == SharedPersistenceSync.savedItemsKey) {
+        unawaited(_refreshCoordinator.schedule(_load));
+      }
+    });
+    unawaited(_refreshCoordinator.schedule(_load));
+  }
+
+  @override
+  void dispose() {
+    _refreshCoordinator.dispose();
+    _savedStateSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {

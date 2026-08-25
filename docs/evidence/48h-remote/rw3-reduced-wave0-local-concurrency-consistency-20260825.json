@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-rw3-reduced-wave0-local-concurrency-consistency",
+  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "implementationBaseHead": "c3ac3b6be4cbd4813c33f24ff629f8d7419243fa",
+  "architecture": "docs/architecture/rw3-reduced-wave0-local-concurrency-consistency-2026-08-25.md",
+  "report": "docs/operations/RW3_REDUCED_WAVE0_LOCAL_CONCURRENCY_CONSISTENCY_2026-08-25.md",
+  "predecessor": {
+    "package": "RW2",
+    "evidence": "docs/evidence/48h-remote/rw2-reduced-wave0-local-state-truth-recovery-20260825.json",
+    "verifiedImplementationHead": "bd6c861b2b223e4d3dc179dcdbc1ea5e2e4f9103",
+    "closureCommit": "c3ac3b6be4cbd4813c33f24ff629f8d7419243fa"
+  },
+  "scope": {
+    "allowed": [
+      "serialized-wishlist-read-modify-write",
+      "atomic-canonical-wishlist-document",
+      "serialized-local-rental-cart-mutations",
+      "serialized-guest-cart-sync-boundary",
+      "logical-local-revision-events",
+      "coalesced-cross-surface-refresh",
+      "compact-corruption-and-event-recovery",
+      "local-export-and-account-deletion-lifecycle"
+    ],
+    "excluded": [
+      "binding-request-contract-and-acceptance",
+      "payment-refund-and-payout",
+      "handover-return-damage-and-needs-review",
+      "physical-device-and-candidate",
+      "live-provider-pilot-and-release"
+    ],
+    "syntheticOnly": true,
+    "localOnly": true,
+    "timingWorkaroundAllowed": false,
+    "testParallelismReductionAllowed": false
+  },
+  "findings": [
+    {
+      "id": "RW3-P0-WISHLIST-RACE-001",
+      "state": "resolved-and-tested",
+      "resolution": "idle-resetting-queue-preserves-every-invoked-wishlist-mutation"
+    },
+    {
+      "id": "RW3-P0-WISHLIST-TORN-002",
+      "state": "resolved-and-tested",
+      "resolution": "one-verified-canonical-revision-owns-metadata-and-assignments"
+    },
+    {
+      "id": "RW3-P0-CART-RACE-003",
+      "state": "resolved-and-tested",
+      "resolution": "local-cart-and-guest-sync-mutations-share-one-serialized-boundary"
+    },
+    {
+      "id": "RW3-P1-CROSS-SURFACE-004",
+      "state": "resolved-and-tested",
+      "resolution": "committed-logical-events-refresh-every-retained-open-surface"
+    },
+    {
+      "id": "RW3-P1-QUEUE-RECOVERY-005",
+      "state": "resolved-and-tested",
+      "resolution": "rejected-operation-does-not-poison-later-work-and-idle-resets"
+    },
+    {
+      "id": "RW3-P1-COMPACT-RECOVERY-006",
+      "state": "resolved-and-tested",
+      "resolution": "compact-large-text-state-fails-closed-and-recovers-by-valid-event"
+    },
+    {
+      "id": "RW3-P1-LIFECYCLE-007",
+      "state": "resolved-and-tested",
+      "resolution": "canonical-key-is-exported-read-only-and-purged-after-confirmed-deletion"
+    }
+  ],
+  "verification": {
+    "changedFileAnalyze": "passed-zero-issues",
+    "focusedRw3Flutter": "passed-9",
+    "adjacentFlutterTests": "passed-34-skipped-2-exact-profile",
+    "g2LifecycleAndWiringTests": "passed-9",
+    "rw3WiringTests": "passed-6",
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "pending",
+    "githubCodeql": "pending"
+  },
+  "sourceInventory": [
+    {
+      "path": "lib/services/data_service.dart",
+      "sha256": "4fd737daecb527b88edff7d3af54f0ebed6a3a527026e6f301fc6ec806a05cb0"
+    },
+    {
+      "path": "lib/services/shared_persistence_sync.dart",
+      "sha256": "a8b832817e8d236d3a1308b8aaece68e0dbc936acd42004c9b77aed066319927"
+    },
+    {
+      "path": "lib/services/shared_persistence_sync_web.dart",
+      "sha256": "3639932c255989cb90dc1c75e1ab7a1a705e6f7da2f38156b8fe7a138239cfb7"
+    },
+    {
+      "path": "lib/screens/explore_screen.dart",
+      "sha256": "921ae3dfcad372d334f8a21c8263ebb75a1e68024c3cf3a4cc4e56cf399b8e22"
+    },
+    {
+      "path": "lib/screens/search_results_screen.dart",
+      "sha256": "d306979eed46661fe5d94d18bd58ea3500eaf6c624478f5b68529b0ea7d325ab"
+    },
+    {
+      "path": "lib/screens/wishlists_screen.dart",
+      "sha256": "b41f7e319f226c9cda02d449d1c3f3a5e9122b8f939f1f100e46ddec8db8c0e8"
+    },
+    {
+      "path": "lib/widgets/item_card.dart",
+      "sha256": "c265b5defb350ca8bd0c8f015639fa75332fdce049c0490dac9de2f0fedd99bc"
+    },
+    {
+      "path": "lib/widgets/item_details_overlay.dart",
+      "sha256": "fc58bb4c6047924c5703594e78c9c4a9e3b3ba9ffd0be7272e71670eafc884e3"
+    },
+    {
+      "path": "store/g2-data-lifecycle.json",
+      "sha256": "dff959e60d07c57f6a97601e160f1ed946c6bb9e0f1eee43d9b92375b96139b3"
+    },
+    {
+      "path": "tool/validate_g2_data_lifecycle.mjs",
+      "sha256": "fa24bdc57d81a8ca8d64535b25b5ec28bc0fc574d801e4cd85c8e39c703cfbb4"
+    },
+    {
+      "path": "scripts/technical_regression_check.sh",
+      "sha256": "e8ce6c4398f292f432413aea5e46240ab0b426a5d8d81573953289d33176b5bb"
+    },
+    {
+      "path": "test/reduced_wave0_local_state_truth_recovery_test.dart",
+      "sha256": "63e44cb52cf6cf17d0a34bc281c19041902ebc21682536af2a5b68e0c2415aeb"
+    },
+    {
+      "path": "test/reduced_wave0_local_concurrency_consistency_test.dart",
+      "sha256": "bc6cd038ea0eb12071990499a8a2866b9ffcb98da0bdc14e7b6c2316b61b0844"
+    },
+    {
+      "path": "test/tool/g2a_navigation_migration_wiring.test.mjs",
+      "sha256": "c0bff44b0ecfa0a0706014b295619d0371e11b2bcb151ae4906a5cf169fdbc7f"
+    },
+    {
+      "path": "test/tool/rw2_reduced_wave0_local_state_truth_recovery_wiring.test.mjs",
+      "sha256": "3d8dffec87b15ad0f89cfe8b64db725a534012a06f47184e6f84809f46534746"
+    },
+    {
+      "path": "test/tool/validate_g2_data_lifecycle.test.mjs",
+      "sha256": "ac85547738b0e464f0d47dc60847b1eb9cb6e67b8c860f7b29a574b062533a9d"
+    },
+    {
+      "path": "test/tool/rw3_reduced_wave0_local_concurrency_consistency_wiring.test.mjs",
+      "sha256": "466793dc4a78b3794cb8c09295ac9e098e17ad3056590865b01809b072ef143c"
+    },
+    {
+      "path": "docs/compliance/g2a-navigation-gemerkt-migration-2026-08-20.md",
+      "sha256": "b189a957c46fc1c78f7780ac7342c7afbb39c39731864d626d44413c350f1088"
+    },
+    {
+      "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",
+      "sha256": "9bb93f687c2514b98730d93c41f662a04e38dc5cd50c8873ae32cd31f1a6f711"
+    }
+  ],
+  "gates": {
+    "BUILD_READY": "not-granted",
+    "PLAY_UPLOAD_APPROVED": "not-granted",
+    "HUMAN_PILOT_ACTIVATED": "not-granted",
+    "PR7_MERGE_APPROVED": "not-granted",
+    "R17_GITGUARDIAN_HISTORY_REVIEW_COMPLETE": "not-granted"
+  },
+  "boundaries": {
+    "credentialValueReadOrCopied": false,
+    "candidateBuiltOrUploaded": false,
+    "pixelChanged": false,
+    "testerContacted": false,
+    "humanPilotActivated": false,
+    "providerCalled": false,
+    "apiBillingCreated": false,
+    "paymentChanged": false,
+    "firebaseOrPlayChanged": false,
+    "productionChanged": false,
+    "vpsChanged": false,
+    "dnsChanged": false,
+    "cloudChanged": false,
+    "publicReleasePerformed": false,
+    "pullRequestMerged": false,
+    "historyRewritten": false
+  }
+}

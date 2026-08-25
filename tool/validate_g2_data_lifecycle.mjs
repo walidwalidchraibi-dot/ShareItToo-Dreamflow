@@ -90,11 +90,15 @@ export function validateG2DataLifecycle({
     'runtimeStatus',
     'binding',
     'storageScope',
+    'canonicalKey',
     'legacyKeys',
     'exportStatus',
     'accountDeletionStatus',
     'retentionRule',
   ], 'currentSavedItems');
+  if (savedItems.canonicalKey !== 'wishlist_state_v2') {
+    fail('currentSavedItems.canonicalKey must bind the atomic saved-state document.');
+  }
   exactArray(savedItems.legacyKeys, [
     'saved_item_ids',
     'wishlists_meta_v1',
@@ -200,6 +204,7 @@ export function validateG2DataLifecycle({
 
   const dataService = source(root, sourceTexts, sourcePaths.dataService);
   includesEvery(dataService, [
+    "'wishlist_state_v2'",
     "'rental_cart_v1'",
     "'project_cart_v1'",
     "'rental_cart_sync_owner_v1'",
@@ -210,6 +215,7 @@ export function validateG2DataLifecycle({
     "'persistentRentalCart': true",
     "'persistentProjectCart': true",
     'prefs.remove(_rentalCartKey)',
+    'prefs.remove(_wishlistStateKey)',
     'prefs.remove(_projectCartKey)',
     'prefs.remove(_rentalCartSyncOwnerKey)',
     'canSyncGuestCartToAccount',
@@ -300,7 +306,7 @@ export function validateG2DataLifecycle({
 
   return {
     state: lifecycle.state,
-    currentSavedItemKeyCount: savedItems.legacyKeys.length,
+    currentSavedItemKeyCount: savedItems.legacyKeys.length + 1,
     persistentCartEnabled: true,
     projectCartEnabled: true,
     reservationCreatedByCart: false,

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
@@ -31,6 +34,9 @@ class SearchResultsScreen extends StatefulWidget {
 
 class _SearchResultsScreenState extends State<SearchResultsScreen> {
   final ScrollController _scrollController = ScrollController();
+  final SharedPersistenceRefreshCoordinator _savedRefreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
+  StreamSubscription<String>? _savedStateSubscription;
 
   Map<String, dynamic>? _filters;
   Set<String> _savedIds = {};
@@ -43,11 +49,19 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   void initState() {
     super.initState();
+    _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.wishlistStateKey ||
+          key == SharedPersistenceSync.savedItemsKey) {
+        unawaited(_savedRefreshCoordinator.schedule(_init));
+      }
+    });
     _init();
   }
 
   @override
   void dispose() {
+    _savedRefreshCoordinator.dispose();
+    _savedStateSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
