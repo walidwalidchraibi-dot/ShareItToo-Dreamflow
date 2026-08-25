@@ -71,6 +71,7 @@ export function validateG2DataLifecycle({
     'terminology',
     'currentSavedItems',
     'localSafetyPrivacy',
+    'localOperationalRecords',
     'persistentData',
     'boundaries',
   ], 'G2 lifecycle manifest');
@@ -175,6 +176,71 @@ export function validateG2DataLifecycle({
     fail('Local safety/privacy lifecycle is incomplete or overstated.');
   }
 
+  const operationalRecords = object(
+    lifecycle.localOperationalRecords,
+    'localOperationalRecords',
+  );
+  exactKeys(operationalRecords, [
+    'runtimeStatus',
+    'storageScope',
+    'storageKeys',
+    'dataClasses',
+    'identityBinding',
+    'legacyAttributionRule',
+    'corruptionPolicy',
+    'capacityPolicy',
+    'mutationPolicy',
+    'exportStatus',
+    'accountDeletionStatus',
+    'retentionRule',
+    'backendAuthority',
+  ], 'localOperationalRecords');
+  exactArray(operationalRecords.storageKeys, [
+    'message_threads_v1',
+    'notifications',
+    'rental_requests',
+    'timeline_events',
+    'read_requests_v1',
+    'requests_last_seen_by_owner',
+    'handover_return_state_v1',
+    'handover_fail_counts',
+    'handover_banners',
+    'booking_selections_v2',
+  ], 'localOperationalRecords.storageKeys');
+  exactArray(operationalRecords.dataClasses, [
+    'participant-message-threads-and-messages',
+    'account-notifications',
+    'participant-rental-requests-and-timeline',
+    'account-read-and-last-seen-markers',
+    'participant-handover-return-state',
+    'participant-failure-counters-and-banners',
+    'principal-booking-selections',
+  ], 'localOperationalRecords.dataClasses');
+  if (operationalRecords.runtimeStatus
+        !== 'active-local-fallback-authenticated-participant-scoped'
+      || operationalRecords.storageScope
+        !== 'local-device-shared-preferences-remote-authoritative-when-enabled'
+      || operationalRecords.identityBinding
+        !== 'current-session-and-participant-or-current-principal-selection'
+      || operationalRecords.legacyAttributionRule
+        !== 'unattributed-notifications-preserved-unassigned-and-excluded'
+      || operationalRecords.corruptionPolicy
+        !== 'fail-closed-preserve-exact-raw-no-partial-rewrite'
+      || operationalRecords.capacityPolicy
+        !== 'bounded-reject-overflow-without-pruning'
+      || operationalRecords.mutationPolicy
+        !== 'serialized-verified-and-session-rechecked'
+      || operationalRecords.exportStatus
+        !== 'implemented-current-account-and-participant-local-section'
+      || operationalRecords.accountDeletionStatus
+        !== 'account-convenience-state-purged-shared-counterparty-audit-records-retained'
+      || operationalRecords.retentionRule
+        !== 'no-period-invented-shared-records-retained-for-counterparty-and-legal-audit-continuity'
+      || operationalRecords.backendAuthority
+        !== 'remote-authoritative-when-enabled-local-qa-fallback-otherwise') {
+    fail('Local operational-record lifecycle is incomplete or overstated.');
+  }
+
   const persistent = object(lifecycle.persistentData, 'persistentData');
   exactKeys(persistent, ['rentalCart', 'projectCart'], 'persistentData');
   const rentalCart = object(persistent.rentalCart, 'persistentData.rentalCart');
@@ -254,6 +320,7 @@ export function validateG2DataLifecycle({
     'persistentCartEnabled',
     'projectCartEnabled',
     'newDataCollectionEnabled',
+    'operationalLocalFallbackHardened',
     'reservationCreatedByCart',
     'availabilityHoldCreatedByCart',
     'groupRequestEnabled',
@@ -262,11 +329,13 @@ export function validateG2DataLifecycle({
     'legalApprovalChanged',
     'historicalSnapshotsChanged',
     'safetyBackendAuthorityChanged',
+    'operationalBackendAuthorityChanged',
     'productionChanged',
   ], 'boundaries');
   if (boundaries.persistentCartEnabled !== true
       || boundaries.projectCartEnabled !== true
-      || boundaries.newDataCollectionEnabled !== true) {
+      || boundaries.newDataCollectionEnabled !== true
+      || boundaries.operationalLocalFallbackHardened !== true) {
     fail('G2B persistent cart activation must be recorded.');
   }
   for (const key of [
@@ -278,6 +347,7 @@ export function validateG2DataLifecycle({
     'legalApprovalChanged',
     'historicalSnapshotsChanged',
     'safetyBackendAuthorityChanged',
+    'operationalBackendAuthorityChanged',
     'productionChanged',
   ]) {
     if (boundaries[key] !== false) fail(`boundaries.${key} must remain false.`);
@@ -306,6 +376,13 @@ export function validateG2DataLifecycle({
     "'scope': 'local-principal'",
     "'principalScope'",
     'registry.quarantinedPrincipals.remove(principal.token)',
+    'exportOperationalRecordsForPrivacy()',
+    'clearOperationalRecordsForAccountDeletion(',
+    '_assertCurrentOperationalUserId(',
+    '_decodeMessageThreadsStrict(',
+    '_decodeNotificationsStrict(',
+    '_decodeRentalRequestsStrict(',
+    '_decodeTimelineStrict(',
   ], 'DataService G2B lifecycle');
   const syncStart = dataService.indexOf('syncGuestRentalCartAfterAuthentication');
   const syncEnd = dataService.indexOf('static Future<RentalCart> getRentalCart', syncStart);
@@ -328,6 +405,12 @@ export function validateG2DataLifecycle({
   if (count(deletion, /LocalSafetyPrivacyService\.clearCurrentPrincipal\(\)/gu)
       !== 2) {
     fail('Both confirmed account deletion paths must purge local safety/privacy data.');
+  }
+  if (count(
+    deletion,
+    /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
+  ) !== 2) {
+    fail('Both confirmed account deletion paths must apply scoped local operational cleanup.');
   }
   const localSafetyPrivacy = source(
     root,

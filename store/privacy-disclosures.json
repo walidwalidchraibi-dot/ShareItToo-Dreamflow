@@ -40,7 +40,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "6841e378953554ed2a4fae1b29ec5572473f8d08d77f5005013070a9b74d533b"
+      "sha256": "615da1ab21fb85bf7783a9f0f4c4ff112c5bb15b21aab5004514a6d3cb9674a0"
     },
     {
       "path": "backend/src/account_actions.js",
@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "6f9a62bb570bf5495f36db9aa0a0f5f7d93d0787581a119950921f074595fd09"
+      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -832,11 +832,11 @@
     },
     {
       "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "3be64b5afea855255b290aef2edb8687f4e739de8e6e99b35669b24b2a302f25"
+      "sha256": "86b1855aa6dbcf1a13caf28cd70d295ca51172d34acf79a9d511ec72e1959706"
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "f3672c4ff1bfe89f5d9baeb4e9b101eb1d5fb5a7db0f4071c2f13999c8c618e4"
+      "sha256": "a73e03b335d8ec87aa8377a74a26be674e7afb010a33e40d2a656adcde3cc56f"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",
@@ -844,7 +844,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "3134bffa903eb915958ca9d4f19d9e88771616f34308fc537532f2445e379a93"
+      "sha256": "5b9b3d2b5cc7e9feb5242f6ae560d972a6ae9f00d799ba371b400c0c549e1d3c"
     },
     {
       "path": "lib/services/blue_ocean_draft_recovery_service.dart",
@@ -896,7 +896,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "7257ec41ebcdb527eb368e47b1b708b56b88de2e02bfaf05fab048eefb7a56f8"
+      "sha256": "a9fdddef214337ee05b09ae42db778947f91da10aa3e17a35956860476f219a8"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",
@@ -916,7 +916,7 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "8bcb33e4e2117186c6181fbb5533953149228c62ca7617c0ce34a432ceede643"
+      "sha256": "c6789444b8a2ccabe962f1fdbbedd1efaadae03d16676fbba4193f751e36cca6"
     }
   ],
   "localDevicePrincipalState": {
@@ -930,6 +930,27 @@
     "confirmedAccountDeletion": "current-principal-purged",
     "containsCredentials": false,
     "externalTransferAdded": false
+  },
+  "localOperationalRecords": {
+    "status": "implemented-local-fallback-authenticated-participant-scoped",
+    "dataClasses": [
+      "participant-message-threads-and-messages",
+      "account-notifications",
+      "participant-rental-requests-and-timeline",
+      "account-read-and-last-seen-markers",
+      "participant-handover-return-state",
+      "participant-failure-counters-and-banners",
+      "principal-booking-selections"
+    ],
+    "identityBinding": "matching-auth-session-and-participant-or-current-principal-selection",
+    "unattributedLegacyNotifications": "preserved-unassigned-and-excluded",
+    "corruptionPolicy": "preserve-exact-raw-and-fail-closed",
+    "privacyExport": "current-account-and-participant-records-only",
+    "confirmedAccountDeletion": "account-convenience-state-purged-shared-counterparty-audit-records-retained",
+    "retentionPeriodInvented": false,
+    "containsCredentials": false,
+    "externalTransferAdded": false,
+    "backendAuthorityChanged": false
   },
   "binaryEvidence": {
     "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081509.json",

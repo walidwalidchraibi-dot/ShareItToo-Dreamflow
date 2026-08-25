@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-rw6-local-operational-record-authorization-truth-recovery",
+  "status": "implemented-focused-matrix-passed-full-technical-regression-pending",
+  "implementationBaseHead": "ddce25d34c40477ad0fdb9718ac570e3a31334b7",
+  "architecture": "docs/architecture/rw6-local-operational-record-authorization-truth-recovery-2026-08-25.md",
+  "report": "docs/operations/RW6_LOCAL_OPERATIONAL_RECORD_AUTHORIZATION_TRUTH_RECOVERY_2026-08-25.md",
+  "predecessor": {
+    "package": "RW5",
+    "evidence": "docs/evidence/48h-remote/rw5-local-safety-privacy-principal-isolation-20260825.json",
+    "verifiedImplementationHead": "2dfb487cd3b4f4ebd59d184f1a5186f1da455672",
+    "closureCommit": "ddce25d34c40477ad0fdb9718ac570e3a31334b7"
+  },
+  "scope": {
+    "allowed": [
+      "matching-auth-session-required-for-operational-state",
+      "participant-scoped-message-request-timeline-and-handover-records",
+      "current-user-only-thread-deletion-tombstone",
+      "account-attributed-notifications-and-unassigned-legacy-quarantine",
+      "strict-corruption-preservation-and-fail-closed-reads",
+      "bounded-capacity-rejection-without-pruning",
+      "serialized-verified-session-rechecked-mutations",
+      "opaque-principal-booking-selection-isolation",
+      "current-account-and-participant-privacy-export",
+      "scoped-account-deletion-with-shared-record-retention",
+      "account-transition-safe-communication-ui",
+      "synthetic-deterministic-local-regression"
+    ],
+    "excluded": [
+      "binding-request-contract-quote-and-acceptance",
+      "payment-refund-payout-and-real-money",
+      "handover-return-damage-and-needs-review-decisions",
+      "production-backend-schema-authority-and-live-infrastructure",
+      "provider-ai-candidate-device-store-pilot-merge-and-history-gates"
+    ],
+    "syntheticOnly": true,
+    "localOnly": true,
+    "timingWorkaroundAllowed": false,
+    "testParallelismReductionAllowed": false,
+    "silentCapacityPruningAllowed": false
+  },
+  "findings": [
+    {
+      "id": "RW6-P0-STALE-PROFILE-AUTHORIZATION-001",
+      "state": "resolved-and-tested",
+      "resolution": "Operational access requires a cached profile and matching current auth session."
+    },
+    {
+      "id": "RW6-P0-FOREIGN-OPERATIONAL-ID-ACCESS-002",
+      "state": "resolved-and-tested",
+      "resolution": "Public reads and mutations bind caller ids to the current account and booking participant."
+    },
+    {
+      "id": "RW6-P0-TWO-PARTY-THREAD-DELETION-003",
+      "state": "resolved-and-tested",
+      "resolution": "Thread deletion is a current-user tombstone that preserves counterparty access."
+    },
+    {
+      "id": "RW6-P0-LEGACY-NOTIFICATION-MISATTRIBUTION-004",
+      "state": "resolved-and-tested",
+      "resolution": "Unattributed legacy notifications remain preserved, unassigned and excluded."
+    },
+    {
+      "id": "RW6-P0-CORRUPT-TO-EMPTY-REWRITE-005",
+      "state": "resolved-and-tested",
+      "resolution": "Strict decoders fail closed and preserve exact raw operational documents."
+    },
+    {
+      "id": "RW6-P0-SILENT-HISTORY-PRUNING-006",
+      "state": "resolved-and-tested",
+      "resolution": "Bounded full stores reject writes without removing accepted history."
+    },
+    {
+      "id": "RW6-P0-LOST-UPDATE-CONCURRENCY-007",
+      "state": "resolved-and-tested",
+      "resolution": "Operational mutation queues serialize verified read-modify-write operations."
+    },
+    {
+      "id": "RW6-P0-BOOKING-SELECTION-CROSS-PRINCIPAL-008",
+      "state": "resolved-and-tested",
+      "resolution": "Selections use bounded opaque account or guest buckets and quarantine corrupt legacy state."
+    },
+    {
+      "id": "RW6-P0-PRIVACY-EXPORT-DELETION-SCOPE-009",
+      "state": "resolved-and-tested",
+      "resolution": "Export and both deletion paths apply current-account and participant lifecycle truth."
+    },
+    {
+      "id": "RW6-P1-HANDOVER-HELPER-FOREIGN-ACCESS-010",
+      "state": "resolved-and-tested",
+      "resolution": "Failure counters, banners and handover metadata require a current request participant."
+    },
+    {
+      "id": "RW6-P1-SESSION-CHANGE-DURING-ASYNC-WORK-011",
+      "state": "resolved-and-tested",
+      "resolution": "Queued and remote work rechecks the captured session before persistence or delivery."
+    },
+    {
+      "id": "RW6-P1-STALE-COMMUNICATION-UI-012",
+      "state": "resolved-and-tested",
+      "resolution": "Open communication surfaces clear old state and verify the account after async loads."
+    }
+  ],
+  "verification": {
+    "changedFileAnalyze": "passed-zero-issues",
+    "focusedRw6Flutter": "passed-19",
+    "combinedOperationalFlutter": "passed-99",
+    "adjacentAccountBookingFlutter": "passed",
+    "lifecyclePrivacyRetention": "passed",
+    "rw6WiringTests": "passed",
+    "fullTechnicalRegression": "pending",
+    "githubRegression": "pending",
+    "githubCodeql": "pending"
+  },
+  "gates": {
+    "BUILD_READY": "not-granted",
+    "PLAY_UPLOAD_APPROVED": "not-granted",
+    "HUMAN_PILOT_ACTIVATED": "not-granted",
+    "PR7_MERGE_APPROVED": "not-granted",
+    "R17_GITGUARDIAN_HISTORY_REVIEW_COMPLETE": "not-granted"
+  },
+  "boundaries": {
+    "productionChanged": false,
+    "vpsChanged": false,
+    "dnsChanged": false,
+    "cloudChanged": false,
+    "firebaseChanged": false,
+    "storeChanged": false,
+    "paymentChanged": false,
+    "realMoneyUsed": false,
+    "realProviderTrafficSent": false,
+    "externalAiRuntimeEnabled": false,
+    "realTesterEnrolled": false,
+    "candidateCreated": false,
+    "deviceGateClaimed": false,
+    "legalApprovalChanged": false,
+    "gitHistoryRewritten": false,
+    "prMerged": false
+  },
+  "sourceInventory": [
+    {
+      "path": "lib/models/message.dart",
+      "sha256": "1dd9dbdf2f62afd892d5c937ae2f1f72bbdab5b2431dd96438df3058da513ffb"
+    },
+    {
+      "path": "lib/screens/booking_detail_screen.dart",
+      "sha256": "86b1855aa6dbcf1a13caf28cd70d295ca51172d34acf79a9d511ec72e1959706"
+    },
+    {
+      "path": "lib/screens/message_thread_screen.dart",
+      "sha256": "a9fdddef214337ee05b09ae42db778947f91da10aa3e17a35956860476f219a8"
+    },
+    {
+      "path": "lib/screens/messages_screen.dart",
+      "sha256": "80d4c76a2f4913ffabdb928eaca24216486bb1a7c05791ab83e0d261f8dc0672"
+    },
+    {
+      "path": "lib/screens/notifications_screen.dart",
+      "sha256": "cbd43f4f5f2f9ceaa9cf74ec127642e26a203d9b41c64f99c124ff677d25a896"
+    },
+    {
+      "path": "lib/screens/ongoing_owner_detail_screen.dart",
+      "sha256": "a73e03b335d8ec87aa8377a74a26be674e7afb010a33e40d2a656adcde3cc56f"
+    },
+    {
+      "path": "lib/screens/privacy_info_screen.dart",
+      "sha256": "615da1ab21fb85bf7783a9f0f4c4ff112c5bb15b21aab5004514a6d3cb9674a0"
+    },
+    {
+      "path": "lib/services/account_deletion_service.dart",
+      "sha256": "5b9b3d2b5cc7e9feb5242f6ae560d972a6ae9f00d799ba371b400c0c549e1d3c"
+    },
+    {
+      "path": "lib/services/data_service.dart",
+      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
+    },
+    {
+      "path": "lib/services/notification_cta_resolver.dart",
+      "sha256": "15bf706461147f66bf43e567cf2155b3bd782bd54fa1430b6e1d9ece53682147"
+    },
+    {
+      "path": "store/g2-data-lifecycle.json",
+      "sha256": "c6789444b8a2ccabe962f1fdbbedd1efaadae03d16676fbba4193f751e36cca6"
+    },
+    {
+      "path": "store/privacy-disclosures.json",
+      "sha256": "0a12978245f5e2f1fab7adf9a41101a53852f31115626d2de8ee9c14064caded"
+    },
+    {
+      "path": "store/retention-deletion-readiness.json",
+      "sha256": "f28941b74f79387b854254244b68b62fa84bf1dd469b20db9b7abf1c19e9194b"
+    },
+    {
+      "path": "tool/validate_g2_data_lifecycle.mjs",
+      "sha256": "227328b15c41318d5863ac60c14a550b6cd3d65f26f16fe55123f87d65ea30de"
+    },
+    {
+      "path": "tool/validate_privacy_disclosures.mjs",
+      "sha256": "45fa71c2e52b9f48959f4cab49fa3f98c12a82f054ac44742d9d381f727faf36"
+    },
+    {
+      "path": "tool/validate_retention_deletion_readiness.mjs",
+      "sha256": "c8cd74d01bf6bdeda7a2952c08228c9b5ae73bbf743ed33b697951be64f0dbb2"
+    },
+    {
+      "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
+      "sha256": "a4e3b7e54d588bf34330b5e5c38798a262890f6af54152a5b0eae53c8975c0dd"
+    },
+    {
+      "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+      "sha256": "d86c54fc1c7d8b300b873ca2831c3aeb1f067d8e97a41efc2ec033c55d17d262"
+    },
+    {
+      "path": "scripts/technical_regression_check.sh",
+      "sha256": "ee5c64fa68090f5bc81fcdfd6f1c3087899ad743699ba6621e28c8adf9de7ef7"
+    },
+    {
+      "path": "test/data_service_booking_rules_test.dart",
+      "sha256": "80d135fdd16142e95eddba41274e1bccb7bed1728ba41f3c56f98eb4bee632eb"
+    },
+    {
+      "path": "test/invoices_service_rules_test.dart",
+      "sha256": "3476b7cf80cb050e8def7a5fbe278eab173b751d476903782ded546883f9cfaa"
+    },
+    {
+      "path": "test/notification_cta_resolver_test.dart",
+      "sha256": "174a09061e7c9bed42fb1c335adbc753831b2ae90d7cfe06317cde9159335d09"
+    },
+    {
+      "path": "test/qa_seed_smoke_test.dart",
+      "sha256": "ee28b6dcaafdf9c017473586913bffd1e1799783bfd9c2ede64cd118860833fd"
+    },
+    {
+      "path": "test/review_prompt_sheet_logic_test.dart",
+      "sha256": "d74cb9eb88c5caad1840e6d5c9ed9341020bedd9ae246c49e5c861adc85b1697"
+    },
+    {
+      "path": "test/rw6_local_operational_authorization_truth_recovery_test.dart",
+      "sha256": "27164b99505fa14f0b47c0a3a084c4223e1976e5916f87c98b84a9e405a5ebee"
+    },
+    {
+      "path": "test/secure_booking_confirmation_test.dart",
+      "sha256": "76fc56357fc9c682a6a63576d98333ebc60e673817bed8506b9d89266ee49fa7"
+    },
+    {
+      "path": "test/shared_message_thread_sync_test.dart",
+      "sha256": "ade6711e11dce14c604850a17dd74f20d5056c073788c18ccb70e4fb6a9cecb8"
+    },
+    {
+      "path": "test/support/test_builders.dart",
+      "sha256": "d83a82589866c63d21ca277a44f46c075f298ae62281a58690ca9ce25de4fb59"
+    },
+    {
+      "path": "test/tool/booking_detail_handover_return_async_context_wiring.test.mjs",
+      "sha256": "c7c093c7820296452fd5677274277820b89bb817e10d1b8b08bdbda60ed90b42"
+    },
+    {
+      "path": "test/tool/rw6_local_operational_authorization_truth_recovery_wiring.test.mjs",
+      "sha256": "c847b6f030bf93adec6fce94ba1b7a5965b809b44636c3c25031218dc6934733"
+    },
+    {
+      "path": "test/tool/validate_rw6_local_operational_authorization_truth_recovery.test.mjs",
+      "sha256": "2ab65b7e65fbe15db8acd69c8dab622d53a7169d7729f8e0e9cdaf1be3853c91"
+    },
+    {
+      "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",
+      "sha256": "d7940b7b48fbc1fd8409cf15562124e2a9d6bac6aebacecc95d58ae5532ff97b"
+    },
+    {
+      "path": "docs/architecture/rw6-local-operational-record-authorization-truth-recovery-2026-08-25.md",
+      "sha256": "ab6f5475a3452a4e5ed7bb10f7936253b311f2d79e932cb5dff5874bfe9145f8"
+    },
+    {
+      "path": "docs/operations/RW6_LOCAL_OPERATIONAL_RECORD_AUTHORIZATION_TRUTH_RECOVERY_2026-08-25.md",
+      "sha256": "14ae5162e0cddf7e57ad5a26f66546dda8000dc4192e268594483d2298f09ae3"
+    }
+  ]
+}

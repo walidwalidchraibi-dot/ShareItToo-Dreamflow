@@ -2,7 +2,7 @@
 
 Verified: 2026-08-25 on the Mac mini.
 
-## Current RW5 state
+## Current RW6 state
 
 - RW0 is closed at documentation commit
   `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`. Its exact synthetic, local-only
@@ -139,6 +139,25 @@ Verified: 2026-08-25 on the Mac mini.
   `32809930879` and CodeQL `32809930884`, with zero open code-scanning alerts.
   PR #7 remains Draft, open and unmerged; every live and owner gate remains
   closed.
+- RW5 is closed at documentation commit
+  `ddce25d34c40477ad0fdb9718ac570e3a31334b7`. RW6 is its separate local-only
+  successor. It requires a matching auth session and participant role for
+  device-local operational fallback records, makes thread deletion
+  current-user-only, preserves unattributed notifications without assigning
+  them, and fails closed on exact retained corruption or capacity exhaustion.
+- RW6 serializes and verifies mutations, rechecks the captured session around
+  queued and remote work, and clears communication UI before account reload.
+  Privacy export is current-account/participant scoped; both account-deletion
+  paths apply local cleanup while shared counterparty/audit records remain.
+  Nineteen focused tests, the 99-check operational matrix, 64 adjacent Flutter
+  checks, 101 lifecycle/privacy/retention/wiring checks and 9 newly exposed
+  auth-boundary integration checks pass. The full CI-metadata-mode technical
+  regression passes with analyzer zero issues, default Flutter 471 plus three
+  documented skips, exact RW profiles, Web/Wasm, Android 448 tasks, minSdk 24
+  and the resource guard. Exact GitHub verification remains pending. The
+  ordinary local Store-handoff path remains separately blocked by its absent
+  historical private AAB; RW6 changes no candidate evidence and no live or
+  owner gate.
 
 ## Current 48H readiness state
 

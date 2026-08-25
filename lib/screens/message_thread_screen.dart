@@ -203,6 +203,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   final ScrollController _listController = ScrollController();
 
   bool _isLoading = true;
+  bool _loadFailed = false;
   User? _currentUser;
   MessageThread? _thread;
   User? _otherUser;
@@ -285,38 +286,73 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _refreshThreadMessagesInBackground() async {
     final threadId = (_thread?.id ?? widget.threadId ?? '').trim();
     if (!mounted || threadId.isEmpty) return;
-    final refreshed = await DataService.getMessageThreadById(
-      threadId,
-      remoteTimeout: const Duration(seconds: 3),
-    );
-    if (!mounted || refreshed == null) return;
-
-    final current = _thread;
-    final unchanged = current != null &&
-        jsonEncode(current.toJson()) == jsonEncode(refreshed.toJson());
-    if (unchanged) return;
-
-    setState(() => _thread = refreshed);
-    final userId = _currentUser?.id;
-    if (userId != null &&
-        shouldMarkThreadMessagesAsRead(
-          messages: refreshed.messages,
-          userId: userId,
-        )) {
-      await DataService.markThreadMessagesAsRead(
-        threadId: refreshed.id,
-        userId: userId,
+    try {
+      final expectedUserId = (_currentUser?.id ?? '').trim();
+      final currentUser = await DataService.getCurrentUser();
+      if (!mounted) return;
+      if (expectedUserId.isEmpty || currentUser?.id.trim() != expectedUserId) {
+        _clearSensitiveThreadState();
+        return;
+      }
+      final refreshed = await DataService.getMessageThreadById(
+        threadId,
+        remoteTimeout: const Duration(seconds: 3),
       );
-    }
-    if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      if (!mounted) return;
+      if (refreshed == null) {
+        _clearSensitiveThreadState();
+        return;
+      }
+
+      final current = _thread;
+      final unchanged = current != null &&
+          jsonEncode(current.toJson()) == jsonEncode(refreshed.toJson());
+      if (unchanged) return;
+
+      setState(() => _thread = refreshed);
+      final userId = _currentUser?.id;
+      if (userId != null &&
+          shouldMarkThreadMessagesAsRead(
+            messages: refreshed.messages,
+            userId: userId,
+          )) {
+        await DataService.markThreadMessagesAsRead(
+          threadId: refreshed.id,
+          userId: userId,
+        );
+      }
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }
+    } catch (error) {
+      debugPrint('[MessageThreadScreen] background refresh failed: $error');
+      if (!mounted) return;
+      setState(() {
+        _loadFailed = true;
+        _isLoading = false;
+        _currentUser = null;
+        _thread = null;
+        _otherUser = null;
+        _item = null;
+        _request = null;
+        _handoverReturnState = const {};
+      });
     }
   }
 
   Future<void> _load() async {
     if (_loadInProgress) return;
     _loadInProgress = true;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _loadFailed = false;
+      _currentUser = null;
+      _thread = null;
+      _otherUser = null;
+      _item = null;
+      _request = null;
+      _handoverReturnState = const {};
+    });
     try {
       final requestedThreadId = (widget.threadId ?? '').trim();
       final me = await DataService.getCurrentUser();
@@ -404,7 +440,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         await MessagesSettingsService.set(normalizedSettings);
       }
 
+      final currentAfterLoad = await DataService.getCurrentUser();
       if (!mounted) return;
+      if (currentAfterLoad?.id.trim() != me.id.trim()) {
+        _clearSensitiveThreadState();
+        return;
+      }
       setState(() {
         _currentUser = me;
         _thread = thread;
@@ -437,10 +478,36 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     } catch (e) {
       debugPrint('[MessageThreadScreen] _load failed: $e');
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _loadFailed = true;
+        _currentUser = null;
+        _thread = null;
+        _otherUser = null;
+        _item = null;
+        _request = null;
+        _handoverReturnState = const {};
+      });
     } finally {
       _loadInProgress = false;
     }
+  }
+
+  void _clearSensitiveThreadState() {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _loadFailed = false;
+      _currentUser = null;
+      _thread = null;
+      _otherUser = null;
+      _item = null;
+      _request = null;
+      _handoverReturnState = const {};
+      _isThreadArchived = false;
+      _isOtherUserBlocked = false;
+      _isThreadMuted = false;
+    });
   }
 
   bool _canBlockCurrentThread() {
@@ -1959,6 +2026,49 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         _lastViewInsetBottom = insets;
         if (opened && _isAtBottom) _scrollToBottom(animate: true);
       });
+    }
+
+    if (!_isLoading && _thread == null) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back),
+          ),
+          title: const Text('Nachrichten'),
+        ),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _loadFailed ? Icons.error_outline : Icons.lock_outline,
+                    size: 42,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _loadFailed
+                        ? 'Nachrichten konnten nicht sicher geladen werden.'
+                        : 'Dieser Nachrichtenverlauf ist für das aktuelle Konto nicht verfügbar.',
+                    key: const ValueKey('message-thread-unavailable'),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Bitte prüfe die Anmeldung oder öffne den Chat erneut über deine Nachrichten.',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     final st = _deriveChatState();

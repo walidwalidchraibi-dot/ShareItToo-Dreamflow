@@ -107,7 +107,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "6f9a62bb570bf5495f36db9aa0a0f5f7d93d0787581a119950921f074595fd09"
+      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -127,27 +127,27 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "8bcb33e4e2117186c6181fbb5533953149228c62ca7617c0ce34a432ceede643"
+      "sha256": "c6789444b8a2ccabe962f1fdbbedd1efaadae03d16676fbba4193f751e36cca6"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "1481227fd8b16db718a139192397e1c50c00a32f62cc3446ea8d819aecd43c0c"
+      "sha256": "0a12978245f5e2f1fab7adf9a41101a53852f31115626d2de8ee9c14064caded"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "50e9c89760cddb1e3b9cee506b3e828199468a955a4888286d3df6816395c1ce"
+      "sha256": "f28941b74f79387b854254244b68b62fa84bf1dd469b20db9b7abf1c19e9194b"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
-      "sha256": "e405e169083c148a3affc9568ba5da73df4da77ebc93a78ef351edb6e358b0da"
+      "sha256": "227328b15c41318d5863ac60c14a550b6cd3d65f26f16fe55123f87d65ea30de"
     },
     {
       "path": "tool/validate_privacy_disclosures.mjs",
-      "sha256": "1097d0e3755736a02dfc51720f09614e131736122f517cae7df71553617ee284"
+      "sha256": "45fa71c2e52b9f48959f4cab49fa3f98c12a82f054ac44742d9d381f727faf36"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "79e5c4b8559c20470bdced8037f1abd6a8995315979d0fe0f7d780c4a83f8d19"
+      "sha256": "ee5c64fa68090f5bc81fcdfd6f1c3087899ad743699ba6621e28c8adf9de7ef7"
     },
     {
       "path": "test/reduced_wave0_local_principal_isolation_test.dart",
@@ -191,7 +191,7 @@
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",
-      "sha256": "cf615a0751938c450cf878e3823e677e3ef64027ad0596fd01d1b0b91340f262"
+      "sha256": "d7940b7b48fbc1fd8409cf15562124e2a9d6bac6aebacecc95d58ae5532ff97b"
     }
   ],
   "gates": {

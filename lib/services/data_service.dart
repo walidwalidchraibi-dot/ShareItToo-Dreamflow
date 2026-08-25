@@ -151,6 +151,22 @@ class _LocalRentalCartRegistry {
         );
 }
 
+class _LocalBookingSelectionRegistry {
+  final int revision;
+  final Map<String, Map<String, dynamic>> principals;
+  final Map<String, dynamic> quarantinedPrincipals;
+  final bool legacyGuestQuarantined;
+
+  _LocalBookingSelectionRegistry({
+    required this.revision,
+    required this.principals,
+    Map<String, dynamic> quarantinedPrincipals = const <String, dynamic>{},
+    this.legacyGuestQuarantined = false,
+  }) : quarantinedPrincipals = Map<String, dynamic>.from(
+          quarantinedPrincipals,
+        );
+}
+
 class RentalRequestTransitionResult {
   final bool success;
   final bool pausedForReview;
@@ -181,6 +197,8 @@ class DataService {
   static const String _currentUserKey = 'currentUser';
   static const String _accountDeletedKey = 'account_deleted_v1';
   static const String _bookingSelectionsKey = 'booking_selections';
+  static const String _bookingSelectionPrincipalStateKey =
+      'booking_selections_v2';
   static const String _rentalRequestsKey = 'rental_requests';
   static const String _timelineEventsKey = 'timeline_events';
   static const String _notificationsKey = 'notifications';
@@ -205,12 +223,25 @@ class DataService {
   static const String _rentalCartSyncOwnerKey = 'rental_cart_sync_owner_v1';
   static const String _rentalCartPrincipalStateKey = 'rental_cart_v2';
   static const String _messageThreadsKey = 'message_threads_v1';
+  static const int _maxLocalMessageThreads = 1000;
+  static const int _maxMessagesPerThread = 5000;
+  static const int _maxLocalNotifications = 5000;
+  static const int _maxLocalTimelineEvents = 5000;
+  static const int _maxLocalRentalRequests = 1000;
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
   static final _LocalMutationQueue _wishlistMutationQueue =
       _LocalMutationQueue();
   static final _LocalMutationQueue _rentalCartMutationQueue =
+      _LocalMutationQueue();
+  static final _LocalMutationQueue _bookingSelectionMutationQueue =
+      _LocalMutationQueue();
+  static final _LocalMutationQueue _operationalMutationQueue =
+      _LocalMutationQueue();
+  static final _LocalMutationQueue _rentalRequestMutationQueue =
+      _LocalMutationQueue();
+  static final _LocalMutationQueue _handoverMutationQueue =
       _LocalMutationQueue();
 
   static Future<T> _runWishlistForCurrentPrincipal<T>(
@@ -228,6 +259,92 @@ class DataService {
   static Future<LocalPrincipalIdentity> _currentLocalPrincipal() =>
       LocalPrincipalScope.current();
 
+  static Future<User> _requireCurrentOperationalUser({
+    String? requestedUserId,
+  }) async {
+    final current = await getCurrentUser();
+    if (current == null || current.id.trim().isEmpty) {
+      throw StateError(
+          'Für lokale Kontodaten ist eine Anmeldung erforderlich.');
+    }
+    if (!QaRuntimeService.isEnabled) {
+      final session = await AuthService.readSession();
+      if ((session?.userId ?? '').trim() != current.id.trim()) {
+        throw StateError(
+          'Das lokale Profil gehört nicht zur aktuellen Kontositzung.',
+        );
+      }
+    }
+    final requested = requestedUserId?.trim();
+    if (requested != null &&
+        requested.isNotEmpty &&
+        requested != current.id.trim()) {
+      throw StateError('Lokale Kontodaten gehören zu einem anderen Konto.');
+    }
+    return current;
+  }
+
+  /// Side-effect-free session recheck for queued or remote work. Unlike
+  /// [getCurrentUser], this never initializes QA fixtures while another local
+  /// mutation queue is already held.
+  static Future<void> _assertCurrentOperationalUserId(
+    String expectedUserId,
+  ) async {
+    final expected = expectedUserId.trim();
+    if (expected.isEmpty) {
+      throw StateError(
+          'Für lokale Kontodaten ist eine Anmeldung erforderlich.');
+    }
+    if (QaRuntimeService.isEnabled) {
+      final runtimeUser = QaRuntimeService.runtimeUserJson;
+      if (runtimeUser == null ||
+          (runtimeUser['id'] ?? '').toString().trim() != expected) {
+        throw StateError('Die lokale Kontositzung hat sich geändert.');
+      }
+      return;
+    }
+    final session = await AuthService.readSession();
+    if ((session?.userId ?? '').trim() != expected) {
+      throw StateError('Die lokale Kontositzung hat sich geändert.');
+    }
+  }
+
+  static bool _isRequestParticipant(RentalRequest request, String userId) =>
+      request.ownerId == userId || request.renterId == userId;
+
+  static bool _isThreadParticipant(MessageThread thread, String userId) =>
+      thread.user1Id == userId || thread.user2Id == userId;
+
+  static Future<(User, RentalRequest)> _requireCurrentRequestParticipant(
+    String requestId,
+  ) async {
+    final current = await _requireCurrentOperationalUser();
+    final requests = await _getAllRentalRequests();
+    RentalRequest? request;
+    for (final candidate in requests) {
+      if (candidate.id == requestId) {
+        request = candidate;
+        break;
+      }
+    }
+    if (request == null) {
+      throw StateError('Die lokale Buchung wurde nicht gefunden.');
+    }
+    if (!_isRequestParticipant(request, current.id)) {
+      throw StateError('Die lokale Buchung gehört zu einem anderen Konto.');
+    }
+    return (current, request);
+  }
+
+  static Future<T> _runHandoverForParticipant<T>(
+    (User, RentalRequest) participant,
+    Future<T> Function() operation,
+  ) =>
+      _handoverMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(participant.$1.id);
+        return operation();
+      });
+
   @visibleForTesting
   static String localPrincipalTokenForSession(AuthSession? session) =>
       LocalPrincipalScope.tokenForSession(session);
@@ -240,6 +357,16 @@ class DataService {
     final accepted = await prefs.setString(key, value);
     if (!accepted || prefs.getString(key) != value) {
       throw StateError('Local persistence failed for $key.');
+    }
+  }
+
+  static Future<void> _removePreferenceKey(
+    SharedPreferences prefs,
+    String key,
+  ) async {
+    final accepted = await prefs.remove(key);
+    if (!accepted || prefs.containsKey(key)) {
+      throw StateError('Local persistence removal failed for $key.');
     }
   }
 
@@ -303,11 +430,22 @@ class DataService {
     List<dynamic> threads, {
     bool announceChange = true,
   }) async {
+    if (threads.length > _maxLocalMessageThreads ||
+        threads.any((entry) => entry is! Map)) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
     final payload = threads
-        .whereType<Map>()
-        .map((entry) => Map<String, dynamic>.from(entry))
-        .toList();
-    await prefs.setString(_messageThreadsKey, jsonEncode(payload));
+        .map((entry) => Map<String, dynamic>.from(entry as Map))
+        .toList(growable: false);
+    final parsed = payload.map(_parseMessageThreadStrict).toList();
+    if (parsed.map((entry) => entry.id).toSet().length != parsed.length) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
+    await _writePreferenceString(
+      prefs,
+      _messageThreadsKey,
+      jsonEncode(payload),
+    );
     if (announceChange) {
       SharedPersistenceSync.notify(SharedPersistenceSync.messageThreadsKey);
     }
@@ -323,13 +461,137 @@ class DataService {
           timeout: remoteTimeout,
         );
         final encoded = jsonEncode(remote);
-        await prefs.setString(_messageThreadsKey, encoded);
+        _decodeMessageThreadsStrict(encoded);
+        await _writePreferenceString(prefs, _messageThreadsKey, encoded);
         return encoded;
       } catch (error) {
         debugPrint('[DataService] remote message load failed: $error');
       }
     }
     return prefs.getString(_messageThreadsKey);
+  }
+
+  static List<MessageThread> _decodeMessageThreadsStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! List || decoded.length > _maxLocalMessageThreads) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
+    try {
+      final parsed = decoded
+          .map(
+            (entry) => _parseMessageThreadStrict(
+              Map<String, dynamic>.from(entry as Map),
+            ),
+          )
+          .toList();
+      if (parsed.map((entry) => entry.id).toSet().length != parsed.length) {
+        throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+      }
+      return parsed;
+    } catch (error) {
+      if (error is FormatException) rethrow;
+      throw FormatException(
+        'Ungültiger lokaler Nachrichtenverlauf.',
+        error,
+      );
+    }
+  }
+
+  static MessageThread _parseMessageThreadStrict(
+    Map<String, dynamic> raw,
+  ) {
+    const requiredStringKeys = <String>{
+      'id',
+      'requestId',
+      'itemId',
+      'itemTitle',
+      'user1Id',
+      'user2Id',
+      'createdAt',
+    };
+    if (requiredStringKeys.any((key) => raw[key] is! String)) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
+    final id = (raw['id'] as String).trim();
+    final user1Id = (raw['user1Id'] as String).trim();
+    final user2Id = (raw['user2Id'] as String).trim();
+    final threadType = (raw['threadType'] as String?)?.trim().toLowerCase();
+    final isSupport = threadType == 'support';
+    if (id.isEmpty ||
+        id.length > 256 ||
+        user1Id.isEmpty ||
+        user2Id.isEmpty ||
+        user1Id == user2Id ||
+        (raw['itemTitle'] as String).length > 500 ||
+        (!isSupport &&
+            ((raw['requestId'] as String).trim().isEmpty ||
+                (raw['itemId'] as String).trim().isEmpty))) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
+    if (DateTime.tryParse(raw['createdAt'] as String) == null ||
+        (raw['lastMessageAt'] != null &&
+            DateTime.tryParse(raw['lastMessageAt'].toString()) == null) ||
+        (raw['handoverAt'] != null &&
+            DateTime.tryParse(raw['handoverAt'].toString()) == null) ||
+        (raw['returnAt'] != null &&
+            DateTime.tryParse(raw['returnAt'].toString()) == null) ||
+        (raw['otherUserLastActive'] != null &&
+            DateTime.tryParse(raw['otherUserLastActive'].toString()) == null)) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
+    final messages = raw['messages'];
+    final archived = raw['archivedForUserIds'];
+    final deleted = raw['deletedForUserIds'];
+    if (messages is! List ||
+        messages.length > _maxMessagesPerThread ||
+        messages.any((entry) => entry is! Map) ||
+        (archived != null &&
+            (archived is! List || archived.any((entry) => entry is! String))) ||
+        (deleted != null &&
+            (deleted is! List || deleted.any((entry) => entry is! String)))) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
+    final participants = <String>{user1Id, user2Id};
+    final archivedIds = (archived as List? ?? const <dynamic>[])
+        .map((entry) => (entry as String).trim())
+        .toList(growable: false);
+    final deletedIds = (deleted as List? ?? const <dynamic>[])
+        .map((entry) => (entry as String).trim())
+        .toList(growable: false);
+    if (archivedIds.toSet().length != archivedIds.length ||
+        deletedIds.toSet().length != deletedIds.length ||
+        archivedIds.any((entry) => !participants.contains(entry)) ||
+        deletedIds.any((entry) => !participants.contains(entry))) {
+      throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+    }
+    final messageIds = <String>{};
+    for (final entry in messages) {
+      final message = Map<String, dynamic>.from(entry as Map);
+      if (message['id'] is! String ||
+          message['senderId'] is! String ||
+          message['text'] is! String ||
+          message['timestamp'] is! String ||
+          message['isRead'] != null && message['isRead'] is! bool) {
+        throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+      }
+      final messageId = (message['id'] as String).trim();
+      final senderId = (message['senderId'] as String).trim();
+      final attachments = message['attachments'];
+      if (messageId.isEmpty ||
+          messageId.length > 256 ||
+          !messageIds.add(messageId) ||
+          senderId.isEmpty ||
+          senderId.length > 256 ||
+          (message['text'] as String).length > 20000 ||
+          DateTime.tryParse(message['timestamp'] as String) == null ||
+          (attachments != null &&
+              (attachments is! List ||
+                  attachments.length > 16 ||
+                  attachments.any((attachment) => attachment is! Map)))) {
+        throw const FormatException('Ungültiger lokaler Nachrichtenverlauf.');
+      }
+    }
+    return MessageThread.fromJson(raw);
   }
 
   // Security
@@ -440,45 +702,64 @@ class DataService {
     _lastCreateEvent = (item, draft);
   }
 
-  /// Owner-side pickup/handover confirmation failure counter
-  /// We persist how many times the Vermieter failed to confirm pickup (e.g. QR scan mismatch or
-  /// wrong manual code) keyed by bookingId so the Mieter can be offered a manual confirm after 3 tries.
-  static Future<int> getPickupFailCountForBooking(String bookingId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_handoverFailCountsKey);
-      if (raw == null || raw.isEmpty) return 0;
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      final v = map[bookingId];
-      if (v is int) return v;
-      if (v is num) return v.toInt();
-      return 0;
-    } catch (_) {
-      return 0;
+  static Map<String, dynamic> _decodeHandoverFailCountsStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map || decoded.length > 1000) {
+      throw const FormatException('Ungültige lokale Übergabe-Fehlversuche.');
     }
+    final map = Map<String, dynamic>.from(decoded);
+    for (final entry in map.entries) {
+      if (entry.key.trim().isEmpty ||
+          entry.key.length > 256 ||
+          entry.value is! int ||
+          (entry.value as int) < 0 ||
+          (entry.value as int) > 100) {
+        throw const FormatException('Ungültige lokale Übergabe-Fehlversuche.');
+      }
+    }
+    return map;
   }
 
-  static Future<int> incrementPickupFailForBooking(String bookingId) async {
-    try {
+  /// Participant-scoped pickup/handover confirmation failure counter.
+  static Future<int> getPickupFailCountForBooking(String requestId) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return 0;
+    final participant = await _requireCurrentRequestParticipant(id);
+    return _runHandoverForParticipant(participant, () async {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_handoverFailCountsKey);
-      Map<String, dynamic> map = {};
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          map = jsonDecode(raw) as Map<String, dynamic>;
-        } catch (_) {
-          map = {};
-        }
+      if (raw == null) return 0;
+      final map = _decodeHandoverFailCountsStrict(raw);
+      return map[id] as int? ?? 0;
+    });
+  }
+
+  static Future<int> incrementPickupFailForBooking(String requestId) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return 0;
+    final participant = await _requireCurrentRequestParticipant(id);
+    return _runHandoverForParticipant(participant, () async {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_handoverFailCountsKey);
+      final map = raw == null
+          ? <String, dynamic>{}
+          : _decodeHandoverFailCountsStrict(raw);
+      if (!map.containsKey(id) && map.length >= 1000) {
+        throw StateError('Die lokalen Übergabe-Fehlversuche sind voll.');
       }
-      final current =
-          (map[bookingId] is num) ? (map[bookingId] as num).toInt() : 0;
+      final current = map[id] as int? ?? 0;
+      if (current >= 100) {
+        throw StateError('Zu viele lokale Übergabe-Fehlversuche.');
+      }
       final next = current + 1;
-      map[bookingId] = next;
-      await prefs.setString(_handoverFailCountsKey, jsonEncode(map));
+      map[id] = next;
+      await _writePreferenceString(
+        prefs,
+        _handoverFailCountsKey,
+        jsonEncode(map),
+      );
       return next;
-    } catch (_) {
-      return 0;
-    }
+    });
   }
 
   static (Item, bool)? takeLastCreateEvent() {
@@ -487,78 +768,345 @@ class DataService {
     return e;
   }
 
-  /// Set a one-time banner text for a booking to be shown on next open.
-  /// Stored under a lightweight map keyed by bookingId.
+  static Map<String, dynamic> _decodeHandoverBannersStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map || decoded.length > 1000) {
+      throw const FormatException('Ungültige lokale Übergabehinweise.');
+    }
+    final map = Map<String, dynamic>.from(decoded);
+    for (final entry in map.entries) {
+      final value = entry.value;
+      if (entry.key.trim().isEmpty ||
+          entry.key.length > 256 ||
+          value is! Map ||
+          value['msg'] is! String ||
+          (value['msg'] as String).trim().isEmpty ||
+          (value['msg'] as String).length > 2000 ||
+          value['ts'] is! String ||
+          DateTime.tryParse(value['ts'] as String) == null) {
+        throw const FormatException('Ungültige lokale Übergabehinweise.');
+      }
+    }
+    return map;
+  }
+
+  /// Sets a participant-scoped one-time banner for the shared request.
   static Future<void> setHandoverBanner({
-    required String bookingId,
+    required String requestId,
     required String message,
   }) async {
-    try {
+    final id = requestId.trim();
+    final normalizedMessage = message.trim();
+    if (id.isEmpty ||
+        id.length > 256 ||
+        normalizedMessage.isEmpty ||
+        normalizedMessage.length > 2000) {
+      throw ArgumentError('Ungültiger lokaler Übergabehinweis.');
+    }
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_handoverBannersKey);
-      Map<String, dynamic> map = {};
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          map = jsonDecode(raw) as Map<String, dynamic>;
-        } catch (_) {
-          map = {};
-        }
+      final map =
+          raw == null ? <String, dynamic>{} : _decodeHandoverBannersStrict(raw);
+      if (!map.containsKey(id) && map.length >= 1000) {
+        throw StateError('Die lokalen Übergabehinweise sind voll.');
       }
-      map[bookingId] = {'msg': message, 'ts': DateTime.now().toIso8601String()};
-      await prefs.setString(_handoverBannersKey, jsonEncode(map));
-    } catch (e) {
-      // ignore but log for debug
-      debugPrint('[DataService] setHandoverBanner failed: $e');
-    }
+      map[id] = <String, dynamic>{
+        'msg': normalizedMessage,
+        'ts': DateTime.now().toIso8601String(),
+      };
+      await _writePreferenceString(prefs, _handoverBannersKey, jsonEncode(map));
+    });
   }
 
   /// Returns and removes the banner text for a booking if present.
-  static Future<String?> takeHandoverBanner(String bookingId) async {
-    try {
+  static Future<String?> takeHandoverBanner(String requestId) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return null;
+    final participant = await _requireCurrentRequestParticipant(id);
+    return _runHandoverForParticipant(participant, () async {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_handoverBannersKey);
-      if (raw == null || raw.isEmpty) return null;
-      Map<String, dynamic> map;
-      try {
-        map = jsonDecode(raw) as Map<String, dynamic>;
-      } catch (_) {
-        return null;
-      }
-      final entry = map[bookingId];
+      if (raw == null) return null;
+      final map = _decodeHandoverBannersStrict(raw);
+      final entry = map[id];
       if (entry is Map) {
-        final msg = (entry['msg'] as String?) ?? '';
-        map.remove(bookingId);
-        await prefs.setString(_handoverBannersKey, jsonEncode(map));
-        return msg.isNotEmpty ? msg : null;
+        final msg = entry['msg'] as String;
+        map.remove(id);
+        await _writePreferenceString(
+          prefs,
+          _handoverBannersKey,
+          jsonEncode(map),
+        );
+        return msg;
       }
       return null;
-    } catch (e) {
-      // ignore but log for debug
-      debugPrint('[DataService] takeHandoverBanner failed: $e');
-      return null;
-    }
+    });
   }
 
-  // Persisted availability selection per item
+  static bool _isValidBookingSelectionToken(Object? value) =>
+      value is String &&
+      (value == LocalPrincipalIdentity.guest.token ||
+          RegExp(r'^p_[a-f0-9]{64}$').hasMatch(value));
+
+  static Map<String, dynamic> _decodeBookingSelectionBucket(Object? raw) {
+    if (raw is! Map || raw.length > 1000) {
+      throw const FormatException('Invalid local booking selections');
+    }
+    final bucket = <String, dynamic>{};
+    for (final entry in raw.entries) {
+      final itemId = entry.key;
+      final value = entry.value;
+      if (itemId is! String ||
+          itemId.trim().isEmpty ||
+          itemId.length > 256 ||
+          value is! Map ||
+          value.keys.any((key) =>
+              key is! String ||
+              !const {'start', 'end', 'delivery'}.contains(key))) {
+        throw const FormatException('Invalid local booking selection entry');
+      }
+      final selection = Map<String, dynamic>.from(value);
+      for (final key in const <String>['start', 'end']) {
+        final field = selection[key];
+        if (field != null &&
+            (field is! String ||
+                field.length > 64 ||
+                DateTime.tryParse(field) == null)) {
+          throw const FormatException('Invalid local booking selection date');
+        }
+      }
+      final delivery = selection['delivery'];
+      if (delivery != null) {
+        if (delivery is! Map || delivery.length > 20) {
+          throw const FormatException(
+            'Invalid local booking delivery selection',
+          );
+        }
+        const booleanKeys = <String>{'hinweg', 'rueckweg', 'express'};
+        const stringKeys = <String>{
+          'city',
+          'addressLine',
+          'deliveryAddressLine',
+          'deliveryCity',
+          'returnAddressLine',
+          'returnCity',
+        };
+        const coordinateKeys = <String>{
+          'lat',
+          'lng',
+          'deliveryLat',
+          'deliveryLng',
+          'returnLat',
+          'returnLng',
+        };
+        for (final field in delivery.entries) {
+          final key = field.key;
+          final fieldValue = field.value;
+          if (key is! String ||
+              (!booleanKeys.contains(key) &&
+                  !stringKeys.contains(key) &&
+                  !coordinateKeys.contains(key))) {
+            throw const FormatException(
+              'Invalid local booking delivery selection',
+            );
+          }
+          if (booleanKeys.contains(key) && fieldValue is! bool) {
+            throw const FormatException(
+              'Invalid local booking delivery selection',
+            );
+          }
+          if (stringKeys.contains(key) &&
+              (fieldValue is! String || fieldValue.length > 500)) {
+            throw const FormatException(
+              'Invalid local booking delivery selection',
+            );
+          }
+          if (coordinateKeys.contains(key) &&
+              fieldValue != null &&
+              (fieldValue is! num || !fieldValue.isFinite)) {
+            throw const FormatException(
+              'Invalid local booking delivery selection',
+            );
+          }
+        }
+        selection['delivery'] = Map<String, dynamic>.from(delivery);
+      }
+      bucket[itemId] = selection;
+    }
+    return bucket;
+  }
+
+  static _LocalBookingSelectionRegistry _readBookingSelectionRegistry(
+    SharedPreferences prefs,
+  ) {
+    final raw = prefs.getString(_bookingSelectionPrincipalStateKey);
+    if (raw == null) {
+      final legacyRaw = prefs.getString(_bookingSelectionsKey);
+      if (legacyRaw == null) {
+        return _LocalBookingSelectionRegistry(
+          revision: 0,
+          principals: <String, Map<String, dynamic>>{},
+        );
+      }
+      try {
+        final legacy = _decodeBookingSelectionBucket(jsonDecode(legacyRaw));
+        return _LocalBookingSelectionRegistry(
+          revision: 0,
+          principals: <String, Map<String, dynamic>>{
+            LocalPrincipalIdentity.guest.token: legacy,
+          },
+        );
+      } catch (_) {
+        return _LocalBookingSelectionRegistry(
+          revision: 0,
+          principals: <String, Map<String, dynamic>>{},
+          legacyGuestQuarantined: true,
+        );
+      }
+    }
+    if (raw.isEmpty) {
+      throw const FormatException('Invalid booking selection registry');
+    }
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      throw const FormatException('Invalid booking selection registry');
+    }
+    if (decoded is! Map ||
+        decoded['schemaVersion'] != 1 ||
+        decoded['revision'] is! int ||
+        (decoded['revision'] as int) < 1 ||
+        decoded['legacyGuestQuarantined'] is! bool ||
+        decoded['principals'] is! Map ||
+        decoded['quarantinedPrincipals'] is! Map) {
+      throw const FormatException('Invalid booking selection registry');
+    }
+    final principals = <String, Map<String, dynamic>>{};
+    final quarantined = <String, dynamic>{};
+    for (final entry in (decoded['principals'] as Map).entries) {
+      if (!_isValidBookingSelectionToken(entry.key)) {
+        throw const FormatException('Invalid booking selection principal');
+      }
+      try {
+        principals[entry.key as String] =
+            _decodeBookingSelectionBucket(entry.value);
+      } catch (_) {
+        quarantined[entry.key as String] = entry.value;
+      }
+    }
+    for (final entry in (decoded['quarantinedPrincipals'] as Map).entries) {
+      if (!_isValidBookingSelectionToken(entry.key) ||
+          principals.containsKey(entry.key)) {
+        throw const FormatException('Invalid booking selection quarantine');
+      }
+      quarantined[entry.key as String] = entry.value;
+    }
+    if (principals.length + quarantined.length > _maxLocalStageAPrincipals) {
+      throw const FormatException('Invalid booking selection registry');
+    }
+    return _LocalBookingSelectionRegistry(
+      revision: decoded['revision'] as int,
+      principals: principals,
+      quarantinedPrincipals: quarantined,
+      legacyGuestQuarantined: decoded['legacyGuestQuarantined'] as bool,
+    );
+  }
+
+  static Map<String, dynamic> _bookingSelectionBucketForPrincipal(
+    _LocalBookingSelectionRegistry registry,
+    LocalPrincipalIdentity principal,
+  ) {
+    if (!principal.authenticated && registry.legacyGuestQuarantined) {
+      throw const FormatException(
+        'Unattributed legacy booking selections are quarantined',
+      );
+    }
+    if (registry.quarantinedPrincipals.containsKey(principal.token)) {
+      throw const FormatException(
+        'Principal booking selections are quarantined',
+      );
+    }
+    return Map<String, dynamic>.from(
+      registry.principals[principal.token] ?? const <String, dynamic>{},
+    );
+  }
+
+  static Future<void> _writeBookingSelectionBucket(
+    SharedPreferences prefs,
+    _LocalBookingSelectionRegistry registry,
+    LocalPrincipalIdentity principal,
+    Map<String, dynamic> bucket,
+  ) async {
+    if (registry.quarantinedPrincipals.containsKey(principal.token) ||
+        (!principal.authenticated && registry.legacyGuestQuarantined)) {
+      throw const FormatException(
+        'Principal booking selections are quarantined',
+      );
+    }
+    if (!registry.principals.containsKey(principal.token) &&
+        registry.principals.length + registry.quarantinedPrincipals.length >=
+            _maxLocalStageAPrincipals) {
+      throw StateError('Local principal capacity reached.');
+    }
+    final validated = _decodeBookingSelectionBucket(bucket);
+    if (validated.isEmpty) {
+      registry.principals.remove(principal.token);
+    } else {
+      registry.principals[principal.token] = validated;
+    }
+    final encoded = jsonEncode(<String, dynamic>{
+      'schemaVersion': 1,
+      'revision': max(1, registry.revision + 1),
+      'legacyGuestQuarantined': registry.legacyGuestQuarantined,
+      'principals': registry.principals,
+      'quarantinedPrincipals': registry.quarantinedPrincipals,
+    });
+    await _writePreferenceString(
+      prefs,
+      _bookingSelectionPrincipalStateKey,
+      encoded,
+    );
+  }
+
+  static Future<T> _withCurrentBookingSelectionBucket<T>(
+    Future<T> Function(
+      SharedPreferences prefs,
+      _LocalBookingSelectionRegistry registry,
+      LocalPrincipalIdentity principal,
+      Map<String, dynamic> bucket,
+    ) operation,
+  ) async {
+    final principal = await _currentLocalPrincipal();
+    return _bookingSelectionMutationQueue.run(() async {
+      await LocalPrincipalScope.assertCurrent(principal);
+      final prefs = await SharedPreferences.getInstance();
+      final registry = _readBookingSelectionRegistry(prefs);
+      final bucket = _bookingSelectionBucketForPrincipal(registry, principal);
+      final result = await operation(prefs, registry, principal, bucket);
+      await LocalPrincipalScope.assertCurrent(principal);
+      return result;
+    });
+  }
+
+  // Persisted availability selection, isolated by the current local principal.
   static Future<(DateTime? start, DateTime? end)> getSavedDateRange(
     String itemId,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_bookingSelectionsKey);
-    if (raw == null || raw.isEmpty) return (null, null);
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      final entry = map[itemId];
-      if (entry is Map) {
-        final s = entry['start'] as String?;
-        final e = entry['end'] as String?;
-        return (
-          s != null ? DateTime.tryParse(s) : null,
-          e != null ? DateTime.tryParse(e) : null,
-        );
-      }
-    } catch (_) {}
-    return (null, null);
+    final id = itemId.trim();
+    if (id.isEmpty) return (null, null);
+    return _withCurrentBookingSelectionBucket((_, __, ___, bucket) async {
+      final entry = bucket[id];
+      if (entry is! Map) return (null, null);
+      final start = entry['start'] as String?;
+      final end = entry['end'] as String?;
+      return (
+        start == null ? null : DateTime.parse(start),
+        end == null ? null : DateTime.parse(end),
+      );
+    });
   }
 
   static Future<void> setSavedDateRange(
@@ -566,61 +1114,76 @@ class DataService {
     required DateTime start,
     required DateTime end,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_bookingSelectionsKey);
-    Map<String, dynamic> map = {};
-    if (raw != null && raw.isNotEmpty) {
-      try {
-        map = jsonDecode(raw) as Map<String, dynamic>;
-      } catch (_) {
-        map = {};
-      }
+    final id = itemId.trim();
+    if (id.isEmpty || id.length > 256 || end.isBefore(start)) {
+      throw ArgumentError('Invalid local booking date selection.');
     }
-    // Merge into existing per-item object instead of overwriting it so we
-    // don't drop previously saved delivery selections.
-    final existing =
-        (map[itemId] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ??
-            <String, dynamic>{};
-    existing['start'] = start.toIso8601String();
-    existing['end'] = end.toIso8601String();
-    map[itemId] = existing;
-    await prefs.setString(_bookingSelectionsKey, jsonEncode(map));
+    await _withCurrentBookingSelectionBucket(
+      (prefs, registry, principal, bucket) async {
+        final existing = bucket[id] is Map
+            ? Map<String, dynamic>.from(bucket[id] as Map)
+            : <String, dynamic>{};
+        existing['start'] = start.toIso8601String();
+        existing['end'] = end.toIso8601String();
+        bucket[id] = existing;
+        await _writeBookingSelectionBucket(
+          prefs,
+          registry,
+          principal,
+          bucket,
+        );
+      },
+    );
   }
 
   static Future<void> clearSavedDateRange(String itemId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_bookingSelectionsKey);
-    if (raw == null || raw.isEmpty) return;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      if (map.containsKey(itemId)) {
-        map.remove(itemId);
-        await prefs.setString(_bookingSelectionsKey, jsonEncode(map));
-      }
-    } catch (_) {}
+    final id = itemId.trim();
+    if (id.isEmpty) return;
+    await _withCurrentBookingSelectionBucket(
+      (prefs, registry, principal, bucket) async {
+        final raw = bucket[id];
+        if (raw is! Map) return;
+        final existing = Map<String, dynamic>.from(raw)
+          ..remove('start')
+          ..remove('end');
+        if (existing.isEmpty) {
+          bucket.remove(id);
+        } else {
+          bucket[id] = existing;
+        }
+        await _writeBookingSelectionBucket(
+          prefs,
+          registry,
+          principal,
+          bucket,
+        );
+      },
+    );
   }
 
-  /// Clears only the saved delivery selection for a given item without touching other items.
+  /// Clears only the saved delivery selection for a given item without
+  /// touching another item or local principal.
   static Future<void> clearSavedDeliverySelection(String itemId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_bookingSelectionsKey);
-    if (raw == null || raw.isEmpty) return;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      final entry = map[itemId];
-      if (entry is Map) {
-        final existing = Map<String, dynamic>.from(entry);
-        if (existing.containsKey('delivery')) {
-          existing.remove('delivery');
-          if (existing.isEmpty) {
-            map.remove(itemId);
-          } else {
-            map[itemId] = existing;
-          }
-          await prefs.setString(_bookingSelectionsKey, jsonEncode(map));
+    final id = itemId.trim();
+    if (id.isEmpty) return;
+    await _withCurrentBookingSelectionBucket(
+      (prefs, registry, principal, bucket) async {
+        final raw = bucket[id];
+        if (raw is! Map || !raw.containsKey('delivery')) return;
+        final existing = Map<String, dynamic>.from(raw)..remove('delivery');
+        if (existing.isEmpty) {
+          bucket.remove(id);
+        } else {
+          bucket[id] = existing;
         }
-      }
-    } catch (_) {}
+        await _writeBookingSelectionBucket(
+          prefs,
+          registry,
+          principal,
+          bucket,
+        );
+      },
+    );
   }
 
   /// Computes long-term discount for a given item and rental length.
@@ -1153,6 +1716,12 @@ class DataService {
   /// current user. Used to switch the app into a mode where only user-created
   /// listings are present and tested.
   static Future<void> ensureOnlyUserItemsOnce() async {
+    if (!_allowDemoSeedDataInRuntime) {
+      debugPrint(
+        '[DataService] ensureOnlyUserItemsOnce skipped (demo seed disabled)',
+      );
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final done = prefs.getBool(_purgedToOwnedFlagKey) ?? false;
     if (done) return;
@@ -1163,6 +1732,7 @@ class DataService {
     // Clear related stores so UI/state doesn't reference removed items.
     await prefs.remove(_rentalRequestsKey);
     await prefs.remove(_bookingSelectionsKey);
+    await prefs.remove(_bookingSelectionPrincipalStateKey);
     await prefs.remove(_timelineEventsKey);
     await prefs.remove(_savedItemsKey);
 
@@ -1239,6 +1809,7 @@ class DataService {
     // Clear related volatile demo stores so UI reflects new dataset
     await prefs.remove(_rentalRequestsKey);
     await prefs.remove(_bookingSelectionsKey);
+    await prefs.remove(_bookingSelectionPrincipalStateKey);
     await prefs.remove(_timelineEventsKey);
     await prefs.remove(_savedItemsKey);
 
@@ -1540,6 +2111,12 @@ class DataService {
       final acceptedItem = firstOwnedByWithPhoto(ownerA.id) ?? items.first;
       final runningItem = firstOwnedByWithPhoto(ownerB.id) ?? acceptedItem;
       final completedItem = firstOwnedBy(ownerC.id) ?? runningItem;
+      if (acceptedItem.ownerId == userId ||
+          runningItem.ownerId == userId ||
+          completedItem.ownerId == userId) {
+        // Sparse unit-test/demo catalogs cannot form valid two-party fixtures.
+        return;
+      }
       final ownerTemplate =
           firstOwnedByWithPhoto(me.id) ?? firstOwnedBy(me.id) ?? items.first;
       final now = DateTime.now();
@@ -1900,7 +2477,7 @@ class DataService {
 
       final itemJson = prefs.getString(_itemsKey);
       final List<dynamic> itemList = itemJson != null && itemJson.isNotEmpty
-          ? (jsonDecode(itemJson) as List)
+          ? List<dynamic>.from(jsonDecode(itemJson) as List)
           : <dynamic>[];
       itemList.removeWhere((e) {
         if (e is! Map) return false;
@@ -1923,34 +2500,36 @@ class DataService {
       ]);
       await prefs.setString(_itemsKey, jsonEncode(itemList));
 
-      final requests = await _getAllRentalRequests();
-      requests.removeWhere((r) {
-        final isRenterOrOwnerQa = r.id.startsWith('qa_req_') &&
-            (r.renterId == userId || r.ownerId == userId);
-        final isOwnerQa = r.id.startsWith('qa_owner_') && r.ownerId == userId;
-        return isRenterOrOwnerQa || isOwnerQa;
+      await _rentalRequestMutationQueue.run(() async {
+        final requests = await _getAllRentalRequests();
+        requests.removeWhere((r) {
+          final isRenterOrOwnerQa = r.id.startsWith('qa_req_') &&
+              (r.renterId == userId || r.ownerId == userId);
+          final isOwnerQa = r.id.startsWith('qa_owner_') && r.ownerId == userId;
+          return isRenterOrOwnerQa || isOwnerQa;
+        });
+        requests.removeWhere((r) => r.id == 'qa_shared_request_u1_u2');
+        requests.addAll([
+          acceptedRequest,
+          runningRequest,
+          completedRequest,
+          needsReviewRequest,
+          pendingRequest,
+          ownerPendingRequest,
+          ownerUpcomingPickupRequest,
+          ownerUpcomingDeliveryRequest,
+          ownerRunningRequest,
+          ownerCompletedCleanRequest,
+          ownerCompletedProblemRequest,
+          if (sharedOwnerRenterRequest != null) sharedOwnerRenterRequest,
+        ]);
+        await _saveAllRentalRequests(requests);
       });
-      requests.removeWhere((r) => r.id == 'qa_shared_request_u1_u2');
-      requests.addAll([
-        acceptedRequest,
-        runningRequest,
-        completedRequest,
-        needsReviewRequest,
-        pendingRequest,
-        ownerPendingRequest,
-        ownerUpcomingPickupRequest,
-        ownerUpcomingDeliveryRequest,
-        ownerRunningRequest,
-        ownerCompletedCleanRequest,
-        ownerCompletedProblemRequest,
-        if (sharedOwnerRenterRequest != null) sharedOwnerRenterRequest,
-      ]);
-      await _saveAllRentalRequests(requests);
 
       final rawThreads = await _readMessageThreads(prefs);
       final List<dynamic> threadList =
           rawThreads != null && rawThreads.isNotEmpty
-              ? (jsonDecode(rawThreads) as List)
+              ? List<dynamic>.from(jsonDecode(rawThreads) as List)
               : <dynamic>[];
       threadList.removeWhere((e) {
         if (e is! Map) return false;
@@ -2270,7 +2849,7 @@ class DataService {
 
       final rawNotifs = prefs.getString(_notificationsKey);
       final List<dynamic> notifList = rawNotifs != null && rawNotifs.isNotEmpty
-          ? (jsonDecode(rawNotifs) as List)
+          ? List<dynamic>.from(jsonDecode(rawNotifs) as List)
           : <dynamic>[];
       notifList.removeWhere((e) {
         if (e is! Map) return false;
@@ -2438,7 +3017,12 @@ class DataService {
         ),
       ]);
 
-      await prefs.setString(_notificationsKey, jsonEncode(notifList));
+      await _persistNotifications(
+        prefs,
+        notifList
+            .map((entry) => Map<String, dynamic>.from(entry as Map))
+            .toList(),
+      );
       await prefs.setBool(key, true);
     } catch (e) {
       debugPrint(
@@ -2646,44 +3230,42 @@ class DataService {
   }
 
   static Future<void> archiveAllMessageThreadsForUser(String userId) async {
-    try {
+    await _requireCurrentOperationalUser(requestedUserId: userId);
+    await _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(userId);
       final prefs = await SharedPreferences.getInstance();
       final raw = BackendConfig.enabled && !QaRuntimeService.isEnabled
           ? prefs.getString(_messageThreadsKey)
           : await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return;
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return;
+      if (raw == null) return;
+      final threads = _decodeMessageThreadsStrict(raw);
 
-      bool mutated = false;
-      for (int i = 0; i < decoded.length; i++) {
-        if (decoded[i] is! Map) continue;
-        final map = Map<String, dynamic>.from(decoded[i] as Map);
-        final u1 = map['user1Id']?.toString();
-        final u2 = map['user2Id']?.toString();
-        if (u1 != userId && u2 != userId) continue;
-
-        final archived = (map['archivedForUserIds'] as List?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            <String>[];
-        if (!archived.contains(userId)) {
-          archived.add(userId);
-          map['archivedForUserIds'] = archived;
-          decoded[i] = map;
+      var mutated = false;
+      for (var index = 0; index < threads.length; index++) {
+        final thread = threads[index];
+        if (!_isThreadParticipant(thread, userId)) continue;
+        final archived = <String>{...thread.archivedForUserIds, userId};
+        final deleted = <String>{...thread.deletedForUserIds, userId};
+        if (archived.length != thread.archivedForUserIds.length ||
+            deleted.length != thread.deletedForUserIds.length) {
+          threads[index] = thread.copyWith(
+            archivedForUserIds: archived.toList()..sort(),
+            deletedForUserIds: deleted.toList()..sort(),
+          );
           mutated = true;
         }
       }
 
       if (mutated) {
-        await _persistMessageThreads(prefs, decoded);
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(),
+        );
         debugPrint(
           '[DataService] Archived all message threads for user $userId',
         );
       }
-    } catch (e) {
-      debugPrint('[DataService] archiveAllMessageThreadsForUser failed: $e');
-    }
+    });
   }
 
   static const String _savedItemsKey = 'saved_item_ids';
@@ -3720,6 +4302,196 @@ class DataService {
     };
   }
 
+  /// Local operational records attributable to the current signed-in account.
+  /// Shared booking, timeline and handover records are exported only when the
+  /// current account is a participant; unattributed legacy notifications are
+  /// preserved on-device but cannot be assigned to an account export.
+  static Future<Map<String, dynamic>>
+      exportOperationalRecordsForPrivacy() async {
+    final current = await _requireCurrentOperationalUser();
+    final prefs = await SharedPreferences.getInstance();
+    final bookingSelections = await _withCurrentBookingSelectionBucket(
+      (_, __, ___, bucket) async => Map<String, dynamic>.from(bucket),
+    );
+
+    final rentalRequests = await _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final raw = prefs.getString(_rentalRequestsKey);
+      return raw == null ? <RentalRequest>[] : _decodeRentalRequestsStrict(raw);
+    });
+    final participantRequests = rentalRequests
+        .where((request) => _isRequestParticipant(request, current.id))
+        .toList();
+    final requestIds = participantRequests.map((request) => request.id).toSet();
+
+    final operational = await _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final messageRaw = prefs.getString(_messageThreadsKey);
+      final notificationRaw = prefs.getString(_notificationsKey);
+      final timelineRaw = prefs.getString(_timelineEventsKey);
+      final readRaw = prefs.getString(_readRequestsKey);
+      final lastSeenRaw = prefs.getString(_requestsLastSeenKey);
+      final threads = messageRaw == null
+          ? <MessageThread>[]
+          : _decodeMessageThreadsStrict(messageRaw);
+      final notifications = notificationRaw == null
+          ? <Map<String, dynamic>>[]
+          : _decodeNotificationsStrict(notificationRaw);
+      final timeline = timelineRaw == null
+          ? <Map<String, dynamic>>[]
+          : _decodeTimelineStrict(timelineRaw);
+      final readMarkers = readRaw == null
+          ? <String, dynamic>{}
+          : _decodeReadRequestsStrict(readRaw);
+      final lastSeen = lastSeenRaw == null
+          ? <String, dynamic>{}
+          : _decodeRequestsLastSeenStrict(lastSeenRaw);
+      return <String, dynamic>{
+        'messageThreads': threads
+            .where((thread) => _isThreadParticipant(thread, current.id))
+            .map((thread) => thread.toJson())
+            .toList(),
+        'notifications': notifications
+            .where(
+              (notification) =>
+                  (notification['userId'] ?? '').toString().trim() ==
+                  current.id,
+            )
+            .toList(),
+        'timeline': timeline
+            .where((event) => requestIds.contains(event['requestId']))
+            .toList(),
+        'readRequestIds': List<String>.from(
+          readMarkers[current.id] as List? ?? const <String>[],
+        ),
+        'ownerRequestsLastSeenAt': lastSeen[current.id],
+      };
+    });
+
+    final handover = await _handoverMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final all = await _getHandoverReturnStateMap();
+      final failRaw = prefs.getString(_handoverFailCountsKey);
+      final bannerRaw = prefs.getString(_handoverBannersKey);
+      final failCounts = failRaw == null
+          ? <String, dynamic>{}
+          : _decodeHandoverFailCountsStrict(failRaw);
+      final banners = bannerRaw == null
+          ? <String, dynamic>{}
+          : _decodeHandoverBannersStrict(bannerRaw);
+      return <String, dynamic>{
+        'handoverReturnState': <String, dynamic>{
+          for (final entry in all.entries)
+            if (requestIds.contains(entry.key)) entry.key: entry.value,
+        },
+        'pickupFailCounts': <String, dynamic>{
+          for (final entry in failCounts.entries)
+            if (requestIds.contains(entry.key)) entry.key: entry.value,
+        },
+        'handoverBanners': <String, dynamic>{
+          for (final entry in banners.entries)
+            if (requestIds.contains(entry.key)) entry.key: entry.value,
+        },
+      };
+    });
+
+    await _assertCurrentOperationalUserId(current.id);
+    return <String, dynamic>{
+      'schemaVersion': 1,
+      'scope': 'current-authenticated-account',
+      'accountId': current.id,
+      'rentalRequests':
+          participantRequests.map((request) => request.toJson()).toList(),
+      'bookingSelections': bookingSelections,
+      ...operational,
+      ...handover,
+      'unattributedLegacyNotificationsExcluded': true,
+    };
+  }
+
+  /// Removes account-scoped device convenience data after an account-deletion
+  /// decision. Shared booking/timeline/handover records remain retained for
+  /// counterparty and legal/audit continuity; threads receive a per-user
+  /// deletion tombstone instead of being erased for both participants.
+  static Future<void> clearOperationalRecordsForAccountDeletion(
+    String userId,
+  ) async {
+    await _requireCurrentOperationalUser(requestedUserId: userId);
+    await _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(userId);
+      final prefs = await SharedPreferences.getInstance();
+
+      final messageRaw = prefs.getString(_messageThreadsKey);
+      if (messageRaw != null) {
+        final threads = _decodeMessageThreadsStrict(messageRaw);
+        var mutated = false;
+        for (var index = 0; index < threads.length; index++) {
+          final thread = threads[index];
+          if (!_isThreadParticipant(thread, userId)) continue;
+          final archived = <String>{...thread.archivedForUserIds, userId};
+          final deleted = <String>{...thread.deletedForUserIds, userId};
+          if (archived.length != thread.archivedForUserIds.length ||
+              deleted.length != thread.deletedForUserIds.length) {
+            threads[index] = thread.copyWith(
+              archivedForUserIds: archived.toList()..sort(),
+              deletedForUserIds: deleted.toList()..sort(),
+            );
+            mutated = true;
+          }
+        }
+        if (mutated) {
+          await _persistMessageThreads(
+            prefs,
+            threads.map((thread) => thread.toJson()).toList(),
+          );
+        }
+      }
+
+      final notificationRaw = prefs.getString(_notificationsKey);
+      if (notificationRaw != null) {
+        final notifications = _decodeNotificationsStrict(notificationRaw)
+          ..removeWhere(
+            (notification) =>
+                (notification['userId'] ?? '').toString().trim() == userId,
+          );
+        await _persistNotifications(prefs, notifications);
+      }
+
+      final readRaw = prefs.getString(_readRequestsKey);
+      if (readRaw != null) {
+        final markers = _decodeReadRequestsStrict(readRaw)..remove(userId);
+        await _writePreferenceString(
+          prefs,
+          _readRequestsKey,
+          jsonEncode(markers),
+        );
+      }
+
+      final lastSeenRaw = prefs.getString(_requestsLastSeenKey);
+      if (lastSeenRaw != null) {
+        final markers = _decodeRequestsLastSeenStrict(lastSeenRaw)
+          ..remove(userId);
+        await _writePreferenceString(
+          prefs,
+          _requestsLastSeenKey,
+          jsonEncode(markers),
+        );
+      }
+    });
+    await _withCurrentBookingSelectionBucket(
+      (prefs, registry, principal, bucket) async {
+        if (bucket.isEmpty) return;
+        bucket.clear();
+        await _writeBookingSelectionBucket(
+          prefs,
+          registry,
+          principal,
+          bucket,
+        );
+      },
+    );
+  }
+
   /// Removes only local Gemerkt data after account deletion has already been
   /// confirmed. Unrelated device preferences remain untouched.
   static Future<void> clearSavedItemsForAccountDeletion() async {
@@ -4724,40 +5496,36 @@ class DataService {
   static Future<Map<String, dynamic>?> getSavedDeliverySelection(
     String itemId,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_bookingSelectionsKey);
-    if (raw == null || raw.isEmpty) return null;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      final entry = map[itemId];
-      if (entry is Map && entry['delivery'] is Map) {
-        final map = Map<String, dynamic>.from(entry['delivery'] as Map);
-        // Backfill: ensure new fields exist
-        if (!map.containsKey('addressLine')) map['addressLine'] = '';
-        if (!map.containsKey('city')) map['city'] = '';
-        if (!map.containsKey('lat')) map['lat'] = null;
-        if (!map.containsKey('lng')) map['lng'] = null;
-        if (!map.containsKey('express')) map['express'] = false;
-        if (!map.containsKey('deliveryAddressLine')) {
-          map['deliveryAddressLine'] = map['addressLine'] ?? '';
-        }
-        if (!map.containsKey('deliveryCity')) {
-          map['deliveryCity'] = map['city'] ?? '';
-        }
-        if (!map.containsKey('deliveryLat')) map['deliveryLat'] = map['lat'];
-        if (!map.containsKey('deliveryLng')) map['deliveryLng'] = map['lng'];
-        if (!map.containsKey('returnAddressLine')) {
-          map['returnAddressLine'] = map['addressLine'] ?? '';
-        }
-        if (!map.containsKey('returnCity')) {
-          map['returnCity'] = map['city'] ?? '';
-        }
-        if (!map.containsKey('returnLat')) map['returnLat'] = map['lat'];
-        if (!map.containsKey('returnLng')) map['returnLng'] = map['lng'];
-        return map;
-      }
-    } catch (_) {}
-    return null;
+    final id = itemId.trim();
+    if (id.isEmpty) return null;
+    return _withCurrentBookingSelectionBucket((_, __, ___, bucket) async {
+      final entry = bucket[id];
+      if (entry is! Map || entry['delivery'] is! Map) return null;
+      final selection =
+          Map<String, dynamic>.from(entry['delivery'] as Map<dynamic, dynamic>);
+      // Compatibility defaults are a read-only view and never rewrite raw
+      // storage or silently claim a legacy field for another principal.
+      selection.putIfAbsent('addressLine', () => '');
+      selection.putIfAbsent('city', () => '');
+      selection.putIfAbsent('lat', () => null);
+      selection.putIfAbsent('lng', () => null);
+      selection.putIfAbsent('express', () => false);
+      selection.putIfAbsent(
+        'deliveryAddressLine',
+        () => selection['addressLine'] ?? '',
+      );
+      selection.putIfAbsent('deliveryCity', () => selection['city'] ?? '');
+      selection.putIfAbsent('deliveryLat', () => selection['lat']);
+      selection.putIfAbsent('deliveryLng', () => selection['lng']);
+      selection.putIfAbsent(
+        'returnAddressLine',
+        () => selection['addressLine'] ?? '',
+      );
+      selection.putIfAbsent('returnCity', () => selection['city'] ?? '');
+      selection.putIfAbsent('returnLat', () => selection['lat']);
+      selection.putIfAbsent('returnLng', () => selection['lng']);
+      return selection;
+    });
   }
 
   static Future<void> setSavedDeliverySelection(
@@ -4778,38 +5546,41 @@ class DataService {
     double? returnLat,
     double? returnLng,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_bookingSelectionsKey);
-    Map<String, dynamic> map = {};
-    if (raw != null && raw.isNotEmpty) {
-      try {
-        map = jsonDecode(raw) as Map<String, dynamic>;
-      } catch (_) {
-        map = {};
-      }
+    final id = itemId.trim();
+    if (id.isEmpty || id.length > 256) {
+      throw ArgumentError('Invalid local booking delivery selection.');
     }
-    final existing =
-        (map[itemId] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ??
-            <String, dynamic>{};
-    existing['delivery'] = {
-      'hinweg': hinweg,
-      'rueckweg': rueckweg,
-      'city': addressCity ?? '',
-      'addressLine': addressLine,
-      'express': express,
-      'lat': lat,
-      'lng': lng,
-      'deliveryAddressLine': deliveryAddressLine ?? addressLine,
-      'deliveryCity': deliveryCity ?? addressCity ?? '',
-      'deliveryLat': deliveryLat ?? lat,
-      'deliveryLng': deliveryLng ?? lng,
-      'returnAddressLine': returnAddressLine ?? addressLine,
-      'returnCity': returnCity ?? addressCity ?? '',
-      'returnLat': returnLat ?? lat,
-      'returnLng': returnLng ?? lng,
-    };
-    map[itemId] = existing;
-    await prefs.setString(_bookingSelectionsKey, jsonEncode(map));
+    await _withCurrentBookingSelectionBucket(
+      (prefs, registry, principal, bucket) async {
+        final existing = bucket[id] is Map
+            ? Map<String, dynamic>.from(bucket[id] as Map)
+            : <String, dynamic>{};
+        existing['delivery'] = <String, dynamic>{
+          'hinweg': hinweg,
+          'rueckweg': rueckweg,
+          'city': addressCity ?? '',
+          'addressLine': addressLine,
+          'express': express,
+          'lat': lat,
+          'lng': lng,
+          'deliveryAddressLine': deliveryAddressLine ?? addressLine,
+          'deliveryCity': deliveryCity ?? addressCity ?? '',
+          'deliveryLat': deliveryLat ?? lat,
+          'deliveryLng': deliveryLng ?? lng,
+          'returnAddressLine': returnAddressLine ?? addressLine,
+          'returnCity': returnCity ?? addressCity ?? '',
+          'returnLat': returnLat ?? lat,
+          'returnLng': returnLng ?? lng,
+        };
+        bucket[id] = existing;
+        await _writeBookingSelectionBucket(
+          prefs,
+          registry,
+          principal,
+          bucket,
+        );
+      },
+    );
   }
 
   // Extract a known city from a freeform address string, or return empty if not found
@@ -6518,7 +7289,7 @@ class DataService {
       debugPrint(
         '[DataService] _getAllRentalRequests: SharedPreferences unavailable: $e',
       );
-      return [];
+      rethrow;
     }
 
     String? raw;
@@ -6526,165 +7297,75 @@ class DataService {
       try {
         final remote = await BackendRepository.getRentalRequests();
         raw = jsonEncode(remote);
-        await prefs.setString(_rentalRequestsKey, raw);
+        _decodeRentalRequestsStrict(raw);
+        await _writePreferenceString(prefs, _rentalRequestsKey, raw);
       } catch (error) {
         debugPrint('[DataService] remote request load failed: $error');
       }
     }
     raw ??= prefs.getString(_rentalRequestsKey);
     if (raw == null) {
-      // Do not seed demo requests anymore. Persist an empty list by default.
-      try {
-        await prefs.setString(
-          _rentalRequestsKey,
-          jsonEncode(<Map<String, dynamic>>[]),
-        );
-        raw = prefs.getString(_rentalRequestsKey);
-      } catch (e) {
-        debugPrint(
-          '[DataService] _getAllRentalRequests: failed to initialize empty list: $e',
-        );
-        return [];
-      }
+      return const <RentalRequest>[];
     }
-    if (raw == null || raw.isEmpty) return [];
-
+    if (raw.trim().isEmpty) {
+      throw const FormatException('Ungültiger lokaler Buchungsverlauf.');
+    }
     try {
-      final List<dynamic> list = jsonDecode(raw);
-      final parsed = <RentalRequest>[];
-      for (final e in list) {
-        try {
-          parsed.add(
-            RentalRequest.fromJson(Map<String, dynamic>.from(e as Map)),
-          );
-        } catch (inner) {
-          debugPrint(
-            '[DataService] _getAllRentalRequests: skipping corrupted entry: $inner',
-          );
-        }
-      }
-
-      // Auto-sanitize storage so future loads don't keep failing.
-      if (parsed.length != list.length) {
-        try {
-          await prefs.setString(
-            _rentalRequestsKey,
-            jsonEncode(parsed.map((e) => e.toJson()).toList()),
-          );
-        } catch (e) {
-          debugPrint(
-            '[DataService] _getAllRentalRequests: failed to sanitize storage: $e',
-          );
-        }
-      }
-      return parsed;
+      return _decodeRentalRequestsStrict(raw);
     } catch (e) {
       debugPrint(
         '[DataService] _getAllRentalRequests: failed to decode JSON: $e',
       );
-      // Reset to a clean state.
-      try {
-        await prefs.setString(
-          _rentalRequestsKey,
-          jsonEncode(<Map<String, dynamic>>[]),
-        );
-      } catch (e2) {
-        debugPrint(
-          '[DataService] _getAllRentalRequests: failed to reset corrupted JSON: $e2',
-        );
-      }
-      return [];
+      if (e is FormatException) rethrow;
+      throw FormatException('Ungültiger lokaler Buchungsverlauf.', e);
     }
   }
 
+  static List<RentalRequest> _decodeRentalRequestsStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! List || decoded.length > _maxLocalRentalRequests) {
+      throw const FormatException('Ungültiger lokaler Buchungsverlauf.');
+    }
+    final parsed = decoded
+        .map(
+          (entry) => RentalRequest.fromJson(
+            Map<String, dynamic>.from(entry as Map),
+          ),
+        )
+        .toList();
+    final ids = parsed.map((entry) => entry.id).toSet();
+    if (ids.length != parsed.length ||
+        ids.any((id) => id.trim().isEmpty || id.length > 256)) {
+      throw const FormatException('Ungültiger lokaler Buchungsverlauf.');
+    }
+    return parsed;
+  }
+
   static Future<void> _saveAllRentalRequests(List<RentalRequest> list) async {
-    Future<void> persist(List<RentalRequest> payload) async {
-      final prefs = await SharedPreferences.getInstance();
-      var maps = payload.map((entry) => entry.toJson()).toList();
-      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        maps = await BackendRepository.syncRentalRequests(maps);
-      }
-      await prefs.setString(
-        _rentalRequestsKey,
-        jsonEncode(maps),
-      );
-      SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
+    if (list.length > _maxLocalRentalRequests ||
+        list.map((entry) => entry.id).toSet().length != list.length) {
+      throw StateError('Der lokale Buchungsverlauf ist ungültig oder voll.');
     }
-
-    bool isQuotaError(Object e) {
-      final s = e.toString();
-      return s.contains('QuotaExceededError') ||
-          s.contains('exceeded the quota') ||
-          s.contains('QuotaExceeded');
+    final prefs = await SharedPreferences.getInstance();
+    var maps = list.map((entry) => entry.toJson()).toList();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      maps = await BackendRepository.syncRentalRequests(maps);
     }
-
-    List<RentalRequest> prune(
-      List<RentalRequest> input, {
-      required int hardCapNewest,
-    }) {
-      if (input.isEmpty) return input;
-      // Newest first for keeping.
-      final newestFirst = [...input]
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      // Prefer dropping old terminal states first.
-      final terminal = <String>{'completed', 'declined', 'cancelled'};
-      final kept = <RentalRequest>[];
-      final droppedTerminal = <RentalRequest>[];
-      for (final r in newestFirst) {
-        if (terminal.contains(r.status)) {
-          droppedTerminal.add(r);
-        } else {
-          kept.add(r);
-        }
-      }
-      final merged = [...kept, ...droppedTerminal];
-      // Apply cap.
-      return merged.take(hardCapNewest).toList();
-    }
-
-    try {
-      await persist(list);
-      return;
-    } catch (e) {
-      debugPrint('[DataService] _saveAllRentalRequests: failed: $e');
-      if (!isQuotaError(e)) rethrow;
-    }
-
-    // Web/local storage quota exceeded: prune older requests and retry.
-    try {
-      final pruned250 = prune(list, hardCapNewest: 250);
-      debugPrint(
-        '[DataService] _saveAllRentalRequests: quota exceeded, pruning from ${list.length} -> ${pruned250.length} and retrying',
-      );
-      await persist(pruned250);
-      return;
-    } catch (e) {
-      debugPrint(
-        '[DataService] _saveAllRentalRequests: retry after prune(250) failed: $e',
-      );
-      if (!isQuotaError(e)) rethrow;
-    }
-
-    // Last resort: keep only the newest 80.
-    try {
-      final pruned80 = prune(list, hardCapNewest: 80);
-      debugPrint(
-        '[DataService] _saveAllRentalRequests: quota still exceeded, pruning to newest ${pruned80.length} and retrying',
-      );
-      await persist(pruned80);
-      return;
-    } catch (e) {
-      debugPrint(
-        '[DataService] _saveAllRentalRequests: retry after prune(80) failed: $e',
-      );
-      rethrow;
-    }
+    final encoded = jsonEncode(maps);
+    _decodeRentalRequestsStrict(encoded);
+    await _writePreferenceString(
+      prefs,
+      _rentalRequestsKey,
+      encoded,
+    );
+    SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
   }
 
   static Future<List<RentalRequest>> getRentalRequestsForOwner(
     String ownerId, {
     String? status,
   }) async {
+    await _requireCurrentOperationalUser(requestedUserId: ownerId);
     await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
     final filtered = all
@@ -6692,25 +7373,67 @@ class DataService {
           (r) => r.ownerId == ownerId && (status == null || r.status == status),
         )
         .toList();
+    await _requireCurrentOperationalUser(requestedUserId: ownerId);
     // Sort newest first
     filtered.sort((a, b) => b.start.compareTo(a.start));
     return filtered;
+  }
+
+  static Map<String, dynamic> _decodeRequestsLastSeenStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map || decoded.length > 1000) {
+      throw const FormatException('Ungültige lokale Anfragemarker.');
+    }
+    final map = Map<String, dynamic>.from(decoded);
+    for (final entry in map.entries) {
+      if (entry.key.trim().isEmpty ||
+          entry.key.length > 256 ||
+          entry.value is! String ||
+          DateTime.tryParse(entry.value as String) == null) {
+        throw const FormatException('Ungültige lokale Anfragemarker.');
+      }
+    }
+    return map;
+  }
+
+  static Map<String, dynamic> _decodeReadRequestsStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map || decoded.length > 1000) {
+      throw const FormatException('Ungültige lokale Lesemarker.');
+    }
+    final map = Map<String, dynamic>.from(decoded);
+    for (final entry in map.entries) {
+      if (entry.key.trim().isEmpty ||
+          entry.key.length > 256 ||
+          entry.value is! List ||
+          (entry.value as List).length > 1000 ||
+          (entry.value as List).any(
+            (value) =>
+                value is! String || value.trim().isEmpty || value.length > 256,
+          )) {
+        throw const FormatException('Ungültige lokale Lesemarker.');
+      }
+      final values = (entry.value as List).cast<String>();
+      if (values.toSet().length != values.length) {
+        throw const FormatException('Ungültige lokale Lesemarker.');
+      }
+    }
+    return map;
   }
 
   /// Returns true if there exists at least one PENDING request that is newer
   /// than the last time the owner viewed the Anfragen tab.
   static Future<bool> hasNewOwnerRequests(String ownerId) async {
     if (ownerId.isEmpty) return false;
+    await _requireCurrentOperationalUser(requestedUserId: ownerId);
     final prefs = await SharedPreferences.getInstance();
     DateTime? lastSeen;
-    try {
-      final raw = prefs.getString(_requestsLastSeenKey);
-      if (raw != null && raw.isNotEmpty) {
-        final map = jsonDecode(raw) as Map<String, dynamic>;
-        final s = map[ownerId]?.toString();
-        if (s != null && s.isNotEmpty) lastSeen = DateTime.tryParse(s);
-      }
-    } catch (_) {}
+    final raw = prefs.getString(_requestsLastSeenKey);
+    if (raw != null) {
+      final map = _decodeRequestsLastSeenStrict(raw);
+      final value = map[ownerId];
+      if (value is String) lastSeen = DateTime.parse(value);
+    }
 
     final pending = await getRentalRequestsForOwner(ownerId, status: 'pending');
     if (pending.isEmpty) return false;
@@ -6726,6 +7449,7 @@ class DataService {
   /// created after that will be considered "new".
   static Future<void> markOwnerRequestsSeen(String ownerId) async {
     if (ownerId.isEmpty) return;
+    await _requireCurrentOperationalUser(requestedUserId: ownerId);
     final pending = await getRentalRequestsForOwner(
       ownerId,
     ); // include all statuses
@@ -6737,22 +7461,23 @@ class DataService {
       pending.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       nowMarker = pending.first.createdAt;
     }
-    final prefs = await SharedPreferences.getInstance();
-    try {
+    await _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(ownerId);
+      final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_requestsLastSeenKey);
-      Map<String, dynamic> map = {};
-      if (raw != null && raw.isNotEmpty) {
-        map = jsonDecode(raw) as Map<String, dynamic>;
+      final map = raw == null
+          ? <String, dynamic>{}
+          : _decodeRequestsLastSeenStrict(raw);
+      if (!map.containsKey(ownerId) && map.length >= 1000) {
+        throw StateError('Die lokalen Anfragemarker sind voll.');
       }
       map[ownerId] = nowMarker.toIso8601String();
-      await prefs.setString(_requestsLastSeenKey, jsonEncode(map));
-    } catch (_) {
-      // Fallback: write fresh map
-      await prefs.setString(
+      await _writePreferenceString(
+        prefs,
         _requestsLastSeenKey,
-        jsonEncode({ownerId: nowMarker.toIso8601String()}),
+        jsonEncode(map),
       );
-    }
+    });
   }
 
   /// Marks a specific rental request as read by a user (owner or renter).
@@ -6762,24 +7487,44 @@ class DataService {
     required String requestId,
   }) async {
     if (userId.isEmpty || requestId.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    if (participant.$1.id != current.id) {
+      throw StateError('Die lokale Buchung gehört zu einem anderen Konto.');
+    }
     try {
-      final raw = prefs.getString(_readRequestsKey);
-      Map<String, dynamic> map = {};
-      if (raw != null && raw.isNotEmpty) {
-        map = jsonDecode(raw) as Map<String, dynamic>;
-      }
-      // Get the user's read set
-      List<dynamic> readList = (map[userId] as List<dynamic>?) ?? [];
-      Set<String> readSet = readList.map((e) => e.toString()).toSet();
-
-      if (!readSet.contains(requestId)) {
-        readSet.add(requestId);
-        map[userId] = readSet.toList();
-        await prefs.setString(_readRequestsKey, jsonEncode(map));
-      }
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_readRequestsKey);
+        final map =
+            raw == null ? <String, dynamic>{} : _decodeReadRequestsStrict(raw);
+        if (!map.containsKey(userId) && map.length >= 1000) {
+          throw StateError('Die lokalen Lesemarker sind voll.');
+        }
+        final readRaw = map[userId];
+        if (readRaw != null && readRaw is! List) {
+          throw const FormatException('Ungültige lokale Lesemarker.');
+        }
+        final readSet = (readRaw as List? ?? const <dynamic>[])
+            .map((entry) => entry.toString())
+            .toSet();
+        if (!readSet.contains(requestId) && readSet.length >= 1000) {
+          throw StateError('Die lokalen Lesemarker sind voll.');
+        }
+        if (readSet.add(requestId)) {
+          map[userId] = readSet.toList()..sort();
+          await _writePreferenceString(
+            prefs,
+            _readRequestsKey,
+            jsonEncode(map),
+          );
+        }
+      });
     } catch (e) {
       debugPrint('[DataService] markRequestAsRead error: $e');
+      rethrow;
     }
   }
 
@@ -6789,19 +7534,25 @@ class DataService {
     required String requestId,
   }) async {
     if (userId.isEmpty || requestId.isEmpty) return false;
+    await _requireCurrentOperationalUser(requestedUserId: userId);
+    await _requireCurrentRequestParticipant(requestId);
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_readRequestsKey);
-      if (raw == null || raw.isEmpty) return false;
+      if (raw == null) return false;
 
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      final readList = (map[userId] as List<dynamic>?) ?? [];
+      final map = _decodeReadRequestsStrict(raw);
+      final readRaw = map[userId];
+      if (readRaw != null && readRaw is! List) {
+        throw const FormatException('Ungültige lokale Lesemarker.');
+      }
+      final readList = (readRaw as List<dynamic>?) ?? [];
       final readSet = readList.map((e) => e.toString()).toSet();
 
       return readSet.contains(requestId);
     } catch (e) {
       debugPrint('[DataService] isRequestRead error: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -6813,6 +7564,7 @@ class DataService {
     required List<RentalRequest> requests,
   }) async {
     if (userId.isEmpty) return 0;
+    await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       int unreadCount = 0;
       for (final req in requests) {
@@ -6822,21 +7574,44 @@ class DataService {
       return unreadCount;
     } catch (e) {
       debugPrint('[DataService] getUnreadCountForCategory error: $e');
-      return 0;
+      rethrow;
     }
   }
 
   static Future<RentalRequest?> getRentalRequestById(String id) async {
+    final current = await _requireCurrentOperationalUser();
     await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
-    try {
-      return all.firstWhere((e) => e.id == id);
-    } catch (_) {
-      return null;
+    await _requireCurrentOperationalUser(requestedUserId: current.id);
+    RentalRequest? request;
+    for (final candidate in all) {
+      if (candidate.id == id) {
+        request = candidate;
+        break;
+      }
     }
+    if (request == null) return null;
+    if (!_isRequestParticipant(request, current.id)) {
+      throw StateError('Die lokale Buchung gehört zu einem anderen Konto.');
+    }
+    return request;
   }
 
   static Future<RentalRequest> addRentalRequest(
+    RentalRequest req, {
+    Map<String, dynamic>? checkoutQuote,
+  }) async {
+    await _requireCurrentOperationalUser(requestedUserId: req.renterId);
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(req.renterId);
+      return _addRentalRequestUnlocked(
+        req,
+        checkoutQuote: checkoutQuote,
+      );
+    });
+  }
+
+  static Future<RentalRequest> _addRentalRequestUnlocked(
     RentalRequest req, {
     Map<String, dynamic>? checkoutQuote,
   }) async {
@@ -6976,7 +7751,8 @@ class DataService {
       all.removeWhere((entry) => entry.id == toStore.id);
       all.add(toStore);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
+      await _writePreferenceString(
+        prefs,
         _rentalRequestsKey,
         jsonEncode(all.map((entry) => entry.toJson()).toList()),
       );
@@ -6993,7 +7769,7 @@ class DataService {
       final item = await getItemById(toStore.itemId);
       final renter = await getUserById(toStore.renterId);
       if (item != null) {
-        await addStructuredNotification(
+        await _addStructuredNotification(
           userId: toStore.ownerId,
           category: 'bookings',
           priority: 2,
@@ -7022,6 +7798,22 @@ class DataService {
   }
 
   static Future<void> updateRentalRequestStatus({
+    required String requestId,
+    required String status,
+    List<Map<String, dynamic>>? legalDeclarations,
+  }) async {
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(participant.$1.id);
+      return _updateRentalRequestStatusUnlocked(
+        requestId: requestId,
+        status: status,
+        legalDeclarations: legalDeclarations,
+      );
+    });
+  }
+
+  static Future<void> _updateRentalRequestStatusUnlocked({
     required String requestId,
     required String status,
     List<Map<String, dynamic>>? legalDeclarations,
@@ -7064,7 +7856,8 @@ class DataService {
     if (mutated) {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
+        await _writePreferenceString(
+          prefs,
           _rentalRequestsKey,
           jsonEncode(all.map((entry) => entry.toJson()).toList()),
         );
@@ -7083,7 +7876,7 @@ class DataService {
             final item = await getItemById(updatedRequest.itemId);
             if (item != null) {
               // For renter
-              await addStructuredNotification(
+              await _addStructuredNotification(
                 userId: updatedRequest.renterId,
                 category: 'bookings',
                 priority: 2,
@@ -7101,7 +7894,7 @@ class DataService {
                 },
               );
               // For owner
-              await addStructuredNotification(
+              await _addStructuredNotification(
                 userId: updatedRequest.ownerId,
                 category: 'bookings',
                 priority: 2,
@@ -7136,10 +7929,31 @@ class DataService {
     required String status,
     String? cancelledBy,
   }) async {
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    final expectedActor =
+        participant.$1.id == participant.$2.ownerId ? 'owner' : 'renter';
+    if (cancelledBy != null && cancelledBy != expectedActor) {
+      throw StateError('Die Storno-Rolle passt nicht zum aktuellen Konto.');
+    }
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       await updateRentalRequestStatus(requestId: requestId, status: status);
       return;
     }
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(participant.$1.id);
+      return _updateRentalRequestStatusWithActorUnlocked(
+        requestId: requestId,
+        status: status,
+        cancelledBy: cancelledBy ?? expectedActor,
+      );
+    });
+  }
+
+  static Future<void> _updateRentalRequestStatusWithActorUnlocked({
+    required String requestId,
+    required String status,
+    String? cancelledBy,
+  }) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
     for (int i = 0; i < all.length; i++) {
@@ -7229,6 +8043,41 @@ class DataService {
     required String confirmedByUserId,
     bool counterpartyConfirmed = false,
   }) async {
+    final current = await _requireCurrentOperationalUser(
+      requestedUserId: confirmedByUserId,
+    );
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    if (participant.$1.id != current.id) {
+      throw StateError('Die lokale Buchung gehört zu einem anderen Konto.');
+    }
+    final expectedRole = participant.$2.ownerId == current.id
+        ? HandoverCodeService.presenterOwner
+        : HandoverCodeService.presenterRenter;
+    if (confirmedByRole != expectedRole) {
+      throw StateError(
+          'Die Bestätigungsrolle passt nicht zum aktuellen Konto.');
+    }
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      return _recordRentalRequestConfirmationUnlocked(
+        requestId: requestId,
+        isReturn: isReturn,
+        method: method,
+        confirmedByRole: confirmedByRole,
+        confirmedByUserId: confirmedByUserId,
+        counterpartyConfirmed: counterpartyConfirmed,
+      );
+    });
+  }
+
+  static Future<void> _recordRentalRequestConfirmationUnlocked({
+    required String requestId,
+    required bool isReturn,
+    required String method,
+    required String confirmedByRole,
+    required String confirmedByUserId,
+    bool counterpartyConfirmed = false,
+  }) async {
     final id = requestId.trim();
     final userId = confirmedByUserId.trim();
     if (id.isEmpty || userId.isEmpty) return;
@@ -7272,7 +8121,7 @@ class DataService {
     if (mutated) {
       await _saveAllRentalRequests(all);
       if (isReturn) {
-        await refreshPrivatePilotReturnState(
+        await _refreshPrivatePilotReturnStateUnlocked(
           requestId,
           actualReturnAt: DateTime.now(),
         );
@@ -7298,7 +8147,12 @@ class DataService {
         segment: segment,
       );
     }
-    final request = await getRentalRequestById(id);
+    RentalRequest? request;
+    try {
+      request = await getRentalRequestById(id);
+    } on StateError {
+      return null;
+    }
     final current = await getCurrentUser();
     final item = request == null ? null : await getItemById(request.itemId);
     if (request == null || current == null || item == null) return null;
@@ -7359,7 +8213,12 @@ class DataService {
       );
       return response['confirmation'] is Map || response['replayed'] == true;
     }
-    final request = await getRentalRequestById(id);
+    RentalRequest? request;
+    try {
+      request = await getRentalRequestById(id);
+    } on StateError {
+      return false;
+    }
     final current = await getCurrentUser();
     final item = request == null ? null : await getItemById(request.itemId);
     if (request == null || current == null || item == null) return false;
@@ -7398,6 +8257,22 @@ class DataService {
     DateTime? actualReturnAt,
     DateTime? now,
   }) async {
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(participant.$1.id);
+      return _refreshPrivatePilotReturnStateUnlocked(
+        requestId,
+        actualReturnAt: actualReturnAt,
+        now: now,
+      );
+    });
+  }
+
+  static Future<RentalRequest?> _refreshPrivatePilotReturnStateUnlocked(
+    String requestId, {
+    DateTime? actualReturnAt,
+    DateTime? now,
+  }) async {
     final all = await _getAllRentalRequests();
     final index = all.indexWhere((entry) => entry.id == requestId.trim());
     if (index < 0) return null;
@@ -7426,6 +8301,32 @@ class DataService {
   }
 
   static Future<Map<String, dynamic>?> recordPlatformWithdrawal({
+    String? requestId,
+    required String userId,
+    required String scope,
+  }) async {
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
+    if (scope == 'booking_contract') {
+      final participant = await _requireCurrentRequestParticipant(
+        requestId?.trim() ?? '',
+      );
+      if (participant.$1.id != current.id ||
+          participant.$2.renterId != current.id) {
+        return null;
+      }
+    }
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      return _recordPlatformWithdrawalUnlocked(
+        requestId: requestId,
+        userId: userId,
+        scope: scope,
+      );
+    });
+  }
+
+  static Future<Map<String, dynamic>?> _recordPlatformWithdrawalUnlocked({
     String? requestId,
     required String userId,
     required String scope,
@@ -7524,7 +8425,7 @@ class DataService {
     );
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) {
       final updated = all[index];
-      await addStructuredNotification(
+      await _addStructuredNotification(
         userId: updated.ownerId,
         category: 'bookings',
         priority: 3,
@@ -7555,7 +8456,14 @@ class DataService {
         'Übergabe-Bestätigung konnte nicht verarbeitet werden.',
       );
     }
-    final request = await getRentalRequestById(id);
+    RentalRequest? request;
+    try {
+      request = await getRentalRequestById(id);
+    } on StateError {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte melde dich mit dem bestätigenden Konto an.',
+      );
+    }
     if (request == null) {
       return const RentalRequestTransitionResult.failure(
         'Übergabe-Daten fehlen.',
@@ -7639,12 +8547,20 @@ class DataService {
         'Rückgabe-Bestätigung konnte nicht verarbeitet werden.',
       );
     }
-    final request = await getRentalRequestById(id);
+    RentalRequest? request;
+    try {
+      request = await getRentalRequestById(id);
+    } on StateError {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte melde dich mit dem bestätigenden Konto an.',
+      );
+    }
     if (request == null) {
       return const RentalRequestTransitionResult.failure(
         'Rückgabe-Daten fehlen.',
       );
     }
+    final requestSnapshot = request;
     final currentUser = await getCurrentUser();
     if (currentUser == null || currentUser.id != userId) {
       return const RentalRequestTransitionResult.failure(
@@ -7716,16 +8632,18 @@ class DataService {
     );
     if ((!BackendConfig.enabled || QaRuntimeService.isEnabled) &&
         request.workflowStatus == 'withdrawalReturnRequired') {
-      final all = await _getAllRentalRequests();
-      final index = all.indexWhere((entry) => entry.id == id);
-      if (index >= 0) {
+      await _rentalRequestMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(userId);
+        final all = await _getAllRentalRequests();
+        final index = all.indexWhere((entry) => entry.id == id);
+        if (index < 0) return;
         final current = all[index];
         final confirmedReturnAt = DateTime.now();
-        final startMs = request.start.millisecondsSinceEpoch;
-        final endMs = request.end.millisecondsSinceEpoch;
+        final startMs = requestSnapshot.start.millisecondsSinceEpoch;
+        final endMs = requestSnapshot.end.millisecondsSinceEpoch;
         final effectiveReturnMs =
             confirmedReturnAt.millisecondsSinceEpoch.clamp(startMs, endMs);
-        final rentalMinor = request.quotedRentalSubtotalMinor ?? 0;
+        final rentalMinor = requestSnapshot.quotedRentalSubtotalMinor ?? 0;
         final durationMs = (endMs - startMs).clamp(1, 1 << 62);
         final usedMs = effectiveReturnMs - startMs;
         final usedRentMinor =
@@ -7752,7 +8670,7 @@ class DataService {
           platformWithdrawal: withdrawal,
         );
         await _saveAllRentalRequests(all);
-      }
+      });
     }
     final refreshed = await getRentalRequestById(id);
     if (refreshed?.needsReview == true) {
@@ -7773,6 +8691,24 @@ class DataService {
 
   // Update times and express choice for an existing request (edit flow)
   static Future<void> updateRentalRequestTimes({
+    required String requestId,
+    required DateTime start,
+    required DateTime end,
+    bool? expressRequested,
+  }) async {
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(participant.$1.id);
+      return _updateRentalRequestTimesUnlocked(
+        requestId: requestId,
+        start: start,
+        end: end,
+        expressRequested: expressRequested,
+      );
+    });
+  }
+
+  static Future<void> _updateRentalRequestTimesUnlocked({
     required String requestId,
     required DateTime start,
     required DateTime end,
@@ -7804,7 +8740,8 @@ class DataService {
       );
       all[index] = RentalRequest.fromJson(remote);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
+      await _writePreferenceString(
+        prefs,
         _rentalRequestsKey,
         jsonEncode(all.map((entry) => entry.toJson()).toList()),
       );
@@ -7842,6 +8779,20 @@ class DataService {
 
   // Update express confirmation status for a request
   static Future<void> updateRentalRequestExpress({
+    required String requestId,
+    required bool accept,
+  }) async {
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(participant.$1.id);
+      return _updateRentalRequestExpressUnlocked(
+        requestId: requestId,
+        accept: accept,
+      );
+    });
+  }
+
+  static Future<void> _updateRentalRequestExpressUnlocked({
     required String requestId,
     required bool accept,
   }) async {
@@ -7904,6 +8855,30 @@ class DataService {
   }
 
   static Future<bool> markRentalRequestNeedsReview(
+    String requestId, {
+    required String reason,
+    required String source,
+    required String reasonCode,
+    List<String> evidenceUploadIds = const [],
+    List<String> localEvidenceReferences = const [],
+    int contestedAuthorizedMinor = 0,
+  }) async {
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(participant.$1.id);
+      return _markRentalRequestNeedsReviewUnlocked(
+        requestId,
+        reason: reason,
+        source: source,
+        reasonCode: reasonCode,
+        evidenceUploadIds: evidenceUploadIds,
+        localEvidenceReferences: localEvidenceReferences,
+        contestedAuthorizedMinor: contestedAuthorizedMinor,
+      );
+    });
+  }
+
+  static Future<bool> _markRentalRequestNeedsReviewUnlocked(
     String requestId, {
     required String reason,
     required String source,
@@ -8025,47 +9000,57 @@ class DataService {
   /// to Standard if not confirmed within 30 minutes. Also logs a timeline event.
   static Future<void> _sweepExpressTimeouts() async {
     try {
-      final all = await _getAllRentalRequests();
-      bool mutated = false;
-      final now = DateTime.now();
-      for (int i = 0; i < all.length; i++) {
-        final r = all[i];
-        if (!r.expressRequested) continue;
-        if (r.expressStatus == 'accepted') continue;
-        final started = r.expressRequestedAt ?? r.createdAt;
-        final deadline = started.add(const Duration(minutes: 30));
-        if (now.isAfter(deadline)) {
-          all[i] = r.copyWith(
-            expressRequested: false,
-            expressStatus: null,
-            expressRequestedAt: null,
-            expressConfirmedAt: null,
-          );
-          mutated = true;
-          debugPrint(
-            '[DataService] Express timeout -> auto-switch to Standard for request ${r.id}',
-          );
-          try {
-            await addTimelineEvent(
-              requestId: r.id,
-              type: 'express_timeout_refund',
-              note: 'Priorität abgelaufen; auf Standard umgestellt',
-            );
-          } catch (_) {}
-          // Cancel any pending timer for safety
-          try {
-            _expressTimers[r.id]?.cancel();
-            _expressTimers.remove(r.id);
-          } catch (_) {}
-        } else {
-          // Still pending; ensure a timer is scheduled for runtime
-          _scheduleExpressTimerIfNeeded(r);
-        }
-      }
-      if (mutated) await _saveAllRentalRequests(all);
+      final current = await _requireCurrentOperationalUser();
+      await _rentalRequestMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        await _sweepExpressTimeoutsUnlocked(current.id);
+      });
     } catch (e) {
       debugPrint('[DataService] sweepExpressTimeouts failed: $e');
     }
+  }
+
+  static Future<void> _sweepExpressTimeoutsUnlocked(
+      String currentUserId) async {
+    final all = await _getAllRentalRequests();
+    bool mutated = false;
+    final now = DateTime.now();
+    for (int i = 0; i < all.length; i++) {
+      final r = all[i];
+      if (!_isRequestParticipant(r, currentUserId)) continue;
+      if (!r.expressRequested) continue;
+      if (r.expressStatus == 'accepted') continue;
+      final started = r.expressRequestedAt ?? r.createdAt;
+      final deadline = started.add(const Duration(minutes: 30));
+      if (now.isAfter(deadline)) {
+        all[i] = r.copyWith(
+          expressRequested: false,
+          expressStatus: null,
+          expressRequestedAt: null,
+          expressConfirmedAt: null,
+        );
+        mutated = true;
+        debugPrint(
+          '[DataService] Express timeout -> auto-switch to Standard for request ${r.id}',
+        );
+        try {
+          await addTimelineEvent(
+            requestId: r.id,
+            type: 'express_timeout_refund',
+            note: 'Priorität abgelaufen; auf Standard umgestellt',
+          );
+        } catch (_) {}
+        // Cancel any pending timer for safety
+        try {
+          _expressTimers[r.id]?.cancel();
+          _expressTimers.remove(r.id);
+        } catch (_) {}
+      } else {
+        // Still pending; ensure a timer is scheduled for runtime
+        _scheduleExpressTimerIfNeeded(r);
+      }
+    }
+    if (mutated) await _saveAllRentalRequests(all);
   }
 
   // New: requests where the current viewer is the renter
@@ -8073,6 +9058,7 @@ class DataService {
     String renterId, {
     String? status,
   }) async {
+    await _requireCurrentOperationalUser(requestedUserId: renterId);
     await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
     final filtered = all
@@ -8081,6 +9067,7 @@ class DataService {
               r.renterId == renterId && (status == null || r.status == status),
         )
         .toList();
+    await _requireCurrentOperationalUser(requestedUserId: renterId);
     filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
@@ -8091,35 +9078,88 @@ class DataService {
     required String type,
     String? note,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_timelineEventsKey);
-    List<dynamic> list =
-        raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
-    list.add({
-      'requestId': requestId,
-      'type': type,
-      'note': note ?? '',
-      'ts': DateTime.now().toIso8601String(),
+    final participant = await _requireCurrentRequestParticipant(requestId);
+    final normalizedType = type.trim();
+    final normalizedNote = note?.trim() ?? '';
+    if (normalizedType.isEmpty ||
+        normalizedType.length > 128 ||
+        normalizedNote.length > 5000) {
+      throw ArgumentError('Ungültiger lokaler Timeline-Eintrag.');
+    }
+    await _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(participant.$1.id);
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_timelineEventsKey);
+      final list =
+          raw == null ? <Map<String, dynamic>>[] : _decodeTimelineStrict(raw);
+      if (list.length >= _maxLocalTimelineEvents) {
+        throw StateError('Der lokale Buchungsverlauf ist voll.');
+      }
+      list.add({
+        'requestId': requestId,
+        'type': normalizedType,
+        'note': normalizedNote,
+        'ts': DateTime.now().toIso8601String(),
+      });
+      await _writePreferenceString(
+        prefs,
+        _timelineEventsKey,
+        jsonEncode(list),
+      );
     });
-    await prefs.setString(_timelineEventsKey, jsonEncode(list));
   }
 
   static Future<List<Map<String, dynamic>>> getTimelineForRequest(
     String requestId,
   ) async {
+    final participant = await _requireCurrentRequestParticipant(requestId);
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_timelineEventsKey);
-    if (raw == null || raw.isEmpty) return [];
+    if (raw == null) return [];
     try {
-      final List list = jsonDecode(raw);
-      return list
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
+      final timeline = _decodeTimelineStrict(raw)
           .where((e) => e['requestId'] == requestId)
           .toList();
-    } catch (_) {
-      return [];
+      await _requireCurrentOperationalUser(
+        requestedUserId: participant.$1.id,
+      );
+      await _requireCurrentRequestParticipant(requestId);
+      return timeline;
+    } catch (e) {
+      debugPrint('[DataService] getTimelineForRequest error: $e');
+      rethrow;
     }
+  }
+
+  static List<Map<String, dynamic>> _decodeTimelineStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! List ||
+        decoded.length > _maxLocalTimelineEvents ||
+        decoded.any((entry) => entry is! Map)) {
+      throw const FormatException('Ungültiger lokaler Buchungsverlauf.');
+    }
+    final entries = decoded
+        .map((entry) => Map<String, dynamic>.from(entry as Map))
+        .toList();
+    for (final entry in entries) {
+      final requestId = entry['requestId'];
+      final type = entry['type'];
+      final note = entry['note'];
+      final ts = entry['ts'];
+      if (requestId is! String ||
+          requestId.trim().isEmpty ||
+          requestId.length > 256 ||
+          type is! String ||
+          type.trim().isEmpty ||
+          type.length > 128 ||
+          note is! String ||
+          note.length > 5000 ||
+          ts is! String ||
+          DateTime.tryParse(ts) == null) {
+        throw const FormatException('Ungültiger lokaler Buchungsverlauf.');
+      }
+    }
+    return entries;
   }
 
   // Notifications (demo)
@@ -8127,25 +9167,23 @@ class DataService {
     required String title,
     required String body,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_notificationsKey);
-    List<dynamic> list =
-        raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
-    list.add({
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'title': title,
-      'body': body,
-      'ts': DateTime.now().toIso8601String(),
-      'read': false,
-    });
-    await prefs.setString(_notificationsKey, jsonEncode(list));
+    final current = await _requireCurrentOperationalUser();
+    await _addStructuredNotification(
+      userId: current.id,
+      expectedCurrentUserId: current.id,
+      category: 'platform',
+      priority: 5,
+      title: title,
+      body: body,
+    );
   }
 
   // ===== Notifications (structured feed, local) =====
   // NOTE: Stored as a list of map entries under [_notificationsKey]. We keep
   // legacy entries compatible by backfilling missing fields at read time.
-  static Future<void> addStructuredNotification({
+  static Future<void> _addStructuredNotification({
     required String userId,
+    String? expectedCurrentUserId,
     required String
         category, // important | bookings | messages | reviews | platform
     required String title,
@@ -8160,47 +9198,119 @@ class DataService {
     DateTime? timestamp,
     bool critical = false,
   }) async {
-    try {
+    final normalizedUserId = userId.trim();
+    final normalizedCategory = category.trim();
+    final normalizedTitle = title.trim();
+    final normalizedBody = body.trim();
+    if (normalizedUserId.isEmpty ||
+        normalizedUserId.length > 256 ||
+        normalizedCategory.isEmpty ||
+        normalizedCategory.length > 64 ||
+        normalizedTitle.isEmpty ||
+        normalizedTitle.length > 500 ||
+        normalizedBody.length > 5000 ||
+        priority < 1 ||
+        priority > 5) {
+      throw ArgumentError('Ungültige lokale Benachrichtigung.');
+    }
+    await _operationalMutationQueue.run(() async {
+      if (expectedCurrentUserId != null) {
+        await _assertCurrentOperationalUserId(expectedCurrentUserId);
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
-      List<dynamic> list =
-          raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
+      final list = raw == null
+          ? <Map<String, dynamic>>[]
+          : _decodeNotificationsStrict(raw);
+      if (list.length >= _maxLocalNotifications) {
+        throw StateError('Der lokale Benachrichtigungsverlauf ist voll.');
+      }
       final now = timestamp ?? DateTime.now();
-      list.add({
-        'id': 'n_${now.microsecondsSinceEpoch}',
-        'userId': userId,
-        'category': category,
+      final existingIds =
+          list.map((entry) => (entry['id'] ?? '').toString()).toSet();
+      final baseId = 'n_${now.microsecondsSinceEpoch}';
+      var notificationId = baseId;
+      var suffix = 1;
+      while (existingIds.contains(notificationId)) {
+        notificationId = '${baseId}_$suffix';
+        suffix++;
+      }
+      final entry = <String, dynamic>{
+        ...?payload,
+        'id': notificationId,
+        'userId': normalizedUserId,
+        'category': normalizedCategory,
         'priority': priority,
-        'title': title,
-        'body': body,
+        'title': normalizedTitle,
+        'body': normalizedBody,
         'entityType': entityType,
         'entityId': entityId,
         'ctaLabel': ctaLabel,
-        ...?payload,
         'actions': actions,
         'critical': critical,
         'archived': false,
         'ts': now.toIso8601String(),
         'read': false,
-      });
-      await prefs.setString(_notificationsKey, jsonEncode(list));
-    } catch (e) {
-      debugPrint(
-        '[DataService] addStructuredNotification failed: $e',
-      );
+      };
+      list.add(entry);
+      await _persistNotifications(prefs, list);
+    });
+  }
+
+  static List<Map<String, dynamic>> _decodeNotificationsStrict(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is! List ||
+        decoded.length > _maxLocalNotifications ||
+        decoded.any((entry) => entry is! Map)) {
+      throw const FormatException(
+          'Ungültiger lokaler Benachrichtigungsverlauf.');
     }
+    final list = decoded
+        .map((entry) => Map<String, dynamic>.from(entry as Map))
+        .toList();
+    final ids = <String>{};
+    for (final entry in list) {
+      final id = (entry['id'] ?? '').toString().trim();
+      final userId = (entry['userId'] ?? '').toString().trim();
+      final ts = (entry['ts'] ?? entry['createdAt'] ?? '').toString().trim();
+      if (id.isEmpty ||
+          id.length > 256 ||
+          !ids.add(id) ||
+          userId.length > 256 ||
+          DateTime.tryParse(ts) == null ||
+          entry['title'] is! String ||
+          entry['body'] is! String ||
+          (entry['title'] as String).length > 500 ||
+          (entry['body'] as String).length > 5000) {
+        throw const FormatException(
+            'Ungültiger lokaler Benachrichtigungsverlauf.');
+      }
+    }
+    return list;
+  }
+
+  static Future<void> _persistNotifications(
+    SharedPreferences prefs,
+    List<Map<String, dynamic>> notifications,
+  ) async {
+    final encoded = jsonEncode(notifications);
+    _decodeNotificationsStrict(encoded);
+    await _writePreferenceString(prefs, _notificationsKey, encoded);
   }
 
   static Map<String, dynamic> _normalizeNotification(
     Map<String, dynamic> raw, {
     required String userId,
   }) {
-    // Backfill legacy fields to the structured format.
     final out = Map<String, dynamic>.from(raw);
-    out['id'] = (out['id'] ?? '').toString().isNotEmpty
-        ? out['id'].toString()
-        : 'n_${DateTime.now().microsecondsSinceEpoch}';
-    out['userId'] = (out['userId'] ?? userId).toString();
+    final id = (out['id'] ?? '').toString().trim();
+    final ownerId = (out['userId'] ?? '').toString().trim();
+    if (id.isEmpty || ownerId != userId) {
+      throw const FormatException(
+          'Ungültiger lokaler Benachrichtigungsverlauf.');
+    }
+    out['id'] = id;
+    out['userId'] = ownerId;
     final String cat = (out['category'] ?? '').toString();
     if (cat.isEmpty) {
       // Legacy entries: assume platform unless title suggests something else.
@@ -8243,9 +9353,12 @@ class DataService {
     out['critical'] = (out['critical'] == true);
     out['archived'] = (out['archived'] == true);
     out['read'] = (out['read'] == true);
-    // Support both 'ts' and 'createdAt'
     final tsStr = (out['ts'] ?? out['createdAt'] ?? '').toString();
-    out['ts'] = tsStr.isNotEmpty ? tsStr : DateTime.now().toIso8601String();
+    if (DateTime.tryParse(tsStr) == null) {
+      throw const FormatException(
+          'Ungültiger lokaler Benachrichtigungsverlauf.');
+    }
+    out['ts'] = tsStr;
     return out;
   }
 
@@ -8308,34 +9421,38 @@ class DataService {
     String userId, {
     bool includeArchived = false,
   }) async {
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       final prefs = await SharedPreferences.getInstance();
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         final remote = await BackendRepository.getNotifications();
-        await prefs.setString(_notificationsKey, jsonEncode(remote));
+        final scopedRemote = remote
+            .map(
+              (entry) => <String, dynamic>{
+                ...entry,
+                'userId':
+                    (entry['userId']?.toString().trim().isNotEmpty ?? false)
+                        ? entry['userId']
+                        : current.id,
+              },
+            )
+            .toList();
+        await _persistNotifications(prefs, scopedRemote);
       }
+      await _requireCurrentOperationalUser(requestedUserId: current.id);
       final raw = prefs.getString(_notificationsKey);
-      if (raw == null || raw.isEmpty) return [];
-      final List list = jsonDecode(raw);
+      if (raw == null) return [];
+      final list = _decodeNotificationsStrict(raw);
       final out = <Map<String, dynamic>>[];
-      bool mutated = false;
       for (final e in list) {
-        if (e is! Map) continue;
         final m = Map<String, dynamic>.from(e);
-        final uid = (m['userId'] ?? userId).toString();
+        final uid = (m['userId'] ?? '').toString().trim();
         if (uid != userId) continue;
         final norm = _normalizeNotification(m, userId: userId);
         if (_isVisibleDemoNotification(norm)) continue;
         if (norm['archived'] == true && !includeArchived) continue;
         out.add(norm);
-        // Sanitize storage by ensuring normalized entries exist
-        if (m['category'] == null ||
-            m['priority'] == null ||
-            m['userId'] == null ||
-            m['archived'] == null ||
-            m['critical'] == null) {
-          mutated = true;
-        }
       }
       out.sort((a, b) {
         final at = DateTime.tryParse((a['ts'] ?? '').toString()) ??
@@ -8344,27 +9461,13 @@ class DataService {
             DateTime.fromMillisecondsSinceEpoch(0);
         return bt.compareTo(at);
       });
-      if (mutated) {
-        // Merge back normalized values for this user only; keep other users' entries.
-        final merged = <dynamic>[];
-        for (final e in list) {
-          if (e is! Map) continue;
-          final m = Map<String, dynamic>.from(e);
-          final uid = (m['userId'] ?? userId).toString();
-          if (uid == userId) {
-            merged.add(_normalizeNotification(m, userId: userId));
-          } else {
-            merged.add(m);
-          }
-        }
-        await prefs.setString(_notificationsKey, jsonEncode(merged));
-      }
+      await _requireCurrentOperationalUser(requestedUserId: current.id);
       return out;
     } catch (e) {
       debugPrint(
         '[DataService] getNotificationFeedForUser failed: $e',
       );
-      return [];
+      rethrow;
     }
   }
 
@@ -8372,6 +9475,8 @@ class DataService {
     required String userId,
     required String notificationId,
   }) async {
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         await BackendRepository.updateNotification(
@@ -8379,57 +9484,69 @@ class DataService {
           read: true,
         );
       }
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_notificationsKey);
-      if (raw == null || raw.isEmpty) return;
-      final List list = jsonDecode(raw);
-      bool mutated = false;
-      for (int i = 0; i < list.length; i++) {
-        if (list[i] is! Map) continue;
-        final m = Map<String, dynamic>.from(list[i] as Map);
-        final uid = (m['userId'] ?? userId).toString();
-        if (uid != userId) continue;
-        if ((m['id'] ?? '').toString() == notificationId) {
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_notificationsKey);
+        if (raw == null) return;
+        final list = _decodeNotificationsStrict(raw);
+        bool mutated = false;
+        for (int i = 0; i < list.length; i++) {
+          final m = Map<String, dynamic>.from(list[i] as Map);
+          final uid = (m['userId'] ?? '').toString().trim();
+          if (uid != userId) continue;
+          if ((m['id'] ?? '').toString() == notificationId) {
+            if (m['read'] != true) {
+              m['read'] = true;
+              list[i] = m;
+              mutated = true;
+            }
+            break;
+          }
+        }
+        if (mutated) {
+          await _persistNotifications(prefs, list);
+        }
+      });
+    } catch (e) {
+      debugPrint('[DataService] markNotificationRead failed: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> markAllNotificationsRead(String userId) async {
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
+    try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.markAllNotificationsRead();
+      }
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_notificationsKey);
+        if (raw == null) return;
+        final list = _decodeNotificationsStrict(raw);
+        bool mutated = false;
+        for (int i = 0; i < list.length; i++) {
+          final m = Map<String, dynamic>.from(list[i] as Map);
+          final uid = (m['userId'] ?? '').toString().trim();
+          if (uid != userId) continue;
           if (m['read'] != true) {
             m['read'] = true;
             list[i] = m;
             mutated = true;
           }
-          break;
         }
-      }
-      if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
-    } catch (e) {
-      debugPrint('[DataService] markNotificationRead failed: $e');
-    }
-  }
-
-  static Future<void> markAllNotificationsRead(String userId) async {
-    try {
-      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        await BackendRepository.markAllNotificationsRead();
-      }
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_notificationsKey);
-      if (raw == null || raw.isEmpty) return;
-      final List list = jsonDecode(raw);
-      bool mutated = false;
-      for (int i = 0; i < list.length; i++) {
-        if (list[i] is! Map) continue;
-        final m = Map<String, dynamic>.from(list[i] as Map);
-        final uid = (m['userId'] ?? userId).toString();
-        if (uid != userId) continue;
-        if (m['read'] != true) {
-          m['read'] = true;
-          list[i] = m;
-          mutated = true;
+        if (mutated) {
+          await _persistNotifications(prefs, list);
         }
-      }
-      if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
+      });
     } catch (e) {
       debugPrint(
         '[DataService] markAllNotificationsRead failed: $e',
       );
+      rethrow;
     }
   }
 
@@ -8437,6 +9554,8 @@ class DataService {
     required String userId,
     required String notificationId,
   }) async {
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         await BackendRepository.updateNotification(
@@ -8444,29 +9563,34 @@ class DataService {
           archived: true,
         );
       }
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_notificationsKey);
-      if (raw == null || raw.isEmpty) return;
-      final List list = jsonDecode(raw);
-      bool mutated = false;
-      for (int i = 0; i < list.length; i++) {
-        if (list[i] is! Map) continue;
-        final m = Map<String, dynamic>.from(list[i] as Map);
-        final uid = (m['userId'] ?? userId).toString();
-        if (uid != userId) continue;
-        if ((m['id'] ?? '').toString() == notificationId) {
-          final critical = (m['critical'] == true);
-          if (!critical && m['archived'] != true) {
-            m['archived'] = true;
-            list[i] = m;
-            mutated = true;
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getString(_notificationsKey);
+        if (raw == null) return;
+        final list = _decodeNotificationsStrict(raw);
+        bool mutated = false;
+        for (int i = 0; i < list.length; i++) {
+          final m = Map<String, dynamic>.from(list[i] as Map);
+          final uid = (m['userId'] ?? '').toString().trim();
+          if (uid != userId) continue;
+          if ((m['id'] ?? '').toString() == notificationId) {
+            final critical = (m['critical'] == true);
+            if (!critical && m['archived'] != true) {
+              m['archived'] = true;
+              list[i] = m;
+              mutated = true;
+            }
+            break;
           }
-          break;
         }
-      }
-      if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
+        if (mutated) {
+          await _persistNotifications(prefs, list);
+        }
+      });
     } catch (e) {
       debugPrint('[DataService] archiveNotification failed: $e');
+      rethrow;
     }
   }
 
@@ -8600,18 +9724,11 @@ class DataService {
   }
 
   static Future<List<Map<String, dynamic>>> getNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_notificationsKey);
-    if (raw == null || raw.isEmpty) return [];
-    try {
-      final List list = jsonDecode(raw);
-      return list
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    final current = await _requireCurrentOperationalUser();
+    return getNotificationFeedForUser(
+      current.id,
+      includeArchived: true,
+    );
   }
 
   // Feedback (stored locally; when backend is connected, migrate to server)
@@ -8707,37 +9824,51 @@ class DataService {
     return basisPoints == null ? null : basisPoints / 10000;
   }
 
-  /// Deletes ALL locally stored rentals and bookings (rental requests), including
-  /// related timelines, reminders, last-seen markers and transient handover caches.
-  /// Also clears saved availability/delivery selections to avoid stale UI state.
+  /// Developer-QA-only destructive reset. Release/account deletion must use the
+  /// account-scoped retention path instead of deleting shared counterparty data.
   static Future<void> clearAllRentalsAndBookings() async {
-    try {
-      // Stop any express timers running in this session
-      try {
-        for (final t in _expressTimers.values) {
-          t.cancel();
-        }
-        _expressTimers.clear();
-      } catch (_) {
-        /* ignore */
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_rentalRequestsKey);
-      await prefs.remove(_timelineEventsKey);
-      await prefs.remove(_reviewRemindersKey);
-      await prefs.remove(_requestsLastSeenKey);
-      await prefs.remove(_handoverFailCountsKey);
-      await prefs.remove(_handoverBannersKey);
-      await prefs.remove(_bookingSelectionsKey);
-      debugPrint(
-        '[DataService] Cleared rentals/bookings and related local caches',
-      );
-    } catch (e) {
-      debugPrint(
-        '[DataService] clearAllRentalsAndBookings failed: $e',
+    if (!QaRuntimeService.isEnabled) {
+      throw StateError(
+        'Der globale Buchungsreset ist ausschließlich im lokalen QA-Modus erlaubt.',
       );
     }
+    final current = await _requireCurrentOperationalUser();
+    for (final timer in _expressTimers.values) {
+      timer.cancel();
+    }
+    _expressTimers.clear();
+
+    await _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      await _removePreferenceKey(prefs, _rentalRequestsKey);
+      await _removePreferenceKey(prefs, _reviewRemindersKey);
+    });
+    await _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      await _removePreferenceKey(prefs, _timelineEventsKey);
+      await _removePreferenceKey(prefs, _requestsLastSeenKey);
+      await _removePreferenceKey(prefs, _readRequestsKey);
+    });
+    await _handoverMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      await _removePreferenceKey(prefs, _handoverReturnStateKey);
+      await _removePreferenceKey(prefs, _handoverFailCountsKey);
+      await _removePreferenceKey(prefs, _handoverBannersKey);
+    });
+    await _bookingSelectionMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(current.id);
+      final prefs = await SharedPreferences.getInstance();
+      await _removePreferenceKey(prefs, _bookingSelectionsKey);
+      await _removePreferenceKey(prefs, _bookingSelectionPrincipalStateKey);
+    });
+    SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
+    SharedPersistenceSync.notify(SharedPersistenceSync.handoverReturnStateKey);
+    debugPrint(
+      '[DataService] Cleared local QA rentals/bookings and related caches',
+    );
   }
 
   // ===== Message Threads =====
@@ -8758,15 +9889,6 @@ class DataService {
         request.renterId == currentUser.id;
   }
 
-  static Future<bool> _isCurrentUserParticipantForThread(
-    MessageThread thread,
-  ) async {
-    final currentUser = await getCurrentUser();
-    if (currentUser == null) return false;
-
-    return thread.user1Id == currentUser.id || thread.user2Id == currentUser.id;
-  }
-
   /// Returns the message thread linked to a rental request, if any.
   static Future<MessageThread?> getMessageThreadByRequestId(
     String requestId,
@@ -8775,27 +9897,30 @@ class DataService {
     if (normalizedRequestId.isEmpty) return null;
 
     try {
-      final isParticipant = await _isCurrentUserParticipantForRequestId(
-        normalizedRequestId,
-      );
-      if (!isParticipant) return null;
+      final participant =
+          await _requireCurrentRequestParticipant(normalizedRequestId);
 
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return null;
-      final List<dynamic> list = jsonDecode(raw);
-      for (final e in list) {
-        try {
-          final thread = MessageThread.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          );
-          if (thread.requestId == normalizedRequestId) return thread;
-        } catch (_) {}
+      await _requireCurrentOperationalUser(
+        requestedUserId: participant.$1.id,
+      );
+      await _requireCurrentRequestParticipant(normalizedRequestId);
+      if (raw == null) return null;
+      for (final thread in _decodeMessageThreadsStrict(raw)) {
+        if (thread.requestId == normalizedRequestId &&
+            _isThreadParticipant(thread, participant.$1.id) &&
+            !thread.deletedForUserIds.contains(participant.$1.id)) {
+          return thread;
+        }
       }
+      return null;
+    } on StateError catch (e) {
+      debugPrint('[DataService] getMessageThreadByRequestId denied: $e');
       return null;
     } catch (e) {
       debugPrint('[DataService] getMessageThreadByRequestId error: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -8823,9 +9948,12 @@ class DataService {
       // Mirror the internal creation used on accept.
       await _createMessageThreadForRequest(req);
       return await getMessageThreadByRequestId(normalizedRequestId);
+    } on StateError catch (e) {
+      debugPrint('[DataService] createOrGetThreadForRequest denied: $e');
+      return null;
     } catch (e) {
       debugPrint('[DataService] createOrGetThreadForRequest failed: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -8838,24 +9966,30 @@ class DataService {
     required String status,
   }) async {
     if (threadId.trim().isEmpty) return;
+    final current = await _requireCurrentOperationalUser();
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return;
-      final List<dynamic> list = jsonDecode(raw);
-      bool mutated = false;
-      for (int i = 0; i < list.length; i++) {
-        if (list[i] is! Map) continue;
-        final map = Map<String, dynamic>.from(list[i] as Map);
-        if ((map['id'] ?? '').toString() != threadId) continue;
-        final thread = MessageThread.fromJson(map);
-        list[i] = thread.copyWith(bookingStatus: status).toJson();
-        mutated = true;
-        break;
-      }
-      if (mutated) await _persistMessageThreads(prefs, list);
+      await _operationalMutationQueue.run(() async {
+        final prefs = await SharedPreferences.getInstance();
+        final raw = await _readMessageThreads(prefs);
+        if (raw == null) return;
+        final threads = _decodeMessageThreadsStrict(raw);
+        final index = threads.indexWhere((entry) => entry.id == threadId);
+        if (index < 0) return;
+        final thread = threads[index];
+        if (!_isThreadParticipant(thread, current.id) ||
+            thread.deletedForUserIds.contains(current.id)) {
+          throw StateError(
+              'Der Nachrichtenverlauf gehört zu einem anderen Konto.');
+        }
+        threads[index] = thread.copyWith(bookingStatus: status);
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(),
+        );
+      });
     } catch (e) {
       debugPrint('[DataService] updateMessageThreadBookingStatus error: $e');
+      rethrow;
     }
   }
 
@@ -8867,11 +10001,7 @@ class DataService {
     if (threadId.trim().isEmpty) return;
     final t = text.trim();
     if (t.isEmpty) return;
-    try {
-      await addMessageToThread(threadId: threadId, senderId: 'system', text: t);
-    } catch (e) {
-      debugPrint('[DataService] addSystemMessageToThread error: $e');
-    }
+    await addMessageToThread(threadId: threadId, senderId: 'system', text: t);
   }
 
   // ===== Handover/Return lightweight state (local) =====
@@ -8879,57 +10009,141 @@ class DataService {
   static const String _handoverReturnStateKey = 'handover_return_state_v1';
 
   static Future<Map<String, dynamic>> _getHandoverReturnStateMap() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_handoverReturnStateKey);
-      if (raw == null || raw.isEmpty) return <String, dynamic>{};
-      final decoded = jsonDecode(raw);
-      if (decoded is Map) {
-        return decoded.map((k, v) => MapEntry(k.toString(), v));
-      }
-      return <String, dynamic>{};
-    } catch (e) {
-      debugPrint('[DataService] _getHandoverReturnStateMap failed: $e');
-      return <String, dynamic>{};
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_handoverReturnStateKey);
+    if (raw == null) return <String, dynamic>{};
+    if (raw.trim().isEmpty) {
+      throw const FormatException('Ungültige lokale Übergabedaten.');
     }
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map || decoded.length > 1000) {
+      throw const FormatException('Ungültige lokale Übergabedaten.');
+    }
+    final map = decoded.map((key, value) => MapEntry(key.toString(), value));
+    if (map.keys.any((key) => key.trim().isEmpty || key.length > 256) ||
+        map.values.any((value) => value is! Map)) {
+      throw const FormatException('Ungültige lokale Übergabedaten.');
+    }
+    return map;
   }
 
   static Future<void> _setHandoverReturnStateMap(
     Map<String, dynamic> map, {
     bool announce = true,
   }) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_handoverReturnStateKey, jsonEncode(map));
-      if (announce) {
-        SharedPersistenceSync.notify(
-          SharedPersistenceSync.handoverReturnStateKey,
-        );
-      }
-    } catch (e) {
-      debugPrint('[DataService] _setHandoverReturnStateMap failed: $e');
+    if (map.length > 1000 ||
+        map.keys.any((key) => key.trim().isEmpty || key.length > 256) ||
+        map.values.any((value) => value is! Map)) {
+      throw const FormatException('Ungültige lokale Übergabedaten.');
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await _writePreferenceString(
+      prefs,
+      _handoverReturnStateKey,
+      jsonEncode(map),
+    );
+    if (announce) {
+      SharedPersistenceSync.notify(
+        SharedPersistenceSync.handoverReturnStateKey,
+      );
     }
   }
+
+  static Map<String, dynamic> _emptyHandoverReturnState() => <String, dynamic>{
+        'handoverActive': false,
+        'returnActive': false,
+        'handoverPhotos': 0,
+        'returnPhotos': 0,
+        'pickupPresenterPhotos': 0,
+        'pickupDeviationPhotos': 0,
+        'pickupPresenterNonCameraUsed': false,
+        'pickupCounterpartyConfirmation': null,
+        'returnPresenterPhotos': 0,
+        'returnDeviationPhotos': 0,
+        'returnPresenterNonCameraUsed': false,
+        'returnCounterpartyConfirmation': null,
+        'handoverTimeRequested': '',
+        'returnTimeRequested': '',
+        'handoverTimeIso': '',
+        'returnTimeIso': '',
+        'handoverTimeRequestedByUserId': '',
+        'returnTimeRequestedByUserId': '',
+        'handoverTimeConfirmed': false,
+        'returnTimeConfirmed': false,
+        'handoverTimeConfirmedByUserId': '',
+        'returnTimeConfirmedByUserId': '',
+        'handoverTimeConfirmedAt': '',
+        'returnTimeConfirmedAt': '',
+        'handoverLocationLat': '',
+        'handoverLocationLng': '',
+        'handoverLocationLabel': '',
+        'handoverLocationMapsUrl': '',
+        'handoverLocationSharedByUserId': '',
+        'handoverLocationSharedByName': '',
+        'handoverLocationSharedByRole': '',
+        'handoverLocationAcceptedAs': 'handoverLocation',
+        'returnLocationLat': '',
+        'returnLocationLng': '',
+        'returnLocationLabel': '',
+        'returnLocationMapsUrl': '',
+        'returnLocationSharedByUserId': '',
+        'returnLocationSharedByName': '',
+        'returnLocationSharedByRole': '',
+        'returnLocationAcceptedAs': 'returnLocation',
+        'returnLocationReusePromptDismissed': false,
+      };
 
   /// Returns state for a request: {handoverActive, returnActive, handoverPhotos, returnPhotos}
   static Future<Map<String, dynamic>> getHandoverReturnState(
     String requestId,
   ) async {
     final id = requestId.trim();
-    if (id.isEmpty) return const {};
-    final map = await _getHandoverReturnStateMap();
+    if (id.isEmpty) return _emptyHandoverReturnState();
+    String currentUserId;
+    try {
+      currentUserId = (await _requireCurrentRequestParticipant(id)).$1.id;
+    } on StateError {
+      return _emptyHandoverReturnState();
+    }
+    Map<String, dynamic> map;
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       try {
         final remote = await BackendRepository.getBookingFlowTime(id);
-        final existing = (map[id] is Map)
-            ? Map<String, dynamic>.from(map[id] as Map)
-            : <String, dynamic>{};
-        existing.addAll(remote);
-        map[id] = existing;
-        await _setHandoverReturnStateMap(map, announce: false);
+        await _requireCurrentOperationalUser(
+          requestedUserId: currentUserId,
+        );
+        await _requireCurrentRequestParticipant(id);
+        map = await _handoverMutationQueue.run(() async {
+          await _assertCurrentOperationalUserId(currentUserId);
+          final latest = await _getHandoverReturnStateMap();
+          final existing = (latest[id] is Map)
+              ? Map<String, dynamic>.from(latest[id] as Map)
+              : <String, dynamic>{};
+          existing.addAll(remote);
+          latest[id] = existing;
+          await _setHandoverReturnStateMap(latest, announce: false);
+          return latest;
+        });
       } catch (error) {
         debugPrint('[DataService] remote flow-time load failed: $error');
+        try {
+          await _requireCurrentOperationalUser(
+            requestedUserId: currentUserId,
+          );
+          await _requireCurrentRequestParticipant(id);
+        } on StateError {
+          return _emptyHandoverReturnState();
+        }
+        map = await _handoverMutationQueue.run(() async {
+          await _assertCurrentOperationalUserId(currentUserId);
+          return _getHandoverReturnStateMap();
+        });
       }
+    } else {
+      map = await _handoverMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(currentUserId);
+        return _getHandoverReturnStateMap();
+      });
     }
     final entry = map[id];
     if (entry is Map) {
@@ -9002,49 +10216,7 @@ class DataService {
             e['returnLocationReusePromptDismissed'] == true,
       };
     }
-    return {
-      'handoverActive': false,
-      'returnActive': false,
-      'handoverPhotos': 0,
-      'returnPhotos': 0,
-      'pickupPresenterPhotos': 0,
-      'pickupDeviationPhotos': 0,
-      'pickupPresenterNonCameraUsed': false,
-      'pickupCounterpartyConfirmation': null,
-      'returnPresenterPhotos': 0,
-      'returnDeviationPhotos': 0,
-      'returnPresenterNonCameraUsed': false,
-      'returnCounterpartyConfirmation': null,
-      'handoverTimeRequested': '',
-      'returnTimeRequested': '',
-      'handoverTimeIso': '',
-      'returnTimeIso': '',
-      'handoverTimeRequestedByUserId': '',
-      'returnTimeRequestedByUserId': '',
-      'handoverTimeConfirmed': false,
-      'returnTimeConfirmed': false,
-      'handoverTimeConfirmedByUserId': '',
-      'returnTimeConfirmedByUserId': '',
-      'handoverTimeConfirmedAt': '',
-      'returnTimeConfirmedAt': '',
-      'handoverLocationLat': '',
-      'handoverLocationLng': '',
-      'handoverLocationLabel': '',
-      'handoverLocationMapsUrl': '',
-      'handoverLocationSharedByUserId': '',
-      'handoverLocationSharedByName': '',
-      'handoverLocationSharedByRole': '',
-      'handoverLocationAcceptedAs': 'handoverLocation',
-      'returnLocationLat': '',
-      'returnLocationLng': '',
-      'returnLocationLabel': '',
-      'returnLocationMapsUrl': '',
-      'returnLocationSharedByUserId': '',
-      'returnLocationSharedByName': '',
-      'returnLocationSharedByRole': '',
-      'returnLocationAcceptedAs': 'returnLocation',
-      'returnLocationReusePromptDismissed': false,
-    };
+    return _emptyHandoverReturnState();
   }
 
   /// Server-authoritative exact-address visibility. A configured backend
@@ -9055,10 +10227,23 @@ class DataService {
     String segment = 'pickup',
     DateTime? now,
   }) async {
+    (User, RentalRequest) participant;
+    try {
+      participant = await _requireCurrentRequestParticipant(request.id);
+    } on StateError {
+      return {
+        'version': 'v52_booking_address_reveal_v1',
+        'segment': segment,
+        'result': 'hidden',
+        'reason': 'current_participant_required',
+        'exactAddressReturned': false,
+      };
+    }
+    final authorizedRequest = participant.$2;
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       try {
         return await BackendRepository.getBookingAddressReveal(
-          bookingId: request.id,
+          bookingId: authorizedRequest.id,
           segment: segment,
         );
       } catch (error) {
@@ -9074,7 +10259,7 @@ class DataService {
       }
     }
 
-    final state = await getHandoverReturnState(request.id);
+    final state = await getHandoverReturnState(authorizedRequest.id);
     final prefix = segment == 'return' ? 'return' : 'handover';
     final appointment = DateTime.tryParse(
       (state['${prefix}TimeIso'] as String?) ?? '',
@@ -9083,13 +10268,17 @@ class DataService {
         ((state['${prefix}TimeRequestedByUserId'] as String?) ?? '').trim();
     final confirmedBy =
         ((state['${prefix}TimeConfirmedByUserId'] as String?) ?? '').trim();
-    final participants = {request.ownerId, request.renterId};
+    final participants = {
+      authorizedRequest.ownerId,
+      authorizedRequest.renterId,
+    };
     final counterpartyConfirmed = state['${prefix}TimeConfirmed'] == true &&
         participants.contains(requestedBy) &&
         participants.contains(confirmedBy) &&
         requestedBy != confirmedBy;
-    final expectedDate =
-        segment == 'return' ? request.endDate : request.startDate;
+    final expectedDate = segment == 'return'
+        ? authorizedRequest.endDate
+        : authorizedRequest.startDate;
     final appointmentMatches = appointment != null &&
         _rentalDate(appointment.toLocal()) == expectedDate;
     final eligible = const {
@@ -9099,7 +10288,7 @@ class DataService {
       'active',
       'running',
       'returned',
-    }.contains(request.workflowStatus ?? request.status);
+    }.contains(authorizedRequest.workflowStatus ?? authorizedRequest.status);
     final reveal = counterpartyConfirmed &&
         appointmentMatches &&
         eligible &&
@@ -9126,14 +10315,34 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return false;
+    (User, RentalRequest) participant;
+    try {
+      participant = await _requireCurrentRequestParticipant(id);
+    } on StateError {
+      return false;
+    }
+    return _runHandoverForParticipant(
+      participant,
+      () => _setHandoverActiveUnlocked(
+        id,
+        active: active,
+        currentUser: participant.$1,
+        request: participant.$2,
+      ),
+    );
+  }
+
+  static Future<bool> _setHandoverActiveUnlocked(
+    String id, {
+    required bool active,
+    required User currentUser,
+    required RentalRequest request,
+  }) async {
     final map = await _getHandoverReturnStateMap();
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
     if (active) {
-      final request = await getRentalRequestById(id);
-      final currentUser = await getCurrentUser();
-      if (request == null || currentUser == null) return false;
       if (currentUser.id != request.ownerId) return false;
       if (!canStartHandover(
         requestStatus: request.status,
@@ -9164,14 +10373,34 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return false;
+    (User, RentalRequest) participant;
+    try {
+      participant = await _requireCurrentRequestParticipant(id);
+    } on StateError {
+      return false;
+    }
+    return _runHandoverForParticipant(
+      participant,
+      () => _setReturnActiveUnlocked(
+        id,
+        active: active,
+        currentUser: participant.$1,
+        request: participant.$2,
+      ),
+    );
+  }
+
+  static Future<bool> _setReturnActiveUnlocked(
+    String id, {
+    required bool active,
+    required User currentUser,
+    required RentalRequest request,
+  }) async {
     final map = await _getHandoverReturnStateMap();
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
     if (active) {
-      final request = await getRentalRequestById(id);
-      final currentUser = await getCurrentUser();
-      if (request == null || currentUser == null) return false;
       if (currentUser.id != request.renterId) return false;
       if (!canStartReturn(
         requestStatus: request.status,
@@ -9209,16 +10438,19 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    final cur = (existing['handoverPhotos'] is num)
-        ? (existing['handoverPhotos'] as num).toInt()
-        : 0;
-    existing['handoverPhotos'] = (cur + 1).clamp(0, max);
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      final cur = (existing['handoverPhotos'] is num)
+          ? (existing['handoverPhotos'] as num).toInt()
+          : 0;
+      existing['handoverPhotos'] = (cur + 1).clamp(0, max);
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<void> incrementReturnPhotos(
@@ -9227,16 +10459,19 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    final cur = (existing['returnPhotos'] is num)
-        ? (existing['returnPhotos'] as num).toInt()
-        : 0;
-    existing['returnPhotos'] = (cur + 1).clamp(0, max);
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      final cur = (existing['returnPhotos'] is num)
+          ? (existing['returnPhotos'] as num).toInt()
+          : 0;
+      existing['returnPhotos'] = (cur + 1).clamp(0, max);
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<Map<String, dynamic>> getConditionEvidenceSummary({
@@ -9246,6 +10481,17 @@ class DataService {
     final id = requestId.trim();
     final normalizedSegment = segment == 'return' ? 'return' : 'pickup';
     if (id.isEmpty) {
+      return <String, dynamic>{
+        'segment': normalizedSegment,
+        'presenterPhotos': 0,
+        'deviationPhotos': 0,
+        'presenterNonCameraUsed': false,
+        'counterpartyConfirmation': null,
+      };
+    }
+    try {
+      await _requireCurrentRequestParticipant(id);
+    } on StateError {
       return <String, dynamic>{
         'segment': normalizedSegment,
         'presenterPhotos': 0,
@@ -9360,20 +10606,23 @@ class DataService {
           ? '${normalizedSegment == 'pickup' ? 'Übergabe' : 'Rückgabe'}-Zustandsfoto (geschützt)'
           : 'Abweichungsfoto der Gegenpartei (geschützt)',
     );
-    final map = await _getHandoverReturnStateMap();
-    final existing = map[id] is Map
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    final prefix = normalizedSegment == 'return' ? 'return' : 'pickup';
-    final key = normalizedKind == 'presenter_photo'
-        ? '${prefix}PresenterPhotos'
-        : '${prefix}DeviationPhotos';
-    existing[key] = ((existing[key] as num?)?.toInt() ?? 0) + 1;
-    if (normalizedKind == 'presenter_photo' && normalizedSource != 'camera') {
-      existing['${prefix}PresenterNonCameraUsed'] = true;
-    }
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    await _handoverMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(currentUser.id);
+      final map = await _getHandoverReturnStateMap();
+      final existing = map[id] is Map
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      final prefix = normalizedSegment == 'return' ? 'return' : 'pickup';
+      final key = normalizedKind == 'presenter_photo'
+          ? '${prefix}PresenterPhotos'
+          : '${prefix}DeviationPhotos';
+      existing[key] = ((existing[key] as num?)?.toInt() ?? 0) + 1;
+      if (normalizedKind == 'presenter_photo' && normalizedSource != 'camera') {
+        existing['${prefix}PresenterNonCameraUsed'] = true;
+      }
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<void> recordConditionConfirmation({
@@ -9416,20 +10665,23 @@ class DataService {
     if (decision == 'confirmed' && deviationPhotos > 0) {
       throw StateError('deviation_decision_required');
     }
-    final map = await _getHandoverReturnStateMap();
-    final existing = map[id] is Map
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    final prefix = normalizedSegment == 'return' ? 'return' : 'pickup';
-    existing['${prefix}CounterpartyConfirmation'] = <String, dynamic>{
-      'decision': decision,
-      'verifierUserId': currentUser.id,
-      'presenterPhotoCount': presenterPhotos,
-      'deviationPhotoCount': deviationPhotos,
-      'createdAt': DateTime.now().toIso8601String(),
-    };
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    await _handoverMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(currentUser.id);
+      final map = await _getHandoverReturnStateMap();
+      final existing = map[id] is Map
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      final prefix = normalizedSegment == 'return' ? 'return' : 'pickup';
+      existing['${prefix}CounterpartyConfirmation'] = <String, dynamic>{
+        'decision': decision,
+        'verifierUserId': currentUser.id,
+        'presenterPhotoCount': presenterPhotos,
+        'deviationPhotoCount': deviationPhotos,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static const int minimumRequiredPhotos = 4;
@@ -9451,25 +10703,31 @@ class DataService {
   static Future<void> markHandoverGalleryUsed(String requestId) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    existing['handoverGalleryUsed'] = true;
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      existing['handoverGalleryUsed'] = true;
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<void> markReturnGalleryUsed(String requestId) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    existing['returnGalleryUsed'] = true;
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      existing['returnGalleryUsed'] = true;
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<bool> wasHandoverGalleryUsed(String requestId) async {
@@ -9491,30 +10749,34 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = await BackendRepository.updateBookingFlowTime(
-        bookingId: id,
-        action: 'propose',
-        segment: isReturn ? 'return' : 'pickup',
-        label: label,
-        time: time,
-      );
-      existing.addAll(remote);
+    await _requireCurrentOperationalUser(requestedUserId: requestedByUserId);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.updateBookingFlowTime(
+          bookingId: id,
+          action: 'propose',
+          segment: isReturn ? 'return' : 'pickup',
+          label: label,
+          time: time,
+        );
+        existing.addAll(remote);
+        map[id] = existing;
+        await _setHandoverReturnStateMap(map);
+        return;
+      }
+      final prefix = isReturn ? 'return' : 'handover';
+      existing['${prefix}TimeRequested'] = label;
+      existing['${prefix}TimeIso'] = time.toIso8601String();
+      existing['${prefix}TimeRequestedByUserId'] = requestedByUserId;
+      existing['${prefix}TimeConfirmed'] = false;
       map[id] = existing;
       await _setHandoverReturnStateMap(map);
-      return;
-    }
-    final prefix = isReturn ? 'return' : 'handover';
-    existing['${prefix}TimeRequested'] = label;
-    existing['${prefix}TimeIso'] = time.toIso8601String();
-    existing['${prefix}TimeRequestedByUserId'] = requestedByUserId;
-    existing['${prefix}TimeConfirmed'] = false;
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<void> setFlowLocation({
@@ -9530,25 +10792,29 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    final prefix = isReturn ? 'return' : 'handover';
-    existing['${prefix}LocationLat'] = latitude.trim();
-    existing['${prefix}LocationLng'] = longitude.trim();
-    existing['${prefix}LocationLabel'] = label.trim();
-    existing['${prefix}LocationMapsUrl'] = mapsUrl.trim();
-    existing['${prefix}LocationSharedByUserId'] = sharedByUserId.trim();
-    existing['${prefix}LocationSharedByName'] = sharedByName.trim();
-    existing['${prefix}LocationSharedByRole'] = sharedByRole.trim();
-    existing['${prefix}LocationAcceptedAs'] =
-        isReturn ? 'returnLocation' : 'handoverLocation';
-    if (isReturn) {
-      existing['returnLocationReusePromptDismissed'] = false;
-    }
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    await _requireCurrentOperationalUser(requestedUserId: sharedByUserId);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      final prefix = isReturn ? 'return' : 'handover';
+      existing['${prefix}LocationLat'] = latitude.trim();
+      existing['${prefix}LocationLng'] = longitude.trim();
+      existing['${prefix}LocationLabel'] = label.trim();
+      existing['${prefix}LocationMapsUrl'] = mapsUrl.trim();
+      existing['${prefix}LocationSharedByUserId'] = sharedByUserId.trim();
+      existing['${prefix}LocationSharedByName'] = sharedByName.trim();
+      existing['${prefix}LocationSharedByRole'] = sharedByRole.trim();
+      existing['${prefix}LocationAcceptedAs'] =
+          isReturn ? 'returnLocation' : 'handoverLocation';
+      if (isReturn) {
+        existing['returnLocationReusePromptDismissed'] = false;
+      }
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<void> copyHandoverLocationToReturn({
@@ -9556,28 +10822,31 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    existing['returnLocationLat'] =
-        (existing['handoverLocationLat'] as String?) ?? '';
-    existing['returnLocationLng'] =
-        (existing['handoverLocationLng'] as String?) ?? '';
-    existing['returnLocationLabel'] =
-        (existing['handoverLocationLabel'] as String?) ?? '';
-    existing['returnLocationMapsUrl'] =
-        (existing['handoverLocationMapsUrl'] as String?) ?? '';
-    existing['returnLocationSharedByUserId'] =
-        (existing['handoverLocationSharedByUserId'] as String?) ?? '';
-    existing['returnLocationSharedByName'] =
-        (existing['handoverLocationSharedByName'] as String?) ?? '';
-    existing['returnLocationSharedByRole'] =
-        (existing['handoverLocationSharedByRole'] as String?) ?? '';
-    existing['returnLocationAcceptedAs'] = 'returnLocation';
-    existing['returnLocationReusePromptDismissed'] = false;
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      existing['returnLocationLat'] =
+          (existing['handoverLocationLat'] as String?) ?? '';
+      existing['returnLocationLng'] =
+          (existing['handoverLocationLng'] as String?) ?? '';
+      existing['returnLocationLabel'] =
+          (existing['handoverLocationLabel'] as String?) ?? '';
+      existing['returnLocationMapsUrl'] =
+          (existing['handoverLocationMapsUrl'] as String?) ?? '';
+      existing['returnLocationSharedByUserId'] =
+          (existing['handoverLocationSharedByUserId'] as String?) ?? '';
+      existing['returnLocationSharedByName'] =
+          (existing['handoverLocationSharedByName'] as String?) ?? '';
+      existing['returnLocationSharedByRole'] =
+          (existing['handoverLocationSharedByRole'] as String?) ?? '';
+      existing['returnLocationAcceptedAs'] = 'returnLocation';
+      existing['returnLocationReusePromptDismissed'] = false;
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<void> dismissReturnLocationReusePrompt({
@@ -9585,13 +10854,16 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    existing['returnLocationReusePromptDismissed'] = true;
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    final participant = await _requireCurrentRequestParticipant(id);
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      existing['returnLocationReusePromptDismissed'] = true;
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+    });
   }
 
   static Future<void> confirmFlowTime({
@@ -9601,31 +10873,38 @@ class DataService {
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
-    final map = await _getHandoverReturnStateMap();
-    final existing = (map[id] is Map)
-        ? Map<String, dynamic>.from(map[id] as Map)
-        : <String, dynamic>{};
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = await BackendRepository.updateBookingFlowTime(
-        bookingId: id,
-        action: 'confirm',
-        segment: isReturn ? 'return' : 'pickup',
-      );
-      existing.addAll(remote);
+    await _requireCurrentOperationalUser(requestedUserId: confirmedByUserId);
+    final participant = await _requireCurrentRequestParticipant(id);
+    DateTime? parsed;
+    await _runHandoverForParticipant(participant, () async {
+      final map = await _getHandoverReturnStateMap();
+      final existing = (map[id] is Map)
+          ? Map<String, dynamic>.from(map[id] as Map)
+          : <String, dynamic>{};
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.updateBookingFlowTime(
+          bookingId: id,
+          action: 'confirm',
+          segment: isReturn ? 'return' : 'pickup',
+        );
+        existing.addAll(remote);
+        map[id] = existing;
+        await _setHandoverReturnStateMap(map);
+        return;
+      }
+      final prefix = isReturn ? 'return' : 'handover';
+      final iso = (existing['${prefix}TimeIso'] as String?) ?? '';
+      parsed = iso.isNotEmpty ? DateTime.tryParse(iso) : null;
+      existing['${prefix}TimeConfirmed'] = true;
+      existing['${prefix}TimeConfirmedByUserId'] = confirmedByUserId;
+      existing['${prefix}TimeConfirmedAt'] = DateTime.now().toIso8601String();
       map[id] = existing;
       await _setHandoverReturnStateMap(map);
-      return;
-    }
-    final prefix = isReturn ? 'return' : 'handover';
-    final iso = (existing['${prefix}TimeIso'] as String?) ?? '';
-    final parsed = iso.isNotEmpty ? DateTime.tryParse(iso) : null;
-    existing['${prefix}TimeConfirmed'] = true;
-    existing['${prefix}TimeConfirmedByUserId'] = confirmedByUserId;
-    existing['${prefix}TimeConfirmedAt'] = DateTime.now().toIso8601String();
-    map[id] = existing;
-    await _setHandoverReturnStateMap(map);
+    });
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) return;
 
-    if (parsed != null) {
+    final confirmedTime = parsed;
+    if (confirmedTime != null) {
       final req = await getRentalRequestById(id);
       if (req != null) {
         if (isReturn) {
@@ -9636,8 +10915,8 @@ class DataService {
               req.end.year,
               req.end.month,
               req.end.day,
-              parsed.hour,
-              parsed.minute,
+              confirmedTime.hour,
+              confirmedTime.minute,
             ),
             expressRequested: req.expressRequested,
           );
@@ -9648,8 +10927,8 @@ class DataService {
               req.start.year,
               req.start.month,
               req.start.day,
-              parsed.hour,
-              parsed.minute,
+              confirmedTime.hour,
+              confirmedTime.minute,
             ),
             end: req.end,
             expressRequested: req.expressRequested,
@@ -9664,23 +10943,30 @@ class DataService {
     RentalRequest request,
   ) async {
     try {
+      final participant = await _requireCurrentRequestParticipant(request.id);
+      final expectedCurrentUserId = participant.$1.id;
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         final remote = await BackendRepository.createOrGetBookingThread(
           request.id,
         );
-        final prefs = await SharedPreferences.getInstance();
-        final currentRaw = prefs.getString(_messageThreadsKey);
-        final current = currentRaw != null && currentRaw.isNotEmpty
-            ? List<dynamic>.from(jsonDecode(currentRaw) as List)
-            : <dynamic>[];
-        current.removeWhere(
-          (entry) =>
-              entry is Map &&
-              ((entry['id']?.toString() == remote['id']?.toString()) ||
-                  (entry['requestId']?.toString() == request.id)),
-        );
-        current.add(remote);
-        await _persistMessageThreads(prefs, current);
+        await _operationalMutationQueue.run(() async {
+          await _assertCurrentOperationalUserId(expectedCurrentUserId);
+          final prefs = await SharedPreferences.getInstance();
+          final currentRaw = prefs.getString(_messageThreadsKey);
+          final current = currentRaw == null
+              ? <dynamic>[]
+              : _decodeMessageThreadsStrict(currentRaw)
+                  .map((entry) => entry.toJson())
+                  .toList();
+          current.removeWhere(
+            (entry) =>
+                entry is Map &&
+                ((entry['id']?.toString() == remote['id']?.toString()) ||
+                    (entry['requestId']?.toString() == request.id)),
+          );
+          current.add(remote);
+          await _persistMessageThreads(prefs, current);
+        });
         return;
       }
       final item = await getItemById(request.itemId);
@@ -9690,65 +10976,60 @@ class DataService {
       final owner = await getUserById(request.ownerId);
       if (renter == null || owner == null) return;
 
-      final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
-      List<dynamic> list = [];
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          list = jsonDecode(raw);
-        } catch (_) {
-          list = [];
-        }
-      }
-
-      // Prüfe ob bereits ein Thread für diese Anfrage existiert
-      final exists = list.any((e) {
-        try {
-          final map = Map<String, dynamic>.from(e as Map);
-          return (map['requestId']?.toString() ?? '') == request.id;
-        } catch (_) {
+      var threadId = '';
+      final created = await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(expectedCurrentUserId);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = await _readMessageThreads(prefs);
+        final threads =
+            raw == null ? <MessageThread>[] : _decodeMessageThreadsStrict(raw);
+        if (threads.any((thread) => thread.requestId == request.id)) {
           return false;
         }
+        if (threads.length >= _maxLocalMessageThreads) {
+          throw StateError('Der lokale Nachrichtenverlauf ist voll.');
+        }
+
+        final now = DateTime.now();
+        threadId = 'thread_${now.microsecondsSinceEpoch}';
+        final initialMessage = Message(
+          id: 'msg_${now.microsecondsSinceEpoch}',
+          senderId: 'system',
+          text:
+              'Starte einen Chat mit ${owner.displayName}, um eine Uhrzeit für Übergabe und Rückgabe zu vereinbaren.',
+          timestamp: now,
+          isRead: false,
+        );
+        threads.add(
+          MessageThread(
+            id: threadId,
+            requestId: request.id,
+            itemId: request.itemId,
+            itemTitle: item.title,
+            user1Id: request.renterId,
+            user2Id: request.ownerId,
+            archivedForUserIds: const <String>[],
+            messages: [initialMessage],
+            createdAt: now,
+            lastMessageAt: now,
+          ),
+        );
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(),
+        );
+        return true;
       });
-
-      if (exists) return; // Thread existiert bereits
-
-      // Erstelle neuen Thread mit initialer Nachricht
-      final threadId = 'thread_${DateTime.now().microsecondsSinceEpoch}';
-      final now = DateTime.now();
-
-      final initialMessage = Message(
-        id: 'msg_${now.microsecondsSinceEpoch}',
-        senderId: 'system',
-        text:
-            'Starte einen Chat mit ${owner.displayName}, um eine Uhrzeit für Übergabe und Rückgabe zu vereinbaren.',
-        timestamp: now,
-        isRead: false,
-      );
-
-      final thread = MessageThread(
-        id: threadId,
-        requestId: request.id,
-        itemId: request.itemId,
-        itemTitle: item.title,
-        user1Id: request.renterId,
-        user2Id: request.ownerId,
-        archivedForUserIds: const <String>[],
-        messages: [initialMessage],
-        createdAt: now,
-        lastMessageAt: now,
-      );
-
-      list.add(thread.toJson());
-      await _persistMessageThreads(prefs, list);
+      if (!created) return;
       debugPrint(
         '[DataService] Created message thread for request ${request.id}',
       );
 
       // Create message notifications for both parties pointing directly into the thread.
       try {
-        await addStructuredNotification(
+        await _addStructuredNotification(
           userId: request.renterId,
+          expectedCurrentUserId: expectedCurrentUserId,
           category: 'messages',
           priority: 3,
           title: 'Neuer Chat',
@@ -9758,8 +11039,9 @@ class DataService {
           entityId: threadId,
           ctaLabel: 'Chat öffnen',
         );
-        await addStructuredNotification(
+        await _addStructuredNotification(
           userId: request.ownerId,
+          expectedCurrentUserId: expectedCurrentUserId,
           category: 'messages',
           priority: 3,
           title: 'Neuer Chat',
@@ -9781,36 +11063,25 @@ class DataService {
   static Future<List<MessageThread>> getMessageThreadsForUser(
     String userId,
   ) async {
+    await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
+      await _requireCurrentOperationalUser(requestedUserId: userId);
       if (raw == null || raw.isEmpty) {
         debugPrint(
           '[DataService] message thread seed skipped (demo seed disabled)',
         );
         return [];
       }
-
-      final effectiveRaw = await _readMessageThreads(prefs);
-      if (effectiveRaw == null || effectiveRaw.isEmpty) return [];
-
-      final List<dynamic> list = jsonDecode(effectiveRaw);
-      final threads = <MessageThread>[];
-
-      for (final e in list) {
-        try {
-          final thread = MessageThread.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          );
-          // Nur Threads zeigen, die den User betreffen
-          if ((thread.user1Id == userId || thread.user2Id == userId) &&
-              !thread.archivedForUserIds.contains(userId)) {
-            threads.add(thread);
-          }
-        } catch (err) {
-          debugPrint('[DataService] Skipped corrupted thread: $err');
-        }
-      }
+      final threads = _decodeMessageThreadsStrict(raw)
+          .where(
+            (thread) =>
+                _isThreadParticipant(thread, userId) &&
+                !thread.archivedForUserIds.contains(userId) &&
+                !thread.deletedForUserIds.contains(userId),
+          )
+          .toList();
 
       // Sortiere nach letzter Nachricht (neueste zuerst)
       threads.sort((a, b) {
@@ -9822,7 +11093,7 @@ class DataService {
       return threads;
     } catch (e) {
       debugPrint('[DataService] getMessageThreadsForUser error: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -9834,21 +11105,14 @@ class DataService {
   /// store is empty**. It does not touch booking/payment/QR/review logic.
   static Future<bool> ensureSeededMessageThreadsForUser(String userId) async {
     if (!QaRuntimeService.isEnabled) return false;
-    try {
+    await _requireCurrentOperationalUser(requestedUserId: userId);
+    return _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(userId);
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
-
-      List<dynamic> list = <dynamic>[];
-      if (raw != null && raw.trim().isNotEmpty) {
-        try {
-          final decoded = jsonDecode(raw);
-          if (decoded is List) list = decoded;
-        } catch (_) {
-          list = <dynamic>[];
-        }
-      }
-
-      if (list.isNotEmpty) return false;
+      final threads =
+          raw == null ? <MessageThread>[] : _decodeMessageThreadsStrict(raw);
+      if (threads.isNotEmpty) return false;
 
       final now = DateTime.now();
       final threadId = 'seed_support_${now.microsecondsSinceEpoch}';
@@ -9893,19 +11157,17 @@ class DataService {
         archivedForUserIds: const <String>[],
       );
 
-      await _persistMessageThreads(prefs, [thread.toJson()]);
+      await _persistMessageThreads(prefs, <dynamic>[thread.toJson()]);
       debugPrint('[DataService] Seeded minimal local QA support thread');
       return true;
-    } catch (e) {
-      debugPrint('[DataService] ensureSeededMessageThreadsForUser failed: $e');
-      return false;
-    }
+    });
   }
 
   /// Returns threads that were archived by the user.
   static Future<List<MessageThread>> getArchivedMessageThreadsForUser(
     String userId,
   ) async {
+    await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       final prefs = await SharedPreferences.getInstance();
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
@@ -9920,25 +11182,19 @@ class DataService {
           ),
         );
       }
+      await _requireCurrentOperationalUser(requestedUserId: userId);
       final raw = BackendConfig.enabled && !QaRuntimeService.isEnabled
           ? prefs.getString(_messageThreadsKey)
           : await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return [];
-      final List<dynamic> list = jsonDecode(raw);
-      final threads = <MessageThread>[];
-      for (final e in list) {
-        try {
-          final thread = MessageThread.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          );
-          if ((thread.user1Id == userId || thread.user2Id == userId) &&
-              thread.archivedForUserIds.contains(userId)) {
-            threads.add(thread);
-          }
-        } catch (err) {
-          debugPrint('[DataService] Skipped corrupted archived thread: $err');
-        }
-      }
+      final threads = _decodeMessageThreadsStrict(raw)
+          .where(
+            (thread) =>
+                _isThreadParticipant(thread, userId) &&
+                thread.archivedForUserIds.contains(userId) &&
+                !thread.deletedForUserIds.contains(userId),
+          )
+          .toList();
       threads.sort((a, b) {
         final aTime = a.lastMessageAt ?? a.createdAt;
         final bTime = b.lastMessageAt ?? b.createdAt;
@@ -9947,7 +11203,7 @@ class DataService {
       return threads;
     } catch (e) {
       debugPrint('[DataService] getArchivedMessageThreadsForUser error: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -9956,6 +11212,8 @@ class DataService {
     required String userId,
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         await BackendRepository.setThreadArchived(
@@ -9964,30 +11222,34 @@ class DataService {
         );
         final prefs = await SharedPreferences.getInstance();
         final remote = await BackendRepository.getMessageThreads();
+        await _assertCurrentOperationalUserId(current.id);
         await _persistMessageThreads(prefs, remote);
         return;
       }
-      final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return;
-      final List<dynamic> list = jsonDecode(raw);
-      bool mutated = false;
-      for (int i = 0; i < list.length; i++) {
-        if (list[i] is! Map) continue;
-        final map = Map<String, dynamic>.from(list[i] as Map);
-        if ((map['id'] ?? '').toString() != threadId) continue;
-        final thread = MessageThread.fromJson(map);
-        final archived = [...thread.archivedForUserIds];
-        if (!archived.contains(userId)) {
-          archived.add(userId);
-          list[i] = thread.copyWith(archivedForUserIds: archived).toJson();
-          mutated = true;
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = await _readMessageThreads(prefs);
+        if (raw == null || raw.isEmpty) return;
+        final threads = _decodeMessageThreadsStrict(raw);
+        final index = threads.indexWhere((thread) => thread.id == threadId);
+        if (index < 0) return;
+        final thread = threads[index];
+        if (!_isThreadParticipant(thread, current.id)) {
+          throw StateError(
+              'Der Nachrichtenverlauf gehört zu einem anderen Konto.');
         }
-        break;
-      }
-      if (mutated) await _persistMessageThreads(prefs, list);
+        final archived =
+            <String>{...thread.archivedForUserIds, current.id}.toList()..sort();
+        threads[index] = thread.copyWith(archivedForUserIds: archived);
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(growable: false),
+        );
+      });
     } catch (e) {
       debugPrint('[DataService] archiveMessageThreadForUser error: $e');
+      rethrow;
     }
   }
 
@@ -9996,6 +11258,8 @@ class DataService {
     required String userId,
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         await BackendRepository.setThreadArchived(
@@ -10004,69 +11268,92 @@ class DataService {
         );
         final prefs = await SharedPreferences.getInstance();
         final remote = await BackendRepository.getMessageThreads();
+        await _assertCurrentOperationalUserId(current.id);
         await _persistMessageThreads(prefs, remote);
         return;
       }
-      final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return;
-      final List<dynamic> list = jsonDecode(raw);
-      bool mutated = false;
-      for (int i = 0; i < list.length; i++) {
-        if (list[i] is! Map) continue;
-        final map = Map<String, dynamic>.from(list[i] as Map);
-        if ((map['id'] ?? '').toString() != threadId) continue;
-        final thread = MessageThread.fromJson(map);
-        final archived = [...thread.archivedForUserIds];
-        if (archived.remove(userId)) {
-          list[i] = thread.copyWith(archivedForUserIds: archived).toJson();
-          mutated = true;
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = await _readMessageThreads(prefs);
+        if (raw == null || raw.isEmpty) return;
+        final threads = _decodeMessageThreadsStrict(raw);
+        final index = threads.indexWhere((thread) => thread.id == threadId);
+        if (index < 0) return;
+        final thread = threads[index];
+        if (!_isThreadParticipant(thread, current.id)) {
+          throw StateError(
+              'Der Nachrichtenverlauf gehört zu einem anderen Konto.');
         }
-        break;
-      }
-      if (mutated) await _persistMessageThreads(prefs, list);
+        final archived = <String>{...thread.archivedForUserIds}
+          ..remove(current.id);
+        threads[index] = thread.copyWith(
+          archivedForUserIds: archived.toList()..sort(),
+        );
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(growable: false),
+        );
+      });
     } catch (e) {
       debugPrint('[DataService] unarchiveMessageThreadForUser error: $e');
+      rethrow;
     }
   }
 
-  /// Deletes a thread entirely from local storage.
-  ///
-  /// This is destructive and affects both participants (demo/local only).
+  /// Hides a local thread only for the current participant.
   static Future<void> deleteMessageThread({required String threadId}) async {
     if (threadId.isEmpty) return;
+    final current = await _requireCurrentOperationalUser();
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return;
-      final List<dynamic> list = jsonDecode(raw);
-      final before = list.length;
-      list.removeWhere(
-        (e) => (e is Map) && ((e['id'] ?? '').toString() == threadId),
-      );
-      if (list.length != before) {
-        await _persistMessageThreads(prefs, list);
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.setThreadArchived(
+          threadId: threadId,
+          archived: true,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final remote = await BackendRepository.getMessageThreads();
+        await _assertCurrentOperationalUserId(current.id);
+        await _persistMessageThreads(prefs, remote);
+        return;
       }
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = await _readMessageThreads(prefs);
+        if (raw == null || raw.isEmpty) return;
+        final threads = _decodeMessageThreadsStrict(raw);
+        final index = threads.indexWhere((thread) => thread.id == threadId);
+        if (index < 0) return;
+        final thread = threads[index];
+        if (!_isThreadParticipant(thread, current.id)) {
+          throw StateError(
+              'Der Nachrichtenverlauf gehört zu einem anderen Konto.');
+        }
+        final deleted =
+            <String>{...thread.deletedForUserIds, current.id}.toList()..sort();
+        threads[index] = thread.copyWith(deletedForUserIds: deleted);
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(growable: false),
+        );
+      });
     } catch (e) {
       debugPrint('[DataService] deleteMessageThread error: $e');
+      rethrow;
     }
   }
 
   static Future<int> getUnreadThreadCountForUser(String userId) async {
-    try {
-      final threads = await getMessageThreadsForUser(userId);
-      int count = 0;
-      for (final t in threads) {
-        final hasUnread = t.messages.any(
-          (m) => m.senderId != userId && !m.isRead,
-        );
-        if (hasUnread) count++;
-      }
-      return count;
-    } catch (e) {
-      debugPrint('[DataService] getUnreadThreadCountForUser error: $e');
-      return 0;
+    final threads = await getMessageThreadsForUser(userId);
+    int count = 0;
+    for (final t in threads) {
+      final hasUnread = t.messages.any(
+        (m) => m.senderId != userId && !m.isRead,
+      );
+      if (hasUnread) count++;
     }
+    return count;
   }
 
   /// Opens the local, read-only presentation for a server-confirmed case.
@@ -10077,6 +11364,8 @@ class DataService {
     required String canonicalCaseNumber,
   }) async {
     try {
+      final current =
+          await _requireCurrentOperationalUser(requestedUserId: userId);
       if (!RegExp(r'^SIT-[A-HJ-NP-Z2-9]{12}$')
           .hasMatch(canonicalCaseNumber.trim())) {
         debugPrint(
@@ -10084,54 +11373,56 @@ class DataService {
         );
         return null;
       }
-      final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
-      final List<dynamic> list =
-          raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
+      return _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = await _readMessageThreads(prefs);
+        final threads =
+            raw == null ? <MessageThread>[] : _decodeMessageThreadsStrict(raw);
 
-      for (final entry in list) {
-        if (entry is! Map) continue;
-        final thread = MessageThread.fromJson(Map<String, dynamic>.from(entry));
-        final isSupport = (thread.threadType ?? '').toLowerCase() == 'support';
-        final belongsToUser =
-            (thread.user1Id == userId && thread.user2Id == 'support') ||
-                (thread.user2Id == userId && thread.user1Id == 'support');
-        if (isSupport && belongsToUser) {
-          debugPrint('[DataService] createSupportThread: reusing local thread');
-          return thread;
+        for (final thread in threads) {
+          final isSupport =
+              (thread.threadType ?? '').toLowerCase() == 'support';
+          final belongsToUser =
+              (thread.user1Id == current.id && thread.user2Id == 'support') ||
+                  (thread.user2Id == current.id && thread.user1Id == 'support');
+          if (isSupport &&
+              belongsToUser &&
+              !thread.deletedForUserIds.contains(current.id)) {
+            debugPrint(
+                '[DataService] createSupportThread: reusing local thread');
+            return thread;
+          }
         }
-      }
+        if (threads.length >= _maxLocalMessageThreads) {
+          throw StateError('Der lokale Nachrichtenverlauf ist voll.');
+        }
 
-      final now = DateTime.now();
-      final threadId = 'thread_support_${now.microsecondsSinceEpoch}';
+        final now = DateTime.now();
+        final supportThread = MessageThread(
+          id: 'thread_support_${now.microsecondsSinceEpoch}',
+          requestId: '',
+          itemId: '',
+          itemTitle: 'SIT Support',
+          user1Id: current.id,
+          user2Id: 'support',
+          threadType: 'support',
+          archivedForUserIds: const <String>[],
+          messages: const <Message>[],
+          createdAt: now,
+        );
 
-      final supportThread = MessageThread(
-        id: threadId,
-        requestId: '',
-        itemId: '',
-        itemTitle: 'SIT Support',
-        user1Id: userId,
-        user2Id: 'support',
-        threadType: 'support',
-        bookingStatus: null,
-        handoverAt: null,
-        returnAt: null,
-        otherUserOnline: null,
-        otherUserLastActive: null,
-        archivedForUserIds: const <String>[],
-        messages: const <Message>[],
-        createdAt: now,
-        lastMessageAt: null,
-      );
-
-      list.add(supportThread.toJson());
-      await _persistMessageThreads(prefs, list);
-
-      debugPrint('[DataService] createSupportThread: created local thread');
-      return supportThread;
+        threads.add(supportThread);
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(),
+        );
+        debugPrint('[DataService] createSupportThread: created local thread');
+        return supportThread;
+      });
     } catch (e) {
       debugPrint('[DataService] createSupportThread error: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -10144,33 +11435,30 @@ class DataService {
     if (normalizedThreadId.isEmpty) return null;
 
     try {
+      final current = await _requireCurrentOperationalUser();
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(
         prefs,
         remoteTimeout: remoteTimeout,
       );
-      if (raw == null || raw.isEmpty) return null;
+      await _requireCurrentOperationalUser(requestedUserId: current.id);
+      if (raw == null) return null;
 
-      final List<dynamic> list = jsonDecode(raw);
-      for (final e in list) {
-        try {
-          final thread = MessageThread.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          );
-          if (thread.id != normalizedThreadId) continue;
-
-          final isParticipant = await _isCurrentUserParticipantForThread(
-            thread,
-          );
-          if (!isParticipant) return null;
-
-          return thread;
-        } catch (_) {}
+      for (final thread in _decodeMessageThreadsStrict(raw)) {
+        if (thread.id != normalizedThreadId) continue;
+        if (!_isThreadParticipant(thread, current.id) ||
+            thread.deletedForUserIds.contains(current.id)) {
+          return null;
+        }
+        return thread;
       }
+      return null;
+    } on StateError catch (e) {
+      debugPrint('[DataService] getMessageThreadById denied: $e');
       return null;
     } catch (e) {
       debugPrint('[DataService] getMessageThreadById error: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -10180,81 +11468,84 @@ class DataService {
     required String senderId,
     required String text,
   }) async {
-    try {
-      final normalizedThreadId = threadId.trim();
-      final normalizedSenderId = senderId.trim();
-      final normalizedText = text.trim();
-      if (normalizedThreadId.isEmpty ||
-          normalizedSenderId.isEmpty ||
-          normalizedText.isEmpty) {
+    final normalizedThreadId = threadId.trim();
+    final normalizedSenderId = senderId.trim();
+    final normalizedText = text.trim();
+    if (normalizedThreadId.isEmpty ||
+        normalizedSenderId.isEmpty ||
+        normalizedText.isEmpty) {
+      return;
+    }
+    if (normalizedText.length > 20000) {
+      throw ArgumentError('Die Nachricht ist zu lang.');
+    }
+
+    final currentUser = await _requireCurrentOperationalUser();
+
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      if (normalizedSenderId == 'system' ||
+          normalizedSenderId != currentUser.id) {
         return;
       }
+      await BackendRepository.sendThreadMessage(
+        threadId: normalizedThreadId,
+        text: normalizedText,
+        idempotencyKey:
+            'message_${normalizedThreadId}_${DateTime.now().microsecondsSinceEpoch}',
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final remote = await BackendRepository.getMessageThreads();
+      await _assertCurrentOperationalUserId(currentUser.id);
+      await _persistMessageThreads(prefs, remote);
+      return;
+    }
 
-      final currentUser = await getCurrentUser();
-      if (currentUser == null) return;
-
-      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        if (normalizedSenderId == 'system' ||
-            normalizedSenderId != currentUser.id) {
-          return;
-        }
-        await BackendRepository.sendThreadMessage(
-          threadId: normalizedThreadId,
-          text: normalizedText,
-          idempotencyKey:
-              'message_${normalizedThreadId}_${DateTime.now().microsecondsSinceEpoch}',
-        );
-        final prefs = await SharedPreferences.getInstance();
-        final remote = await BackendRepository.getMessageThreads();
-        await _persistMessageThreads(prefs, remote);
-        return;
-      }
-
+    await _operationalMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(currentUser.id);
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return;
-
-      final List<dynamic> list = jsonDecode(raw);
-      bool mutated = false;
-
-      for (int i = 0; i < list.length; i++) {
-        try {
-          final map = Map<String, dynamic>.from(list[i] as Map);
-          if ((map['id']?.toString() ?? '') == normalizedThreadId) {
-            final thread = MessageThread.fromJson(map);
-            final isParticipant = thread.user1Id == currentUser.id ||
-                thread.user2Id == currentUser.id;
-            final senderIsAllowed = normalizedSenderId == 'system' ||
-                normalizedSenderId == currentUser.id;
-            if (!isParticipant || !senderIsAllowed) return;
-
-            final now = DateTime.now();
-            final newMessage = Message(
-              id: 'msg_${now.microsecondsSinceEpoch}',
-              senderId: normalizedSenderId,
-              text: normalizedText,
-              timestamp: now,
-              isRead: false,
-            );
-
-            final updatedThread = thread.copyWith(
-              messages: [...thread.messages, newMessage],
-              lastMessageAt: now,
-            );
-
-            list[i] = updatedThread.toJson();
-            mutated = true;
-            break;
-          }
-        } catch (_) {}
+      if (raw == null) return;
+      final threads = _decodeMessageThreadsStrict(raw);
+      final index =
+          threads.indexWhere((thread) => thread.id == normalizedThreadId);
+      if (index < 0) return;
+      final thread = threads[index];
+      final isParticipant = _isThreadParticipant(thread, currentUser.id);
+      final senderIsAllowed = normalizedSenderId == 'system' ||
+          normalizedSenderId == currentUser.id;
+      if (!isParticipant ||
+          !senderIsAllowed ||
+          thread.deletedForUserIds.contains(currentUser.id)) {
+        return;
       }
-
-      if (mutated) {
-        await _persistMessageThreads(prefs, list);
+      if (thread.messages.length >= _maxMessagesPerThread) {
+        throw StateError('Der lokale Nachrichtenverlauf ist voll.');
       }
-    } catch (e) {
-      debugPrint('[DataService] addMessageToThread error: $e');
-    }
+      final now = DateTime.now();
+      final existingIds = thread.messages.map((message) => message.id).toSet();
+      final baseId = 'msg_${now.microsecondsSinceEpoch}';
+      var messageId = baseId;
+      var suffix = 1;
+      while (existingIds.contains(messageId)) {
+        messageId = '${baseId}_$suffix';
+        suffix++;
+      }
+      final newMessage = Message(
+        id: messageId,
+        senderId: normalizedSenderId,
+        text: normalizedText,
+        timestamp: now,
+        isRead: false,
+      );
+      threads[index] = thread.copyWith(
+        messages: [...thread.messages, newMessage],
+        lastMessageAt: now,
+      );
+      await _persistMessageThreads(
+        prefs,
+        threads.map((entry) => entry.toJson()).toList(),
+      );
+    });
   }
 
   static Future<void> addMessageAttachmentToThread({
@@ -10271,6 +11562,13 @@ class DataService {
       );
       return;
     }
+    final current = await _requireCurrentOperationalUser();
+    final thread = await getMessageThreadById(threadId);
+    if (thread == null || !_isThreadParticipant(thread, current.id)) {
+      throw StateError(
+        'Der Nachrichtenverlauf gehört zu einem anderen Konto.',
+      );
+    }
     final upload = await BackendRepository.uploadMessageAttachment(
       bytes: bytes,
       filename: filename,
@@ -10285,6 +11583,7 @@ class DataService {
     );
     final prefs = await SharedPreferences.getInstance();
     final remote = await BackendRepository.getMessageThreads();
+    await _assertCurrentOperationalUserId(current.id);
     await _persistMessageThreads(prefs, remote);
   }
 
@@ -10293,50 +11592,49 @@ class DataService {
     required String threadId,
     required String userId,
   }) async {
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
         await BackendRepository.markThreadRead(threadId);
         final prefs = await SharedPreferences.getInstance();
         final remote = await BackendRepository.getMessageThreads();
+        await _assertCurrentOperationalUserId(current.id);
         await _persistMessageThreads(prefs, remote);
         return;
       }
-      final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
-      if (raw == null || raw.isEmpty) return;
-
-      final List<dynamic> list = jsonDecode(raw);
-      bool mutated = false;
-
-      for (int i = 0; i < list.length; i++) {
-        try {
-          final map = Map<String, dynamic>.from(list[i] as Map);
-          if ((map['id']?.toString() ?? '') == threadId) {
-            final thread = MessageThread.fromJson(map);
-            var threadMutated = false;
-            final updatedMessages = thread.messages.map((msg) {
-              if (msg.senderId != userId && !msg.isRead) {
-                threadMutated = true;
-                return msg.copyWith(isRead: true);
-              }
-              return msg;
-            }).toList();
-
-            if (threadMutated) {
-              final updatedThread = thread.copyWith(messages: updatedMessages);
-              list[i] = updatedThread.toJson();
-              mutated = true;
-            }
-            break;
+      await _operationalMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(current.id);
+        final prefs = await SharedPreferences.getInstance();
+        final raw = await _readMessageThreads(prefs);
+        if (raw == null) return;
+        final threads = _decodeMessageThreadsStrict(raw);
+        final index = threads.indexWhere((thread) => thread.id == threadId);
+        if (index < 0) return;
+        final thread = threads[index];
+        if (!_isThreadParticipant(thread, current.id) ||
+            thread.deletedForUserIds.contains(current.id)) {
+          throw StateError(
+              'Der Nachrichtenverlauf gehört zu einem anderen Konto.');
+        }
+        var mutated = false;
+        final updatedMessages = thread.messages.map((message) {
+          if (message.senderId != current.id && !message.isRead) {
+            mutated = true;
+            return message.copyWith(isRead: true);
           }
-        } catch (_) {}
-      }
-
-      if (mutated) {
-        await _persistMessageThreads(prefs, list);
-      }
+          return message;
+        }).toList();
+        if (!mutated) return;
+        threads[index] = thread.copyWith(messages: updatedMessages);
+        await _persistMessageThreads(
+          prefs,
+          threads.map((entry) => entry.toJson()).toList(),
+        );
+      });
     } catch (e) {
       debugPrint('[DataService] markThreadMessagesAsRead error: $e');
+      rethrow;
     }
   }
 }

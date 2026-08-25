@@ -69,6 +69,12 @@ void main() {
       'items': jsonEncode([item.toJson()]),
       'rental_requests': jsonEncode([request.toJson()]),
       'multi_reviews_v1': '[]',
+      'currentUser': jsonEncode(renter.toJson()),
+      'auth_session_v1': jsonEncode(<String, Object>{
+        'userId': renter.id,
+        'email': renter.email,
+        'createdAt': '2026-08-25T04:00:00.000Z',
+      }),
     });
 
     await tester.pumpWidget(

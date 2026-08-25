@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/models/invoice.dart';
+import 'package:lendify/models/user.dart';
 import 'package:lendify/services/invoices_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 
@@ -15,6 +16,11 @@ void main() {
     ownerId: 'owner-1',
     title: 'QNAP NAS',
   );
+
+  Future<List<Invoice>> documentsFor(User user) async {
+    QaRuntimeService.setRuntimeUserJson(user.toJson());
+    return InvoicesService.getInvoicesForUser(user.id);
+  }
 
   setUp(() async {
     QaRuntimeService.configureFromUri(
@@ -67,8 +73,8 @@ void main() {
   test(
     'completed QA booking yields two renter documents and only one owner payout statement',
     () async {
-      final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
-      final ownerDocs = await InvoicesService.getInvoicesForUser(owner.id);
+      final renterDocs = await documentsFor(renter);
+      final ownerDocs = await documentsFor(owner);
 
       expect(
         renterDocs.where((document) =>
@@ -98,8 +104,8 @@ void main() {
 
   test('needsReview does not hide already-issued undisputed documents',
       () async {
-    final ownerDocs = await InvoicesService.getInvoicesForUser(owner.id);
-    final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
+    final ownerDocs = await documentsFor(owner);
+    final renterDocs = await documentsFor(renter);
 
     expect(
       ownerDocs.where((document) =>
@@ -116,7 +122,7 @@ void main() {
   });
 
   test('QA receipt repeats only the persisted quote amounts', () async {
-    final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
+    final renterDocs = await documentsFor(renter);
     final invoice = renterDocs.singleWhere((document) =>
         document.requestId == 'req-completed' &&
         document.type == InvoiceType.bookingPaymentReceipt);
@@ -130,7 +136,7 @@ void main() {
 
   test('cancelled booking without a succeeded refund produces no document',
       () async {
-    final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
+    final renterDocs = await documentsFor(renter);
     expect(
       renterDocs.where((document) => document.requestId == 'req-cancel-owner'),
       isEmpty,

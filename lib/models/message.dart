@@ -81,6 +81,14 @@ class MessageThread {
   /// If a userId is present here, the thread is hidden from that user's
   /// message list (but still preserved in local storage).
   final List<String> archivedForUserIds;
+
+  /// Per-user local deletion tombstone.
+  ///
+  /// Deleting a conversation must never erase the counterparty's copy. A
+  /// participant listed here no longer sees the thread, while the shared
+  /// record remains available to the other participant and for later server
+  /// reconciliation.
+  final List<String> deletedForUserIds;
   final List<Message> messages;
   final DateTime createdAt;
   final DateTime? lastMessageAt;
@@ -99,6 +107,7 @@ class MessageThread {
     this.otherUserOnline,
     this.otherUserLastActive,
     this.archivedForUserIds = const <String>[],
+    this.deletedForUserIds = const <String>[],
     required this.messages,
     required this.createdAt,
     this.lastMessageAt,
@@ -108,6 +117,7 @@ class MessageThread {
     List<Message>? messages,
     DateTime? lastMessageAt,
     List<String>? archivedForUserIds,
+    List<String>? deletedForUserIds,
     String? threadType,
     String? bookingStatus,
     DateTime? handoverAt,
@@ -129,6 +139,7 @@ class MessageThread {
         otherUserOnline: otherUserOnline ?? this.otherUserOnline,
         otherUserLastActive: otherUserLastActive ?? this.otherUserLastActive,
         archivedForUserIds: archivedForUserIds ?? this.archivedForUserIds,
+        deletedForUserIds: deletedForUserIds ?? this.deletedForUserIds,
         messages: messages ?? this.messages,
         createdAt: createdAt,
         lastMessageAt: lastMessageAt ?? this.lastMessageAt,
@@ -148,6 +159,7 @@ class MessageThread {
         'otherUserOnline': otherUserOnline,
         'otherUserLastActive': otherUserLastActive?.toIso8601String(),
         'archivedForUserIds': archivedForUserIds,
+        'deletedForUserIds': deletedForUserIds,
         'messages': messages.map((m) => m.toJson()).toList(),
         'createdAt': createdAt.toIso8601String(),
         'lastMessageAt': lastMessageAt?.toIso8601String(),
@@ -159,6 +171,10 @@ class MessageThread {
             .toList() ??
         <Message>[];
     final archived = (json['archivedForUserIds'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const <String>[];
+    final deleted = (json['deletedForUserIds'] as List?)
             ?.map((e) => e.toString())
             .toList() ??
         const <String>[];
@@ -184,6 +200,7 @@ class MessageThread {
           ? DateTime.tryParse(json['otherUserLastActive'].toString())
           : null,
       archivedForUserIds: archived,
+      deletedForUserIds: deleted,
       messages: messagesList,
       createdAt: DateTime.parse(json['createdAt'] as String),
       lastMessageAt: json['lastMessageAt'] != null

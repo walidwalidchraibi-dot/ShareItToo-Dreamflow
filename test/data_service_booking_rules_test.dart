@@ -12,6 +12,18 @@ import 'support/test_builders.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  String authSessionFor(User user) => jsonEncode(<String, Object>{
+        'userId': user.id,
+        'email': user.email,
+        'createdAt': '2026-08-25T04:00:00.000Z',
+      });
+
+  Future<void> setAuthenticatedUser(User user) async {
+    await DataService.setCurrentUser(user);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_session_v1', authSessionFor(user));
+  }
+
   group('DataService refund policy', () {
     test(
       'V5.1 cancellation policy uses exact 24-hour instants',
@@ -112,6 +124,7 @@ void main() {
         }),
         if (currentUser != null)
           'currentUser': jsonEncode(currentUser.toJson()),
+        if (currentUser != null) 'auth_session_v1': authSessionFor(currentUser),
       });
     }
 
@@ -121,7 +134,7 @@ void main() {
     }) async {
       final presenter = segment == 'pickup' ? owner : renter;
       final verifier = segment == 'pickup' ? renter : owner;
-      await DataService.setCurrentUser(presenter);
+      await setAuthenticatedUser(presenter);
       for (var index = 0; index < DataService.minimumRequiredPhotos; index++) {
         await DataService.addConditionEvidencePhoto(
           requestId: requestId,
@@ -138,7 +151,7 @@ void main() {
           ][index],
         );
       }
-      await DataService.setCurrentUser(verifier);
+      await setAuthenticatedUser(verifier);
       await DataService.recordConditionConfirmation(
         requestId: requestId,
         segment: segment,
@@ -275,6 +288,7 @@ void main() {
     });
 
     test('handover start rejects an unconfirmed handover time', () async {
+      await setAuthenticatedUser(renter);
       await DataService.requestFlowTime(
         requestId: 'req-pickup',
         isReturn: false,
@@ -282,6 +296,7 @@ void main() {
         time: DateTime(2026, 7, 29, 10),
         requestedByUserId: renter.id,
       );
+      await setAuthenticatedUser(owner);
       final before = await DataService.getHandoverReturnState('req-pickup');
 
       final result = await DataService.setHandoverActive(
@@ -514,6 +529,7 @@ void main() {
 
     test('return start rejects an unconfirmed return time', () async {
       await seedBookingState(currentUser: renter);
+      await setAuthenticatedUser(owner);
       await DataService.requestFlowTime(
         requestId: 'req-return',
         isReturn: true,
@@ -521,6 +537,7 @@ void main() {
         time: DateTime(2026, 7, 31, 18),
         requestedByUserId: owner.id,
       );
+      await setAuthenticatedUser(renter);
       final before = await DataService.getHandoverReturnState('req-return');
 
       final result = await DataService.setReturnActive(
@@ -658,7 +675,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
-        await DataService.setCurrentUser(renter);
+        await setAuthenticatedUser(renter);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -712,7 +729,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
-        await DataService.setCurrentUser(outsider);
+        await setAuthenticatedUser(outsider);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -722,6 +739,7 @@ void main() {
           galleryAcknowledged: true,
         );
 
+        await setAuthenticatedUser(owner);
         final request = await DataService.getRentalRequestById('req-pickup');
 
         expect(result.success, isFalse);
@@ -737,7 +755,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
-        await DataService.setCurrentUser(renter);
+        await setAuthenticatedUser(renter);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -766,7 +784,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
-        await DataService.setCurrentUser(renter);
+        await setAuthenticatedUser(renter);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -866,7 +884,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementReturnPhotos('req-return');
         }
-        await DataService.setCurrentUser(owner);
+        await setAuthenticatedUser(owner);
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-return',
@@ -923,7 +941,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementReturnPhotos('req-return');
         }
-        await DataService.setCurrentUser(owner);
+        await setAuthenticatedUser(owner);
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-return',
@@ -1077,6 +1095,8 @@ void main() {
           ).toJson(),
         ]),
         'review_reminders_v1': '[]',
+        'currentUser': jsonEncode(renter.toJson()),
+        'auth_session_v1': authSessionFor(renter),
       });
     }
 

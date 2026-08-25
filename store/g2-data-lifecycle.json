@@ -54,6 +54,40 @@
     "retentionRule": "user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear",
     "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
   },
+  "localOperationalRecords": {
+    "runtimeStatus": "active-local-fallback-authenticated-participant-scoped",
+    "storageScope": "local-device-shared-preferences-remote-authoritative-when-enabled",
+    "storageKeys": [
+      "message_threads_v1",
+      "notifications",
+      "rental_requests",
+      "timeline_events",
+      "read_requests_v1",
+      "requests_last_seen_by_owner",
+      "handover_return_state_v1",
+      "handover_fail_counts",
+      "handover_banners",
+      "booking_selections_v2"
+    ],
+    "dataClasses": [
+      "participant-message-threads-and-messages",
+      "account-notifications",
+      "participant-rental-requests-and-timeline",
+      "account-read-and-last-seen-markers",
+      "participant-handover-return-state",
+      "participant-failure-counters-and-banners",
+      "principal-booking-selections"
+    ],
+    "identityBinding": "current-session-and-participant-or-current-principal-selection",
+    "legacyAttributionRule": "unattributed-notifications-preserved-unassigned-and-excluded",
+    "corruptionPolicy": "fail-closed-preserve-exact-raw-no-partial-rewrite",
+    "capacityPolicy": "bounded-reject-overflow-without-pruning",
+    "mutationPolicy": "serialized-verified-and-session-rechecked",
+    "exportStatus": "implemented-current-account-and-participant-local-section",
+    "accountDeletionStatus": "account-convenience-state-purged-shared-counterparty-audit-records-retained",
+    "retentionRule": "no-period-invented-shared-records-retained-for-counterparty-and-legal-audit-continuity",
+    "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
+  },
   "persistentData": {
     "rentalCart": {
       "runtimeStatus": "active-guest-local-principal-account-server",
@@ -95,6 +129,7 @@
     "persistentCartEnabled": true,
     "projectCartEnabled": true,
     "newDataCollectionEnabled": true,
+    "operationalLocalFallbackHardened": true,
     "reservationCreatedByCart": false,
     "availabilityHoldCreatedByCart": false,
     "groupRequestEnabled": false,
@@ -103,6 +138,7 @@
     "legalApprovalChanged": false,
     "historicalSnapshotsChanged": false,
     "safetyBackendAuthorityChanged": false,
+    "operationalBackendAuthorityChanged": false,
     "productionChanged": false
   }
 }

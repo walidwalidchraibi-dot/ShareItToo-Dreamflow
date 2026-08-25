@@ -217,10 +217,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final blockedUserIds =
           (await BlockedUsersService.getBlockedUserIds()).toSet();
       final mutedThreadKeys = await _loadMutedThreadKeys(user.id);
+      final currentAfterLoad = await DataService.getCurrentUser();
       final usersById = {for (final u in users) u.id: u};
       final itemsById = {for (final i in items) i.id: i};
 
       if (!mounted) return;
+      if (currentAfterLoad?.id.trim() != user.id.trim()) {
+        setState(() {
+          _currentUser = null;
+          _activeThreads = const [];
+          _archivedThreads = const [];
+          _usersCache = const {};
+          _itemsCache = const {};
+          _blockedUserIds = const {};
+          _mutedThreadKeys = const {};
+          _isLoading = false;
+        });
+        return;
+      }
 
       // If seeding is disabled, the message threads store can be empty, which makes
       // it impossible to QA the chat detail UI. Seed a minimal local support thread

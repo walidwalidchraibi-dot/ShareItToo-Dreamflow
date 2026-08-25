@@ -649,7 +649,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "3134bffa903eb915958ca9d4f19d9e88771616f34308fc537532f2445e379a93"
+      "sha256": "5b9b3d2b5cc7e9feb5242f6ae560d972a6ae9f00d799ba371b400c0c549e1d3c"
     },
     {
       "path": "lib/services/blue_ocean_draft_recovery_service.dart",
@@ -657,7 +657,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "6f9a62bb570bf5495f36db9aa0a0f5f7d93d0787581a119950921f074595fd09"
+      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -741,11 +741,11 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "6841e378953554ed2a4fae1b29ec5572473f8d08d77f5005013070a9b74d533b"
+      "sha256": "615da1ab21fb85bf7783a9f0f4c4ff112c5bb15b21aab5004514a6d3cb9674a0"
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "8bcb33e4e2117186c6181fbb5533953149228c62ca7617c0ce34a432ceede643"
+      "sha256": "c6789444b8a2ccabe962f1fdbbedd1efaadae03d16676fbba4193f751e36cca6"
     }
   ],
   "implementedControls": {
@@ -786,6 +786,17 @@
       "privacyExport": "current-principal-only",
       "confirmedAccountDeletion": "current-principal-purged",
       "retentionPeriodInvented": false
+    },
+    "localOperationalRecords": {
+      "status": "implemented-authenticated-participant-scoped-local-fallback",
+      "accountConvenienceDeletion": "notifications-read-markers-last-seen-selections-and-thread-user-tombstone",
+      "sharedParticipantRecords": "retained-for-counterparty-and-legal-audit-continuity",
+      "unattributedLegacyNotifications": "preserved-unassigned-and-excluded",
+      "corruptData": "preserve-exact-raw-and-fail-closed",
+      "capacityPolicy": "reject-overflow-without-pruning",
+      "privacyExport": "current-account-and-participant-only",
+      "retentionPeriodInvented": false,
+      "backendAuthorityChanged": false
     },
     "retentionInventory": {
       "status": "read-only-counts-implemented-policy-open",

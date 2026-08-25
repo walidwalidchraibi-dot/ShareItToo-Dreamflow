@@ -31,7 +31,9 @@
     ],
     "syntheticOnly": true,
     "localOnly": true,
-    "selfHealingReferenceKeys": ["categories"],
+    "selfHealingReferenceKeys": [
+      "categories"
+    ],
     "selfHealingUserOwnedKeys": []
   },
   "findings": [
@@ -92,7 +94,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "6f9a62bb570bf5495f36db9aa0a0f5f7d93d0787581a119950921f074595fd09"
+      "sha256": "3ecf68271423016168987f63148088a6c8599bcf73189e23682ae0ab14368fb6"
     },
     {
       "path": "lib/screens/explore_screen.dart",
@@ -128,7 +130,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "79e5c4b8559c20470bdced8037f1abd6a8995315979d0fe0f7d780c4a83f8d19"
+      "sha256": "ee5c64fa68090f5bc81fcdfd6f1c3087899ad743699ba6621e28c8adf9de7ef7"
     },
     {
       "path": "test/g2a_rental_cart_screen_test.dart",

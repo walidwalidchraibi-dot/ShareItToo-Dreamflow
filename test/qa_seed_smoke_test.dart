@@ -156,6 +156,7 @@ void main() {
       expect(ownerIds, contains('qa_owner_completed_problem_${ownerMain.id}'));
 
       final pickupRequestId = 'qa_owner_upcoming_pickup_${ownerMain.id}';
+      await triggerQaSeed(ownerA.id);
       await DataService.requestFlowTime(
         requestId: pickupRequestId,
         isReturn: false,
@@ -163,6 +164,7 @@ void main() {
         time: DateTime.now().add(const Duration(days: 1)),
         requestedByUserId: ownerA.id,
       );
+      await triggerQaSeed(ownerMain.id);
       await DataService.confirmFlowTime(
         requestId: pickupRequestId,
         isReturn: false,
@@ -215,6 +217,7 @@ void main() {
       );
 
       final returnRequestId = 'qa_owner_running_${ownerMain.id}';
+      await triggerQaSeed(ownerMain.id);
       await DataService.requestFlowTime(
         requestId: returnRequestId,
         isReturn: true,

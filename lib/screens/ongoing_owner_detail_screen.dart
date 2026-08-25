@@ -97,8 +97,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     _scheduleAcceptanceDeadlineRefresh(req);
     // Show one-time handover banner if present (e.g., renter confirmed)
     if (mounted && item != null) {
-      final bookingId = _computeBookingId(item, req);
-      final msg = await DataService.takeHandoverBanner(bookingId);
+      final msg = await DataService.takeHandoverBanner(req.id);
       if (msg != null && msg.isNotEmpty && mounted) {
         AppPopup.toast(context, icon: Icons.check_circle_outline, title: msg);
       }

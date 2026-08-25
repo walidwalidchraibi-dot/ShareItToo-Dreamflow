@@ -394,8 +394,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     });
     // Show one-time banner if a handover confirmation happened on the other side.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final id = _computeBookingId();
-      final msg = await DataService.takeHandoverBanner(id);
+      final requestId = (widget.booking['requestId'] as String?)?.trim() ?? '';
+      final msg = requestId.isEmpty
+          ? null
+          : await DataService.takeHandoverBanner(requestId);
       if (msg != null && msg.isNotEmpty && mounted) {
         AppPopup.toast(context, icon: Icons.check_circle_outline, title: msg);
       }
@@ -3467,7 +3469,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         }
         if (!mounted) return;
         await _syncBookingLifecycleFromRequest(requestId!);
-        final bookingId = _computeBookingId();
         final title = (widget.booking['title'] as String?) ?? '';
         final message = 'Übergabe des Listings "$title" wurde bestätigt.';
         await DataService.addNotification(
@@ -3475,7 +3476,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           body: message,
         );
         await DataService.setHandoverBanner(
-          bookingId: bookingId,
+          requestId: requestId,
           message: message,
         );
         if (!mounted) return;

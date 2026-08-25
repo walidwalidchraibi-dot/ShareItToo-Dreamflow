@@ -1,6 +1,6 @@
-# Current Work Package: RW5 local safety/privacy principal isolation
+# Current Work Package: RW6 local operational-record authorization recovery
 
-Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
+Status: **IMPLEMENTED LOCALLY — FULL REGRESSION PASSED — CI PENDING**
 on 25.08.2026.
 
 RW4 is closed at documentation commit
@@ -51,6 +51,28 @@ Android debug assembly and the resource guard. Exact implementation head
 `2dfb487cd3b4f4ebd59d184f1a5186f1da455672` passed GitHub Regression
 `32809930879` and CodeQL `32809930884`, with zero open code-scanning alerts.
 No retry, timing, rate-limit or reduced-parallelism workaround is retained.
+
+RW5 is closed at documentation commit
+`ddce25d34c40477ad0fdb9718ac570e3a31334b7`. RW6 is the current separate
+successor. It binds message threads, notifications, rental requests, timeline
+and read markers, handover/return helper metadata and booking selections to the
+matching current session, account principal and request participant. A stale
+cached profile is no longer accepted as operational authorization.
+
+Thread deletion is current-user-only; corrupt documents are preserved and fail
+closed; bounded full stores reject writes without pruning; serialized writes
+recheck the captured session. Privacy export includes only current-account and
+participant records, while confirmed deletion removes account convenience data
+and retains shared counterparty/audit records without inventing a retention
+period. Nineteen focused RW6 tests, the 99-check combined operational matrix,
+64 adjacent Flutter checks and 101 lifecycle/privacy/retention/wiring checks
+are green. The two auth-boundary integration files add 9 passing checks. The
+complete CI-metadata-mode regression passes with analyzer zero issues, default
+Flutter 471 and three documented skips, exact RW profiles, Web/Wasm, Android
+debug assembly with 448 tasks, minSdk 24 and the resource guard. Exact GitHub
+verification is pending. The ordinary local Store-handoff validator remains
+separately blocked by its absent historical private AAB; no candidate evidence
+was changed or reused for RW6.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
 implementation head `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub

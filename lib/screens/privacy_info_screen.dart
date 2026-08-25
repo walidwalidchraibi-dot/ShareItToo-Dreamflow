@@ -89,6 +89,8 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
       );
       export['localDevice'] = <String, dynamic>{
         'savedItems': await DataService.exportSavedItemsForPrivacy(),
+        'operationalRecords':
+            await DataService.exportOperationalRecordsForPrivacy(),
         'safetyPrivacy':
             await LocalSafetyPrivacyService.exportCurrentPrincipal(),
       };

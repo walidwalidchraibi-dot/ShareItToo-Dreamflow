@@ -1570,6 +1570,76 @@ export function validatePrivacyDisclosures({
       || localPrincipalState.externalTransferAdded !== false) {
     fail('Local principal privacy disclosure is incomplete or overstated.');
   }
+  const localOperationalRecords = object(
+    privacy.localOperationalRecords,
+    'localOperationalRecords',
+  );
+  assertExactKeys(localOperationalRecords, [
+    'status',
+    'dataClasses',
+    'identityBinding',
+    'unattributedLegacyNotifications',
+    'corruptionPolicy',
+    'privacyExport',
+    'confirmedAccountDeletion',
+    'retentionPeriodInvented',
+    'containsCredentials',
+    'externalTransferAdded',
+    'backendAuthorityChanged',
+  ], 'localOperationalRecords');
+  if (localOperationalRecords.status
+        !== 'implemented-local-fallback-authenticated-participant-scoped'
+      || !Array.isArray(localOperationalRecords.dataClasses)
+      || localOperationalRecords.dataClasses.join(',') !== [
+        'participant-message-threads-and-messages',
+        'account-notifications',
+        'participant-rental-requests-and-timeline',
+        'account-read-and-last-seen-markers',
+        'participant-handover-return-state',
+        'participant-failure-counters-and-banners',
+        'principal-booking-selections',
+      ].join(',')
+      || localOperationalRecords.identityBinding
+        !== 'matching-auth-session-and-participant-or-current-principal-selection'
+      || localOperationalRecords.unattributedLegacyNotifications
+        !== 'preserved-unassigned-and-excluded'
+      || localOperationalRecords.corruptionPolicy
+        !== 'preserve-exact-raw-and-fail-closed'
+      || localOperationalRecords.privacyExport
+        !== 'current-account-and-participant-records-only'
+      || localOperationalRecords.confirmedAccountDeletion
+        !== 'account-convenience-state-purged-shared-counterparty-audit-records-retained'
+      || localOperationalRecords.retentionPeriodInvented !== false
+      || localOperationalRecords.containsCredentials !== false
+      || localOperationalRecords.externalTransferAdded !== false
+      || localOperationalRecords.backendAuthorityChanged !== false) {
+    fail('Local operational-record privacy disclosure is incomplete or overstated.');
+  }
+  const operationalDataService = sourceText(
+    root,
+    sourceTexts,
+    'lib/services/data_service.dart',
+  );
+  for (const marker of [
+    'exportOperationalRecordsForPrivacy()',
+    'clearOperationalRecordsForAccountDeletion(',
+    "'unattributedLegacyNotificationsExcluded': true",
+    "'scope': 'current-authenticated-account'",
+  ]) {
+    if (!operationalDataService.includes(marker)) {
+      fail(`Local operational-record privacy coverage is missing ${marker}.`);
+    }
+  }
+  const operationalDeletion = sourceText(
+    root,
+    sourceTexts,
+    'lib/services/account_deletion_service.dart',
+  );
+  if ([...operationalDeletion.matchAll(
+    /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
+  )].length !== 2) {
+    fail('Both confirmed account deletion paths must clear scoped local operational records.');
+  }
   const localSafetyPrivacy = sourceText(
     root,
     sourceTexts,

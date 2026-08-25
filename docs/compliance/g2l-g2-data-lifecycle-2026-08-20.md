@@ -111,3 +111,25 @@ unlesbarer Einzel-Bucket bleibt quarantainiert und wird nicht als leer
 ausgegeben. Die Registry ist auf zwoelf gueltige plus quarantainierte Buckets
 begrenzt; Ueberlauf verwirft keinen vorhandenen Nutzerbestand. Retention-,
 Legal- und externe Freigabestatus bleiben unveraendert offen.
+
+## Aktueller Nachfolger RW6
+
+RW6 ergaenzt die Lifecycle-Wahrheit fuer bereits vorhandene lokale operative
+Fallback-Daten. Nachrichten, Benachrichtigungen, Mietanfragen, Timeline- und
+Lesemarker sowie Uebergabe-/Rueckgabe-Metadaten sind nur mit passender aktueller
+Auth-Session und, wo erforderlich, Teilnehmerrolle sichtbar oder veraenderbar.
+Ein zurueckgebliebenes lokales Profil ist keine Authentifizierung.
+
+Thread-Loeschung wirkt nur fuer das aktuelle Konto; die Gegenpartei behaelt den
+gemeinsamen Verlauf. Nicht zuordenbare Alt-Benachrichtigungen bleiben erhalten,
+werden aber keinem spaeteren Konto zugewiesen oder exportiert. Fehlerhafte
+operative Dokumente bleiben bytegetreu erhalten und schlagen geschlossen fehl.
+Volle begrenzte Speicher lehnen neue Writes ab, statt akzeptierte Historie zu
+kuerzen.
+
+Der lokale Privacy-Export umfasst Kontodaten und gemeinsame Vorgangsdaten nur
+fuer den aktuellen Teilnehmer. Bei bestaetigter Kontoloeschung werden lokale
+Komfortdaten und der kontospezifische Thread-Tombstone bereinigt; gemeinsame
+Mietanfrage-, Timeline- und Handover-Daten bleiben fuer Gegenpartei und
+Legal-/Audit-Kontinuitaet bestehen. RW6 erfindet keine Aufbewahrungsfrist und
+aendert weder Backend-Autoritaet noch Rechts-, Produktions- oder Live-Gates.

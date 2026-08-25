@@ -509,6 +509,34 @@ function assertSourceContracts(root, sourceTexts) {
       fail(`Local safety/privacy state is missing the retention control: ${marker}.`);
     }
   }
+  const localOperationalRecords = text(
+    root,
+    sourceTexts,
+    'lib/services/data_service.dart',
+  );
+  for (const marker of [
+    'exportOperationalRecordsForPrivacy()',
+    'clearOperationalRecordsForAccountDeletion(',
+    'Shared booking/timeline/handover records remain retained',
+    "'unattributedLegacyNotificationsExcluded': true",
+    '_maxLocalMessageThreads = 1000',
+    '_maxLocalNotifications = 5000',
+    '_maxLocalTimelineEvents = 5000',
+  ]) {
+    if (!localOperationalRecords.includes(marker)) {
+      fail(`Local operational state is missing the retention control: ${marker}.`);
+    }
+  }
+  const operationalDeletion = text(
+    root,
+    sourceTexts,
+    'lib/services/account_deletion_service.dart',
+  );
+  if ([...operationalDeletion.matchAll(
+    /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
+  )].length !== 2) {
+    fail('Both confirmed account deletion paths must apply operational-record cleanup.');
+  }
   const rentalCartRetention = text(root, sourceTexts, 'backend/src/retention_inventory.js');
   for (const dataset of [
     'rental_carts',
@@ -1807,6 +1835,22 @@ export function validateRetentionDeletionReadiness({
         !== 'current-principal-purged'
       || controls.localSafetyPrivacyPrincipalState?.retentionPeriodInvented
         !== false
+      || controls.localOperationalRecords?.status
+        !== 'implemented-authenticated-participant-scoped-local-fallback'
+      || controls.localOperationalRecords?.accountConvenienceDeletion
+        !== 'notifications-read-markers-last-seen-selections-and-thread-user-tombstone'
+      || controls.localOperationalRecords?.sharedParticipantRecords
+        !== 'retained-for-counterparty-and-legal-audit-continuity'
+      || controls.localOperationalRecords?.unattributedLegacyNotifications
+        !== 'preserved-unassigned-and-excluded'
+      || controls.localOperationalRecords?.corruptData
+        !== 'preserve-exact-raw-and-fail-closed'
+      || controls.localOperationalRecords?.capacityPolicy
+        !== 'reject-overflow-without-pruning'
+      || controls.localOperationalRecords?.privacyExport
+        !== 'current-account-and-participant-only'
+      || controls.localOperationalRecords?.retentionPeriodInvented !== false
+      || controls.localOperationalRecords?.backendAuthorityChanged !== false
       || controls.retentionExecutionPreflight?.status
         !== 'implemented-fail-closed-policy-and-staging-gates-open'
       || controls.retentionExecutionPreflight?.executionAllowed !== false

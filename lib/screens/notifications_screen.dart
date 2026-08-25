@@ -190,7 +190,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       }
       final feed = await DataService.getNotificationFeedForUser(userId);
+      final currentAfterLoad = await DataService.getCurrentUser();
       if (!mounted) return;
+      if (currentAfterLoad?.id.trim() != userId.trim()) {
+        setState(() {
+          _currentUserId = null;
+          _feed = [];
+          _prefs = prefs;
+        });
+        return;
+      }
       setState(() {
         _currentUserId = userId;
         _feed = [...feed]..sort(_compareNotifications);

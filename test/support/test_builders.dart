@@ -135,6 +135,8 @@ Future<void> seedCoreBookingState({
     'users': jsonEncode([owner.toJson(), renter.toJson()]),
     'items': jsonEncode([item.toJson()]),
     'rental_requests': jsonEncode(requests.map((e) => e.toJson()).toList()),
+    'qa_messages_notifs_seeded_v3_for_${owner.id}': true,
+    'qa_messages_notifs_seeded_v3_for_${renter.id}': true,
     if (currentUser != null) 'currentUser': jsonEncode(currentUser.toJson()),
   });
 }
