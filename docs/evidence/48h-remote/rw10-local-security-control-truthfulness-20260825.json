@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw10-local-security-control-truthfulness",
-  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "status": "implemented-focused-passed-full-technical-regression-pending",
   "implementationBaseHead": "3f42924f297f758d0e4f62a3a78562d075494658",
-  "implementationHead": "e6fd3d7d932654edfa956e430a1dce1df3768e94",
+  "implementationHead": null,
   "architecture": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md",
   "report": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md",
   "predecessor": {
@@ -93,6 +93,11 @@
       "id": "RW10-P1-LEGACY-SECURITY-READ-MUTATION-010",
       "state": "resolved-and-tested",
       "resolution": "Retired legacy preview bytes are ignored and preserved exactly without read-time rewrite, seeding or deletion."
+    },
+    {
+      "id": "RW10-P1-SECRET-SCAN-FIXTURE-011",
+      "state": "resolved-and-tested",
+      "resolution": "Synthetic static password properties were replaced by runtime-built fixtures; the published historical tuple is reviewed exactly and cannot permit current-tree findings."
     }
   ],
   "verification": {
@@ -101,23 +106,11 @@
     "rw10PlusB10Flutter": "passed-34",
     "privacyRetentionProvider": "passed",
     "rw10WiringTests": "passed-8",
-    "fullTechnicalRegression": "passed",
+    "fullTechnicalRegression": "pending",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },
-  "localRegression": {
-    "head": "e6fd3d7d932654edfa956e430a1dce1df3768e94",
-    "standardParallelism": true,
-    "timingWorkaroundUsed": false,
-    "parallelismReductionUsed": false,
-    "flutterPassed": 523,
-    "documentedProfileSkips": 3,
-    "analyzerIssues": 0,
-    "webDebugBuild": "passed",
-    "loopbackSmoke": "passed",
-    "androidDebugTasks": 448,
-    "androidMinSdk": 24
-  },
+  "localRegression": null,
   "githubVerification": null,
   "ratchetAudit": {
     "cause": "RW10 retired local password, two-factor and device-session simulation and introduced strict server-session decoding plus exact conditional local auth-session clearing. Privacy and retention source bindings therefore changed; active-provider evidence changed only to bind those reviewed hashes.",
@@ -128,7 +121,7 @@
       "B10 is tightened to require the server-bound account-security service and forbid the retired debug two-factor condition, local settings mutation and timed password success; no prior guard is relaxed.",
       "Every predecessor, privacy, retention and active-provider validator must pass before the RW10 implementation candidate is frozen."
     ],
-    "verification": "RW0 through RW10 package validators, privacy, retention, provider hold and the standard local full technical regression passed; exact-candidate GitHub Regression/CodeQL remain pending."
+    "verification": "RW0 through RW10 package validators, privacy, retention and provider hold passed before the first candidate. Its exact-head GitHub Regression rejected synthetic static-password fixture shape; the current tree now builds those fixtures at runtime and the immutable historical tuple is narrowly reviewed. Replacement-candidate full regression and exact-head GitHub checks remain pending."
   },
   "ratchets": {
     "reason": "retired-local-security-simulation-and-exact-session-clear-source-change",
@@ -181,6 +174,7 @@
     {"path": "lib/services/backend_repository.dart", "sha256": "f818303d43404c16ef821927890a30619bbeffb88744b420c28d1e1d2af37672"},
     {"path": "lib/services/data_service.dart", "sha256": "11bad619a4bf652e91c50fc493b892632407e9d0858c596267181431bb2bb5f5"},
     {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
+    {"path": "backend/ops/secret_scan_history_baseline.json", "sha256": "9d2194c2865d05e12910d2f0c6fd31ea9b345377ae4a130b4cfbd3b711bc5446"},
     {"path": "store/privacy-disclosures.json", "sha256": "e5ae03d2d63a858a65d571e0ec92c9a9462a90f33ec73ee6a66ba3afed5b800e"},
     {"path": "store/retention-deletion-readiness.json", "sha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38"},
     {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "3d55d0bfa5d45a1ecd7fbf1d2dea1782e3c4f00b31d2050a668382d4052e0ef0"},
@@ -189,11 +183,11 @@
     {"path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs", "sha256": "4da2f4df078ce7fc6d8a58b040208deb953ce2f3ef1f62ed2afc63eadff49ec4"},
     {"path": "scripts/technical_regression_check.sh", "sha256": "05faf062a6054774ef205538fe24189e40cd19e10156573f19e9db60057ebdc1"},
     {"path": "test/b10_release_truthfulness_test.dart", "sha256": "76c3426428f748a279a11c067cbbb960b6d557563ce1902fd1767c084fe46e2b"},
-    {"path": "test/rw10_local_security_control_truthfulness_test.dart", "sha256": "5d3fe090f32fe89c783128b5e3835506841ac7dbb07a861dd2b58b0e5ffe9d5f"},
+    {"path": "test/rw10_local_security_control_truthfulness_test.dart", "sha256": "5371a9597aa701a5cba9edcdf2857943aba57ab32e12630054c46f464e07b409"},
     {"path": "test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs", "sha256": "06511e23a822aca21add96dcb9823fa2272708682ef1f57e42ca48d318da2e34"},
-    {"path": "test/tool/validate_rw10_local_security_control_truthfulness.test.mjs", "sha256": "71ca6e9105f2a42ea5b9797b747cede5ba9be40560ae186d3372531512b6ade1"},
-    {"path": "tool/validate_rw10_local_security_control_truthfulness.mjs", "sha256": "42f69db2a1989684f814d478bf9a6762d22adff97126ebb472919aed60c3585a"},
-    {"path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md", "sha256": "7d8e05da3bab6207c9d74273c5675c3b754e824f3f8715b218214007588d3baa"},
-    {"path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md", "sha256": "b25abb9185bb9b0fd013dbe79c2eb371afcc050712f740356a889de96bd8994e"}
+    {"path": "test/tool/validate_rw10_local_security_control_truthfulness.test.mjs", "sha256": "ecec0be574ff2af59771f4fc1ee28dbdfc3290e29463e9d5a943b928eeffae25"},
+    {"path": "tool/validate_rw10_local_security_control_truthfulness.mjs", "sha256": "7fb727719059145119107975c85124b24ff297a2907660002b9066136d2a91fe"},
+    {"path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md", "sha256": "9425a7112efce21b76673c5d1b2138015b1417307861e19a8e29507f84f00c54"},
+    {"path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md", "sha256": "da05e7038c373d399429fa0f958b9cad6652eb68bcc2bc6b000e4be701db0a31"}
   ]
 }

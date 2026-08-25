@@ -18,6 +18,7 @@ const sourcePaths = [
   'lib/services/backend_repository.dart',
   'lib/services/data_service.dart',
   'lib/services/shared_persistence_sync.dart',
+  'backend/ops/secret_scan_history_baseline.json',
   'store/privacy-disclosures.json',
   'store/retention-deletion-readiness.json',
   'docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json',
@@ -119,6 +120,7 @@ export function validateRw10LocalSecurityControlTruthfulness({
     'RW10-P1-STALE-ASYNC-SECURITY-UI-008',
     'RW10-P1-NONRETRYABLE-SESSION-LOAD-FAILURE-009',
     'RW10-P1-LEGACY-SECURITY-READ-MUTATION-010',
+    'RW10-P1-SECRET-SCAN-FIXTURE-011',
   ];
   if (!Array.isArray(value.findings)
       || !exact(value.findings.map(({ id }) => id), findingIds)

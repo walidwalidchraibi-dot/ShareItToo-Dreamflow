@@ -30,6 +30,7 @@ node tool/validate_privacy_disclosures.mjs
 node tool/validate_retention_deletion_readiness.mjs
 node tool/validate_active_infrastructure_mail_provider_readiness.mjs
 node tool/validate_rw10_local_security_control_truthfulness.mjs
+(cd backend && pnpm run security:secrets)
 CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
   bash scripts/technical_regression_check.sh
 ```
@@ -39,10 +40,11 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 - Focused RW10 Flutter matrix: 13 passed.
 - RW10 plus B10 release-truthfulness matrix: 34 passed.
 - Changed-file analyzer: zero issues.
-- Full local technical regression on
-  `e6fd3d7d932654edfa956e430a1dce1df3768e94`: passed with normal
-  parallelism, 523 Flutter tests, three documented skips, analyzer zero, Web
-  loopback smoke passed and Android debug 448 tasks/minSdk 24 passed.
+- The first candidate passed full local regression, but exact-head GitHub
+  Regression rejected its synthetic static-password fixture shape during the
+  repository secret scan. The current test builds those inputs at runtime and
+  the exact immutable historical rule/commit/file tuple is reviewed in the
+  existing baseline. Replacement-candidate full local regression is pending.
 - Exact-head GitHub Regression and CodeQL: pending.
 
 ## Operational behavior
@@ -72,7 +74,12 @@ supported regression changed. B10 is tightened to require the server-bound
 service and to forbid the old debug two-factor exception, local setter and
 timed fake password success. No earlier safety condition was relaxed. All
 predecessor and declaration validators and the standard local full technical
-regression passed; exact-head GitHub checks remain pending.
+regression passed on the first candidate. The subsequent clean-checkout secret
+scan finding was a synthetic RW10 test fixture, not a product or owner
+credential: fixture literals were removed from the current tree, the immutable
+historical tuple was reviewed narrowly, and working-tree findings remain
+unconditionally forbidden. Replacement-candidate full regression and
+exact-head GitHub checks remain pending.
 
 ## Recovery and rollback
 

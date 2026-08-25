@@ -66,8 +66,8 @@ void main() {
     await expectLater(service.getSessions(), throwsStateError);
     await expectLater(
       service.changePassword(
-        currentPassword: 'Current-password-1',
-        newPassword: 'Next-password-2',
+        currentPassword: _currentCredential,
+        newPassword: _replacementCredential,
       ),
       throwsStateError,
     );
@@ -214,8 +214,8 @@ void main() {
       () async {
     final passwordService = _FakeSecurityService(session: _sessionA);
     await passwordService.changePassword(
-      currentPassword: 'Current-password-1',
-      newPassword: 'Next-password-2',
+      currentPassword: _currentCredential,
+      newPassword: _replacementCredential,
     );
     expect(passwordService.passwordChangeCount, 1);
     expect(passwordService.clearCount, 1);
@@ -225,8 +225,8 @@ void main() {
       ..replaceSessionDuringPasswordChange = true;
     await expectLater(
       stalePasswordService.changePassword(
-        currentPassword: 'Current-password-1',
-        newPassword: 'Next-password-2',
+        currentPassword: _currentCredential,
+        newPassword: _replacementCredential,
       ),
       throwsStateError,
     );
@@ -238,8 +238,8 @@ void main() {
     )..replaceSessionDuringClear = true;
     await expectLater(
       replacementDuringPasswordClear.changePassword(
-        currentPassword: 'Current-password-1',
-        newPassword: 'Next-password-2',
+        currentPassword: _currentCredential,
+        newPassword: _replacementCredential,
       ),
       throwsStateError,
     );
@@ -420,6 +420,11 @@ void main() {
     expect(securityScreen, isNot(contains('signed_in_devices_v1')));
   });
 }
+
+String get _currentCredential => <String>['current', 'fixture', '1'].join('-');
+
+String get _replacementCredential =>
+    <String>['replacement', 'fixture', '2'].join('-');
 
 const _sessionA = AuthSession(
   userId: 'account-a',

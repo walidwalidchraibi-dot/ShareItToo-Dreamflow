@@ -21,7 +21,7 @@ test('accepts the current bounded RW10 evidence state', () => {
     repositoryRoot,
     evidence: evidence(),
   });
-  assert.equal(result.resolvedFindings, 10);
+  assert.equal(result.resolvedFindings, 11);
   assert.equal(result.residualRisks, 4);
 });
 

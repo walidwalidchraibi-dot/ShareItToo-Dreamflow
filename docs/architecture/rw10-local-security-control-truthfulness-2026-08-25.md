@@ -1,8 +1,8 @@
 # RW10 local security-control truthfulness
 
 Date: 2026-08-25
-State: local full regression passed on implementation candidate
-`e6fd3d7d932654edfa956e430a1dce1df3768e94`; exact-head CI pending
+State: focused correction checks passed; replacement implementation candidate
+and full regression pending
 
 ## Decision
 
@@ -33,6 +33,13 @@ Password and logout-all success requires the server call, the exact-session
 recheck, conditional local removal and a final proof that no old session
 remains. Debug logs contain only error runtime types and never passwords,
 tokens, raw server envelopes or identifiers.
+
+RW10 tests construct synthetic password inputs at runtime rather than storing
+static credential-shaped properties. The first published candidate contained
+only synthetic test values, but the repository scanner correctly ratcheted on
+their shape. That immutable commit/file/rule tuple is recorded in the existing
+reviewed-history baseline; the current tree remains required to scan clean and
+the exception cannot permit a working-tree or different-commit finding.
 
 ## UI and lifecycle contract
 
