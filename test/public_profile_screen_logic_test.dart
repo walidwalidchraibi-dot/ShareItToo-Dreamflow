@@ -246,6 +246,17 @@ void main() {
         viewer.toJson(),
         seededReviewUser('u7').toJson(),
       ]),
+      'reviews': jsonEncode([
+        Review(
+          id: 'r1',
+          reviewerId: 'u1',
+          reviewedUserId: 'u2',
+          rating: 4.9,
+          comment:
+              'Werkzeug war in Top-Zustand, Übergabe super flexibel.',
+          createdAt: DateTime.utc(2026, 8, 1),
+        ).toJson(),
+      ]),
     });
 
     final reviews = await DataService.getReviewSummariesForUser('u2');
