@@ -7,47 +7,56 @@
     "projectContainer": "Projektkorb"
   },
   "currentSavedItems": {
-    "runtimeStatus": "active-local-device",
+    "runtimeStatus": "active-local-device-principal-scoped",
     "binding": "non-binding-no-reservation",
-    "storageScope": "local-device-shared-preferences",
-    "canonicalKey": "wishlist_state_v2",
+    "storageScope": "local-device-opaque-principal-shared-preferences",
+    "canonicalKey": "wishlist_state_v3",
     "legacyKeys": [
+      "wishlist_state_v2",
       "saved_item_ids",
       "wishlists_meta_v1",
       "wishlist_assign_v1"
     ],
-    "exportStatus": "implemented-local-device-section",
-    "accountDeletionStatus": "implemented-local-purge",
+    "principalBinding": "opaque-stable-token-or-guest",
+    "legacyMigrationRule": "guest-only-or-quarantine",
+    "exportStatus": "implemented-current-principal-local-section",
+    "accountDeletionStatus": "implemented-current-principal-local-purge",
     "retentionRule": "user-controlled-until-removal-account-deletion-or-app-data-clear"
   },
   "persistentData": {
     "rentalCart": {
-      "runtimeStatus": "active-guest-local-account-server",
+      "runtimeStatus": "active-guest-local-principal-account-server",
       "binding": "non-binding-no-reservation-no-hold",
       "storageKeys": [
+        "rental_cart_v2",
         "rental_cart_v1",
         "rental_cart_sync_owner_v1"
       ],
+      "principalBinding": "opaque-stable-token-or-guest",
+      "legacyMigrationRule": "guest-only-or-quarantine",
       "serverDatasets": [
         "rental_carts",
         "rental_cart_items"
       ],
-      "exportStatus": "implemented-local-and-account-export",
-      "accountDeletionStatus": "implemented-explicit-server-delete-and-local-purge",
+      "exportStatus": "implemented-current-principal-local-and-account-export",
+      "accountDeletionStatus": "implemented-explicit-server-delete-and-current-principal-local-purge",
       "retentionRule": "user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear",
       "serverAuthoritativeRecheck": true
     },
     "projectCart": {
-      "runtimeStatus": "active-guest-local-account-server",
+      "runtimeStatus": "active-guest-local-principal-account-server",
       "binding": "organizational-container-no-group-request",
       "storageKeys": [
+        "rental_cart_v2",
         "project_cart_v1"
       ],
+      "principalBinding": "opaque-stable-token-or-guest",
+      "legacyMigrationRule": "guest-only-or-quarantine",
       "serverDatasets": [
         "rental_cart_projects"
       ],
-      "exportStatus": "implemented-local-and-account-export",
-      "accountDeletionStatus": "implemented-cascade-and-local-purge",
+      "exportStatus": "implemented-current-principal-local-and-account-export",
+      "accountDeletionStatus": "implemented-cascade-and-current-principal-local-purge",
       "retentionRule": "user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear"
     }
   },

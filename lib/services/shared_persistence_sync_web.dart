@@ -14,8 +14,16 @@ const Set<String> _watchedKeys = {
   'handover_return_state_v1',
   'saved_items',
   'wishlist_state_v2',
+  'wishlist_state_v3',
   'rental_cart_v1',
+  'rental_cart_v2',
 };
+
+String _canonicalKey(String key) => switch (key) {
+      'wishlist_state_v2' => 'wishlist_state_v3',
+      'rental_cart_v1' => 'rental_cart_v2',
+      _ => key,
+    };
 
 Stream<String> get sharedPersistenceChanges {
   _ensureInitialized();
@@ -25,7 +33,7 @@ Stream<String> get sharedPersistenceChanges {
 void notifySharedPersistenceChange(String key) {
   if (!_watchedKeys.contains(key)) return;
   _ensureInitialized();
-  _controller.add(key);
+  _controller.add(_canonicalKey(key));
   _channel?.postMessage(key);
 }
 
@@ -38,7 +46,7 @@ void _ensureInitialized() {
     _channel!.onMessage.listen((event) {
       final key = event.data?.toString().trim() ?? '';
       if (_watchedKeys.contains(key)) {
-        _controller.add(key);
+        _controller.add(_canonicalKey(key));
       }
     });
   } catch (_) {
@@ -54,7 +62,7 @@ void _ensureInitialized() {
         ? rawKey.substring('flutter.'.length)
         : rawKey;
     if (_watchedKeys.contains(logicalKey)) {
-      _controller.add(logicalKey);
+      _controller.add(_canonicalKey(logicalKey));
     }
   });
 }

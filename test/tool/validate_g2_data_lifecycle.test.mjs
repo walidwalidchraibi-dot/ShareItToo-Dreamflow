@@ -19,7 +19,7 @@ function validate({ lifecycleManifest = clone(baseLifecycle), sourceTexts = {} }
 test('accepts active local and account-bound persistent G2B data', () => {
   assert.deepEqual(validate(), {
     state: 'g2b-persistent-cart-active',
-    currentSavedItemKeyCount: 4,
+    currentSavedItemKeyCount: 5,
     persistentCartEnabled: true,
     projectCartEnabled: true,
     reservationCreatedByCart: false,
@@ -49,7 +49,7 @@ test('rejects activation without account export and deletion coverage', () => {
     /Persistent rental-cart lifecycle is incomplete/u,
   );
   lifecycleManifest.persistentData.rentalCart.exportStatus =
-    'implemented-local-and-account-export';
+    'implemented-current-principal-local-and-account-export';
   lifecycleManifest.persistentData.rentalCart.accountDeletionStatus =
     'required-before-activation';
   assert.throws(
@@ -62,8 +62,15 @@ test('rejects guest cart purge before the complete server merge', () => {
   const path = 'lib/services/data_service.dart';
   const original = readFileSync(resolve(root, path), 'utf8');
   const changed = original.replace(
-    'for (final item in [...local.items]',
-    'await prefs.remove(_rentalCartKey);\n    for (final item in [...local.items]',
+    `    await _writeLocalRentalCart(
+      guest,
+      const RentalCart(
+        reservationCreated: false,
+        localDeviceOnly: true,
+      ),
+    );
+    return true;`,
+    '    return true;',
   );
   assert.throws(
     () => validate({ sourceTexts: { [path]: changed } }),

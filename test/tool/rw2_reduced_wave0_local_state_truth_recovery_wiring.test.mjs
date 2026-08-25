@@ -28,6 +28,7 @@ test('user-owned saved state fails closed while category reference data self-hea
     '_decodeWishlistMetadata',
     '_decodeWishlistAssignments',
     '_validateWishlistAssignmentTargets',
+    "_wishlistPrincipalStateKey = 'wishlist_state_v3'",
     "_wishlistStateKey = 'wishlist_state_v2'",
     'rebuilding invalid category cache',
     'canonical revision $revision is authoritative',

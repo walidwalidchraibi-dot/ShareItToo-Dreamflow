@@ -1,7 +1,37 @@
-# Current Work Package: RW3 local concurrency and cross-surface consistency
+# Current Work Package: RW4 local principal isolation
 
-Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
+Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION PASSED; CI PENDING**
 on 25.08.2026.
+
+RW3 is closed at documentation commit
+`9af5c768279e501a0e3288affea4c403c2baf178`. Its implementation head
+`f7a49899b51e733041878dba86bebf5737fac023` passed GitHub Regression
+`32802063600` and CodeQL `32802063601`, with zero open code-scanning alerts.
+
+RW4 is the current separate successor. `wishlist_state_v3` and
+`rental_cart_v2` store local saved, wishlist and cart/project state in bounded
+opaque account or guest buckets. Account A, guest and account B cannot read or
+overwrite each other's bucket. Valid unscoped legacy state migrates only to
+guest; unreadable unattributed data remains quarantined instead of being
+assigned to the next account.
+
+The authenticated identity is reduced to a stable SHA-256-derived local token;
+raw email, user ID, session token and credentials do not enter either registry.
+One malformed bucket remains preserved and fails closed only for that
+principal, while other last-known-good buckets continue to work through later
+writes and process recreation. The registry rejects a thirteenth valid or
+quarantined principal without silently evicting existing participant data.
+
+Login, logout and session replacement emit scoped `Gemerkt`, saved-ID and cart
+events so already-open surfaces cannot retain another principal's state. Export
+and confirmed deletion address only the active principal; a pending guest sync
+is removed only when its opaque owner matches that account. Thirteen focused RW4
+tests, 51 combined adjacent Flutter checks, 20 lifecycle/predecessor wiring
+checks and changed-file analysis are green. Permanent RW4 validator wiring is
+green. The complete technical regression passes with analyzer zero issues,
+default Flutter 440 passed and three documented skips, exact profiles,
+Web/Wasm loopback smoke, Android debug assembly with 448 tasks and the resource
+guard. Commit/push and exact GitHub verification are the remaining steps.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
 implementation head `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub
@@ -67,7 +97,7 @@ gate remains open.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential
-inspection or history rewrite is authorized by RW2.
+inspection or history rewrite is authorized by RW4.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when

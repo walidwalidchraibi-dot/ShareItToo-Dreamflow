@@ -92,22 +92,28 @@ export function validateG2DataLifecycle({
     'storageScope',
     'canonicalKey',
     'legacyKeys',
+    'principalBinding',
+    'legacyMigrationRule',
     'exportStatus',
     'accountDeletionStatus',
     'retentionRule',
   ], 'currentSavedItems');
-  if (savedItems.canonicalKey !== 'wishlist_state_v2') {
-    fail('currentSavedItems.canonicalKey must bind the atomic saved-state document.');
+  if (savedItems.canonicalKey !== 'wishlist_state_v3') {
+    fail('currentSavedItems.canonicalKey must bind the principal-scoped saved-state document.');
   }
   exactArray(savedItems.legacyKeys, [
+    'wishlist_state_v2',
     'saved_item_ids',
     'wishlists_meta_v1',
     'wishlist_assign_v1',
   ], 'currentSavedItems.legacyKeys');
-  if (savedItems.runtimeStatus !== 'active-local-device'
+  if (savedItems.runtimeStatus !== 'active-local-device-principal-scoped'
       || savedItems.binding !== 'non-binding-no-reservation'
-      || savedItems.exportStatus !== 'implemented-local-device-section'
-      || savedItems.accountDeletionStatus !== 'implemented-local-purge') {
+      || savedItems.storageScope !== 'local-device-opaque-principal-shared-preferences'
+      || savedItems.principalBinding !== 'opaque-stable-token-or-guest'
+      || savedItems.legacyMigrationRule !== 'guest-only-or-quarantine'
+      || savedItems.exportStatus !== 'implemented-current-principal-local-section'
+      || savedItems.accountDeletionStatus !== 'implemented-current-principal-local-purge') {
     fail('Current Gemerkt lifecycle is incomplete or overstated.');
   }
 
@@ -118,6 +124,8 @@ export function validateG2DataLifecycle({
     'runtimeStatus',
     'binding',
     'storageKeys',
+    'principalBinding',
+    'legacyMigrationRule',
     'serverDatasets',
     'exportStatus',
     'accountDeletionStatus',
@@ -126,7 +134,7 @@ export function validateG2DataLifecycle({
   ], 'persistentData.rentalCart');
   exactArray(
     rentalCart.storageKeys,
-    ['rental_cart_v1', 'rental_cart_sync_owner_v1'],
+    ['rental_cart_v2', 'rental_cart_v1', 'rental_cart_sync_owner_v1'],
     'rentalCart.storageKeys',
   );
   exactArray(
@@ -134,11 +142,14 @@ export function validateG2DataLifecycle({
     ['rental_carts', 'rental_cart_items'],
     'rentalCart.serverDatasets',
   );
-  if (rentalCart.runtimeStatus !== 'active-guest-local-account-server'
+  if (rentalCart.runtimeStatus !== 'active-guest-local-principal-account-server'
       || rentalCart.binding !== 'non-binding-no-reservation-no-hold'
-      || rentalCart.exportStatus !== 'implemented-local-and-account-export'
+      || rentalCart.principalBinding !== 'opaque-stable-token-or-guest'
+      || rentalCart.legacyMigrationRule !== 'guest-only-or-quarantine'
+      || rentalCart.exportStatus
+        !== 'implemented-current-principal-local-and-account-export'
       || rentalCart.accountDeletionStatus
-        !== 'implemented-explicit-server-delete-and-local-purge'
+        !== 'implemented-explicit-server-delete-and-current-principal-local-purge'
       || rentalCart.retentionRule
         !== 'user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear'
       || rentalCart.serverAuthoritativeRecheck !== true) {
@@ -150,21 +161,31 @@ export function validateG2DataLifecycle({
     'runtimeStatus',
     'binding',
     'storageKeys',
+    'principalBinding',
+    'legacyMigrationRule',
     'serverDatasets',
     'exportStatus',
     'accountDeletionStatus',
     'retentionRule',
   ], 'persistentData.projectCart');
-  exactArray(projectCart.storageKeys, ['project_cart_v1'], 'projectCart.storageKeys');
+  exactArray(
+    projectCart.storageKeys,
+    ['rental_cart_v2', 'project_cart_v1'],
+    'projectCart.storageKeys',
+  );
   exactArray(
     projectCart.serverDatasets,
     ['rental_cart_projects'],
     'projectCart.serverDatasets',
   );
-  if (projectCart.runtimeStatus !== 'active-guest-local-account-server'
+  if (projectCart.runtimeStatus !== 'active-guest-local-principal-account-server'
       || projectCart.binding !== 'organizational-container-no-group-request'
-      || projectCart.exportStatus !== 'implemented-local-and-account-export'
-      || projectCart.accountDeletionStatus !== 'implemented-cascade-and-local-purge'
+      || projectCart.principalBinding !== 'opaque-stable-token-or-guest'
+      || projectCart.legacyMigrationRule !== 'guest-only-or-quarantine'
+      || projectCart.exportStatus
+        !== 'implemented-current-principal-local-and-account-export'
+      || projectCart.accountDeletionStatus
+        !== 'implemented-cascade-and-current-principal-local-purge'
       || projectCart.retentionRule
         !== 'user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear') {
     fail('Persistent project-cart lifecycle is incomplete or overstated.');
@@ -204,7 +225,9 @@ export function validateG2DataLifecycle({
 
   const dataService = source(root, sourceTexts, sourcePaths.dataService);
   includesEvery(dataService, [
+    "'wishlist_state_v3'",
     "'wishlist_state_v2'",
+    "'rental_cart_v2'",
     "'rental_cart_v1'",
     "'project_cart_v1'",
     "'rental_cart_sync_owner_v1'",
@@ -220,6 +243,9 @@ export function validateG2DataLifecycle({
     'prefs.remove(_rentalCartSyncOwnerKey)',
     'canSyncGuestCartToAccount',
     'canReadLocalRentalCart',
+    "'scope': 'local-principal'",
+    "'principalScope'",
+    'registry.quarantinedPrincipals.remove(principal.token)',
   ], 'DataService G2B lifecycle');
   const syncStart = dataService.indexOf('syncGuestRentalCartAfterAuthentication');
   const syncEnd = dataService.indexOf('static Future<RentalCart> getRentalCart', syncStart);
@@ -228,7 +254,9 @@ export function validateG2DataLifecycle({
     syncSource.lastIndexOf('BackendRepository.putRentalCartProject'),
     syncSource.lastIndexOf('BackendRepository.putRentalCartItem'),
   );
-  const localPurge = syncSource.indexOf('prefs.remove(_rentalCartKey)');
+  const localPurge = syncSource.lastIndexOf(
+    '_writeLocalRentalCart(\n      guest,\n      const RentalCart(',
+  );
   if (lastRemoteUpsert < 0 || localPurge <= lastRemoteUpsert) {
     fail('Guest cart must be purged only after all server upserts complete.');
   }

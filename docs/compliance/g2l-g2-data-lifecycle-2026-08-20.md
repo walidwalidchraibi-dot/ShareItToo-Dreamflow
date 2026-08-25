@@ -39,15 +39,18 @@ Retention-Abdeckung scheitert fail-closed.
 
 ## Geaenderte Laufzeit und Artefakte
 
-- `DataService` exportiert die vier realen lokalen Speicherbereiche
-  `saved_item_ids`, den atomaren kanonischen Stand `wishlist_state_v2` sowie
-  die kompatiblen Spiegel `wishlists_meta_v1` und `wishlist_assign_v1` in
-  einem separaten `localDevice.savedItems`-Abschnitt.
+- `DataService` exportiert den aktuellen principal-scoped Stand aus
+  `wishlist_state_v3` und `rental_cart_v2`. `wishlist_state_v2`,
+  `saved_item_ids`, `wishlists_meta_v1`, `wishlist_assign_v1`,
+  `rental_cart_v1`, `project_cart_v1` und `rental_cart_sync_owner_v1` bleiben
+  Gast-Kompatibilitaetsbereiche; angemeldete Konten werden nicht in diese
+  geraeteweiten Werte gespiegelt.
 - Fehlerhaftes lokales JSON wird nicht still ausgelassen; der Export bricht
   sichtbar ab, statt einen unvollstaendigen Datensatz als vollstaendig
   auszugeben.
-- Beide bestaetigten Kontoloeschungspfade entfernen exakt diese vier lokalen
-  Bereiche. Unabhaengige Geraeteeinstellungen bleiben erhalten.
+- Beide bestaetigten Kontoloeschungspfade entfernen den aktuellen Konto-Bucket
+  und einen nur diesem opaken Konto zugeordneten ausstehenden Gast-Sync. Andere
+  Konto-/Gast-Buckets und unabhaengige Geraeteeinstellungen bleiben erhalten.
 - Die Privacy-Info nennt lokale Merklisten in Zweck, Export und Loeschung.
 - Die aktuelle Privacy-Oberflaeche nennt die lokale Aufbewahrungsgrenze und
   fordert fuer einen spaeteren persistenten Korb eine eigene Lifecycle-
@@ -97,3 +100,14 @@ Login-Rueckkehr sowie serverseitige Verfuegbarkeits- und Quote-Neupruefung
 implementieren. Der Korb bleibt unverbindlich und ist nie eine Reservierung;
 direkte Einzelmiete und alle bestehenden V5.2-Buchungs-, Preis-, Vertrags- und
 Payment-Gates bleiben erhalten.
+
+## Aktueller Nachfolger RW4
+
+RW4 setzt den G2L-Lifecycle principal-scoped um. Der lokale Export kennzeichnet
+nur `authenticated-account` oder `guest-device`, gibt keine lokale
+Prinzipal-ID aus und umfasst ausschliesslich den aktiven Bucket. Valider
+unscoped Altbestand kann nur zum Gast migrieren; unlesbarer Altbestand oder ein
+unlesbarer Einzel-Bucket bleibt quarantainiert und wird nicht als leer
+ausgegeben. Die Registry ist auf zwoelf gueltige plus quarantainierte Buckets
+begrenzt; Ueberlauf verwirft keinen vorhandenen Nutzerbestand. Retention-,
+Legal- und externe Freigabestatus bleiben unveraendert offen.

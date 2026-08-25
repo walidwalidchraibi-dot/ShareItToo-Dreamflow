@@ -980,11 +980,16 @@ function assertSourceContracts({ root, sourceTexts }) {
     }
   }
   for (const marker of [
+    "'wishlist_state_v3'",
+    "'rental_cart_v2'",
     "'rental_cart_v1'",
     "'project_cart_v1'",
     "'rental_cart_sync_owner_v1'",
     "'persistentRentalCart': true",
     "'persistentProjectCart': true",
+    "'scope': 'local-principal'",
+    "'principalScope'",
+    'registry.quarantinedPrincipals.remove(principal.token)',
   ]) {
     if (!dataService.includes(marker)) fail(`Local cart privacy coverage is missing ${marker}.`);
   }

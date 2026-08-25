@@ -169,8 +169,8 @@ void main() {
     await DataService.setItemWishlist('rw3-item', DataService.wlSoonId);
     await DataService.addRentalCartProject(title: 'RW3 Projekt');
 
-    expect(announced, contains('wishlist_state_v2'));
-    expect(announced, contains('rental_cart_v1'));
+    expect(announced, contains('wishlist_state_v3'));
+    expect(announced, contains('rental_cart_v2'));
   });
 
   testWidgets('open search refreshes after an external saved-state mutation',
@@ -247,7 +247,7 @@ void main() {
     });
     await DataService.setItemWishlist(item.id, DataService.wlSoonId);
     final prefs = await SharedPreferences.getInstance();
-    final lastKnownGood = prefs.getString('wishlist_state_v2')!;
+    final lastKnownGood = prefs.getString('wishlist_state_v3')!;
 
     await tester.pumpWidget(
       ChangeNotifierProvider<LocalizationController>(
@@ -269,7 +269,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.favorite), findsOneWidget);
 
-    await prefs.setString('wishlist_state_v2', '{interrupted-write');
+    await prefs.setString('wishlist_state_v3', '{interrupted-write');
     SharedPersistenceSync.notify(SharedPersistenceSync.wishlistStateKey);
     await tester.pumpAndSettle();
 
@@ -278,9 +278,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.byIcon(Icons.favorite_border), findsNothing);
-    expect(prefs.getString('wishlist_state_v2'), '{interrupted-write');
+    expect(prefs.getString('wishlist_state_v3'), '{interrupted-write');
 
-    await prefs.setString('wishlist_state_v2', lastKnownGood);
+    await prefs.setString('wishlist_state_v3', lastKnownGood);
     SharedPersistenceSync.notify(SharedPersistenceSync.wishlistStateKey);
     await tester.pumpAndSettle();
 

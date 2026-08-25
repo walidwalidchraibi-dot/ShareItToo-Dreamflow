@@ -2,7 +2,7 @@
 
 Verified: 2026-08-25 on the Mac mini.
 
-## Current RW3 state
+## Current RW4 state
 
 - RW0 is closed at documentation commit
   `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`. Its exact synthetic, local-only
@@ -92,6 +92,29 @@ Verified: 2026-08-25 on the Mac mini.
   `32802063600` and CodeQL `32802063601`, with zero open code-scanning alerts.
   PR #7 remains Draft and unmerged; the historical GitGuardian owner-review
   gate remains open.
+- RW3 is closed at documentation commit
+  `9af5c768279e501a0e3288affea4c403c2baf178`. RW4 is the current separate
+  successor and retains the reduced, non-binding, synthetic local-only scope.
+- RW4 removes device-global cross-account visibility for local `Gemerkt`,
+  wishlist and `Mietkorb` data. `wishlist_state_v3` and `rental_cart_v2` hold
+  bounded opaque account or guest buckets; no email, user ID or session secret
+  is persisted as a bucket key. V2/V1 unscoped data migrates only to guest or
+  remains quarantined and is never assigned to the next signed-in account.
+- Account A, guest and account B restore only their own last-known-good state.
+  One corrupt bucket fails closed only for its owner while remaining preserved
+  through another account's writes and process recreation. Top-level corruption
+  retains the existing compact accessible stale/error recovery behavior.
+  Login, logout and session replacement announce all three scoped surfaces.
+- Local privacy export and confirmed deletion now address only the current
+  principal. The combined valid/quarantined registry is bounded at 12 and
+  rejects overflow without evicting existing state. Thirteen focused RW4 tests,
+  51 combined adjacent Flutter checks, 20 G2/predecessor lifecycle-wiring
+  checks and changed-file analysis are green. The complete candidate-rollover
+  technical regression also passes: analyzer zero issues, default Flutter 440
+  passed with three documented skips, exact RW profiles, Web/Wasm loopback
+  smoke, Android debug assembly with 448 tasks and resource guard. Commit/push
+  and exact GitHub Regression/CodeQL verification remain pending. No timing,
+  retry, parallelism or rate-limit workaround is retained.
 
 ## Current 48H readiness state
 

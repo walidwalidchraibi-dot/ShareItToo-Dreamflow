@@ -27,6 +27,7 @@ test('wishlist and cart read-modify-write paths use idle-resetting queues', () =
 test('one canonical wishlist document owns metadata and assignments', () => {
   const service = read('lib/services/data_service.dart');
   for (const marker of [
+    "_wishlistPrincipalStateKey = 'wishlist_state_v3'",
     "_wishlistStateKey = 'wishlist_state_v2'",
     "'schemaVersion': 1",
     "'revision': revision",
@@ -46,6 +47,7 @@ test('committed saved state propagates to every retained open surface', () => {
   for (const key of ['savedItemsKey', 'wishlistStateKey', 'rentalCartKey']) {
     assert.match(sync, new RegExp(`static const String ${key}`, 'u'));
   }
+  assert.match(read('lib/services/shared_persistence_sync_web.dart'), /wishlist_state_v3/u);
   assert.match(read('lib/services/shared_persistence_sync_web.dart'), /wishlist_state_v2/u);
 
   for (const path of [
@@ -81,6 +83,7 @@ test('RW3 keeps deterministic race interruption recreation and compact proofs', 
 
 test('local lifecycle binds and purges the canonical saved-state key', () => {
   const lifecycle = JSON.parse(read('store/g2-data-lifecycle.json'));
-  assert.equal(lifecycle.currentSavedItems.canonicalKey, 'wishlist_state_v2');
-  assert.match(read('tool/validate_g2_data_lifecycle.mjs'), /atomic saved-state document/u);
+  assert.equal(lifecycle.currentSavedItems.canonicalKey, 'wishlist_state_v3');
+  assert.ok(lifecycle.currentSavedItems.legacyKeys.includes('wishlist_state_v2'));
+  assert.match(read('tool/validate_g2_data_lifecycle.mjs'), /principal-scoped saved-state document/u);
 });

@@ -27,7 +27,8 @@ void main() {
 
     final exported = await DataService.exportSavedItemsForPrivacy();
 
-    expect(exported['scope'], 'local-device');
+    expect(exported['scope'], 'local-principal');
+    expect(exported['principalScope'], 'guest-device');
     expect(exported['terminology'], 'Gemerkt');
     expect(exported['binding'], 'non-binding-no-reservation');
     expect(exported['legacySavedItemIds'], <String>['item-existing-1']);
@@ -47,6 +48,8 @@ void main() {
         exported['storageKeys'],
         containsAll(<String>[
           'rental_cart_v1',
+          'rental_cart_v2',
+          'wishlist_state_v3',
           'project_cart_v1',
           'rental_cart_sync_owner_v1',
         ]));

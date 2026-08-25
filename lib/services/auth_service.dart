@@ -13,6 +13,7 @@ import 'backend_http.dart';
 import 'backend_realtime_service.dart';
 import 'blue_ocean_draft_recovery_service.dart';
 import 'firebase_runtime.dart';
+import 'shared_persistence_sync.dart';
 
 /// Authentication facade.
 ///
@@ -45,6 +46,12 @@ class AuthService {
     'SIT_SOCIAL_FACEBOOK_ENABLED',
     defaultValue: false,
   );
+
+  static void _notifyLocalPrincipalChanged() {
+    SharedPersistenceSync.notify(SharedPersistenceSync.wishlistStateKey);
+    SharedPersistenceSync.notify(SharedPersistenceSync.savedItemsKey);
+    SharedPersistenceSync.notify(SharedPersistenceSync.rentalCartKey);
+  }
 
   @visibleForTesting
   static bool socialProviderEnabled(AuthSocialProvider provider) =>
@@ -90,6 +97,7 @@ class AuthService {
       final normalizedEmail = email.trim().toLowerCase();
       if (_legacySyntheticSocialEmails.contains(normalizedEmail)) {
         await prefs.remove(_sessionKey);
+        _notifyLocalPrincipalChanged();
         return null;
       }
       final session = AuthSession(
@@ -109,6 +117,7 @@ class AuthService {
               (session.refreshToken ?? '').isEmpty ||
               (session.sessionId ?? '').isEmpty)) {
         await prefs.remove(_sessionKey);
+        _notifyLocalPrincipalChanged();
         return null;
       }
       return session;
@@ -133,6 +142,7 @@ class AuthService {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_sessionKey);
+      _notifyLocalPrincipalChanged();
       try {
         await BlueOceanDraftRecoveryService().clear();
       } catch (_) {
@@ -232,6 +242,7 @@ class AuthService {
         'createdAt': DateTime.now().toIso8601String(),
       };
       await prefs.setString(_sessionKey, jsonEncode(sessionData));
+      _notifyLocalPrincipalChanged();
       return AuthResult.success(
         session: AuthSession(
           email: normalizedEmail,
@@ -316,6 +327,7 @@ class AuthService {
         'createdAt': DateTime.now().toIso8601String(),
       };
       await prefs.setString(_sessionKey, jsonEncode(sessionData));
+      _notifyLocalPrincipalChanged();
       return AuthResult.success(
         session: AuthSession(
           email: normalizedEmail,
@@ -684,6 +696,7 @@ class AuthService {
       if (shouldClearStoredSessionAfterRefreshFailure(error)) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(_sessionKey);
+        _notifyLocalPrincipalChanged();
       }
       return null;
     }
@@ -890,6 +903,7 @@ class AuthService {
       );
       if (!persisted) throw const _DiscardedRefreshResult();
     }
+    _notifyLocalPrincipalChanged();
     await BackendRealtimeService.connect(accessToken);
     return session;
   }

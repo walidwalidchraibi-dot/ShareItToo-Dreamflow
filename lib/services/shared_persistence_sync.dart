@@ -10,8 +10,10 @@ class SharedPersistenceSync {
   static const String messageThreadsKey = 'message_threads_v1';
   static const String handoverReturnStateKey = 'handover_return_state_v1';
   static const String savedItemsKey = 'saved_items';
-  static const String wishlistStateKey = 'wishlist_state_v2';
-  static const String rentalCartKey = 'rental_cart_v1';
+  static const String wishlistStateKey = 'wishlist_state_v3';
+  static const String rentalCartKey = 'rental_cart_v2';
+  static const String legacyWishlistStateKey = 'wishlist_state_v2';
+  static const String legacyRentalCartKey = 'rental_cart_v1';
 
   static const Set<String> _bookingKeys = {
     rentalRequestsKey,
@@ -24,6 +26,8 @@ class SharedPersistenceSync {
     savedItemsKey,
     wishlistStateKey,
     rentalCartKey,
+    legacyWishlistStateKey,
+    legacyRentalCartKey,
   };
 
   static final Map<String, Timer> _catchUpRetryTimers = <String, Timer>{};
@@ -70,13 +74,21 @@ class SharedPersistenceSync {
   static String? logicalKeyFromStorageKey(String? storageKey) {
     final value = storageKey?.trim() ?? '';
     if (value.isEmpty) return null;
-    if (_sharedKeys.contains(value)) return value;
+    if (_sharedKeys.contains(value)) return _canonicalLogicalKey(value);
 
     const prefix = 'flutter.';
     if (!value.startsWith(prefix)) return null;
     final logicalKey = value.substring(prefix.length);
-    return _sharedKeys.contains(logicalKey) ? logicalKey : null;
+    return _sharedKeys.contains(logicalKey)
+        ? _canonicalLogicalKey(logicalKey)
+        : null;
   }
+
+  static String _canonicalLogicalKey(String key) => switch (key) {
+        legacyWishlistStateKey => wishlistStateKey,
+        legacyRentalCartKey => rentalCartKey,
+        _ => key,
+      };
 
   /// SharedPreferences keeps an in-memory cache. A storage event from another
   /// browser tab must refresh that cache before screens read the new values.

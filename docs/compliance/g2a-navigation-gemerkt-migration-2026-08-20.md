@@ -51,9 +51,11 @@ Paymentlogik ein.
 ## Daten, Kompatibilitaet und Deep Links
 
 - Zum G2A-Abschluss waren `wishlists_meta_v1` und `wishlist_assign_v1` die
-  einzigen Persistenzschluessel fuer diesen Bestand. RW3 fuehrt
-  `wishlist_state_v2` als atomare kanonische Quelle ein; die beiden alten
-  Werte bleiben nur kompatible Spiegel und werden nicht destruktiv migriert.
+  einzigen Persistenzschluessel fuer diesen Bestand. RW3 fuehrte
+  `wishlist_state_v2` als atomare unscoped Quelle ein. RW4 ersetzt die aktuelle
+  Laufzeitquelle durch das principal-scoped `wishlist_state_v3`; V2 und die
+  beiden V1-Werte bleiben ausschliesslich Gast-Kompatibilitaetsspiegel und ein
+  angemeldetes Konto wird nie in diese geraeteweiten Werte kopiert.
 - Ein Regressionstest liest bestehende Metadaten und Zuordnungen und weist
   nach, dass beide gespeicherten Werte bytegleich bleiben.
 - Es wurden weder `rental_cart_v1` noch `project_cart_v1` oder entsprechende
@@ -106,3 +108,11 @@ Loeschungs- und Retention-Vertraege fuer die spaetere Korbdaten-Topologie
 fail-closed fest. Historische Snapshots bleiben unveraendert. Eine nicht aus
 V5.2 oder den aktuellen Entscheidungen ableitbare materielle Rechts- oder
 Privacy-Entscheidung ist ein HARD STOP vor G2B.
+
+## Aktueller Nachfolger RW4
+
+RW4 aendert keine G2A-Navigation oder Bindungswirkung. Es ordnet den lokalen
+Bestand einem opaken Konto- oder Gast-Prinzipal zu, migriert unscoped Altbestand
+nur zum Gast und isoliert fehlerhafte Einzel-Buckets. Export und bestaetigte
+Loeschung wirken nur auf den aktiven Prinzipal. Diese technische
+Datenschutzhaertung erteilt keine Legal-, Pilot- oder Release-Freigabe.

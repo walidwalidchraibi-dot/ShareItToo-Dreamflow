@@ -296,8 +296,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     final prefs = await SharedPreferences.getInstance();
-    final lastKnownGood = prefs.getString('wishlist_state_v2')!;
-    await prefs.setString('wishlist_state_v2', '{corrupt-saved-state');
+    final lastKnownGood = prefs.getString('wishlist_state_v3')!;
+    await prefs.setString('wishlist_state_v3', '{corrupt-saved-state');
 
     final folder = find.text('Demnächst benötigt').last;
     await tester.ensureVisible(folder);
@@ -310,7 +310,7 @@ void main() {
     expect(retry, findsOneWidget);
     expect(tester.getSize(retry).height, greaterThanOrEqualTo(48));
 
-    await prefs.setString('wishlist_state_v2', lastKnownGood);
+    await prefs.setString('wishlist_state_v3', lastKnownGood);
     await tester.tap(retry);
     await tester.pumpAndSettle();
 
@@ -392,7 +392,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final metadataMirror = prefs.getString('wishlists_meta_v1');
     final assignmentMirror = prefs.getString('wishlist_assign_v1');
-    await prefs.setString('wishlist_state_v2', '{corrupt-saved-state');
+    await prefs.setString('wishlist_state_v3', '{corrupt-saved-state');
     await tester.tap(
       find.bySemanticsLabel('Unter Gemerkt speichern: ${item.title}'),
     );
@@ -405,6 +405,6 @@ void main() {
     expect(find.text('Unter Gemerkt gespeichert'), findsNothing);
     expect(prefs.getString('wishlist_assign_v1'), assignmentMirror);
     expect(prefs.getString('wishlists_meta_v1'), metadataMirror);
-    expect(prefs.getString('wishlist_state_v2'), '{corrupt-saved-state');
+    expect(prefs.getString('wishlist_state_v3'), '{corrupt-saved-state');
   });
 }
