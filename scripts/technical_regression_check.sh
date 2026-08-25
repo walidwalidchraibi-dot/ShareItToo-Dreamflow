@@ -334,6 +334,11 @@ node --test \
   test/tool/rw0_reduced_wave0_journey_wiring.test.mjs \
   test/tool/validate_rw0_reduced_wave0_product_journey.test.mjs
 node tool/validate_rw0_reduced_wave0_product_journey.mjs
+node --check tool/validate_rw1_reduced_wave0_accessibility_resilience.mjs
+node --test \
+  test/tool/rw1_reduced_wave0_accessibility_resilience_wiring.test.mjs \
+  test/tool/validate_rw1_reduced_wave0_accessibility_resilience.test.mjs
+node tool/validate_rw1_reduced_wave0_accessibility_resilience.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -834,6 +839,14 @@ flutter test --reporter expanded \
   --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
   --dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=true \
   test/reduced_wave0_product_journey_test.dart
+
+# Retain the compact 320dp / 200 percent accessibility and resilience matrix
+# under the same exact local-only profile. The default suite covers every
+# profile-independent case; this invocation also compiles the listing gate.
+flutter test --reporter expanded \
+  --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
+  --dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=true \
+  test/reduced_wave0_accessibility_resilience_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

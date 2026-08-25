@@ -98,15 +98,15 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "25c5afc8fe2d5d19004dfe27d6d1bc2c45f64036146cd61fd2b8f4487694bb28"
+      "sha256": "0cf2d3fc06cbfd57f195a1257752e37f2b4f49b8f87ef022e5fab1ca5a932bde"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "1d3a11ca5ac71111beb8b7bc7dc82410d2f3b5a9431c3cd77e886b7f4ad38acc"
+      "sha256": "e756b3dabc9f0cbc9a788611ee96bbbe7e4145284123bece17c7e9637147a515"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "aad46205b3bd64eb8b54fb8dcec630f0481b5d57c8fa85f3d8b76731a558b646"
+      "sha256": "735ddf2003ac3b848b15d30210350edb7491c951a9865d824bc47855f5a4941c"
     },
     {
       "path": "test/data_service_non_destructive_catalog_bootstrap_test.dart",
@@ -138,15 +138,15 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "5f30a17e53862cddf9752f9d53c3d30a148eec6f9bb575107a213329ff84d197"
+      "sha256": "0bbd30cc7b03651f34bc6a6cc33bd5c704bfad786ef093c7bf3f7b78b8700ce5"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "4d98ba8b2ab27dbc92362f5471db0f1f325dc33ba213f4cdf1d9f503a25f39aa"
+      "sha256": "8646d4806383f03b9fdd196a5a1b382ed5180b34a14dab65c0fd9c57601e6ebe"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "b54340ecb669405c549245d9ecc798a71161236c5f0296eb471820dd02080cc3"
+      "sha256": "f496839eb48a1297c86bb64e40502acff2acb171f5eb37900aa43ac22571acae"
     }
   ],
   "gates": {

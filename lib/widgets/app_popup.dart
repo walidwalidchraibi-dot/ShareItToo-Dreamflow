@@ -185,7 +185,7 @@ class AppPopup {
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: Material(
                     color: Colors.transparent,
-                    child: _GlassCard(
+                    child: _scrollableGlassCard(_GlassCard(
                       leadingIcon: icon,
                       leadingWidget: leadingWidget,
                       title: title,
@@ -198,7 +198,7 @@ class AppPopup {
                       backgroundColor: backgroundColor,
                       borderColor: borderColor,
                       useExploreBackground: useExploreBackground,
-                    ),
+                    )),
                   ),
                 ),
               ),
@@ -275,7 +275,7 @@ class AppPopup {
                   constraints: const BoxConstraints(maxWidth: 640),
                   child: Material(
                     color: Colors.transparent,
-                    child: _GlassCard(
+                    child: _scrollableGlassCard(_GlassCard(
                       leadingIcon: icon,
                       leadingWidget: leadingWidget,
                       title: title,
@@ -286,7 +286,7 @@ class AppPopup {
                       backgroundColor: backgroundColor,
                       borderColor: borderColor,
                       useExploreBackground: useExploreBackground,
-                    ),
+                    )),
                   ),
                 ),
               ),
@@ -352,7 +352,7 @@ class AppPopup {
                   constraints: const BoxConstraints(maxWidth: 720),
                   child: Material(
                     color: Colors.transparent,
-                    child: _GlassCard(
+                    child: _scrollableGlassCard(_GlassCard(
                       leadingIcon: icon,
                       leadingWidget: leadingWidget,
                       title: title,
@@ -376,7 +376,7 @@ class AppPopup {
                               ? Colors.black.withValues(alpha: 0.60)
                               : AppTheme.surfacePrimary(ctx)),
                       showLeading: showLeading,
-                    ),
+                    )),
                   ),
                 ),
               ),
@@ -397,6 +397,11 @@ class AppPopup {
     );
   }
 }
+
+Widget _scrollableGlassCard(Widget child) => SingleChildScrollView(
+      primary: false,
+      child: child,
+    );
 
 class _GlassCard extends StatelessWidget {
   final IconData? leadingIcon;

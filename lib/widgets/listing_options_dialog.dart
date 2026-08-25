@@ -51,90 +51,70 @@ Future<void> showListingOptionsDialog(
             Center(
               child: ScaleTransition(
                 scale: Tween<double>(begin: 0.96, end: 1.0).animate(curved),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF141A24).withValues(alpha: 0.94),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.10)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.30),
-                            blurRadius: 28,
-                            offset: const Offset(0, 16),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                child: _ScrollableOptionsPanel(
+                  maxWidth: 420,
+                  backgroundColor:
+                      const Color(0xFF141A24).withValues(alpha: 0.94),
+                  borderRadius: 24,
+                  shadowBlur: 28,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Anzeigenoptionen',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        item.title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.72),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                                const Text(
+                                  'Anzeigenoptionen',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                                IconButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  icon: const Icon(Icons.close,
-                                      color: Colors.white60, size: 18),
+                                const SizedBox(height: 3),
+                                Text(
+                                  item.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.72),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 6),
-                            for (var i = 0; i < options.length; i++) ...[
-                              _ListingOptionRow(
-                                icon: options[i].icon,
-                                label: options[i].label,
-                                destructive: options[i].destructive,
-                                onTap: () async {
-                                  Navigator.of(context).pop();
-                                  await options[i].onTap();
-                                },
-                              ),
-                              if (i != options.length - 1)
-                                Divider(
-                                    height: 1,
-                                    thickness: 0.6,
-                                    color:
-                                        Colors.white.withValues(alpha: 0.05)),
-                            ],
-                          ],
-                        ),
+                          ),
+                          IconButton(
+                            tooltip: 'Schließen',
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close,
+                                color: Colors.white60, size: 18),
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      for (var i = 0; i < options.length; i++) ...[
+                        _ListingOptionRow(
+                          icon: options[i].icon,
+                          label: options[i].label,
+                          destructive: options[i].destructive,
+                          onTap: () async {
+                            Navigator.of(context).pop();
+                            await options[i].onTap();
+                          },
+                        ),
+                        if (i != options.length - 1)
+                          Divider(
+                              height: 1,
+                              thickness: 0.6,
+                              color: Colors.white.withValues(alpha: 0.05)),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -311,82 +291,62 @@ Future<List<_ListingOption>> _buildOptions(
               Center(
                 child: ScaleTransition(
                   scale: Tween<double>(begin: 0.97, end: 1.0).animate(curved),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 390),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
-                          color:
-                              const Color(0xFF141A24).withValues(alpha: 0.95),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.10)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.30),
-                              blurRadius: 26,
-                              offset: const Offset(0, 16),
+                  child: _ScrollableOptionsPanel(
+                    maxWidth: 390,
+                    backgroundColor:
+                        const Color(0xFF141A24).withValues(alpha: 0.95),
+                    borderRadius: 22,
+                    shadowBlur: 26,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Weshalb möchtest du weniger davon sehen?',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Schließen',
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close,
+                                  color: Colors.white60, size: 18),
                             ),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Expanded(
-                                    child: Text(
-                                      'Weshalb möchtest du weniger davon sehen?',
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(),
-                                    icon: const Icon(Icons.close,
-                                        color: Colors.white60, size: 18),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                'Hilf uns, deine Empfehlungen zu verbessern.',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              for (final option in lessOfThisOptions) ...[
-                                _ListingOptionRow(
-                                  icon: option.icon,
-                                  label: option.label,
-                                  destructive: option.destructive,
-                                  onTap: () async {
-                                    Navigator.of(context).pop();
-                                    await option.onTap();
-                                  },
-                                ),
-                                if (option != lessOfThisOptions.last)
-                                  Divider(
-                                      height: 1,
-                                      thickness: 0.6,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.05)),
-                              ],
-                            ],
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Hilf uns, deine Empfehlungen zu verbessern.',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        for (final option in lessOfThisOptions) ...[
+                          _ListingOptionRow(
+                            icon: option.icon,
+                            label: option.label,
+                            destructive: option.destructive,
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              await option.onTap();
+                            },
+                          ),
+                          if (option != lessOfThisOptions.last)
+                            Divider(
+                                height: 1,
+                                thickness: 0.6,
+                                color: Colors.white.withValues(alpha: 0.05)),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -525,23 +485,93 @@ class _ListingOptionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = destructive ? const Color(0xFFFF8C8C) : Colors.white;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
+    return Semantics(
+      button: true,
+      label: label,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 9),
-        child: Row(
-          children: [
-            Icon(icon, color: color.withValues(alpha: 0.9), size: 18),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                    color: color, fontSize: 14, fontWeight: FontWeight.w600),
+      child: ExcludeSemantics(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints:
+                const BoxConstraints(minHeight: kMinInteractiveDimension),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 9),
+              child: Row(
+                children: [
+                  Icon(icon, color: color.withValues(alpha: 0.9), size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                          color: color,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScrollableOptionsPanel extends StatelessWidget {
+  const _ScrollableOptionsPanel({
+    required this.maxWidth,
+    required this.backgroundColor,
+    required this.borderRadius,
+    required this.shadowBlur,
+    required this.child,
+  });
+
+  final double maxWidth;
+  final Color backgroundColor;
+  final double borderRadius;
+  final double shadowBlur;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final availableHeight = (media.size.height -
+            media.padding.vertical -
+            media.viewInsets.vertical -
+            24)
+        .clamp(0.0, double.infinity);
+    return SafeArea(
+      minimum: const EdgeInsets.symmetric(vertical: 12),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+          maxHeight: availableHeight,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.30),
+                  blurRadius: shadowBlur,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: child,
+            ),
+          ),
         ),
       ),
     );

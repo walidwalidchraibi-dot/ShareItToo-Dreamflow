@@ -1,37 +1,31 @@
-# Current Work Package: RW0 reduced Wave-0 automated product journey
+# Current Work Package: RW1 accessibility and resilience matrix
 
-Status: **VERIFIED — REGRESSION AND CODEQL GREEN;
+Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING;
 NON-LIVE AND FAIL-CLOSED** on 25.08.2026.
 
-R17 and the bounded 48H runway are closed at exact head
-`4937a88ff07dd6378e1c52ca4f264e564a669ef4`. RW0 is a separate successor
-package. It retains one deterministic synthetic journey across the exact
-reduced Stage-A participant surface: listing draft and explicit local
-publication, search, Gemerkt/project, non-reserving cart, structured feedback,
-restart and failure recovery.
+RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
+implementation head `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub
+Regression `32790896732` and CodeQL `32790896756`, with zero open code-scanning
+alerts.
 
-Red-first coverage and exact CI found and permanently closed six gaps:
-destructive demo catalog reseeding, non-atomic split cart state, a
-dialog-controller lifecycle fault, an inaccessible search save control, and a
-static synthetic-login fixture detected by the exact history scanner. The
-current fixture is generated at runtime and its immutable historical false
-positive is narrowly reviewed; working-tree findings can never inherit that
-exception. Binding rental requests, accept/reject, contracts,
-payment/refund/payout, handover/return/damage, `needsReview`, and release-locked
-G3/G4/G5 surfaces remain explicitly excluded and fail closed. The default
-Flutter suite passes 400 tests with two documented
-special-profile skips; the exact RW0 profile and all focused integrity checks
-pass. The complete candidate-rollover technical regression also passes in CI
-metadata mode, including Web/Wasm smoke and the 448-task Android debug build.
-Exact implementation and CI-correction head
-`ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub Regression run
-`32790896732` and CodeQL workflow `32790896756`, with zero open code-scanning
-alerts. GitGuardian was skipped; the distinct owner-controlled historical
-review remains ungranted and no finding value was inspected.
+RW1 is a separate successor package. It keeps the same reduced, non-binding
+Stage-A boundary and adds a deterministic 320 dp / 200 percent text matrix for
+listing options/feedback, keyboard focus and route recreation, search/Gemerkt,
+rapid repeated save activation, the exact listing form and the non-reserving
+Mietkorb. Red-first tests reproduced and closed five grouped findings: two
+unbounded option dialogs, the shared custom-popup overflow, compact Mietkorb
+horizontal/vertical overflow, five listing-form control overflows and implicit
+sub-48 dp option semantics. The ordinary profile passes five tests with one
+documented profile skip; the exact Stage-A/Blue-Ocean profile passes six.
+Changed-file analyzer, adjacent Flutter/lifecycle sets, RW1 wiring and the
+evidence validator pass. The complete candidate-rollover technical regression
+passes, including Web/Wasm smoke, Android debug assembly and the repository
+resource guard. Exact commit-bound GitHub Regression/CodeQL verification
+remains.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential
-inspection or history rewrite is authorized by RW0.
+inspection or history rewrite is authorized by RW1.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when

@@ -287,6 +287,52 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     final cs = Theme.of(context).colorScheme;
+    final useUnifiedScroll = MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final savedNotice = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Semantics(
+            container: true,
+            label: l10n.t('saved.nonBindingSemantics'),
+            child: ExcludeSemantics(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.bookmark_border, size: 20, color: cs.primary),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          l10n.t('Gemerkt'),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.t('saved.nonBindingNotice'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: cs.onSurface.withValues(alpha: 0.55),
+                          height: 1.5,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -306,59 +352,22 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildRentalCartSection(context),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      child: Semantics(
-                        container: true,
-                        label: l10n.t('saved.nonBindingSemantics'),
-                        child: ExcludeSemantics(
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.bookmark_border,
-                                      size: 20, color: cs.primary),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    l10n.t('Gemerkt'),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w700),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                l10n.t('saved.nonBindingNotice'),
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
-                                    ?.copyWith(
-                                      color:
-                                          cs.onSurface.withValues(alpha: 0.55),
-                                      height: 1.5,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+          : useUnifiedScroll
+              ? ListView(
+                  children: [
+                    _buildRentalCartSection(context),
+                    savedNotice,
+                    _buildFolderGrid(context, embedded: true),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildRentalCartSection(context),
+                    savedNotice,
+                    Expanded(child: _buildFolderGrid(context)),
+                  ],
                 ),
-                Expanded(child: _buildFolderGrid(context)),
-              ],
-            ),
     );
   }
 }
@@ -555,24 +564,43 @@ extension on _RentalCartScreenState {
                   onTap: () => _openBookingGroupCandidate(candidate),
                 ),
             ],
-            Row(
-              children: [
-                TextButton.icon(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compactActions = constraints.maxWidth < 360 ||
+                    MediaQuery.textScalerOf(context).scale(1) > 1.3;
+                final projectAction = TextButton.icon(
                   onPressed: _addProject,
                   icon: const Icon(Icons.create_new_folder_outlined, size: 18),
                   label: const Text('Projekt anlegen'),
-                ),
-                const Spacer(),
-                if (cart.localDeviceOnly && cart.items.isNotEmpty)
-                  TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const LoginScreen(returnTabIndex: 1),
-                      ),
-                    ),
-                    child: const Text('Anmelden & synchronisieren'),
-                  ),
-              ],
+                );
+                final syncAction = cart.localDeviceOnly && cart.items.isNotEmpty
+                    ? TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                const LoginScreen(returnTabIndex: 1),
+                          ),
+                        ),
+                        child: const Text('Anmelden & synchronisieren'),
+                      )
+                    : null;
+                if (compactActions) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      projectAction,
+                      if (syncAction != null) syncAction,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    projectAction,
+                    const Spacer(),
+                    if (syncAction != null) syncAction,
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -595,7 +623,7 @@ extension on _RentalCartScreenState {
     return 'Informative Preisangabe: $amount $currency';
   }
 
-  Widget _buildFolderGrid(BuildContext context) {
+  Widget _buildFolderGrid(BuildContext context, {bool embedded = false}) {
     if (_lists.isEmpty) {
       return Center(
           child: Text(
@@ -627,6 +655,8 @@ extension on _RentalCartScreenState {
 
     final columnCount = _wishlistGridColumnCount(context);
     return GridView.builder(
+      shrinkWrap: embedded,
+      physics: embedded ? const NeverScrollableScrollPhysics() : null,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount: cards.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

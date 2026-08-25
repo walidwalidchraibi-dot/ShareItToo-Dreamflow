@@ -340,8 +340,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
           '$action:${_newBlueOceanUuid()}:${DateTime.now().toUtc().toIso8601String()}'))
       .toString();
 
-  Map<String, dynamic> _blueOceanRecoveryEditableFields() =>
-      <String, dynamic>{
+  Map<String, dynamic> _blueOceanRecoveryEditableFields() => <String, dynamic>{
         'title': _titleCtrl.text,
         'description': _descCtrl.text,
         'categoryId': _categoryId,
@@ -439,10 +438,8 @@ class _CreateListingScreenState extends State<CreateListingScreen>
   void _applyBlueOceanRecoveryEditableFields(Map<String, dynamic> fields) {
     _restoreTextField(fields, 'title', _titleCtrl, maximumLength: 200);
     _restoreTextField(fields, 'description', _descCtrl);
-    _restoreTextField(fields, 'brand', _blueOceanBrandCtrl,
-        maximumLength: 200);
-    _restoreTextField(fields, 'model', _blueOceanModelCtrl,
-        maximumLength: 200);
+    _restoreTextField(fields, 'brand', _blueOceanBrandCtrl, maximumLength: 200);
+    _restoreTextField(fields, 'model', _blueOceanModelCtrl, maximumLength: 200);
     _restoreTextField(fields, 'accessories', _blueOceanAccessoriesCtrl);
     _restoreTextField(fields, 'projectTags', _blueOceanProjectTagsCtrl);
     _restoreTextField(fields, 'useCases', _blueOceanUseCasesCtrl);
@@ -453,8 +450,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
     _restoreTextField(fields, 'pickupRegion', _blueOceanPickupRegionCtrl,
         maximumLength: 240);
     _restoreTextField(fields, 'address', _addressCtrl, maximumLength: 500);
-    _restoreTextField(fields, 'ownerDailyPrice', _priceCtrl,
-        maximumLength: 32);
+    _restoreTextField(fields, 'ownerDailyPrice', _priceCtrl, maximumLength: 32);
 
     final categoryId = fields['categoryId'];
     final subcategory = fields['subcategory'];
@@ -625,8 +621,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       'safetyNotes': _blueOceanSafetyCtrl.text.trim(),
       'replacementValueBand': _blueOceanReplacementBand,
       'replacementValueMinor': _blueOceanReplacementValueMinor(),
-      'replacementValueBandConfirmed':
-          _blueOceanReplacementBandConfirmed,
+      'replacementValueBandConfirmed': _blueOceanReplacementBandConfirmed,
       'pickupRegion': _blueOceanPickupRegionCtrl.text.trim(),
       'handoverAddress': _addressCtrl.text.trim(),
       'ownerDailyPrice': _priceCtrl.text.trim().replaceAll(',', '.'),
@@ -953,8 +948,8 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       if (!mounted) return;
       setState(() => _photoAccessError =
           'Die Kamera ist nicht verfügbar oder der Zugriff wurde abgelehnt. '
-          'Du kannst den Zugriff in den Geräteeinstellungen erlauben oder '
-          'ein vorhandenes Foto auswählen.');
+              'Du kannst den Zugriff in den Geräteeinstellungen erlauben oder '
+              'ein vorhandenes Foto auswählen.');
     }
   }
 
@@ -990,7 +985,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       if (!mounted) return;
       setState(() => _photoAccessError =
           'Auf Fotos kann gerade nicht zugegriffen werden. Prüfe die '
-          'Foto-Berechtigung in den Geräteeinstellungen und versuche es erneut.');
+              'Foto-Berechtigung in den Geräteeinstellungen und versuche es erneut.');
     }
   }
 
@@ -2338,6 +2333,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             key: ValueKey(_categoryId),
+                            isExpanded: true,
                             initialValue:
                                 _availableSubcategories().contains(_subcategory)
                                     ? _subcategory
@@ -2348,7 +2344,11 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                             items: _availableSubcategories()
                                 .map((subcategory) => DropdownMenuItem(
                                       value: subcategory,
-                                      child: Text(subcategory),
+                                      child: Text(
+                                        subcategory,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ))
                                 .toList(growable: false),
                             onChanged: (value) => setState(() {
@@ -2515,17 +2515,15 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                                 children: [
                                   Icon(Icons.info_outline,
                                       size: 18,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .error),
+                                      color:
+                                          Theme.of(context).colorScheme.error),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       error,
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error,
+                                        color:
+                                            Theme.of(context).colorScheme.error,
                                         fontSize: 13,
                                         height: 1.35,
                                       ),
@@ -2708,14 +2706,16 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                               color: Colors.lightBlueAccent,
                               diameter: 38),
                           const SizedBox(width: 12),
-                          Text('Dein Mietpreis pro Tag',
-                              style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white
-                                      : AppTheme.textPrimary(context),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16)),
+                          Expanded(
+                            child: Text('Dein Mietpreis pro Tag',
+                                style: TextStyle(
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : AppTheme.textPrimary(context),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16)),
+                          ),
                         ]),
                         const SizedBox(height: 14),
                         if (PrivatePilotConfig.aiFeaturesEnabled)
@@ -2823,35 +2823,20 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                                       diameter: 24),
                                   const SizedBox(width: 6),
                                   Expanded(
-                                      child: Text(
-                                          'Rabatt bei längerer Mietdauer',
-                                          style: TextStyle(
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.white
-                                                  : AppTheme.textPrimary(
-                                                      context),
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 15))),
-                                  Transform.scale(
-                                    scale: 0.7,
-                                    alignment: Alignment.centerRight,
-                                    child: Switch.adaptive(
-                                      value: _autoApplyDiscounts,
-                                      onChanged: (v) => setState(() {
-                                        _autoApplyDiscounts = v;
-                                        _invalidateBlueOceanReviewState(
-                                          confirmations: const <String>[
-                                            'duration_discounts'
-                                          ],
-                                        );
-                                      }),
-                                      activeThumbColor: colorScheme.primary,
-                                    ),
+                                    child: Text('Rabatt bei längerer Mietdauer',
+                                        style: TextStyle(
+                                            color: Theme.of(context)
+                                                        .brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white
+                                                : AppTheme.textPrimary(context),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15)),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text('Rabatt aktiv',
+                                ]),
+                                SwitchListTile.adaptive(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text('Rabatt aktiv',
                                       style: TextStyle(
                                           color: _autoApplyDiscounts
                                               ? (isDark
@@ -2863,7 +2848,17 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                                                       context)),
                                           fontWeight: FontWeight.w600,
                                           fontSize: 11)),
-                                ]),
+                                  value: _autoApplyDiscounts,
+                                  onChanged: (value) => setState(() {
+                                    _autoApplyDiscounts = value;
+                                    _invalidateBlueOceanReviewState(
+                                      confirmations: const <String>[
+                                        'duration_discounts'
+                                      ],
+                                    );
+                                  }),
+                                  activeThumbColor: colorScheme.primary,
+                                ),
                                 const SizedBox(height: 6),
                                 if (_autoApplyDiscounts) ...[
                                   Padding(
@@ -3066,13 +3061,15 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                                       diameter: 32,
                                       backgroundAlpha: 0.18),
                                   SizedBox(width: 10),
-                                  Text('SIT-Tipp',
-                                      style: TextStyle(
-                                          color: isDark
-                                              ? Colors.lightBlueAccent
-                                              : colorScheme.primary,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16))
+                                  Expanded(
+                                    child: Text('SIT-Tipp',
+                                        style: TextStyle(
+                                            color: isDark
+                                                ? Colors.lightBlueAccent
+                                                : colorScheme.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16)),
+                                  )
                                 ]),
                                 SizedBox(height: 8),
                                 Text(
@@ -3879,14 +3876,16 @@ class _OwnerCancellationInfoCardState
                         ? Colors.white70
                         : AppTheme.textSecondary(context)),
                 const SizedBox(width: 8),
-                Text('Stornierungsbedingungen',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15.5,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : AppTheme.textPrimary(context))),
+                Flexible(
+                  child: Text('Stornierungsbedingungen',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15.5,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppTheme.textPrimary(context))),
+                ),
               ]),
             ),
           ),

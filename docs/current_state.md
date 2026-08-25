@@ -2,12 +2,11 @@
 
 Verified: 2026-08-25 on the Mac mini.
 
-## Current RW0 state
+## Current RW1 state
 
-- R17 and the bounded 48H runway are closed at exact head
-  `4937a88ff07dd6378e1c52ca4f264e564a669ef4`; the previous goal is not being
-  continued.
-- RW0 retains the exact synthetic, local-only reduced Stage-A journey from
+- RW0 is closed at documentation commit
+  `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`. Its exact synthetic, local-only
+  reduced Stage-A journey remains retained from
   listing draft and explicit local publication through search, Gemerkt,
   project, non-reserving cart, structured feedback, restart and failure
   recovery.
@@ -30,6 +29,18 @@ Verified: 2026-08-25 on the Mac mini.
 - Binding request/contract, accept/reject, payment/refund/payout,
   handover/return/damage/`needsReview`, and release-locked G3/G4/G5 surfaces
   remain excluded and fail closed. No live gate has been granted.
+- RW1 adds a deterministic 320 dp / 200 percent text matrix across the reduced
+  listing, search/Gemerkt, popup, project/cart and feedback surfaces. Five
+  grouped findings are corrected: safe-height option dialogs, scrollable shared
+  popups, unified compact Mietkorb scrolling, stacked cart actions, five
+  responsive listing-form controls and explicit 48 dp option semantics.
+- The ordinary RW1 profile passes five tests with one documented exact-profile
+  skip; the exact Stage-A/Blue-Ocean profile passes all six. Changed-file
+  analyzer, 16 adjacent Flutter checks, 16 async/lifecycle source-contract
+  checks, four RW1 wiring tests and the evidence validator pass. The complete
+  candidate-rollover technical regression also passes, including Web/Wasm
+  smoke, Android debug assembly and the repository resource guard. Exact
+  commit-bound GitHub Regression/CodeQL verification remains pending.
 
 ## Current 48H readiness state
 
