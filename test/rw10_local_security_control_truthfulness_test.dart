@@ -309,7 +309,27 @@ void main() {
     service
       ..session = _sessionA
       ..replaceSessionDuringRevoke = true;
-    await expectLater(service.revokeSession('other-session'), throwsStateError);
+    await expectLater(
+      service.revokeSession('other-session'),
+      throwsA(
+        isA<SessionRevocationFailure>()
+            .having(
+              (failure) => failure.kind,
+              'kind',
+              SessionRevocationFailureKind.confirmedLocalFinalizationFailed,
+            )
+            .having(
+              (failure) => failure.targetSessionId,
+              'targetSessionId',
+              'other-session',
+            )
+            .having(
+              (failure) => failure.invokingSessionDefinitelyCurrent,
+              'invokingSessionDefinitelyCurrent',
+              isFalse,
+            ),
+      ),
+    );
     expect(service.session, _sessionB);
   });
 

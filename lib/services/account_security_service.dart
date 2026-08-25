@@ -62,6 +62,51 @@ class LogoutAllFailure implements Exception {
         );
 }
 
+enum SessionRevocationFailureKind {
+  rejected,
+  confirmedLocalFinalizationFailed,
+  outcomeUnknown,
+}
+
+class SessionRevocationFailure implements Exception {
+  final SessionRevocationFailureKind kind;
+  final String targetSessionId;
+  final bool invokingSessionDefinitelyCurrent;
+
+  const SessionRevocationFailure._(
+    this.kind, {
+    required this.targetSessionId,
+    required this.invokingSessionDefinitelyCurrent,
+  });
+
+  const SessionRevocationFailure.rejected({
+    required String targetSessionId,
+    required bool invokingSessionDefinitelyCurrent,
+  }) : this._(
+          SessionRevocationFailureKind.rejected,
+          targetSessionId: targetSessionId,
+          invokingSessionDefinitelyCurrent: invokingSessionDefinitelyCurrent,
+        );
+
+  const SessionRevocationFailure.confirmedLocalFinalizationFailed({
+    required String targetSessionId,
+    required bool invokingSessionDefinitelyCurrent,
+  }) : this._(
+          SessionRevocationFailureKind.confirmedLocalFinalizationFailed,
+          targetSessionId: targetSessionId,
+          invokingSessionDefinitelyCurrent: invokingSessionDefinitelyCurrent,
+        );
+
+  const SessionRevocationFailure.outcomeUnknown({
+    required String targetSessionId,
+    required bool invokingSessionDefinitelyCurrent,
+  }) : this._(
+          SessionRevocationFailureKind.outcomeUnknown,
+          targetSessionId: targetSessionId,
+          invokingSessionDefinitelyCurrent: invokingSessionDefinitelyCurrent,
+        );
+}
+
 /// Server-authoritative account security controls.
 ///
 /// The device-local fallback deliberately implements none of these controls.
@@ -139,8 +184,54 @@ class AccountSecurityService {
         'Die aktuelle Sitzung darf nicht als fremdes Gerät widerrufen werden.',
       );
     }
-    await revokeRemoteSession(target);
-    await _assertSameCurrentSession(marker);
+    try {
+      await revokeRemoteSession(target);
+    } on BackendException catch (error) {
+      final principalCurrent =
+          await _isInvokingSessionDefinitelyCurrent(marker);
+      if (_isDefiniteSessionRevocationRejection(error)) {
+        throw SessionRevocationFailure.rejected(
+          targetSessionId: target,
+          invokingSessionDefinitelyCurrent: principalCurrent,
+        );
+      }
+      throw SessionRevocationFailure.outcomeUnknown(
+        targetSessionId: target,
+        invokingSessionDefinitelyCurrent: principalCurrent,
+      );
+    } catch (_) {
+      throw SessionRevocationFailure.outcomeUnknown(
+        targetSessionId: target,
+        invokingSessionDefinitelyCurrent:
+            await _isInvokingSessionDefinitelyCurrent(marker),
+      );
+    }
+    try {
+      await _assertSameCurrentSession(marker);
+    } catch (_) {
+      throw SessionRevocationFailure.confirmedLocalFinalizationFailed(
+        targetSessionId: target,
+        invokingSessionDefinitelyCurrent: false,
+      );
+    }
+  }
+
+  static bool _isDefiniteSessionRevocationRejection(
+    BackendException error,
+  ) =>
+      const <int>{400, 401, 403, 404, 409, 422, 429}
+          .contains(error.statusCode) &&
+      error.code != 'invalid_server_response';
+
+  Future<bool> _isInvokingSessionDefinitelyCurrent(
+    _AccountSecuritySessionMarker marker,
+  ) async {
+    try {
+      await _assertSameCurrentSession(marker);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> changePassword({

@@ -30,6 +30,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   bool _loading = true;
   bool _pwBusy = false;
   bool _devicesBusy = false;
+  bool _revocationOutcomeVisible = false;
   bool _pwObscureCurrent = true;
   bool _pwObscureNext = true;
   bool _pwObscureConfirm = true;
@@ -64,6 +65,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
     _loadRevision += 1;
     _clearPasswordFields();
     if (!mounted) return;
+    if (_revocationOutcomeVisible) {
+      final navigator = Navigator.maybeOf(context, rootNavigator: true);
+      if (navigator != null && navigator.canPop()) navigator.pop();
+    }
     setState(() {
       _devices = const [];
       _loadError = null;
@@ -225,6 +230,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     if (!_securityService.isAvailable || _devicesBusy || device.isThisDevice) {
       return;
     }
+    final promptEpoch = _securityEpoch;
     final confirmed = await showDialog<bool>(
           context: context,
           barrierDismissible: true,
@@ -244,9 +250,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
           ),
         ) ??
         false;
-    if (!confirmed || !mounted) return;
+    if (!confirmed || !mounted || promptEpoch != _securityEpoch) return;
 
-    final operationEpoch = _securityEpoch;
+    final operationEpoch = promptEpoch;
     setState(() => _devicesBusy = true);
     try {
       await _securityService.revokeSession(device.id);
@@ -254,14 +260,54 @@ class _SecurityScreenState extends State<SecurityScreen> {
       setState(() {
         _devices = _devices.where((entry) => entry.id != device.id).toList();
       });
+    } on SessionRevocationFailure catch (error) {
+      debugPrint(
+        '[SecurityScreen] revokeSession outcome: ${error.kind.name}',
+      );
+      if (!mounted ||
+          error.targetSessionId != device.id ||
+          !error.invokingSessionDefinitelyCurrent ||
+          operationEpoch != _securityEpoch) {
+        return;
+      }
+      _loadRevision += 1;
+      setState(() {
+        _devices = const [];
+        _loadError = 'Die Sitzungsliste ist nach der Geräteaktion nicht mehr '
+            'sicher aktuell.';
+        _loading = false;
+      });
+      final (title, message) = switch (error.kind) {
+        SessionRevocationFailureKind.rejected => (
+            'Geräteabmeldung abgelehnt',
+            'Der Server hat die Abmeldung nicht ausgeführt. '
+                'Lade die Sitzungsliste erneut.',
+          ),
+        SessionRevocationFailureKind.confirmedLocalFinalizationFailed => (
+            'Gerät serverseitig abgemeldet',
+            'Die lokale Sitzungsliste konnte nicht sicher aktualisiert '
+                'werden. Lade sie erneut.',
+          ),
+        SessionRevocationFailureKind.outcomeUnknown => (
+            'Ergebnis der Geräteabmeldung unklar',
+            'Die Serverantwort ist nicht angekommen. Lade die Sitzungsliste '
+                'neu, bevor du die Abmeldung erneut sendest.',
+          ),
+      };
+      _revocationOutcomeVisible = true;
+      try {
+        await AppPopup.error(context, title: title, message: message);
+      } finally {
+        _revocationOutcomeVisible = false;
+      }
     } catch (error) {
       debugPrint('[SecurityScreen] revokeSession failed: ${error.runtimeType}');
       if (!mounted || operationEpoch != _securityEpoch) return;
       await AppPopup.error(
         context,
-        title: 'Gerät nicht abgemeldet',
-        message: 'Die serverseitige Bestätigung ist fehlgeschlagen. '
-            'Bitte lade die Sitzungsliste erneut.',
+        title: 'Geräteaktion nicht abgeschlossen',
+        message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
+            'Bitte prüfe deine Sitzung und versuche es erneut.',
       );
     } finally {
       if (mounted && operationEpoch == _securityEpoch) {
