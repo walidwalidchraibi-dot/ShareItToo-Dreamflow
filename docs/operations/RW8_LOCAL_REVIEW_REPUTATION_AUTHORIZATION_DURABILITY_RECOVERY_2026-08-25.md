@@ -43,8 +43,29 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 - G2 lifecycle, privacy, retention and provider-readiness validators: passed;
   provider result remains `prepared-hold`, 0/10 decisions and not externally
   ready.
-- Complete technical regression and exact-head GitHub Regression/CodeQL remain
-  pending until the implementation commit is frozen.
+- Frozen implementation candidate:
+  `9d4780f0d7ebd88bc2521ae38d77203e181ecda6`.
+- Complete technical regression: passed with standard parallelism and no timing
+  workaround; 496 default-profile Flutter tests passed with three documented
+  profile skips, analyzer reported zero issues, Web debug plus loopback smoke
+  passed, and Android debug completed 448 tasks with binary `minSdk 24`.
+- Exact-head GitHub Regression remains pending; exact-head CodeQL has started
+  independently and is not claimed here until the complete pair is verified.
+
+## Ratchet audit
+
+RW8 changed the privacy and retention manifests because local reviews are now
+explicitly bound to export, deletion/anonymization and shared-public-record
+truth. Active provider evidence changed only to bind those reviewed manifest
+hashes; provider state remains `prepared-hold`, 0/10 owner decisions and not
+externally ready. No provider decision or gate changed.
+
+The full regression caught every dependent source hash rather than bypassing
+it. RW3, RW4 and RW6 were mechanically refreshed after the shared compliance
+section changed. The public-profile fixture was then made explicit so it no
+longer depended on forbidden read-time review seeding, and RW0's bound hash was
+mechanically refreshed. Package validators and the final full regression passed
+after those changes.
 
 ## Operational behavior
 

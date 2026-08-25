@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw8-local-review-reputation-authorization-durability",
-  "status": "implemented-focused-passed-full-technical-regression-pending",
+  "status": "implemented-full-technical-regression-passed-ci-pending",
   "implementationBaseHead": "c0bbdfff21d5e4cbba549030fd9bd9a37d77c632",
-  "implementationHead": null,
+  "implementationHead": "9d4780f0d7ebd88bc2521ae38d77203e181ecda6",
   "architecture": "docs/architecture/rw8-local-review-reputation-authorization-durability-recovery-2026-08-25.md",
   "report": "docs/operations/RW8_LOCAL_REVIEW_REPUTATION_AUTHORIZATION_DURABILITY_RECOVERY_2026-08-25.md",
   "predecessor": {
@@ -97,13 +97,37 @@
   "verification": {
     "changedFileAnalyze": "passed-zero-issues",
     "focusedRw8Flutter": "passed-28",
+    "defaultFlutter": "passed-496-with-3-documented-profile-skips",
     "lifecyclePrivacyRetentionProvider": "passed",
     "rw8WiringTests": "passed",
-    "fullTechnicalRegression": "pending",
+    "fullTechnicalRegression": "passed",
     "githubRegression": "pending",
     "githubCodeql": "pending"
   },
+  "localRegression": {
+    "head": "9d4780f0d7ebd88bc2521ae38d77203e181ecda6",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "flutterPassed": 496,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24
+  },
   "githubVerification": null,
+  "ratchetAudit": {
+    "cause": "RW8 added validated local review lifecycle, privacy and retention coverage and therefore changed the bound manifest hashes; the provider evidence changed only to bind those reviewed manifest hashes.",
+    "providerDecisionChanged": false,
+    "providerGateChanged": false,
+    "fullRegressionCascades": [
+      "RW3, RW4 and RW6 shared-compliance source hashes refreshed after the RW8 compliance section changed.",
+      "RW0 public-profile test hash refreshed after its fixture was made explicit and read-time review seeding remained forbidden."
+    ],
+    "verification": "Every refreshed source inventory passed its package validator and the complete supported technical regression on the implementation head."
+  },
   "ratchets": {
     "reason": "validated-local-review-lifecycle-privacy-retention-and-provider-source-change",
     "privacyManifestSha256": "d86eb0fcd42b97dba9b9ebda2a9c734f30e10ac6f7696547a11705ec218523f2",
@@ -222,7 +246,7 @@
     },
     {
       "path": "test/tool/validate_rw8_local_review_reputation_authorization_durability.test.mjs",
-      "sha256": "54b3ac371098c649e4dcc0b391ec92cdbb55a85591e1b139a336de960511d0b2"
+      "sha256": "3d73bd86feb20a457c8cdd8ab37cf921185a55f79c57d529399f4936e42fb2cd"
     },
     {
       "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
@@ -234,11 +258,11 @@
     },
     {
       "path": "docs/architecture/rw8-local-review-reputation-authorization-durability-recovery-2026-08-25.md",
-      "sha256": "f001fc79bde74d963d8d2093492744262fd18bf2975afebbae51a22a52a76739"
+      "sha256": "c42499bad5c5529be930c2ff33e874c04ec38d8554a11b5446754bd72b962ce5"
     },
     {
       "path": "docs/operations/RW8_LOCAL_REVIEW_REPUTATION_AUTHORIZATION_DURABILITY_RECOVERY_2026-08-25.md",
-      "sha256": "21d85c9120f46f20fcbc136097d8ece8c4202d0ad5e174c0337a6e001a79385f"
+      "sha256": "516286767b96c8eba255d19bbc0e8a1aed943a95de3ac0ad47e0fc3c2960f465"
     }
   ]
 }

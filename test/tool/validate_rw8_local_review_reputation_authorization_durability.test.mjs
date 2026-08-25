@@ -46,7 +46,7 @@ test('rejects a changed live gate or boundary', () => {
 test('rejects premature full regression or GitHub claims', () => {
   const regression = clone(baseEvidence);
   regression.status =
-    'implemented-full-technical-regression-passed-ci-pending';
+    'implemented-focused-passed-full-technical-regression-pending';
   assert.throws(() => validate(regression), /verification truth/u);
 
   const github = clone(baseEvidence);

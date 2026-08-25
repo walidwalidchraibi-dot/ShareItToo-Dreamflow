@@ -1,7 +1,8 @@
 # RW8 local review/reputation authorization, durability and recovery
 
 Date: 2026-08-25
-State: implemented locally; full regression and GitHub verification pending
+State: implementation candidate `9d4780f0d7ebd88bc2521ae38d77203e181ecda6`;
+full local regression passed; exact-head GitHub verification pending
 
 ## Decision
 
@@ -61,6 +62,22 @@ parallel writes; injected storage failure and queue recovery; full capacity;
 privacy scope and shared-record retention; process-style recreation; and UI
 input-preserving retry. It contains no sleeps, timing allowances or reduced
 parallelism requirements.
+
+The complete supported regression passed on the exact clean candidate with
+standard Flutter parallelism: analyzer zero issues, 496 default-profile tests
+passed with three documented profile skips, all dedicated profile and RW0-RW8
+checks passed, and the Web debug build, loopback smoke, Android debug build and
+binary `minSdk 24` check passed. The run used no timing workaround or reduced
+test parallelism.
+
+The initial full run correctly exposed predecessor source-inventory drift after
+the shared compliance document changed; RW3, RW4 and RW6 hashes were refreshed
+without changing their scope or decisions. A subsequent run exposed one legacy
+public-profile fixture that still depended on implicit review demo seeding. The
+fixture now supplies its review explicitly, while RW8 independently proves that
+missing review storage remains empty. RW0's bound hash for that test was then
+mechanically refreshed. All affected validators and the final full regression
+passed.
 
 RW8 changes no contract, quote, acceptance, payment, refund, payout, handover,
 return, damage, moderation decision, production schema, provider, AI, candidate,
