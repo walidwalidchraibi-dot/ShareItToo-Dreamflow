@@ -178,11 +178,11 @@
   "sourceInventory": [
     {
       "path": "lib/screens/security_screen.dart",
-      "sha256": "447635cbac81adefea6cc9bf0792805a13f0d400310279c160243fdf5364d5c3"
+      "sha256": "86107d2852d5363cec8cf5554de0ca5eef70a6b69cb21e1a042441d9dcf1c629"
     },
     {
       "path": "lib/services/account_security_service.dart",
-      "sha256": "0d51f506522d872378e20480e3e559958fbe7d60fe2c818700884c0ee1f0c362"
+      "sha256": "774492379049744c40ac82c9a01b46439d5f5b9bcbde80c94684822b33787b0e"
     },
     {
       "path": "lib/services/auth_service.dart",
@@ -210,15 +210,15 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "8d5d345a16a3f81cb651d319b843e6c7d9eeeadaddfd7cf2fa018b0b5d59759c"
+      "sha256": "cde79b687f1b65f5b40844178f162891c47f7878bbbac2ffce9c00656cab561f"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
-      "sha256": "29cbc4cd32f02fabdca41598109643ce920c9b0950139e022389a00217b045a6"
+      "sha256": "2d90b79162b31606af7103d9a4d1472070336f73bb59d2a25c90b8cc4b1f5335"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "1bf1540e80d6887aa05dcd2d732fae7dddf2f1aafbe46cb11b4102d7de19168b"
+      "sha256": "4ef771f9c6f037752826676c824cf8aa3d4cb194d9cf3b71c9072bcc4285ac6f"
     },
     {
       "path": "test/rw12_security_success_ui_principal_epoch_test.dart",
@@ -226,7 +226,7 @@
     },
     {
       "path": "test/tool/rw12_security_success_ui_principal_epoch_wiring.test.mjs",
-      "sha256": "71822fb27d88a0764026d32edd7bd8376a1c85b3990349cee43775c112ee9fe9"
+      "sha256": "b93cea6db81c60279f4d727c2c8b13db4acae96709efd9a74b098cd485b1c069"
     },
     {
       "path": "test/tool/validate_rw12_security_success_ui_principal_epoch.test.mjs",

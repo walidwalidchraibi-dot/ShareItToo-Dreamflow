@@ -236,7 +236,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "1bf1540e80d6887aa05dcd2d732fae7dddf2f1aafbe46cb11b4102d7de19168b"
+      "sha256": "4ef771f9c6f037752826676c824cf8aa3d4cb194d9cf3b71c9072bcc4285ac6f"
     },
     {
       "path": "test/rw5_local_safety_privacy_principal_isolation_test.dart",

@@ -17,7 +17,7 @@ void main() {
   test('explicit backend rejection is distinct and remains Account A scoped',
       () async {
     final service = _ClassifyingRevocationService(
-      remoteError: const BackendException(403, 'forbidden'),
+      remoteError: const BackendException(404, 'session_not_found'),
     );
 
     await expectLater(
@@ -179,10 +179,9 @@ void main() {
 
     service.activateAccountB();
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Abmelden'));
-    await tester.pumpAndSettle();
 
     expect(service.revokeCalls, 0);
+    expect(find.widgetWithText(FilledButton, 'Abmelden'), findsNothing);
     expect(find.text('Account B Phone (Dieses Gerät)'), findsOneWidget);
     expect(find.text('Remote Browser'), findsNothing);
   });

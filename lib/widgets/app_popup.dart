@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
+import 'package:lendify/widgets/tracked_dialog_route.dart';
 
 /// Unified popup and toast utilities to keep a consistent, modern glass style
 /// across the entire app. Use these instead of SnackBar or small bottom sheets.
@@ -11,12 +12,14 @@ class AppPopup {
     BuildContext context, {
     required String title,
     String? message,
+    TrackedDialogRouteHandle<void>? routeHandle,
   }) =>
       toast(
         context,
         icon: Icons.check_circle_outline_rounded,
         title: title,
         message: message,
+        routeHandle: routeHandle,
       );
 
   /// Centered, persistent feedback for failures that need attention.
@@ -24,12 +27,14 @@ class AppPopup {
     BuildContext context, {
     required String title,
     String? message,
+    TrackedDialogRouteHandle<void>? routeHandle,
   }) =>
       show(
         context,
         icon: Icons.error_outline_rounded,
         title: title,
         message: message,
+        routeHandle: routeHandle,
       );
 
   /// Centered informational feedback for blocked or unavailable actions.
@@ -37,12 +42,14 @@ class AppPopup {
     BuildContext context, {
     required String title,
     String? message,
+    TrackedDialogRouteHandle<void>? routeHandle,
   }) =>
       show(
         context,
         icon: Icons.info_outline_rounded,
         title: title,
         message: message,
+        routeHandle: routeHandle,
       );
 
   /// Shows a lightweight anchored menu near the top-right (SIT style).
@@ -144,22 +151,19 @@ class AppPopup {
     bool showCloseIcon = true,
     // New: optional auto-close duration for standard popups
     Duration? autoCloseAfter,
+    TrackedDialogRouteHandle<void>? routeHandle,
   }) async {
-    final navigator = Navigator.maybeOf(context, rootNavigator: true);
+    final handle = routeHandle ?? TrackedDialogRouteHandle<void>();
     var closed = false;
     // Schedule auto-close if requested
     if (autoCloseAfter != null) {
       Future<void>.delayed(autoCloseAfter).then((_) {
-        if (!closed &&
-            navigator != null &&
-            navigator.mounted &&
-            navigator.canPop()) {
-          navigator.maybePop();
-        }
+        if (!closed) handle.dismiss();
       });
     }
-    await showGeneralDialog<void>(
+    await showTrackedGeneralDialog<void>(
       context: context,
+      handle: handle,
       barrierDismissible: barrierDismissible,
       barrierLabel: title,
       // Keep barrier technically transparent; we render our own dimming+blur layer
@@ -191,7 +195,7 @@ class AppPopup {
                       title: title,
                       message: message,
                       actions: actions,
-                      onClose: () => Navigator.of(ctx).maybePop(),
+                      onClose: handle.dismiss,
                       plainCloseIcon: plainCloseIcon,
                       showClose: showCloseIcon,
                       accentGradient: accentGradient,
@@ -239,19 +243,16 @@ class AppPopup {
     Color? backgroundColor,
     Color? borderColor,
     bool useExploreBackground = false,
+    TrackedDialogRouteHandle<void>? routeHandle,
   }) async {
-    bool closed = false;
-    final navigator = Navigator.maybeOf(context, rootNavigator: true);
+    var closed = false;
+    final handle = routeHandle ?? TrackedDialogRouteHandle<void>();
     Future<void>.delayed(duration).then((_) {
-      if (!closed &&
-          navigator != null &&
-          navigator.mounted &&
-          navigator.canPop()) {
-        navigator.maybePop();
-      }
+      if (!closed) handle.dismiss();
     });
-    await showGeneralDialog<void>(
+    await showTrackedGeneralDialog<void>(
       context: context,
+      handle: handle,
       barrierDismissible: true,
       barrierLabel: title,
       barrierColor: Colors.transparent,
@@ -325,9 +326,12 @@ class AppPopup {
     bool showAccentLine = false,
     // New: customize the glass card background color
     Color? cardBackgroundColor,
+    TrackedDialogRouteHandle<T>? routeHandle,
   }) async {
-    return showGeneralDialog<T>(
+    final handle = routeHandle ?? TrackedDialogRouteHandle<T>();
+    return showTrackedGeneralDialog<T>(
       context: context,
+      handle: handle,
       barrierDismissible: barrierDismissible,
       barrierLabel: title,
       barrierColor: Colors.transparent,
@@ -358,7 +362,7 @@ class AppPopup {
                       title: title,
                       // Inject custom body
                       body: body,
-                      onClose: () => Navigator.of(ctx).maybePop(),
+                      onClose: handle.dismiss,
                       showClose: showCloseIcon,
                       // Add subtle brand accent to the leading badge (can be hidden via showAccentLine)
                       accentGradient: showAccentLine

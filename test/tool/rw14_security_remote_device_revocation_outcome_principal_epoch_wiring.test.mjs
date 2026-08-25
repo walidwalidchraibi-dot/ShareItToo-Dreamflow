@@ -16,12 +16,15 @@ test('remote-device confirmation is bound before the dialog and checked before s
     screen.indexOf('Future<void> _signOutDevice('),
     screen.indexOf('Future<void> _logoutAllDevices()'),
   );
-  const promptEpoch = method.indexOf('final promptEpoch = _securityEpoch;');
-  const dialog = method.indexOf('showDialog<bool>', promptEpoch);
-  const epochGate = method.indexOf('promptEpoch != _securityEpoch', dialog);
-  const serviceCall = method.indexOf('_securityService.revokeSession(device.id)', epochGate);
-  assert.ok(promptEpoch >= 0 && promptEpoch < dialog);
-  assert.ok(dialog < epochGate && epochGate < serviceCall);
+  const ownerCapture = method.indexOf('final owner = _captureInteractionOwner();');
+  const dialog = method.indexOf('showTrackedDialog<bool>', ownerCapture);
+  const ownerGate = method.indexOf('_isInteractionOwnerCurrent(owner)', dialog);
+  const serviceCall = method.indexOf(
+    '_securityService.revokeSession(device.id)',
+    ownerGate,
+  );
+  assert.ok(ownerCapture >= 0 && ownerCapture < dialog);
+  assert.ok(dialog < ownerGate && ownerGate < serviceCall);
 });
 
 test('service keeps rejection confirmed-local-failure and unknown distinct', () => {
@@ -42,15 +45,15 @@ test('UI requires exact target principal proof and stable response epoch', () =>
   for (const marker of [
     'error.targetSessionId != device.id',
     '!error.invokingSessionDefinitelyCurrent',
-    'operationEpoch != _securityEpoch',
+    '!_isInteractionOwnerCurrent',
   ]) assert.match(method, new RegExp(marker.replaceAll('.', '\\.'), 'u'));
 });
 
 test('typed failures become explicit reload state and open A outcome closes under B', () => {
   assert.match(screen, /Die Sitzungsliste ist nach der Geräteaktion nicht mehr/u);
   assert.match(screen, /_loadError =/u);
-  assert.match(screen, /_revocationOutcomeVisible/u);
-  assert.match(screen, /navigator\.pop\(\)/u);
+  assert.match(screen, /_activeOutcomeDialog\?\.dismiss\(\)/u);
+  assert.doesNotMatch(screen, /_revocationOutcomeVisible/u);
   for (const title of [
     'Geräteabmeldung abgelehnt',
     'Gerät serverseitig abgemeldet',

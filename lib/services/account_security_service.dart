@@ -219,9 +219,12 @@ class AccountSecurityService {
   static bool _isDefiniteSessionRevocationRejection(
     BackendException error,
   ) =>
-      const <int>{400, 401, 403, 404, 409, 422, 429}
-          .contains(error.statusCode) &&
-      error.code != 'invalid_server_response';
+      _isExactStructuredRejection(
+        error,
+        operationCodes: const <int, Set<String>>{
+          404: <String>{'session_not_found'},
+        },
+      );
 
   Future<bool> _isInvokingSessionDefinitelyCurrent(
     _AccountSecuritySessionMarker marker,
@@ -276,9 +279,17 @@ class AccountSecurityService {
   }
 
   static bool _isDefinitePasswordRejection(BackendException error) =>
-      const <int>{400, 401, 403, 404, 409, 422, 429}
-          .contains(error.statusCode) &&
-      error.code != 'invalid_server_response';
+      _isExactStructuredRejection(
+        error,
+        operationCodes: const <int, Set<String>>{
+          400: <String>{
+            'password_too_short',
+            'password_too_long',
+            'password_too_weak',
+          },
+          401: <String>{'invalid_credentials'},
+        },
+      );
 
   Future<PasswordChangeFailure> _unknownPasswordChangeOutcome(
     _AccountSecuritySessionMarker marker,
@@ -329,9 +340,23 @@ class AccountSecurityService {
   }
 
   static bool _isDefiniteLogoutAllRejection(BackendException error) =>
-      const <int>{400, 401, 403, 404, 409, 422, 429}
-          .contains(error.statusCode) &&
-      error.code != 'invalid_server_response';
+      _isExactStructuredRejection(error);
+
+  static bool _isExactStructuredRejection(
+    BackendException error, {
+    Map<int, Set<String>> operationCodes = const <int, Set<String>>{},
+  }) {
+    const commonCodes = <int, Set<String>>{
+      401: <String>{
+        'authentication_required',
+        'invalid_or_expired_session',
+        'account_not_active',
+      },
+      429: <String>{'rate_limit_exceeded'},
+    };
+    return commonCodes[error.statusCode]?.contains(error.code) == true ||
+        operationCodes[error.statusCode]?.contains(error.code) == true;
+  }
 
   Future<LogoutAllFailure> _unknownLogoutAllOutcome(
     _AccountSecuritySessionMarker marker,

@@ -92,7 +92,7 @@
     },
     {
       "path": "lib/widgets/app_popup.dart",
-      "sha256": "41fbb2de6873e83da0a008ed6fc0233e8aaf59594c81f4c467507a133177f24d"
+      "sha256": "de549251e24c4cf05ab6dcd78856d6c1b47dec67bb15954382487692316f5dcb"
     },
     {
       "path": "lib/widgets/listing_options_dialog.dart",
@@ -100,7 +100,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "1bf1540e80d6887aa05dcd2d732fae7dddf2f1aafbe46cb11b4102d7de19168b"
+      "sha256": "4ef771f9c6f037752826676c824cf8aa3d4cb194d9cf3b71c9072bcc4285ac6f"
     },
     {
       "path": "test/reduced_wave0_accessibility_resilience_test.dart",

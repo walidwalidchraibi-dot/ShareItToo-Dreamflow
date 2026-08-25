@@ -23,7 +23,7 @@ test('password success requires definite local session absence and a stable UI e
     'successEpoch != _securityEpoch',
     absenceCheck,
   );
-  const popup = screen.indexOf('await AppPopup.success(', epochCheck);
+  const popup = screen.indexOf('await _showOwnedSuccess(', epochCheck);
   const postPopupEpochCheck = screen.indexOf(
     'successEpoch != _securityEpoch',
     popup,

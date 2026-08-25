@@ -10,6 +10,7 @@ import 'package:lendify/services/account_security_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/tracked_dialog_route.dart';
 
 class SecurityScreen extends StatefulWidget {
   final AccountSecurityService? securityService;
@@ -30,7 +31,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
   bool _loading = true;
   bool _pwBusy = false;
   bool _devicesBusy = false;
-  bool _revocationOutcomeVisible = false;
+  TrackedDialogRouteHandle<bool>? _activeConfirmationDialog;
+  TrackedDialogRouteHandle<void>? _activeOutcomeDialog;
   bool _pwObscureCurrent = true;
   bool _pwObscureNext = true;
   bool _pwObscureConfirm = true;
@@ -65,10 +67,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
     _loadRevision += 1;
     _clearPasswordFields();
     if (!mounted) return;
-    if (_revocationOutcomeVisible) {
-      final navigator = Navigator.maybeOf(context, rootNavigator: true);
-      if (navigator != null && navigator.canPop()) navigator.pop();
-    }
+    _activeConfirmationDialog?.dismiss(false);
+    _activeOutcomeDialog?.dismiss();
     setState(() {
       _devices = const [];
       _loadError = null;
@@ -83,6 +83,63 @@ class _SecurityScreenState extends State<SecurityScreen> {
     _currentCtrl.clear();
     _nextCtrl.clear();
     _confirmCtrl.clear();
+  }
+
+  _SecurityInteractionOwner? _captureInteractionOwner() {
+    if (_loading || _loadError != null) return null;
+    final current = _devices.where((device) => device.isThisDevice).toList();
+    if (current.length != 1 || current.single.id.trim().isEmpty) return null;
+    return _SecurityInteractionOwner(
+      epoch: _securityEpoch,
+      principalSessionId: current.single.id.trim(),
+    );
+  }
+
+  bool _isInteractionOwnerCurrent(_SecurityInteractionOwner owner) {
+    if (!mounted || owner.epoch != _securityEpoch) return false;
+    final current = _devices.where((device) => device.isThisDevice).toList();
+    return current.length == 1 &&
+        current.single.id.trim() == owner.principalSessionId;
+  }
+
+  Future<void> _showOwnedOutcome({
+    required String title,
+    required String message,
+  }) async {
+    final handle = TrackedDialogRouteHandle<void>();
+    _activeOutcomeDialog = handle;
+    try {
+      await AppPopup.error(
+        context,
+        title: title,
+        message: message,
+        routeHandle: handle,
+      );
+    } finally {
+      if (identical(_activeOutcomeDialog, handle)) {
+        _activeOutcomeDialog = null;
+      }
+    }
+  }
+
+  Future<void> _showOwnedSuccess({
+    required String title,
+    required String message,
+  }) async {
+    final handle = TrackedDialogRouteHandle<void>();
+    _activeOutcomeDialog = handle;
+    try {
+      await AppPopup.success(
+        context,
+        title: title,
+        message: message,
+        routeHandle: handle,
+      );
+    } finally {
+      if (identical(_activeOutcomeDialog, handle)) {
+        _activeOutcomeDialog = null;
+      }
+    }
   }
 
   Future<void> _load() async {
@@ -145,79 +202,90 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> _changePassword() async {
     if (!_securityService.isAvailable || !_passwordValid || _pwBusy) return;
-    final operationEpoch = _securityEpoch;
+    final owner = _captureInteractionOwner();
+    if (owner == null || !_isInteractionOwnerCurrent(owner)) return;
+    final operationEpoch = owner.epoch;
     setState(() => _pwBusy = true);
     try {
-      await _securityService.changePassword(
-        currentPassword: _currentCtrl.text,
-        newPassword: _nextCtrl.text,
-      );
+      try {
+        if (!_isInteractionOwnerCurrent(owner)) return;
+        await _securityService.changePassword(
+          currentPassword: _currentCtrl.text,
+          newPassword: _nextCtrl.text,
+        );
+      } on PasswordChangeFailure catch (error) {
+        debugPrint(
+          '[SecurityScreen] changePassword outcome: ${error.kind.name}',
+        );
+        if (!mounted) return;
+        final outcomeEpoch = _securityEpoch;
+        if (error.localSessionDefinitelyCleared) {
+          if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+          if (!mounted || outcomeEpoch != _securityEpoch) return;
+        } else if (!_isInteractionOwnerCurrent(owner)) {
+          return;
+        }
+        _clearPasswordFields();
+        setState(() {});
+        final (title, message) = switch (error.kind) {
+          PasswordChangeFailureKind.rejected => (
+              'Passwort nicht geändert',
+              'Der Server hat die Änderung abgelehnt. '
+                  'Bitte prüfe deine Eingaben und versuche es erneut.',
+            ),
+          PasswordChangeFailureKind.confirmedLocalFinalizationFailed => (
+              'Passwort serverseitig geändert',
+              'Die lokale Abmeldung konnte nicht sicher bestätigt werden. '
+                  'Schließe die App und melde dich erneut an.',
+            ),
+          PasswordChangeFailureKind.outcomeUnknown => (
+              'Ergebnis der Passwortänderung unklar',
+              'Die Serverantwort ist nicht angekommen. Melde dich neu an und '
+                  'prüfe das neue Passwort, bevor du die Änderung erneut sendest.',
+            ),
+        };
+        await _showOwnedOutcome(title: title, message: message);
+        if (!mounted || outcomeEpoch != _securityEpoch) return;
+        if (!error.localSessionDefinitelyCleared) {
+          if (!_isInteractionOwnerCurrent(owner)) return;
+          return;
+        }
+        if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+        if (!mounted || outcomeEpoch != _securityEpoch) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        );
+        return;
+      } catch (error) {
+        debugPrint(
+            '[SecurityScreen] changePassword failed: ${error.runtimeType}');
+        if (!_isInteractionOwnerCurrent(owner)) return;
+        _clearPasswordFields();
+        setState(() {});
+        await _showOwnedOutcome(
+          title: 'Passwort nicht geändert',
+          message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
+              'Bitte prüfe deine Sitzung und versuche es erneut.',
+        );
+        return;
+      }
+
       if (!mounted) return;
       final successEpoch = _securityEpoch;
       if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
       if (!mounted || successEpoch != _securityEpoch) return;
       _clearPasswordFields();
       setState(() {});
-      await AppPopup.success(
-        context,
+      await _showOwnedSuccess(
         title: 'Passwort geändert',
         message: 'Bitte melde dich erneut an.',
       );
+      if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
       if (!mounted || successEpoch != _securityEpoch) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (_) => false,
-      );
-    } on PasswordChangeFailure catch (error) {
-      debugPrint(
-        '[SecurityScreen] changePassword outcome: ${error.kind.name}',
-      );
-      if (!mounted) return;
-      final outcomeEpoch = _securityEpoch;
-      if (error.localSessionDefinitelyCleared) {
-        if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
-        if (!mounted || outcomeEpoch != _securityEpoch) return;
-      } else if (operationEpoch != _securityEpoch) {
-        return;
-      }
-      _clearPasswordFields();
-      setState(() {});
-      final (title, message) = switch (error.kind) {
-        PasswordChangeFailureKind.rejected => (
-            'Passwort nicht geändert',
-            'Der Server hat die Änderung abgelehnt. '
-                'Bitte prüfe deine Eingaben und versuche es erneut.',
-          ),
-        PasswordChangeFailureKind.confirmedLocalFinalizationFailed => (
-            'Passwort serverseitig geändert',
-            'Die lokale Abmeldung konnte nicht sicher bestätigt werden. '
-                'Schließe die App und melde dich erneut an.',
-          ),
-        PasswordChangeFailureKind.outcomeUnknown => (
-            'Ergebnis der Passwortänderung unklar',
-            'Die Serverantwort ist nicht angekommen. Melde dich neu an und '
-                'prüfe das neue Passwort, bevor du die Änderung erneut sendest.',
-          ),
-      };
-      await AppPopup.error(context, title: title, message: message);
-      if (!mounted || outcomeEpoch != _securityEpoch) return;
-      if (error.localSessionDefinitelyCleared) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (_) => false,
-        );
-      }
-    } catch (error) {
-      debugPrint(
-          '[SecurityScreen] changePassword failed: ${error.runtimeType}');
-      if (!mounted || operationEpoch != _securityEpoch) return;
-      _clearPasswordFields();
-      setState(() {});
-      await AppPopup.error(
-        context,
-        title: 'Passwort nicht geändert',
-        message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
-            'Bitte prüfe deine Sitzung und versuche es erneut.',
       );
     } finally {
       if (mounted && operationEpoch == _securityEpoch) {
@@ -230,85 +298,98 @@ class _SecurityScreenState extends State<SecurityScreen> {
     if (!_securityService.isAvailable || _devicesBusy || device.isThisDevice) {
       return;
     }
-    final promptEpoch = _securityEpoch;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          barrierDismissible: true,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Gerät abmelden?'),
-            content: Text('Du wirst auf „${device.name}“ abgemeldet.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Abbrechen'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Abmelden'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-    if (!confirmed || !mounted || promptEpoch != _securityEpoch) return;
+    final owner = _captureInteractionOwner();
+    if (owner == null) return;
+    final confirmationHandle = TrackedDialogRouteHandle<bool>();
+    _activeConfirmationDialog = confirmationHandle;
+    bool confirmed;
+    try {
+      confirmed = await showTrackedDialog<bool>(
+            context: context,
+            handle: confirmationHandle,
+            barrierDismissible: true,
+            barrierLabel: 'Gerät abmelden?',
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Gerät abmelden?'),
+              content: Text('Du wirst auf „${device.name}“ abgemeldet.'),
+              actions: [
+                TextButton(
+                  onPressed: () => confirmationHandle.dismiss(false),
+                  child: const Text('Abbrechen'),
+                ),
+                FilledButton(
+                  onPressed: () => confirmationHandle.dismiss(true),
+                  child: const Text('Abmelden'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+    } finally {
+      if (identical(_activeConfirmationDialog, confirmationHandle)) {
+        _activeConfirmationDialog = null;
+      }
+    }
+    if (!confirmed || !_isInteractionOwnerCurrent(owner)) return;
 
-    final operationEpoch = promptEpoch;
+    final operationEpoch = owner.epoch;
     setState(() => _devicesBusy = true);
     try {
-      await _securityService.revokeSession(device.id);
-      if (!mounted || operationEpoch != _securityEpoch) return;
+      try {
+        if (!_isInteractionOwnerCurrent(owner)) return;
+        await _securityService.revokeSession(device.id);
+      } on SessionRevocationFailure catch (error) {
+        debugPrint(
+          '[SecurityScreen] revokeSession outcome: ${error.kind.name}',
+        );
+        if (!mounted ||
+            error.targetSessionId != device.id ||
+            !error.invokingSessionDefinitelyCurrent ||
+            !_isInteractionOwnerCurrent(owner)) {
+          return;
+        }
+        _loadRevision += 1;
+        setState(() {
+          _devices = const [];
+          _loadError = 'Die Sitzungsliste ist nach der Geräteaktion nicht mehr '
+              'sicher aktuell.';
+          _loading = false;
+        });
+        final (title, message) = switch (error.kind) {
+          SessionRevocationFailureKind.rejected => (
+              'Geräteabmeldung abgelehnt',
+              'Der Server hat die Abmeldung nicht ausgeführt. '
+                  'Lade die Sitzungsliste erneut.',
+            ),
+          SessionRevocationFailureKind.confirmedLocalFinalizationFailed => (
+              'Gerät serverseitig abgemeldet',
+              'Die lokale Sitzungsliste konnte nicht sicher aktualisiert '
+                  'werden. Lade sie erneut.',
+            ),
+          SessionRevocationFailureKind.outcomeUnknown => (
+              'Ergebnis der Geräteabmeldung unklar',
+              'Die Serverantwort ist nicht angekommen. Lade die Sitzungsliste '
+                  'neu, bevor du die Abmeldung erneut sendest.',
+            ),
+        };
+        await _showOwnedOutcome(title: title, message: message);
+        return;
+      } catch (error) {
+        debugPrint(
+            '[SecurityScreen] revokeSession failed: ${error.runtimeType}');
+        if (!_isInteractionOwnerCurrent(owner)) return;
+        await _showOwnedOutcome(
+          title: 'Geräteaktion nicht abgeschlossen',
+          message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
+              'Bitte prüfe deine Sitzung und versuche es erneut.',
+        );
+        return;
+      }
+
+      if (!_isInteractionOwnerCurrent(owner)) return;
       setState(() {
         _devices = _devices.where((entry) => entry.id != device.id).toList();
       });
-    } on SessionRevocationFailure catch (error) {
-      debugPrint(
-        '[SecurityScreen] revokeSession outcome: ${error.kind.name}',
-      );
-      if (!mounted ||
-          error.targetSessionId != device.id ||
-          !error.invokingSessionDefinitelyCurrent ||
-          operationEpoch != _securityEpoch) {
-        return;
-      }
-      _loadRevision += 1;
-      setState(() {
-        _devices = const [];
-        _loadError = 'Die Sitzungsliste ist nach der Geräteaktion nicht mehr '
-            'sicher aktuell.';
-        _loading = false;
-      });
-      final (title, message) = switch (error.kind) {
-        SessionRevocationFailureKind.rejected => (
-            'Geräteabmeldung abgelehnt',
-            'Der Server hat die Abmeldung nicht ausgeführt. '
-                'Lade die Sitzungsliste erneut.',
-          ),
-        SessionRevocationFailureKind.confirmedLocalFinalizationFailed => (
-            'Gerät serverseitig abgemeldet',
-            'Die lokale Sitzungsliste konnte nicht sicher aktualisiert '
-                'werden. Lade sie erneut.',
-          ),
-        SessionRevocationFailureKind.outcomeUnknown => (
-            'Ergebnis der Geräteabmeldung unklar',
-            'Die Serverantwort ist nicht angekommen. Lade die Sitzungsliste '
-                'neu, bevor du die Abmeldung erneut sendest.',
-          ),
-      };
-      _revocationOutcomeVisible = true;
-      try {
-        await AppPopup.error(context, title: title, message: message);
-      } finally {
-        _revocationOutcomeVisible = false;
-      }
-    } catch (error) {
-      debugPrint('[SecurityScreen] revokeSession failed: ${error.runtimeType}');
-      if (!mounted || operationEpoch != _securityEpoch) return;
-      await AppPopup.error(
-        context,
-        title: 'Geräteaktion nicht abgeschlossen',
-        message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
-            'Bitte prüfe deine Sitzung und versuche es erneut.',
-      );
     } finally {
       if (mounted && operationEpoch == _securityEpoch) {
         setState(() => _devicesBusy = false);
@@ -318,33 +399,105 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> _logoutAllDevices() async {
     if (!_securityService.isAvailable || _devicesBusy) return;
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Alle Geräte abmelden?'),
-            content: const Text(
-              'Alle serverseitigen Sitzungen werden beendet. Du musst dich '
-              'anschließend neu anmelden.',
+    final owner = _captureInteractionOwner();
+    if (owner == null) return;
+    final confirmationHandle = TrackedDialogRouteHandle<bool>();
+    _activeConfirmationDialog = confirmationHandle;
+    bool confirmed;
+    try {
+      confirmed = await showTrackedDialog<bool>(
+            context: context,
+            handle: confirmationHandle,
+            barrierLabel: 'Alle Geräte abmelden?',
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Alle Geräte abmelden?'),
+              content: const Text(
+                'Alle serverseitigen Sitzungen werden beendet. Du musst dich '
+                'anschließend neu anmelden.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => confirmationHandle.dismiss(false),
+                  child: const Text('Abbrechen'),
+                ),
+                FilledButton(
+                  onPressed: () => confirmationHandle.dismiss(true),
+                  child: const Text('Alle abmelden'),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Abbrechen'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Alle abmelden'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-    if (!confirmed || !mounted) return;
+          ) ??
+          false;
+    } finally {
+      if (identical(_activeConfirmationDialog, confirmationHandle)) {
+        _activeConfirmationDialog = null;
+      }
+    }
+    if (!confirmed || !_isInteractionOwnerCurrent(owner)) return;
 
-    final operationEpoch = _securityEpoch;
+    final operationEpoch = owner.epoch;
     setState(() => _devicesBusy = true);
     try {
-      await _securityService.logoutAllSessions();
+      try {
+        if (!_isInteractionOwnerCurrent(owner)) return;
+        await _securityService.logoutAllSessions();
+      } on LogoutAllFailure catch (error) {
+        debugPrint('[SecurityScreen] logoutAll outcome: ${error.kind.name}');
+        if (!mounted) return;
+        final outcomeEpoch = _securityEpoch;
+        if (error.localSessionDefinitelyCleared) {
+          if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+          if (!mounted || outcomeEpoch != _securityEpoch) return;
+        } else if (!_isInteractionOwnerCurrent(owner)) {
+          return;
+        }
+        if (error.kind != LogoutAllFailureKind.rejected) {
+          setState(() {
+            _devices = const [];
+            _loadError = null;
+          });
+        }
+        final (title, message) = switch (error.kind) {
+          LogoutAllFailureKind.rejected => (
+              'Geräte nicht abgemeldet',
+              'Der Server hat die Abmeldung abgelehnt. '
+                  'Bitte lade die Sitzungsliste erneut.',
+            ),
+          LogoutAllFailureKind.confirmedLocalFinalizationFailed => (
+              'Geräte serverseitig abgemeldet',
+              'Die lokale Abmeldung konnte nicht sicher bestätigt werden. '
+                  'Schließe die App und melde dich erneut an.',
+            ),
+          LogoutAllFailureKind.outcomeUnknown => (
+              'Ergebnis der Geräteabmeldung unklar',
+              'Die Serverantwort ist nicht angekommen. Melde dich neu an und '
+                  'prüfe deine Sitzungen, bevor du die Aktion erneut sendest.',
+            ),
+        };
+        await _showOwnedOutcome(title: title, message: message);
+        if (!mounted || outcomeEpoch != _securityEpoch) return;
+        if (!error.localSessionDefinitelyCleared) {
+          if (!_isInteractionOwnerCurrent(owner)) return;
+          return;
+        }
+        if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
+        if (!mounted || outcomeEpoch != _securityEpoch) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        );
+        return;
+      } catch (error) {
+        debugPrint('[SecurityScreen] logoutAll failed: ${error.runtimeType}');
+        if (!_isInteractionOwnerCurrent(owner)) return;
+        await _showOwnedOutcome(
+          title: 'Geräte nicht abgemeldet',
+          message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
+              'Bitte prüfe deine Sitzung und versuche es erneut.',
+        );
+        return;
+      }
+
       if (!mounted) return;
       final successEpoch = _securityEpoch;
       if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
@@ -352,56 +505,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (_) => false,
-      );
-    } on LogoutAllFailure catch (error) {
-      debugPrint('[SecurityScreen] logoutAll outcome: ${error.kind.name}');
-      if (!mounted) return;
-      final outcomeEpoch = _securityEpoch;
-      if (error.localSessionDefinitelyCleared) {
-        if (!await _securityService.isLocalSessionDefinitelyAbsent()) return;
-        if (!mounted || outcomeEpoch != _securityEpoch) return;
-      } else if (operationEpoch != _securityEpoch) {
-        return;
-      }
-      if (error.kind != LogoutAllFailureKind.rejected) {
-        setState(() {
-          _devices = const [];
-          _loadError = null;
-        });
-      }
-      final (title, message) = switch (error.kind) {
-        LogoutAllFailureKind.rejected => (
-            'Geräte nicht abgemeldet',
-            'Der Server hat die Abmeldung abgelehnt. '
-                'Bitte lade die Sitzungsliste erneut.',
-          ),
-        LogoutAllFailureKind.confirmedLocalFinalizationFailed => (
-            'Geräte serverseitig abgemeldet',
-            'Die lokale Abmeldung konnte nicht sicher bestätigt werden. '
-                'Schließe die App und melde dich erneut an.',
-          ),
-        LogoutAllFailureKind.outcomeUnknown => (
-            'Ergebnis der Geräteabmeldung unklar',
-            'Die Serverantwort ist nicht angekommen. Melde dich neu an und '
-                'prüfe deine Sitzungen, bevor du die Aktion erneut sendest.',
-          ),
-      };
-      await AppPopup.error(context, title: title, message: message);
-      if (!mounted || outcomeEpoch != _securityEpoch) return;
-      if (error.localSessionDefinitelyCleared) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (_) => false,
-        );
-      }
-    } catch (error) {
-      debugPrint('[SecurityScreen] logoutAll failed: ${error.runtimeType}');
-      if (!mounted || operationEpoch != _securityEpoch) return;
-      await AppPopup.error(
-        context,
-        title: 'Geräte nicht abgemeldet',
-        message: 'Die Anfrage wurde vor einer Serverbestätigung abgebrochen. '
-            'Bitte prüfe deine Sitzung und versuche es erneut.',
       );
     } finally {
       if (mounted && operationEpoch == _securityEpoch) {
@@ -720,6 +823,16 @@ class _SecurityScreenState extends State<SecurityScreen> {
           ],
         ),
       );
+}
+
+class _SecurityInteractionOwner {
+  final int epoch;
+  final String principalSessionId;
+
+  const _SecurityInteractionOwner({
+    required this.epoch,
+    required this.principalSessionId,
+  });
 }
 
 class _SectionHeader extends StatelessWidget {

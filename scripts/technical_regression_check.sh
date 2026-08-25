@@ -409,6 +409,11 @@ node --test \
   test/tool/rw14_security_remote_device_revocation_outcome_principal_epoch_wiring.test.mjs \
   test/tool/validate_rw14_security_remote_device_revocation_outcome_principal_epoch.test.mjs
 node tool/validate_rw14_security_remote_device_revocation_outcome_principal_epoch.mjs
+node --check tool/validate_rw15_security_logout_all_prompt_result_principal_epoch.mjs
+node --test \
+  test/tool/rw15_security_logout_all_prompt_result_principal_epoch_wiring.test.mjs \
+  test/tool/validate_rw15_security_logout_all_prompt_result_principal_epoch.test.mjs
+node tool/validate_rw15_security_logout_all_prompt_result_principal_epoch.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -979,6 +984,11 @@ flutter test --reporter expanded \
 # target/principal binding and pre-dialog account-A/account-B epoch boundary.
 flutter test --reporter expanded \
   test/rw14_security_remote_device_revocation_outcome_principal_epoch_test.dart
+
+# Retain RW15's exact structured-rejection contract, synchronous principal
+# capture, pre-remote owner gates, and identity-bound A-dialog dismissal.
+flutter test --reporter expanded \
+  test/rw15_security_logout_all_prompt_result_principal_epoch_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

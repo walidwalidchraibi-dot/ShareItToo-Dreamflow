@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-rw15-security-interaction-owner-route-invariant",
+  "status": "implemented-focused-passed-full-regression-pending",
+  "implementationBaseHead": "fe59d9dab99b8517f61ec1c112a4ce50c877d7f6",
+  "implementationHead": null,
+  "architecture": "docs/architecture/rw15-security-interaction-owner-route-invariant-2026-08-25.md",
+  "report": "docs/operations/RW15_SECURITY_INTERACTION_OWNER_ROUTE_INVARIANT_2026-08-25.md",
+  "predecessor": {
+    "package": "RW14",
+    "evidence": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
+    "verifiedImplementationHead": "38a89e67acefcdc1f756dabc7febd5f1ab9f9813",
+    "closureCommit": "fe59d9dab99b8517f61ec1c112a4ce50c877d7f6"
+  },
+  "lineage": {
+    "rw10ImplementationHead": "d72e18eb607bb3f9ed7baf09ab7212f3ef695ee5",
+    "rw10ClosureCommit": "5ad324704db716e39f8b79347167d24813f1596a",
+    "rw11ImplementationHead": "7768651bf63d266fb8d98f75f2883536e77adde0",
+    "rw11ClosureCommit": "521f565a77faecd8de006f355c8fced4b363a8d6",
+    "rw12ImplementationHead": "0a13df419f4abd5e30858503f4e93f23c9e9d9f1",
+    "rw12ClosureCommit": "fcfdbc352185d3bf50a735478f03e32ffe709767"
+  },
+  "scope": {
+    "allowed": [
+      "logout-all-pre-dialog-principal-session-and-epoch-binding",
+      "identity-bound-confirmation-and-result-route-dismissal",
+      "all-security-screen-action-owner-invariant",
+      "exact-status-and-operation-error-rejection-contract",
+      "repository-wide-security-action-call-site-inventory",
+      "red-first-account-a-to-account-b-dialog-regressions",
+      "mechanical-predecessor-hash-refresh",
+      "deterministic-local-and-ci-regression-evidence"
+    ],
+    "excluded": [
+      "backend-route-schema-and-auth-provider-change",
+      "open-inventory-action-implementation-outside-security-screen",
+      "timing-retry-parallelism-reduction-and-test-exclusion",
+      "production-vps-dns-cloud-firebase-store-and-play",
+      "payment-provider-ai-pilot-real-money-and-live-traffic",
+      "legal-owner-gitguardian-pr-merge-and-history-rewrite"
+    ],
+    "syntheticOnly": true,
+    "localOnly": true,
+    "timingWorkaroundAllowed": false,
+    "testParallelismReductionAllowed": false,
+    "liveAuthTrafficAllowed": false
+  },
+  "findings": [
+    {
+      "id": "RW15-P0-LOGOUT-ALL-STALE-CONFIRMATION-001",
+      "state": "resolved-and-tested",
+      "resolution": "A red-first widget test observed one Account A logout-all call after B activated; the exact owner is now captured before the dialog and the A route is dismissed on the epoch change."
+    },
+    {
+      "id": "RW15-P0-LOGOUT-ALL-OPEN-RESULT-002",
+      "state": "resolved-and-tested",
+      "resolution": "An already rendered Account A logout-all result is now removed by exact route identity when B activates."
+    },
+    {
+      "id": "RW15-P0-GLOBAL-NAVIGATOR-POP-RACE-003",
+      "state": "resolved-and-tested",
+      "resolution": "TrackedDialogRouteHandle removes only its owned route; a newer B-owned dialog above the A route remains visible in the deterministic widget test."
+    },
+    {
+      "id": "RW15-P0-STATUS-ONLY-REJECTION-004",
+      "state": "resolved-and-tested",
+      "resolution": "Definite rejection now requires an exact status and operation error code; 408, unstructured or foreign 4xx, invalid responses and 5xx remain unknown."
+    },
+    {
+      "id": "RW15-P0-REPOSITORY-SECURITY-ACTION-INVENTORY-005",
+      "state": "inventory-complete-follow-up-required",
+      "resolution": "Every discovered account/session/credential call site is pinned in the validator; reachable open P0/P1 flows keep BUILD_READY closed and are prioritized after RW15."
+    }
+  ],
+  "definiteRejectionContract": {
+    "common": [
+      "401:authentication_required",
+      "401:invalid_or_expired_session",
+      "401:account_not_active",
+      "429:rate_limit_exceeded"
+    ],
+    "passwordOnly": [
+      "400:password_too_short",
+      "400:password_too_long",
+      "400:password_too_weak",
+      "401:invalid_credentials"
+    ],
+    "singleSessionOnly": [
+      "404:session_not_found"
+    ],
+    "alwaysUnknownExamples": [
+      "408:any",
+      "400:request_failed",
+      "401:request_failed",
+      "403:forbidden",
+      "404:not_found",
+      "409:conflict",
+      "422:unprocessable_content",
+      "429:request_failed",
+      "any:invalid_server_response",
+      "5xx:any"
+    ]
+  },
+  "interactionInvariant": {
+    "owner": "exact-current-principal-session-id-plus-security-epoch",
+    "capture": "synchronous-before-first-await",
+    "preRemote": "same-owner-required-after-dialog-and-immediately-before-service-call",
+    "presentation": "same-owner-or-exact-owner-clear-with-definite-local-absence-and-stable-post-service-epoch",
+    "navigation": "definite-local-absence-and-stable-post-service-epoch-only",
+    "dialogDismissal": "remove-exact-owned-route-by-identity-never-pop-current-route",
+    "typedCatchOrdering": "typed-three-way-result-before-generic-pre-remote-catch"
+  },
+  "securityActionInventory": [
+    {"id": "security.password.change", "file": "lib/screens/security_screen.dart", "status": "guarded-rw15"},
+    {"id": "security.remote-session.revoke", "file": "lib/screens/security_screen.dart", "status": "guarded-rw15"},
+    {"id": "security.sessions.logout-all", "file": "lib/screens/security_screen.dart", "status": "guarded-rw15"},
+    {"id": "profile.session.logout", "file": "lib/screens/profile_screen.dart", "status": "open-p0"},
+    {"id": "account.deletion", "file": "lib/screens/account_settings_screen.dart", "status": "open-p0"},
+    {"id": "contact.email-change", "file": "lib/screens/contact_data_screen.dart", "status": "open-p0"},
+    {"id": "contact.phone-verification", "file": "lib/screens/contact_data_screen.dart", "status": "open-p0"},
+    {"id": "contact.email-verification", "file": "lib/screens/contact_data_screen.dart", "status": "open-p1"},
+    {"id": "login.session-clear", "file": "lib/screens/login_screen.dart", "status": "open-p0"},
+    {"id": "login.email-verification", "file": "lib/screens/login_screen.dart", "status": "open-p1"},
+    {"id": "legacy.change-password-placeholder", "file": "lib/screens/change_password_screen.dart", "status": "unreachable-b10-guarded"},
+    {"id": "data-service.test-session-clear-hook", "file": "lib/services/data_service.dart", "status": "test-only"}
+  ],
+  "callSiteInventory": [
+    {"symbol": "_securityService.changePassword", "paths": {"lib/screens/security_screen.dart": 1}},
+    {"symbol": "_securityService.revokeSession", "paths": {"lib/screens/security_screen.dart": 1}},
+    {"symbol": "_securityService.logoutAllSessions", "paths": {"lib/screens/security_screen.dart": 1}},
+    {"symbol": "AuthService.clearSession", "paths": {"lib/screens/login_screen.dart": 2, "lib/screens/profile_screen.dart": 1, "lib/services/account_deletion_service.dart": 2, "lib/services/data_service.dart": 1}},
+    {"symbol": "AuthService.requestEmailChange", "paths": {"lib/screens/contact_data_screen.dart": 1}},
+    {"symbol": "AuthService.requestPhoneVerification", "paths": {"lib/screens/contact_data_screen.dart": 1}},
+    {"symbol": "AuthService.confirmPhoneVerification", "paths": {"lib/screens/contact_data_screen.dart": 1}},
+    {"symbol": "AuthService.requestEmailVerification", "paths": {"lib/screens/contact_data_screen.dart": 1, "lib/screens/login_screen.dart": 1}},
+    {"symbol": "AccountDeletionService.preflightCheck", "paths": {"lib/screens/account_settings_screen.dart": 1}},
+    {"symbol": "AccountDeletionService.deleteAccount", "paths": {"lib/screens/account_settings_screen.dart": 1}}
+  ],
+  "verification": {
+    "redFirstStaleConfirmation": "failed-one-account-a-logout-all-call-under-b-before-fix",
+    "redFirstOpenResult": "failed-account-a-result-remained-visible-under-b-before-fix",
+    "redFirstUnstructured4xx": "failed-status-only-response-became-definite-rejection-before-fix",
+    "focusedRw15Flutter": "passed-5",
+    "rw10Rw12Rw13Rw14Rw15B10Flutter": "passed-74",
+    "changedFileAnalyze": "passed-zero-issues",
+    "rw15WiringTests": "passed-7",
+    "rw15ValidatorTests": "passed-3",
+    "completeToolInventory": "passed-1907",
+    "completeToolInventorySkipped": 0,
+    "privacyRetentionProvider": "passed",
+    "predecessorValidators": "passed",
+    "fullTechnicalRegression": "pending",
+    "githubRegression": "pending",
+    "githubCodeql": "pending"
+  },
+  "inventoryAudit": {
+    "predecessorRepositoryOwnedFiles": 330,
+    "closureRepositoryOwnedFiles": 332,
+    "predecessorPassedTests": 1897,
+    "closurePassedTests": 1907,
+    "skippedTests": 0,
+    "executionPattern": "node --test test/tool/*.test.mjs",
+    "standardNodeParallelism": true
+  },
+  "localRegression": null,
+  "githubVerification": null,
+  "ratchetAudit": {
+    "cause": "SecurityScreen gained a synchronous principal-session/epoch owner invariant, exact route ownership replaced top-stack popup dismissal, AccountSecurityService rejection classification became exact status-plus-code, AppPopup timers became route-identity-bound, and the supported regression gained RW15 checks.",
+    "privacyDisclosureSemanticsChanged": false,
+    "retentionSemanticsChanged": false,
+    "providerDecisionChanged": false,
+    "providerGateChanged": false,
+    "rw14VerifiedHeadChanged": false,
+    "mechanicalRefreshes": [
+      "Privacy, retention and active-provider artifacts are revalidated without semantic or decision changes.",
+      "RW0 through RW13 source inventories are refreshed only where changed shared sources or the supported regression script are listed.",
+      "RW14 source inventory is refreshed only for the strengthened shared security sources, RW14 test expectation and supported regression script; its verified implementation head, CI results and gates remain unchanged."
+    ]
+  },
+  "ratchets": {
+    "privacyManifestSha256": "87e276a0526c7ff4aa33096b3f0d59478ebec6cd6ff8d4cd08d7273f5963c05c",
+    "retentionManifestSha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38",
+    "activeProviderEvidenceSha256": "0cac48ceff4552b1a0c89faba9f484b24261be02f0f1c9dd1fd9471ef6aa99ca",
+    "activeProviderState": "prepared-hold",
+    "completedOwnerDecisions": 0,
+    "requiredOwnerDecisions": 10,
+    "externalReadiness": false
+  },
+  "gates": {
+    "BUILD_READY": "not-granted",
+    "PLAY_UPLOAD_APPROVED": "not-granted",
+    "HUMAN_PILOT_ACTIVATED": "not-granted",
+    "PR7_MERGE_APPROVED": "not-granted",
+    "R17_GITGUARDIAN_HISTORY_REVIEW_COMPLETE": "not-granted"
+  },
+  "boundaries": {
+    "backendRuntimeChanged": false,
+    "productionChanged": false,
+    "vpsChanged": false,
+    "dnsChanged": false,
+    "cloudChanged": false,
+    "firebaseChanged": false,
+    "storeChanged": false,
+    "paymentChanged": false,
+    "realMoneyUsed": false,
+    "realAuthTrafficSent": false,
+    "realProviderTrafficSent": false,
+    "realSupportTrafficSent": false,
+    "externalAiRuntimeEnabled": false,
+    "realTesterEnrolled": false,
+    "candidateCreated": false,
+    "deviceGateClaimed": false,
+    "legalApprovalChanged": false,
+    "gitHistoryRewritten": false,
+    "prMerged": false
+  },
+  "residualRisks": [
+    "Profile logout still uses a broad asynchronous clear after a confirmation and is an open P0 follow-up.",
+    "Account deletion still spans multiple dialogs, preflight, remote mutation, local cleanup and navigation without a shared exact-owner transaction and is an open P0 follow-up.",
+    "Contact email and phone security flows still require exact-owner prompt, result and sheet binding; email verification is an open P1 follow-up.",
+    "LoginScreen session cleanup can race a successor sign-in and remains an open P0 follow-up.",
+    "No live backend, process-termination, release artifact, Store or device proof is claimed."
+  ],
+  "sourceInventory": [
+    {"path": "backend/src/app.js", "sha256": "1cc0c82c567d8ae7e37a3125f5dd4ed90d257073cd800e33c8a2bd0b7dd692a5"},
+    {"path": "lib/screens/security_screen.dart", "sha256": "86107d2852d5363cec8cf5554de0ca5eef70a6b69cb21e1a042441d9dcf1c629"},
+    {"path": "lib/screens/profile_screen.dart", "sha256": "8c92eefe7794b9de0a1721dbc878ef3207d4cf6bfd5eda681f78f73a34a459a8"},
+    {"path": "lib/screens/account_settings_screen.dart", "sha256": "f59d717dbe4884b4d878ae2115a5facec6bbfb1ea0d5e472d60328a6d02e1e61"},
+    {"path": "lib/screens/contact_data_screen.dart", "sha256": "2a031b7d9b7cf2ccf9120e19b0aa7b2c38ede451997301fd251a3f703ae85cfc"},
+    {"path": "lib/screens/login_screen.dart", "sha256": "ec7fe7e4f76e26b492583c3cca7848e15dafb3909a0400ea063fc6c152cf56dd"},
+    {"path": "lib/screens/change_password_screen.dart", "sha256": "fa6f687c2ec9c3bc6f6d4f4b58b372dbff07851f47f0243d163a58960186f887"},
+    {"path": "lib/services/account_security_service.dart", "sha256": "774492379049744c40ac82c9a01b46439d5f5b9bcbde80c94684822b33787b0e"},
+    {"path": "lib/services/account_deletion_service.dart", "sha256": "c9ed7cf809bd54bfced8f79885e7278764f85b44f9ccecda12982465a2be30ef"},
+    {"path": "lib/services/auth_service.dart", "sha256": "0f1a8d02a85b1fb794893924a57025b60c0a6f50fb0e0a73c4436d1dacc5a706"},
+    {"path": "lib/services/backend_http.dart", "sha256": "0baa03b98fbbdb1263e5d419550a5381285cb72da19e0dbc703559602ac714b5"},
+    {"path": "lib/services/backend_repository.dart", "sha256": "f818303d43404c16ef821927890a30619bbeffb88744b420c28d1e1d2af37672"},
+    {"path": "lib/services/data_service.dart", "sha256": "11bad619a4bf652e91c50fc493b892632407e9d0858c596267181431bb2bb5f5"},
+    {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
+    {"path": "lib/widgets/app_popup.dart", "sha256": "de549251e24c4cf05ab6dcd78856d6c1b47dec67bb15954382487692316f5dcb"},
+    {"path": "lib/widgets/tracked_dialog_route.dart", "sha256": "cbb95e81d322877c17c80b3c6eb1aebb43df347e30452c16e4850ef4e562cea5"},
+    {"path": "store/privacy-disclosures.json", "sha256": "87e276a0526c7ff4aa33096b3f0d59478ebec6cd6ff8d4cd08d7273f5963c05c"},
+    {"path": "store/retention-deletion-readiness.json", "sha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38"},
+    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "0cac48ceff4552b1a0c89faba9f484b24261be02f0f1c9dd1fd9471ef6aa99ca"},
+    {"path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json", "sha256": "cde79b687f1b65f5b40844178f162891c47f7878bbbac2ffce9c00656cab561f"},
+    {"path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json", "sha256": "2d90b79162b31606af7103d9a4d1472070336f73bb59d2a25c90b8cc4b1f5335"},
+    {"path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json", "sha256": "24ad5b145f228adb8238d8449f487920c2c04e7a2e81678272e1e365bf0c87c4"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "4ef771f9c6f037752826676c824cf8aa3d4cb194d9cf3b71c9072bcc4285ac6f"},
+    {"path": "test/rw10_local_security_control_truthfulness_test.dart", "sha256": "19f2475e25a045502340fb399423d258a4238a72467be1606858cee2be5a2e66"},
+    {"path": "test/rw14_security_remote_device_revocation_outcome_principal_epoch_test.dart", "sha256": "598c9ae976e080a4fd51b93b588ec516d335b8035b16f3801c18fedc8b68f2fb"},
+    {"path": "test/rw15_security_logout_all_prompt_result_principal_epoch_test.dart", "sha256": "86f085e56a199ec15d6136c607d3ed55d8c413907f330d0aee9f3daa9feb9f36"},
+    {"path": "test/tool/rw15_security_logout_all_prompt_result_principal_epoch_wiring.test.mjs", "sha256": "a67fc323d31285c5dea1e6b6ff2bff9f7c67802bc7e339f9c45fec3e46f1ab4e"},
+    {"path": "test/tool/validate_rw15_security_logout_all_prompt_result_principal_epoch.test.mjs", "sha256": "9020069da7f523a3181a21f226f3147c438bc409f8537b07b5e305f1be22b44f"},
+    {"path": "tool/validate_rw15_security_logout_all_prompt_result_principal_epoch.mjs", "sha256": "df6c3604d37c2ddd2ca994c7db542300ed990730555c0ec3fa3350277a64dbd4"},
+    {"path": "docs/architecture/rw15-security-interaction-owner-route-invariant-2026-08-25.md", "sha256": "7dcc159b412390e28426046bcb47cc4dd3b70c4d52733df45696dee3560ab7c5"},
+    {"path": "docs/operations/RW15_SECURITY_INTERACTION_OWNER_ROUTE_INVARIANT_2026-08-25.md", "sha256": "2409befe59320c687ab566b7ee37dc9a950339990434f96835f1fc3a275c9206"}
+  ]
+}
