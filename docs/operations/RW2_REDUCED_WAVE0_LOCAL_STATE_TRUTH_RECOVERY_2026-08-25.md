@@ -1,6 +1,6 @@
 # RW2 reduced Wave-0 local-state truth and recovery
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 Baseline closure commit: `ffa1d0bda9127db331e5b906dd950d608ab3f749`
 
@@ -33,8 +33,12 @@ The complete candidate-rollover technical regression passes in CI metadata
 mode: all retained evidence and safety gates, analyzer zero, the complete
 Flutter suite, exact RW0/RW1/RW2 profiles, Web/Wasm smoke, the loopback web
 probe, Android debug assembly with 448 tasks and the repository resource guard.
-Exact GitHub Regression and CodeQL verification remain pending until the
-implementation commit is pushed.
+Corrected implementation head `bd6c861b2b223e4d3dc179dcdbc1ea5e2e4f9103`
+passed exact GitHub Regression `32798603243` and CodeQL `32798603261`, with
+zero open code-scanning alerts. The initial implementation is commit
+`657406dccc4732394f89a6df2ea0d7a4fef51035`; the follow-up retained a
+deterministic lifecycle-aware evidence mutation rather than a retry or timing
+workaround. GitGuardian's separate historical owner-review gate remains open.
 
 ## Rollback
 

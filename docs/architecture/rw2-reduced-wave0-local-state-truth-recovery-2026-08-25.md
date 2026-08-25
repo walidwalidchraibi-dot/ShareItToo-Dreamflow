@@ -1,6 +1,6 @@
 # RW2 reduced Wave-0 local-state truth and recovery
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 ## Decision
 

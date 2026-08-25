@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw2-reduced-wave0-local-state-truth-recovery",
-  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "ffa1d0bda9127db331e5b906dd950d608ab3f749",
   "architecture": "docs/architecture/rw2-reduced-wave0-local-state-truth-recovery-2026-08-25.md",
   "report": "docs/operations/RW2_REDUCED_WAVE0_LOCAL_STATE_TRUTH_RECOVERY_2026-08-25.md",
@@ -78,8 +78,16 @@
     "adjacentLifecycleWiringTests": "passed-19",
     "rw2WiringTests": "passed-5",
     "fullTechnicalRegression": "passed",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "head": "bd6c861b2b223e4d3dc179dcdbc1ea5e2e4f9103",
+    "regressionRunId": 32798603243,
+    "codeqlRunId": 32798603261,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
   },
   "sourceInventory": [
     {

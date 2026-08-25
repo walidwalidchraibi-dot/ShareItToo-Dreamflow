@@ -1,6 +1,6 @@
 # Current Work Package: RW2 local-state truth and recovery
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN; GITHUB CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 on 25.08.2026.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
@@ -30,8 +30,13 @@ source-contract sets pass; changed-file analysis reports zero issues; five RW2
 wiring tests and all active privacy, retention, RW0, RW1 and RW2 evidence
 validators pass. The complete technical regression passes, including the full
 Flutter suite, Web/Wasm smoke, Android debug assembly with 448 tasks and the
-repository resource guard. Exact GitHub Regression and CodeQL verification
-remain pending.
+repository resource guard. Corrected implementation head
+`bd6c861b2b223e4d3dc179dcdbc1ea5e2e4f9103` passed exact GitHub Regression
+`32798603243` and CodeQL `32798603261`, with zero open code-scanning alerts.
+The implementation commit is `657406dccc4732394f89a6df2ea0d7a4fef51035`;
+the follow-up retained a deterministic lifecycle-aware evidence mutation and
+no retry or timing workaround. GitGuardian's separate historical owner-review
+gate remains open.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential

@@ -61,8 +61,11 @@ Verified: 2026-08-25 on the Mac mini.
   retention, RW0, RW1 and RW2 source inventories validate. The complete local
   technical regression passes, including the full Flutter suite, Web/Wasm,
   loopback web smoke, Android debug assembly with 448 tasks and the repository
-  resource guard. Exact GitHub Regression and CodeQL verification remain
-  pending.
+  resource guard. Corrected implementation head
+  `bd6c861b2b223e4d3dc179dcdbc1ea5e2e4f9103` passed exact GitHub Regression
+  `32798603243` and CodeQL `32798603261`, with zero open code-scanning alerts.
+  No retry or timing workaround was retained. GitGuardian's separate
+  historical owner-review gate remains open.
 
 ## Current 48H readiness state
 
