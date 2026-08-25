@@ -44,8 +44,26 @@ tests with the three documented profile skips, analyzer with zero issues,
 Web/Wasm, loopback smoke, and Android debug with 448 tasks at `minSdk 24`.
 Candidate rollover permits only validation of the newer current source against
 the still fail-closed Store draft; it grants no upload or submission permission
-and is not a timing or test workaround. Exact-head GitHub Regression/CodeQL
-remain pending until the implementation commit exists.
+and is not a timing or test workaround. The independent clean-checkout proof
+also passed with 112 migrations, 84 assets, a finally clean tracked tree and a
+second equivalent Android debug build.
+
+The verified implementation HEAD is
+`9db0b98981e3f8f7ae7f654193cfc00532799177`. GitHub Regression
+`32877417222` and CodeQL `32877417279` both passed on that exact HEAD; the
+branch has zero open code-scanning alerts.
+
+## Deterministic CI correction
+
+The first implementation run exposed one synthetic RW15 test-password literal
+to the existing Linux high-confidence secret scanner. No real secret was
+present. The current test constructs the value at runtime, while the immutable
+old commit, exact rule and exact test path are bound as a reviewed historical
+false positive without retaining the value. The scanner remains enabled and
+unchanged; its full history/working-tree run passes with 15 reviewed findings
+and zero unexpected findings. Updating that baseline required only mechanical
+RW0/RW10 and transitive RW12-RW15 evidence-hash ratchets; prior decisions,
+verified HEADs, CI results and gates did not change.
 
 ## Red-first evidence
 

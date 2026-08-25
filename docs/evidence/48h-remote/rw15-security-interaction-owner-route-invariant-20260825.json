@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw15-security-interaction-owner-route-invariant",
-  "status": "implemented-focused-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "fe59d9dab99b8517f61ec1c112a4ce50c877d7f6",
-  "implementationHead": null,
+  "implementationHead": "9db0b98981e3f8f7ae7f654193cfc00532799177",
   "architecture": "docs/architecture/rw15-security-interaction-owner-route-invariant-2026-08-25.md",
   "report": "docs/operations/RW15_SECURITY_INTERACTION_OWNER_ROUTE_INVARIANT_2026-08-25.md",
   "predecessor": {
@@ -149,9 +149,9 @@
     "completeToolInventorySkipped": 0,
     "privacyRetentionProvider": "passed",
     "predecessorValidators": "passed",
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "inventoryAudit": {
     "predecessorRepositoryOwnedFiles": 330,
@@ -162,10 +162,43 @@
     "executionPattern": "node --test test/tool/*.test.mjs",
     "standardNodeParallelism": true
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "9db0b98981e3f8f7ae7f654193cfc00532799177",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "completeToolInventoryPassed": 1907,
+    "completeToolInventorySkipped": 0,
+    "flutterPassed": 563,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed-with-wasm-dry-run",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24,
+    "cleanCheckoutMigrations": 112,
+    "cleanCheckoutAssets": 84,
+    "cleanCheckoutFinallyClean": true,
+    "privateReleaseArtifact": "unavailable-ci-metadata-validated",
+    "storeOrDeviceGateClaimed": false
+  },
+  "githubVerification": {
+    "head": "9db0b98981e3f8f7ae7f654193cfc00532799177",
+    "regressionRunId": 32877417222,
+    "codeqlRunId": 32877417279,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
+  "ciCorrection": {
+    "initialImplementationHead": "328fee24c2b243af725b44869d2dd2e20b0dea55",
+    "cause": "A synthetic RW15 test password literal matched the existing high-confidence static-password rule in Linux clean-checkout history scanning.",
+    "currentTreeCorrection": "The test now constructs its synthetic values at runtime and contains no static password property finding.",
+    "reviewedHistoryBinding": "The exact rule, immutable commit and test path are recorded as a reviewed historical false positive without retaining the value.",
+    "fullHistoryScan": "passed-15-reviewed-zero-unexpected"
+  },
   "ratchetAudit": {
-    "cause": "SecurityScreen gained a synchronous principal-session/epoch owner invariant, exact route ownership replaced top-stack popup dismissal, AccountSecurityService rejection classification became exact status-plus-code, AppPopup timers became route-identity-bound, and the supported regression gained RW15 checks.",
+    "cause": "SecurityScreen gained a synchronous principal-session/epoch owner invariant, exact route ownership replaced top-stack popup dismissal, AccountSecurityService rejection classification became exact status-plus-code, AppPopup timers became route-identity-bound, and the supported regression gained RW15 checks. The clean-checkout scanner then required an exact reviewed-history binding for one synthetic test false positive.",
     "privacyDisclosureSemanticsChanged": false,
     "retentionSemanticsChanged": false,
     "providerDecisionChanged": false,
@@ -173,8 +206,8 @@
     "rw14VerifiedHeadChanged": false,
     "mechanicalRefreshes": [
       "Privacy, retention and active-provider artifacts are revalidated without semantic or decision changes.",
-      "RW0 through RW13 source inventories are refreshed only where changed shared sources or the supported regression script are listed.",
-      "RW14 source inventory is refreshed only for the strengthened shared security sources, RW14 test expectation and supported regression script; its verified implementation head, CI results and gates remain unchanged."
+      "RW0 and RW10 bind the changed secret-scan baseline; RW12 through RW15 receive only the resulting transitive evidence-hash refresh.",
+      "RW14 source inventory also retains the earlier strengthened shared security sources, RW14 test expectation and supported regression script; its verified implementation head, CI results and gates remain unchanged."
     ]
   },
   "ratchets": {
@@ -252,7 +285,7 @@
     {"path": "test/tool/rw15_security_logout_all_prompt_result_principal_epoch_wiring.test.mjs", "sha256": "a67fc323d31285c5dea1e6b6ff2bff9f7c67802bc7e339f9c45fec3e46f1ab4e"},
     {"path": "test/tool/validate_rw15_security_logout_all_prompt_result_principal_epoch.test.mjs", "sha256": "9020069da7f523a3181a21f226f3147c438bc409f8537b07b5e305f1be22b44f"},
     {"path": "tool/validate_rw15_security_logout_all_prompt_result_principal_epoch.mjs", "sha256": "89bf998164767774aee5769e4221773da815e3d87a217dc964d8bc75b646fe65"},
-    {"path": "docs/architecture/rw15-security-interaction-owner-route-invariant-2026-08-25.md", "sha256": "7dcc159b412390e28426046bcb47cc4dd3b70c4d52733df45696dee3560ab7c5"},
-    {"path": "docs/operations/RW15_SECURITY_INTERACTION_OWNER_ROUTE_INVARIANT_2026-08-25.md", "sha256": "2409befe59320c687ab566b7ee37dc9a950339990434f96835f1fc3a275c9206"}
+    {"path": "docs/architecture/rw15-security-interaction-owner-route-invariant-2026-08-25.md", "sha256": "6f6a29979979f6135a1709f8a50ba753cbc3f51bfdff11b2bdb1d138cab71cc0"},
+    {"path": "docs/operations/RW15_SECURITY_INTERACTION_OWNER_ROUTE_INVARIANT_2026-08-25.md", "sha256": "9c5be732eeff88111db7f312476fc9888b5a0acdf9a67ccf7eb2426e5dc70f28"}
   ]
 }

@@ -1,13 +1,16 @@
 # RW15 security interaction owner and route invariant
 
 Date: 2026-08-25  
-State: implemented; local full regression passed, exact-head CI pending
+State: verified; local clean-checkout regression and exact-head GitHub
+Regression/CodeQL passed
 
 ## Package identity and lineage
 
 The active package is **RW15**, not RW12. RW12 was the earlier
 password-result principal-epoch package. RW15 starts from the verified RW14
 closure commit `fe59d9dab99b8517f61ec1c112a4ce50c877d7f6`.
+The verified RW15 implementation HEAD is
+`9db0b98981e3f8f7ae7f654193cfc00532799177`.
 
 - RW10 implementation: `d72e18eb607bb3f9ed7baf09ab7212f3ef695ee5`
 - RW10 closure: `5ad324704db716e39f8b79347167d24813f1596a`
@@ -84,6 +87,19 @@ The RW15 validator owns the exact call-site inventory. A new matching security
 mutation call or a removed inventory entry fails the supported regression.
 Future packages must move every reachable open entry to `guarded`; they may not
 silently delete it from the inventory.
+
+## Verification closure
+
+The first implementation commit contained a synthetic test-password literal
+that matched the existing high-confidence repository secret rule in Linux CI.
+The current test constructs the synthetic value at runtime. The immutable old
+commit, exact rule and test path are recorded in the reviewed-history baseline;
+no value is retained and the scanner is not disabled or relaxed. The complete
+history scan reports 15 exact reviewed findings and zero unexpected findings.
+
+Local full regression and the independent clean-checkout proof passed on the
+verified implementation HEAD. GitHub Regression `32877417222` and CodeQL
+`32877417279` passed on that same HEAD with zero open code-scanning alerts.
 
 ## Boundaries
 
