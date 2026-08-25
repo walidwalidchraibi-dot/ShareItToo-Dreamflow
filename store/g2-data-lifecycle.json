@@ -107,6 +107,28 @@
     "retentionRule": "no-automatic-60-day-deletion-no-period-invented",
     "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
   },
+  "localReviewReputation": {
+    "runtimeStatus": "active-local-fallback-public-read-authenticated-participant-write",
+    "storageScope": "local-device-shared-preferences-remote-authoritative-when-enabled",
+    "storageKeys": [
+      "reviews",
+      "multi_reviews_v1"
+    ],
+    "dataClasses": [
+      "public-reviewer-reviewed-user-rating-and-comment",
+      "booking-bound-directional-criteria-ratings-and-notes"
+    ],
+    "readScope": "public-reputation-read",
+    "mutationIdentityBinding": "matching-auth-session-exact-completed-booking-direction-counterparty-item-and-needs-review-clear",
+    "corruptionPolicy": "fail-closed-preserve-exact-raw-no-partial-rewrite",
+    "capacityPolicy": "maximum-1000-per-document-reject-overflow-without-pruning",
+    "mutationPolicy": "serialized-verified-session-rechecked-and-booking-snapshot-guarded",
+    "demoSeedPolicy": "explicit-qa-bootstrap-only-no-read-time-seeding",
+    "exportStatus": "implemented-current-account-authored-and-received-local-section",
+    "accountDeletionStatus": "shared-public-reviews-retained-with-account-anonymization-no-period-invented",
+    "retentionRule": "no-period-invented-shared-reputation-records-retained",
+    "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
+  },
   "persistentData": {
     "rentalCart": {
       "runtimeStatus": "active-guest-local-principal-account-server",

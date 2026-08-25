@@ -94,7 +94,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "96588fb0928939b99ec3c0448ba438ed192032856b2707a20324d6615fbe1b4a"
+      "sha256": "8f7e66f8bdf0af381d83aebcbb019323e648be640680091fa030984e38204d6b"
     },
     {
       "path": "lib/screens/explore_screen.dart",
@@ -130,7 +130,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "ddafc4f8c7f50f7a292327c946325d4e357e21b113b875ba62e5934b7d15f6a8"
+      "sha256": "c7bd3c4bfd84cceaac16b6638f780f891ae5829f13ef186ab48af2af46b63a4a"
     },
     {
       "path": "test/g2a_rental_cart_screen_test.dart",

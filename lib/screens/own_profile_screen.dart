@@ -36,7 +36,10 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
     super.initState();
     _tabController = TabController(length: 5, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 4));
     _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
-      if (key != SharedPersistenceSync.listingCatalogKey) return;
+      if (key != SharedPersistenceSync.listingCatalogKey &&
+          key != SharedPersistenceSync.reviewReputationKey) {
+        return;
+      }
       _refreshCoordinator.schedule(() async {
         await SharedPersistenceSync.reloadPreferences();
         await _load();
@@ -130,7 +133,12 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
                   _ListingsTab(items: _myItems),
                   _InterestsTab(user: _user, onChanged: _updateUserInterests),
                   const _BookingsHistoryTab(),
-                  _ReviewsTab(avgRating: avg, reviewCount: count),
+                  _ReviewsTab(
+                    key: ValueKey('own-reviews-${_user!.id}'),
+                    userId: _user!.id,
+                    avgRating: avg,
+                    reviewCount: count,
+                  ),
                   _AboutMeTab(user: _user, metrics: metrics, bioCtrl: _bioCtrl, onBioSaved: _saveBio),
                 ]),
     );
@@ -534,9 +542,15 @@ class _BookingsHistoryTab extends StatelessWidget {
 }
 
 class _ReviewsTab extends StatefulWidget {
+  final String userId;
   final double avgRating;
   final int reviewCount;
-  const _ReviewsTab({required this.avgRating, required this.reviewCount});
+  const _ReviewsTab({
+    super.key,
+    required this.userId,
+    required this.avgRating,
+    required this.reviewCount,
+  });
   @override
   State<_ReviewsTab> createState() => _ReviewsTabState();
 }
@@ -544,6 +558,7 @@ class _ReviewsTab extends StatefulWidget {
 class _ReviewsTabState extends State<_ReviewsTab> {
   List<ReviewWithUser> _reviews = const [];
   bool _loading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -552,21 +567,36 @@ class _ReviewsTabState extends State<_ReviewsTab> {
   }
 
   Future<void> _load() async {
-    final current = await DataService.getCurrentUser();
-    if (!mounted) return;
-    if (current == null) {
+    if (mounted) {
+      setState(() {
+        _reviews = const [];
+        _loading = true;
+        _loadError = null;
+      });
+    }
+    try {
+      final current = await DataService.getCurrentUser();
+      if (current?.id != widget.userId) {
+        throw StateError('Das angemeldete Konto hat sich geändert.');
+      }
+      final data = await DataService.getReviewSummariesForUser(widget.userId);
+      final rechecked = await DataService.getCurrentUser();
+      if (rechecked?.id != widget.userId) {
+        throw StateError('Das angemeldete Konto hat sich geändert.');
+      }
+      if (!mounted) return;
+      setState(() {
+        _reviews = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         _reviews = const [];
         _loading = false;
+        _loadError = 'Bewertungen konnten nicht sicher geladen werden.';
       });
-      return;
     }
-    final data = await DataService.getReviewSummariesForUser(current.id);
-    if (!mounted) return;
-    setState(() {
-      _reviews = data;
-      _loading = false;
-    });
   }
 
   @override
@@ -575,6 +605,27 @@ class _ReviewsTabState extends State<_ReviewsTab> {
 
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_loadError != null) {
+      return ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text(_loadError!, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          const Text(
+            'Lokale Daten bleiben unverändert.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            key: const ValueKey('own_review_retry'),
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Erneut laden'),
+          ),
+        ],
+      );
     }
 
     final summary = ReviewMetricsService.calculateUserSummary(_reviews);

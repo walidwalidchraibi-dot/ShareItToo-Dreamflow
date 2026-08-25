@@ -73,6 +73,7 @@ export function validateG2DataLifecycle({
     'localSafetyPrivacy',
     'localOperationalRecords',
     'localListingCatalog',
+    'localReviewReputation',
     'persistentData',
     'boundaries',
   ], 'G2 lifecycle manifest');
@@ -291,6 +292,60 @@ export function validateG2DataLifecycle({
     fail('Local listing-catalog lifecycle is incomplete or overstated.');
   }
 
+  const reviewReputation = object(
+    lifecycle.localReviewReputation,
+    'localReviewReputation',
+  );
+  exactKeys(reviewReputation, [
+    'runtimeStatus',
+    'storageScope',
+    'storageKeys',
+    'dataClasses',
+    'readScope',
+    'mutationIdentityBinding',
+    'corruptionPolicy',
+    'capacityPolicy',
+    'mutationPolicy',
+    'demoSeedPolicy',
+    'exportStatus',
+    'accountDeletionStatus',
+    'retentionRule',
+    'backendAuthority',
+  ], 'localReviewReputation');
+  exactArray(reviewReputation.storageKeys, [
+    'reviews',
+    'multi_reviews_v1',
+  ], 'localReviewReputation.storageKeys');
+  exactArray(reviewReputation.dataClasses, [
+    'public-reviewer-reviewed-user-rating-and-comment',
+    'booking-bound-directional-criteria-ratings-and-notes',
+  ], 'localReviewReputation.dataClasses');
+  if (reviewReputation.runtimeStatus
+        !== 'active-local-fallback-public-read-authenticated-participant-write'
+      || reviewReputation.storageScope
+        !== 'local-device-shared-preferences-remote-authoritative-when-enabled'
+      || reviewReputation.readScope !== 'public-reputation-read'
+      || reviewReputation.mutationIdentityBinding
+        !== 'matching-auth-session-exact-completed-booking-direction-counterparty-item-and-needs-review-clear'
+      || reviewReputation.corruptionPolicy
+        !== 'fail-closed-preserve-exact-raw-no-partial-rewrite'
+      || reviewReputation.capacityPolicy
+        !== 'maximum-1000-per-document-reject-overflow-without-pruning'
+      || reviewReputation.mutationPolicy
+        !== 'serialized-verified-session-rechecked-and-booking-snapshot-guarded'
+      || reviewReputation.demoSeedPolicy
+        !== 'explicit-qa-bootstrap-only-no-read-time-seeding'
+      || reviewReputation.exportStatus
+        !== 'implemented-current-account-authored-and-received-local-section'
+      || reviewReputation.accountDeletionStatus
+        !== 'shared-public-reviews-retained-with-account-anonymization-no-period-invented'
+      || reviewReputation.retentionRule
+        !== 'no-period-invented-shared-reputation-records-retained'
+      || reviewReputation.backendAuthority
+        !== 'remote-authoritative-when-enabled-local-qa-fallback-otherwise') {
+    fail('Local review/reputation lifecycle is incomplete or overstated.');
+  }
+
   const persistent = object(lifecycle.persistentData, 'persistentData');
   exactKeys(persistent, ['rentalCart', 'projectCart'], 'persistentData');
   const rentalCart = object(persistent.rentalCart, 'persistentData.rentalCart');
@@ -437,6 +492,12 @@ export function validateG2DataLifecycle({
     '_maxLocalListings = 1000',
     'exportOwnedListingsForPrivacy()',
     'deactivateAllListingsForUser(',
+    '_reviewMutationQueue',
+    '_decodeClassicReviewsStrict(',
+    '_decodeMultiReviewsStrict(',
+    '_maxLocalReviews = 1000',
+    'exportReviewRecordsForPrivacy()',
+    "'sharedPublicReviewsRetainedAfterDeletion': true",
   ], 'DataService G2B lifecycle');
   const syncStart = dataService.indexOf('syncGuestRentalCartAfterAuthentication');
   const syncEnd = dataService.indexOf('static Future<RentalCart> getRentalCart', syncStart);
@@ -537,6 +598,7 @@ export function validateG2DataLifecycle({
   const privacyInfo = source(root, sourceTexts, sourcePaths.privacyInfo);
   includesEvery(privacyInfo, [
     'DataService.exportSavedItemsForPrivacy()',
+    'DataService.exportReviewRecordsForPrivacy()',
     'LocalSafetyPrivacyService.exportCurrentPrincipal()',
     "export['localDevice']",
     'Mietkorb',

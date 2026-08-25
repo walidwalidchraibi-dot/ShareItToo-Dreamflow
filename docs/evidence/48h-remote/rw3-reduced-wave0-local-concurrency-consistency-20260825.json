@@ -92,11 +92,11 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "96588fb0928939b99ec3c0448ba438ed192032856b2707a20324d6615fbe1b4a"
+      "sha256": "8f7e66f8bdf0af381d83aebcbb019323e648be640680091fa030984e38204d6b"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
-      "sha256": "99eca84a27186239f0bac3f720e9b763aed22b5d6150656e4ea06a3025d6a39e"
+      "sha256": "27c5e17a28e4746ebcc9b7655ec8e96e4b6a0fe64ccece4868d55e2893bfd655"
     },
     {
       "path": "lib/services/shared_persistence_sync_web.dart",
@@ -124,15 +124,15 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "01c075018fb6c220bbbaebfd59108db1b3804bff2cb82d76b542073c566350d1"
+      "sha256": "4f21707c039707ce64e589c3e24d21823f73c9ac4162f61767d321621c6b116e"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
-      "sha256": "1d91c305aa2f78a31291080ca301bfb35f631adf5197d5dc50e18ccaa304e9fd"
+      "sha256": "95c8b6d3a3f720a228fe41244a25b3421ac82154888aaac539a4da99c9e249fc"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "ddafc4f8c7f50f7a292327c946325d4e357e21b113b875ba62e5934b7d15f6a8"
+      "sha256": "c7bd3c4bfd84cceaac16b6638f780f891ae5829f13ef186ab48af2af46b63a4a"
     },
     {
       "path": "test/reduced_wave0_local_state_truth_recovery_test.dart",
@@ -152,7 +152,7 @@
     },
     {
       "path": "test/tool/validate_g2_data_lifecycle.test.mjs",
-      "sha256": "7f81caa48f6cac42ec3ddedd6c76ec353f3be0de2ba24ab35add7ad84c5f62cc"
+      "sha256": "2de2d85ff1e227eb823497bba7842a3592c6f64bc786d5d90911702c65899bd9"
     },
     {
       "path": "test/tool/rw3_reduced_wave0_local_concurrency_consistency_wiring.test.mjs",

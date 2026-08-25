@@ -1294,6 +1294,7 @@ class _ReviewsSection extends StatefulWidget {
 class _ReviewsSectionState extends State<_ReviewsSection> {
   List<ReviewWithUser> _reviews = const [];
   bool _loading = true;
+  String? _loadError;
 
   String _reviewItemTitle(ReviewWithUser entry) {
     final itemTitle = entry.item?.title.trim() ?? '';
@@ -1400,12 +1401,28 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   }
 
   Future<void> _load() async {
-    final data = await DataService.getReviewSummariesForUser(widget.user.id);
-    if (!mounted) return;
-    setState(() {
-      _reviews = data;
-      _loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _reviews = const [];
+        _loading = true;
+        _loadError = null;
+      });
+    }
+    try {
+      final data = await DataService.getReviewSummariesForUser(widget.user.id);
+      if (!mounted) return;
+      setState(() {
+        _reviews = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _reviews = const [];
+        _loading = false;
+        _loadError = 'Bewertungen konnten nicht sicher geladen werden.';
+      });
+    }
   }
 
   @override
@@ -1427,6 +1444,32 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                   height: 24,
                   child: CircularProgressIndicator(
                       color: theme.colorScheme.primary))),
+        ],
+      );
+    }
+
+    if (_loadError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.t('Bewertungen'),
+            style: theme.textTheme.titleMedium
+                ?.copyWith(color: AppTheme.textPrimary(context)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _loadError!,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: AppTheme.textSecondary(context)),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('public_review_retry'),
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Erneut laden'),
+          ),
         ],
       );
     }

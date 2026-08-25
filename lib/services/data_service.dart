@@ -230,6 +230,9 @@ class DataService {
   static const int _maxLocalRentalRequests = 1000;
   static const int _maxLocalListings = 1000;
   static const int _maxLocalListingDocumentBytes = 32 * 1024 * 1024;
+  static const int _maxLocalReviews = 1000;
+  static const int _maxLocalReviewDocumentBytes = 8 * 1024 * 1024;
+  static const int _maxLocalReviewNoteLength = 2000;
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
@@ -247,7 +250,12 @@ class DataService {
       _LocalMutationQueue();
   static final _LocalMutationQueue _listingMutationQueue =
       _LocalMutationQueue();
+  static final _LocalMutationQueue _reviewMutationQueue = _LocalMutationQueue();
   static bool _failNextListingPersistenceForTesting = false;
+  static bool _failNextReviewPersistenceForTesting = false;
+
+  @visibleForTesting
+  static int get maxLocalReviewsForTesting => _maxLocalReviews;
 
   static Future<T> _runWishlistForCurrentPrincipal<T>(
     Future<T> Function(LocalPrincipalIdentity principal) operation,
@@ -349,8 +357,7 @@ class DataService {
         final currentEmail = localCurrent.email.trim().toLowerCase();
         if (localCurrent.id.trim() != expected ||
             currentEmail.isEmpty ||
-            (normalizedEmail.isNotEmpty &&
-                currentEmail != normalizedEmail)) {
+            (normalizedEmail.isNotEmpty && currentEmail != normalizedEmail)) {
           throw StateError('Die lokale Kontositzung hat sich geändert.');
         }
         normalizedEmail = currentEmail;
@@ -6900,70 +6907,231 @@ class DataService {
 
   static Future<List<Review>> _getAllReviews() async {
     final prefs = await SharedPreferences.getInstance();
-    String? raw = prefs.getString(_reviewsKey);
-    if (raw == null) {
-      List<User> seedUsers = const <User>[];
-      try {
-        final usersJson = prefs.getString(_usersKey);
-        if (usersJson != null && usersJson.isNotEmpty) {
-          final List<dynamic> usersList = jsonDecode(usersJson);
-          seedUsers = usersList
-              .map((e) => User.fromJson(Map<String, dynamic>.from(e as Map)))
-              .toList();
-        }
-      } catch (_) {}
-      final seed = _buildDemoReviews(seedUsers);
-      await prefs.setString(
-        _reviewsKey,
-        jsonEncode(seed.map((e) => e.toJson()).toList()),
-      );
-      raw = prefs.getString(_reviewsKey);
+    final raw = prefs.getString(_reviewsKey);
+    if (raw == null) return const <Review>[];
+    return _decodeClassicReviewsStrict(raw);
+  }
+
+  static String _requiredReviewString(
+    Map<String, dynamic> entry,
+    String key, {
+    int maxLength = 256,
+  }) {
+    final value = entry[key];
+    if (value is! String || value.trim().isEmpty || value.length > maxLength) {
+      throw const FormatException('Invalid local review document');
     }
-    if (raw == null) return [];
+    return value;
+  }
+
+  static DateTime _requiredReviewDate(Map<String, dynamic> entry) {
+    final raw = _requiredReviewString(entry, 'createdAt', maxLength: 64);
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      throw const FormatException('Invalid local review document');
+    }
+    return parsed;
+  }
+
+  static List<Review> _decodeClassicReviewsStrict(String raw) {
+    if (utf8.encode(raw).length > _maxLocalReviewDocumentBytes) {
+      throw const FormatException('Invalid local review document');
+    }
     try {
-      final List<dynamic> list = jsonDecode(raw);
-      return list
-          .map((e) => Review.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
-    } catch (_) {
-      return [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List || decoded.length > _maxLocalReviews) {
+        throw const FormatException('Invalid local review document');
+      }
+      final ids = <String>{};
+      final reviews = <Review>[];
+      for (final value in decoded) {
+        if (value is! Map) {
+          throw const FormatException('Invalid local review document');
+        }
+        final entry = Map<String, dynamic>.from(value);
+        final id = _requiredReviewString(entry, 'id');
+        final reviewerId = _requiredReviewString(entry, 'reviewerId');
+        final reviewedUserId = _requiredReviewString(entry, 'reviewedUserId');
+        final rating = entry['rating'];
+        final comment = entry['comment'];
+        final createdAt = _requiredReviewDate(entry);
+        if (!ids.add(id) ||
+            reviewerId == reviewedUserId ||
+            rating is! num ||
+            !rating.toDouble().isFinite ||
+            rating.toDouble() < 1 ||
+            rating.toDouble() > 5 ||
+            comment is! String ||
+            comment.length > 20000) {
+          throw const FormatException('Invalid local review document');
+        }
+        reviews.add(Review(
+          id: id,
+          reviewerId: reviewerId,
+          reviewedUserId: reviewedUserId,
+          rating: rating.toDouble(),
+          comment: comment,
+          createdAt: createdAt,
+        ));
+      }
+      return reviews;
+    } catch (error) {
+      if (error is FormatException) rethrow;
+      throw const FormatException('Invalid local review document');
     }
   }
 
   // ===== Multi-criteria reviews (immutable, local storage) =====
   static Future<List<MultiCriteriaReview>> _getAllMultiReviews() async {
     final prefs = await SharedPreferences.getInstance();
-    String? raw = prefs.getString(_multiReviewsKey);
-    if (raw == null) return [];
+    final raw = prefs.getString(_multiReviewsKey);
+    if (raw == null) return const <MultiCriteriaReview>[];
+    return _decodeMultiReviewsStrict(raw);
+  }
+
+  static List<MultiCriteriaReview> _decodeMultiReviewsStrict(String raw) {
+    if (utf8.encode(raw).length > _maxLocalReviewDocumentBytes) {
+      throw const FormatException('Invalid local multi-review document');
+    }
     try {
-      final List<dynamic> list = jsonDecode(raw);
-      return [
-        for (final e in list)
-          MultiCriteriaReview.fromJson(Map<String, dynamic>.from(e as Map)),
-      ];
-    } catch (_) {
-      return [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List || decoded.length > _maxLocalReviews) {
+        throw const FormatException('Invalid local multi-review document');
+      }
+      final ids = <String>{};
+      final contexts = <String>{};
+      final reviews = <MultiCriteriaReview>[];
+      for (final value in decoded) {
+        if (value is! Map) {
+          throw const FormatException('Invalid local multi-review document');
+        }
+        final entry = Map<String, dynamic>.from(value);
+        final id = _requiredReviewString(entry, 'id');
+        final requestId = _requiredReviewString(entry, 'requestId');
+        final itemId = _requiredReviewString(entry, 'itemId');
+        final reviewerId = _requiredReviewString(entry, 'reviewerId');
+        final reviewedUserId = _requiredReviewString(entry, 'reviewedUserId');
+        final direction = _requiredReviewString(entry, 'direction');
+        final createdAt = _requiredReviewDate(entry);
+        final rawCriteria = entry['criteria'];
+        if (!ids.add(id) ||
+            !contexts.add('$requestId\u0000$reviewerId') ||
+            reviewerId == reviewedUserId ||
+            !const <String>{
+              ReviewMetricsService.renterToOwner,
+              ReviewMetricsService.ownerToRenter,
+            }.contains(direction) ||
+            rawCriteria is! List ||
+            rawCriteria.length != 4) {
+          throw const FormatException('Invalid local multi-review document');
+        }
+        final criteria = <ReviewCriterion>[];
+        final criterionKeys = <String>{};
+        for (final rawCriterion in rawCriteria) {
+          if (rawCriterion is! Map) {
+            throw const FormatException('Invalid local multi-review document');
+          }
+          final criterion = Map<String, dynamic>.from(rawCriterion);
+          final key = _requiredReviewString(criterion, 'key', maxLength: 64);
+          final stars = criterion['stars'];
+          final note = criterion['note'];
+          if (!criterionKeys.add(key) ||
+              stars is! int ||
+              stars < 1 ||
+              stars > 5 ||
+              (note != null &&
+                  (note is! String ||
+                      note.length > _maxLocalReviewNoteLength))) {
+            throw const FormatException('Invalid local multi-review document');
+          }
+          criteria.add(ReviewCriterion(
+            key: key,
+            stars: stars,
+            note: note as String?,
+          ));
+        }
+        final review = MultiCriteriaReview(
+          id: id,
+          requestId: requestId,
+          itemId: itemId,
+          reviewerId: reviewerId,
+          reviewedUserId: reviewedUserId,
+          direction: direction,
+          criteria: criteria,
+          createdAt: createdAt,
+        );
+        if (!ReviewMetricsService.isRegularCompleteReview(review)) {
+          throw const FormatException('Invalid local multi-review document');
+        }
+        reviews.add(review);
+      }
+      return reviews;
+    } catch (error) {
+      if (error is FormatException) rethrow;
+      throw const FormatException('Invalid local multi-review document');
     }
   }
 
-  static Future<void> _saveAllMultiReviews(
+  static Future<void> _persistMultiReviews(
+    SharedPreferences prefs,
     List<MultiCriteriaReview> list,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _multiReviewsKey,
-      jsonEncode(list.map((e) => e.toJson()).toList()),
-    );
+    if (list.length > _maxLocalReviews) {
+      throw StateError('Der lokale Bewertungsspeicher ist voll.');
+    }
+    final encoded = jsonEncode(list.map((entry) => entry.toJson()).toList());
+    _decodeMultiReviewsStrict(encoded);
+    final previous = prefs.getString(_multiReviewsKey);
+    try {
+      if (_failNextReviewPersistenceForTesting) {
+        _failNextReviewPersistenceForTesting = false;
+        throw StateError('Synthetic local review persistence failure.');
+      }
+      await _writePreferenceString(prefs, _multiReviewsKey, encoded);
+    } catch (_) {
+      final current = prefs.getString(_multiReviewsKey);
+      if (current != previous) {
+        final restored = previous == null
+            ? await prefs.remove(_multiReviewsKey)
+            : await prefs.setString(_multiReviewsKey, previous);
+        if (!restored || prefs.getString(_multiReviewsKey) != previous) {
+          throw StateError(
+            'Lokale Bewertungen konnten nicht gespeichert oder wiederhergestellt werden.',
+          );
+        }
+      }
+      rethrow;
+    }
+    SharedPersistenceSync.notify(SharedPersistenceSync.reviewReputationKey);
+  }
+
+  @visibleForTesting
+  static void failNextReviewPersistenceForTesting() {
+    _failNextReviewPersistenceForTesting = true;
   }
 
   static Future<bool> hasSubmittedReview({
     required String requestId,
     required String reviewerId,
   }) async {
-    final all = await _getAllMultiReviews();
-    return all.any(
-      (r) => r.requestId == requestId && r.reviewerId == reviewerId,
+    final current = await _requireCurrentOperationalUser(
+      requestedUserId: reviewerId,
     );
+    return _reviewMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_multiReviewsKey);
+      final all = raw == null
+          ? const <MultiCriteriaReview>[]
+          : _decodeMultiReviewsStrict(raw);
+      return all.any(
+        (review) =>
+            review.requestId == requestId && review.reviewerId == current.id,
+      );
+    });
   }
 
   static Future<MultiCriteriaReview> addMultiReview({
@@ -6974,68 +7142,159 @@ class DataService {
     required String direction,
     required List<ReviewCriterion> criteria,
   }) async {
-    final all = await _getAllMultiReviews();
-    final requests = await _getAllRentalRequests();
-    final request = requests.cast<RentalRequest?>().firstWhere(
-          (entry) => entry?.id == requestId,
-          orElse: () => null,
+    final current = await _requireCurrentOperationalUser(
+      requestedUserId: reviewerId,
+    );
+    return _rentalRequestMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final requestRaw = prefs.getString(_rentalRequestsKey);
+      final requests = requestRaw == null
+          ? const <RentalRequest>[]
+          : _decodeRentalRequestsStrict(requestRaw);
+      RentalRequest? request;
+      for (final candidate in requests) {
+        if (candidate.id == requestId) {
+          request = candidate;
+          break;
+        }
+      }
+      if (request == null || request.status != 'completed') {
+        throw StateError('Reviews require a completed booking.');
+      }
+      if (request.needsReview) {
+        throw StateError(
+            'Reviews are blocked while this booking is under review.');
+      }
+      final reviewerMatchesDirection =
+          (direction == ReviewMetricsService.renterToOwner &&
+                  request.renterId == current.id &&
+                  request.ownerId == reviewedUserId) ||
+              (direction == ReviewMetricsService.ownerToRenter &&
+                  request.ownerId == current.id &&
+                  request.renterId == reviewedUserId);
+      if (!reviewerMatchesDirection || request.itemId != itemId) {
+        throw StateError(
+            'Review context does not match the completed booking.');
+      }
+
+      return _reviewMutationQueue.run(() async {
+        await _assertCurrentOperationalUserId(
+          current.id,
+          expectedEmail: current.email,
         );
-    if (request == null || request.status != 'completed') {
-      throw StateError('Reviews require a completed booking.');
-    }
-    if (request.needsReview) {
-      throw StateError(
-          'Reviews are blocked while this booking is under review.');
-    }
-
-    final reviewerMatchesDirection =
-        (direction == ReviewMetricsService.renterToOwner &&
-                request.renterId == reviewerId &&
-                request.ownerId == reviewedUserId) ||
-            (direction == ReviewMetricsService.ownerToRenter &&
-                request.ownerId == reviewerId &&
-                request.renterId == reviewedUserId);
-    if (!reviewerMatchesDirection || request.itemId != itemId) {
-      throw StateError('Review context does not match the completed booking.');
-    }
-
-    final nextId = (all.fold<int>(
+        final raw = prefs.getString(_multiReviewsKey);
+        final all = raw == null
+            ? <MultiCriteriaReview>[]
+            : _decodeMultiReviewsStrict(raw);
+        if (all.length >= _maxLocalReviews) {
+          throw StateError('Der lokale Bewertungsspeicher ist voll.');
+        }
+        if (all.any(
+          (entry) =>
+              entry.requestId == requestId && entry.reviewerId == current.id,
+        )) {
+          throw StateError('Review already exists for this booking context.');
+        }
+        final ids = all.map((entry) => entry.id).toSet();
+        var nextNumericId = all.fold<int>(
               0,
-              (p, e) =>
-                  (int.tryParse(e.id) ?? 0) > p ? (int.tryParse(e.id) ?? 0) : p,
+              (previous, entry) => max(previous, int.tryParse(entry.id) ?? 0),
             ) +
-            1)
-        .toString();
-    final normalizedCriteria = ReviewMetricsService.normalizeCriteria(
-      criteria,
-      direction: direction,
-    );
-    final review = MultiCriteriaReview(
-      id: nextId,
-      requestId: requestId,
-      itemId: itemId,
-      reviewerId: reviewerId,
-      reviewedUserId: reviewedUserId,
-      direction: direction,
-      criteria: normalizedCriteria,
-      createdAt: DateTime.now(),
-    );
+            1;
+        while (ids.contains('$nextNumericId')) {
+          nextNumericId++;
+        }
+        final normalizedCriteria = ReviewMetricsService.normalizeCriteria(
+          criteria,
+          direction: direction,
+        );
+        final review = MultiCriteriaReview(
+          id: '$nextNumericId',
+          requestId: requestId,
+          itemId: itemId,
+          reviewerId: current.id,
+          reviewedUserId: reviewedUserId,
+          direction: direction,
+          criteria: normalizedCriteria,
+          createdAt: DateTime.now().toUtc(),
+        );
+        if (!ReviewMetricsService.isRegularCompleteReview(review) ||
+            review.criteria.any(
+              (criterion) =>
+                  (criterion.note?.length ?? 0) > _maxLocalReviewNoteLength,
+            )) {
+          throw ArgumentError('Review is incomplete or invalid.');
+        }
 
-    if (!ReviewMetricsService.isRegularCompleteReview(review)) {
-      throw ArgumentError('Review is incomplete or invalid.');
-    }
-    if (all.any((entry) => entry.id == review.id)) {
-      throw StateError('Duplicate review id.');
-    }
-    if (all.any(
-      (entry) => entry.requestId == requestId && entry.reviewerId == reviewerId,
-    )) {
-      throw StateError('Review already exists for this booking context.');
-    }
+        final latestRequestRaw = prefs.getString(_rentalRequestsKey);
+        if (latestRequestRaw != requestRaw) {
+          throw StateError('Review context changed before persistence.');
+        }
+        await _assertCurrentOperationalUserId(
+          current.id,
+          expectedEmail: current.email,
+        );
+        await _persistMultiReviews(
+          prefs,
+          <MultiCriteriaReview>[...all, review],
+        );
+        return review;
+      });
+    });
+  }
 
-    all.add(review);
-    await _saveAllMultiReviews(all);
-    return review;
+  /// Account-scoped local review data for a user-requested privacy export.
+  /// Public reviews are shared counterparty records and remain retained after
+  /// local account deletion; unrelated public cache entries are excluded.
+  static Future<Map<String, dynamic>> exportReviewRecordsForPrivacy() async {
+    final current = await _requireCurrentOperationalUser();
+    return _reviewMutationQueue.run(() async {
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final classicRaw = prefs.getString(_reviewsKey);
+      final multiRaw = prefs.getString(_multiReviewsKey);
+      final classic = classicRaw == null
+          ? const <Review>[]
+          : _decodeClassicReviewsStrict(classicRaw);
+      final multi = multiRaw == null
+          ? const <MultiCriteriaReview>[]
+          : _decodeMultiReviewsStrict(multiRaw);
+      await _assertCurrentOperationalUserId(
+        current.id,
+        expectedEmail: current.email,
+      );
+      return <String, dynamic>{
+        'schemaVersion': 1,
+        'scope': 'current-authenticated-account',
+        'accountId': current.id,
+        'storageKeys': const <String>[_reviewsKey, _multiReviewsKey],
+        'authoredClassicReviews': classic
+            .where((entry) => entry.reviewerId == current.id)
+            .map((entry) => entry.toJson())
+            .toList(),
+        'receivedClassicReviews': classic
+            .where((entry) => entry.reviewedUserId == current.id)
+            .map((entry) => entry.toJson())
+            .toList(),
+        'authoredMultiReviews': multi
+            .where((entry) => entry.reviewerId == current.id)
+            .map((entry) => entry.toJson())
+            .toList(),
+        'receivedMultiReviews': multi
+            .where((entry) => entry.reviewedUserId == current.id)
+            .map((entry) => entry.toJson())
+            .toList(),
+        'otherAccountsPublicReviewsExcluded': true,
+        'sharedPublicReviewsRetainedAfterDeletion': true,
+      };
+    });
   }
 
   static Future<List<MultiCriteriaReview>> getMultiReviewsForUser(

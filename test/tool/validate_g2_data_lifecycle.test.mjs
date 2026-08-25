@@ -43,6 +43,22 @@ test('rejects cross-principal or unbounded local safety/privacy state', () => {
   );
 });
 
+test('rejects unbound or read-seeded local review reputation state', () => {
+  const unbound = clone(baseLifecycle);
+  unbound.localReviewReputation.mutationIdentityBinding = 'caller-provided-id';
+  assert.throws(
+    () => validate({ lifecycleManifest: unbound }),
+    /Local review\/reputation lifecycle is incomplete/u,
+  );
+
+  const seeded = clone(baseLifecycle);
+  seeded.localReviewReputation.demoSeedPolicy = 'seed-on-public-read';
+  assert.throws(
+    () => validate({ lifecycleManifest: seeded }),
+    /Local review\/reputation lifecycle is incomplete/u,
+  );
+});
+
 test('rejects a cart reservation or hold claim', () => {
   for (const key of [
     'reservationCreatedByCart',

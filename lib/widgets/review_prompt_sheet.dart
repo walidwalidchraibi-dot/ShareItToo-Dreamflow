@@ -78,11 +78,23 @@ class ReviewPromptSheet extends StatefulWidget {
   }) async {
     final isDark = AppTheme.isDark(context);
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) {
-      final already = await DataService.hasSubmittedReview(
-        requestId: requestId,
-        reviewerId: reviewerId,
-      );
-      if (already) return false;
+      try {
+        final already = await DataService.hasSubmittedReview(
+          requestId: requestId,
+          reviewerId: reviewerId,
+        );
+        if (already) return false;
+      } catch (_) {
+        if (context.mounted) {
+          AppPopup.error(
+            context,
+            title: 'Bewertung nicht verfügbar',
+            message:
+                'Bitte prüfe deine Anmeldung und öffne die Bewertung erneut.',
+          );
+        }
+        return false;
+      }
     }
     final request = await DataService.getRentalRequestById(requestId);
     if (request?.needsReview == true) {
@@ -120,6 +132,7 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
   late List<_CriterionState> _criteria;
   bool _submitting = false;
   String? _reviewedName;
+  String? _submitError;
 
   @override
   void initState() {
@@ -145,6 +158,14 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
   bool get _allCriteriaRated =>
       areAllReviewCriteriaRated(_criteria.map((criterion) => criterion.stars));
 
+  @override
+  void dispose() {
+    for (final criterion in _criteria) {
+      criterion.note.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     if (!_allCriteriaRated) {
@@ -155,7 +176,10 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
       );
       return;
     }
-    setState(() => _submitting = true);
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
     try {
       final list = _criteria
           .map(
@@ -187,7 +211,10 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
     } catch (e) {
       debugPrint('[reviews] submit failed: $e');
       if (!mounted) return;
-      Navigator.of(context).pop(false);
+      setState(() {
+        _submitError =
+            'Die Bewertung wurde nicht gespeichert. Deine Eingaben bleiben erhalten – bitte versuche es erneut.';
+      });
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -248,13 +275,40 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
                 ),
               ),
             ),
-            bottomBar: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: (_submitting || !_allCriteriaRated) ? null : _submit,
-                icon: const Icon(Icons.send_rounded),
-                label: Text(_submitting ? 'Sende…' : 'Bewertung senden'),
-              ),
+            bottomBar: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_submitError != null) ...[
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _submitError!,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    key: const ValueKey('review_submit_button'),
+                    onPressed:
+                        (_submitting || !_allCriteriaRated) ? null : _submit,
+                    icon: const Icon(Icons.send_rounded),
+                    label: Text(
+                      _submitting
+                          ? 'Sende…'
+                          : _submitError == null
+                              ? 'Bewertung senden'
+                              : 'Erneut versuchen',
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -318,6 +372,7 @@ class _CriterionTile extends StatelessWidget {
             children: [
               for (int i = 1; i <= 5; i++)
                 IconButton(
+                  key: ValueKey('review_${d.key}_stars_$i'),
                   padding: const EdgeInsets.all(6),
                   constraints: const BoxConstraints(),
                   splashRadius: 20,
@@ -331,7 +386,9 @@ class _CriterionTile extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           TextField(
+            key: ValueKey('review_${d.key}_note'),
             controller: d.note,
+            maxLength: 2000,
             maxLines: 2,
             decoration: InputDecoration(
               hintText: 'Kommentar (optional)',

@@ -156,3 +156,29 @@ die Datensaetze ohne erfundene Frist. Andere oeffentliche Cache-Eintraege werden
 weder dem Konto zugerechnet noch exportiert. Rechts-, Backend-Autoritaets-,
 Produktions-, Provider-, Payment-, Store- und Live-Gates bleiben unveraendert
 offen.
+
+## Aktueller Nachfolger RW8
+
+RW8 ergaenzt die Lifecycle-Wahrheit fuer die geraetelokale Review- und
+Reputation-Fallback-Ablage. Oeffentliche Bewertungs-Reads bleiben kontofrei;
+lokale Einreichungen verlangen die passende aktuelle Auth-Session sowie den
+exakten Teilnehmer, die Richtung, Gegenpartei und Anzeige einer abgeschlossenen
+Buchung ohne aktiven `needsReview`-Hold. Caller-IDs allein autorisieren keinen
+Write.
+
+Die Dokumente `reviews` und `multi_reviews_v1` sind jeweils auf 1.000
+eindeutige Eintraege und 8 MiB begrenzt. Fehlerhafte, doppelte oder
+unvollstaendige Eintraege schliessen den gesamten Read und bewahren den
+bytegetreuen Altstand. Writes sind serialisiert, read-back-verifiziert und an
+einen unveraenderten Buchungssnapshot gebunden. Kapazitaets- oder Schreibfehler
+kuerzen keine bestehende Bewertungshistorie. Ein fehlendes Classic-Dokument
+bleibt leer; Demo-Reputation entsteht nur durch expliziten QA-Bootstrap.
+
+Der lokale Privacy-Export enthaelt nur vom aktuellen Konto verfasste oder
+empfangene Bewertungen. Gemeinsame oeffentliche Bewertungen bleiben zusammen
+mit der bestehenden Kontoanonymisierung erhalten; RW8 erfindet keine
+Aufbewahrungsfrist. Submission und Profil-Reads zeigen bei Fehlern einen
+erneuten Versuch, statt Eingaben zu verwerfen, falschen Erfolg oder eine leere
+Historie zu behaupten. Rechts-, Moderations-, Backend-Autoritaets-,
+Produktions-, Provider-, Payment-, Store- und Live-Gates bleiben unveraendert
+offen.

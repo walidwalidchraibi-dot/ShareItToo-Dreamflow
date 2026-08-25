@@ -40,7 +40,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "7238b1f7221924dd9e29c11bd21d0728993f820a124b92a685a9aaf1e8734b48"
+      "sha256": "f35452b74d52817d272ceb124aad3c3f45e444ebf1d357b83009bc6c8ae65f5e"
     },
     {
       "path": "backend/src/account_actions.js",
@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "96588fb0928939b99ec3c0448ba438ed192032856b2707a20324d6615fbe1b4a"
+      "sha256": "8f7e66f8bdf0af381d83aebcbb019323e648be640680091fa030984e38204d6b"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -916,7 +916,7 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "01c075018fb6c220bbbaebfd59108db1b3804bff2cb82d76b542073c566350d1"
+      "sha256": "4f21707c039707ce64e589c3e24d21823f73c9ac4162f61767d321621c6b116e"
     }
   ],
   "localDevicePrincipalState": {
@@ -964,6 +964,23 @@
     "corruptionPolicy": "preserve-exact-raw-and-fail-closed",
     "privacyExport": "current-owner-listings-only",
     "confirmedAccountDeletion": "current-owner-listings-ended-and-retained",
+    "retentionPeriodInvented": false,
+    "containsCredentials": false,
+    "externalTransferAdded": false,
+    "backendAuthorityChanged": false
+  },
+  "localReviewReputation": {
+    "status": "implemented-local-fallback-public-read-authenticated-participant-write",
+    "dataClasses": [
+      "public-reviewer-reviewed-user-rating-and-comment",
+      "booking-bound-directional-criteria-ratings-and-notes"
+    ],
+    "identityBinding": "matching-auth-session-exact-completed-booking-direction-counterparty-item-and-needs-review-clear",
+    "corruptionPolicy": "preserve-exact-raw-and-fail-closed",
+    "capacityPolicy": "maximum-1000-per-document-reject-overflow-without-pruning",
+    "demoSeedPolicy": "explicit-qa-bootstrap-only-no-read-time-seeding",
+    "privacyExport": "current-account-authored-and-received-reviews-only",
+    "confirmedAccountDeletion": "shared-public-reviews-retained-with-account-anonymization",
     "retentionPeriodInvented": false,
     "containsCredentials": false,
     "externalTransferAdded": false,

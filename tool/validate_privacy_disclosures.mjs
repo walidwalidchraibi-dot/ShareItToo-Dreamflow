@@ -1656,6 +1656,49 @@ export function validatePrivacyDisclosures({
       || localListingCatalog.backendAuthorityChanged !== false) {
     fail('Local listing-catalog privacy disclosure is incomplete or overstated.');
   }
+  const localReviewReputation = object(
+    privacy.localReviewReputation,
+    'localReviewReputation',
+  );
+  assertExactKeys(localReviewReputation, [
+    'status',
+    'dataClasses',
+    'identityBinding',
+    'corruptionPolicy',
+    'capacityPolicy',
+    'demoSeedPolicy',
+    'privacyExport',
+    'confirmedAccountDeletion',
+    'retentionPeriodInvented',
+    'containsCredentials',
+    'externalTransferAdded',
+    'backendAuthorityChanged',
+  ], 'localReviewReputation');
+  if (localReviewReputation.status
+        !== 'implemented-local-fallback-public-read-authenticated-participant-write'
+      || !Array.isArray(localReviewReputation.dataClasses)
+      || localReviewReputation.dataClasses.join(',') !== [
+        'public-reviewer-reviewed-user-rating-and-comment',
+        'booking-bound-directional-criteria-ratings-and-notes',
+      ].join(',')
+      || localReviewReputation.identityBinding
+        !== 'matching-auth-session-exact-completed-booking-direction-counterparty-item-and-needs-review-clear'
+      || localReviewReputation.corruptionPolicy
+        !== 'preserve-exact-raw-and-fail-closed'
+      || localReviewReputation.capacityPolicy
+        !== 'maximum-1000-per-document-reject-overflow-without-pruning'
+      || localReviewReputation.demoSeedPolicy
+        !== 'explicit-qa-bootstrap-only-no-read-time-seeding'
+      || localReviewReputation.privacyExport
+        !== 'current-account-authored-and-received-reviews-only'
+      || localReviewReputation.confirmedAccountDeletion
+        !== 'shared-public-reviews-retained-with-account-anonymization'
+      || localReviewReputation.retentionPeriodInvented !== false
+      || localReviewReputation.containsCredentials !== false
+      || localReviewReputation.externalTransferAdded !== false
+      || localReviewReputation.backendAuthorityChanged !== false) {
+    fail('Local review/reputation privacy disclosure is incomplete or overstated.');
+  }
   const operationalDataService = sourceText(
     root,
     sourceTexts,
@@ -1670,6 +1713,10 @@ export function validatePrivacyDisclosures({
     'deactivateAllListingsForUser(',
     '_decodeListingsStrict(',
     '_maxLocalListings = 1000',
+    'exportReviewRecordsForPrivacy()',
+    '_decodeClassicReviewsStrict(',
+    '_decodeMultiReviewsStrict(',
+    '_maxLocalReviews = 1000',
   ]) {
     if (!operationalDataService.includes(marker)) {
       fail(`Local operational-record privacy coverage is missing ${marker}.`);
@@ -1684,6 +1731,11 @@ export function validatePrivacyDisclosures({
     "'ownedListings': await DataService.exportOwnedListingsForPrivacy()",
   )) {
     fail('Privacy UI is missing the current-owner local listing export.');
+  }
+  if (!privacyInfoSource.includes(
+    "'reviews': await DataService.exportReviewRecordsForPrivacy()",
+  )) {
+    fail('Privacy UI is missing the current-account local review export.');
   }
   const operationalDeletion = sourceText(
     root,

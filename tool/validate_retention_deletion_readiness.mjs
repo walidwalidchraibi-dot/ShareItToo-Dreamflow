@@ -526,6 +526,11 @@ function assertSourceContracts(root, sourceTexts) {
     '_decodeListingsStrict(',
     'exportOwnedListingsForPrivacy()',
     'deactivateAllListingsForUser(',
+    '_maxLocalReviews = 1000',
+    '_decodeClassicReviewsStrict(',
+    '_decodeMultiReviewsStrict(',
+    'exportReviewRecordsForPrivacy()',
+    "'sharedPublicReviewsRetainedAfterDeletion': true",
   ]) {
     if (!localOperationalRecords.includes(marker)) {
       fail(`Local operational state is missing the retention control: ${marker}.`);
@@ -1873,6 +1878,20 @@ export function validateRetentionDeletionReadiness({
       || controls.localListingCatalog?.automaticEndedListingDeletion !== false
       || controls.localListingCatalog?.retentionPeriodInvented !== false
       || controls.localListingCatalog?.backendAuthorityChanged !== false
+      || controls.localReviewReputation?.status
+        !== 'implemented-authenticated-participant-write-public-read-local-fallback'
+      || controls.localReviewReputation?.accountDeletion
+        !== 'shared-public-reviews-retained-with-account-anonymization'
+      || controls.localReviewReputation?.corruptData
+        !== 'preserve-exact-raw-and-fail-closed'
+      || controls.localReviewReputation?.capacityPolicy
+        !== 'maximum-1000-per-document-reject-overflow-without-pruning'
+      || controls.localReviewReputation?.demoSeedPolicy
+        !== 'explicit-qa-bootstrap-only-no-read-time-seeding'
+      || controls.localReviewReputation?.privacyExport
+        !== 'current-account-authored-and-received-only'
+      || controls.localReviewReputation?.retentionPeriodInvented !== false
+      || controls.localReviewReputation?.backendAuthorityChanged !== false
       || controls.retentionExecutionPreflight?.status
         !== 'implemented-fail-closed-policy-and-staging-gates-open'
       || controls.retentionExecutionPreflight?.executionAllowed !== false
