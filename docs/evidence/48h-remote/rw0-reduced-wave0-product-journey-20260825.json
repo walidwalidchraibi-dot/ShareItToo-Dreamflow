@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw0-reduced-wave0-product-journey",
-  "status": "implemented-full-technical-regression-passed-ci-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "4937a88ff07dd6378e1c52ca4f264e564a669ef4",
   "architecture": "docs/architecture/rw0-reduced-wave0-automated-product-journey-2026-08-25.md",
   "report": "docs/operations/RW0_REDUCED_WAVE0_AUTOMATED_PRODUCT_JOURNEY_2026-08-25.md",
@@ -72,8 +72,16 @@
     "privacyValidator": "passed-draft-not-approval",
     "retentionValidator": "passed-draft-execution-blocked",
     "fullTechnicalRegression": "passed",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "head": "ce37ecc89af1a5176d4afaa608ddd1f3552d2512",
+    "regressionRunId": 32790896732,
+    "codeqlRunId": 32790896756,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
   },
   "sourceInventory": [
     {

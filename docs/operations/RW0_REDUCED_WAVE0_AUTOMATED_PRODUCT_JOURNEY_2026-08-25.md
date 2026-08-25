@@ -1,6 +1,6 @@
 # RW0 reduced Wave-0 automated product journey
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING**
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 
 Baseline HEAD: `4937a88ff07dd6378e1c52ca4f264e564a669ef4`
 
@@ -44,6 +44,12 @@ Verified local results:
   every retained package validator, PostgreSQL-backed checks, Flutter analyzer,
   the 400-test default suite with two documented profile skips, both exact
   special profiles, Web/Wasm smoke and the 448-task Android debug build.
+- exact implementation and CI-correction head:
+  `ce37ecc89af1a5176d4afaa608ddd1f3552d2512`;
+- GitHub Regression run `32790896732`: passed, including Backend, Flutter,
+  PostgreSQL and clean-checkout reproducibility;
+- GitHub CodeQL workflow `32790896756`: passed, with zero open code-scanning
+  alerts.
 
 ## Gate truth
 
@@ -52,6 +58,6 @@ Payment and `PR7_MERGE_APPROVED` remain ungranted. The historical GitGuardian
 owner review `R17_GITGUARDIAN_HISTORY_REVIEW_COMPLETE` remains a separate P0
 gate and no finding value was inspected.
 
-The next internal action is a bounded implementation commit/push and exact
-GitHub Regression/CodeQL verification. Those steps do not authorize any live
-gate.
+GitGuardian was skipped on the exact verification head. Its historical owner
+review remains explicitly open and separate; RW0 neither inspects a finding
+value nor treats the skipped check as green. No live gate is authorized.

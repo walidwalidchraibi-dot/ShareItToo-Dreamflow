@@ -22,7 +22,11 @@ Verified: 2026-08-25 on the Mac mini.
   skips. The exact RW0 profile, focused integrity checks, analyzer and bounded
   evidence validator pass. The complete candidate-rollover technical regression
   passes in CI metadata mode, including Web/Wasm smoke and the 448-task Android
-  debug build. Exact GitHub Regression/CodeQL verification remains pending.
+  debug build. Exact implementation and CI-correction head
+  `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub Regression
+  `32790896732` and CodeQL `32790896756`, with zero open code-scanning alerts.
+  GitGuardian was skipped and its separate historical owner review remains
+  ungranted.
 - Binding request/contract, accept/reject, payment/refund/payout,
   handover/return/damage/`needsReview`, and release-locked G3/G4/G5 surfaces
   remain excluded and fail closed. No live gate has been granted.

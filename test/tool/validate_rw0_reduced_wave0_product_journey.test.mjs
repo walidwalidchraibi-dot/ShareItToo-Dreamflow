@@ -48,14 +48,13 @@ test('rejects a missing finding or contradictory regression state', () => {
 
 test('rejects premature or incomplete exact GitHub verification', () => {
   const premature = structuredClone(evidence);
+  premature.status = 'implemented-full-technical-regression-passed-ci-pending';
+  premature.verification.githubRegression = 'pending';
+  premature.verification.githubCodeql = 'pending';
   premature.githubVerification = { head: '0'.repeat(40) };
   assert.throws(() => validate(premature), /must be absent/u);
 
   const complete = structuredClone(evidence);
-  complete.status = 'verified-regression-and-codeql-passed';
-  complete.verification.fullTechnicalRegression = 'passed';
-  complete.verification.githubRegression = 'passed';
-  complete.verification.githubCodeql = 'passed-no-new-alerts';
   complete.githubVerification = {
     head: '1'.repeat(40),
     regressionRunId: 1,

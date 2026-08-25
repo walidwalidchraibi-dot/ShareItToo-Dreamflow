@@ -1,6 +1,6 @@
 # RW0 reduced Wave-0 automated product journey
 
-Status: **IMPLEMENTED — LOCAL/SYNTHETIC — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING**
+Status: **VERIFIED — LOCAL/SYNTHETIC — REGRESSION AND CODEQL GREEN**
 
 ## Decision
 
@@ -68,3 +68,13 @@ evidence as contract, payment, availability or multi-owner transaction proof.
 
 No candidate, Pixel, tester, provider, Firebase/Play, Payment, Production,
 VPS, DNS, Cloud, public release, PR merge or credential was touched.
+
+## Exact verification
+
+Implementation and CI-correction head
+`ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub Regression run
+`32790896732` and CodeQL workflow `32790896756`, with zero open code-scanning
+alerts. Backend, Flutter, PostgreSQL and the 14-minute clean-checkout
+reproducibility job all passed. GitGuardian was skipped and remains the
+separate owner-controlled historical review gate; it is not represented as a
+passing check.

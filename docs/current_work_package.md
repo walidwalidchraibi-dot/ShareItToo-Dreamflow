@@ -1,6 +1,6 @@
 # Current Work Package: RW0 reduced Wave-0 automated product journey
 
-Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN — GITHUB CI PENDING;
+Status: **VERIFIED — REGRESSION AND CODEQL GREEN;
 NON-LIVE AND FAIL-CLOSED** on 25.08.2026.
 
 R17 and the bounded 48H runway are closed at exact head
@@ -23,7 +23,11 @@ Flutter suite passes 400 tests with two documented
 special-profile skips; the exact RW0 profile and all focused integrity checks
 pass. The complete candidate-rollover technical regression also passes in CI
 metadata mode, including Web/Wasm smoke and the 448-task Android debug build.
-Bounded commit/push and exact GitHub Regression/CodeQL verification remain.
+Exact implementation and CI-correction head
+`ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub Regression run
+`32790896732` and CodeQL workflow `32790896756`, with zero open code-scanning
+alerts. GitGuardian was skipped; the distinct owner-controlled historical
+review remains ungranted and no finding value was inspected.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential
