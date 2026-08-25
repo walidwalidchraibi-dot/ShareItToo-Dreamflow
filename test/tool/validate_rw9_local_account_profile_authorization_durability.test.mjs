@@ -16,13 +16,12 @@ const evidence = () => JSON.parse(readFileSync(
 ));
 const repositoryRoot = new URL('.', root).pathname;
 
-test('accepts focused RW9 evidence while full regression is pending', () => {
+test('accepts exact-candidate RW9 regression and CodeQL closure', () => {
   const result = validateRw9LocalAccountProfileAuthorizationDurability({
     repositoryRoot,
     evidence: evidence(),
   });
-  assert.equal(result.status,
-    'implemented-focused-passed-full-technical-regression-pending');
+  assert.equal(result.status, 'verified-regression-and-codeql-passed');
   assert.equal(result.resolvedFindings, 10);
 });
 
@@ -64,7 +63,11 @@ test('rejects source drift', () => {
 test('rejects full-regression claims without an exact head', () => {
   const value = evidence();
   value.status = 'implemented-full-technical-regression-passed-ci-pending';
-  value.verification.fullTechnicalRegression = 'passed';
+  value.implementationHead = null;
+  value.localRegression = null;
+  value.githubVerification = null;
+  value.verification.githubRegression = 'pending';
+  value.verification.githubCodeql = 'pending';
   assert.throws(
     () => validateRw9LocalAccountProfileAuthorizationDurability({
       repositoryRoot,

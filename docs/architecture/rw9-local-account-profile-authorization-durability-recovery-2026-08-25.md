@@ -1,8 +1,9 @@
 # RW9 local account/profile authorization, durability and recovery
 
 Date: 2026-08-25
-State: focused implementation and lifecycle checks passed; full regression and
-exact-head GitHub verification pending
+State: verified on implementation candidate
+`0bfc57fca09dc8586e5eeb64c46a0af1ba6bc606`; local full regression and
+exact-head GitHub Regression/CodeQL passed
 
 ## Decision
 
@@ -71,3 +72,12 @@ quote, acceptance, payment, refund, payout, handover, return, damage,
 moderation decision, provider, AI, candidate, device, Play, Firebase, Store,
 VPS, DNS, Cloud, pilot, real-money, legal-owner, PR-merge,
 GitGuardian-finding-content or Git-history gate.
+
+## Verification closure
+
+The exact implementation candidate passed the standard local technical
+regression with 510 Flutter tests, three documented profile skips, zero analyzer
+issues, the loopback Web smoke, and the 448-task Android debug build at minSdk
+24. No timing workaround or parallelism reduction was used. GitHub Regression
+run `32838824110` and CodeQL run `32838824163` passed on the same candidate;
+the open code-scanning alert count was zero.

@@ -44,8 +44,12 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
 - G2 lifecycle, privacy, retention and provider-readiness validators: passed;
   provider result remains `prepared-hold`, 0/10 decisions and not externally
   ready.
-- Full local technical regression: pending.
-- Exact-head GitHub Regression and CodeQL: pending.
+- Full local technical regression on
+  `0bfc57fca09dc8586e5eeb64c46a0af1ba6bc606`: passed with normal
+  parallelism, 510 Flutter tests, three documented skips, analyzer zero, Web
+  loopback smoke passed and Android debug 448 tasks/minSdk 24 passed.
+- Exact-head GitHub Regression `32838824110`: passed.
+- Exact-head GitHub CodeQL `32838824163`: passed; open code-scanning alerts: 0.
 
 ## Operational behavior
 
@@ -62,6 +66,22 @@ CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 \
   not poison the queue.
 - Privacy export and deactivation are exact-current-account scoped.
 - Local email change and local verification simulation remain forbidden.
+
+## Ratchet cause and verification
+
+RW9 changed the lifecycle, privacy and retention manifests because local
+account/profile mutation, export and deletion behavior became explicitly
+validated and source-bound. The active-provider evidence changed only to bind
+those new hashes; its decision remains `prepared-hold`, 0/10 and externally
+not ready. RW0 through RW8 source inventories were refreshed only for actual
+shared-source drift and every predecessor validator passed again.
+
+The first candidate was correctly rejected by the existing profile
+async-lifecycle wiring test because it still named the superseded whole-profile
+`setCurrentUser` call. The ratchet now requires the result of
+`updateCurrentUserProfile`, refreshes local UI state, preserves both `mounted`
+checks before toast/navigation and forbids `setCurrentUser` on that surface.
+The focused ratchet test and the complete regression both passed afterward.
 
 ## Recovery and rollback
 
