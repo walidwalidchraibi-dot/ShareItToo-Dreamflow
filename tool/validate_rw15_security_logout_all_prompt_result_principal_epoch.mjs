@@ -12,6 +12,7 @@ const evidencePath =
   'docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json';
 const sourcePaths = [
   'backend/src/app.js',
+  'backend/ops/secret_scan_history_baseline.json',
   'lib/screens/security_screen.dart',
   'lib/screens/profile_screen.dart',
   'lib/screens/account_settings_screen.dart',

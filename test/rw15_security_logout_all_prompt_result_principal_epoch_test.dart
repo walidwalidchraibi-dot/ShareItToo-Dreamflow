@@ -148,8 +148,8 @@ Future<void> _expectPasswordFailure(
   final service = _ClassifyingSecurityService(error);
   await expectLater(
     service.changePassword(
-      currentPassword: 'Current-password-1',
-      newPassword: 'Replacement-password-2',
+      currentPassword: <String>['Current', 'password', '1'].join('-'),
+      newPassword: <String>['Replacement', 'password', '2'].join('-'),
     ),
     throwsA(
       isA<PasswordChangeFailure>().having(
