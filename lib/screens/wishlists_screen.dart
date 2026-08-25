@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
+import 'package:lendify/widgets/local_state_error_panel.dart';
 import 'package:lendify/widgets/wishlist_mosaic_card.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
@@ -38,6 +39,10 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   String? _busyCartItemId;
   List<Map<String, dynamic>> _lists = [];
   Map<String, List<Item>> _itemsByList = {};
+  bool _hasLoadedSnapshot = false;
+  bool _reloadInFlight = false;
+  String? _loadErrorTitle;
+  String? _loadErrorMessage;
 
   @override
   void initState() {
@@ -46,6 +51,8 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   }
 
   Future<void> _reload() async {
+    if (_reloadInFlight) return;
+    _reloadInFlight = true;
     setState(() => _loading = true);
     try {
       final results = await Future.wait<Object>(<Future<Object>>[
@@ -58,17 +65,22 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
         _lists = results[0] as List<Map<String, dynamic>>;
         _itemsByList = results[1] as Map<String, List<Item>>;
         _rentalCart = results[2] as RentalCart;
+        _hasLoadedSnapshot = true;
+        _loadErrorTitle = null;
+        _loadErrorMessage = null;
+        _reloadInFlight = false;
         _loading = false;
       });
     } catch (error) {
       if (!mounted) return;
-      setState(() => _loading = false);
-      await AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title: 'Mietkorb konnte nicht geladen werden',
-        message: 'Bitte versuche es erneut.',
-      );
+      setState(() {
+        _loading = false;
+        _loadErrorTitle = 'Gespeicherte Daten konnten nicht geladen werden';
+        _loadErrorMessage =
+            'Deine Merklisten und dein Mietkorb wurden nicht als leer behandelt. '
+            'Die lokale Kopie bleibt unverändert.';
+        _reloadInFlight = false;
+      });
     }
   }
 
@@ -278,8 +290,17 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
       body: const _CreateWishlistPopupBody(),
     );
     if (name != null && name.isNotEmpty) {
-      await DataService.addCustomWishlist(name);
-      await _reload();
+      try {
+        await DataService.addCustomWishlist(name);
+        await _reload();
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _loadErrorTitle = 'Merkliste wurde nicht gespeichert';
+          _loadErrorMessage =
+              'Deine vorhandenen lokalen Daten bleiben unverändert.';
+        });
+      }
     }
   }
 
@@ -333,6 +354,52 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
         ),
       ),
     );
+    final content = useUnifiedScroll
+        ? ListView(
+            children: [
+              _buildRentalCartSection(context),
+              savedNotice,
+              _buildFolderGrid(context, embedded: true),
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildRentalCartSection(context),
+              savedNotice,
+              Expanded(child: _buildFolderGrid(context)),
+            ],
+          );
+    final errorPanel = LocalStateErrorPanel(
+      title: _loadErrorTitle ?? '',
+      message: _loadErrorMessage ?? '',
+      semanticLabel:
+          '${_loadErrorTitle ?? ''}. Lokale Daten bleiben unverändert. Erneut laden.',
+      onRetry: _reload,
+      retrying: _loading,
+    );
+    final Widget body;
+    if (_loading && !_hasLoadedSnapshot) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (!_hasLoadedSnapshot) {
+      body = ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
+        children: [errorPanel],
+      );
+    } else {
+      body = Column(
+        children: [
+          if (_loadErrorTitle != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: errorPanel,
+            ),
+          if (_loading) const LinearProgressIndicator(minHeight: 2),
+          Expanded(child: content),
+        ],
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -345,29 +412,12 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
         actions: [
           IconButton(
             tooltip: 'Neue Merkliste',
-            onPressed: _addCustomList,
+            onPressed: _hasLoadedSnapshot ? _addCustomList : null,
             icon: const Icon(Icons.add),
           )
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : useUnifiedScroll
-              ? ListView(
-                  children: [
-                    _buildRentalCartSection(context),
-                    savedNotice,
-                    _buildFolderGrid(context, embedded: true),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildRentalCartSection(context),
-                    savedNotice,
-                    Expanded(child: _buildFolderGrid(context)),
-                  ],
-                ),
+      body: body,
     );
   }
 }
@@ -728,6 +778,9 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
   bool _loading = true;
   List<Item> _items = const [];
   bool _editMode = false;
+  bool _hasLoadedSnapshot = false;
+  bool _loadInFlight = false;
+  String? _loadError;
   String? _title; // Null-safe to survive hot reload without initState re-run
 
   @override
@@ -738,13 +791,27 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
   }
 
   Future<void> _load() async {
+    if (_loadInFlight) return;
+    _loadInFlight = true;
     setState(() => _loading = true);
     try {
       final by = await DataService.getItemsByWishlist();
       if (!mounted) return;
-      _items = by[widget.listId] ?? const <Item>[];
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);
+      setState(() {
+        _items = by[widget.listId] ?? const <Item>[];
+        _hasLoadedSnapshot = true;
+        _loadError = null;
+        _loadInFlight = false;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Merkliste konnte nicht geladen werden';
+        _loadInFlight = false;
+        _loading = false;
+      });
+    }
   }
 
   String _headerSubline() {
@@ -798,7 +865,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
         centerTitle: true,
         toolbarHeight: 64,
         actions: [
-          if (!widget.system || _items.isNotEmpty)
+          if (_hasLoadedSnapshot && (!widget.system || _items.isNotEmpty))
             IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: () async {
@@ -854,184 +921,250 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
             ),
         ],
       ),
-      body: _loading
+      body: _loading && !_hasLoadedSnapshot
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _items.isEmpty
-                  ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.2),
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 32),
-                            child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.favorite_border_rounded,
-                                      size: 48,
-                                      color: isDark
-                                          ? cs.onSurface.withValues(alpha: 0.18)
-                                          : cs.onSurface
-                                              .withValues(alpha: 0.26)),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Noch keine Artikel gespeichert',
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                            color: cs.onSurface
-                                                .withValues(alpha: 0.75),
-                                            fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    widget.system
-                                        ? _systemDetailSubline(widget.listId)
-                                        : 'Speichere passende Artikel aus Entdecken.',
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                            color: cs.onSurface.withValues(
-                                                alpha: isDark ? 0.5 : 0.58),
-                                            height: 1.4),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  TextButton.icon(
-                                    onPressed: () {
-                                      if (mounted) {
-                                        context
-                                            .read<MainNavController>()
-                                            .setIndex(0);
-                                      }
-                                      Navigator.of(context)
-                                          .popUntil((r) => r.isFirst);
-                                    },
-                                    icon: const Icon(Icons.explore_outlined,
-                                        size: 18),
-                                    label: const Text('Artikel entdecken'),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: cs.primary,
-                                      textStyle: Theme.of(context)
-                                          .textTheme
-                                          .labelLarge
-                                          ?.copyWith(
-                                              fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ]),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Column(children: [
-                      if (_editMode)
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? cs.surface.withValues(alpha: 0.08)
-                                : cs.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: cs.primary.withValues(alpha: 0.18)),
-                          ),
-                          child: Row(children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 18,
-                              color: isDark ? Colors.white70 : cs.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Bearbeitungsmodus: Tippe auf das X, um Artikel zu entfernen.',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color:
-                                          isDark ? Colors.white : cs.onSurface,
-                                    ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () =>
-                                  setState(() => _editMode = false),
-                              style: TextButton.styleFrom(
-                                foregroundColor:
-                                    isDark ? Colors.white : cs.primary,
-                              ),
-                              child: const Text('Fertig'),
-                            ),
-                          ]),
-                        ),
-                      Expanded(
-                        child: GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio:
-                                _wishlistDetailChildAspectRatio(context),
-                          ),
-                          itemCount: _items.length,
-                          itemBuilder: (_, i) {
-                            final item = _items[i];
-                            return Stack(children: [
-                              Positioned.fill(
-                                  child: ItemCard(
-                                      item: item,
-                                      longPressContext:
-                                          ListingOptionsContext.wishlist,
-                                      onContextActionCompleted: _load)),
-                              if (_editMode)
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: InkWell(
-                                    onTap: () async {
-                                      try {
-                                        await DataService
-                                            .removeItemFromWishlist(item.id);
-                                        if (mounted) {
-                                          setState(() {
-                                            _items = List<Item>.from(_items)
-                                              ..removeAt(i);
-                                          });
-                                        }
-                                      } catch (_) {}
-                                    },
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Container(
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                        color: cs.error.withValues(alpha: 0.90),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.close,
-                                          size: 16, color: Colors.white),
-                                    ),
+          : !_hasLoadedSnapshot
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 72, 16, 24),
+                  children: [
+                    LocalStateErrorPanel(
+                      title:
+                          _loadError ?? 'Merkliste konnte nicht geladen werden',
+                      message:
+                          'Die gespeicherten Artikel wurden nicht als leer behandelt. '
+                          'Die lokale Kopie bleibt unverändert.',
+                      semanticLabel:
+                          'Merkliste konnte nicht geladen werden. Lokale Daten bleiben unverändert. Erneut laden.',
+                      onRetry: _load,
+                      retrying: _loading,
+                    ),
+                  ],
+                )
+              : Column(children: [
+                  if (_loadError != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: LocalStateErrorPanel(
+                        title: _loadError!,
+                        message:
+                            'Der letzte bestätigte Stand bleibt sichtbar und unverändert.',
+                        semanticLabel:
+                            '$_loadError. Letzter bestätigter Stand bleibt sichtbar. Erneut laden.',
+                        onRetry: _load,
+                        retrying: _loading,
+                      ),
+                    ),
+                  if (_loading) const LinearProgressIndicator(minHeight: 2),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _load,
+                      child: _items.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                    height: MediaQuery.of(context).size.height *
+                                        0.2),
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 32),
+                                    child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.favorite_border_rounded,
+                                              size: 48,
+                                              color: isDark
+                                                  ? cs.onSurface
+                                                      .withValues(alpha: 0.18)
+                                                  : cs.onSurface
+                                                      .withValues(alpha: 0.26)),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Noch keine Artikel gespeichert',
+                                            textAlign: TextAlign.center,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                    color: cs.onSurface
+                                                        .withValues(
+                                                            alpha: 0.75),
+                                                    fontWeight:
+                                                        FontWeight.w600),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            widget.system
+                                                ? _systemDetailSubline(
+                                                    widget.listId)
+                                                : 'Speichere passende Artikel aus Entdecken.',
+                                            textAlign: TextAlign.center,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                    color: cs.onSurface
+                                                        .withValues(
+                                                            alpha: isDark
+                                                                ? 0.5
+                                                                : 0.58),
+                                                    height: 1.4),
+                                          ),
+                                          const SizedBox(height: 24),
+                                          TextButton.icon(
+                                            onPressed: () {
+                                              if (mounted) {
+                                                context
+                                                    .read<MainNavController>()
+                                                    .setIndex(0);
+                                              }
+                                              Navigator.of(context)
+                                                  .popUntil((r) => r.isFirst);
+                                            },
+                                            icon: const Icon(
+                                                Icons.explore_outlined,
+                                                size: 18),
+                                            label:
+                                                const Text('Artikel entdecken'),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: cs.primary,
+                                              textStyle: Theme.of(context)
+                                                  .textTheme
+                                                  .labelLarge
+                                                  ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600),
+                                            ),
+                                          ),
+                                        ]),
                                   ),
                                 ),
-                            ]);
-                          },
-                        ),
-                      ),
-                    ]),
-            ),
+                              ],
+                            )
+                          : Column(children: [
+                              if (_editMode)
+                                Container(
+                                  width: double.infinity,
+                                  margin:
+                                      const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? cs.surface.withValues(alpha: 0.08)
+                                        : cs.primary.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color:
+                                            cs.primary.withValues(alpha: 0.18)),
+                                  ),
+                                  child: Row(children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 18,
+                                      color:
+                                          isDark ? Colors.white70 : cs.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Bearbeitungsmodus: Tippe auf das X, um Artikel zu entfernen.',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : cs.onSurface,
+                                            ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          setState(() => _editMode = false),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor:
+                                            isDark ? Colors.white : cs.primary,
+                                      ),
+                                      child: const Text('Fertig'),
+                                    ),
+                                  ]),
+                                ),
+                              Expanded(
+                                child: GridView.builder(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio:
+                                        _wishlistDetailChildAspectRatio(
+                                            context),
+                                  ),
+                                  itemCount: _items.length,
+                                  itemBuilder: (_, i) {
+                                    final item = _items[i];
+                                    return Stack(children: [
+                                      Positioned.fill(
+                                          child: ItemCard(
+                                              item: item,
+                                              longPressContext:
+                                                  ListingOptionsContext
+                                                      .wishlist,
+                                              onContextActionCompleted: _load)),
+                                      if (_editMode)
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: InkWell(
+                                            onTap: () async {
+                                              try {
+                                                await DataService
+                                                    .removeItemFromWishlist(
+                                                        item.id);
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _items =
+                                                        List<Item>.from(_items)
+                                                          ..removeAt(i);
+                                                  });
+                                                }
+                                              } catch (error) {
+                                                if (!mounted) return;
+                                                setState(() {
+                                                  _loadError =
+                                                      'Artikel wurde nicht entfernt';
+                                                });
+                                              }
+                                            },
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            child: Container(
+                                              width: 28,
+                                              height: 28,
+                                              decoration: BoxDecoration(
+                                                color: cs.error
+                                                    .withValues(alpha: 0.90),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(Icons.close,
+                                                  size: 16,
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                        ),
+                                    ]);
+                                  },
+                                ),
+                              ),
+                            ]),
+                    ),
+                  ),
+                ]),
     );
   }
 
@@ -1049,9 +1182,14 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
       body: _RenameWishlistPopupBody(controller: controller),
     );
     if (newName != null && newName.trim().isNotEmpty) {
-      await DataService.renameCustomWishlist(
-          id: widget.listId, newName: newName.trim());
-      if (mounted) setState(() => _title = newName.trim());
+      try {
+        await DataService.renameCustomWishlist(
+            id: widget.listId, newName: newName.trim());
+        if (mounted) setState(() => _title = newName.trim());
+      } catch (error) {
+        if (!mounted) return;
+        setState(() => _loadError = 'Name wurde nicht gespeichert');
+      }
     }
   }
 
@@ -1069,8 +1207,13 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
       body: _ConfirmDeleteWishlistBody(name: _title ?? widget.title),
     );
     if (confirmed == true) {
-      await DataService.deleteCustomWishlist(widget.listId);
-      if (mounted) Navigator.of(context).maybePop();
+      try {
+        await DataService.deleteCustomWishlist(widget.listId);
+        if (mounted) Navigator.of(context).maybePop();
+      } catch (error) {
+        if (!mounted) return;
+        setState(() => _loadError = 'Merkliste wurde nicht gelöscht');
+      }
     }
   }
 }

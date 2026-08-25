@@ -1,6 +1,6 @@
-# Current Work Package: RW1 accessibility and resilience matrix
+# Current Work Package: RW2 local-state truth and recovery
 
-Status: **VERIFIED — REGRESSION AND CODEQL GREEN; NON-LIVE AND FAIL-CLOSED**
+Status: **IMPLEMENTED — FULL TECHNICAL REGRESSION GREEN; GITHUB CI PENDING**
 on 25.08.2026.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
@@ -8,30 +8,34 @@ implementation head `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub
 Regression `32790896732` and CodeQL `32790896756`, with zero open code-scanning
 alerts.
 
-RW1 is a separate successor package. It keeps the same reduced, non-binding
-Stage-A boundary and adds a deterministic 320 dp / 200 percent text matrix for
-listing options/feedback, keyboard focus and route recreation, search/Gemerkt,
-rapid repeated save activation, the exact listing form and the non-reserving
-Mietkorb. Red-first tests reproduced and closed five grouped findings: two
-unbounded option dialogs, the shared custom-popup overflow, compact Mietkorb
-horizontal/vertical overflow, five listing-form control overflows and implicit
-sub-48 dp option semantics. The ordinary profile passes five tests with one
-documented profile skip; the exact Stage-A/Blue-Ocean profile passes six.
-Changed-file analyzer, adjacent Flutter/lifecycle sets, RW1 wiring and the
-evidence validator pass. The complete candidate-rollover technical regression
-passes, including Web/Wasm smoke, Android debug assembly and the repository
-resource guard. Implementation commit
-`eef58764ec9057748c2124689a40e9d96553acc6` exposed only a hard-coded
-clean-execution date check after the clean run itself passed. Permanent
-correction head `13bf29bce7911bf95e339ff61744c678aeafdce4` accepts valid ISO
-calendar dates while keeping retained historical evidence date-bound. Exact
-GitHub Regression `32795007748` and CodeQL `32795007746` pass at that head,
-including the unchanged clean-checkout proof, with zero open code-scanning
-alerts and no retry or timing workaround.
+RW1 is closed at documentation commit
+`ffa1d0bda9127db331e5b906dd950d608ab3f749`; its corrected implementation
+head `13bf29bce7911bf95e339ff61744c678aeafdce4` passed GitHub Regression
+`32795007748` and CodeQL `32795007746`, with zero open code-scanning alerts.
+
+RW2 is a separate successor package. It keeps the reduced, non-binding Stage-A
+boundary and treats local participant data as untrusted but user-owned state.
+Malformed wishlist metadata, assignments, listings and rental-cart state now
+fail closed instead of appearing as empty or successfully persisted. Writes are
+read back through the same validators, prior bytes remain intact on failure,
+and only application-owned category reference data may self-heal.
+
+Listing, search, Gemerkt, folder detail, Mietkorb and adjacent saved-item
+controls now distinguish unknown state from an unsaved or empty state. They
+preserve last-known-good state where possible and expose persistent semantic
+retry controls, including the 320 by 568 dp / 200 percent text profile.
+Synchronous in-flight guards prevent duplicate retry and save routes. The
+focused RW2 suite passes 13 tests; adjacent Flutter persistence/lifecycle and
+source-contract sets pass; changed-file analysis reports zero issues; five RW2
+wiring tests and all active privacy, retention, RW0, RW1 and RW2 evidence
+validators pass. The complete technical regression passes, including the full
+Flutter suite, Web/Wasm smoke, Android debug assembly with 448 tasks and the
+repository resource guard. Exact GitHub Regression and CodeQL verification
+remain pending.
 
 No candidate, Pixel, tester, external provider, paid service, Production, VPS,
 DNS, Cloud, Firebase/Play owner-console, public pilot, PR merge, credential
-inspection or history rewrite is authorized by RW1.
+inspection or history rewrite is authorized by RW2.
 
 Walid instructed Codex to make SIT as launch-ready as safely possible inside
 the established working frame, to continue across independent work lanes when

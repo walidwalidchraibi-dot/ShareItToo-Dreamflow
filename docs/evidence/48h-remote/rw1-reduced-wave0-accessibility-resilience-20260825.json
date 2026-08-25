@@ -85,7 +85,7 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "0cf2d3fc06cbfd57f195a1257752e37f2b4f49b8f87ef022e5fab1ca5a932bde"
+      "sha256": "54d89385a4f36ba400156e2175d6588a484de2cc065aaface64a84cff5e78ded"
     },
     {
       "path": "lib/widgets/app_popup.dart",
@@ -93,11 +93,11 @@
     },
     {
       "path": "lib/widgets/listing_options_dialog.dart",
-      "sha256": "456507381a79e00a3eaf7ca7dfbe7011ac49b28e248c91d63f93262db64d47ab"
+      "sha256": "62de0e6765e6730535890ffc672be8817394b2bbec2bbac55019afb41bce8feb"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "e756b3dabc9f0cbc9a788611ee96bbbe7e4145284123bece17c7e9637147a515"
+      "sha256": "928542c8683825444a66ea4f86e839f204cd6dec6d8f127c93f8fad41b49e814"
     },
     {
       "path": "test/reduced_wave0_accessibility_resilience_test.dart",

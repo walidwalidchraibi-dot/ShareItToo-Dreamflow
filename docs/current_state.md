@@ -2,7 +2,7 @@
 
 Verified: 2026-08-25 on the Mac mini.
 
-## Current RW1 state
+## Current RW2 state
 
 - RW0 is closed at documentation commit
   `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`. Its exact synthetic, local-only
@@ -46,6 +46,23 @@ Verified: 2026-08-25 on the Mac mini.
   GitHub Regression `32795007748` and CodeQL `32795007746`, including the
   unchanged clean-checkout proof, with zero open code-scanning alerts. No retry
   or timing workaround was retained.
+- RW2 is implemented on top of RW1. It hardens local category reference data,
+  wishlist metadata, item-to-list assignments, saved-listing grouping and the
+  rental cart so
+  unavailable or corrupt user-owned state cannot appear as a truthful empty or
+  successful state. Only the application-owned category reference cache may
+  self-heal; malformed user state is preserved and fails closed.
+- Listing, search, Gemerkt, folder detail, Mietkorb and adjacent saved-item
+  controls now retain last-known-good state where available and expose compact,
+  semantic persistent retry UI when state is unknown. Verified writes and
+  synchronous in-flight guards prevent false success and duplicate routes.
+  The focused RW2 suite passes 13 tests, the adjacent lifecycle/source matrix
+  passes, changed-file analysis reports zero issues, and all active privacy,
+  retention, RW0, RW1 and RW2 source inventories validate. The complete local
+  technical regression passes, including the full Flutter suite, Web/Wasm,
+  loopback web smoke, Android debug assembly with 448 tasks and the repository
+  resource guard. Exact GitHub Regression and CodeQL verification remain
+  pending.
 
 ## Current 48H readiness state
 

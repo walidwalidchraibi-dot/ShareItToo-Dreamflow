@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "36213e163d06c124c3ecf921419be882bb0e376b74b85d87d6cb89c6a7681e37"
+      "sha256": "9ffe9e39302b0cc3f892c17889f2d5a97a192821e375cfc5c3830a8ddacc2d43"
     },
     {
       "path": "lib/services/backend_repository.dart",
@@ -732,11 +732,11 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "0cf2d3fc06cbfd57f195a1257752e37f2b4f49b8f87ef022e5fab1ca5a932bde"
+      "sha256": "54d89385a4f36ba400156e2175d6588a484de2cc065aaface64a84cff5e78ded"
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",
-      "sha256": "04063d4a2029f5da201a4fb431b3fa655c46aa7541808fbce3f3a461f2b9a183"
+      "sha256": "5fd689e72dc8bc59675901aeeb13c38ef9c65ce5f23ff5ff2f8b4e98ccd70fda"
     },
     {
       "path": "lib/config/private_pilot_config.dart",
@@ -864,7 +864,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "96f57d15e7c6a1665492e9faba2a07f43e8996200103a9f4712fc66dc0bfd1dd"
+      "sha256": "19208cb34c67e422a7a5cdd14c05f1103f7669649d1222ada42d1911ff48863f"
     },
     {
       "path": "lib/widgets/supply_enrichment_dialog.dart",

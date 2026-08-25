@@ -339,6 +339,11 @@ node --test \
   test/tool/rw1_reduced_wave0_accessibility_resilience_wiring.test.mjs \
   test/tool/validate_rw1_reduced_wave0_accessibility_resilience.test.mjs
 node tool/validate_rw1_reduced_wave0_accessibility_resilience.mjs
+node --check tool/validate_rw2_reduced_wave0_local_state_truth_recovery.mjs
+node --test \
+  test/tool/rw2_reduced_wave0_local_state_truth_recovery_wiring.test.mjs \
+  test/tool/validate_rw2_reduced_wave0_local_state_truth_recovery.test.mjs
+node tool/validate_rw2_reduced_wave0_local_state_truth_recovery.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -847,6 +852,11 @@ flutter test --reporter expanded \
   --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
   --dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=true \
   test/reduced_wave0_accessibility_resilience_test.dart
+
+# Retain RW2's profile-independent local-state corruption, verified-write,
+# retry, process-recreation and compact semantic error-state matrix explicitly.
+flutter test --reporter expanded \
+  test/reduced_wave0_local_state_truth_recovery_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

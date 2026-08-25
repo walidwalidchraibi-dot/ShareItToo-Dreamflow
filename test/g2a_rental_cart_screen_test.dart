@@ -108,7 +108,8 @@ void main() {
     expect(find.text('Technische Mehrfachanfrage'), findsNothing);
   });
 
-  testWidgets('torn legacy cart stays preserved behind a retryable load error',
+  testWidgets(
+      'torn legacy cart stays preserved behind a persistent retryable load error',
       (tester) async {
     const itemsRaw =
         '{"schemaVersion":1,"revision":4,"items":[],"reservationCreated":false}';
@@ -130,8 +131,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Mietkorb konnte nicht geladen werden'), findsOneWidget);
-    expect(find.text('Bitte versuche es erneut.'), findsOneWidget);
+    expect(
+      find.text('Gespeicherte Daten konnten nicht geladen werden'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Die lokale Kopie bleibt unverändert.'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(OutlinedButton, 'Erneut laden'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('rental_cart_v1'), itemsRaw);
     expect(prefs.getString('project_cart_v1'), projectsRaw);

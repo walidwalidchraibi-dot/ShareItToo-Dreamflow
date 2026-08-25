@@ -56,6 +56,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String? _currentUserName;
   String? _currentUserCity;
   Set<String> _savedIds = {};
+  bool _favoriteActionInFlight = false;
 
 // Extra curated cards for "Am meisten gebucht" to add two full rows (3 under 3)
   List<Item> _extraTopBooked = [];
@@ -431,29 +432,40 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _toggleFavorite(String id) async {
-    final current = await DataService.getWishlistForItem(id);
-    if (!mounted) return;
-    if (current == null) {
-      final sel = await WishlistSelectionSheet.showAdd(context);
-      if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(id, sel);
-      }
-    } else {
-      final choice = await WishlistSelectionSheet.showManageOptions(context);
+    if (_favoriteActionInFlight) return;
+    _favoriteActionInFlight = true;
+    try {
+      final current = await DataService.getWishlistForItem(id);
       if (!mounted) return;
-      if (choice == 'move') {
-        final sel = await WishlistSelectionSheet.showMove(context,
-            currentListId: current);
+      if (current == null) {
+        final sel = await WishlistSelectionSheet.showAdd(context);
         if (sel != null && sel.isNotEmpty) {
           await DataService.setItemWishlist(id, sel);
         }
-      } else if (choice == 'remove') {
-        await DataService.removeItemFromWishlist(id);
+      } else {
+        final choice = await WishlistSelectionSheet.showManageOptions(context);
+        if (!mounted) return;
+        if (choice == 'move') {
+          final sel = await WishlistSelectionSheet.showMove(context,
+              currentListId: current);
+          if (sel != null && sel.isNotEmpty) {
+            await DataService.setItemWishlist(id, sel);
+          }
+        } else if (choice == 'remove') {
+          await DataService.removeItemFromWishlist(id);
+        }
       }
+      final saved = await DataService.getSavedItemIds();
+      if (!mounted) return;
+      setState(() => _savedIds = saved);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _catalogError = 'Gemerkt-Status konnte nicht geladen werden.';
+      });
+    } finally {
+      _favoriteActionInFlight = false;
     }
-    final saved = await DataService.getSavedItemIds();
-    if (!mounted) return;
-    setState(() => _savedIds = saved);
   }
 
   bool _matches(Item it) {
@@ -627,6 +639,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           const SizedBox(height: 12),
                           FilledButton.icon(
                             onPressed: _loadData,
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                            ),
                             icon: const Icon(Icons.refresh),
                             label: const Text('Erneut versuchen'),
                           ),

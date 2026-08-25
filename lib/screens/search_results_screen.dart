@@ -6,6 +6,7 @@ import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/listing_display_truth.dart';
+import 'package:lendify/widgets/local_state_error_panel.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 
@@ -34,6 +35,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Map<String, dynamic>? _filters;
   Set<String> _savedIds = {};
   Map<String, String> _coarseByCatId = {};
+  bool _savedStateLoading = false;
+  bool _savedStateReady = false;
+  bool _favoriteActionInFlight = false;
+  String? _savedStateError;
 
   @override
   void initState() {
@@ -48,16 +53,30 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Future<void> _init() async {
-    final saved = await DataService.getSavedItemIds();
-    final cats = await DataService.getCategories();
-    final coarseMap = <String, String>{
-      for (final c in cats) c.id: DataService.coarseCategoryFor(c.name)
-    };
-    if (!mounted) return;
-    setState(() {
-      _savedIds = saved;
-      _coarseByCatId = coarseMap;
-    });
+    if (_savedStateLoading) return;
+    setState(() => _savedStateLoading = true);
+    try {
+      final saved = await DataService.getSavedItemIds();
+      final cats = await DataService.getCategories();
+      final coarseMap = <String, String>{
+        for (final c in cats) c.id: DataService.coarseCategoryFor(c.name)
+      };
+      if (!mounted) return;
+      setState(() {
+        _savedIds = saved;
+        _coarseByCatId = coarseMap;
+        _savedStateReady = true;
+        _savedStateError = null;
+        _savedStateLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _savedStateReady = false;
+        _savedStateError = 'Gemerkt-Status konnte nicht geladen werden';
+        _savedStateLoading = false;
+      });
+    }
   }
 
   Future<void> _showFilters() async {
@@ -66,30 +85,46 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Future<void> _toggleFavorite(String id) async {
-    // Manual wishlist selection flow
-    final current = await DataService.getWishlistForItem(id);
-    if (!mounted) return;
-    if (current == null) {
-      final sel = await WishlistSelectionSheet.showAdd(context);
-      if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(id, sel);
-      }
-    } else {
-      final choice = await WishlistSelectionSheet.showManageOptions(context);
+    if (!_savedStateReady || _savedStateLoading || _favoriteActionInFlight) {
+      return;
+    }
+    _favoriteActionInFlight = true;
+    try {
+      // Manual wishlist selection flow
+      final current = await DataService.getWishlistForItem(id);
       if (!mounted) return;
-      if (choice == 'move') {
-        final sel = await WishlistSelectionSheet.showMove(context,
-            currentListId: current);
+      if (current == null) {
+        final sel = await WishlistSelectionSheet.showAdd(context);
+        if (!mounted) return;
         if (sel != null && sel.isNotEmpty) {
           await DataService.setItemWishlist(id, sel);
         }
-      } else if (choice == 'remove') {
-        await DataService.removeItemFromWishlist(id);
+      } else {
+        final choice = await WishlistSelectionSheet.showManageOptions(context);
+        if (!mounted) return;
+        if (choice == 'move') {
+          final sel = await WishlistSelectionSheet.showMove(context,
+              currentListId: current);
+          if (!mounted) return;
+          if (sel != null && sel.isNotEmpty) {
+            await DataService.setItemWishlist(id, sel);
+          }
+        } else if (choice == 'remove') {
+          await DataService.removeItemFromWishlist(id);
+        }
       }
+      final saved = await DataService.getSavedItemIds();
+      if (!mounted) return;
+      setState(() => _savedIds = saved);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _savedStateReady = false;
+        _savedStateError = 'Gemerkt-Status konnte nicht geladen werden';
+      });
+    } finally {
+      _favoriteActionInFlight = false;
     }
-    final saved = await DataService.getSavedItemIds();
-    if (!mounted) return;
-    setState(() => _savedIds = saved);
   }
 
   bool _matches(Item it) {
@@ -228,6 +263,22 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                   onFilters: _showFilters,
                 ),
               ),
+              if (_savedStateError != null)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: LocalStateErrorPanel(
+                      title: _savedStateError!,
+                      message:
+                          'Der gespeicherte Zustand wird nicht als leer dargestellt. '
+                          'Es wurde nichts verändert.',
+                      semanticLabel:
+                          'Gemerkt-Status konnte nicht geladen werden. Es wurde nichts verändert. Erneut laden.',
+                      onRetry: _init,
+                      retrying: _savedStateLoading,
+                    ),
+                  ),
+                ),
               const SliverToBoxAdapter(child: SizedBox(height: 8)),
               if (items.isEmpty) ...[
                 SliverFillRemaining(
@@ -269,7 +320,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         return _SquareTitleOnlyCard(
                           item: item,
                           isFavorite: isFav,
-                          onFavoriteToggle: () => _toggleFavorite(item.id),
+                          onFavoriteToggle: _savedStateReady
+                              ? () => _toggleFavorite(item.id)
+                              : null,
                         );
                       },
                       childCount: items.length,

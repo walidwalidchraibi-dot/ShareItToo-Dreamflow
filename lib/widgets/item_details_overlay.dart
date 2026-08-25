@@ -127,6 +127,8 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   DateTimeRange? _selectedRange;
   bool _canReserve = false;
   String? _wishlistId;
+  bool _wishlistStateKnown = false;
+  bool _wishlistStateLoading = true;
 
   @override
   void initState() {
@@ -148,11 +150,26 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   }
 
   Future<void> _loadWishlist() async {
+    if (mounted) setState(() => _wishlistStateLoading = true);
     try {
       final id = await DataService.getWishlistForItem(widget.item.id);
-      if (mounted) setState(() => _wishlistId = id);
+      if (mounted) {
+        setState(() {
+          _wishlistId = id;
+          _wishlistStateKnown = true;
+          _wishlistStateLoading = false;
+        });
+      }
     } catch (e) {
-      f.debugPrint('[ItemDetailsSheet] load wishlist failed: $e');
+      f.debugPrint(
+        '[ItemDetailsSheet] load wishlist failed (${e.runtimeType})',
+      );
+      if (mounted) {
+        setState(() {
+          _wishlistStateKnown = false;
+          _wishlistStateLoading = false;
+        });
+      }
     }
   }
 
@@ -234,32 +251,57 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   }
 
   Future<void> _addToWishlist() async {
-    if (_wishlistId == null) {
-      final sel = await WishlistSelectionSheet.showAdd(context);
-      if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(widget.item.id, sel);
-        if (!mounted) return;
-        setState(() => _wishlistId = sel);
-        await AppPopup.toast(context,
-            icon: Icons.favorite, title: 'Unter Gemerkt gespeichert');
+    if (_wishlistStateLoading) return;
+    if (!_wishlistStateKnown) {
+      await _loadWishlist();
+      if (!_wishlistStateKnown && mounted) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: 'Gemerkt-Status konnte nicht geladen werden',
+          message: 'Es wurde nichts verändert.',
+        );
       }
       return;
     }
-    final choice = await WishlistSelectionSheet.showManageOptions(context);
-    if (!mounted) return;
-    if (choice == 'move') {
-      final sel = await WishlistSelectionSheet.showMove(context,
-          currentListId: _wishlistId!);
-      if (!mounted) return;
-      if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(widget.item.id, sel);
+    try {
+      if (_wishlistId == null) {
+        final sel = await WishlistSelectionSheet.showAdd(context);
         if (!mounted) return;
-        setState(() => _wishlistId = sel);
+        if (sel != null && sel.isNotEmpty) {
+          await DataService.setItemWishlist(widget.item.id, sel);
+          if (!mounted) return;
+          setState(() => _wishlistId = sel);
+          await AppPopup.toast(context,
+              icon: Icons.favorite, title: 'Unter Gemerkt gespeichert');
+        }
+        return;
       }
-    } else if (choice == 'remove') {
-      await DataService.removeItemFromWishlist(widget.item.id);
+      final choice = await WishlistSelectionSheet.showManageOptions(context);
       if (!mounted) return;
-      setState(() => _wishlistId = null);
+      if (choice == 'move') {
+        final sel = await WishlistSelectionSheet.showMove(context,
+            currentListId: _wishlistId!);
+        if (!mounted) return;
+        if (sel != null && sel.isNotEmpty) {
+          await DataService.setItemWishlist(widget.item.id, sel);
+          if (!mounted) return;
+          setState(() => _wishlistId = sel);
+        }
+      } else if (choice == 'remove') {
+        await DataService.removeItemFromWishlist(widget.item.id);
+        if (!mounted) return;
+        setState(() => _wishlistId = null);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _wishlistStateKnown = false);
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Gemerkt wurde nicht aktualisiert',
+        message: 'Es wurde nichts als gespeichert bestätigt.',
+      );
     }
   }
 
@@ -328,7 +370,9 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                                   context,
                                   images: item.photos,
                                   initialIndex: _page,
-                                  isWishlisted: () => _wishlistId != null,
+                                  isWishlisted: () =>
+                                      _wishlistStateKnown &&
+                                      _wishlistId != null,
                                   onWishlistPressed: _addToWishlist,
                                   onShare: _share,
                                 );
@@ -348,13 +392,17 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                                     color: Colors.white.withValues(alpha: 0.9),
                                     shape: BoxShape.circle),
                                 child: Icon(
-                                    _wishlistId == null
-                                        ? Icons.favorite_border
-                                        : Icons.favorite,
+                                    !_wishlistStateKnown
+                                        ? Icons.sync_problem_outlined
+                                        : (_wishlistId == null
+                                            ? Icons.favorite_border
+                                            : Icons.favorite),
                                     size: 18,
-                                    color: _wishlistId == null
-                                        ? Colors.black54
-                                        : Colors.pinkAccent),
+                                    color: !_wishlistStateKnown
+                                        ? Theme.of(context).colorScheme.error
+                                        : (_wishlistId == null
+                                            ? Colors.black54
+                                            : Colors.pinkAccent)),
                               ),
                             ),
                           ),
@@ -503,8 +551,12 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                           child: _ActionCard(
-                              title: l10n.t('Unter Gemerkt speichern'),
-                              icon: Icons.favorite_border,
+                              title: _wishlistStateKnown
+                                  ? l10n.t('Unter Gemerkt speichern')
+                                  : 'Gemerkt-Status laden',
+                              icon: _wishlistStateKnown
+                                  ? Icons.favorite_border
+                                  : Icons.sync_problem_outlined,
                               onTap: _addToWishlist)),
                     ]),
                     const SizedBox(height: 16),
@@ -608,24 +660,74 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   DateTimeRange? _selectedRange;
   bool _canReserve = false;
   String? _wishlistId;
+  bool _wishlistStateKnown = false;
+  bool _wishlistStateLoading = true;
 
   Future<void> _toggleWishlistFromMenu() async {
-    if (_wishlistId == null) {
-      final sel = await WishlistSelectionSheet.showAdd(context);
-      if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(widget.item.id, sel);
-        if (!mounted) return;
-        setState(() => _wishlistId = sel);
-        await AppPopup.toast(context,
-            icon: Icons.favorite, title: 'Unter Gemerkt gespeichert');
+    if (_wishlistStateLoading) return;
+    if (!_wishlistStateKnown) {
+      await _reloadWishlistState();
+      if (!_wishlistStateKnown && mounted) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: 'Gemerkt-Status konnte nicht geladen werden',
+          message: 'Es wurde nichts verändert.',
+        );
       }
       return;
     }
-    final sel = await WishlistSelectionSheet.showMove(context,
-        currentListId: _wishlistId!);
-    if (sel != null && sel.isNotEmpty) {
-      await DataService.setItemWishlist(widget.item.id, sel);
-      if (mounted) setState(() => _wishlistId = sel);
+    try {
+      if (_wishlistId == null) {
+        final sel = await WishlistSelectionSheet.showAdd(context);
+        if (!mounted) return;
+        if (sel != null && sel.isNotEmpty) {
+          await DataService.setItemWishlist(widget.item.id, sel);
+          if (!mounted) return;
+          setState(() => _wishlistId = sel);
+          await AppPopup.toast(context,
+              icon: Icons.favorite, title: 'Unter Gemerkt gespeichert');
+        }
+        return;
+      }
+      final sel = await WishlistSelectionSheet.showMove(context,
+          currentListId: _wishlistId!);
+      if (!mounted) return;
+      if (sel != null && sel.isNotEmpty) {
+        await DataService.setItemWishlist(widget.item.id, sel);
+        if (mounted) setState(() => _wishlistId = sel);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _wishlistStateKnown = false);
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Gemerkt wurde nicht aktualisiert',
+        message: 'Es wurde nichts als gespeichert bestätigt.',
+      );
+    }
+  }
+
+  Future<void> _reloadWishlistState() async {
+    if (mounted) setState(() => _wishlistStateLoading = true);
+    try {
+      final id = await DataService.getWishlistForItem(widget.item.id);
+      if (!mounted) return;
+      setState(() {
+        _wishlistId = id;
+        _wishlistStateKnown = true;
+        _wishlistStateLoading = false;
+      });
+    } catch (error) {
+      debugPrint(
+        '[ItemDetails] wishlist state unavailable (${error.runtimeType})',
+      );
+      if (!mounted) return;
+      setState(() {
+        _wishlistStateKnown = false;
+        _wishlistStateLoading = false;
+      });
     }
   }
 
@@ -670,15 +772,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
         // The scroll controller may not have clients during the first frame.
       }
     });
-    () async {
-      try {
-        final id = await DataService.getWishlistForItem(widget.item.id);
-        if (mounted) setState(() => _wishlistId = id);
-      } catch (_) {
-        debugPrint(
-            '[ItemDetails] Wishlist-Zuordnung konnte nicht geladen werden.');
-      }
-    }();
+    _reloadWishlistState();
     if (widget.fresh == true) {
       // Clear any previously saved selection so page opens as if brand new
       // Do not await; fire-and-forget to avoid delaying initial build
@@ -965,7 +1059,8 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                           context,
                           images: item.photos,
                           initialIndex: _page,
-                          isWishlisted: () => _wishlistId != null,
+                          isWishlisted: () =>
+                              _wishlistStateKnown && _wishlistId != null,
                           onWishlistPressed: _toggleWishlistFromMenu,
                           onShare: _share,
                         );
@@ -985,13 +1080,17 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                             color: Colors.white.withValues(alpha: 0.9),
                             shape: BoxShape.circle),
                         child: Icon(
-                            _wishlistId == null
-                                ? Icons.favorite_border
-                                : Icons.favorite,
+                            !_wishlistStateKnown
+                                ? Icons.sync_problem_outlined
+                                : (_wishlistId == null
+                                    ? Icons.favorite_border
+                                    : Icons.favorite),
                             size: 18,
-                            color: _wishlistId == null
-                                ? Colors.black54
-                                : Colors.pinkAccent),
+                            color: !_wishlistStateKnown
+                                ? Theme.of(context).colorScheme.error
+                                : (_wishlistId == null
+                                    ? Colors.black54
+                                    : Colors.pinkAccent)),
                       ),
                     ),
                   ),

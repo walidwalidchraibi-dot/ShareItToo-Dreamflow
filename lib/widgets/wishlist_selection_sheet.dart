@@ -385,9 +385,20 @@ class _CreateListCard extends StatelessWidget {
             body: _CreateListForm(controller: controller),
           );
           if (name != null && name.trim().isNotEmpty) {
-            final id = await DataService.addCustomWishlist(name.trim());
-            // Return the new id to the parent selector so it can immediately select it
-            onCreated(id);
+            try {
+              final id = await DataService.addCustomWishlist(name.trim());
+              if (!context.mounted) return;
+              // Return the new id only after persistence has been verified.
+              onCreated(id);
+            } catch (error) {
+              if (!context.mounted) return;
+              await AppPopup.toast(
+                context,
+                icon: Icons.error_outline,
+                title: 'Merkliste wurde nicht gespeichert',
+                message: 'Deine vorhandenen Daten bleiben unverändert.',
+              );
+            }
           }
         },
         borderRadius: BorderRadius.circular(14),

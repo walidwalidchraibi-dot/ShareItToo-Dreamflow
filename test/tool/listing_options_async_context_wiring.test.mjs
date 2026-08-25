@@ -24,7 +24,7 @@ test('removal cannot notify a disposed listing-options caller', () => {
 test('move rechecks lifecycle after lookup dialog and persistence', () => {
   assert.match(
     source,
-    /Future<void> moveToAnotherWishlist\(\) async \{[\s\S]*?getWishlistForItem\(item\.id\);\s+if \(!context\.mounted\) return;[\s\S]*?WishlistSelectionSheet\.showMove\(context, currentListId: current\);\s+if \(!context\.mounted\) return;[\s\S]*?setItemWishlist\(item\.id, selected\);\s+if \(!context\.mounted\) return;\s+onWishlistChanged\?\.call\(\);\s+await AppPopup\.toast\(context/u,
+    /Future<void> moveToAnotherWishlist\(\) async \{[\s\S]*?getWishlistForItem\(item\.id\);\s+if \(!context\.mounted\) return;[\s\S]*?WishlistSelectionSheet\.showMove\(\s*context,\s*currentListId:\s*current,?\s*\);\s+if \(!context\.mounted\) return;[\s\S]*?setItemWishlist\(item\.id, selected\);\s+if \(!context\.mounted\) return;\s+onWishlistChanged\?\.call\(\);\s+await AppPopup\.toast\(context/u,
   );
 });
 

@@ -4,7 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart'
-    show debugPrint, kDebugMode, listEquals, visibleForTesting;
+    show debugPrint, kDebugMode, listEquals, mapEquals, visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
@@ -85,6 +85,17 @@ class DataService {
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
+
+  static Future<void> _writePreferenceString(
+    SharedPreferences prefs,
+    String key,
+    String value,
+  ) async {
+    final accepted = await prefs.setString(key, value);
+    if (!accepted || prefs.getString(key) != value) {
+      throw StateError('Local persistence failed for $key.');
+    }
+  }
 
   /// Read-only backend refreshes update the local cache but must not announce
   /// another logical data change. Announcing those cache writes makes every
@@ -811,27 +822,41 @@ class DataService {
   static Future<List<Category>> getCategories() async {
     final prefs = await SharedPreferences.getInstance();
     final categoriesJson = prefs.getString(_categoriesKey);
-    if (categoriesJson == null) {
-      // Categories are application reference data. Recreate only that cache:
-      // the historical all-demo initializer also rewrote users, listings,
-      // reviews and currentUser, so a missing category key could destroy an
-      // otherwise intact migrated/local account state.
-      final categories = _buildDemoCategories();
-      await prefs.setString(
-        _categoriesKey,
-        jsonEncode(categories.map((category) => category.toJson()).toList()),
-      );
-      return getCategories();
+    final categories = <Category>[];
+    var mutated = categoriesJson == null;
+    if (categoriesJson != null) {
+      try {
+        final decoded = jsonDecode(categoriesJson);
+        if (decoded is! List) {
+          throw const FormatException('Invalid category reference document');
+        }
+        for (final entry in decoded) {
+          if (entry is! Map) {
+            throw const FormatException('Invalid category reference entry');
+          }
+          categories.add(Category.fromJson(Map<String, dynamic>.from(entry)));
+        }
+      } catch (error) {
+        // Categories are reconstructible application reference data. A corrupt
+        // cache may be replaced, but no user/account/listing store is touched.
+        debugPrint(
+          '[DataService] rebuilding invalid category cache '
+          '(${error.runtimeType})',
+        );
+        categories.clear();
+        mutated = true;
+      }
     }
-    final List<dynamic> categoriesList = jsonDecode(categoriesJson);
-    final List<Category> categories =
-        categoriesList.map((json) => Category.fromJson(json)).toList();
+
+    // Categories are application reference data. Recreate only that cache:
+    // the historical all-demo initializer also rewrote users, listings,
+    // reviews and currentUser, so a missing category key could destroy an
+    // otherwise intact migrated/local account state.
 
     // Ensure newly added demo categories are present for all users (no lazy backfill).
     final seeds = _buildDemoCategories();
     final orderById = {for (int i = 0; i < seeds.length; i++) seeds[i].id: i};
 
-    bool mutated = false;
     for (final seed in seeds) {
       final index = categories.indexWhere((category) => category.id == seed.id);
       if (index < 0) {
@@ -857,7 +882,8 @@ class DataService {
     });
 
     if (mutated) {
-      await prefs.setString(
+      await _writePreferenceString(
+        prefs,
         _categoriesKey,
         jsonEncode(categories.map((c) => c.toJson()).toList()),
       );
@@ -2812,7 +2838,8 @@ class DataService {
   static Future<void> _writeLocalRentalCart(RentalCart cart) async {
     final prefs = await SharedPreferences.getInstance();
     final revision = max(1, cart.revision);
-    await prefs.setString(
+    await _writePreferenceString(
+      prefs,
       _rentalCartKey,
       jsonEncode(<String, dynamic>{
         'schemaVersion': 1,
@@ -2825,7 +2852,8 @@ class DataService {
     if (cart.items.isEmpty && cart.projects.isEmpty) {
       await prefs.remove(_rentalCartSyncOwnerKey);
     }
-    await prefs.setString(
+    await _writePreferenceString(
+      prefs,
       _projectCartKey,
       jsonEncode(<String, dynamic>{
         'schemaVersion': 1,
@@ -3301,16 +3329,15 @@ class DataService {
   static Future<Set<String>> getSavedItemIds() async {
     final prefs = await SharedPreferences.getInstance();
     final legacy = prefs.getStringList(_savedItemsKey) ?? <String>[];
-    final assignRaw = prefs.getString(_wishlistAssignKey);
-    final wishlistIds = <String>{};
-    if (assignRaw != null && assignRaw.isNotEmpty) {
-      try {
-        final Map<String, dynamic> map = jsonDecode(assignRaw);
-        wishlistIds.addAll(map.keys.map((e) => e.toString()));
-      } catch (_) {
-        // ignore
-      }
+    final assignments = _decodeWishlistAssignments(
+      prefs.getString(_wishlistAssignKey),
+    );
+    if (assignments.isNotEmpty) {
+      await _ensureDefaultWishlists();
+      final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
+      _validateWishlistAssignmentTargets(assignments, lists);
     }
+    final wishlistIds = assignments.keys.toSet();
     final out = <String>{...legacy, ...wishlistIds};
     return out;
   }
@@ -3332,46 +3359,109 @@ class DataService {
   static const String wlLaterId = 'wl_later'; // Für später
   static const String wlAgainId = 'wl_again'; // Wieder mieten
 
+  static List<Map<String, dynamic>> _decodeWishlistMetadata(String? raw) {
+    if (raw == null) return <Map<String, dynamic>>[];
+    if (raw.isEmpty) {
+      throw const FormatException('Invalid saved-list metadata');
+    }
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      throw const FormatException('Invalid saved-list metadata');
+    }
+    if (decoded is! List) {
+      throw const FormatException('Invalid saved-list metadata');
+    }
+    final out = <Map<String, dynamic>>[];
+    final ids = <String>{};
+    for (final entry in decoded) {
+      if (entry is! Map) {
+        throw const FormatException('Invalid saved-list entry');
+      }
+      final map = Map<String, dynamic>.from(entry);
+      final id = map['id'];
+      final name = map['name'];
+      final system = map['system'];
+      if (id is! String ||
+          id.trim().isEmpty ||
+          name is! String ||
+          name.trim().isEmpty ||
+          system is! bool ||
+          !ids.add(id)) {
+        throw const FormatException('Invalid saved-list entry');
+      }
+      out.add(map);
+    }
+    return out;
+  }
+
+  static Map<String, String> _decodeWishlistAssignments(String? raw) {
+    if (raw == null) return <String, String>{};
+    if (raw.isEmpty) {
+      throw const FormatException('Invalid saved-item assignments');
+    }
+    final dynamic decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } catch (_) {
+      throw const FormatException('Invalid saved-item assignments');
+    }
+    if (decoded is! Map) {
+      throw const FormatException('Invalid saved-item assignments');
+    }
+    final out = <String, String>{};
+    for (final entry in decoded.entries) {
+      if (entry.key is! String ||
+          (entry.key as String).trim().isEmpty ||
+          entry.value is! String ||
+          (entry.value as String).trim().isEmpty) {
+        throw const FormatException('Invalid saved-item assignment');
+      }
+      out[entry.key as String] = entry.value as String;
+    }
+    return out;
+  }
+
+  static void _validateWishlistAssignmentTargets(
+    Map<String, String> assignments,
+    List<Map<String, dynamic>> lists,
+  ) {
+    final listIds = lists.map((entry) => entry['id'] as String).toSet();
+    if (assignments.values.any((listId) => !listIds.contains(listId))) {
+      throw const FormatException('Unknown saved-list assignment target');
+    }
+  }
+
   /// Ensure the three default wishlists exist. Non-destructive if already present.
   static Future<void> _ensureDefaultWishlists() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      String? raw = prefs.getString(_wishlistsMetaKey);
-      List<dynamic> list = [];
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          list = jsonDecode(raw);
-        } catch (_) {
-          list = [];
-        }
-      }
-      bool hasSoon = false, hasLater = false, hasAgain = false;
-      for (final e in list) {
-        try {
-          final m = Map<String, dynamic>.from(e as Map);
-          final id = (m['id'] ?? '').toString();
-          if (id == wlSoonId) hasSoon = true;
-          if (id == wlLaterId) hasLater = true;
-          if (id == wlAgainId) hasAgain = true;
-        } catch (_) {}
-      }
-      if (!hasSoon) {
-        list.add({
-          'id': wlSoonId,
-          'name': 'Demnächst benötigt',
-          'system': true,
-        });
-      }
-      if (!hasLater) {
-        list.add({'id': wlLaterId, 'name': 'Für später', 'system': true});
-      }
-      if (!hasAgain) {
-        list.add({'id': wlAgainId, 'name': 'Wieder mieten', 'system': true});
-      }
-      await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
-    } catch (e) {
-      debugPrint(
-        '[DataService] _ensureDefaultWishlists error: $e',
+    final prefs = await SharedPreferences.getInstance();
+    final list = _decodeWishlistMetadata(
+      prefs.getString(_wishlistsMetaKey),
+    );
+    final ids = list.map((entry) => entry['id'] as String).toSet();
+    var mutated = false;
+    if (!ids.contains(wlSoonId)) {
+      list.add({
+        'id': wlSoonId,
+        'name': 'Demnächst benötigt',
+        'system': true,
+      });
+      mutated = true;
+    }
+    if (!ids.contains(wlLaterId)) {
+      list.add({'id': wlLaterId, 'name': 'Für später', 'system': true});
+      mutated = true;
+    }
+    if (!ids.contains(wlAgainId)) {
+      list.add({'id': wlAgainId, 'name': 'Wieder mieten', 'system': true});
+      mutated = true;
+    }
+    if (mutated) {
+      await _writePreferenceString(
+        prefs,
+        _wishlistsMetaKey,
+        jsonEncode(list),
       );
     }
   }
@@ -3380,19 +3470,9 @@ class DataService {
   static Future<List<Map<String, dynamic>>> getWishlists() async {
     final prefs = await SharedPreferences.getInstance();
     await _ensureDefaultWishlists();
-    final raw = prefs.getString(_wishlistsMetaKey);
-    List<Map<String, dynamic>> out = [];
-    if (raw != null && raw.isNotEmpty) {
-      try {
-        final List list = jsonDecode(raw);
-        out = [
-          for (final e in list)
-            if (e is Map) Map<String, dynamic>.from(e),
-        ];
-      } catch (e) {
-        debugPrint('[DataService] getWishlists decode failed: $e');
-      }
-    }
+    final out = _decodeWishlistMetadata(
+      prefs.getString(_wishlistsMetaKey),
+    );
     // Sort: system first in order soon, later, again; then custom by name
     out.sort((a, b) {
       final as = a['system'] == true;
@@ -3418,15 +3498,18 @@ class DataService {
   static Future<String> addCustomWishlist(String name) async {
     final prefs = await SharedPreferences.getInstance();
     await _ensureDefaultWishlists();
-    String id = 'wl_${DateTime.now().microsecondsSinceEpoch}';
-    try {
-      final raw = prefs.getString(_wishlistsMetaKey);
-      List<dynamic> list = raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
-      list.add({'id': id, 'name': name.trim(), 'system': false});
-      await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
-    } catch (e) {
-      debugPrint('[DataService] addCustomWishlist failed: $e');
+    final normalized = name.trim();
+    if (normalized.isEmpty || normalized.length > 120) {
+      throw ArgumentError.value(name, 'name', 'Ungültiger Merklistenname');
     }
+    final id = 'wl_${DateTime.now().microsecondsSinceEpoch}';
+    final list = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
+    list.add({'id': id, 'name': normalized, 'system': false});
+    await _writePreferenceString(
+      prefs,
+      _wishlistsMetaKey,
+      jsonEncode(list),
+    );
     return id;
   }
 
@@ -3435,26 +3518,52 @@ class DataService {
     if (id == wlSoonId || id == wlLaterId || id == wlAgainId) {
       return; // cannot delete system
     }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_wishlistsMetaKey);
-      List<dynamic> list = raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
-      list.removeWhere((e) => (e is Map) && ((e['id'] ?? '').toString() == id));
-      await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
-      // Clear assignments pointing to this list
-      final aRaw = prefs.getString(_wishlistAssignKey);
-      if (aRaw != null && aRaw.isNotEmpty) {
-        try {
-          final Map<String, dynamic> map = jsonDecode(aRaw);
-          final keys = List<String>.from(map.keys);
-          for (final k in keys) {
-            if ((map[k] ?? '').toString() == id) map.remove(k);
-          }
-          await prefs.setString(_wishlistAssignKey, jsonEncode(map));
-        } catch (_) {}
-      }
-    } catch (e) {
-      debugPrint('[DataService] deleteCustomWishlist failed: $e');
+    final prefs = await SharedPreferences.getInstance();
+    final list = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
+    final originalLength = list.length;
+    list.removeWhere((entry) => entry['id'] == id);
+    if (list.length == originalLength) return;
+    final assignments = _decodeWishlistAssignments(
+      prefs.getString(_wishlistAssignKey),
+    );
+    assignments.removeWhere((_, listId) => listId == id);
+    await _writePreferenceString(
+      prefs,
+      _wishlistAssignKey,
+      jsonEncode(assignments),
+    );
+    await _writePreferenceString(
+      prefs,
+      _wishlistsMetaKey,
+      jsonEncode(list),
+    );
+  }
+
+  static Future<void> _writeWishlistMetadata(
+    SharedPreferences prefs,
+    List<Map<String, dynamic>> list,
+  ) async {
+    await _writePreferenceString(
+      prefs,
+      _wishlistsMetaKey,
+      jsonEncode(list),
+    );
+  }
+
+  static Future<void> _writeWishlistAssignments(
+    SharedPreferences prefs,
+    Map<String, String> assignments,
+  ) async {
+    await _writePreferenceString(
+      prefs,
+      _wishlistAssignKey,
+      jsonEncode(assignments),
+    );
+    final persisted = _decodeWishlistAssignments(
+      prefs.getString(_wishlistAssignKey),
+    );
+    if (!mapEquals(persisted, assignments)) {
+      throw StateError('Local saved-item assignment verification failed.');
     }
   }
 
@@ -3466,112 +3575,87 @@ class DataService {
     if (id == wlSoonId || id == wlLaterId || id == wlAgainId) {
       return; // cannot rename system
     }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_wishlistsMetaKey);
-      if (raw == null || raw.isEmpty) return;
-      final List list = jsonDecode(raw);
-      bool mutated = false;
-      for (int i = 0; i < list.length; i++) {
-        try {
-          final m = Map<String, dynamic>.from(list[i] as Map);
-          if ((m['id'] ?? '').toString() == id) {
-            // Only allow rename when not a system list
-            final isSystem = m['system'] == true;
-            if (!isSystem) {
-              m['name'] = newName.trim();
-              list[i] = m;
-              mutated = true;
-            }
-            break;
-          }
-        } catch (_) {
-          /* ignore malformed entry */
-        }
-      }
-      if (mutated) {
-        await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
-      }
-    } catch (e) {
-      debugPrint('[DataService] renameCustomWishlist failed: $e');
+    final normalized = newName.trim();
+    if (normalized.isEmpty || normalized.length > 120) {
+      throw ArgumentError.value(
+        newName,
+        'newName',
+        'Ungültiger Merklistenname',
+      );
     }
+    final prefs = await SharedPreferences.getInstance();
+    final list = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
+    var mutated = false;
+    for (final entry in list) {
+      if (entry['id'] == id) {
+        if (entry['system'] != true) {
+          entry['name'] = normalized;
+          mutated = true;
+        }
+        break;
+      }
+    }
+    if (mutated) await _writeWishlistMetadata(prefs, list);
   }
 
   /// Returns the wishlist id the item currently belongs to, or null.
   static Future<String?> getWishlistForItem(String itemId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_wishlistAssignKey);
-      if (raw == null || raw.isEmpty) return null;
-      final Map<String, dynamic> map = jsonDecode(raw);
-      final v = map[itemId];
-      return v?.toString();
-    } catch (e) {
-      debugPrint('[DataService] getWishlistForItem failed: $e');
-      return null;
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final map = _decodeWishlistAssignments(
+      prefs.getString(_wishlistAssignKey),
+    );
+    final listId = map[itemId];
+    if (listId == null) return null;
+    await _ensureDefaultWishlists();
+    final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
+    _validateWishlistAssignmentTargets(map, lists);
+    return listId;
   }
 
   /// Assigns an item to a wishlist (one list at a time).
   static Future<void> setItemWishlist(String itemId, String listId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_wishlistAssignKey);
-      Map<String, dynamic> map = {};
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          map = jsonDecode(raw) as Map<String, dynamic>;
-        } catch (_) {
-          map = {};
-        }
-      }
-      map[itemId] = listId;
-      await prefs.setString(_wishlistAssignKey, jsonEncode(map));
-    } catch (e) {
-      debugPrint('[DataService] setItemWishlist failed: $e');
+    if (itemId.trim().isEmpty || listId.trim().isEmpty) {
+      throw ArgumentError('Item and saved-list IDs must not be empty.');
     }
+    final prefs = await SharedPreferences.getInstance();
+    await _ensureDefaultWishlists();
+    final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
+    if (!lists.any((entry) => entry['id'] == listId)) {
+      throw StateError('Saved-list target does not exist.');
+    }
+    final map = _decodeWishlistAssignments(
+      prefs.getString(_wishlistAssignKey),
+    );
+    map[itemId] = listId;
+    await _writeWishlistAssignments(prefs, map);
   }
 
   /// Removes an item from any wishlist.
   static Future<void> removeItemFromWishlist(String itemId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_wishlistAssignKey);
-      if (raw == null || raw.isEmpty) return;
-      final Map<String, dynamic> map = jsonDecode(raw);
-      if (map.containsKey(itemId)) {
-        map.remove(itemId);
-        await prefs.setString(_wishlistAssignKey, jsonEncode(map));
-      }
-    } catch (e) {
-      debugPrint(
-        '[DataService] removeItemFromWishlist failed: $e',
-      );
+    final prefs = await SharedPreferences.getInstance();
+    final map = _decodeWishlistAssignments(
+      prefs.getString(_wishlistAssignKey),
+    );
+    if (map.remove(itemId) != null) {
+      await _writeWishlistAssignments(prefs, map);
     }
   }
 
   /// Returns items grouped by wishlist id.
   static Future<Map<String, List<Item>>> getItemsByWishlist() async {
     final Map<String, List<Item>> out = {};
-    try {
-      final items = await getItems();
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_wishlistAssignKey);
-      Map<String, dynamic> map = {};
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          map = jsonDecode(raw) as Map<String, dynamic>;
-        } catch (_) {
-          map = {};
-        }
-      }
-      for (final it in items) {
-        final id = (map[it.id]?.toString() ?? '');
-        if (id.isEmpty) continue;
-        out.putIfAbsent(id, () => []).add(it);
-      }
-    } catch (e) {
-      debugPrint('[DataService] getItemsByWishlist failed: $e');
+    final items = await getItems();
+    final prefs = await SharedPreferences.getInstance();
+    final map = _decodeWishlistAssignments(
+      prefs.getString(_wishlistAssignKey),
+    );
+    await _ensureDefaultWishlists();
+    final lists = _decodeWishlistMetadata(prefs.getString(_wishlistsMetaKey));
+    _validateWishlistAssignmentTargets(map, lists);
+    for (final it in items) {
+      final id = map[it.id] ?? '';
+      if (id.isEmpty) continue;
+      out.putIfAbsent(id, () => []).add(it);
     }
     return out;
   }

@@ -21,11 +21,23 @@ Future<void> showListingOptionsDialog(
   VoidCallback? onWishlistChanged,
   VoidCallback? onVisibilityChanged,
 }) async {
-  final options = await _buildOptions(context,
-      item: item,
-      contextType: contextType,
-      onWishlistChanged: onWishlistChanged,
-      onVisibilityChanged: onVisibilityChanged);
+  final List<_ListingOption> options;
+  try {
+    options = await _buildOptions(context,
+        item: item,
+        contextType: contextType,
+        onWishlistChanged: onWishlistChanged,
+        onVisibilityChanged: onVisibilityChanged);
+  } catch (error) {
+    if (!context.mounted) return;
+    await AppPopup.toast(
+      context,
+      icon: Icons.error_outline,
+      title: 'Gemerkt-Status konnte nicht geladen werden',
+      message: 'Es wurde nichts verändert.',
+    );
+    return;
+  }
   if (!context.mounted) return;
 
   await showGeneralDialog<void>(
@@ -168,54 +180,84 @@ Future<List<_ListingOption>> _buildOptions(
   }
 
   Future<void> addToWishlist() async {
-    String? selected;
-    if (currentWishlistId == null) {
+    try {
+      String? selected;
+      if (currentWishlistId == null) {
+        if (!context.mounted) return;
+        selected = await WishlistSelectionSheet.showAdd(context);
+      } else {
+        if (!context.mounted) return;
+        selected = await WishlistSelectionSheet.showMove(context,
+            currentListId: currentWishlistId);
+      }
       if (!context.mounted) return;
-      selected = await WishlistSelectionSheet.showAdd(context);
-    } else {
+      if (selected != null && selected.isNotEmpty) {
+        await DataService.setItemWishlist(item.id, selected);
+        if (!context.mounted) return;
+        onWishlistChanged?.call();
+        await AppPopup.toast(context,
+            icon: Icons.favorite,
+            title: currentWishlistId == null
+                ? 'Unter Gemerkt gespeichert'
+                : 'In Merkliste verschoben');
+      }
+    } catch (error) {
       if (!context.mounted) return;
-      selected = await WishlistSelectionSheet.showMove(context,
-          currentListId: currentWishlistId);
-    }
-    if (!context.mounted) return;
-    if (selected != null && selected.isNotEmpty) {
-      await DataService.setItemWishlist(item.id, selected);
-      if (!context.mounted) return;
-      onWishlistChanged?.call();
-      await AppPopup.toast(context,
-          icon: Icons.favorite,
-          title: currentWishlistId == null
-              ? 'Unter Gemerkt gespeichert'
-              : 'In Merkliste verschoben');
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Gemerkt wurde nicht aktualisiert',
+        message: 'Es wurde nichts als gespeichert bestätigt.',
+      );
     }
   }
 
   Future<void> removeFromWishlist() async {
-    await DataService.removeItemFromWishlist(item.id);
-    if (!context.mounted) return;
-    onWishlistChanged?.call();
-    await AppPopup.toast(context,
-        icon: Icons.delete_outline, title: 'Aus Gemerkt entfernt');
-  }
-
-  Future<void> moveToAnotherWishlist() async {
-    final current =
-        currentWishlistId ?? await DataService.getWishlistForItem(item.id);
-    if (!context.mounted) return;
-    if (current == null || current.isEmpty) {
-      await addToWishlist();
-      return;
-    }
-    final selected =
-        await WishlistSelectionSheet.showMove(context, currentListId: current);
-    if (!context.mounted) return;
-    if (selected != null && selected.isNotEmpty) {
-      await DataService.setItemWishlist(item.id, selected);
+    try {
+      await DataService.removeItemFromWishlist(item.id);
       if (!context.mounted) return;
       onWishlistChanged?.call();
       await AppPopup.toast(context,
-          icon: Icons.drive_file_move_outline,
-          title: 'In Merkliste verschoben');
+          icon: Icons.delete_outline, title: 'Aus Gemerkt entfernt');
+    } catch (error) {
+      if (!context.mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Artikel wurde nicht entfernt',
+        message: 'Der bestätigte Stand bleibt erhalten.',
+      );
+    }
+  }
+
+  Future<void> moveToAnotherWishlist() async {
+    try {
+      final current =
+          currentWishlistId ?? await DataService.getWishlistForItem(item.id);
+      if (!context.mounted) return;
+      if (current == null || current.isEmpty) {
+        await addToWishlist();
+        return;
+      }
+      final selected = await WishlistSelectionSheet.showMove(context,
+          currentListId: current);
+      if (!context.mounted) return;
+      if (selected != null && selected.isNotEmpty) {
+        await DataService.setItemWishlist(item.id, selected);
+        if (!context.mounted) return;
+        onWishlistChanged?.call();
+        await AppPopup.toast(context,
+            icon: Icons.drive_file_move_outline,
+            title: 'In Merkliste verschoben');
+      }
+    } catch (error) {
+      if (!context.mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Merkliste wurde nicht geändert',
+        message: 'Der bestätigte Stand bleibt erhalten.',
+      );
     }
   }
 

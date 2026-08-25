@@ -657,7 +657,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "36213e163d06c124c3ecf921419be882bb0e376b74b85d87d6cb89c6a7681e37"
+      "sha256": "9ffe9e39302b0cc3f892c17889f2d5a97a192821e375cfc5c3830a8ddacc2d43"
     },
     {
       "path": "lib/services/maps_service.dart",
@@ -701,7 +701,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "96f57d15e7c6a1665492e9faba2a07f43e8996200103a9f4712fc66dc0bfd1dd"
+      "sha256": "19208cb34c67e422a7a5cdd14c05f1103f7669649d1222ada42d1911ff48863f"
     },
     {
       "path": "lib/widgets/supply_enrichment_dialog.dart",

@@ -245,6 +245,7 @@ class _WishlistHeartButton extends StatefulWidget {
 class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   String? listId; // null means not in any list
   bool _loading = true;
+  bool _stateKnown = false;
 
   @override
   void initState() {
@@ -253,14 +254,19 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
     try {
       final id = await DataService.getWishlistForItem(widget.itemId);
       if (!mounted) return;
       setState(() {
         listId = id;
+        _stateKnown = true;
       });
     } catch (e) {
-      debugPrint('[ItemCard] load wishlist state failed: $e');
+      debugPrint(
+        '[ItemCard] load wishlist state failed (${e.runtimeType})',
+      );
+      if (mounted) setState(() => _stateKnown = false);
     } finally {
       if (mounted) {
         setState(() {
@@ -272,59 +278,94 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
 
   Future<void> _onTap() async {
     if (_loading) return;
-    if (listId == null) {
-      // First time: ask which wishlist
-      final sel = await WishlistSelectionSheet.showAdd(context);
-      if (!mounted) return;
-      if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(widget.itemId, sel);
-        if (!mounted) return;
-        setState(() {
-          listId = sel;
-        });
-        final l10n = context.read<LocalizationController>();
-        AppPopup.toast(context,
-            icon: Icons.favorite, title: l10n.t('Unter Gemerkt gespeichert'));
-      }
+    if (!_stateKnown) {
+      await _load();
       return;
     }
-    // Already in a wishlist: show centered popup with the same design as
-    // the wishlist selection (blurred background, glass card)
-    final choice = await WishlistSelectionSheet.showManageOptions(context);
-    if (!mounted) return;
-    if (choice == 'move') {
-      final currentListId = listId;
-      if (currentListId == null) return;
-      final sel = await WishlistSelectionSheet.showMove(context,
-          currentListId: currentListId);
+    try {
+      if (listId == null) {
+        // First time: ask which wishlist
+        final sel = await WishlistSelectionSheet.showAdd(context);
+        if (!mounted) return;
+        if (sel != null && sel.isNotEmpty) {
+          await DataService.setItemWishlist(widget.itemId, sel);
+          if (!mounted) return;
+          setState(() {
+            listId = sel;
+          });
+          final l10n = context.read<LocalizationController>();
+          AppPopup.toast(context,
+              icon: Icons.favorite, title: l10n.t('Unter Gemerkt gespeichert'));
+        }
+        return;
+      }
+      // Already in a wishlist: show centered popup with the same design as
+      // the wishlist selection (blurred background, glass card)
+      final choice = await WishlistSelectionSheet.showManageOptions(context);
       if (!mounted) return;
-      if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(widget.itemId, sel);
+      if (choice == 'move') {
+        final currentListId = listId;
+        if (currentListId == null) return;
+        final sel = await WishlistSelectionSheet.showMove(context,
+            currentListId: currentListId);
+        if (!mounted) return;
+        if (sel != null && sel.isNotEmpty) {
+          await DataService.setItemWishlist(widget.itemId, sel);
+          if (!mounted) return;
+          setState(() {
+            listId = sel;
+          });
+        }
+      } else if (choice == 'remove') {
+        await DataService.removeItemFromWishlist(widget.itemId);
         if (!mounted) return;
         setState(() {
-          listId = sel;
+          listId = null;
         });
       }
-    } else if (choice == 'remove') {
-      await DataService.removeItemFromWishlist(widget.itemId);
+    } catch (error) {
       if (!mounted) return;
-      setState(() {
-        listId = null;
-      });
+      setState(() => _stateKnown = false);
+      await AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: 'Gemerkt konnte nicht aktualisiert werden',
+        message: 'Es wurde nichts als gespeichert bestätigt.',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bg = Colors.white.withValues(alpha: 0.92);
-    final icon = listId == null ? Icons.favorite_border : Icons.favorite;
-    final color = listId == null ? Colors.black54 : Colors.pinkAccent;
-    return GestureDetector(
-      onTap: _onTap,
-      child: Container(
-        padding: EdgeInsets.all(widget.size * 0.30),
-        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-        child: Icon(icon, size: widget.size * 0.90, color: color),
+    final unavailable = !_loading && !_stateKnown;
+    final icon = unavailable
+        ? Icons.sync_problem_outlined
+        : (listId == null ? Icons.favorite_border : Icons.favorite);
+    final color = unavailable
+        ? Theme.of(context).colorScheme.error
+        : (listId == null ? Colors.black54 : Colors.pinkAccent);
+    final label = unavailable
+        ? 'Gemerkt-Status nicht verfügbar. Erneut laden.'
+        : (listId == null ? 'Unter Gemerkt speichern' : 'Gemerkt verwalten');
+    return Semantics(
+      button: true,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: GestureDetector(
+          onTap: _onTap,
+          child: Container(
+            padding: EdgeInsets.all(widget.size * 0.30),
+            decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+            child: _loading
+                ? SizedBox.square(
+                    dimension: widget.size * 0.72,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(icon, size: widget.size * 0.90, color: color),
+          ),
+        ),
       ),
     );
   }
