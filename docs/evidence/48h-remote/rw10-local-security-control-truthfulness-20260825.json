@@ -193,7 +193,7 @@
     {"path": "lib/services/backend_repository.dart", "sha256": "f818303d43404c16ef821927890a30619bbeffb88744b420c28d1e1d2af37672"},
     {"path": "lib/services/data_service.dart", "sha256": "11bad619a4bf652e91c50fc493b892632407e9d0858c596267181431bb2bb5f5"},
     {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
-    {"path": "backend/ops/secret_scan_history_baseline.json", "sha256": "9d2194c2865d05e12910d2f0c6fd31ea9b345377ae4a130b4cfbd3b711bc5446"},
+    {"path": "backend/ops/secret_scan_history_baseline.json", "sha256": "e015616ef0985ab265c5e6a65207d527bf08948ed61e676a71bb1b6b9d298361"},
     {"path": "store/privacy-disclosures.json", "sha256": "87e276a0526c7ff4aa33096b3f0d59478ebec6cd6ff8d4cd08d7273f5963c05c"},
     {"path": "store/retention-deletion-readiness.json", "sha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38"},
     {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "0cac48ceff4552b1a0c89faba9f484b24261be02f0f1c9dd1fd9471ef6aa99ca"},

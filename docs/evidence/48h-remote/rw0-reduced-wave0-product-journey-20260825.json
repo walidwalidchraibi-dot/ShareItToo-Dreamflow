@@ -86,7 +86,7 @@
   "sourceInventory": [
     {
       "path": "backend/ops/secret_scan_history_baseline.json",
-      "sha256": "9d2194c2865d05e12910d2f0c6fd31ea9b345377ae4a130b4cfbd3b711bc5446"
+      "sha256": "e015616ef0985ab265c5e6a65207d527bf08948ed61e676a71bb1b6b9d298361"
     },
     {
       "path": "lib/services/data_service.dart",
