@@ -170,6 +170,7 @@ const sourcePaths = [
   'lib/services/account_deletion_service.dart',
   'lib/services/blue_ocean_draft_recovery_service.dart',
   'lib/services/data_service.dart',
+  'lib/services/local_safety_privacy_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
   'lib/screens/help_center_screen.dart',
@@ -489,6 +490,23 @@ function assertSourceContracts(root, sourceTexts) {
   ]) {
     if (!localDraftRecovery.includes(marker)) {
       fail(`Local Blue-Ocean draft recovery is missing the retention control: ${marker}.`);
+    }
+  }
+  const localSafetyPrivacy = text(
+    root,
+    sourceTexts,
+    'lib/services/local_safety_privacy_service.dart',
+  );
+  for (const marker of [
+    "storageKey = 'local_safety_privacy_state_v1'",
+    'LocalPrincipalScope.maxRetainedPrincipals',
+    'legacyGuestQuarantined',
+    'quarantinedPrincipals',
+    "'scope': 'local-principal'",
+    'clearCurrentPrincipal()',
+  ]) {
+    if (!localSafetyPrivacy.includes(marker)) {
+      fail(`Local safety/privacy state is missing the retention control: ${marker}.`);
     }
   }
   const rentalCartRetention = text(root, sourceTexts, 'backend/src/retention_inventory.js');
@@ -1775,6 +1793,20 @@ export function validateRetentionDeletionReadiness({
       || controls.localBlueOceanDraftRecovery?.clearedOnPublication !== true
       || controls.localBlueOceanDraftRecovery?.rawImageBytesStored !== false
       || controls.localBlueOceanDraftRecovery?.credentialsStored !== false
+      || controls.localSafetyPrivacyPrincipalState?.status
+        !== 'implemented-principal-scoped-bounded-user-controlled'
+      || controls.localSafetyPrivacyPrincipalState?.maximumRetainedPrincipals
+        !== 12
+      || controls.localSafetyPrivacyPrincipalState?.legacyUnattributedData
+        !== 'guest-only-or-quarantine'
+      || controls.localSafetyPrivacyPrincipalState?.corruptPrincipalData
+        !== 'quarantine-preserve-and-fail-closed'
+      || controls.localSafetyPrivacyPrincipalState?.privacyExport
+        !== 'current-principal-only'
+      || controls.localSafetyPrivacyPrincipalState?.confirmedAccountDeletion
+        !== 'current-principal-purged'
+      || controls.localSafetyPrivacyPrincipalState?.retentionPeriodInvented
+        !== false
       || controls.retentionExecutionPreflight?.status
         !== 'implemented-fail-closed-policy-and-staging-gates-open'
       || controls.retentionExecutionPreflight?.executionAllowed !== false

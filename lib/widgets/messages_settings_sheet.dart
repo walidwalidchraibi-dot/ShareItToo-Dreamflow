@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:lendify/screens/blocked_users_screen.dart';
 import 'package:lendify/screens/report_user_screen.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/widgets/translation_language_dialog.dart';
 import 'package:lendify/widgets/app_popup.dart';
 
@@ -32,15 +34,38 @@ class MessagesSettingsView extends StatefulWidget {
 class _MessagesSettingsViewState extends State<MessagesSettingsView> {
   MessagesSettings? _settings;
   bool _loading = true;
+  bool _loadFailed = false;
   bool _saving = false;
+  StreamSubscription<String>? _persistenceSubscription;
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
 
   @override
   void initState() {
     super.initState();
     _load();
+    _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || key != SharedPersistenceSync.localSafetyPrivacyStateKey) return;
+      unawaited(_refreshCoordinator.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        if (mounted) await _load();
+      }));
+    });
+  }
+
+  @override
+  void dispose() {
+    _persistenceSubscription?.cancel();
+    _refreshCoordinator.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+      _settings = null;
+    });
     try {
       final value = await MessagesSettingsService.get();
       final normalized = _normalizeTranslationDefaults(value).normalizedForCurrentProductRules();
@@ -52,6 +77,7 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
       setState(() => _settings = normalized);
     } catch (e) {
       debugPrint('MessagesSettingsView._load failed: $e');
+      if (mounted) setState(() => _loadFailed = true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -154,7 +180,33 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
       Expanded(
         child: _loading
             ? const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
-            : Stack(
+            : _loadFailed
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.gpp_maybe_outlined, size: 42),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Nachrichten-Einstellungen konnten nicht sicher geladen werden.',
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            height: 48,
+                            child: FilledButton.icon(
+                              onPressed: _load,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Erneut versuchen'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Stack(
                 children: [
                   SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(14, 8, 14, 156),

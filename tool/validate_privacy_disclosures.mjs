@@ -176,6 +176,12 @@ const sourcePaths = [
   'lib/widgets/app_image.dart',
   'lib/services/address_privacy.dart',
   'lib/services/data_service.dart',
+  'lib/services/local_safety_privacy_service.dart',
+  'lib/services/blocked_users_service.dart',
+  'lib/services/listing_feedback_service.dart',
+  'lib/services/user_reports_service.dart',
+  'lib/services/messages_settings_service.dart',
+  'lib/services/notification_preferences_service.dart',
   'lib/services/backend_repository.dart',
   'lib/screens/help_center_screen.dart',
   'lib/screens/moderation_admin_screen.dart',
@@ -1532,6 +1538,54 @@ export function validatePrivacyDisclosures({
   for (const path of sourcePaths) {
     const actual = sha256(sourceText(root, sourceTexts, path));
     if (actual !== sourceMap.get(path)) fail(`sourceInventory hash is stale: ${path}.`);
+  }
+  const localPrincipalState = object(
+    privacy.localDevicePrincipalState,
+    'localDevicePrincipalState',
+  );
+  assertExactKeys(localPrincipalState, [
+    'status',
+    'canonicalKey',
+    'principalBinding',
+    'maximumRetainedPrincipals',
+    'legacyMigration',
+    'corruptionPolicy',
+    'privacyExport',
+    'confirmedAccountDeletion',
+    'containsCredentials',
+    'externalTransferAdded',
+  ], 'localDevicePrincipalState');
+  if (localPrincipalState.status !== 'implemented-local-only-principal-scoped'
+      || localPrincipalState.canonicalKey !== 'local_safety_privacy_state_v1'
+      || localPrincipalState.principalBinding !== 'opaque-token-or-guest'
+      || localPrincipalState.maximumRetainedPrincipals !== 12
+      || localPrincipalState.legacyMigration
+        !== 'unattributed-guest-only-attributed-exact-owner-or-quarantine'
+      || localPrincipalState.corruptionPolicy
+        !== 'preserve-quarantine-fail-closed'
+      || localPrincipalState.privacyExport !== 'current-principal-only'
+      || localPrincipalState.confirmedAccountDeletion
+        !== 'current-principal-purged'
+      || localPrincipalState.containsCredentials !== false
+      || localPrincipalState.externalTransferAdded !== false) {
+    fail('Local principal privacy disclosure is incomplete or overstated.');
+  }
+  const localSafetyPrivacy = sourceText(
+    root,
+    sourceTexts,
+    'lib/services/local_safety_privacy_service.dart',
+  );
+  for (const marker of [
+    "storageKey = 'local_safety_privacy_state_v1'",
+    'LocalPrincipalScope.maxRetainedPrincipals',
+    'legacyGuestQuarantined',
+    'quarantinedPrincipals',
+    "'scope': 'local-principal'",
+    'clearCurrentPrincipal()',
+  ]) {
+    if (!localSafetyPrivacy.includes(marker)) {
+      fail(`Local principal privacy coverage is missing ${marker}.`);
+    }
   }
   assertSourceContracts({ root, sourceTexts });
 

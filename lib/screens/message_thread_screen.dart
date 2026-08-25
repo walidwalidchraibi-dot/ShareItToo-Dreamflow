@@ -11,7 +11,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
@@ -35,12 +34,11 @@ import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/blocked_users_service.dart';
+import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/utils/booking_flow_policy.dart';
 
 const String _translationDemoThreadId = 'demo_translation_thread';
-const String _mutedThreadsKey = 'muted_message_threads_v1';
-
 bool didConfirmReturnHandover(ReturnHandoverStepResult? result) =>
     result?.confirmed == true;
 
@@ -147,7 +145,7 @@ bool shouldReloadMessageThreadForPersistenceChange({
   required String key,
   required bool loadInProgress,
 }) =>
-    !loadInProgress && SharedPersistenceSync.affectsBookingSync(key);
+    !loadInProgress && SharedPersistenceSync.affectsCommunicationSync(key);
 
 enum _ChatState {
   requestOpen,
@@ -488,48 +486,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return value;
   }
 
-  static Future<List<String>> _getMutedThreadKeys() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_mutedThreadsKey);
-      if (raw == null || raw.isEmpty) return const [];
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return const [];
-      return decoded
-          .map((e) => e.toString())
-          .where((e) => e.trim().isNotEmpty)
-          .toList(growable: false);
-    } catch (e) {
-      debugPrint('[MessageThreadScreen] _getMutedThreadKeys failed: $e');
-      return const [];
-    }
-  }
-
-  static Future<void> _setMutedThreadKeys(List<String> keys) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final cleaned = keys
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
-      await prefs.setString(_mutedThreadsKey, jsonEncode(cleaned));
-    } catch (e) {
-      debugPrint('[MessageThreadScreen] _setMutedThreadKeys failed: $e');
-    }
-  }
-
-  static String _muteKey({required String threadId, required String userId}) =>
-      '$userId::$threadId';
-
   static Future<bool> _isThreadMutedForUser({
     required String threadId,
     required String userId,
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return false;
-    final keys = await _getMutedThreadKeys();
-    return keys.contains(_muteKey(threadId: threadId, userId: userId));
+    final threadIds = await LocalSafetyPrivacyService.getMutedThreadIds(
+      legacyUserId: userId,
+    );
+    return threadIds.contains(threadId);
   }
 
   static Future<void> _setThreadMutedForUser({
@@ -538,11 +503,11 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     required bool muted,
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
-    final key = _muteKey(threadId: threadId, userId: userId);
-    final keys = await _getMutedThreadKeys();
-    final next = [...keys.where((e) => e != key)];
-    if (muted) next.add(key);
-    await _setMutedThreadKeys(next);
+    await LocalSafetyPrivacyService.setThreadMuted(
+      threadId: threadId,
+      muted: muted,
+      legacyUserId: userId,
+    );
   }
 
   String _appLanguageCode() {

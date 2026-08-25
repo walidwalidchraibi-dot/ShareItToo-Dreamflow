@@ -40,7 +40,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "2775949ee47077ccd2f7f240ae4f739cf535908f858addaa0fe8a4a66998f2be"
+      "sha256": "6841e378953554ed2a4fae1b29ec5572473f8d08d77f5005013070a9b74d533b"
     },
     {
       "path": "backend/src/account_actions.js",
@@ -688,7 +688,31 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "56106afcfc2dbdee6b1384f428070487174dbe4712ec1e382b1802486205be7d"
+      "sha256": "6f9a62bb570bf5495f36db9aa0a0f5f7d93d0787581a119950921f074595fd09"
+    },
+    {
+      "path": "lib/services/local_safety_privacy_service.dart",
+      "sha256": "562c0926c5e558ba643784d60fc4b66cfa0d17c6b2644cfb20b854700bcb4436"
+    },
+    {
+      "path": "lib/services/blocked_users_service.dart",
+      "sha256": "2e971f3680a8a773287e4b793ecb399a7bb51c752207b7c57ad59bd7ee2b69b2"
+    },
+    {
+      "path": "lib/services/listing_feedback_service.dart",
+      "sha256": "d81154226c90146a4e808681e1a683a3d8700c515b43a07e66c64059e5c1ecc9"
+    },
+    {
+      "path": "lib/services/user_reports_service.dart",
+      "sha256": "94399bb6798ee4132f0b2ba15f1c3dbf2f755729029410b6d91057e5409f107c"
+    },
+    {
+      "path": "lib/services/messages_settings_service.dart",
+      "sha256": "5a396a6ded2d49d414f8b9d3ca4fab6ab161485f77998c438ce58d0bf118894c"
+    },
+    {
+      "path": "lib/services/notification_preferences_service.dart",
+      "sha256": "cb94554e9c938b9f2a63463f767bf0d18a7f84739b337937e3b6a38059e25154"
     },
     {
       "path": "lib/services/backend_repository.dart",
@@ -820,7 +844,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "375eeec6dd03484c349129c39e86c95914bb431046977ecae0da99e0d4a59531"
+      "sha256": "3134bffa903eb915958ca9d4f19d9e88771616f34308fc537532f2445e379a93"
     },
     {
       "path": "lib/services/blue_ocean_draft_recovery_service.dart",
@@ -828,11 +852,11 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "7db196ba222b1bfb7150404c322703d2c4fbbcf0e6d75425c9a313fe2fe4f511"
+      "sha256": "91644869c499124180ca5a0caad96ab4e9e4b7f87ffc416f223d8b1b4f19c477"
     },
     {
       "path": "lib/screens/notification_settings_screen.dart",
-      "sha256": "d8f2baaf72da1b79db724142b959c098fdcc3d12e00fceb9ec24e619b6083597"
+      "sha256": "27a145dde96c8766cf07ccc2b3d0807cc35d969ef8adcd3bb67271e467051261"
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
@@ -864,7 +888,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "921ae3dfcad372d334f8a21c8263ebb75a1e68024c3cf3a4cc4e56cf399b8e22"
+      "sha256": "da435bdb0cdd32c640c96c361f39f66722ea44a40aed7dde79cee5ee1688bbd9"
     },
     {
       "path": "lib/widgets/supply_enrichment_dialog.dart",
@@ -872,7 +896,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "ae57cf4e67977e67638e7adb60eff5842dbd76b722b6bd2617bd878a6e488c2d"
+      "sha256": "7257ec41ebcdb527eb368e47b1b708b56b88de2e02bfaf05fab048eefb7a56f8"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",
@@ -892,9 +916,21 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "e65d3bd2a564b5a8e3776c7cb93da9b6cbc7966b4633fa1b35543db7d308f12a"
+      "sha256": "8bcb33e4e2117186c6181fbb5533953149228c62ca7617c0ce34a432ceede643"
     }
   ],
+  "localDevicePrincipalState": {
+    "status": "implemented-local-only-principal-scoped",
+    "canonicalKey": "local_safety_privacy_state_v1",
+    "principalBinding": "opaque-token-or-guest",
+    "maximumRetainedPrincipals": 12,
+    "legacyMigration": "unattributed-guest-only-attributed-exact-owner-or-quarantine",
+    "corruptionPolicy": "preserve-quarantine-fail-closed",
+    "privacyExport": "current-principal-only",
+    "confirmedAccountDeletion": "current-principal-purged",
+    "containsCredentials": false,
+    "externalTransferAdded": false
+  },
   "binaryEvidence": {
     "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081509.json",
     "binaryScan": "passed",

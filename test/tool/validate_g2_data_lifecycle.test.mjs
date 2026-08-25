@@ -20,10 +20,27 @@ test('accepts active local and account-bound persistent G2B data', () => {
   assert.deepEqual(validate(), {
     state: 'g2b-persistent-cart-active',
     currentSavedItemKeyCount: 5,
+    localSafetyPrivacyKeyCount: 9,
     persistentCartEnabled: true,
     projectCartEnabled: true,
     reservationCreatedByCart: false,
   });
+});
+
+test('rejects cross-principal or unbounded local safety/privacy state', () => {
+  const unscoped = clone(baseLifecycle);
+  unscoped.localSafetyPrivacy.principalBinding = 'device-global';
+  assert.throws(
+    () => validate({ lifecycleManifest: unscoped }),
+    /Local safety\/privacy lifecycle is incomplete/u,
+  );
+
+  const unbounded = clone(baseLifecycle);
+  unbounded.localSafetyPrivacy.maximumRetainedPrincipals = null;
+  assert.throws(
+    () => validate({ lifecycleManifest: unbounded }),
+    /Local safety\/privacy lifecycle is incomplete/u,
+  );
 });
 
 test('rejects a cart reservation or hold claim', () => {

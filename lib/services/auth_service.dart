@@ -51,6 +51,9 @@ class AuthService {
     SharedPersistenceSync.notify(SharedPersistenceSync.wishlistStateKey);
     SharedPersistenceSync.notify(SharedPersistenceSync.savedItemsKey);
     SharedPersistenceSync.notify(SharedPersistenceSync.rentalCartKey);
+    SharedPersistenceSync.notify(
+      SharedPersistenceSync.localSafetyPrivacyStateKey,
+    );
   }
 
   @visibleForTesting

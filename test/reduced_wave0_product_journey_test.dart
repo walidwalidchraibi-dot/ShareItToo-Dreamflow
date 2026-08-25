@@ -13,6 +13,7 @@ import 'package:lendify/services/background_theme_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -251,11 +252,11 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(seconds: 2));
 
-        final prefs = await SharedPreferences.getInstance();
-        final feedback =
-            (prefs.getStringList('listing_feedback_log_v1') ?? const <String>[])
-                .map((entry) => jsonDecode(entry) as Map<String, dynamic>)
-                .toList(growable: false);
+        final safetyPrivacy =
+            await LocalSafetyPrivacyService.exportCurrentPrincipal();
+        final feedback = (safetyPrivacy['feedbackLog'] as List<dynamic>)
+            .map((entry) => Map<String, dynamic>.from(entry as Map))
+            .toList(growable: false);
         expect(feedback, hasLength(1));
         expect(feedback.single['itemId'], searchItem.id);
         expect(feedback.single['reason'], 'too_expensive');
@@ -287,6 +288,7 @@ void main() {
           findsOneWidget,
         );
 
+        final prefs = await SharedPreferences.getInstance();
         final requests =
             jsonDecode(prefs.getString('rental_requests')!) as List;
         expect(requests, isEmpty);

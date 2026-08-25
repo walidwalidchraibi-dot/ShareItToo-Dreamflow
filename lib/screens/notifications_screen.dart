@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/notification_cta_resolver.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/identity_verification_unavailable.dart';
@@ -130,14 +132,20 @@ String _deriveSitCategory(Map<String, dynamic> notification) {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   _NotifFilter _filter = _NotifFilter.all;
   bool _loading = true;
+  bool _loadFailed = false;
   String? _currentUserId;
   List<Map<String, dynamic>> _feed = [];
   NotificationPreferences _prefs = NotificationPreferences.defaults();
   bool _showUnreadOnly = false;
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription<String>? _persistenceSubscription;
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
 
   @override
   void dispose() {
+    _persistenceSubscription?.cancel();
+    _refreshCoordinator.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -150,10 +158,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _filter = _filterForCategory(initial);
     }
     Future.microtask(_load);
+    _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || key != SharedPersistenceSync.localSafetyPrivacyStateKey) {
+        return;
+      }
+      unawaited(_refreshCoordinator.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        if (mounted) await _load();
+      }));
+    });
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+      _currentUserId = null;
+      _feed = [];
+      _prefs = NotificationPreferences.defaults();
+    });
     try {
       final prefs = await NotificationPreferencesService.get();
       final user = await DataService.getCurrentUser();
@@ -175,6 +198,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
     } catch (e) {
       debugPrint('[NotificationsScreen] load failed: $e');
+      if (mounted) setState(() => _loadFailed = true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -637,6 +661,37 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     Widget body;
     if (_loading) {
       body = const Center(child: CircularProgressIndicator());
+    } else if (_loadFailed) {
+      body = Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.gpp_maybe_outlined, size: 42),
+              const SizedBox(height: 12),
+              const Text(
+                'Benachrichtigungen konnten nicht sicher geladen werden.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Es werden keine Daten eines vorherigen Kontos angezeigt.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Erneut versuchen'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     } else if (_currentUserId == null) {
       body = _EmptyState(
         icon: Icons.notifications_off,

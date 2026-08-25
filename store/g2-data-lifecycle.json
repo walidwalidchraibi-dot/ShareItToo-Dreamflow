@@ -23,6 +23,37 @@
     "accountDeletionStatus": "implemented-current-principal-local-purge",
     "retentionRule": "user-controlled-until-removal-account-deletion-or-app-data-clear"
   },
+  "localSafetyPrivacy": {
+    "runtimeStatus": "active-local-device-principal-scoped",
+    "storageScope": "local-device-opaque-principal-shared-preferences",
+    "canonicalKey": "local_safety_privacy_state_v1",
+    "legacyKeys": [
+      "blocked_user_ids_v1",
+      "user_reports_v1",
+      "hidden_listing_ids_v1",
+      "listing_feedback_log_v1",
+      "listing_feedback_reason_profile_v1",
+      "muted_message_threads_v1",
+      "messages_settings_v1",
+      "notification_preferences_v2"
+    ],
+    "dataClasses": [
+      "blocked-users",
+      "local-user-reports",
+      "hidden-listings-and-feedback-profile",
+      "muted-message-threads",
+      "message-settings",
+      "notification-preferences"
+    ],
+    "principalBinding": "opaque-stable-token-or-guest",
+    "legacyMigrationRule": "unattributed-guest-only-attributed-exact-owner-or-quarantine",
+    "corruptionPolicy": "principal-bucket-quarantine-fail-closed-preserve-raw",
+    "maximumRetainedPrincipals": 12,
+    "exportStatus": "implemented-current-principal-local-section",
+    "accountDeletionStatus": "implemented-current-principal-local-purge",
+    "retentionRule": "user-controlled-until-removal-confirmed-account-deletion-or-app-data-clear",
+    "backendAuthority": "remote-authoritative-when-enabled-local-qa-fallback-otherwise"
+  },
   "persistentData": {
     "rentalCart": {
       "runtimeStatus": "active-guest-local-principal-account-server",
@@ -71,6 +102,7 @@
     "retentionPeriodInvented": false,
     "legalApprovalChanged": false,
     "historicalSnapshotsChanged": false,
+    "safetyBackendAuthorityChanged": false,
     "productionChanged": false
   }
 }

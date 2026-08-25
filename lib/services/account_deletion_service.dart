@@ -5,6 +5,7 @@ import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/firebase_runtime.dart';
+import 'package:lendify/services/local_safety_privacy_service.dart';
 
 class AccountDeletionBlocker {
   final String id;
@@ -193,6 +194,7 @@ class AccountDeletionService {
       if (BackendConfig.enabled) {
         await BackendRepository.deleteAccount(currentPassword: currentPassword);
         await DataService.clearSavedItemsForAccountDeletion();
+        await LocalSafetyPrivacyService.clearCurrentPrincipal();
         await FirebaseRuntime.deleteInstallationForAccountDeletion();
         await AuthService.clearSession();
         await DataService.clearCurrentUserAndMarkDeleted();
@@ -202,6 +204,7 @@ class AccountDeletionService {
       await DataService.deactivateAllListingsForUser(user.id);
       await DataService.archiveAllMessageThreadsForUser(user.id);
       await DataService.clearSavedItemsForAccountDeletion();
+      await LocalSafetyPrivacyService.clearCurrentPrincipal();
       await FirebaseRuntime.deleteInstallationForAccountDeletion();
       await DataService.clearCurrentUserAndMarkDeleted();
     } catch (e) {

@@ -92,11 +92,11 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "56106afcfc2dbdee6b1384f428070487174dbe4712ec1e382b1802486205be7d"
+      "sha256": "6f9a62bb570bf5495f36db9aa0a0f5f7d93d0787581a119950921f074595fd09"
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "921ae3dfcad372d334f8a21c8263ebb75a1e68024c3cf3a4cc4e56cf399b8e22"
+      "sha256": "da435bdb0cdd32c640c96c361f39f66722ea44a40aed7dde79cee5ee1688bbd9"
     },
     {
       "path": "lib/screens/search_results_screen.dart",
@@ -128,7 +128,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "f027dbd915f58d2823d4a22e5554f088f37a8f8113bd6a1a1616cfff395dd36d"
+      "sha256": "79e5c4b8559c20470bdced8037f1abd6a8995315979d0fe0f7d780c4a83f8d19"
     },
     {
       "path": "test/g2a_rental_cart_screen_test.dart",

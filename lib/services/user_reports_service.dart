@@ -1,16 +1,10 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
-import 'package:lendify/services/blocked_users_service.dart';
+import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Server-authoritative reporting with an explicit local QA fallback.
 class UserReportsService {
-  static const _key = 'user_reports_v1';
-
   static Future<void> addReport({
     required String reporterUserId,
     required String reportedUserId,
@@ -31,35 +25,18 @@ class UserReportsService {
       );
       return;
     }
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
-      List<dynamic> list = [];
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          final decoded = jsonDecode(raw);
-          if (decoded is List) list = decoded;
-        } catch (_) {
-          list = [];
-        }
-      }
-      final now = DateTime.now();
-      list.add({
-        'id': 'rep_${now.microsecondsSinceEpoch}',
-        'reporterUserId': reporterUserId,
-        'reportedUserId': reportedUserId,
-        'reasonCode': reasonCode,
-        'details': details,
-        'evidenceNames': evidenceNames,
-        'reference': reference,
-        'createdAt': now.toIso8601String(),
-      });
-      await prefs.setString(_key, jsonEncode(list));
-    } catch (e) {
-      debugPrint('[UserReportsService] addReport failed: $e');
-      rethrow;
-    }
+    await LocalSafetyPrivacyService.addReport(
+      reporterUserId: reporterUserId,
+      reportedUserId: reportedUserId,
+      reasonCode: reasonCode,
+      details: details,
+      evidenceNames: evidenceNames,
+      reference: reference,
+    );
   }
+
+  static Future<List<Map<String, dynamic>>> getLocalReports() =>
+      LocalSafetyPrivacyService.getReports();
 
   static Future<bool> addHarassmentBlockReport({
     required String reporterUserId,
@@ -90,16 +67,13 @@ class UserReportsService {
       final protection = result['protection'];
       return protection is Map && protection['directContactBlocked'] == true;
     }
-    await addReport(
+    await LocalSafetyPrivacyService.addHarassmentReportAndBlock(
       reporterUserId: reporterUserId,
       reportedUserId: reportedUserId,
-      reasonCode: 'harassment',
       details: details,
       evidenceNames: evidenceNames,
-      evidenceUploadIds: evidenceUploadIds,
       reference: reference,
     );
-    await BlockedUsersService.blockUser(reportedUserId);
     return true;
   }
 }

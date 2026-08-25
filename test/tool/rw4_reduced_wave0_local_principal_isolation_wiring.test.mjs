@@ -16,26 +16,30 @@ test('RW4 is permanently invoked by the supported regression', () => {
 
 test('principal registries use opaque bounded identifiers', () => {
   const service = read('lib/services/data_service.dart');
+  const principal = read('lib/services/local_principal_scope.dart');
   for (const marker of [
     "_wishlistPrincipalStateKey = 'wishlist_state_v3'",
     "_rentalCartPrincipalStateKey = 'rental_cart_v2'",
     '_maxLocalStageAPrincipals = 12',
-    "utf8.encode('sit-local-stage-a-v1|$kind|$identity')",
+  ]) assert.match(service, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
+  for (const marker of [
+    "_derivationDomain = 'sit-local-stage-a-v1'",
+    "utf8.encode('$_derivationDomain|$kind|$identity')",
     "return 'p_$digest'",
     "token: 'guest'",
-  ]) assert.match(service, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
-  assert.match(service, /sha256\s*\.convert/u);
+  ]) assert.match(principal, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
+  assert.match(principal, /sha256\s*\.convert/u);
 });
 
 test('legacy input belongs only to guest and account writes stay scoped', () => {
   const service = read('lib/services/data_service.dart');
   assert.match(
     service,
-    /_LocalPrincipal\.guest\.token:\s*_LocalWishlistState/u,
+    /LocalPrincipalIdentity\.guest\.token:\s*_LocalWishlistState/u,
   );
   assert.match(
     service,
-    /_LocalPrincipal\.guest\.token:\s*_LocalRentalCartBucket/u,
+    /LocalPrincipalIdentity\.guest\.token:\s*_LocalRentalCartBucket/u,
   );
   assert.match(
     service,
@@ -51,6 +55,7 @@ test('session transitions refresh all scoped surfaces', () => {
     'SharedPersistenceSync.wishlistStateKey',
     'SharedPersistenceSync.savedItemsKey',
     'SharedPersistenceSync.rentalCartKey',
+    'SharedPersistenceSync.localSafetyPrivacyStateKey',
   ]) assert.match(auth, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
   assert.match(auth, /prefs\.remove\(_sessionKey\);\s*_notifyLocalPrincipalChanged\(\)/u);
 });

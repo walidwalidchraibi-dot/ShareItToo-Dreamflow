@@ -112,6 +112,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       if (key == SharedPersistenceSync.wishlistStateKey ||
           key == SharedPersistenceSync.savedItemsKey) {
         unawaited(_savedRefreshCoordinator.schedule(_reloadSavedState));
+      } else if (key == SharedPersistenceSync.localSafetyPrivacyStateKey) {
+        unawaited(_savedRefreshCoordinator.schedule(_loadData));
       }
     });
     _loadData();

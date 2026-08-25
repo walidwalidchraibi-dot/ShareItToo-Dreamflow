@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:lendify/theme.dart';
 import 'package:lendify/services/firebase_runtime.dart';
 import 'package:lendify/services/firebase_service_preferences.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/widgets/app_popup.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
@@ -18,19 +20,43 @@ class NotificationSettingsScreen extends StatefulWidget {
 class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
   bool _loading = true;
+  bool _loadFailed = false;
   bool _serviceBusy = false;
   NotificationPreferences _prefs = NotificationPreferences.defaults();
   FirebaseServicePreferences _servicePrefs =
       FirebaseServicePreferences.defaults;
+  StreamSubscription<String>? _persistenceSubscription;
+  final SharedPersistenceRefreshCoordinator _refreshCoordinator =
+      SharedPersistenceRefreshCoordinator();
 
   @override
   void initState() {
     super.initState();
     Future.microtask(_load);
+    _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || key != SharedPersistenceSync.localSafetyPrivacyStateKey) {
+        return;
+      }
+      unawaited(_refreshCoordinator.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        if (mounted) await _load();
+      }));
+    });
+  }
+
+  @override
+  void dispose() {
+    _persistenceSubscription?.cancel();
+    _refreshCoordinator.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadFailed = false;
+      _prefs = NotificationPreferences.defaults();
+    });
     try {
       final prefs = await NotificationPreferencesService.get();
       final servicePrefs = await FirebaseServicePreferencesStore.read();
@@ -41,6 +67,7 @@ class _NotificationSettingsScreenState
       });
     } catch (e) {
       debugPrint('[NotificationSettingsScreen] load failed: $e');
+      if (mounted) setState(() => _loadFailed = true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -180,221 +207,249 @@ class _NotificationSettingsScreenState
           ),
           body: _loading
               ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: EdgeInsets.fromLTRB(
-                      16, topInset + kToolbarHeight - 2, 16, 20),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 2, 4, 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Benachrichtigungseinstellungen',
-                              style: theme.textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 6),
-                          Text(
-                              'Bestimme, welche Ereignisse in deinem Benachrichtigungs‑Feed angezeigt werden.',
-                              style: bodyStyle),
-                          const SizedBox(height: 8),
-                          Text(
-                              'Wichtig/Sicherheit bleiben immer sichtbar. Buchungen filtern Anfragen, Annahmen sowie Übergabe- und Rückgabe-Updates. Nachrichten filtern normale Chats, Support-Fälle nur Support-Updates, Zahlungen Zahlungs-/Erstattungsinfos, Bewertungen Review-Updates und System Produkt-/Wartungshinweise.',
-                              style: captionStyle),
-                        ],
+              : _loadFailed
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.gpp_maybe_outlined, size: 42),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Benachrichtigungseinstellungen konnten nicht sicher geladen werden.',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 48,
+                              child: FilledButton.icon(
+                                onPressed: _load,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Erneut versuchen'),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    _Section(
-                      title: 'Feed steuern',
-                      description:
-                          'Wähle, welche Kategorien im Benachrichtigungsfeed angezeigt werden.',
-                      child: Column(
-                        children: [
-                          _SettingToggleTile(
-                            icon: Icons.error_outline,
-                            title: 'Wichtig',
-                            description:
-                                'Zeigt dringende Hinweise und wichtige Ereignisse.',
-                            value: true,
-                            enabled: false,
-                            onChanged: null,
-                            accent: accent,
+                    )
+                  : ListView(
+                      padding: EdgeInsets.fromLTRB(
+                          16, topInset + kToolbarHeight - 2, 16, 20),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 2, 4, 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Benachrichtigungseinstellungen',
+                                  style: theme.textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w900)),
+                              const SizedBox(height: 6),
+                              Text(
+                                  'Bestimme, welche Ereignisse in deinem Benachrichtigungs‑Feed angezeigt werden.',
+                                  style: bodyStyle),
+                              const SizedBox(height: 8),
+                              Text(
+                                  'Wichtig/Sicherheit bleiben immer sichtbar. Buchungen filtern Anfragen, Annahmen sowie Übergabe- und Rückgabe-Updates. Nachrichten filtern normale Chats, Support-Fälle nur Support-Updates, Zahlungen Zahlungs-/Erstattungsinfos, Bewertungen Review-Updates und System Produkt-/Wartungshinweise.',
+                                  style: captionStyle),
+                            ],
                           ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'Buchungen',
-                            description:
-                                'Anfragen, Annahmen, Stornierungen und Statusänderungen.',
-                            value: _prefs.showBookings,
-                            enabled: true,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(showBookings: v)),
-                            accent: accent,
+                        ),
+                        _Section(
+                          title: 'Feed steuern',
+                          description:
+                              'Wähle, welche Kategorien im Benachrichtigungsfeed angezeigt werden.',
+                          child: Column(
+                            children: [
+                              _SettingToggleTile(
+                                icon: Icons.error_outline,
+                                title: 'Wichtig',
+                                description:
+                                    'Zeigt dringende Hinweise und wichtige Ereignisse.',
+                                value: true,
+                                enabled: false,
+                                onChanged: null,
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.calendar_month_outlined,
+                                title: 'Buchungen',
+                                description:
+                                    'Anfragen, Annahmen, Stornierungen und Statusänderungen.',
+                                value: _prefs.showBookings,
+                                enabled: true,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(showBookings: v)),
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.swap_horiz_rounded,
+                                title: 'Übergabe & Rückgabe',
+                                description:
+                                    'Erinnerungen, Zeitbestätigungen, QR-Code und Rückgabehinweise.',
+                                value: _prefs.showBookings,
+                                enabled: true,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(showBookings: v)),
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.chat_bubble_outline,
+                                title: 'Nachrichten',
+                                description:
+                                    'Neue Chat-Nachrichten und Antworten.',
+                                value: _prefs.showMessages,
+                                enabled: true,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(showMessages: v)),
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.support_agent_outlined,
+                                title: 'Support-Fälle',
+                                description:
+                                    'Updates zu gemeldeten Problemen und Support-Anfragen.',
+                                value: _prefs.showSupport,
+                                enabled: true,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(showSupport: v)),
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.payments_outlined,
+                                title: 'Zahlungen',
+                                description:
+                                    'Zahlungen, Rückerstattungen, Auszahlungen und Gebühren.',
+                                value: _prefs.showPayments,
+                                enabled: true,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(showPayments: v)),
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.star_outline,
+                                title: 'Bewertungen',
+                                description:
+                                    'Neue Bewertungen und Erinnerungen zur Bewertung.',
+                                value: _prefs.showReviews,
+                                enabled: true,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(showReviews: v)),
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.verified_user_outlined,
+                                title: 'Sicherheit & Verifizierung',
+                                description:
+                                    'Verifizierung, Sicherheitschecks und wichtige Schutz-Hinweise.',
+                                value: true,
+                                enabled: false,
+                                onChanged: null,
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.info_outline,
+                                title: 'System',
+                                description:
+                                    'Plattform-Updates und Wartungshinweise.',
+                                value: _prefs.showSystem,
+                                enabled: true,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(showSystem: v)),
+                                accent: accent,
+                              ),
+                            ],
                           ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.swap_horiz_rounded,
-                            title: 'Übergabe & Rückgabe',
-                            description:
-                                'Erinnerungen, Zeitbestätigungen, QR-Code und Rückgabehinweise.',
-                            value: _prefs.showBookings,
-                            enabled: true,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(showBookings: v)),
-                            accent: accent,
+                        ),
+                        const SizedBox(height: 12),
+                        _Section(
+                          title: 'Darstellung',
+                          child: Column(
+                            children: [
+                              _SimpleToggleRow(
+                                icon: Icons.view_agenda_outlined,
+                                title: 'Nach Kategorien gruppieren',
+                                subtitle:
+                                    'Sortiert Benachrichtigungen nach Themen.',
+                                value: _prefs.groupByCategory,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(groupByCategory: v)),
+                                accent: accent,
+                              ),
+                            ],
                           ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.chat_bubble_outline,
-                            title: 'Nachrichten',
-                            description: 'Neue Chat-Nachrichten und Antworten.',
-                            value: _prefs.showMessages,
-                            enabled: true,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(showMessages: v)),
-                            accent: accent,
+                        ),
+                        const SizedBox(height: 12),
+                        _Section(
+                          title: 'Sortierung',
+                          child: Column(
+                            children: [
+                              _SimpleToggleRow(
+                                icon: Icons.low_priority,
+                                title: 'Ungelesene zuerst anzeigen',
+                                subtitle:
+                                    'Zeigt neue Benachrichtigungen zuerst.',
+                                value: _prefs.unreadFirst,
+                                onChanged: (v) =>
+                                    _save(_prefs.copyWith(unreadFirst: v)),
+                                accent: accent,
+                              ),
+                            ],
                           ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.support_agent_outlined,
-                            title: 'Support-Fälle',
-                            description:
-                                'Updates zu gemeldeten Problemen und Support-Anfragen.',
-                            value: _prefs.showSupport,
-                            enabled: true,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(showSupport: v)),
-                            accent: accent,
+                        ),
+                        const SizedBox(height: 12),
+                        _Section(
+                          title: 'Gerätedienste',
+                          description:
+                              'Diese freiwilligen Einstellungen steuern echte externe Gerätedienste und sind von den Filtern im In-App-Feed getrennt.',
+                          child: Column(
+                            children: [
+                              _SettingToggleTile(
+                                icon: Icons.notifications_active_outlined,
+                                title: 'Push-Mitteilungen auf diesem Gerät',
+                                description:
+                                    'Wichtige Buchungs-, Nachrichten- und Sicherheitsupdates über Firebase Cloud Messaging.',
+                                value: _servicePrefs.pushEnabled,
+                                enabled: !_serviceBusy,
+                                onChanged: _setPushEnabled,
+                                accent: accent,
+                              ),
+                              const _Divider(),
+                              _SettingToggleTile(
+                                icon: Icons.bug_report_outlined,
+                                title: 'Freiwillige Crashdiagnose',
+                                description:
+                                    'Hilft SIT, Abstürze technisch zu erkennen und zu beheben. Keine Werbung und kein Marketing-Tracking.',
+                                value: _servicePrefs.crashDiagnosticsEnabled,
+                                enabled: !_serviceBusy,
+                                onChanged: _setCrashDiagnosticsEnabled,
+                                accent: accent,
+                              ),
+                            ],
                           ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.payments_outlined,
-                            title: 'Zahlungen',
-                            description:
-                                'Zahlungen, Rückerstattungen, Auszahlungen und Gebühren.',
-                            value: _prefs.showPayments,
-                            enabled: true,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(showPayments: v)),
-                            accent: accent,
-                          ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.star_outline,
-                            title: 'Bewertungen',
-                            description:
-                                'Neue Bewertungen und Erinnerungen zur Bewertung.',
-                            value: _prefs.showReviews,
-                            enabled: true,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(showReviews: v)),
-                            accent: accent,
-                          ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.verified_user_outlined,
-                            title: 'Sicherheit & Verifizierung',
-                            description:
-                                'Verifizierung, Sicherheitschecks und wichtige Schutz-Hinweise.',
-                            value: true,
-                            enabled: false,
-                            onChanged: null,
-                            accent: accent,
-                          ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.info_outline,
-                            title: 'System',
-                            description:
-                                'Plattform-Updates und Wartungshinweise.',
-                            value: _prefs.showSystem,
-                            enabled: true,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(showSystem: v)),
-                            accent: accent,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _Section(
-                      title: 'Darstellung',
-                      child: Column(
-                        children: [
-                          _SimpleToggleRow(
-                            icon: Icons.view_agenda_outlined,
-                            title: 'Nach Kategorien gruppieren',
-                            subtitle:
-                                'Sortiert Benachrichtigungen nach Themen.',
-                            value: _prefs.groupByCategory,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(groupByCategory: v)),
-                            accent: accent,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _Section(
-                      title: 'Sortierung',
-                      child: Column(
-                        children: [
-                          _SimpleToggleRow(
-                            icon: Icons.low_priority,
-                            title: 'Ungelesene zuerst anzeigen',
-                            subtitle: 'Zeigt neue Benachrichtigungen zuerst.',
-                            value: _prefs.unreadFirst,
-                            onChanged: (v) =>
-                                _save(_prefs.copyWith(unreadFirst: v)),
-                            accent: accent,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _Section(
-                      title: 'Gerätedienste',
-                      description:
-                          'Diese freiwilligen Einstellungen steuern echte externe Gerätedienste und sind von den Filtern im In-App-Feed getrennt.',
-                      child: Column(
-                        children: [
-                          _SettingToggleTile(
-                            icon: Icons.notifications_active_outlined,
-                            title: 'Push-Mitteilungen auf diesem Gerät',
-                            description:
-                                'Wichtige Buchungs-, Nachrichten- und Sicherheitsupdates über Firebase Cloud Messaging.',
-                            value: _servicePrefs.pushEnabled,
-                            enabled: !_serviceBusy,
-                            onChanged: _setPushEnabled,
-                            accent: accent,
-                          ),
-                          const _Divider(),
-                          _SettingToggleTile(
-                            icon: Icons.bug_report_outlined,
-                            title: 'Freiwillige Crashdiagnose',
-                            description:
-                                'Hilft SIT, Abstürze technisch zu erkennen und zu beheben. Keine Werbung und kein Marketing-Tracking.',
-                            value: _servicePrefs.crashDiagnosticsEnabled,
-                            enabled: !_serviceBusy,
-                            onChanged: _setCrashDiagnosticsEnabled,
-                            accent: accent,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _HintCard(
-                      title: 'Datenschutz-Hinweis',
-                      lines: const [
-                        'Feed-Filter ändern nur die Darstellung innerhalb der App. Push und Crashdiagnose werden ausschließlich über die beiden Gerätedienst-Schalter oben aktiviert oder widerrufen.',
-                        'Mehr Informationen findest du unter Profil > Rechtliches > Datenschutz.',
+                        ),
+                        const SizedBox(height: 12),
+                        _HintCard(
+                          title: 'Datenschutz-Hinweis',
+                          lines: const [
+                            'Feed-Filter ändern nur die Darstellung innerhalb der App. Push und Crashdiagnose werden ausschließlich über die beiden Gerätedienst-Schalter oben aktiviert oder widerrufen.',
+                            'Mehr Informationen findest du unter Profil > Rechtliches > Datenschutz.',
+                          ],
+                          accent: accent,
+                          titleStyle: titleStyle,
+                          captionStyle: captionStyle,
+                        ),
                       ],
-                      accent: accent,
-                      titleStyle: titleStyle,
-                      captionStyle: captionStyle,
                     ),
-                  ],
-                ),
         ),
       ],
     );

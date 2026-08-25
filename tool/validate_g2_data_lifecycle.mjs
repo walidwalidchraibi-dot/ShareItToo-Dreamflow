@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const sourcePaths = {
   dataService: 'lib/services/data_service.dart',
+  localSafetyPrivacy: 'lib/services/local_safety_privacy_service.dart',
   accountDeletion: 'lib/services/account_deletion_service.dart',
   privacyInfo: 'lib/screens/privacy_info_screen.dart',
   legalPrivacy: 'lib/screens/legal_privacy_screen.dart',
@@ -69,6 +70,7 @@ export function validateG2DataLifecycle({
     'state',
     'terminology',
     'currentSavedItems',
+    'localSafetyPrivacy',
     'persistentData',
     'boundaries',
   ], 'G2 lifecycle manifest');
@@ -115,6 +117,62 @@ export function validateG2DataLifecycle({
       || savedItems.exportStatus !== 'implemented-current-principal-local-section'
       || savedItems.accountDeletionStatus !== 'implemented-current-principal-local-purge') {
     fail('Current Gemerkt lifecycle is incomplete or overstated.');
+  }
+
+  const safetyPrivacy = object(
+    lifecycle.localSafetyPrivacy,
+    'localSafetyPrivacy',
+  );
+  exactKeys(safetyPrivacy, [
+    'runtimeStatus',
+    'storageScope',
+    'canonicalKey',
+    'legacyKeys',
+    'dataClasses',
+    'principalBinding',
+    'legacyMigrationRule',
+    'corruptionPolicy',
+    'maximumRetainedPrincipals',
+    'exportStatus',
+    'accountDeletionStatus',
+    'retentionRule',
+    'backendAuthority',
+  ], 'localSafetyPrivacy');
+  exactArray(safetyPrivacy.legacyKeys, [
+    'blocked_user_ids_v1',
+    'user_reports_v1',
+    'hidden_listing_ids_v1',
+    'listing_feedback_log_v1',
+    'listing_feedback_reason_profile_v1',
+    'muted_message_threads_v1',
+    'messages_settings_v1',
+    'notification_preferences_v2',
+  ], 'localSafetyPrivacy.legacyKeys');
+  exactArray(safetyPrivacy.dataClasses, [
+    'blocked-users',
+    'local-user-reports',
+    'hidden-listings-and-feedback-profile',
+    'muted-message-threads',
+    'message-settings',
+    'notification-preferences',
+  ], 'localSafetyPrivacy.dataClasses');
+  if (safetyPrivacy.runtimeStatus !== 'active-local-device-principal-scoped'
+      || safetyPrivacy.storageScope
+        !== 'local-device-opaque-principal-shared-preferences'
+      || safetyPrivacy.canonicalKey !== 'local_safety_privacy_state_v1'
+      || safetyPrivacy.principalBinding !== 'opaque-stable-token-or-guest'
+      || safetyPrivacy.legacyMigrationRule
+        !== 'unattributed-guest-only-attributed-exact-owner-or-quarantine'
+      || safetyPrivacy.corruptionPolicy
+        !== 'principal-bucket-quarantine-fail-closed-preserve-raw'
+      || safetyPrivacy.maximumRetainedPrincipals !== 12
+      || safetyPrivacy.exportStatus
+        !== 'implemented-current-principal-local-section'
+      || safetyPrivacy.accountDeletionStatus
+        !== 'implemented-current-principal-local-purge'
+      || safetyPrivacy.backendAuthority
+        !== 'remote-authoritative-when-enabled-local-qa-fallback-otherwise') {
+    fail('Local safety/privacy lifecycle is incomplete or overstated.');
   }
 
   const persistent = object(lifecycle.persistentData, 'persistentData');
@@ -203,6 +261,7 @@ export function validateG2DataLifecycle({
     'retentionPeriodInvented',
     'legalApprovalChanged',
     'historicalSnapshotsChanged',
+    'safetyBackendAuthorityChanged',
     'productionChanged',
   ], 'boundaries');
   if (boundaries.persistentCartEnabled !== true
@@ -218,6 +277,7 @@ export function validateG2DataLifecycle({
     'retentionPeriodInvented',
     'legalApprovalChanged',
     'historicalSnapshotsChanged',
+    'safetyBackendAuthorityChanged',
     'productionChanged',
   ]) {
     if (boundaries[key] !== false) fail(`boundaries.${key} must remain false.`);
@@ -265,6 +325,24 @@ export function validateG2DataLifecycle({
   if (count(deletion, /DataService\.clearSavedItemsForAccountDeletion\(\)/gu) !== 2) {
     fail('Both confirmed account deletion paths must purge local G2 data.');
   }
+  if (count(deletion, /LocalSafetyPrivacyService\.clearCurrentPrincipal\(\)/gu)
+      !== 2) {
+    fail('Both confirmed account deletion paths must purge local safety/privacy data.');
+  }
+  const localSafetyPrivacy = source(
+    root,
+    sourceTexts,
+    sourcePaths.localSafetyPrivacy,
+  );
+  includesEvery(localSafetyPrivacy, [
+    "storageKey = 'local_safety_privacy_state_v1'",
+    'LocalPrincipalScope.maxRetainedPrincipals',
+    'quarantinedPrincipals',
+    'legacyGuestQuarantined',
+    "'scope': 'local-principal'",
+    "'principalScope'",
+    'clearCurrentPrincipal()',
+  ], 'Local safety/privacy lifecycle');
 
   const backendApp = source(root, sourceTexts, sourcePaths.backendApp);
   includesEvery(backendApp, [
@@ -322,6 +400,7 @@ export function validateG2DataLifecycle({
   const privacyInfo = source(root, sourceTexts, sourcePaths.privacyInfo);
   includesEvery(privacyInfo, [
     'DataService.exportSavedItemsForPrivacy()',
+    'LocalSafetyPrivacyService.exportCurrentPrincipal()',
     "export['localDevice']",
     'Mietkorb',
   ], 'Privacy export and disclosure');
@@ -335,6 +414,7 @@ export function validateG2DataLifecycle({
   return {
     state: lifecycle.state,
     currentSavedItemKeyCount: savedItems.legacyKeys.length + 1,
+    localSafetyPrivacyKeyCount: safetyPrivacy.legacyKeys.length + 1,
     persistentCartEnabled: true,
     projectCartEnabled: true,
     reservationCreatedByCart: false,

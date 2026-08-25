@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart'
     show debugPrint, kDebugMode, listEquals, visibleForTesting;
@@ -20,6 +19,7 @@ import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/private_pilot_pricing.dart';
 import 'package:lendify/services/private_pilot_cancellation_policy.dart';
 import 'package:lendify/services/private_pilot_return_policy.dart';
+import 'package:lendify/services/local_principal_scope.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
@@ -107,21 +107,6 @@ class _LocalWishlistState {
     required this.assignments,
     this.savedItemIds = const <String>{},
   });
-}
-
-class _LocalPrincipal {
-  final String token;
-  final bool authenticated;
-
-  const _LocalPrincipal({
-    required this.token,
-    required this.authenticated,
-  });
-
-  static const guest = _LocalPrincipal(
-    token: 'guest',
-    authenticated: false,
-  );
 }
 
 class _LocalWishlistRegistry {
@@ -229,38 +214,23 @@ class DataService {
       _LocalMutationQueue();
 
   static Future<T> _runWishlistForCurrentPrincipal<T>(
-    Future<T> Function(_LocalPrincipal principal) operation,
+    Future<T> Function(LocalPrincipalIdentity principal) operation,
   ) async {
     final principal = await _currentLocalPrincipal();
     return _wishlistMutationQueue.run(() => operation(principal));
   }
 
-  static String _opaqueLocalPrincipalToken(String kind, String identity) {
-    final digest = sha256
-        .convert(utf8.encode('sit-local-stage-a-v1|$kind|$identity'))
-        .toString();
-    return 'p_$digest';
-  }
+  static LocalPrincipalIdentity _localPrincipalForSession(
+    AuthSession? session,
+  ) =>
+      LocalPrincipalScope.fromSession(session);
 
-  static _LocalPrincipal _localPrincipalForSession(AuthSession? session) {
-    if (session == null) return _LocalPrincipal.guest;
-    final userId = (session.userId ?? '').trim();
-    final email = session.email.trim().toLowerCase();
-    final kind = userId.isNotEmpty ? 'user-id' : 'email';
-    final identity = userId.isNotEmpty ? userId : email;
-    if (identity.isEmpty) return _LocalPrincipal.guest;
-    return _LocalPrincipal(
-      token: _opaqueLocalPrincipalToken(kind, identity),
-      authenticated: true,
-    );
-  }
-
-  static Future<_LocalPrincipal> _currentLocalPrincipal() async =>
-      _localPrincipalForSession(await AuthService.readSession());
+  static Future<LocalPrincipalIdentity> _currentLocalPrincipal() =>
+      LocalPrincipalScope.current();
 
   @visibleForTesting
   static String localPrincipalTokenForSession(AuthSession? session) =>
-      _localPrincipalForSession(session).token;
+      LocalPrincipalScope.tokenForSession(session);
 
   static Future<void> _writePreferenceString(
     SharedPreferences prefs,
@@ -3023,11 +2993,11 @@ class DataService {
             ? null
             : (RegExp(r'^p_[a-f0-9]{64}$').hasMatch(pendingRaw)
                 ? pendingRaw
-                : _opaqueLocalPrincipalToken('user-id', pendingRaw));
+                : LocalPrincipalScope.tokenForUserId(pendingRaw));
         return _LocalRentalCartRegistry(
           revision: 0,
           principals: <String, _LocalRentalCartBucket>{
-            _LocalPrincipal.guest.token: _LocalRentalCartBucket(
+            LocalPrincipalIdentity.guest.token: _LocalRentalCartBucket(
               cart: legacyCart,
               syncOwnerToken: pendingToken,
             ),
@@ -3064,7 +3034,7 @@ class DataService {
       final token = entry.key;
       final bucket = entry.value;
       if (token is! String ||
-          (token != _LocalPrincipal.guest.token &&
+          (token != LocalPrincipalIdentity.guest.token &&
               !RegExp(r'^p_[a-f0-9]{64}$').hasMatch(token))) {
         throw const FormatException('Invalid principal rental-cart bucket');
       }
@@ -3141,7 +3111,7 @@ class DataService {
   }
 
   static Future<_LocalRentalCartBucket> _readLocalRentalCartBucketUnlocked(
-    _LocalPrincipal principal,
+    LocalPrincipalIdentity principal,
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final registry = await _readLocalRentalCartRegistry(prefs);
@@ -3168,14 +3138,14 @@ class DataService {
   }
 
   static Future<RentalCart> _readLocalRentalCart(
-    _LocalPrincipal principal,
+    LocalPrincipalIdentity principal,
   ) =>
       _rentalCartMutationQueue.run(
         () async => (await _readLocalRentalCartBucketUnlocked(principal)).cart,
       );
 
   static Future<void> _writeLocalRentalCart(
-    _LocalPrincipal principal,
+    LocalPrincipalIdentity principal,
     RentalCart cart, {
     String? syncOwnerToken,
   }) async {
@@ -3296,7 +3266,7 @@ class DataService {
   }
 
   static Future<_LocalRentalCartBucket> _assertReadableLocalRentalCart(
-    _LocalPrincipal principal,
+    LocalPrincipalIdentity principal,
   ) async {
     final bucket = await _readLocalRentalCartBucketUnlocked(principal);
     final pending = bucket.syncOwnerToken;
@@ -3309,7 +3279,7 @@ class DataService {
   }
 
   static Future<void> _assertCurrentLocalPrincipal(
-    _LocalPrincipal expected,
+    LocalPrincipalIdentity expected,
   ) async {
     final current = await _currentLocalPrincipal();
     if (current.token != expected.token ||
@@ -3332,12 +3302,12 @@ class DataService {
   }
 
   static Future<bool> _syncGuestRentalCartAfterAuthenticationUnlocked(
-    _LocalPrincipal accountPrincipal,
+    LocalPrincipalIdentity accountPrincipal,
   ) async {
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return false;
     if (!accountPrincipal.authenticated) return false;
     await _assertCurrentLocalPrincipal(accountPrincipal);
-    final guest = _LocalPrincipal.guest;
+    final guest = LocalPrincipalIdentity.guest;
     final guestBucket = await _readLocalRentalCartBucketUnlocked(guest);
     final local = guestBucket.cart;
     if (local.projects.isEmpty && local.items.isEmpty) {
@@ -3409,13 +3379,13 @@ class DataService {
       return bucket.cart;
     }
     final guestBucket = await _readLocalRentalCart(
-      _LocalPrincipal.guest,
+      LocalPrincipalIdentity.guest,
     );
     final registry = await _readLocalRentalCartRegistry(
       await SharedPreferences.getInstance(),
     );
     final pending =
-        registry.principals[_LocalPrincipal.guest.token]?.syncOwnerToken;
+        registry.principals[LocalPrincipalIdentity.guest.token]?.syncOwnerToken;
     if (pending != null && pending != principal.token) {
       return RentalCart.fromJson(await BackendRepository.getRentalCart());
     }
@@ -3793,9 +3763,9 @@ class DataService {
       final registry = await _readLocalRentalCartRegistry(prefs);
       registry.principals.remove(principal.token);
       registry.quarantinedPrincipals.remove(principal.token);
-      final guest = registry.principals[_LocalPrincipal.guest.token];
+      final guest = registry.principals[LocalPrincipalIdentity.guest.token];
       if (principal.authenticated && guest?.syncOwnerToken == principal.token) {
-        registry.principals.remove(_LocalPrincipal.guest.token);
+        registry.principals.remove(LocalPrincipalIdentity.guest.token);
         await prefs.remove(_rentalCartKey);
         await prefs.remove(_projectCartKey);
         await prefs.remove(_rentalCartSyncOwnerKey);
@@ -4002,7 +3972,7 @@ class DataService {
         return _LocalWishlistRegistry(
           revision: 0,
           principals: <String, _LocalWishlistState>{
-            _LocalPrincipal.guest.token: _LocalWishlistState(
+            LocalPrincipalIdentity.guest.token: _LocalWishlistState(
               revision: legacy.revision,
               lists: legacy.lists,
               assignments: legacy.assignments,
@@ -4043,7 +4013,7 @@ class DataService {
       final token = entry.key;
       final bucket = entry.value;
       if (token is! String ||
-          (token != _LocalPrincipal.guest.token &&
+          (token != LocalPrincipalIdentity.guest.token &&
               !RegExp(r'^p_[a-f0-9]{64}$').hasMatch(token))) {
         throw const FormatException('Invalid principal saved-state bucket');
       }
@@ -4079,7 +4049,7 @@ class DataService {
 
   static _LocalWishlistState _readWishlistState(
     SharedPreferences prefs,
-    _LocalPrincipal principal,
+    LocalPrincipalIdentity principal,
   ) {
     final registry = _readWishlistRegistry(prefs);
     if (!principal.authenticated && registry.legacyGuestQuarantined) {
@@ -4137,7 +4107,7 @@ class DataService {
 
   static Future<_LocalWishlistState> _writeWishlistState(
     SharedPreferences prefs,
-    _LocalPrincipal principal,
+    LocalPrincipalIdentity principal,
     _LocalWishlistState state,
   ) async {
     _validateWishlistAssignmentTargets(state.assignments, state.lists);
@@ -4235,7 +4205,7 @@ class DataService {
 
   static Future<_LocalWishlistState> _readWishlistStateWithDefaults(
     SharedPreferences prefs,
-    _LocalPrincipal principal,
+    LocalPrincipalIdentity principal,
   ) async {
     var state = _readWishlistState(prefs, principal);
     final addedDefaults = _addDefaultWishlists(state.lists);

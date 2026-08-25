@@ -354,6 +354,11 @@ node --test \
   test/tool/rw4_reduced_wave0_local_principal_isolation_wiring.test.mjs \
   test/tool/validate_rw4_reduced_wave0_local_principal_isolation.test.mjs
 node tool/validate_rw4_reduced_wave0_local_principal_isolation.mjs
+node --check tool/validate_rw5_local_safety_privacy_principal_isolation.mjs
+node --test \
+  test/tool/rw5_local_safety_privacy_principal_isolation_wiring.test.mjs \
+  test/tool/validate_rw5_local_safety_privacy_principal_isolation.test.mjs
+node tool/validate_rw5_local_safety_privacy_principal_isolation.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -878,6 +883,12 @@ flutter test --reporter expanded \
 # capacity and compact stale/error recovery matrix explicitly.
 flutter test --reporter expanded \
   test/reduced_wave0_local_principal_isolation_test.dart
+
+# Retain RW5's deterministic local safety/privacy account-A/guest/account-B
+# isolation, exact-owner legacy migration, quarantine, bounded capacity,
+# export/deletion and stale/error UI matrix explicitly.
+flutter test --reporter expanded \
+  test/rw5_local_safety_privacy_principal_isolation_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

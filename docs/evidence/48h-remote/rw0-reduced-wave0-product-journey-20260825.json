@@ -90,7 +90,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "56106afcfc2dbdee6b1384f428070487174dbe4712ec1e382b1802486205be7d"
+      "sha256": "6f9a62bb570bf5495f36db9aa0a0f5f7d93d0787581a119950921f074595fd09"
     },
     {
       "path": "lib/screens/search_results_screen.dart",
@@ -102,11 +102,11 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "f027dbd915f58d2823d4a22e5554f088f37a8f8113bd6a1a1616cfff395dd36d"
+      "sha256": "79e5c4b8559c20470bdced8037f1abd6a8995315979d0fe0f7d780c4a83f8d19"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "814211fbb801dd0818dc5b3d4417d3b3f69503be4b46480c994605809e82af64"
+      "sha256": "1c2af7d5aa7b601eef7bd78f8877f4a1173d6efd9a717df5039def9ad8e39b24"
     },
     {
       "path": "test/data_service_non_destructive_catalog_bootstrap_test.dart",
@@ -122,7 +122,7 @@
     },
     {
       "path": "test/reduced_wave0_product_journey_test.dart",
-      "sha256": "a7db8a739aa0ec5c554bfa4c5a9d32fe35106bc1be87a0daeac52d6a3d3fef00"
+      "sha256": "dcfcb69eaf3284647f86946d4a88dc0ebbdfe5bb22eb6e2537448e4d57f9c341"
     },
     {
       "path": "test/public_profile_screen_logic_test.dart",
@@ -138,15 +138,15 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "b62c86932ac15bb6dc74a92069d61c5addc0c7cb40ec4ab8c758f707a37e8c8f"
+      "sha256": "1481227fd8b16db718a139192397e1c50c00a32f62cc3446ea8d819aecd43c0c"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "894ddebfb8787741af7f1aae440b481cf206427fbc822599bc2b3541d8fb5e42"
+      "sha256": "50e9c89760cddb1e3b9cee506b3e828199468a955a4888286d3df6816395c1ce"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "3dec174ed982d3d2d51d3a23e19d165575946a7d0eea1c3ac2b8415d0e886fb8"
+      "sha256": "6f5a9dda13792a58edaab33cb38330a5df1d67868f62a5414f0624ff0668094a"
     }
   ],
   "gates": {

@@ -55,6 +55,22 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   assert.equal(result.storeGate, 'open');
 });
 
+test('rejects cross-principal or externally transferred local safety state', () => {
+  const unscoped = clone(basePrivacyManifest);
+  unscoped.localDevicePrincipalState.principalBinding = 'device-global';
+  assert.throws(
+    () => validate({ privacyManifest: unscoped }),
+    /Local principal privacy disclosure is incomplete/u,
+  );
+
+  const transferred = clone(basePrivacyManifest);
+  transferred.localDevicePrincipalState.externalTransferAdded = true;
+  assert.throws(
+    () => validate({ privacyManifest: transferred }),
+    /Local principal privacy disclosure is incomplete/u,
+  );
+});
+
 test('strict approval rejects the current privacy draft', () => {
   assert.throws(
     () => validate({ requireApproved: true }),

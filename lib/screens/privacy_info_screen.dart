@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:share_plus/share_plus.dart';
@@ -88,6 +89,8 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
       );
       export['localDevice'] = <String, dynamic>{
         'savedItems': await DataService.exportSavedItemsForPrivacy(),
+        'safetyPrivacy':
+            await LocalSafetyPrivacyService.exportCurrentPrincipal(),
       };
       final bytes = Uint8List.fromList(
         utf8.encode(const JsonEncoder.withIndent('  ').convert(export)),

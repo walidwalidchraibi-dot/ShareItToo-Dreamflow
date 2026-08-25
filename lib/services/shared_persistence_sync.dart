@@ -12,6 +12,8 @@ class SharedPersistenceSync {
   static const String savedItemsKey = 'saved_items';
   static const String wishlistStateKey = 'wishlist_state_v3';
   static const String rentalCartKey = 'rental_cart_v2';
+  static const String localSafetyPrivacyStateKey =
+      'local_safety_privacy_state_v1';
   static const String legacyWishlistStateKey = 'wishlist_state_v2';
   static const String legacyRentalCartKey = 'rental_cart_v1';
 
@@ -26,6 +28,7 @@ class SharedPersistenceSync {
     savedItemsKey,
     wishlistStateKey,
     rentalCartKey,
+    localSafetyPrivacyStateKey,
     legacyWishlistStateKey,
     legacyRentalCartKey,
   };
@@ -66,6 +69,9 @@ class SharedPersistenceSync {
   }
 
   static bool affectsBookingSync(String key) => _bookingKeys.contains(key);
+
+  static bool affectsCommunicationSync(String key) =>
+      affectsBookingSync(key) || key == localSafetyPrivacyStateKey;
 
   static bool isSharedPersistenceKey(String key) => _sharedKeys.contains(key);
 

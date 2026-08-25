@@ -39,6 +39,24 @@ test('accepts the honest fail-closed retention draft', () => {
   assert.deepEqual(validate(), {state: 'draft', approvalAllowed: false, openDecisionCount: 10, storeGate: 'open'});
 });
 
+test('rejects unbounded or cross-principal local safety/privacy retention', () => {
+  const unbounded = clone(baseRetention);
+  unbounded.implementedControls.localSafetyPrivacyPrincipalState
+    .maximumRetainedPrincipals = 0;
+  assert.throws(
+    () => validate({ retentionManifest: unbounded }),
+    /retention controls must stay technically enforced/u,
+  );
+
+  const failOpen = clone(baseRetention);
+  failOpen.implementedControls.localSafetyPrivacyPrincipalState
+    .corruptPrincipalData = 'replace-with-empty';
+  assert.throws(
+    () => validate({ retentionManifest: failOpen }),
+    /retention controls must stay technically enforced/u,
+  );
+});
+
 test('inventories active hosting and mail processors as explicit open retention gates', () => {
   for (const processorId of ['hostingerVps', 'googleWorkspaceSmtpRelay']) {
     assert.deepEqual(baseRetention.externalProcessors[processorId], {
