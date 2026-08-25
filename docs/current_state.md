@@ -2,7 +2,7 @@
 
 Verified: 2026-08-25 on the Mac mini.
 
-## Current RW4 state
+## Current RW5 state
 
 - RW0 is closed at documentation commit
   `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`. Its exact synthetic, local-only
@@ -117,6 +117,28 @@ Verified: 2026-08-25 on the Mac mini.
   passed GitHub Regression `32805997938` and CodeQL `32805997934`, with zero
   open code-scanning alerts. PR #7 remains Draft, open and unmerged. No timing,
   retry, parallelism or rate-limit workaround is retained.
+- RW4 is closed at documentation commit
+  `bed1e8923a82b745050a6c421ac12c77eacf1e42`. RW5 is its separate local-only,
+  synthetic successor and extends the same opaque principal boundary to
+  blocked users, local reports, hidden listings and feedback signals, muted
+  threads, message settings and notification preferences.
+- Unattributed legacy safety/privacy state migrates only to guest; attributed
+  muted state requires an exact owner match. Malformed top-level and
+  current-principal data remains preserved and fails closed. Other valid
+  principal buckets remain usable, and the bounded registry rejects a
+  thirteenth retained or quarantined principal without eviction.
+- Open safety, message and notification surfaces clear prior values immediately
+  on session replacement and reload only the new principal. Privacy export and
+  confirmed deletion operate on that principal alone. Twelve focused tests,
+  37 adjacent checks with one documented profile skip, 95 lifecycle/privacy/
+  retention and RW4/RW5 wiring checks, and changed-file analysis pass. The full
+  technical regression passes with default Flutter 452 and three documented
+  profile skips, exact RW profiles, Web/Wasm loopback smoke, Android debug
+  assembly and the resource guard. Exact implementation head
+  `2dfb487cd3b4f4ebd59d184f1a5186f1da455672` passed GitHub Regression
+  `32809930879` and CodeQL `32809930884`, with zero open code-scanning alerts.
+  PR #7 remains Draft, open and unmerged; every live and owner gate remains
+  closed.
 
 ## Current 48H readiness state
 

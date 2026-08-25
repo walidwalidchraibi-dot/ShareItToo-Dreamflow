@@ -1,14 +1,10 @@
-# Current Work Package: RW4 local principal isolation
+# Current Work Package: RW5 local safety/privacy principal isolation
 
 Status: **VERIFIED — REGRESSION AND CODEQL GREEN**
 on 25.08.2026.
 
-RW3 is closed at documentation commit
-`9af5c768279e501a0e3288affea4c403c2baf178`. Its implementation head
-`f7a49899b51e733041878dba86bebf5737fac023` passed GitHub Regression
-`32802063600` and CodeQL `32802063601`, with zero open code-scanning alerts.
-
-RW4 is the current separate successor. `wishlist_state_v3` and
+RW4 is closed at documentation commit
+`bed1e8923a82b745050a6c421ac12c77eacf1e42`. `wishlist_state_v3` and
 `rental_cart_v2` store local saved, wishlist and cart/project state in bounded
 opaque account or guest buckets. Account A, guest and account B cannot read or
 overwrite each other's bucket. Valid unscoped legacy state migrates only to
@@ -35,6 +31,26 @@ guard. Exact implementation head
 `f11335b74b88365a4f42c0bc748966d9b58d85d7` passed GitHub Regression
 `32805997938` and CodeQL `32805997934`, with zero open code-scanning alerts.
 PR #7 remains Draft, open and unmerged.
+
+RW5 is the current separate successor. It moves blocked users, local reports,
+hidden listings and feedback signals, muted threads, message settings and
+notification preferences into one bounded opaque account-or-guest registry.
+Unattributed legacy state belongs only to guest; the only attributed legacy
+state requires an exact owner match. Corrupt top-level or current-principal
+state is preserved and fails closed instead of becoming a truthful empty
+state. A thirteenth retained or quarantined principal is rejected without
+eviction.
+
+Session changes clear and reload every affected open screen. Privacy export and
+confirmed account deletion affect only the current principal. Twelve focused
+RW5 tests, 37 adjacent checks with one expected profile skip, 95 lifecycle,
+privacy, retention and predecessor-wiring checks, and changed-file analysis are
+green. The complete technical regression passes with default Flutter 452 and
+three documented profile skips, exact RW profiles, Web/Wasm loopback smoke,
+Android debug assembly and the resource guard. Exact implementation head
+`2dfb487cd3b4f4ebd59d184f1a5186f1da455672` passed GitHub Regression
+`32809930879` and CodeQL `32809930884`, with zero open code-scanning alerts.
+No retry, timing, rate-limit or reduced-parallelism workaround is retained.
 
 RW0 is closed at `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`; its exact
 implementation head `ce37ecc89af1a5176d4afaa608ddd1f3552d2512` passed GitHub

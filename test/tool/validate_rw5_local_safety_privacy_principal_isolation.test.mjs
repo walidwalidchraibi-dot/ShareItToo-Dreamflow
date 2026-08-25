@@ -24,12 +24,11 @@ function validate(evidence = clone(baseEvidence), sourceTexts = {}) {
 
 test('accepts the exact bounded RW5 package', () => {
   assert.deepEqual(validate(), {
-    status:
-      'implemented-focused-matrix-passed-full-technical-regression-pending',
+    status: 'verified-regression-and-codeql-passed',
     allowedSurfaces: 11,
     excludedSurfaces: 5,
     resolvedFindings: 10,
-    fullTechnicalRegression: 'pending',
+    fullTechnicalRegression: 'passed',
   });
 });
 
@@ -45,19 +44,13 @@ test('rejects a changed live gate or boundary', () => {
 
 test('rejects premature full regression or GitHub claims', () => {
   const regression = clone(baseEvidence);
-  regression.verification.fullTechnicalRegression = 'passed';
+  regression.status =
+    'implemented-focused-matrix-passed-full-technical-regression-pending';
   assert.throws(() => validate(regression), /verification truth/u);
 
   const github = clone(baseEvidence);
-  github.githubVerification = {
-    head: '0'.repeat(40),
-    regressionRunId: 1,
-    codeqlRunId: 2,
-    regressionConclusion: 'success',
-    codeqlConclusion: 'success',
-    openCodeScanningAlerts: 0,
-  };
-  assert.throws(() => validate(github), /must be absent/u);
+  github.githubVerification.head = '0'.repeat(40);
+  assert.throws(() => validate(github), /GitHub verification is invalid/u);
 });
 
 test('rejects a stale source hash', () => {

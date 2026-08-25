@@ -33,8 +33,12 @@ SIT_ALLOW_CANDIDATE_ROLLOVER=1 bash scripts/technical_regression_check.sh
 Focused RW5 result: 12 passed. The first adjacent run passes 37 checks with one
 expected profile-gated skip. Changed-file analysis passes with zero issues.
 Lifecycle/privacy/retention and RW4/RW5 wiring pass 95 Node checks. The full
-technical regression and exact GitHub runs are recorded only after they
-actually pass.
+technical regression passes from a clean start, including the default 452-test
+Flutter matrix with three documented profile skips, exact RW profiles,
+Web/Wasm loopback smoke, Android debug assembly and the resource guard. Exact
+implementation head `2dfb487cd3b4f4ebd59d184f1a5186f1da455672` passes GitHub
+Regression `32809930879` and CodeQL `32809930884`, with zero open code-scanning
+alerts.
 
 ## Operational behavior
 

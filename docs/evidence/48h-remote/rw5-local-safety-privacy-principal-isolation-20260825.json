@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw5-local-safety-privacy-principal-isolation",
-  "status": "implemented-focused-matrix-passed-full-technical-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "bed1e8923a82b745050a6c421ac12c77eacf1e42",
+  "implementationHead": "2dfb487cd3b4f4ebd59d184f1a5186f1da455672",
   "architecture": "docs/architecture/rw5-local-safety-privacy-principal-isolation-2026-08-25.md",
   "report": "docs/operations/RW5_LOCAL_SAFETY_PRIVACY_PRINCIPAL_ISOLATION_2026-08-25.md",
   "predecessor": {
@@ -95,9 +96,17 @@
     "safetyPrivacyAdjacentFlutter": "passed-37-one-skipped",
     "lifecyclePrivacyRetention": "passed",
     "rw5WiringTests": "passed",
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
+  },
+  "githubVerification": {
+    "head": "2dfb487cd3b4f4ebd59d184f1a5186f1da455672",
+    "regressionRunId": 32809930879,
+    "codeqlRunId": 32809930884,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
   },
   "gates": {
     "BUILD_READY": "not-granted",
@@ -159,6 +168,6 @@
     {"path": "test/tool/validate_retention_deletion_readiness.test.mjs", "sha256": "d915fb96021b328f85eae36b978ad210797ca3d04e2cc3b4525af9d60c2f8393"},
     {"path": "test/tool/rw4_reduced_wave0_local_principal_isolation_wiring.test.mjs", "sha256": "c28168b2db278d0a5dcaacbccb4820a12ed49591a9792778f1100fc531d68ccd"},
     {"path": "docs/architecture/rw5-local-safety-privacy-principal-isolation-2026-08-25.md", "sha256": "baa74443532f1f9fea75292ce63c52f3efa800aae421893c56e3af3639cddbc7"},
-    {"path": "docs/operations/RW5_LOCAL_SAFETY_PRIVACY_PRINCIPAL_ISOLATION_2026-08-25.md", "sha256": "edd15a4420d8b6cc8efe6ba3a061dbfec7fd6038191973b6dcd671c5596c6ef6"}
+    {"path": "docs/operations/RW5_LOCAL_SAFETY_PRIVACY_PRINCIPAL_ISOLATION_2026-08-25.md", "sha256": "3ff4be940b01d55a5e360893f140678c6598479547f048b3dfeb2887a361f541"}
   ]
 }
