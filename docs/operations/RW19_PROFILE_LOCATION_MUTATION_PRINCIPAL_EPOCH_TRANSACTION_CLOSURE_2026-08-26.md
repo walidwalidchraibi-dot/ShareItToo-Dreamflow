@@ -46,11 +46,27 @@ identity, GPS/media await checks and supported-regression inclusion.
 
 ## Verification state
 
-Focused verification is complete: nine RW19 Flutter tests and eight RW19
-wiring tests pass, the retained RW9/RW18 compatibility matrix passes, and the
-changed Dart sources analyze with zero issues. The implementation commit, full
-standard-parallel regression, exact-head GitHub Regression and CodeQL evidence
-are intentionally recorded only after they complete.
+Implementation head `93b7a4cde7bbcb04f9f6c0c60b26dc5bb941e2ae`
+passes the full local technical regression in the documented CI metadata-only
+mode:
+
+- 1,945 Node tool tests pass with zero skips at standard parallelism;
+- the full Flutter suite passes 611 tests with three documented profile skips;
+- all nine focused RW19 tests and the retained adjacent matrices pass;
+- analyzer reports zero issues;
+- Web debug/Wasm dry-run and loopback-only web smoke pass; and
+- Android debug passes 448 tasks and the built APK retains minSdk 24.
+
+The ordinary private release archive remains intentionally unavailable on this
+Mac mini. `CI=true` exercises only the repository's checked-in metadata path
+for that gate and does not claim a private AAB, candidate, upload, Store, Play
+or device result.
+
+Exact implementation head `93b7a4cde7bbcb04f9f6c0c60b26dc5bb941e2ae`
+also passes GitHub Regression run `32963682095` and CodeQL run `32963682126`.
+The regression includes the independent clean-checkout reproducibility job;
+CodeQL completed successfully with zero open code-scanning alerts. PR #7
+remains open, Draft, mergeable and unmerged.
 
 No timing relaxation, retry accommodation, test exclusion, order dependency or
 parallelism reduction is an accepted release prerequisite.
