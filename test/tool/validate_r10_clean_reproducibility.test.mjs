@@ -15,6 +15,15 @@ const technicalDebt = readFileSync(
   new URL('../../docs/operations/48H_R10_TECHNICAL_DEBT_2026-08-24.md', import.meta.url),
   'utf8',
 );
+const currentVersionMatch = /^version:\s*([^+\s]+)\+(\d+)\s*$/mu.exec(readFileSync(
+  new URL('../../pubspec.yaml', import.meta.url),
+  'utf8',
+));
+assert.notEqual(currentVersionMatch, null);
+const currentVersion = {
+  versionName: currentVersionMatch[1],
+  versionCode: currentVersionMatch[2],
+};
 
 function validate(changed = evidence, options) {
   return validateR10CleanReproducibility(changed, options);
@@ -41,12 +50,21 @@ test('accepts a structurally exact detached CI execution result', () => {
   ci.toolchain.node = 'v22.99.1';
   ci.commands.fullTechnicalRegression.durationSeconds = 700;
   ci.observedOn = '2026-08-25';
+  ci.android.identity.versionName = currentVersion.versionName;
+  ci.android.identity.versionCode = currentVersion.versionCode;
   assert.equal(validate(ci, { executionOnly: true }).implementationHead, 'a'.repeat(40));
 
   ci.observedOn = '2026-02-31';
   assert.throws(
     () => validate(ci, { executionOnly: true }),
     /evidence identity or status/u,
+  );
+
+  ci.observedOn = '2026-08-25';
+  ci.android.identity.versionCode = '1';
+  assert.throws(
+    () => validate(ci, { executionOnly: true }),
+    /build identity/u,
   );
 });
 

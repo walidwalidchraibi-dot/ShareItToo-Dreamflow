@@ -53,7 +53,7 @@ export function validateR10TechnicalDebtDocument(value) {
   }
 }
 
-function validateSourceComparison(value) {
+function validateSourceComparison(value, { executionOnly = false } = {}) {
   const expected = {
     dependencies: {
       count: 7,
@@ -74,6 +74,17 @@ function validateSourceComparison(value) {
   };
   requireExact(Object.keys(value ?? {}), Object.keys(expected), 'R10 source comparison categories changed.');
   for (const [category, identity] of Object.entries(expected)) {
+    if (executionOnly) {
+      const comparison = value[category];
+      const before = comparison?.before;
+      if (!Number.isSafeInteger(before?.count) || before.count < 0
+          || !shaPattern.test(before?.sha256 ?? '')
+          || comparison?.exactMatch !== true) {
+        fail(`R10 ${category} inventory is not exact.`);
+      }
+      requireExact(comparison.after, before, `R10 ${category} inventory is not exact.`);
+      continue;
+    }
     requireExact(value[category], {
       before: identity,
       after: identity,
@@ -193,7 +204,14 @@ function validateReproduction(android) {
   }
 }
 
-function validateAndroid(value) {
+function currentRepositoryVersion() {
+  const pubspec = readFileSync(path.join(repositoryRoot, 'pubspec.yaml'), 'utf8');
+  const match = /^version:\s*([^+\s]+)\+(\d+)\s*$/mu.exec(pubspec);
+  if (match === null) fail('R10 current repository version is invalid.');
+  return { versionName: match[1], versionCode: match[2] };
+}
+
+function validateAndroid(value, { executionOnly = false } = {}) {
   if (value?.buildType !== 'debug' || value?.buildAttempts !== 2) {
     fail('R10 Android build scope changed.');
   }
@@ -203,10 +221,13 @@ function validateAndroid(value) {
     fail('R10 equivalent APK shape changed.');
   }
   validateReproduction(value);
+  const expectedVersion = executionOnly
+    ? currentRepositoryVersion()
+    : { versionName: '1.0.0', versionCode: '2026082302' };
   requireExact(value.identity, {
     applicationId: 'com.shareittoo.app',
-    versionCode: '2026082302',
-    versionName: '1.0.0',
+    versionCode: expectedVersion.versionCode,
+    versionName: expectedVersion.versionName,
     compileSdk: 35,
     minSdk: 24,
     targetSdk: 35,
@@ -290,10 +311,10 @@ export function validateR10CleanReproducibility(value, { executionOnly = false }
       || value.toolchain?.gradle !== '8.12') {
     fail('R10 toolchain identity changed.');
   }
-  validateSourceComparison(value.sourceComparison);
+  validateSourceComparison(value.sourceComparison, { executionOnly });
   validateCommands(value.commands);
   validateFootprint(value.generatedFootprint);
-  validateAndroid(value.android);
+  validateAndroid(value.android, { executionOnly });
   if (executionOnly) {
     requireExact(value.ciAndCodeql, {
       localCodeqlClaimed: false,
