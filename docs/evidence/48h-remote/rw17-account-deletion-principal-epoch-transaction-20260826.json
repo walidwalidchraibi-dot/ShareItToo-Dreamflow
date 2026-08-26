@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw17-account-deletion-principal-epoch-transaction",
-  "status": "implemented-focused-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "5b2862ad40f79fe2287977868660f348806d68ae",
-  "implementationHead": null,
+  "implementationHead": "7ec6a24eadd1b04c9e3c77025d0ebf5f6fe59c34",
   "architecture": "docs/architecture/rw17-account-deletion-principal-epoch-transaction-2026-08-26.md",
   "report": "docs/operations/RW17_ACCOUNT_DELETION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md",
   "predecessor": {
@@ -123,11 +123,11 @@
     "changedFileAnalyze": "passed-zero-issues",
     "rw17WiringTests": "passed-6",
     "rw17ValidatorTests": "passed-3",
-    "completeToolInventory": "pending",
+    "completeToolInventory": "passed-1924",
     "completeToolInventorySkipped": 0,
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "inventoryAudit": {
     "predecessorRepositoryOwnedFiles": 334,
@@ -138,8 +138,34 @@
     "executionPattern": "node --test test/tool/*.test.mjs",
     "standardNodeParallelism": true
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "7ec6a24eadd1b04c9e3c77025d0ebf5f6fe59c34",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "completeToolInventoryPassed": 1924,
+    "completeToolInventorySkipped": 0,
+    "flutterPassed": 585,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed-with-wasm-dry-run",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24,
+    "cleanCheckoutMigrations": 112,
+    "cleanCheckoutAssets": 84,
+    "cleanCheckoutFinallyClean": true,
+    "privateReleaseArtifact": "unavailable-ci-metadata-validated",
+    "storeOrDeviceGateClaimed": false
+  },
+  "githubVerification": {
+    "head": "7ec6a24eadd1b04c9e3c77025d0ebf5f6fe59c34",
+    "regressionRunId": 32948288131,
+    "codeqlRunId": 32948288027,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
   "ratchetAudit": {
     "cause": "RW17 replaces current-session inferred deletion cleanup with explicit deleted-principal cleanup, successor preservation and typed remote/local result truth.",
     "privacyDisclosureSemanticsChanged": true,
