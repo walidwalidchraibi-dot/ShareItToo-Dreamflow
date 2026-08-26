@@ -40,7 +40,8 @@ function assertSanitized(value, path = 'handoff') {
   if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/iu.test(value)) {
     fail(`${path} contains an email address.`);
   }
-  if (/https?:\/\/(?!staging\.shareittoo\.com\/api\/v1\b)/iu.test(value)) {
+  const normalizedValue = value.toLowerCase();
+  if (normalizedValue.includes('http://') || normalizedValue.includes('https://')) {
     fail(`${path} contains an external URL.`);
   }
   if (/(?:^|\s)\/Users\/|[A-Z]:\\/u.test(value)) {

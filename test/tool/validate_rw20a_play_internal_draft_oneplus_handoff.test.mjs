@@ -53,6 +53,7 @@ test('rejects tester identity, opt-in URL, credentials and private paths', () =>
   for (const mutate of [
     (value) => { value.testerState.accountAddress = 'person@example.com'; },
     (value) => { value.testerState.optIn = 'https://play.example.test/private'; },
+    (value) => { value.testerState.optIn = 'HTTPS://staging.shareittoo.com/api/v1'; },
     (value) => { value.testerState.accessToken = 'never'; },
     (value) => { value.transferVerification.localPath = '/Users/person/Downloads/private'; },
   ]) assert.throws(() => validate(mutate), /email|URL|credential|filesystem/u);
