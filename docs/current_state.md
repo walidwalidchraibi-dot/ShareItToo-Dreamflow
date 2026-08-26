@@ -3897,3 +3897,26 @@ loopback smoke and Android debug with 448 tasks. Exact GitHub regression
 `32675709874` and CodeQL `32675709863` are successful at N10 implementation
 commit `9533d4351c64d1b3df2b37b97e4ec0e9496f020e`. Play Console and all live
 systems are unchanged.
+
+## RW20A Play Internal draft and OnePlus remote baseline (2026-08-27)
+
+The owner-provided MacBook Codex handover reports that the exact signed RW20
+AAB `1.0.0+2026082601` was reassembled with the bound SHA-256, processed by
+Google Play Internal and saved as a draft only. This Mac-mini worktree did not
+independently re-observe the Console session. The state is therefore recorded
+as attributed handover evidence and does not rewrite the earlier local-only
+BUILD_READY record.
+
+The active Internal release remains `1.0.0+2026081509`. Installation on the
+OnePlus is owner-confirmed, but no functional behavior or exact new-candidate
+installation is claimed. A new read-only Wireless-ADB baseline is prepared for
+the MacBook: it accepts only one physical OnePlus, exact active version
+`2026081509` and Google Play installer identity, emits no ADB address or raw
+identifier, and performs no launch, stop, install, reset, network, permission,
+account or Store mutation.
+
+The new `2026082601` draft remains inactive. No review submission, additional
+tester-list change, Pixel access, production/payment/provider/Firebase/
+Cloud/VPS/DNS action or PR merge is authorized. The next external decision is
+still `GOOGLE_PLAY_INTERNAL_RELEASE_GO`; until then, only the old-build
+read-only baseline and manually bounded non-destructive checks are available.

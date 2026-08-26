@@ -1,11 +1,16 @@
 # RW20 zweites Android-Handy — Internal-Testmatrix
 
-Status: **VORBEREITUNG — NOCH NICHT AUSGEFUEHRT**
+Status: **ONEPLUS-ALTBUILD INSTALLIERT — NEUER KANDIDAT NOCH NICHT AKTIV**
 
 Gebundene Soll-Identitaet: `com.shareittoo.app`, Version `1.0.0`, VersionCode
 `2026082601`, Internal Track, Staging-API. Artefakt-Quell-Commit:
 `a1aa3f2528f1923c092a1fb15bdd3dc083673890`; AAB-SHA-256:
 `8cf36552f39fe9558411809518b374c437125cbd6ef123258ad9df7061acd873`.
+
+Derzeitiger OnePlus-Erkenntnisstand: Installation bestaetigt; wegen des nur
+gespeicherten Play-Entwurfs wird Build `2026081509` erwartet. Noch keine Zeile
+dieser Matrix ist fuer `2026082601` ausgefuehrt. Die vorbereitete read-only
+Wireless-ADB-Baseline fuer den Alt-Build darf nicht als Kandidatentest zaehlen.
 
 | Test | Vorbereitung | Erwartung | Stopkriterium |
 | --- | --- | --- | --- |

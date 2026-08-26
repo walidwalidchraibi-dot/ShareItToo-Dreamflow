@@ -1,6 +1,6 @@
 # RW20 aktueller Play-Internal-Test auf dem zweiten Android-Handy
 
-Status: **VORBEREITUNG — KEINE EINLADUNG — KEIN PLAY-UPLOAD**
+Status: **AAB ALS ENTWURF HOCHGELADEN — RELEASE NICHT AKTIV**
 
 Diese Anleitung gilt nur fuer den spaeter owner-freigegebenen Kandidaten
 `1.0.0 (2026082601)` auf `com.shareittoo.app`. Vor der Installation muessen
@@ -14,14 +14,19 @@ mit dem spaeteren Play-Release uebereinstimmen.
 1. Walid bestaetigt ausserhalb von Git und Chat das Google-Konto, das auf dem
    zweiten Android-Handy im Play Store aktiv ist. Die Adresse wird nicht in
    Repository, Evidence oder Screenshots geschrieben.
-2. Das Konto wird erst nach `PLAY_UPLOAD_APPROVED` und dem separaten
-   Internal-Release-Gate durch den Owner in die private Testerliste aufgenommen.
+2. Das owner-ausgewaehlte Konto ist laut MacBook-Handover bereits in der
+   privaten Testerliste. Die Adresse bleibt ausserhalb des Repository. Keine
+   weitere Tester- oder Listenveraenderung vornehmen.
 3. Der private Opt-in-Link bleibt ausserhalb von Git und oeffentlichen Kanaelen.
-4. Link mit genau diesem Google-Konto oeffnen, dem internen Test beitreten und
-   nur die Play-Store-Seite fuer `com.shareittoo.app` verwenden.
-5. Vor Start in den App-Informationen beziehungsweise in der owner-gelieferten
-   Buildanzeige `1.0.0 (2026082601)` bestaetigen. Eine andere Buildnummer ist
-   ein Stop.
+4. Solange `GOOGLE_PLAY_INTERNAL_RELEASE_GO` nicht erteilt ist, liefert der
+   Link weiterhin den aktiven Alt-Build `2026081509`; den neuen Entwurf nicht
+   als installiert oder getestet darstellen.
+5. Erst nach separater Aktivierung Link mit genau diesem Google-Konto oeffnen,
+   dem internen Test beitreten und nur die Play-Store-Seite fuer
+   `com.shareittoo.app` verwenden.
+6. Vor dem neuen Kandidatentest in den App-Informationen beziehungsweise in
+   der owner-gelieferten Buildanzeige `1.0.0 (2026082601)` bestaetigen. Eine
+   andere Buildnummer ist ein Stop fuer die neue Kandidatenmatrix.
 
 ## Clean Install oder Update
 
@@ -31,6 +36,14 @@ mit dem spaeteren Play-Release uebereinstimmen.
   deinstallieren und keine App-Daten loeschen. Das Play-Update muss Daten,
   Paket-ID und Signaturbeziehung erhalten.
 - Kein Sideload, kein APK aus Downloads und kein Downgrade fuer diesen Test.
+
+## Derzeit installierter OnePlus-Stand
+
+Die Installation auf dem OnePlus ist bestaetigt, aber der neue Build
+`2026082601` ist noch nicht aktiv. Erwartet wird daher `1.0.0 (2026081509)`.
+Dieser Stand darf zunaechst nur mit der read-only Baseline aus
+`docs/operations/RW20A_PLAY_INTERNAL_DRAFT_AND_ONEPLUS_REMOTE_BASELINE_2026-08-27.md`
+erfasst werden. Die Installation allein ist kein funktionaler Testnachweis.
 
 ## Sichere Testdaten
 

@@ -3868,3 +3868,19 @@ commit is synchronized and verified, work stops at
 `STAGE_A_BLUE_OCEAN_DECISION`. PR #7 remains Draft and unmerged; no provider,
 billing, Play Console, tester, device, Firebase, Production, Cloud, VPS, DNS,
 payment, public-release or human-pilot change is authorized.
+
+## Active release-readiness package: RW20A Play draft and OnePlus baseline
+
+The exact signed RW20 candidate `1.0.0+2026082601` was subsequently reported
+by the owner-provided MacBook Codex handover as uploaded to Google Play
+Internal and saved as a draft only. This Mac-mini worktree did not independently
+re-observe the Console, so the new record preserves that provenance rather
+than rewriting the earlier BUILD_READY evidence. The active Internal release
+remains `2026081509`; the OnePlus installation therefore proves installation
+of only that active build and no functional test.
+
+RW20A adds a sanitized, fail-closed Wireless-ADB baseline for the MacBook. It
+accepts exactly one physical OnePlus, the Play installer and exact active build
+`2026081509`, while making no device, account, network or Store mutation and no
+claim about draft build `2026082601`. `GOOGLE_PLAY_INTERNAL_RELEASE_GO`, human
+testing and all live/provider/payment/production gates remain closed.
