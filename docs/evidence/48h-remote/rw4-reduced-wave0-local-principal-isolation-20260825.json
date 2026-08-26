@@ -103,7 +103,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "bc21fd2900c6585d4962b8ca8bc20e0cf9678f19bbad4dbeb32875955b9ea2f7"
+      "sha256": "00373cff9187b019e14f0e3ca563432f539eff437b1902d7f8e45d9d4e8a4ae5"
     },
     {
       "path": "lib/services/data_service.dart",
@@ -131,7 +131,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "a1161f1788b19cbc1210495d25492f37567083f0780b4f3c3fdb30e328db19ad"
+      "sha256": "8750da9e5d59831267894767c17639ec5cdecc6cdd32127b8c754e6d16924e12"
     },
     {
       "path": "store/retention-deletion-readiness.json",

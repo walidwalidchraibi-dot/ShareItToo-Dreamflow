@@ -413,29 +413,6 @@ class AuthService {
         session.createdAt == owner.createdAt;
   }
 
-  static bool _storedRemoteSessionMatches(
-    String? raw, {
-    required String userId,
-    required String sessionId,
-    required String email,
-  }) {
-    if (raw == null || raw.isEmpty) return false;
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map) return false;
-      final map = Map<String, dynamic>.from(decoded);
-      return map['userId'] is String &&
-          (map['userId'] as String).trim() == userId.trim() &&
-          map['sessionId'] is String &&
-          (map['sessionId'] as String).trim() == sessionId.trim() &&
-          map['email'] is String &&
-          (map['email'] as String).trim().toLowerCase() ==
-              email.trim().toLowerCase();
-    } catch (_) {
-      return false;
-    }
-  }
-
   @visibleForTesting
   static Future<void> runBestEffortLogoutCleanup({
     required Future<void> Function() remoteLogout,
