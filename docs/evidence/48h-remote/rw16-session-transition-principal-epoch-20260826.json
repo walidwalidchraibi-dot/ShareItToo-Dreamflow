@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw16-session-transition-principal-epoch",
-  "status": "implemented-focused-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "39fc576627e3fefed019efe8ff1787b3b16eec2a",
-  "implementationHead": null,
+  "implementationHead": "4e307afa7f17cb0ac710ab19cea8f963c12b6dd4",
   "architecture": "docs/architecture/rw16-session-transition-principal-epoch-invariant-2026-08-26.md",
   "report": "docs/operations/RW16_SESSION_TRANSITION_PRINCIPAL_EPOCH_CLOSURE_2026-08-26.md",
   "predecessor": {
@@ -108,11 +108,11 @@
     "changedFileAnalyze": "passed-zero-issues",
     "rw16WiringTests": "passed-5",
     "rw16ValidatorTests": "passed-3",
-    "completeToolInventory": "pending",
+    "completeToolInventory": "passed-1915",
     "completeToolInventorySkipped": 0,
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "inventoryAudit": {
     "predecessorRepositoryOwnedFiles": 332,
@@ -123,8 +123,34 @@
     "executionPattern": "node --test test/tool/*.test.mjs",
     "standardNodeParallelism": true
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "4e307afa7f17cb0ac710ab19cea8f963c12b6dd4",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "completeToolInventoryPassed": 1915,
+    "completeToolInventorySkipped": 0,
+    "flutterPassed": 572,
+    "documentedProfileSkips": 3,
+    "analyzerIssues": 0,
+    "webDebugBuild": "passed-with-wasm-dry-run",
+    "loopbackSmoke": "passed",
+    "androidDebugTasks": 448,
+    "androidMinSdk": 24,
+    "cleanCheckoutMigrations": 112,
+    "cleanCheckoutAssets": 84,
+    "cleanCheckoutFinallyClean": true,
+    "privateReleaseArtifact": "unavailable-ci-metadata-validated",
+    "storeOrDeviceGateClaimed": false
+  },
+  "githubVerification": {
+    "head": "4e307afa7f17cb0ac710ab19cea8f963c12b6dd4",
+    "regressionRunId": 32940506007,
+    "codeqlRunId": 32940506056,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
   "ratchetAudit": {
     "cause": "RW16 adds a serialized exact-owner auth-session mutation boundary, conditional profile cleanup, confirmed-empty epoch semantics, owner-bound ProfileScreen logout and guarded LoginScreen cleanup; the supported regression gains the deterministic RW16 matrix.",
     "privacyDisclosureSemanticsChanged": false,
