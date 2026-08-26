@@ -80,8 +80,11 @@ export function validateBlueOceanN10InternalTesting({
     fail('N10 planned build number must advance monotonically.');
   }
   const pubspec = source(repositoryRoot, 'pubspec.yaml');
-  if (!pubspec.includes(`version: ${candidate.versionName}+${candidate.currentRepositoryBuildNumber}`)) {
-    fail('N10 current repository version binding is stale.');
+  const currentVersion = /^version:\s+([^+\s]+)\+(\d+)$/mu.exec(pubspec);
+  if (currentVersion === null
+      || currentVersion[1] !== candidate.versionName
+      || BigInt(currentVersion[2]) < BigInt(candidate.currentRepositoryBuildNumber)) {
+    fail('N10 current repository version regressed below its historical baseline.');
   }
 
   if (!exact(planValue.requiredBeforeCandidateBuild, [

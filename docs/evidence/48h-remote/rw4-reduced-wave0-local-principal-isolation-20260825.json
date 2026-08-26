@@ -131,7 +131,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3"
+      "sha256": "b84c196190dfdfe98258a3a130f50b26a5e01776a32efaeed36caa05bf37fc7e"
     },
     {
       "path": "store/retention-deletion-readiness.json",

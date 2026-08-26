@@ -16,13 +16,16 @@ test('N10 plan is Internal-only and explicitly unexecuted', () => {
   assert.ok(Object.values(plan.boundaries).every((entry) => entry === false));
 });
 
-test('N10 planned version advances beyond the current pubspec build', () => {
+test('N10 historical plan remains monotonic after later candidate cuts', () => {
   const pubspec = read('pubspec.yaml');
-  assert.match(pubspec, /version: 1\.0\.0\+2026082302/u);
+  const currentVersion = /^version:\s+([^+\s]+)\+(\d+)$/mu.exec(pubspec);
+  assert.notEqual(currentVersion, null);
+  assert.equal(currentVersion[1], plan.candidatePlan.versionName);
   assert.equal(plan.candidatePlan.currentRepositoryBuildNumber, '2026082302');
   assert.equal(plan.candidatePlan.plannedBuildNumber, '2026082401');
   assert.ok(BigInt(plan.candidatePlan.plannedBuildNumber)
     > BigInt(plan.candidatePlan.currentRepositoryBuildNumber));
+  assert.ok(BigInt(currentVersion[2]) >= BigInt(plan.candidatePlan.plannedBuildNumber));
 });
 
 test('N10 release notes state the internal non-binding no-money boundary', () => {

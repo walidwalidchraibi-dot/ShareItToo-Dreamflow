@@ -90,8 +90,11 @@ export function validateR15GooglePlayInternalReadyPack({
     fail('R15 candidate plan is invalid.');
   }
   const pubspec = source(repositoryRoot, 'pubspec.yaml');
-  if (!pubspec.includes('version: 1.0.0+2026082302')) {
-    fail('R15 repository build identity drifted before candidate cut.');
+  const currentVersion = /^version:\s+([^+\s]+)\+(\d+)$/mu.exec(pubspec);
+  if (currentVersion === null
+      || currentVersion[1] !== value.candidatePlan.versionName
+      || BigInt(currentVersion[2]) < BigInt(value.candidatePlan.reservedNextBuildNumber)) {
+    fail('R15 repository build identity regressed below the reserved historical candidate.');
   }
 
   if (!exact(value.gateSeparation, {
