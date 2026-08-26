@@ -184,6 +184,7 @@ export function validateRw19ProfileLocationMutationPrincipalEpochTransaction({
     }],
     ['.removeOwnedNavigationRoute', {
       'lib/screens/change_address_screen.dart': 1,
+      'lib/screens/create_listing_screen.dart': 1,
       'lib/screens/edit_profile_screen.dart': 1,
       'lib/screens/edit_social_media_screen.dart': 1,
       'lib/screens/profile_info_screen.dart': 1,

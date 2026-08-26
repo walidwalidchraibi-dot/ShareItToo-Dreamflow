@@ -12,9 +12,9 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/models/supply_enrichment.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/listing_mutation_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/backend_config.dart';
-import 'package:lendify/services/backend_repository.dart';
-import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/blue_ocean_draft_recovery_service.dart';
 import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
@@ -27,13 +27,19 @@ import 'package:lendify/openai/openai_config.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/widgets/private_pilot_risk_notice.dart';
+import 'package:lendify/widgets/listing_mutation_interaction.dart';
 import 'package:lendify/theme.dart';
 
 class CreateListingScreen extends StatefulWidget {
   final Item? existing; // when provided -> edit mode
   final SupplyEnrichmentPrefill? supplyPrefill;
-  const CreateListingScreen({super.key, this.existing, this.supplyPrefill})
-      : assert(existing == null || supplyPrefill == null);
+  final ListingMutationService listingMutationService;
+  const CreateListingScreen({
+    super.key,
+    this.existing,
+    this.supplyPrefill,
+    this.listingMutationService = const ListingMutationService(),
+  }) : assert(existing == null || supplyPrefill == null);
   @override
   State<CreateListingScreen> createState() => _CreateListingScreenState();
 }
@@ -148,6 +154,11 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       BlueOceanDraftRecoveryService();
   Timer? _blueOceanRecoveryDebounce;
   String? _currentOwnerId;
+  final _listingActions = ListingMutationInteractionController();
+  StreamSubscription<String>? _accountSecuritySubscription;
+
+  ListingMutationService get _listingMutationService =>
+      widget.listingMutationService;
   // Force-refresh discount rows when switching strategy so focused inputs also update
   int _strategyEpoch = 0;
 
@@ -155,6 +166,21 @@ class _CreateListingScreenState extends State<CreateListingScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _accountSecuritySubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key != SharedPersistenceSync.accountSecurityStateKey) return;
+      final ownedRoute = mounted ? ModalRoute.of(context) : null;
+      _debounce?.cancel();
+      _priceRecalcDebounce?.cancel();
+      _blueOceanRecoveryDebounce?.cancel();
+      _listingActions.invalidate();
+      if (mounted) {
+        setState(() {
+          _submitBusy = false;
+          _blueOceanBusy = false;
+        });
+        _listingActions.removeOwnedNavigationRoute(ownedRoute);
+      }
+    });
     for (final controller in <TextEditingController>[
       _titleCtrl,
       _descCtrl,
@@ -229,8 +255,17 @@ class _CreateListingScreenState extends State<CreateListingScreen>
 
   Future<void> _load() async {
     final cats = await DataService.getCategories();
-    final user = await DataService.getCurrentUser();
-    if (!mounted) return;
+    final listingContext = await _listingMutationService.loadCurrentContext();
+    final user = listingContext?.user;
+    if (!mounted ||
+        listingContext == null ||
+        !await _listingMutationService.isContextCurrent(listingContext)) {
+      return;
+    }
+    if (widget.existing != null && widget.existing!.ownerId != user!.id) {
+      _listingActions.invalidate();
+      return;
+    }
     // Build coarse/top-level groups in fixed order, limited to those present
     final present = <String>{
       for (final c in cats) DataService.coarseCategoryFor(c.name)
@@ -245,6 +280,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       final g = DataService.coarseCategoryFor(c.name);
       (byCoarse[g] ??= <Category>[]).add(c);
     }
+    _listingActions.replaceContext(listingContext);
     setState(() {
       _currentOwnerId = user?.id;
       _categories = cats;
@@ -286,6 +322,8 @@ class _CreateListingScreenState extends State<CreateListingScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _accountSecuritySubscription?.cancel();
+    _listingActions.dispose();
     _blueOceanRecoveryDebounce?.cancel();
     unawaited(_persistBlueOceanRecoverySnapshot());
     _titleCtrl.dispose();
@@ -711,6 +749,8 @@ class _CreateListingScreenState extends State<CreateListingScreen>
   }
 
   Future<void> _startBlueOceanAssistant() async {
+    final owner = _listingActions.capture();
+    if (owner == null) return;
     if (!_blueOceanConsentAccepted) {
       setState(() => _blueOceanError =
           'Bitte lies den Hinweis und stimme der ausgewählten Bildanalyse zu.');
@@ -740,13 +780,19 @@ class _CreateListingScreenState extends State<CreateListingScreen>
     try {
       final photoUrls = <String>[];
       for (var index = 0; index < _pickedImages.length; index++) {
-        if (mounted) {
+        if (mounted &&
+            await _listingActions.isCurrent(_listingMutationService, owner)) {
           setState(() => _blueOceanProgress =
               'Foto ${index + 1} von ${_pickedImages.length} wird vorbereitet …');
         }
         final file = _pickedImages[index];
-        photoUrls.add(await BackendRepository.uploadImage(
-          bytes: await file.readAsBytes(),
+        final bytes = await file.readAsBytes();
+        if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+          return;
+        }
+        photoUrls.add(await _listingMutationService.uploadImage(
+          context: owner.context,
+          bytes: bytes,
           filename: file.name,
         ));
       }
@@ -755,7 +801,8 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         setState(() => _blueOceanProgress =
             'Datenschutzprüfung und Entwurfserstellung laufen …');
       }
-      final assistant = await BackendRepository.analyzeBlueOceanListingDraft(
+      final assistant = await _listingMutationService.analyzeBlueOceanDraft(
+        context: owner.context,
         draftId: draftId,
         generationKey: _newBlueOceanGenerationKey('analyze'),
         photoUrls: photoUrls,
@@ -766,6 +813,10 @@ class _CreateListingScreenState extends State<CreateListingScreen>
           'disclosureText': _blueOceanDisclosureText,
         },
       );
+      if (!mounted) return;
+      if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _blueOceanPhotoUrls = List<String>.unmodifiable(photoUrls);
@@ -792,16 +843,24 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         unawaited(_persistBlueOceanRecoverySnapshot());
       }
       if (_blueOceanError != null) _focusBlueOceanMessage();
-    } on BackendException catch (error) {
-      if (!mounted) return;
+    } on ListingMutationFailure catch (failure) {
+      if (failure.kind == ListingMutationFailureKind.principalChanged ||
+          !mounted ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       setState(() {
         _blueOceanError =
-            'Die KI-Hilfe ist nicht verfügbar (${error.code}). Fotos und '
+            'Die KI-Hilfe ist nicht verfügbar (${failure.code ?? failure.kind.name}). Fotos und '
             'Eingaben bleiben erhalten; arbeite manuell weiter.';
         _blueOceanProgress = 'Manueller Fallback aktiv.';
       });
       _focusBlueOceanMessage();
     } catch (_) {
+      if (!mounted) return;
+      if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _blueOceanError =
@@ -811,7 +870,9 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       });
       _focusBlueOceanMessage();
     } finally {
-      if (mounted) setState(() => _blueOceanBusy = false);
+      if (mounted && _listingActions.isSynchronouslyCurrent(owner)) {
+        setState(() => _blueOceanBusy = false);
+      }
     }
   }
 
@@ -875,6 +936,8 @@ class _CreateListingScreenState extends State<CreateListingScreen>
   }
 
   Future<void> _reviewBlueOceanAssistant() async {
+    final owner = _listingActions.capture();
+    if (owner == null) return;
     final draftId = _blueOceanDraftId;
     if (draftId == null) return;
     if (!_blueOceanReplacementBandConfirmed) {
@@ -891,11 +954,15 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       _blueOceanReadyFingerprint = null;
     });
     try {
-      final assistant = await BackendRepository.reviewBlueOceanListingDraft(
+      final assistant = await _listingMutationService.reviewBlueOceanDraft(
+        context: owner.context,
         draftId: draftId,
         review: _blueOceanReviewPayload(finalPublication: true),
       );
-      if (!mounted) return;
+      if (!mounted ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       setState(() {
         _blueOceanAssistant = assistant;
         _blueOceanProgress = 'Vorschau wurde aktualisiert.';
@@ -915,18 +982,24 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         }
       });
       unawaited(_persistBlueOceanRecoverySnapshot());
-    } on BackendException catch (error) {
-      if (!mounted) return;
+    } on ListingMutationFailure catch (failure) {
+      if (failure.kind == ListingMutationFailureKind.principalChanged ||
+          !mounted ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       setState(() => _blueOceanError =
-          'Die Vorschau ist noch nicht bereit (${error.code}). Prüfe die '
+          'Die Vorschau ist noch nicht bereit (${failure.code ?? failure.kind.name}). Prüfe die '
               'markierten Angaben; der manuelle Editor bleibt verfügbar.');
       _focusBlueOceanMessage();
     } finally {
-      if (mounted) setState(() => _blueOceanBusy = false);
+      if (mounted && _listingActions.isSynchronouslyCurrent(owner)) {
+        setState(() => _blueOceanBusy = false);
+      }
     }
   }
 
-  Future<void> _pickFromCamera() async {
+  Future<void> _pickFromCamera(ListingMutationActionOwner owner) async {
     // Always prefer camera when explicitly chosen, including on Web.
     // On Web, image_picker's web implementation may open a file dialog,
     // but on supported devices it can trigger camera capture.
@@ -937,7 +1010,9 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         imageQuality: 85,
         maxWidth: 1600,
       );
-      if (file != null) {
+      if (file != null &&
+          mounted &&
+          await _listingActions.isCurrent(_listingMutationService, owner)) {
         setState(() {
           _photoAccessError = null;
           _clearBlueOceanDraftForPhotoChange();
@@ -945,7 +1020,10 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         });
       }
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       setState(() => _photoAccessError =
           'Die Kamera ist nicht verfügbar oder der Zugriff wurde abgelehnt. '
               'Du kannst den Zugriff in den Geräteeinstellungen erlauben oder '
@@ -953,7 +1031,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
     }
   }
 
-  Future<void> _pickFromGallery() async {
+  Future<void> _pickFromGallery(ListingMutationActionOwner owner) async {
     try {
       if (kIsWeb) {
         final res = await FilePicker.pickFiles(
@@ -961,7 +1039,10 @@ class _CreateListingScreenState extends State<CreateListingScreen>
           withData: true,
           type: FileType.image,
         );
-        if (res != null && res.files.isNotEmpty) {
+        if (res != null &&
+            res.files.isNotEmpty &&
+            mounted &&
+            await _listingActions.isCurrent(_listingMutationService, owner)) {
           setState(() {
             _photoAccessError = null;
             _clearBlueOceanDraftForPhotoChange();
@@ -974,7 +1055,9 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       }
       final List<XFile> files =
           await _picker.pickMultiImage(imageQuality: 85, maxWidth: 1600);
-      if (files.isNotEmpty) {
+      if (files.isNotEmpty &&
+          mounted &&
+          await _listingActions.isCurrent(_listingMutationService, owner)) {
         setState(() {
           _photoAccessError = null;
           _clearBlueOceanDraftForPhotoChange();
@@ -982,20 +1065,25 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         });
       }
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       setState(() => _photoAccessError =
           'Auf Fotos kann gerade nicht zugegriffen werden. Prüfe die '
               'Foto-Berechtigung in den Geräteeinstellungen und versuche es erneut.');
     }
   }
 
-  void _showPhotoSourceSheet() {
+  Future<void> _showPhotoSourceSheet() async {
+    final owner = _listingActions.capture();
+    if (owner == null) return;
     // Centered popup for picking photos with blurred background
-    showDialog<void>(
+    final source = await _listingActions.showOwnedDialog<String>(
       context: context,
+      owner: owner,
       barrierDismissible: true,
-      barrierColor: Colors.black.withValues(alpha: 0.25),
-      builder: (context) {
+      builder: (dialogContext) {
         return Material(
           type: MaterialType.transparency,
           child: SafeArea(
@@ -1004,7 +1092,7 @@ class _CreateListingScreenState extends State<CreateListingScreen>
               Positioned.fill(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () => Navigator.of(context).maybePop(),
+                  onTap: () => Navigator.of(dialogContext).pop(),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                     child: Container(color: Colors.transparent),
@@ -1017,66 +1105,67 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.black.withValues(alpha: 0.34)
-                          : AppTheme.surfacePrimary(context),
+                      color:
+                          Theme.of(dialogContext).brightness == Brightness.dark
+                              ? Colors.black.withValues(alpha: 0.34)
+                              : AppTheme.surfacePrimary(context),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: Theme.of(context).brightness == Brightness.dark
+                          color: Theme.of(dialogContext).brightness ==
+                                  Brightness.dark
                               ? Colors.white.withValues(alpha: 0.08)
                               : const Color(0xFFE2E8F0)),
-                      boxShadow: Theme.of(context).brightness == Brightness.dark
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
+                      boxShadow:
+                          Theme.of(dialogContext).brightness == Brightness.dark
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
                           leading: Icon(Icons.photo_camera,
-                              color: Theme.of(context).brightness ==
+                              color: Theme.of(dialogContext).brightness ==
                                       Brightness.dark
                                   ? Colors.white
-                                  : Theme.of(context).colorScheme.primary),
+                                  : Theme.of(dialogContext)
+                                      .colorScheme
+                                      .primary),
                           title: Text('Mit Kamera aufnehmen',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness ==
+                                  color: Theme.of(dialogContext).brightness ==
                                           Brightness.dark
                                       ? Colors.white
-                                      : AppTheme.textPrimary(context))),
-                          onTap: () async {
-                            Navigator.of(context).maybePop();
-                            await _pickFromCamera();
-                          },
+                                      : AppTheme.textPrimary(dialogContext))),
+                          onTap: () =>
+                              Navigator.of(dialogContext).pop('camera'),
                         ),
                         Divider(
                             height: 1,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.white12
-                                    : const Color(0xFFE2E8F0)),
+                            color: Theme.of(dialogContext).brightness ==
+                                    Brightness.dark
+                                ? Colors.white12
+                                : const Color(0xFFE2E8F0)),
                         ListTile(
                           leading: Icon(Icons.photo_library,
-                              color: Theme.of(context).brightness ==
+                              color: Theme.of(dialogContext).brightness ==
                                       Brightness.dark
                                   ? Colors.white
-                                  : AppTheme.textBody(context)),
+                                  : AppTheme.textBody(dialogContext)),
                           title: Text('Aus Galerie auswählen',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness ==
+                                  color: Theme.of(dialogContext).brightness ==
                                           Brightness.dark
                                       ? Colors.white
-                                      : AppTheme.textPrimary(context))),
-                          onTap: () async {
-                            Navigator.of(context).maybePop();
-                            await _pickFromGallery();
-                          },
+                                      : AppTheme.textPrimary(dialogContext))),
+                          onTap: () =>
+                              Navigator.of(dialogContext).pop('gallery'),
                         ),
                       ],
                     ),
@@ -1088,6 +1177,14 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         );
       },
     );
+    if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+      return;
+    }
+    if (source == 'camera') {
+      await _pickFromCamera(owner);
+    } else if (source == 'gallery') {
+      await _pickFromGallery(owner);
+    }
   }
 
   String _inferMimeFromName(String name) {
@@ -1102,56 +1199,67 @@ class _CreateListingScreenState extends State<CreateListingScreen>
 
   Future<void> _submit({bool forceInactive = false}) async {
     if (_submitBusy) return;
+    final owner = _listingActions.capture();
+    if (owner == null) return;
     setState(() => _submitBusy = true);
     try {
-      await _performSubmit(forceInactive: forceInactive);
+      await _performSubmit(owner, forceInactive: forceInactive);
+    } on ListingMutationFailure catch (failure) {
+      if (failure.kind == ListingMutationFailureKind.principalChanged ||
+          !mounted ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
+      await _showListingMutationFailure(owner, failure);
     } catch (_) {
-      if (!mounted) return;
-      AppPopup.error(
-        context,
-        title: 'Anzeige nicht gespeichert',
+      if (!mounted ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
+      await _showOwnedListingMessage(
+        owner,
+        title: 'Lokaler Stand nicht verfügbar',
         message:
-            'Fotos und Eingaben bleiben erhalten. Prüfe deine Anmeldung und den verfügbaren Gerätespeicher und versuche es erneut.',
+            'Fotos und Eingaben bleiben erhalten. Lade den Anzeigenstand neu, bevor du den Vorgang wiederholst.',
       );
     } finally {
-      if (mounted) setState(() => _submitBusy = false);
+      if (mounted && _listingActions.isSynchronouslyCurrent(owner)) {
+        setState(() => _submitBusy = false);
+      }
     }
   }
 
-  Future<void> _performSubmit({bool forceInactive = false}) async {
+  Future<void> _performSubmit(
+    ListingMutationActionOwner owner, {
+    bool forceInactive = false,
+  }) async {
     if (!_formKey.currentState!.validate()) {
       if (mounted) {
-        await AppPopup.show(
-          context,
-          icon: Icons.info_outline,
+        await _showOwnedListingMessage(
+          owner,
           title: 'Bitte Felder prüfen',
           message:
               'Einige Pflichtfelder sind noch unvollständig. Bitte fülle die markierten Felder aus.',
-          plainCloseIcon: true,
         );
       }
       return;
     }
 
     if (PrivatePilotConfig.enabled && !_privateStatusConfirmed) {
-      await AppPopup.show(
-        context,
-        icon: Icons.person_outline,
+      await _showOwnedListingMessage(
+        owner,
         title: 'Privatstatus bestaetigen',
         message: PrivatePilotConfig.listingPrivateDeclaration,
-        plainCloseIcon: true,
       );
       return;
     }
     if (PrivatePilotConfig.enabled &&
         !PrivatePilotConfig.categoryAllowed(_categoryId ?? '')) {
-      await AppPopup.show(
-        context,
-        icon: Icons.block_outlined,
+      await _showOwnedListingMessage(
+        owner,
         title: 'Kategorie im Privat-Pilot nicht zugelassen',
         message:
             'Bitte waehle eine Kategorie aus der technisch freigeschalteten Positivliste.',
-        plainCloseIcon: true,
       );
       return;
     }
@@ -1160,24 +1268,19 @@ class _CreateListingScreenState extends State<CreateListingScreen>
           _categoryId ?? '',
           _subcategory ?? '',
         )) {
-      await AppPopup.show(
-        context,
-        icon: Icons.block_outlined,
+      await _showOwnedListingMessage(
+        owner,
         title: 'Unterkategorie nicht zugelassen',
         message:
             'Bitte waehle eine serverseitig freigeschaltete Unterkategorie.',
-        plainCloseIcon: true,
       );
       return;
     }
 
-    final user = await DataService.getCurrentUser();
-    if (user == null) {
-      if (!mounted) return;
-      await AppPopup.toast(context,
-          icon: Icons.login, title: 'Bitte zuerst anmelden');
+    if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
       return;
     }
+    final user = owner.context.user;
     final blueOceanPublication =
         !forceInactive && !_isEdit && _blueOceanDraftId != null;
     if (blueOceanPublication) {
@@ -1229,13 +1332,11 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         _pickedImages.isEmpty &&
         _blueOceanPhotoUrls.isEmpty) {
       if (!mounted) return;
-      await AppPopup.show(
-        context,
-        icon: Icons.add_photo_alternate_outlined,
+      await _showOwnedListingMessage(
+        owner,
         title: 'Mindestens ein Foto erforderlich',
         message:
             'Füge ein echtes Foto des Artikels hinzu, bevor du die Anzeige veröffentlichst.',
-        plainCloseIcon: true,
       );
       return;
     }
@@ -1285,9 +1386,16 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       for (final f in _pickedImages) {
         try {
           final bytes = await f.readAsBytes();
+          if (!await _listingActions.isCurrent(
+            _listingMutationService,
+            owner,
+          )) {
+            return;
+          }
           if (productionBackend) {
             photos.add(
-              await BackendRepository.uploadImage(
+              await _listingMutationService.uploadImage(
+                context: owner.context,
                 bytes: bytes,
                 filename: f.name,
               ),
@@ -1351,30 +1459,38 @@ class _CreateListingScreenState extends State<CreateListingScreen>
         privateStatusConfirmed: _privateStatusConfirmed,
       );
 
-      late final Item saved;
-      try {
-        saved = await DataService.addItem(
+      final result = await _listingMutationService.execute(
+        context: owner.context,
+        command: ListingMutationCommand.create(
           item,
           supplyEnrichmentLink: widget.supplyPrefill?.link.toJson(),
           blueOceanDraftId: blueOceanPublication ? _blueOceanDraftId : null,
           blueOceanReview: blueOceanPublication
               ? _blueOceanReviewPayload(finalPublication: true)
               : null,
-        );
-      } on BackendException catch (error) {
-        if (!blueOceanPublication) rethrow;
-        if (!mounted) return;
-        setState(() => _blueOceanError =
-            'Die Veröffentlichung wurde nicht ausgeführt (${error.code}). '
-                'Fotos und Eingaben bleiben erhalten; prüfe sie im manuellen '
-                'Editor und versuche es erneut.');
-        _focusBlueOceanMessage();
+        ),
+      );
+      final saved = result.item!;
+      if (!mounted) return;
+      if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
         return;
       }
       if (!mounted) return;
-      await _clearBlueOceanRecoverySnapshot();
+      try {
+        await _clearBlueOceanRecoverySnapshot();
+      } catch (error) {
+        debugPrint('Blue Ocean recovery cleanup unavailable: $error');
+      }
       if (!mounted) return;
-      DataService.setLastCreateEvent(saved, draft: forceInactive);
+      if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
+      if (!mounted) return;
+      DataService.setLastCreateEventForOwner(
+        owner.context.owner.authOwner,
+        saved,
+        draft: forceInactive,
+      );
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigation()),
         (route) => false,
@@ -1433,7 +1549,15 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       catalogRevision: ex.catalogRevision,
     );
 
-    final savedUpdate = await DataService.updateItem(updated);
+    final result = await _listingMutationService.execute(
+      context: owner.context,
+      command: ListingMutationCommand.update(updated),
+    );
+    final savedUpdate = result.item!;
+    if (!mounted) return;
+    if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+      return;
+    }
     if (!mounted) return;
     if (forceInactive) {
       // Save edits only: return to "Meine Anzeigen" → drafts.
@@ -1443,13 +1567,55 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       Navigator.of(context).pop('drafts');
     } else {
       // Publish and show the same popup in Explore
-      DataService.setLastCreateEvent(savedUpdate, draft: false);
+      DataService.setLastCreateEventForOwner(
+        owner.context.owner.authOwner,
+        savedUpdate,
+        draft: false,
+      );
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainNavigation()),
         (route) => false,
       );
     }
   }
+
+  Future<void> _showListingMutationFailure(
+    ListingMutationActionOwner owner,
+    ListingMutationFailure failure,
+  ) =>
+      _showOwnedListingMessage(
+        owner,
+        title: failure.remoteAccepted
+            ? 'Serverseitig gespeichert'
+            : failure.kind == ListingMutationFailureKind.outcomeUnknown
+                ? 'Speicherstatus unklar'
+                : 'Speichern abgelehnt',
+        message: failure.remoteAccepted
+            ? 'Der Server hat die Anzeige verarbeitet, aber der lokale Stand konnte noch nicht sicher aktualisiert werden. Bitte lade deine Anzeigen neu.'
+            : failure.kind == ListingMutationFailureKind.outcomeUnknown
+                ? 'Die Anzeige könnte serverseitig verarbeitet worden sein. Bitte lade deine Anzeigen neu und prüfe den Stand, bevor du erneut speicherst.'
+                : 'Der Server hat die Änderung eindeutig abgelehnt. Fotos und Eingaben bleiben erhalten.',
+      );
+
+  Future<void> _showOwnedListingMessage(
+    ListingMutationActionOwner owner, {
+    required String title,
+    required String message,
+  }) =>
+      _listingActions.showOwnedDialog<void>(
+        context: context,
+        owner: owner,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
 
   // --- Address Autocomplete: debounced query ---
   void _onAddressQueryChanged(String q) {

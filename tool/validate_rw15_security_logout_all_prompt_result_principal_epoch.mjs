@@ -234,7 +234,7 @@ export function validateRw15SecurityLogoutAllPromptResultPrincipalEpoch({
     ['_securityService.revokeSession', { 'lib/screens/security_screen.dart': 1 }],
     ['_securityService.logoutAllSessions', { 'lib/screens/security_screen.dart': 1 }],
     ['AuthService.clearSession', {
-      'lib/services/data_service.dart': 1,
+      'lib/services/data_service.dart': 2,
     }],
     ['AuthService.requestEmailChange', {}],
     ['AuthService.requestPhoneVerification', {

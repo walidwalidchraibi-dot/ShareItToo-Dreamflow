@@ -92,7 +92,7 @@
     {"id": "data-service.test-session-clear-hook", "file": "lib/services/data_service.dart", "status": "test-only"}
   ],
   "callSiteInventory": [
-    {"symbol": "AuthService.clearSession", "paths": {"lib/services/data_service.dart": 1}},
+    {"symbol": "AuthService.clearSession", "paths": {"lib/services/data_service.dart": 2}},
     {"symbol": "_sessionTransitions.signOut", "paths": {"lib/screens/login_screen.dart": 1, "lib/screens/profile_screen.dart": 1, "lib/services/account_deletion_service.dart": 1}},
     {"symbol": "_sessionTransitions.clearStaleSession", "paths": {"lib/screens/login_screen.dart": 1}},
     {"symbol": "AuthService.requestEmailChange", "paths": {}},
@@ -166,9 +166,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061",
-    "retentionManifestSha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d",
-    "activeProviderEvidenceSha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417",
+    "privacyManifestSha256": "fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3",
+    "retentionManifestSha256": "46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5",
+    "activeProviderEvidenceSha256": "cf262db2553f18b5550e7e71962e66268304a1dc278ca3f0b561ad71642977ac",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -216,19 +216,19 @@
     {"path": "lib/screens/login_screen.dart", "sha256": "156e064e9f16ab85f86971562069455b9f1df9d2e3650eea193530215ff107d0"},
     {"path": "lib/services/account_deletion_service.dart", "sha256": "35229adf38b94f17f8c8c5c3779064e0fbac77a42da356d90831cf4c12d1ea1f"},
     {"path": "lib/services/auth_service.dart", "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"},
-    {"path": "lib/services/data_service.dart", "sha256": "190750fc19994e4cce7d2db2d1fd7b2b6161b6016f269330473b87843ee2404a"},
+    {"path": "lib/services/data_service.dart", "sha256": "33025acab9f61c52bbdcf06b7b18862504827cec12ac0a3eda0b1e69db7dfc90"},
     {"path": "lib/services/session_transition_service.dart", "sha256": "f7ff42ca7649ac1681d772e707d87d8a805c63e2962f71707a0490f321389804"},
     {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
     {"path": "lib/widgets/tracked_dialog_route.dart", "sha256": "e01ac3c1006f4098e6d5b289fa499272c44e2a314da93351f088879d43012454"},
-    {"path": "store/privacy-disclosures.json", "sha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061"},
-    {"path": "store/retention-deletion-readiness.json", "sha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d"},
-    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417"},
-    {"path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json", "sha256": "1d97a5d8991a0064c141f763600b9f4ce0ae56b21e3613e121238e2f2253e68c"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "32f817f1cae527cbf31b5e7a514a6476a149bfb0fbf9d9f3a717ad93086444d7"},
+    {"path": "store/privacy-disclosures.json", "sha256": "fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3"},
+    {"path": "store/retention-deletion-readiness.json", "sha256": "46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5"},
+    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "cf262db2553f18b5550e7e71962e66268304a1dc278ca3f0b561ad71642977ac"},
+    {"path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json", "sha256": "7aa0fc0877b83b58f07a899d9f20895bb9604ebc8a0a8c4be8426670b288fc69"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "4e60740f04d8bbdcb92bd4bfe20aa45dd6324cb65e0a2695740e19eddf921a03"},
     {"path": "test/rw16_session_transition_principal_epoch_test.dart", "sha256": "639b3cfe0c202f4a9e904cd841c8e9ee9403f2084d72bf78b232db4e35285c99"},
     {"path": "test/tool/rw16_session_transition_principal_epoch_wiring.test.mjs", "sha256": "c8fa98752e3c0ca2f663eef48b0b3c152ca87eebec5da1cd98d1389002669f9a"},
     {"path": "test/tool/validate_rw16_session_transition_principal_epoch.test.mjs", "sha256": "cf61e6c8809fa3ac1a3def1298014719cb6ab0d6aa35a25182a36b4dc4e571bd"},
-    {"path": "tool/validate_rw16_session_transition_principal_epoch.mjs", "sha256": "a90b230e1abb68f870937fa96b3b47ff0d07b408d74da1a1f1ccbb1c42687354"},
+    {"path": "tool/validate_rw16_session_transition_principal_epoch.mjs", "sha256": "06cb9d918f16169b3deb26b29eff0a1285876d931084f225842f035bc94e8546"},
     {"path": "docs/architecture/rw16-session-transition-principal-epoch-invariant-2026-08-26.md", "sha256": "0833d1ffa2fdbec023cf6ca8e790b5464542cf0c4ebc85e9dcde34059bc5adf1"},
     {"path": "docs/operations/RW16_SESSION_TRANSITION_PRINCIPAL_EPOCH_CLOSURE_2026-08-26.md", "sha256": "4500975aa6ed7d3d4df286194df1ed8c27c5a496dc16e164d1735ceb435568a4"}
   ]

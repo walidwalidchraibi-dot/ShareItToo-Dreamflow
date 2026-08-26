@@ -183,7 +183,7 @@ export function validateRw16SessionTransitionPrincipalEpoch({
 
   const expectedCallSites = [
     ['AuthService.clearSession', {
-      'lib/services/data_service.dart': 1,
+      'lib/services/data_service.dart': 2,
     }],
     ['_sessionTransitions.signOut', {
       'lib/screens/login_screen.dart': 1,
@@ -280,11 +280,11 @@ export function validateRw16SessionTransitionPrincipalEpoch({
     fail('RW16 ratchet audit is invalid.');
   }
   if (value.ratchets?.privacyManifestSha256
-        !== '4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061'
+        !== 'fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3'
       || value.ratchets?.retentionManifestSha256
-        !== '5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d'
+        !== '46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5'
       || value.ratchets?.activeProviderEvidenceSha256
-        !== '7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417'
+        !== 'cf262db2553f18b5550e7e71962e66268304a1dc278ca3f0b561ad71642977ac'
       || value.ratchets?.activeProviderState !== 'prepared-hold'
       || value.ratchets?.completedOwnerDecisions !== 0
       || value.ratchets?.requiredOwnerDecisions !== 10

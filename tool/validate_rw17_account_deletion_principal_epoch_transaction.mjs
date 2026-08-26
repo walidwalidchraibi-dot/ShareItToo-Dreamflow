@@ -144,7 +144,7 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
   )) fail('RW17 security-action inventory is invalid.');
 
   const expectedCallSites = [
-    ['AuthService.clearSession', {'lib/services/data_service.dart': 1}],
+    ['AuthService.clearSession', {'lib/services/data_service.dart': 2}],
     ['_sessionTransitions.signOut', {
       'lib/screens/login_screen.dart': 1,
       'lib/screens/profile_screen.dart': 1,

@@ -107,7 +107,7 @@
     {"id": "data-service.test-session-clear-hook", "file": "lib/services/data_service.dart", "status": "test-only"}
   ],
   "callSiteInventory": [
-    {"symbol": "AuthService.clearSession", "paths": {"lib/services/data_service.dart": 1}},
+    {"symbol": "AuthService.clearSession", "paths": {"lib/services/data_service.dart": 2}},
     {"symbol": "_sessionTransitions.signOut", "paths": {"lib/screens/login_screen.dart": 1, "lib/screens/profile_screen.dart": 1, "lib/services/account_deletion_service.dart": 1}},
     {"symbol": "_accountDeletionService.preflightCheck", "paths": {"lib/screens/account_settings_screen.dart": 1}},
     {"symbol": "_accountDeletionService.deleteAccount", "paths": {"lib/screens/account_settings_screen.dart": 1}},
@@ -181,9 +181,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061",
-    "retentionManifestSha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d",
-    "activeProviderEvidenceSha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417",
+    "privacyManifestSha256": "fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3",
+    "retentionManifestSha256": "46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5",
+    "activeProviderEvidenceSha256": "cf262db2553f18b5550e7e71962e66268304a1dc278ca3f0b561ad71642977ac",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -226,18 +226,18 @@
   "sourceInventory": [
     {"path": "lib/screens/account_settings_screen.dart", "sha256": "834bbac55e6e07ac9d69bace94bb5ad7072eb420dbe7d2ee940099b6d25aef68"},
     {"path": "lib/services/account_deletion_service.dart", "sha256": "35229adf38b94f17f8c8c5c3779064e0fbac77a42da356d90831cf4c12d1ea1f"},
-    {"path": "lib/services/data_service.dart", "sha256": "190750fc19994e4cce7d2db2d1fd7b2b6161b6016f269330473b87843ee2404a"},
+    {"path": "lib/services/data_service.dart", "sha256": "33025acab9f61c52bbdcf06b7b18862504827cec12ac0a3eda0b1e69db7dfc90"},
     {"path": "lib/services/local_safety_privacy_service.dart", "sha256": "915ba3a7230271b24b222fa92a5ed53baeb2914160009f11106e7b81b799767c"},
     {"path": "lib/services/auth_service.dart", "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"},
     {"path": "lib/services/session_transition_service.dart", "sha256": "f7ff42ca7649ac1681d772e707d87d8a805c63e2962f71707a0490f321389804"},
     {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
     {"path": "lib/widgets/tracked_dialog_route.dart", "sha256": "e01ac3c1006f4098e6d5b289fa499272c44e2a314da93351f088879d43012454"},
     {"path": "store/g2-data-lifecycle.json", "sha256": "1753947c8f92f4f6e82a6a7bb5e3a6e990368589b48dc3a1716ca7c9aecd749d"},
-    {"path": "store/privacy-disclosures.json", "sha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061"},
-    {"path": "store/retention-deletion-readiness.json", "sha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d"},
-    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417"},
-    {"path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json", "sha256": "4eae57db2ca7ad438a3c90f8ed1473679cdfb42fa64644a56047af937bde91de"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "32f817f1cae527cbf31b5e7a514a6476a149bfb0fbf9d9f3a717ad93086444d7"},
+    {"path": "store/privacy-disclosures.json", "sha256": "fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3"},
+    {"path": "store/retention-deletion-readiness.json", "sha256": "46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5"},
+    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "cf262db2553f18b5550e7e71962e66268304a1dc278ca3f0b561ad71642977ac"},
+    {"path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json", "sha256": "81bd4e56dde7c82ec018808810dcb5742ebeaa11e790c57b587cc0369a06bf06"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "4e60740f04d8bbdcb92bd4bfe20aa45dd6324cb65e0a2695740e19eddf921a03"},
     {"path": "test/rw17_account_deletion_principal_epoch_transaction_test.dart", "sha256": "b0557fc87729ec2a41b63e0413672706c2f8989bf25c1fb04526f802b4ff7c00"},
     {"path": "test/tool/rw5_local_safety_privacy_principal_isolation_wiring.test.mjs", "sha256": "a4dab4cfeee0ccb8d3275661dc779223493c7a3151dcba581fae52f25b3e69db"},
     {"path": "test/tool/rw6_local_operational_authorization_truth_recovery_wiring.test.mjs", "sha256": "747bafdbca6511cc36f439d5b9b48ef178659512b3beb4b148539a64c2638c8c"},
@@ -247,7 +247,7 @@
     {"path": "tool/validate_g2_data_lifecycle.mjs", "sha256": "6af95e4f644c3bcbec1fe8079af3ee22e5519dbc9e35e2fe165269e65f5dc400"},
     {"path": "tool/validate_privacy_disclosures.mjs", "sha256": "be9d1c2829d6f0f3c9904be75256b85038f3aa6ab4bb4f67a7ba769b1d1af62c"},
     {"path": "tool/validate_retention_deletion_readiness.mjs", "sha256": "6f813c1eae502d8a1188560dafa81e9c76872468e513b00fc15b6b1810d10cbf"},
-    {"path": "tool/validate_rw17_account_deletion_principal_epoch_transaction.mjs", "sha256": "f1c5441209a40ec49f03a28e1d716b1d10826ea412305a0c7cae8665f98a8112"},
+    {"path": "tool/validate_rw17_account_deletion_principal_epoch_transaction.mjs", "sha256": "8eb49893bee15be2601eeb5928250a8a6fac28ccd4d7eb588192674d8a9481c0"},
     {"path": "docs/architecture/rw17-account-deletion-principal-epoch-transaction-2026-08-26.md", "sha256": "4bb68272d4dab4d5e5d323004aac0e50f78b2e468b9bd782f5505280ec740ffc"},
     {"path": "docs/operations/RW17_ACCOUNT_DELETION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md", "sha256": "b251a3a131ff9dd434c417df4ef86aaca6e2aeb992db076d5a988a947f806fa7"}
   ]

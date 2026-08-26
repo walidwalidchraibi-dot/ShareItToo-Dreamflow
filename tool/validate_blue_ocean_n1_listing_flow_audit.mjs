@@ -93,7 +93,8 @@ export function validateBlueOceanN1ListingFlowAudit({
     'if (_submitBusy) return;',
     '_submitBusy || _blueOceanBusy ? null : _submit,',
     ': () => _submit(forceInactive: true),',
-    'await DataService.addItem(',
+    'await _listingMutationService.execute(',
+    'final owner = _listingActions.capture();',
   ]);
   requireMarkers(repositoryRoot, 'lib/config/private_pilot_config.dart', [
     'static const bool aiFeaturesEnabled = false;',

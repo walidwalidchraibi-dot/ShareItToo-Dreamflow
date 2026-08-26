@@ -14,7 +14,10 @@ test('optional G5A UI runs only after the success popup and fails open', () => {
   const popup = explore.indexOf('Future<void> _showCreatedPopup');
   const enrichment = explore.indexOf('Future<void> _showSupplyEnrichment');
   assert.ok(popup >= 0 && enrichment > popup);
-  assert.match(explore, /if \(!draft && mounted\) await _showSupplyEnrichment\(item\)/u);
+  assert.match(
+    explore,
+    /if \(!draft &&[\s\S]*_listingActions\.isCurrent\(_listingMutationService, owner\)[\s\S]*_showSupplyEnrichment\(owner, item\)/u,
+  );
   assert.match(explore, /SupplyEnrichmentTechnicalConfig\.available/u);
   assert.match(explore, /catch \(error\)[\s\S]*already-created listing stays/u);
   assert.match(config, /defaultValue: false/u);

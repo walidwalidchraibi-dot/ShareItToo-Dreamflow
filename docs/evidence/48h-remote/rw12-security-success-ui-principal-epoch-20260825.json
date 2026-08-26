@@ -133,9 +133,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061",
-    "retentionManifestSha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d",
-    "activeProviderEvidenceSha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417",
+    "privacyManifestSha256": "fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3",
+    "retentionManifestSha256": "46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5",
+    "activeProviderEvidenceSha256": "cf262db2553f18b5550e7e71962e66268304a1dc278ca3f0b561ad71642977ac",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -198,27 +198,27 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061"
+      "sha256": "fe49645d6ab920589a57fa78c47cb2e4a4431330850063d3b40347f5881dd4c3"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d"
+      "sha256": "46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417"
+      "sha256": "cf262db2553f18b5550e7e71962e66268304a1dc278ca3f0b561ad71642977ac"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "cc0cac40c1fec56cee7eddfe0b256201e842f2a0d19d405e87464e4d786e0752"
+      "sha256": "656751f388d4fa5852b8a137eb546ba97a49c57dd06d79af4b4285f474ec3fad"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
-      "sha256": "9b995a1cab7f584710600936b90814ca28add702d6d15a734684a4a60be7e28f"
+      "sha256": "a112283c55f033b08358371babc1cff5a6ea8f92c8576747e23e5eda0a6daf53"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "32f817f1cae527cbf31b5e7a514a6476a149bfb0fbf9d9f3a717ad93086444d7"
+      "sha256": "4e60740f04d8bbdcb92bd4bfe20aa45dd6324cb65e0a2695740e19eddf921a03"
     },
     {
       "path": "test/rw12_security_success_ui_principal_epoch_test.dart",

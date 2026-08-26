@@ -12,12 +12,14 @@ class SearchHeader extends StatelessWidget {
   final VoidCallback onFiltersPressed;
   final VoidCallback onSearchTap;
   final Future<void> Function(Item created)? onListingCreated;
+  final Future<Item?> Function()? onCreateListing;
 
   const SearchHeader(
       {super.key,
       required this.onFiltersPressed,
       required this.onSearchTap,
-      this.onListingCreated});
+      this.onListingCreated,
+      this.onCreateListing});
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +35,13 @@ class SearchHeader extends StatelessWidget {
           excludeSemantics: true,
           child: InkWell(
             onTap: () async {
+              if (onCreateListing != null) {
+                final created = await onCreateListing!();
+                if (created != null && onListingCreated != null) {
+                  await onListingCreated!(created);
+                }
+                return;
+              }
               final u = await DataService.getCurrentUser();
               if (!context.mounted) return;
               if (u == null) {

@@ -434,6 +434,11 @@ node --test \
   test/tool/rw19_profile_location_mutation_principal_epoch_transaction_wiring.test.mjs \
   test/tool/validate_rw19_profile_location_mutation_principal_epoch_transaction.test.mjs
 node tool/validate_rw19_profile_location_mutation_principal_epoch_transaction.mjs
+node --check tool/validate_rw20_listing_mutation_principal_epoch_transaction.mjs
+node --test \
+  test/tool/rw20_listing_mutation_principal_epoch_transaction_wiring.test.mjs \
+  test/tool/validate_rw20_listing_mutation_principal_epoch_transaction.test.mjs
+node tool/validate_rw20_listing_mutation_principal_epoch_transaction.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -1029,6 +1034,11 @@ flutter test --reporter expanded \
 # exact route ownership and Account-A/Account-B transition matrix.
 flutter test --reporter expanded \
   test/rw19_profile_location_mutation_principal_epoch_transaction_test.dart
+
+# Retain RW20's exact listing/media owner, action epoch, typed remote truth,
+# local rollback, exact route/event ownership and Account-A/Account-B matrix.
+flutter test --reporter expanded \
+  test/rw20_listing_mutation_principal_epoch_transaction_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

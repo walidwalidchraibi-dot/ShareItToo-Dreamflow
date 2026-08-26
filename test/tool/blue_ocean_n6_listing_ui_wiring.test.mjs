@@ -6,6 +6,10 @@ const screen = readFileSync('lib/screens/create_listing_screen.dart', 'utf8');
 const config = readFileSync('lib/config/private_pilot_config.dart', 'utf8');
 const repository = readFileSync('lib/services/backend_repository.dart', 'utf8');
 const dataService = readFileSync('lib/services/data_service.dart', 'utf8');
+const mutationService = readFileSync(
+  'lib/services/listing_mutation_service.dart',
+  'utf8',
+);
 const app = readFileSync('backend/src/app.js', 'utf8');
 
 test('Flutter gate is default-off while the complete manual editor remains present', () => {
@@ -132,7 +136,7 @@ test('client and server use separate authenticated review and exact publication 
   assert.match(repository, /\/blue-ocean\/listing-drafts\/\$\{Uri\.encodeComponent\(draftId\)\}\/review/u);
   assert.match(repository, /explicitAction': 'Anzeige veröffentlichen'/u);
   assert.match(dataService, /blueOceanDraftId != null && blueOceanReview != null/u);
-  assert.match(dataService, /BackendRepository\.createListing/u);
+  assert.match(dataService, /BackendRepository\.createListingForOwner/u);
   assert.match(app, /assertBlueOceanListingTechnicalAccess\(\)/u);
   assert.match(app, /requireAuth, requireActiveAccount, requireUnsuspendedScope\('listing'\)/u);
   assert.match(app, /req\.body\?\.explicitAction !== 'Anzeige veröffentlichen'/u);
@@ -140,11 +144,15 @@ test('client and server use separate authenticated review and exact publication 
   assert.match(app, /autoPublishAllowed: false/u);
   assert.match(
     screen,
-    /reviewBlueOceanListingDraft\([\s\S]*_blueOceanReviewPayload\(finalPublication: true\)/u,
+    /reviewBlueOceanDraft\([\s\S]*_blueOceanReviewPayload\(finalPublication: true\)/u,
   );
   assert.doesNotMatch(
     screen,
-    /reviewBlueOceanListingDraft\([\s\S]*_blueOceanReviewPayload\(finalPublication: false\)/u,
+    /reviewBlueOceanDraft\([\s\S]*_blueOceanReviewPayload\(finalPublication: false\)/u,
+  );
+  assert.match(
+    mutationService,
+    /reviewBlueOceanListingDraftForOwner\([\s\S]*owner: context\.owner\.authOwner/u,
   );
 });
 

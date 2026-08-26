@@ -336,6 +336,24 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['listing'] as Map);
   }
 
+  static Future<Map<String, dynamic>> createListingForOwner({
+    required AuthSessionOwner owner,
+    required Map<String, dynamic> listing,
+    Map<String, dynamic>? supplyEnrichmentLink,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path: '/listings',
+      body: <String, dynamic>{
+        ...listing,
+        if (supplyEnrichmentLink != null)
+          'supplyEnrichmentLink': supplyEnrichmentLink,
+      },
+    );
+    return Map<String, dynamic>.from(response['listing'] as Map);
+  }
+
   static Future<Map<String, dynamic>> analyzeBlueOceanListingDraft({
     required String draftId,
     required String generationKey,
@@ -356,11 +374,48 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['assistant'] as Map);
   }
 
+  static Future<Map<String, dynamic>> analyzeBlueOceanListingDraftForOwner({
+    required AuthSessionOwner owner,
+    required String draftId,
+    required String generationKey,
+    required List<String> photoUrls,
+    required Map<String, dynamic> consent,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path: '/blue-ocean/listing-drafts/analyze',
+      body: <String, dynamic>{
+        'draftId': draftId,
+        'generationKey': generationKey,
+        'photoUrls': photoUrls,
+        'consent': consent,
+      },
+      timeout: const Duration(seconds: 45),
+    );
+    return Map<String, dynamic>.from(response['assistant'] as Map);
+  }
+
   static Future<Map<String, dynamic>> reviewBlueOceanListingDraft({
     required String draftId,
     required Map<String, dynamic> review,
   }) async {
     final response = await _authorized(
+      method: 'POST',
+      path: '/blue-ocean/listing-drafts/${Uri.encodeComponent(draftId)}/review',
+      body: review,
+      timeout: const Duration(seconds: 30),
+    );
+    return Map<String, dynamic>.from(response['assistant'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> reviewBlueOceanListingDraftForOwner({
+    required AuthSessionOwner owner,
+    required String draftId,
+    required Map<String, dynamic> review,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/blue-ocean/listing-drafts/${Uri.encodeComponent(draftId)}/review',
       body: review,
@@ -391,10 +446,46 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['listing'] as Map);
   }
 
+  static Future<Map<String, dynamic>> publishBlueOceanListingForOwner({
+    required AuthSessionOwner owner,
+    required String draftId,
+    required Map<String, dynamic> review,
+    required Map<String, dynamic> listing,
+    Map<String, dynamic>? supplyEnrichmentLink,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path:
+          '/blue-ocean/listing-drafts/${Uri.encodeComponent(draftId)}/publish',
+      body: <String, dynamic>{
+        'explicitAction': 'Anzeige veröffentlichen',
+        'review': review,
+        'listing': listing,
+        if (supplyEnrichmentLink != null)
+          'supplyEnrichmentLink': supplyEnrichmentLink,
+      },
+      timeout: const Duration(seconds: 45),
+    );
+    return Map<String, dynamic>.from(response['listing'] as Map);
+  }
+
   static Future<Map<String, dynamic>> generateListingSupplyEnrichment(
     String listingId,
   ) async {
     final response = await _authorized(
+      method: 'POST',
+      path: '/listings/${Uri.encodeComponent(listingId)}/supply-enrichment',
+    );
+    return Map<String, dynamic>.from(response['enrichment'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> generateListingSupplyEnrichmentForOwner({
+    required AuthSessionOwner owner,
+    required String listingId,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/listings/${Uri.encodeComponent(listingId)}/supply-enrichment',
     );
@@ -407,6 +498,23 @@ class BackendRepository {
     required String outcome,
   }) async {
     final response = await _authorized(
+      method: 'POST',
+      path: '/listings/${Uri.encodeComponent(listingId)}'
+          '/supply-enrichment/${Uri.encodeComponent(suggestionId)}/outcome',
+      body: <String, dynamic>{'outcome': outcome},
+    );
+    return Map<String, dynamic>.from(response['result'] as Map);
+  }
+
+  static Future<Map<String, dynamic>>
+      recordListingSupplyEnrichmentOutcomeForOwner({
+    required AuthSessionOwner owner,
+    required String listingId,
+    required String suggestionId,
+    required String outcome,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/listings/${Uri.encodeComponent(listingId)}'
           '/supply-enrichment/${Uri.encodeComponent(suggestionId)}/outcome',
@@ -486,6 +594,20 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['listing'] as Map);
   }
 
+  static Future<Map<String, dynamic>> updateListingForOwner({
+    required AuthSessionOwner owner,
+    required Map<String, dynamic> listing,
+  }) async {
+    final id = listing['id']?.toString() ?? '';
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'PUT',
+      path: '/listings/${Uri.encodeComponent(id)}',
+      body: listing,
+    );
+    return Map<String, dynamic>.from(response['listing'] as Map);
+  }
+
   static Future<Map<String, dynamic>> updateListingStatus({
     required String id,
     required String status,
@@ -498,8 +620,33 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['listing'] as Map);
   }
 
+  static Future<Map<String, dynamic>> updateListingStatusForOwner({
+    required AuthSessionOwner owner,
+    required String id,
+    required String status,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'PATCH',
+      path: '/listings/${Uri.encodeComponent(id)}/status',
+      body: {'status': status},
+    );
+    return Map<String, dynamic>.from(response['listing'] as Map);
+  }
+
   static Future<void> deleteListing(String id) async {
     await _authorized(
+      method: 'DELETE',
+      path: '/listings/${Uri.encodeComponent(id)}',
+    );
+  }
+
+  static Future<void> deleteListingForOwner({
+    required AuthSessionOwner owner,
+    required String id,
+  }) async {
+    await _authorizedForOwner(
+      owner: owner,
       method: 'DELETE',
       path: '/listings/${Uri.encodeComponent(id)}',
     );
@@ -1634,6 +1781,42 @@ class BackendRepository {
       token = await AuthService.refreshAccessToken() ?? '';
       if (token.isNotEmpty) response = await send(token);
     }
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw BackendException(response.statusCode, 'upload_failed');
+    }
+    final value = jsonDecode(body);
+    if (value is! Map) {
+      throw const BackendException(500, 'invalid_server_response');
+    }
+    final decoded = Map<String, dynamic>.from(value);
+    final url = decoded['url']?.toString() ?? '';
+    if (url.isEmpty) {
+      throw const BackendException(500, 'invalid_upload_response');
+    }
+    return url;
+  }
+
+  static Future<String> uploadImageForOwner({
+    required AuthSessionOwner owner,
+    required Uint8List bytes,
+    required String filename,
+  }) async {
+    final token = await AuthService.accessTokenForOwner(owner);
+    if (token == null ||
+        token.isEmpty ||
+        !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const BackendException(401, 'authentication_required');
+    }
+    final request = http.MultipartRequest(
+      'POST',
+      BackendConfig.uri('/uploads'),
+    )
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
+    final response = await request.send().timeout(const Duration(seconds: 45));
     final body = await response.stream.bytesToString();
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw BackendException(response.statusCode, 'upload_failed');

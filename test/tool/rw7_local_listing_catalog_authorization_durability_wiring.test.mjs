@@ -70,8 +70,10 @@ test('owner listing surfaces clear and recheck account state', () => {
     ]) assert.match(source, new RegExp(escaped(marker), 'u'));
   }
   const create = read('lib/screens/create_listing_screen.dart');
-  assert.match(create, /Anzeige nicht gespeichert/u);
-  assert.match(create, /final savedUpdate = await DataService\.updateItem/u);
+  assert.match(create, /Speicherstatus unklar/u);
+  assert.match(create, /ListingMutationCommand\.update\(updated\)/u);
+  assert.match(create, /SharedPersistenceSync\.accountSecurityStateKey/u);
+  assert.doesNotMatch(create, /DataService\.updateItem\(/u);
 });
 
 test('lifecycle privacy and retention manifests bind local listings', () => {

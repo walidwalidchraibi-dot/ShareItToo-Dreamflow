@@ -10,7 +10,7 @@ const pickedThumb = source.match(
   /class _PickedThumb[\s\S]*?\n\}\n\n\/\/ ---------- Simple Accordion/u,
 )?.[0];
 const cameraPicker = source.match(
-  /Future<void> _pickFromCamera\(\)[\s\S]*?(?=\n  Future<void> _pickFromGallery\(\))/u,
+  /Future<void> _pickFromCamera\(ListingMutationActionOwner owner\)[\s\S]*?(?=\n  Future<void> _pickFromGallery\()/u,
 )?.[0];
 
 assert.ok(pickedThumb, 'expected the picked-photo thumbnail widget');
@@ -31,15 +31,15 @@ test('photo-preview lifecycle fix contains no timing or lint accommodation', () 
 test('camera and gallery failures stay visible without silently switching sources', () => {
   assert.match(
     source,
-    /Future<void> _pickFromCamera\(\)[\s\S]*catch \(_\)[\s\S]*_photoAccessError =\s*'Die Kamera ist nicht verfügbar/u,
+    /Future<void> _pickFromCamera\(ListingMutationActionOwner owner\)[\s\S]*_listingActions\.isCurrent[\s\S]*catch \(_\)[\s\S]*_photoAccessError =\s*'Die Kamera ist nicht verfügbar/u,
   );
   assert.match(
     source,
-    /Future<void> _pickFromGallery\(\)[\s\S]*catch \(_\)[\s\S]*_photoAccessError =\s*'Auf Fotos kann gerade nicht zugegriffen werden/u,
+    /Future<void> _pickFromGallery\(ListingMutationActionOwner owner\)[\s\S]*_listingActions\.isCurrent[\s\S]*catch \(_\)[\s\S]*_photoAccessError =\s*'Auf Fotos kann gerade nicht zugegriffen werden/u,
   );
   assert.match(
     source,
     /if \(_photoAccessError case final error\?\)[\s\S]*Semantics\(\s*liveRegion: true,\s*label: error,/u,
   );
-  assert.doesNotMatch(cameraPicker, /_pickFromGallery\(\)/u);
+  assert.doesNotMatch(cameraPicker, /_pickFromGallery\(/u);
 });

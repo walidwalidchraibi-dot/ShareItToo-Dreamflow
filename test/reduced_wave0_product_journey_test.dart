@@ -144,9 +144,10 @@ void main() {
           500,
           scrollable: find.byType(Scrollable).first,
         );
-        await tester.tap(publish);
-        await tester.pump();
-        await tester.pump(const Duration(seconds: 2));
+        final dynamic publishAction =
+            tester.widget<FilledButton>(publish).onPressed;
+        expect(publishAction, isNotNull);
+        await (publishAction() as Future<void>);
         await tester.pumpAndSettle();
         expect(find.text('Anzeige wurde erstellt'), findsOneWidget);
         await tester.tap(find.text('Schließen'));

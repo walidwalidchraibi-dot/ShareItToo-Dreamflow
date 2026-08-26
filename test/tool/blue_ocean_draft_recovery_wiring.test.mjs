@@ -67,7 +67,7 @@ test('recovery clears on logout, photo mutation, and successful publication', ()
   );
   assert.match(
     screen,
-    /saved = await DataService\.addItem[\s\S]*await _clearBlueOceanRecoverySnapshot\(\);[\s\S]*Navigator\.of\(context\)/u,
+    /_listingMutationService\.execute\([\s\S]*ListingMutationCommand\.create[\s\S]*await _clearBlueOceanRecoverySnapshot\(\);[\s\S]*Navigator\.of\(context\)/u,
   );
 });
 
@@ -104,14 +104,14 @@ test('double taps and interrupted publication retries cannot duplicate a listing
 test('backend and price-review failures preserve the manual editor state', () => {
   assert.match(
     screen,
-    /Future<void> _startBlueOceanAssistant\(\)[\s\S]*on BackendException catch \(error\)[\s\S]*Fotos und '[\s\S]*'Eingaben bleiben erhalten; arbeite manuell weiter/u,
+    /Future<void> _startBlueOceanAssistant\(\)[\s\S]*on ListingMutationFailure catch \(failure\)[\s\S]*Fotos und '[\s\S]*'Eingaben bleiben erhalten; arbeite manuell weiter/u,
   );
   assert.match(
     screen,
-    /Future<void> _reviewBlueOceanAssistant\(\)[\s\S]*on BackendException catch \(error\)[\s\S]*Die Vorschau ist noch nicht bereit/u,
+    /Future<void> _reviewBlueOceanAssistant\(\)[\s\S]*on ListingMutationFailure catch \(failure\)[\s\S]*Die Vorschau ist noch nicht bereit/u,
   );
   assert.doesNotMatch(
     screen,
-    /on BackendException catch \(error\)[\s\S]{0,600}_pickedImages\.clear\(\)/u,
+    /on ListingMutationFailure catch \(failure\)[\s\S]{0,600}_pickedImages\.clear\(\)/u,
   );
 });

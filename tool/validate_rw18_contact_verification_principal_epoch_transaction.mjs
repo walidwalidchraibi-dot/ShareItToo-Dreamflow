@@ -170,7 +170,7 @@ export function validateRw18ContactVerificationPrincipalEpochTransaction({
     ['AuthService.requestEmailChange', {}],
     ['AuthService.requestEmailVerification', {}],
     ['AuthService.accessTokenForOwner', {
-      'lib/services/backend_repository.dart': 1,
+      'lib/services/backend_repository.dart': 2,
       'lib/services/contact_verification_service.dart': 1,
     }],
     ['.requestEmailChange', {'lib/screens/contact_data_screen.dart': 1}],

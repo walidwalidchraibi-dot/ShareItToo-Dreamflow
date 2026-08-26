@@ -92,7 +92,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "190750fc19994e4cce7d2db2d1fd7b2b6161b6016f269330473b87843ee2404a"
+      "sha256": "33025acab9f61c52bbdcf06b7b18862504827cec12ac0a3eda0b1e69db7dfc90"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -104,7 +104,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "a89e1c926c2ee85e984385ac90f104b20c80a40753436fcfef8db2de2c1625dc"
+      "sha256": "4eca35986e26d89baac928b2924e4f8621d4176e371a0495128defb036f4393e"
     },
     {
       "path": "lib/screens/search_results_screen.dart",
@@ -120,7 +120,7 @@
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",
-      "sha256": "fc58bb4c6047924c5703594e78c9c4a9e3b3ba9ffd0be7272e71670eafc884e3"
+      "sha256": "ba2352016de900bfd06c0534593926d78b324fa079a1c79bfc8da2c90db900aa"
     },
     {
       "path": "store/g2-data-lifecycle.json",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "32f817f1cae527cbf31b5e7a514a6476a149bfb0fbf9d9f3a717ad93086444d7"
+      "sha256": "4e60740f04d8bbdcb92bd4bfe20aa45dd6324cb65e0a2695740e19eddf921a03"
     },
     {
       "path": "test/reduced_wave0_local_state_truth_recovery_test.dart",

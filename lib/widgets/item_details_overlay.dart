@@ -115,6 +115,25 @@ class LinkedListingDetailsScreen extends StatelessWidget {
       );
 }
 
+class OwnerListingDetailsScreen extends StatelessWidget {
+  final Item item;
+  final String? overrideAppBarTitle;
+
+  const OwnerListingDetailsScreen({
+    super.key,
+    required this.item,
+    this.overrideAppBarTitle,
+  });
+
+  @override
+  Widget build(BuildContext context) => _ItemDetailsPage(
+        item: item,
+        ownerFuture: DataService.getUserById(item.ownerId),
+        isOwnerPreview: true,
+        overrideAppBarTitle: overrideAppBarTitle,
+      );
+}
+
 class _ItemDetailsSheet extends StatefulWidget {
   final Item item;
   final Future<model.User?> ownerFuture;

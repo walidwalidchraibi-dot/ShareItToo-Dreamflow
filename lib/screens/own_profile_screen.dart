@@ -6,6 +6,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/profile_mutation_service.dart';
+import 'package:lendify/services/listing_mutation_service.dart';
 import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:provider/provider.dart';
@@ -13,17 +14,19 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/user_avatar.dart';
-import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/profile_mutation_interaction.dart';
+import 'package:lendify/widgets/listing_mutation_interaction.dart';
 
 class OwnProfileScreen extends StatefulWidget {
   final int initialTabIndex;
   final ProfileMutationService profileMutationService;
+  final ListingMutationService listingMutationService;
 
   const OwnProfileScreen({
     super.key,
     this.initialTabIndex = 0,
     this.profileMutationService = const ProfileMutationService(),
+    this.listingMutationService = const ListingMutationService(),
   });
   @override
   State<OwnProfileScreen> createState() => _OwnProfileScreenState();
@@ -41,9 +44,13 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
   final SharedPersistenceRefreshCoordinator _refreshCoordinator =
       SharedPersistenceRefreshCoordinator();
   final _profileActions = ProfileMutationInteractionController();
+  final _listingActions = ListingMutationInteractionController();
+  int _loadRevision = 0;
 
   ProfileMutationService get _profileMutationService =>
       widget.profileMutationService;
+  ListingMutationService get _listingMutationService =>
+      widget.listingMutationService;
 
   @override
   void initState() {
@@ -54,7 +61,10 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
         initialIndex: widget.initialTabIndex.clamp(0, 4));
     _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
       if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _loadRevision += 1;
         _profileActions.invalidate();
+        _listingActions.invalidate();
+        if (mounted) setState(() => _loading = true);
         unawaited(_refreshCoordinator.schedule(_load));
         return;
       }
@@ -71,6 +81,7 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
   }
 
   Future<void> _load() async {
+    final revision = ++_loadRevision;
     if (mounted) {
       setState(() {
         _loading = true;
@@ -82,6 +93,7 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
     }
     try {
       final profileContext = await _profileMutationService.loadCurrentContext();
+      final listingContext = await _listingMutationService.loadCurrentContext();
       final user = profileContext?.user;
       final expectedUserId = user?.id.trim() ?? '';
       if (expectedUserId.isEmpty) {
@@ -89,11 +101,15 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
       }
       final items = await DataService.getItems();
       if (profileContext == null ||
-          !await _profileMutationService.isContextCurrent(profileContext)) {
+          listingContext == null ||
+          listingContext.user.id != expectedUserId ||
+          !await _profileMutationService.isContextCurrent(profileContext) ||
+          !await _listingMutationService.isContextCurrent(listingContext)) {
         throw StateError('Das angemeldete Konto hat sich geändert.');
       }
-      if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
       _profileActions.replaceContext(profileContext);
+      _listingActions.replaceContext(listingContext);
       setState(() {
         _user = user;
         _myItems =
@@ -102,7 +118,7 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
         _loading = false;
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
       setState(() {
         _user = null;
         _myItems = const <Item>[];
@@ -118,6 +134,7 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
     _persistenceSubscription?.cancel();
     _refreshCoordinator.dispose();
     _profileActions.dispose();
+    _listingActions.dispose();
     _tabController.dispose();
     _bioCtrl.dispose();
     super.dispose();
@@ -157,7 +174,11 @@ class _OwnProfileScreenState extends State<OwnProfileScreen>
           : _loadError != null
               ? _OwnProfileLoadFailure(message: _loadError!, onRetry: _load)
               : TabBarView(controller: _tabController, children: [
-                  _ListingsTab(items: _myItems),
+                  _ListingsTab(
+                    items: _myItems,
+                    listingContext: _listingActions.context!,
+                    listingMutationService: _listingMutationService,
+                  ),
                   _InterestsTab(user: _user, onChanged: _updateUserInterests),
                   const _BookingsHistoryTab(),
                   _ReviewsTab(
@@ -357,7 +378,13 @@ class _OwnProfileLoadFailure extends StatelessWidget {
 
 class _ListingsTab extends StatefulWidget {
   final List<Item> items;
-  const _ListingsTab({required this.items});
+  final ListingMutationContext listingContext;
+  final ListingMutationService listingMutationService;
+  const _ListingsTab({
+    required this.items,
+    required this.listingContext,
+    required this.listingMutationService,
+  });
   @override
   State<_ListingsTab> createState() => _ListingsTabState();
 }
@@ -367,11 +394,22 @@ class _ListingsTabState extends State<_ListingsTab> {
   String _bucket = 'active'; // active | requests | paused | draft
   bool _actionBusy = false;
   String? _loadError;
+  final _listingActions = ListingMutationInteractionController();
+  StreamSubscription<String>? _accountSecuritySubscription;
+
+  ListingMutationService get _listingMutationService =>
+      widget.listingMutationService;
 
   @override
   void initState() {
     super.initState();
     _items = List.of(widget.items);
+    _listingActions.replaceContext(widget.listingContext);
+    _accountSecuritySubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _listingActions.invalidate();
+      }
+    });
   }
 
   @override
@@ -381,6 +419,16 @@ class _ListingsTabState extends State<_ListingsTab> {
       _items = List<Item>.of(widget.items);
       _loadError = null;
     }
+    if (!identical(oldWidget.listingContext, widget.listingContext)) {
+      _listingActions.replaceContext(widget.listingContext);
+    }
+  }
+
+  @override
+  void dispose() {
+    _accountSecuritySubscription?.cancel();
+    _listingActions.dispose();
+    super.dispose();
   }
 
   List<Item> _applyBucket(List<Item> src) {
@@ -402,14 +450,13 @@ class _ListingsTabState extends State<_ListingsTab> {
 
   Future<void> _reload() async {
     try {
-      final current = await DataService.getCurrentUser();
-      final expectedUserId = current?.id.trim() ?? '';
-      if (expectedUserId.isEmpty) {
+      final currentContext = _listingActions.context;
+      final expectedUserId = currentContext?.user.id.trim() ?? '';
+      if (currentContext == null || expectedUserId.isEmpty) {
         throw StateError('Für deine Anzeigen ist eine Anmeldung erforderlich.');
       }
       final items = await DataService.getItems();
-      final rechecked = await DataService.getCurrentUser();
-      if (rechecked?.id.trim() != expectedUserId) {
+      if (!await _listingMutationService.isContextCurrent(currentContext)) {
         throw StateError('Das angemeldete Konto hat sich geändert.');
       }
       if (!mounted) return;
@@ -428,30 +475,126 @@ class _ListingsTabState extends State<_ListingsTab> {
 
   Future<void> _changeStatus(Item item, String status) async {
     if (_actionBusy) return;
+    final owner = _listingActions.capture();
+    if (owner == null || owner.context.user.id != item.ownerId) return;
     setState(() => _actionBusy = true);
     try {
-      final current = await DataService.getCurrentUser();
-      if (current?.id != item.ownerId) {
-        throw StateError('Die Anzeige gehört zu einem anderen Konto.');
+      await _listingMutationService.execute(
+        context: owner.context,
+        command: ListingMutationCommand.updateStatus(item, status),
+      );
+      if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
       }
-      await DataService.updateItemStatus(itemId: item.id, status: status);
       await _reload();
       if (_loadError != null) {
         throw StateError('Die Anzeige konnte nicht sicher neu geladen werden.');
       }
-    } catch (_) {
+    } on ListingMutationFailure catch (failure) {
+      if (failure.kind == ListingMutationFailureKind.principalChanged ||
+          !await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
       await _reload();
-      if (mounted) {
-        AppPopup.error(
-          context,
-          title: 'Änderung nicht gespeichert',
-          message:
-              'Die Anzeige blieb unverändert. Prüfe deine Anmeldung und versuche es erneut.',
+      if (mounted &&
+          await _listingActions.isCurrent(_listingMutationService, owner)) {
+        await _showListingMutationFailure(owner, failure);
+      }
+    } catch (_) {
+      if (await _listingActions.isCurrent(_listingMutationService, owner)) {
+        await _showOwnedListingMessage(
+          owner,
+          title: 'Lokaler Stand nicht verfügbar',
+          message: 'Lade deine Anzeigen neu, bevor du die Aktion wiederholst.',
         );
       }
     } finally {
-      if (mounted) setState(() => _actionBusy = false);
+      if (mounted && _listingActions.isSynchronouslyCurrent(owner)) {
+        setState(() => _actionBusy = false);
+      }
     }
+  }
+
+  Future<void> _showListingMutationFailure(
+    ListingMutationActionOwner owner,
+    ListingMutationFailure failure,
+  ) =>
+      _showOwnedListingMessage(
+        owner,
+        title: failure.remoteAccepted
+            ? 'Serverseitig verarbeitet'
+            : failure.kind == ListingMutationFailureKind.outcomeUnknown
+                ? 'Änderungsstatus unklar'
+                : 'Änderung abgelehnt',
+        message: failure.remoteAccepted
+            ? 'Der Server hat die Änderung bestätigt, aber der lokale Anzeigenstand konnte noch nicht sicher aktualisiert werden. Bitte neu laden.'
+            : failure.kind == ListingMutationFailureKind.outcomeUnknown
+                ? 'Die Änderung könnte serverseitig verarbeitet worden sein. Bitte neu laden und den Status prüfen, bevor du sie wiederholst.'
+                : 'Der Server hat die Änderung eindeutig abgelehnt.',
+      );
+
+  Future<void> _showOwnedListingMessage(
+    ListingMutationActionOwner owner, {
+    required String title,
+    required String message,
+  }) =>
+      _listingActions.showOwnedDialog<void>(
+        context: context,
+        owner: owner,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _openOwnerPreview(Item item) async {
+    final owner = _listingActions.capture();
+    if (owner == null || owner.context.user.id != item.ownerId) return;
+    await _listingActions.pushOwnedRoute<void>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute<void>(
+        builder: (_) => OwnerListingDetailsScreen(item: item),
+      ),
+    );
+  }
+
+  Future<void> _showListingActions(Item item) async {
+    if (_actionBusy) return;
+    final owner = _listingActions.capture();
+    if (owner == null || owner.context.user.id != item.ownerId) return;
+    final actions = item.status == 'draft'
+        ? <(String, String)>[('active', 'Veröffentlichen')]
+        : <(String, String)>[
+            if (item.status != 'active') ('active', 'Aktivieren'),
+            if (item.status != 'paused') ('paused', 'Pausieren'),
+            if (item.status != 'ended') ('ended', 'Beenden'),
+          ];
+    final selected = await _listingActions.showOwnedDialog<String>(
+      context: context,
+      owner: owner,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Status ändern'),
+        children: [
+          for (final action in actions)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(action.$1),
+              child: Text(action.$2),
+            ),
+        ],
+      ),
+    );
+    if (selected == null ||
+        !await _listingActions.isCurrent(_listingMutationService, owner)) {
+      return;
+    }
+    await _changeStatus(item, selected);
   }
 
   @override
@@ -527,8 +670,7 @@ class _ListingsTabState extends State<_ListingsTab> {
             _ => Colors.white.withValues(alpha: 0.10)
           };
           return InkWell(
-            onTap: () => ItemDetailsOverlay.showFullPage(context,
-                item: it, isOwnerPreview: true),
+            onTap: () => _openOwnerPreview(it),
             borderRadius: BorderRadius.circular(12),
             child: Container(
               decoration: BoxDecoration(
@@ -593,29 +735,12 @@ class _ListingsTabState extends State<_ListingsTab> {
                                             .labelSmall
                                             ?.copyWith(color: Colors.white))),
                                 const Spacer(),
-                                PopupMenuButton<String>(
+                                IconButton(
                                   tooltip: 'Status ändern',
-                                  enabled: !_actionBusy,
-                                  onSelected: (v) => _changeStatus(it, v),
-                                  itemBuilder: (context) => [
-                                    if (it.status != 'active')
-                                      const PopupMenuItem(
-                                          value: 'active',
-                                          child: Text('Aktivieren')),
-                                    if (it.status != 'paused')
-                                      const PopupMenuItem(
-                                          value: 'paused',
-                                          child: Text('Pausieren')),
-                                    if (it.status != 'ended')
-                                      const PopupMenuItem(
-                                          value: 'ended',
-                                          child: Text('Beenden')),
-                                    if (it.status == 'draft')
-                                      const PopupMenuItem(
-                                          value: 'active',
-                                          child: Text('Veröffentlichen')),
-                                  ],
-                                  child: const Icon(Icons.more_vert,
+                                  onPressed: _actionBusy
+                                      ? null
+                                      : () => _showListingActions(it),
+                                  icon: const Icon(Icons.more_vert,
                                       color: Colors.white70),
                                 )
                               ])

@@ -187,6 +187,73 @@ class AccountProfileMutationResult {
   });
 }
 
+enum AccountListingMutationFailureKind {
+  rejected,
+  localUnavailable,
+  outcomeUnknown,
+  principalChanged,
+}
+
+class AccountListingMutationFailure implements Exception {
+  final AccountListingMutationFailureKind kind;
+  final String? code;
+  final bool remoteAccepted;
+
+  const AccountListingMutationFailure._(
+    this.kind, {
+    this.code,
+    this.remoteAccepted = false,
+  });
+
+  const AccountListingMutationFailure.rejected(String code)
+      : this._(AccountListingMutationFailureKind.rejected, code: code);
+
+  const AccountListingMutationFailure.localUnavailable(
+    String? code, {
+    bool remoteAccepted = false,
+  }) : this._(
+          AccountListingMutationFailureKind.localUnavailable,
+          code: code,
+          remoteAccepted: remoteAccepted,
+        );
+
+  const AccountListingMutationFailure.outcomeUnknown([String? code])
+      : this._(AccountListingMutationFailureKind.outcomeUnknown, code: code);
+
+  const AccountListingMutationFailure.principalChanged({
+    bool remoteAccepted = false,
+  }) : this._(
+          AccountListingMutationFailureKind.principalChanged,
+          remoteAccepted: remoteAccepted,
+        );
+}
+
+class AccountListingMutationResult {
+  final Item? item;
+  final bool remoteAccepted;
+
+  const AccountListingMutationResult({
+    required this.item,
+    required this.remoteAccepted,
+  });
+}
+
+class _OwnedListingCreateEvent {
+  final AuthSessionOwner owner;
+  final Item item;
+  final bool draft;
+
+  const _OwnedListingCreateEvent({
+    required this.owner,
+    required this.item,
+    required this.draft,
+  });
+}
+
+class _AccountListingMutationAttempt {
+  bool remoteAccepted = false;
+}
+
 class _LocalWishlistState {
   final int revision;
   final List<Map<String, dynamic>> lists;
@@ -351,6 +418,7 @@ class DataService {
   static final _LocalMutationQueue _accountProfileMutationQueue =
       _LocalMutationQueue();
   static bool _failNextListingPersistenceForTesting = false;
+  static bool _clearSessionDuringNextListingPersistenceForTesting = false;
   static bool _failNextReviewPersistenceForTesting = false;
   static bool _failNextAccountProfilePersistenceForTesting = false;
   static bool _clearSessionDuringNextAccountProfilePersistenceForTesting =
@@ -636,8 +704,9 @@ class DataService {
 
   static Future<void> _persistListings(
     SharedPreferences prefs,
-    List<Item> items,
-  ) async {
+    List<Item> items, {
+    Future<void> Function()? verifyAuthorization,
+  }) async {
     if (items.length > _maxLocalListings) {
       throw StateError('Der lokale Anzeigenkatalog ist voll.');
     }
@@ -645,11 +714,17 @@ class DataService {
     _decodeListingsStrict(encoded);
     final previous = prefs.getString(_itemsKey);
     try {
+      await verifyAuthorization?.call();
       if (_failNextListingPersistenceForTesting) {
         _failNextListingPersistenceForTesting = false;
         throw StateError('Synthetic local listing persistence failure.');
       }
       await _writePreferenceString(prefs, _itemsKey, encoded);
+      if (_clearSessionDuringNextListingPersistenceForTesting) {
+        _clearSessionDuringNextListingPersistenceForTesting = false;
+        await AuthService.clearSession();
+      }
+      await verifyAuthorization?.call();
     } catch (_) {
       final current = prefs.getString(_itemsKey);
       if (current != previous) {
@@ -674,6 +749,11 @@ class DataService {
   @visibleForTesting
   static void failNextListingPersistenceForTesting() {
     _failNextListingPersistenceForTesting = true;
+  }
+
+  @visibleForTesting
+  static void clearSessionDuringNextListingPersistenceForTesting() {
+    _clearSessionDuringNextListingPersistenceForTesting = true;
   }
 
   /// Read-only backend refreshes update the local cache but must not announce
@@ -907,8 +987,32 @@ class DataService {
   // Transient event to communicate that a listing was created or saved as draft.
   // Consumed by ExploreScreen to show a confirmation popup after navigation.
   static (Item item, bool draft)? _lastCreateEvent;
+  static _OwnedListingCreateEvent? _lastOwnedCreateEvent;
   static void setLastCreateEvent(Item item, {required bool draft}) {
     _lastCreateEvent = (item, draft);
+  }
+
+  static bool _sameAuthSessionOwner(
+    AuthSessionOwner left,
+    AuthSessionOwner right,
+  ) =>
+      left.userId == right.userId &&
+      left.sessionId == right.sessionId &&
+      left.email.trim().toLowerCase() == right.email.trim().toLowerCase() &&
+      left.createdAt == right.createdAt &&
+      left.epoch == right.epoch;
+
+  static void setLastCreateEventForOwner(
+    AuthSessionOwner owner,
+    Item item, {
+    required bool draft,
+  }) {
+    _lastCreateEvent = null;
+    _lastOwnedCreateEvent = _OwnedListingCreateEvent(
+      owner: owner,
+      item: item,
+      draft: draft,
+    );
   }
 
   static Map<String, dynamic> _decodeHandoverFailCountsStrict(String raw) {
@@ -975,6 +1079,15 @@ class DataService {
     final e = _lastCreateEvent;
     _lastCreateEvent = null;
     return e;
+  }
+
+  static (Item, bool)? takeLastCreateEventForOwner(AuthSessionOwner owner) {
+    final event = _lastOwnedCreateEvent;
+    _lastOwnedCreateEvent = null;
+    if (event == null || !_sameAuthSessionOwner(event.owner, owner)) {
+      return null;
+    }
+    return (event.item, event.draft);
   }
 
   static Map<String, dynamic> _decodeHandoverBannersStrict(String raw) {
@@ -1602,6 +1715,151 @@ class DataService {
     );
   }
 
+  static Future<AccountListingMutationResult> _runListingMutationForOwner({
+    required AuthSessionOwner owner,
+    required String expectedOwnerId,
+    required Future<Item?> Function(
+      User captured,
+      Future<void> Function() verifyOwner,
+      _AccountListingMutationAttempt attempt,
+    ) operation,
+  }) async {
+    if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const AccountListingMutationFailure.principalChanged();
+    }
+    User captured;
+    try {
+      captured = await _requireCurrentOperationalUser(
+        requestedUserId: expectedOwnerId,
+      );
+    } catch (_) {
+      throw const AccountListingMutationFailure.principalChanged();
+    }
+    if (!_sessionMatchesOperationalUser(
+          AuthSession(
+            userId: owner.userId,
+            sessionId: owner.sessionId,
+            email: owner.email,
+            createdAt: owner.createdAt,
+          ),
+          userId: captured.id,
+          email: captured.email,
+        ) ||
+        !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const AccountListingMutationFailure.principalChanged();
+    }
+
+    return _listingMutationQueue.run(() async {
+      final attempt = _AccountListingMutationAttempt();
+
+      Future<void> verifyOwner() async {
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw AccountListingMutationFailure.principalChanged(
+            remoteAccepted: attempt.remoteAccepted,
+          );
+        }
+        try {
+          await _assertCurrentOperationalUserId(
+            captured.id,
+            expectedEmail: captured.email,
+          );
+        } catch (_) {
+          throw AccountListingMutationFailure.principalChanged(
+            remoteAccepted: attempt.remoteAccepted,
+          );
+        }
+      }
+
+      try {
+        await verifyOwner();
+        final item = await operation(captured, verifyOwner, attempt);
+        await verifyOwner();
+        return AccountListingMutationResult(
+          item: item,
+          remoteAccepted: attempt.remoteAccepted,
+        );
+      } on AccountListingMutationFailure {
+        rethrow;
+      } on BackendException catch (error) {
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw AccountListingMutationFailure.principalChanged(
+            remoteAccepted: attempt.remoteAccepted,
+          );
+        }
+        throw _accountListingBackendFailure(error);
+      } catch (_) {
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw AccountListingMutationFailure.principalChanged(
+            remoteAccepted: attempt.remoteAccepted,
+          );
+        }
+        throw AccountListingMutationFailure.localUnavailable(
+          'local_listing_persistence_failed',
+          remoteAccepted: attempt.remoteAccepted,
+        );
+      }
+    });
+  }
+
+  static AccountListingMutationFailure _accountListingBackendFailure(
+    BackendException error,
+  ) {
+    const rejected = <int, Set<String>>{
+      400: <String>{
+        'invalid_listing',
+        'listing_title_required',
+        'listing_description_too_short',
+        'listing_category_required',
+        'invalid_listing_condition',
+        'invalid_listing_price',
+        'listing_location_required',
+        'invalid_listing_coordinates',
+        'invalid_listing_duration',
+        'invalid_handover_radius',
+        'listing_photo_required',
+        'listing_photo_must_be_uploaded',
+        'listing_photo_not_found',
+        'listing_photo_not_approved',
+        'invalid_listing_status',
+        'listing_revision_required',
+        'private_pilot_listing_declaration_required',
+        'private_pilot_category_not_allowed',
+        'private_pilot_subcategory_not_allowed',
+        'private_pilot_country_not_allowed',
+        'private_pilot_region_not_allowed',
+      },
+      401: <String>{
+        'authentication_required',
+        'invalid_or_expired_session',
+        'account_not_active',
+      },
+      403: <String>{
+        'listing_forbidden',
+        'listing_photo_forbidden',
+        'action_blocked_by_moderation',
+      },
+      404: <String>{'listing_not_found', 'user_not_found'},
+      409: <String>{
+        'listing_revision_conflict',
+        'listing_locked_by_moderation',
+        'listing_photo_already_used',
+        'private_pilot_account_declaration_required',
+        'private_pilot_commercial_review_blocked',
+        'private_pilot_listing_declaration_required',
+        'private_pilot_category_not_allowed',
+        'private_pilot_subcategory_not_allowed',
+        'private_pilot_country_not_allowed',
+        'private_pilot_region_not_allowed',
+        'private_pilot_listing_region_unbound',
+      },
+      429: <String>{'rate_limit_exceeded'},
+    };
+    if (rejected[error.statusCode]?.contains(error.code) == true) {
+      return AccountListingMutationFailure.rejected(error.code);
+    }
+    return AccountListingMutationFailure.outcomeUnknown(error.code);
+  }
+
   // Add or update an item in local storage
   static Future<Item> addItem(
     Item item, {
@@ -1672,6 +1930,74 @@ class DataService {
       return toStore;
     });
   }
+
+  static Future<AccountListingMutationResult> addItemForOwner({
+    required AuthSessionOwner owner,
+    required Item item,
+    Map<String, dynamic>? supplyEnrichmentLink,
+    String? blueOceanDraftId,
+    Map<String, dynamic>? blueOceanReview,
+  }) =>
+      _runListingMutationForOwner(
+        owner: owner,
+        expectedOwnerId: item.ownerId,
+        operation: (captured, verifyOwner, attempt) async {
+          final prefs = await SharedPreferences.getInstance();
+          final items = _readListingsStrict(prefs);
+          if (items.length >= _maxLocalListings) {
+            throw StateError('Der lokale Anzeigenkatalog ist voll.');
+          }
+          Item saved;
+          if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+            await verifyOwner();
+            final remote = blueOceanDraftId != null && blueOceanReview != null
+                ? await BackendRepository.publishBlueOceanListingForOwner(
+                    owner: owner,
+                    draftId: blueOceanDraftId,
+                    review: blueOceanReview,
+                    listing: item.toJson(),
+                    supplyEnrichmentLink: supplyEnrichmentLink,
+                  )
+                : await BackendRepository.createListingForOwner(
+                    owner: owner,
+                    listing: item.toJson(),
+                    supplyEnrichmentLink: supplyEnrichmentLink,
+                  );
+            attempt.remoteAccepted = true;
+            await verifyOwner();
+            saved = Item.fromJson(remote);
+            if (saved.ownerId != captured.id) {
+              throw StateError(
+                'Die gespeicherte Anzeige gehört zu einem anderen Konto.',
+              );
+            }
+          } else {
+            var maxId = 0;
+            for (final entry in items) {
+              final id = int.tryParse(entry.id) ?? 0;
+              if (id > maxId) maxId = id;
+            }
+            saved = Item.fromJson(<String, dynamic>{
+              ...item.toJson(),
+              'id': (maxId + 1).toString(),
+              'ownerId': captured.id,
+              'catalogRevision': 1,
+            });
+          }
+          items.removeWhere((entry) => entry.id == saved.id);
+          items.add(saved);
+          await verifyOwner();
+          await _persistListings(
+            prefs,
+            items,
+            verifyAuthorization: verifyOwner,
+          );
+          SharedPersistenceSync.notify(
+            SharedPersistenceSync.listingCatalogKey,
+          );
+          return saved;
+        },
+      );
 
   static Future<List<Category>> getCategories() async {
     final prefs = await SharedPreferences.getInstance();
@@ -4298,6 +4624,192 @@ class DataService {
       SharedPersistenceSync.notify(SharedPersistenceSync.listingCatalogKey);
     });
   }
+
+  static Future<AccountListingMutationResult> updateItemForOwner({
+    required AuthSessionOwner owner,
+    required Item updated,
+  }) =>
+      _runListingMutationForOwner(
+        owner: owner,
+        expectedOwnerId: updated.ownerId,
+        operation: (captured, verifyOwner, attempt) async {
+          final prefs = await SharedPreferences.getInstance();
+          final items = _readListingsStrict(prefs);
+          final index = items.indexWhere((item) => item.id == updated.id);
+          if (index < 0 &&
+              (!BackendConfig.enabled || QaRuntimeService.isEnabled)) {
+            throw StateError('Die lokale Anzeige wurde nicht gefunden.');
+          }
+          if (index >= 0 && items[index].ownerId != captured.id) {
+            throw const AccountListingMutationFailure.principalChanged();
+          }
+
+          Item effective;
+          if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+            await verifyOwner();
+            final remote = await BackendRepository.updateListingForOwner(
+              owner: owner,
+              listing: updated.toJson(),
+            );
+            attempt.remoteAccepted = true;
+            await verifyOwner();
+            effective = Item.fromJson(remote);
+            if (effective.ownerId != captured.id) {
+              throw StateError(
+                'Die gespeicherte Anzeige gehört zu einem anderen Konto.',
+              );
+            }
+          } else {
+            final existing = items[index];
+            if (updated.catalogRevision != existing.catalogRevision) {
+              throw StateError(
+                'Die Anzeige wurde zwischenzeitlich geändert. Bitte neu laden.',
+              );
+            }
+            effective = Item.fromJson(<String, dynamic>{
+              ...updated.toJson(),
+              'ownerId': existing.ownerId,
+              'catalogRevision': existing.catalogRevision + 1,
+            });
+          }
+          if (index < 0) {
+            if (items.length >= _maxLocalListings) {
+              throw StateError('Der lokale Anzeigenkatalog ist voll.');
+            }
+            items.add(effective);
+          } else {
+            items[index] = effective;
+          }
+          await verifyOwner();
+          await _persistListings(
+            prefs,
+            items,
+            verifyAuthorization: verifyOwner,
+          );
+          SharedPersistenceSync.notify(
+            SharedPersistenceSync.listingCatalogKey,
+          );
+          return effective;
+        },
+      );
+
+  static Future<AccountListingMutationResult> updateItemStatusForOwner({
+    required AuthSessionOwner owner,
+    required String expectedOwnerId,
+    required String itemId,
+    required String status,
+  }) async {
+    if (!const <String>{'active', 'paused', 'ended', 'draft'}
+        .contains(status)) {
+      throw const AccountListingMutationFailure.rejected(
+        'invalid_listing_status',
+      );
+    }
+    return _runListingMutationForOwner(
+      owner: owner,
+      expectedOwnerId: expectedOwnerId,
+      operation: (captured, verifyOwner, attempt) async {
+        final prefs = await SharedPreferences.getInstance();
+        final items = _readListingsStrict(prefs);
+        final index = items.indexWhere((item) => item.id == itemId);
+        if (index < 0 &&
+            (!BackendConfig.enabled || QaRuntimeService.isEnabled)) {
+          throw StateError('Die lokale Anzeige wurde nicht gefunden.');
+        }
+        if (index >= 0 && items[index].ownerId != captured.id) {
+          throw const AccountListingMutationFailure.principalChanged();
+        }
+
+        Item effective;
+        if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+          await verifyOwner();
+          final remote = await BackendRepository.updateListingStatusForOwner(
+            owner: owner,
+            id: itemId,
+            status: status,
+          );
+          attempt.remoteAccepted = true;
+          await verifyOwner();
+          effective = Item.fromJson(remote);
+          if (effective.ownerId != captured.id) {
+            throw StateError(
+              'Die gespeicherte Anzeige gehört zu einem anderen Konto.',
+            );
+          }
+        } else {
+          final existing = items[index];
+          effective = Item.fromJson(<String, dynamic>{
+            ...existing.toJson(),
+            'status': status,
+            'isActive': status == 'active',
+            'endedAt':
+                status == 'ended' ? DateTime.now().toIso8601String() : null,
+            'catalogRevision': existing.catalogRevision + 1,
+          });
+        }
+        if (index < 0) {
+          if (items.length >= _maxLocalListings) {
+            throw StateError('Der lokale Anzeigenkatalog ist voll.');
+          }
+          items.add(effective);
+        } else {
+          items[index] = effective;
+        }
+        await verifyOwner();
+        await _persistListings(
+          prefs,
+          items,
+          verifyAuthorization: verifyOwner,
+        );
+        SharedPersistenceSync.notify(
+          SharedPersistenceSync.listingCatalogKey,
+        );
+        return effective;
+      },
+    );
+  }
+
+  static Future<AccountListingMutationResult> deleteItemByIdForOwner({
+    required AuthSessionOwner owner,
+    required String expectedOwnerId,
+    required String itemId,
+  }) =>
+      _runListingMutationForOwner(
+        owner: owner,
+        expectedOwnerId: expectedOwnerId,
+        operation: (captured, verifyOwner, attempt) async {
+          final prefs = await SharedPreferences.getInstance();
+          final items = _readListingsStrict(prefs);
+          final index = items.indexWhere((item) => item.id == itemId);
+          if (index < 0 &&
+              (!BackendConfig.enabled || QaRuntimeService.isEnabled)) {
+            throw StateError('Die lokale Anzeige wurde nicht gefunden.');
+          }
+          if (index >= 0 && items[index].ownerId != captured.id) {
+            throw const AccountListingMutationFailure.principalChanged();
+          }
+          if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+            await verifyOwner();
+            await BackendRepository.deleteListingForOwner(
+              owner: owner,
+              id: itemId,
+            );
+            attempt.remoteAccepted = true;
+            await verifyOwner();
+          }
+          if (index >= 0) items.removeAt(index);
+          await verifyOwner();
+          await _persistListings(
+            prefs,
+            items,
+            verifyAuthorization: verifyOwner,
+          );
+          SharedPersistenceSync.notify(
+            SharedPersistenceSync.listingCatalogKey,
+          );
+          return null;
+        },
+      );
 
   static bool isPublicCatalogItem(Item item) =>
       item.status == 'active' && item.isActive == true;

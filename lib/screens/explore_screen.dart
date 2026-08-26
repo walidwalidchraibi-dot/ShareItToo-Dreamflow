@@ -7,8 +7,8 @@ import 'package:lendify/models/supply_enrichment.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/backend_config.dart';
-import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
+import 'package:lendify/services/listing_mutation_service.dart';
 import 'package:lendify/config/supply_enrichment_technical_config.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
@@ -17,7 +17,6 @@ import 'package:lendify/widgets/category_icon_row.dart';
 import 'package:lendify/widgets/search_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
-import 'package:lendify/screens/my_listings_screen.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
@@ -36,15 +35,19 @@ import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
 import 'package:lendify/widgets/profile_mutation_interaction.dart';
+import 'package:lendify/widgets/listing_mutation_interaction.dart';
+import 'package:lendify/widgets/login_nudge_sheet.dart';
 import 'package:lendify/widgets/supply_enrichment_dialog.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 
 class ExploreScreen extends StatefulWidget {
   final ProfileMutationService profileMutationService;
+  final ListingMutationService listingMutationService;
 
   const ExploreScreen({
     super.key,
     this.profileMutationService = const ProfileMutationService(),
+    this.listingMutationService = const ListingMutationService(),
   });
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -57,11 +60,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final SharedPersistenceRefreshCoordinator _savedRefreshCoordinator =
       SharedPersistenceRefreshCoordinator();
   final _profileActions = ProfileMutationInteractionController();
+  final _listingActions = ListingMutationInteractionController();
   StreamSubscription<String>? _savedStateSubscription;
   int _loadRevision = 0;
 
   ProfileMutationService get _profileMutationService =>
       widget.profileMutationService;
+  ListingMutationService get _listingMutationService =>
+      widget.listingMutationService;
 
   List<Item> _items = [];
 // Map fine category id -> coarse/top-level category label
@@ -123,6 +129,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
       if (key == SharedPersistenceSync.accountSecurityStateKey) {
         _profileActions.invalidate();
+        _listingActions.invalidate();
+        if (mounted) setState(() => _isLoading = true);
         unawaited(_savedRefreshCoordinator.schedule(_loadData));
       } else if (key == SharedPersistenceSync.wishlistStateKey ||
           key == SharedPersistenceSync.savedItemsKey) {
@@ -139,6 +147,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _savedRefreshCoordinator.dispose();
     _savedStateSubscription?.cancel();
     _profileActions.dispose();
+    _listingActions.dispose();
     _scrollController.dispose();
     _feedPager.dispose();
     _ctrlGuests.dispose();
@@ -174,6 +183,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final saved = await DataService.getSavedItemIds();
       final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
       final profileContext = await _profileMutationService.loadCurrentContext();
+      final listingContext = await _listingMutationService.loadCurrentContext();
       // Re-read after account data access: an expired remote session may have
       // been invalidated while that data was resolved.
       final session = await AuthService.readSession();
@@ -183,6 +193,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
           !await _profileMutationService.isContextCurrent(profileContext)) {
         return;
       }
+      if (listingContext != null &&
+          !await _listingMutationService.isContextCurrent(listingContext)) {
+        return;
+      }
+      if (profileContext?.user.id != listingContext?.user.id) return;
 
 // No extra fillers for the five-item showcase
       final extrasTop = <Item>[];
@@ -193,6 +208,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       };
       if (!mounted || revision != _loadRevision) return;
       _profileActions.replaceContext(profileContext);
+      _listingActions.replaceContext(listingContext);
       final resolvedUser = profileContext?.user ?? user;
       setState(() {
         _items = items.where((item) => !hiddenIds.contains(item.id)).toList();
@@ -205,10 +221,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _isLoading = false;
       });
       // After data is loaded, check if we have a freshly created/saved listing event to show a popup
-      final ev = DataService.takeLastCreateEvent();
+      final ev = listingContext == null
+          ? null
+          : DataService.takeLastCreateEventForOwner(
+              listingContext.owner.authOwner,
+            );
       if (ev != null && mounted) {
+        final eventOwner = _listingActions.capture();
+        if (eventOwner == null) return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showCreatedPopup(ev.$1, ev.$2);
+          if (mounted && _listingActions.isSynchronouslyCurrent(eventOwner)) {
+            unawaited(_showCreatedPopup(eventOwner, ev.$1, ev.$2));
+          }
         });
       }
     } catch (e) {
@@ -220,15 +244,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
-  Future<void> _showCreatedPopup(Item item, bool draft) async {
+  Future<void> _showCreatedPopup(
+    ListingMutationActionOwner owner,
+    Item item,
+    bool draft,
+  ) async {
     final message = draft
         ? 'Anzeige wurde für später gespeichert'
         : 'Anzeige wurde erstellt';
     if (!mounted) return;
-    final viewListing = await showDialog<bool>(
+    final viewListing = await _listingActions.showOwnedDialog<bool>(
       context: context,
+      owner: owner,
       barrierDismissible: true,
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.black.withValues(alpha: 0.90),
           shape:
@@ -251,7 +280,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 fontWeight: FontWeight.w800,
                                 fontSize: 16))),
                     IconButton(
-                        onPressed: () => Navigator.of(context).pop(false),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
                         icon: const Icon(Icons.close, color: Colors.white70)),
                   ]),
                   const SizedBox(height: 8),
@@ -265,7 +294,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   Row(children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).pop(false),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
                         icon: const Icon(Icons.check),
                         label: const Text('Schließen'),
                       ),
@@ -273,7 +302,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () => Navigator.of(context).pop(true),
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
                         icon: const Icon(Icons.visibility),
                         label: Text(
                             draft ? 'Vorschau ansehen' : 'Anzeige ansehen'),
@@ -288,13 +317,30 @@ class _ExploreScreenState extends State<ExploreScreen> {
       },
     );
     if (!mounted) return;
-    if (viewListing == true) {
-      await ItemDetailsOverlay.showFullPage(context, item: item);
+    if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+      return;
     }
-    if (!draft && mounted) await _showSupplyEnrichment(item);
+    if (!mounted) return;
+    if (viewListing == true) {
+      await _listingActions.pushOwnedRoute<void>(
+        context: context,
+        owner: owner,
+        route: MaterialPageRoute<void>(
+          builder: (_) => LinkedListingDetailsScreen(item: item),
+        ),
+      );
+    }
+    if (!draft &&
+        mounted &&
+        await _listingActions.isCurrent(_listingMutationService, owner)) {
+      await _showSupplyEnrichment(owner, item);
+    }
   }
 
-  Future<void> _showSupplyEnrichment(Item item) async {
+  Future<void> _showSupplyEnrichment(
+    ListingMutationActionOwner owner,
+    Item item,
+  ) async {
     if (!BackendConfig.enabled ||
         QaRuntimeService.isEnabled ||
         !SupplyEnrichmentTechnicalConfig.available) {
@@ -302,7 +348,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
     try {
       final session = SupplyEnrichmentSession.fromJson(
-        await BackendRepository.generateListingSupplyEnrichment(item.id),
+        await _listingMutationService.generateSupplyEnrichment(
+          context: owner.context,
+          listingId: item.id,
+        ),
       );
       if (!session.primaryListingCreated ||
           session.primaryListingBlocked ||
@@ -311,24 +360,42 @@ class _ExploreScreenState extends State<ExploreScreen> {
           !mounted) {
         return;
       }
-      final result = await SupplyEnrichmentDialog.show(
-        context,
-        session: session,
-        onOutcome: (suggestion, outcome) async {
-          return SupplyEnrichmentOutcomeResult.fromJson(
-            await BackendRepository.recordListingSupplyEnrichmentOutcome(
-              listingId: item.id,
-              suggestionId: suggestion.id,
-              outcome: outcome.wireValue,
-            ),
-          );
-        },
+      if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+        return;
+      }
+      if (!mounted) return;
+      final result =
+          await _listingActions.showOwnedDialog<SupplyEnrichmentOutcomeResult>(
+        context: context,
+        owner: owner,
+        builder: (_) => SupplyEnrichmentDialog(
+          session: session,
+          onOutcome: (suggestion, outcome) async {
+            return SupplyEnrichmentOutcomeResult.fromJson(
+              await _listingMutationService.recordSupplyEnrichmentOutcome(
+                context: owner.context,
+                listingId: item.id,
+                suggestionId: suggestion.id,
+                outcome: outcome.wireValue,
+              ),
+            );
+          },
+        ),
       );
       final prefill = result?.prefill;
       if (prefill != null && mounted) {
-        await Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => CreateListingScreen(supplyPrefill: prefill),
+        if (!await _listingActions.isCurrent(_listingMutationService, owner)) {
+          return;
+        }
+        if (!mounted) return;
+        await _listingActions.pushOwnedRoute<void>(
+          context: context,
+          owner: owner,
+          route: MaterialPageRoute<void>(
+            builder: (_) => CreateListingScreen(
+              supplyPrefill: prefill,
+              listingMutationService: _listingMutationService,
+            ),
           ),
         );
       }
@@ -343,22 +410,30 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Future<void> _handleListingCreated(Item created) async {
     await _loadData();
     if (!mounted) return;
-    final l10n = context.read<LocalizationController>();
-    await AppPopup.show(
-      context,
-      icon: Icons.check_circle_outline,
-      title: l10n.t('Anzeige veröffentlicht'),
-      actions: [
-        FilledButton.icon(
-          onPressed: () {
-            Navigator.of(context, rootNavigator: true).maybePop();
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const MyListingsScreen()));
-          },
-          icon: const Icon(Icons.dashboard_customize_outlined),
-          label: Text(l10n.t('Meine Anzeigen')),
+    final owner = _listingActions.capture();
+    if (owner == null || owner.context.user.id != created.ownerId) return;
+    await _showCreatedPopup(owner, created, false);
+  }
+
+  Future<Item?> _openCreateListing() async {
+    final owner = _listingActions.capture();
+    if (owner == null) {
+      if (mounted) {
+        await showGuestRestrictionSheet(
+          context,
+          gateContext: GuestGateContext.listing,
+        );
+      }
+      return null;
+    }
+    return _listingActions.pushOwnedRoute<Item?>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute<Item?>(
+        builder: (_) => CreateListingScreen(
+          listingMutationService: _listingMutationService,
         ),
-      ],
+      ),
     );
   }
 
@@ -1083,6 +1158,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 );
                               },
                               onSearchTap: _openSearch,
+                              onCreateListing: _openCreateListing,
                               onListingCreated: _handleListingCreated,
                             ),
                           ),
