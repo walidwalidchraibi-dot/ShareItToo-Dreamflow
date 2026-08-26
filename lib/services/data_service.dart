@@ -3470,6 +3470,147 @@ class DataService {
     });
   }
 
+  /// Removes the device-local current profile only when it still belongs to
+  /// the captured principal. A missing profile is already clean; malformed or
+  /// successor-principal state fails closed and is preserved.
+  static Future<bool> clearCurrentUserIfMatches({
+    required String userId,
+    required String email,
+  }) async {
+    final expectedId = userId.trim();
+    final expectedEmail = email.trim().toLowerCase();
+    if (expectedId.isEmpty || expectedEmail.isEmpty) return false;
+    if (QaRuntimeService.isEnabled) {
+      final raw = QaRuntimeService.runtimeUserJson;
+      if (raw == null) return true;
+      try {
+        final current = User.fromJson(raw);
+        if (current.id.trim() != expectedId ||
+            current.email.trim().toLowerCase() != expectedEmail) {
+          return false;
+        }
+        QaRuntimeService.clearRuntimeUser();
+        return QaRuntimeService.runtimeUserJson == null;
+      } catch (_) {
+        return false;
+      }
+    }
+    return _accountProfileMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_currentUserKey);
+      if (raw == null) return true;
+      User current;
+      try {
+        current = _decodeCurrentUserStrict(raw);
+      } catch (_) {
+        return false;
+      }
+      if (current.id.trim() != expectedId ||
+          current.email.trim().toLowerCase() != expectedEmail) {
+        return false;
+      }
+      final removed = await prefs.remove(_currentUserKey);
+      return removed && !prefs.containsKey(_currentUserKey);
+    });
+  }
+
+  /// Read-only current-profile snapshot for an already epoch-bound session
+  /// transition. Unlike getCurrentUser this never seeds, hydrates or removes
+  /// data based on a changing auth session.
+  static Future<User?> readCurrentUserForSessionTransition() async {
+    if (QaRuntimeService.isEnabled) {
+      final raw = QaRuntimeService.runtimeUserJson;
+      if (raw == null) return null;
+      try {
+        return User.fromJson(raw);
+      } catch (_) {
+        return null;
+      }
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_currentUserKey);
+      if (raw == null || raw.isEmpty) return null;
+      return _decodeCurrentUserStrict(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Hydrates the current profile only while the exact captured session owner
+  /// remains current. Remote reads never call the profile update endpoint, and
+  /// the final local persistence repeats authorization inside the profile
+  /// mutation queue.
+  static Future<User?> syncCurrentUserForSessionOwner(
+    AuthSessionOwner owner,
+  ) async {
+    if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) return null;
+
+    User? match;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.getCurrentProfile();
+      match = User.fromJson(remote);
+    } else {
+      final users = await getUsers();
+      final normalized = owner.email.trim().toLowerCase();
+      for (final user in users) {
+        if (user.email.trim().toLowerCase() == normalized) {
+          match = user;
+          break;
+        }
+      }
+      match ??= normalized == 'demo@shareittoo.app' && users.isNotEmpty
+          ? users.first
+          : null;
+    }
+    if (match == null ||
+        match.email.trim().toLowerCase() != owner.email.trim().toLowerCase() ||
+        ((owner.userId ?? '').trim().isNotEmpty &&
+            match.id.trim() != owner.userId!.trim()) ||
+        !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      return null;
+    }
+
+    if (QaRuntimeService.isEnabled) {
+      QaRuntimeService.setRuntimeUserJson(match.toJson());
+      return await AuthService.isSessionOwnerDefinitelyCurrent(owner)
+          ? match
+          : null;
+    }
+    final resolved = match;
+
+    return _accountProfileMutationQueue.run(() async {
+      Future<void> verifyOwner() async {
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw StateError('Die Kontositzung hat sich geändert.');
+        }
+      }
+
+      await verifyOwner();
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_usersKey);
+      final users = raw == null
+          ? <User>[]
+          : List<User>.from(_decodeLocalUsersStrict(raw));
+      final index = users.indexWhere((entry) => entry.id == resolved.id);
+      if (index >= 0) {
+        users[index] = resolved;
+      } else {
+        if (users.length >= _maxLocalUsers) {
+          throw StateError('Der lokale Profilbestand ist voll.');
+        }
+        users.add(resolved);
+      }
+      await _persistAccountProfileDocumentsVerified(
+        prefs: prefs,
+        current: resolved,
+        users: users,
+        verifyAuthorization: verifyOwner,
+      );
+      return resolved;
+    });
+  }
+
   static Future<void> syncCurrentUserForSessionEmail(String email) async {
     final normalized = email.trim().toLowerCase();
     if (normalized.isEmpty) return;

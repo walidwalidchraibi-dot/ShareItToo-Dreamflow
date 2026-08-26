@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "11bad619a4bf652e91c50fc493b892632407e9d0858c596267181431bb2bb5f5"
+      "sha256": "65dcfcfdff5812ebd2ddf54989e2a758748f453277b512fe889e927a3d5362cc"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -748,7 +748,7 @@
     },
     {
       "path": "lib/screens/login_screen.dart",
-      "sha256": "ec7fe7e4f76e26b492583c3cca7848e15dafb3909a0400ea063fc6c152cf56dd"
+      "sha256": "d6ec90ff73924623116cda7f421880c7cfd55c259f818e77f4dc33cbf4b96f31"
     },
     {
       "path": "lib/screens/register_screen.dart",
@@ -852,7 +852,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "0f1a8d02a85b1fb794893924a57025b60c0a6f50fb0e0a73c4436d1dacc5a706"
+      "sha256": "cb39b56ea47370cec242f9345cdfdcb84ea6def26c20a9a01777676be1a9c470"
     },
     {
       "path": "lib/screens/notification_settings_screen.dart",

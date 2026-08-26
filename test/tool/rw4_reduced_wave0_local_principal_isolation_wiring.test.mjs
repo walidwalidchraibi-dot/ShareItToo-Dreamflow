@@ -57,7 +57,10 @@ test('session transitions refresh all scoped surfaces', () => {
     'SharedPersistenceSync.rentalCartKey',
     'SharedPersistenceSync.localSafetyPrivacyStateKey',
   ]) assert.match(auth, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
-  assert.match(auth, /prefs\.remove\(_sessionKey\);\s*_notifyLocalPrincipalChanged\(\)/u);
+  assert.match(
+    auth,
+    /final removed = await prefs\.remove\(_sessionKey\);[\s\S]*?_sessionGeneration \+= 1;[\s\S]*?_notifyLocalPrincipalChanged\(\)/u,
+  );
 });
 
 test('corrupt buckets are quarantined and preserved per principal', () => {

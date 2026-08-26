@@ -9,6 +9,7 @@ import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/firebase_runtime.dart';
+import 'package:lendify/services/session_transition_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/sit_logo_header.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -20,12 +21,14 @@ class LoginScreen extends StatefulWidget {
   final int? returnTabIndex;
   final String? initialEmail;
   final bool verificationPending;
+  final SessionTransitionService? sessionTransitionService;
 
   const LoginScreen({
     super.key,
     this.returnTabIndex,
     this.initialEmail,
     this.verificationPending = false,
+    this.sessionTransitionService,
   });
 
   @override
@@ -46,6 +49,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _checkingSession = true;
   bool _pwVisible = false;
   bool _peekBackdrop = false;
+  late final SessionTransitionService _sessionTransitions;
+  SessionTransitionOwner? _observedSessionOwner;
+  int? _confirmedNoSessionEpoch;
+  int _bootstrapRevision = 0;
+  bool _sessionTransitionInFlight = false;
 
   void _exitToExplore() {
     try {
@@ -60,54 +68,112 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _continueAsGuest() async {
+    final owner = _observedSessionOwner;
+    final noSessionEpoch = _confirmedNoSessionEpoch;
+    if (_sessionTransitionInFlight ||
+        (owner == null && noSessionEpoch == null)) {
+      return;
+    }
+    final preview = context.read<DeveloperPreviewController>();
+    _sessionTransitionInFlight = true;
     try {
-      await AuthService.clearSession();
-      await DataService.clearCurrentUser();
-      if (!mounted) return;
-      await context
-          .read<DeveloperPreviewController>()
-          .setState(DeveloperUserState.loggedOut);
+      final completion = owner != null
+          ? await _sessionTransitions.signOut(owner)
+          : await _sessionTransitions.continueAsGuest(noSessionEpoch!);
+      if (completion == null ||
+          !mounted ||
+          !await _sessionTransitions.isCompletionCurrent(completion)) {
+        return;
+      }
+      await preview.setState(DeveloperUserState.loggedOut);
+      if (!mounted ||
+          !await _sessionTransitions.isCompletionCurrent(completion)) {
+        return;
+      }
+      _observedSessionOwner = null;
+      _confirmedNoSessionEpoch = completion.completionEpoch;
+      _exitToExplore();
     } catch (e) {
       debugPrint('[LoginScreen] continueAsGuest failed: $e');
+    } finally {
+      _sessionTransitionInFlight = false;
     }
-    if (!mounted) return;
-    _exitToExplore();
   }
 
   @override
   void initState() {
     super.initState();
+    _sessionTransitions =
+        widget.sessionTransitionService ?? const SessionTransitionService();
     _emailCtrl.text = widget.initialEmail?.trim() ?? '';
     _bootstrap();
   }
 
   Future<void> _bootstrap() async {
+    final revision = ++_bootstrapRevision;
+    final startingEpoch = _sessionTransitions.sessionEpoch;
     try {
       final preview = context.read<DeveloperPreviewController>();
 
       // Only skip this screen when there is a real persisted session that can
       // still be resolved to a current user in the local dataset.
-      final session = await AuthService.readSession();
-      if (!mounted) return;
+      final session = await _sessionTransitions.readSession();
+      if (!mounted || revision != _bootstrapRevision) return;
 
       if (session != null) {
-        await DataService.syncCurrentUserForSessionEmail(session.email);
-        final resolvedUser = await DataService.getCurrentUser();
-        if (!mounted) return;
+        final owner = _sessionTransitions.captureOwner(session);
+        _observedSessionOwner = owner;
+        _confirmedNoSessionEpoch = null;
+        if (!await _sessionTransitions.isOwnerCurrent(owner)) return;
+        final resolvedUser = await _sessionTransitions.currentUserForOwner(
+          owner,
+          synchronize: true,
+        );
+        if (!mounted ||
+            revision != _bootstrapRevision ||
+            !await _sessionTransitions.isOwnerCurrent(owner)) {
+          return;
+        }
 
         if (resolvedUser != null) {
+          final resolvedOwner = _sessionTransitions.captureOwner(
+            session,
+            profileUserId: resolvedUser.id,
+          );
+          _observedSessionOwner = resolvedOwner;
           if (preview.state != DeveloperUserState.loggedIn &&
               preview.state != DeveloperUserState.verifiedUser) {
             await preview.setState(DeveloperUserState.loggedIn);
           }
-          if (!mounted) return;
+          if (!mounted ||
+              revision != _bootstrapRevision ||
+              !await _sessionTransitions.isOwnerCurrent(resolvedOwner)) {
+            return;
+          }
           _goHome(replace: true);
           return;
         }
 
         debugPrint(
             '[LoginScreen] stale session found for ${session.email}; clearing and staying on login.');
-        await AuthService.clearSession();
+        if (!await _sessionTransitions.isOwnerCurrent(owner)) return;
+        final completion = await _sessionTransitions.clearStaleSession(owner);
+        if (completion == null ||
+            !await _sessionTransitions.isCompletionCurrent(completion)) {
+          return;
+        }
+        _observedSessionOwner = null;
+        _confirmedNoSessionEpoch = completion.completionEpoch;
+      } else {
+        final confirmedEmptyEpoch = _sessionTransitions.sessionEpoch;
+        if (confirmedEmptyEpoch < startingEpoch ||
+            !await _sessionTransitions.isNoSessionEpochCurrent(
+              confirmedEmptyEpoch,
+            )) {
+          return;
+        }
+        _observedSessionOwner = null;
+        _confirmedNoSessionEpoch = confirmedEmptyEpoch;
       }
 
       // If the preview says "logged in" but there is no valid session, keep the user here.
@@ -119,7 +185,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       debugPrint('[LoginScreen] bootstrap failed: $e');
     } finally {
-      if (mounted) setState(() => _checkingSession = false);
+      if (mounted && revision == _bootstrapRevision) {
+        setState(() => _checkingSession = false);
+      }
     }
   }
 

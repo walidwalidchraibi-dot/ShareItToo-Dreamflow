@@ -118,9 +118,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "87e276a0526c7ff4aa33096b3f0d59478ebec6cd6ff8d4cd08d7273f5963c05c",
-    "retentionManifestSha256": "de06d638d0755f1d0b239b5a685ab209eeb78477f32f80936afecae71da44b38",
-    "activeProviderEvidenceSha256": "0cac48ceff4552b1a0c89faba9f484b24261be02f0f1c9dd1fd9471ef6aa99ca",
+    "privacyManifestSha256": "8649720599b31c9f7ffc7b9378495552fc57fff8398506880215610a1fb51f7b",
+    "retentionManifestSha256": "623b661e031b7093bd0f21ed7b4a4700616413496ef84de84fad768cd9570da5",
+    "activeProviderEvidenceSha256": "19650f74080f042be4dcae577a14f79a852431cc530c660fff252406df77b6f0",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -169,7 +169,7 @@
     {"path": "docs/decisions/ADR-073-atomic-non-acute-harassment-block-report.md", "sha256": "276c33c94f7028b61d0bcbbc3795ba9913ae052989d0e11d1431f5a67e35b53c"},
     {"path": "docs/architecture/s3x-support-case-ui-accessibility-2026-08-22.md", "sha256": "665415f7ce5e6951ae14b9533f3041459d3f08e8b13c6ed7b77bf512cacc52dc"},
     {"path": "docs/decisions/ADR-061-support-case-semantic-order-and-empty-blocked-filter.md", "sha256": "60b783937f4e241f30c57ef556eb596150d43395df5d5602c5c8ee4d36b0ff93"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "4ef771f9c6f037752826676c824cf8aa3d4cb194d9cf3b71c9072bcc4285ac6f"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "d591b2e7f11d5c29b01251b2226c4417ca31af926c53946b4f93322e5bc07b05"},
     {"path": "test/tool/harassment_block_report_wiring.test.mjs", "sha256": "4b9ab9f84d9c608104fbde2e6a76f5ca2b6a3890caa59e01e9ca69326b03a8b8"},
     {"path": "test/tool/support_case_ui_accessibility_wiring.test.mjs", "sha256": "8daf23c9dd2156d8d46d600c9ae3173ae83816c2dcb134d9859503d59ae5163a"},
     {"path": "test/tool/rw11_regression_completeness_wiring.test.mjs", "sha256": "e6a9ecf7cda2115d1605b54339d2696bc7edd66f2304bc162d39cbdfedfb13a0"},

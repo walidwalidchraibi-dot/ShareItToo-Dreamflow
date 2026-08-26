@@ -53,9 +53,20 @@ test('conditional auth clear binds account session and email', () => {
     /static Future<bool> clearSessionIfMatches\([\s\S]*?\n  \}\n\n  static bool _storedRemoteSessionMatches/u,
   )?.[0];
   assert.ok(clear, 'conditional session clear must exist');
-  for (const marker of ['userId', 'sessionId', 'email', 'prefs.remove(_sessionKey)']) {
+  for (const marker of [
+    'userId',
+    'sessionId',
+    'email',
+    'captureSessionOwner(session)',
+    'clearSessionOwnerIfMatches(',
+    'runLogoutCleanup: false',
+  ]) {
     assert.match(clear, new RegExp(escaped(marker), 'u'));
   }
+  assert.match(
+    auth,
+    /clearSessionOwnerIfMatches\([\s\S]*?_storedSessionMatchesOwner\(raw, owner\)[\s\S]*?prefs\.remove\(_sessionKey\)/u,
+  );
   assert.match(auth, /accountSecurityStateKey/u);
 });
 

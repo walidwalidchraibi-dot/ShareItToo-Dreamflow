@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,74 @@ import 'backend_realtime_service.dart';
 import 'blue_ocean_draft_recovery_service.dart';
 import 'firebase_runtime.dart';
 import 'shared_persistence_sync.dart';
+
+class _QueuedAuthSessionMutation {
+  final Future<Object?> Function() operation;
+  final void Function(Object? value) complete;
+  final void Function(Object error, StackTrace stackTrace) completeError;
+
+  const _QueuedAuthSessionMutation({
+    required this.operation,
+    required this.complete,
+    required this.completeError,
+  });
+}
+
+/// Serializes every app-owned write or removal of the persisted session.
+///
+/// This makes the owner comparison and mutation one atomic logical operation
+/// within the Dart process. A successor sign-in therefore waits until an A
+/// cleanup finishes, while an already-persisted B session makes the A clear a
+/// no-op.
+class _AuthSessionMutationQueue {
+  final Queue<_QueuedAuthSessionMutation> _pending =
+      Queue<_QueuedAuthSessionMutation>();
+  bool _running = false;
+
+  Future<T> run<T>(Future<T> Function() operation) {
+    final result = Completer<T>();
+    _pending.add(_QueuedAuthSessionMutation(
+      operation: () async => operation(),
+      complete: (value) => result.complete(value as T),
+      completeError: result.completeError,
+    ));
+    _startIfIdle();
+    return result.future;
+  }
+
+  void _startIfIdle() {
+    if (_running) return;
+    _running = true;
+    unawaited(_drain());
+  }
+
+  Future<void> _drain() async {
+    while (_pending.isNotEmpty) {
+      final queued = _pending.removeFirst();
+      Object? value;
+      Object? failure;
+      StackTrace? failureStack;
+      try {
+        value = await queued.operation();
+      } catch (error, stackTrace) {
+        failure = error;
+        failureStack = stackTrace;
+      }
+      final becameIdle = _pending.isEmpty;
+      if (becameIdle) _running = false;
+      if (failure != null) {
+        queued.completeError(failure, failureStack!);
+      } else {
+        queued.complete(value);
+      }
+      if (becameIdle) {
+        if (_pending.isNotEmpty) _startIfIdle();
+        return;
+      }
+    }
+    _running = false;
+  }
+}
 
 /// Authentication facade.
 ///
@@ -31,6 +100,8 @@ class AuthService {
   static const demoEmail = 'demo@shareittoo.app';
   static const demoPassword = 'shareittoo';
   static Future<String?>? _refreshInFlight;
+  static final _AuthSessionMutationQueue _sessionMutationQueue =
+      _AuthSessionMutationQueue();
   static int _sessionGeneration = 0;
   static bool _sessionClearing = false;
   static Future<void>? _googleInitialization;
@@ -102,8 +173,7 @@ class AuthService {
       if (email is! String || email.isEmpty) return null;
       final normalizedEmail = email.trim().toLowerCase();
       if (_legacySyntheticSocialEmails.contains(normalizedEmail)) {
-        await prefs.remove(_sessionKey);
-        _notifyLocalPrincipalChanged();
+        await _removeStoredSessionIfRawMatches(raw);
         return null;
       }
       final session = AuthSession(
@@ -122,8 +192,7 @@ class AuthService {
               (session.accessToken ?? '').isEmpty ||
               (session.refreshToken ?? '').isEmpty ||
               (session.sessionId ?? '').isEmpty)) {
-        await prefs.remove(_sessionKey);
-        _notifyLocalPrincipalChanged();
+        await _removeStoredSessionIfRawMatches(raw);
         return null;
       }
       return session;
@@ -149,47 +218,129 @@ class AuthService {
     }
   }
 
-  static Future<void> clearSession() async {
-    _sessionGeneration += 1;
-    _sessionClearing = true;
-    _refreshInFlight = null;
-    try {
-      final session = await readSession();
-      try {
-        await FirebaseRuntime.clearPushRegistrationForLogout().timeout(
-          const Duration(seconds: 2),
-        );
-      } catch (_) {
-        // Logout remains authoritative even if the local FCM SDK is offline.
-      }
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_sessionKey);
-      _notifyLocalPrincipalChanged();
-      try {
-        await BlueOceanDraftRecoveryService().clear();
-      } catch (_) {
-        // Draft recovery is account-bound and best-effort cleanup must not
-        // prevent the authoritative local session removal.
-      }
-      await runBestEffortLogoutCleanup(
-        remoteLogout: () async {
-          if (BackendConfig.enabled &&
-              (session?.refreshToken ?? '').isNotEmpty) {
-            await BackendHttp.requestJson(
-              method: 'POST',
-              path: '/auth/logout',
-              body: {'refreshToken': session!.refreshToken},
-            );
-          }
-        },
-        disconnectRealtime: BackendRealtimeService.disconnect,
+  /// Monotonic in-process epoch for every successful app-owned session write
+  /// or removal. UI actions capture this synchronously with their principal.
+  static int get sessionEpoch => _sessionGeneration;
+
+  static AuthSessionOwner captureSessionOwner(AuthSession session) =>
+      AuthSessionOwner(
+        userId: session.userId,
+        sessionId: session.sessionId,
+        email: session.email,
+        createdAt: session.createdAt,
+        epoch: _sessionGeneration,
       );
+
+  static Future<bool> isSessionOwnerDefinitelyCurrent(
+    AuthSessionOwner owner,
+  ) async {
+    final observedEpoch = _sessionGeneration;
+    if (owner.epoch != observedEpoch) return false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final matches = _storedSessionMatchesOwner(
+        prefs.getString(_sessionKey),
+        owner,
+      );
+      return matches &&
+          owner.epoch == _sessionGeneration &&
+          observedEpoch == _sessionGeneration;
     } catch (error) {
-      debugPrint('[AuthService] clearSession failed: $error');
-    } finally {
-      _sessionClearing = false;
-      _refreshInFlight = null;
+      debugPrint(
+        '[AuthService] session owner check failed: ${error.runtimeType}',
+      );
+      return false;
     }
+  }
+
+  static Future<bool> isSessionClearReceiptCurrent(
+    AuthSessionClearReceipt receipt,
+  ) async {
+    if (receipt.completionEpoch != _sessionGeneration) return false;
+    final absent = await isStoredSessionDefinitelyAbsent();
+    return absent && receipt.completionEpoch == _sessionGeneration;
+  }
+
+  static Future<void> clearSession() async {
+    final session = await readSession();
+    if (session == null) return;
+    await clearSessionOwnerIfMatches(captureSessionOwner(session));
+  }
+
+  /// Clears only the exact captured session owner. The comparison, local
+  /// account cleanup and session mutation remain serialized against successor
+  /// sign-ins and token refresh persistence.
+  static Future<AuthSessionClearReceipt?> clearSessionOwnerIfMatches(
+    AuthSessionOwner owner, {
+    bool runLogoutCleanup = true,
+  }) {
+    return _sessionMutationQueue.run(() async {
+      if (owner.epoch != _sessionGeneration) return null;
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_sessionKey);
+      if (!_storedSessionMatchesOwner(raw, owner)) return null;
+      final capturedSession = _decodeStoredSession(raw!);
+      if (capturedSession == null) return null;
+
+      _sessionClearing = true;
+      _refreshInFlight = null;
+      try {
+        if (runLogoutCleanup) {
+          try {
+            await FirebaseRuntime.clearPushRegistrationForLogout();
+          } catch (_) {
+            // Logout remains authoritative if the local FCM SDK is offline.
+          }
+        }
+
+        final removed = await prefs.remove(_sessionKey);
+        if (!removed || prefs.containsKey(_sessionKey)) return null;
+        _sessionGeneration += 1;
+        final receipt = AuthSessionClearReceipt(
+          owner: owner,
+          completionEpoch: _sessionGeneration,
+        );
+        _notifyLocalPrincipalChanged();
+
+        if (runLogoutCleanup) {
+          try {
+            await BlueOceanDraftRecoveryService().clear();
+          } catch (_) {
+            // Account-bound draft cleanup is best effort after exact removal.
+          }
+          try {
+            // A successor realtime connection cannot start until this exact A
+            // disconnect completes because session persistence shares the
+            // mutation queue. Do not use a non-cancelling timeout here.
+            await BackendRealtimeService.disconnect();
+          } catch (_) {
+            // Local session removal remains authoritative while disconnected.
+          }
+          await runBestEffortLogoutCleanup(
+            remoteLogout: () async {
+              if (BackendConfig.enabled &&
+                  (capturedSession.refreshToken ?? '').isNotEmpty) {
+                await BackendHttp.requestJson(
+                  method: 'POST',
+                  path: '/auth/logout',
+                  body: {'refreshToken': capturedSession.refreshToken},
+                );
+              }
+            },
+            disconnectRealtime: () async {},
+          );
+        }
+        return receipt;
+      } catch (error) {
+        debugPrint(
+          '[AuthService] exact session clear failed: ${error.runtimeType}',
+        );
+        return null;
+      } finally {
+        _sessionClearing = false;
+        _refreshInFlight = null;
+      }
+    });
   }
 
   /// Removes a backend session only when the exact expected principal is still
@@ -204,34 +355,67 @@ class AuthService {
     required String sessionId,
     required String email,
   }) async {
-    _sessionGeneration += 1;
-    _sessionClearing = true;
-    _refreshInFlight = null;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_sessionKey);
-      if (!_storedRemoteSessionMatches(
-        raw,
-        userId: userId,
-        sessionId: sessionId,
-        email: email,
-      )) {
-        return false;
-      }
-      final removed = await prefs.remove(_sessionKey);
-      if (!removed) return false;
-      _notifyLocalPrincipalChanged();
-      return prefs.getString(_sessionKey) == null;
-    } catch (error) {
-      debugPrint(
-        '[AuthService] conditional session clear failed: '
-        '${error.runtimeType}',
-      );
+    final session = await readSession();
+    if (session == null ||
+        session.userId?.trim() != userId.trim() ||
+        session.sessionId?.trim() != sessionId.trim() ||
+        session.email.trim().toLowerCase() != email.trim().toLowerCase()) {
       return false;
-    } finally {
-      _sessionClearing = false;
-      _refreshInFlight = null;
     }
+    final receipt = await clearSessionOwnerIfMatches(
+      captureSessionOwner(session),
+      runLogoutCleanup: false,
+    );
+    return receipt != null && await isSessionClearReceiptCurrent(receipt);
+  }
+
+  static AuthSession? _decodeStoredSession(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return null;
+      final map = Map<String, dynamic>.from(decoded);
+      final email = map['email'];
+      if (email is! String || email.trim().isEmpty) return null;
+      return AuthSession(
+        userId: map['userId']?.toString(),
+        email: email.trim().toLowerCase(),
+        createdAt: DateTime.tryParse(map['createdAt']?.toString() ?? ''),
+        accessToken: map['accessToken']?.toString(),
+        refreshToken: map['refreshToken']?.toString(),
+        sessionId: map['sessionId']?.toString(),
+        accessTokenExpiresAt: DateTime.tryParse(
+          map['accessTokenExpiresAt']?.toString() ?? '',
+        ),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static bool _storedSessionMatchesOwner(
+    String? raw,
+    AuthSessionOwner owner,
+  ) {
+    if (raw == null || raw.isEmpty) return false;
+    final session = _decodeStoredSession(raw);
+    if (session == null ||
+        session.email.trim().toLowerCase() !=
+            owner.email.trim().toLowerCase()) {
+      return false;
+    }
+    final ownerUserId = owner.userId?.trim() ?? '';
+    final ownerSessionId = owner.sessionId?.trim() ?? '';
+    if (ownerUserId.isNotEmpty || ownerSessionId.isNotEmpty) {
+      return _storedRemoteSessionMatches(
+        raw,
+        userId: ownerUserId,
+        sessionId: ownerSessionId,
+        email: owner.email,
+      );
+    }
+    return (session.userId ?? '').trim().isEmpty &&
+        (session.sessionId ?? '').trim().isEmpty &&
+        session.createdAt == owner.createdAt;
   }
 
   static bool _storedRemoteSessionMatches(
@@ -328,8 +512,7 @@ class AuthService {
         'email': normalizedEmail,
         'createdAt': DateTime.now().toIso8601String(),
       };
-      await prefs.setString(_sessionKey, jsonEncode(sessionData));
-      _notifyLocalPrincipalChanged();
+      await _persistSessionEncoded(jsonEncode(sessionData));
       return AuthResult.success(
         session: AuthSession(
           email: normalizedEmail,
@@ -413,8 +596,7 @@ class AuthService {
         'email': normalizedEmail,
         'createdAt': DateTime.now().toIso8601String(),
       };
-      await prefs.setString(_sessionKey, jsonEncode(sessionData));
-      _notifyLocalPrincipalChanged();
+      await _persistSessionEncoded(jsonEncode(sessionData));
       return AuthResult.success(
         session: AuthSession(
           email: normalizedEmail,
@@ -764,6 +946,7 @@ class AuthService {
     final session = await readSession();
     final refreshToken = session?.refreshToken;
     if (refreshToken == null || refreshToken.isEmpty) return null;
+    final owner = captureSessionOwner(session!);
     try {
       final response = await BackendHttp.requestJson(
         method: 'POST',
@@ -779,11 +962,10 @@ class AuthService {
       return null;
     } catch (error) {
       debugPrint('[AuthService] refresh failed: $error');
-      await BackendRealtimeService.disconnect();
       if (shouldClearStoredSessionAfterRefreshFailure(error)) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(_sessionKey);
-        _notifyLocalPrincipalChanged();
+        await clearSessionOwnerIfMatches(owner);
+      } else if (await isSessionOwnerDefinitelyCurrent(owner)) {
+        await BackendRealtimeService.disconnect();
       }
       return null;
     }
@@ -969,7 +1151,6 @@ class AuthService {
       sessionId: sessionId,
       accessTokenExpiresAt: now.add(Duration(seconds: expiresIn)),
     );
-    final prefs = await SharedPreferences.getInstance();
     final encoded = jsonEncode({
       'userId': session.userId,
       'email': session.email,
@@ -979,20 +1160,49 @@ class AuthService {
       'sessionId': session.sessionId,
       'accessTokenExpiresAt': session.accessTokenExpiresAt?.toIso8601String(),
     });
-    if (expectedGeneration == null) {
-      await prefs.setString(_sessionKey, encoded);
-    } else {
-      final persisted = await persistRefreshResultSafely(
-        isCurrent: () =>
-            !_sessionClearing && expectedGeneration == _sessionGeneration,
-        persist: () => prefs.setString(_sessionKey, encoded),
-        remove: () => prefs.remove(_sessionKey),
-      );
-      if (!persisted) throw const _DiscardedRefreshResult();
-    }
-    _notifyLocalPrincipalChanged();
-    await BackendRealtimeService.connect(accessToken);
+    final persisted = await _persistSessionEncoded(
+      encoded,
+      expectedGeneration: expectedGeneration,
+      connectAccessToken: accessToken,
+    );
+    if (!persisted) throw const _DiscardedRefreshResult();
     return session;
+  }
+
+  static Future<bool> _persistSessionEncoded(
+    String encoded, {
+    int? expectedGeneration,
+    String? connectAccessToken,
+  }) {
+    return _sessionMutationQueue.run(() async {
+      if (_sessionClearing ||
+          (expectedGeneration != null &&
+              expectedGeneration != _sessionGeneration)) {
+        return false;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      final persisted = await prefs.setString(_sessionKey, encoded);
+      if (!persisted || prefs.getString(_sessionKey) != encoded) return false;
+      _sessionGeneration += 1;
+      _notifyLocalPrincipalChanged();
+      if (connectAccessToken != null && connectAccessToken.isNotEmpty) {
+        await BackendRealtimeService.connect(connectAccessToken);
+      }
+      return true;
+    });
+  }
+
+  static Future<bool> _removeStoredSessionIfRawMatches(String expectedRaw) {
+    return _sessionMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getString(_sessionKey) != expectedRaw) return false;
+      final removed = await prefs.remove(_sessionKey);
+      if (!removed || prefs.containsKey(_sessionKey)) return false;
+      _sessionGeneration += 1;
+      _refreshInFlight = null;
+      _notifyLocalPrincipalChanged();
+      return true;
+    });
   }
 
   @visibleForTesting
@@ -1090,6 +1300,35 @@ class AuthSession {
     this.refreshToken,
     this.sessionId,
     this.accessTokenExpiresAt,
+  });
+}
+
+/// Principal plus session identity captured synchronously with the auth epoch.
+/// Tokens are intentionally excluded so this value is safe to retain in UI
+/// state and cannot be used as a credential container.
+class AuthSessionOwner {
+  final String? userId;
+  final String? sessionId;
+  final String email;
+  final DateTime? createdAt;
+  final int epoch;
+
+  const AuthSessionOwner({
+    required this.userId,
+    required this.sessionId,
+    required this.email,
+    required this.createdAt,
+    required this.epoch,
+  });
+}
+
+class AuthSessionClearReceipt {
+  final AuthSessionOwner owner;
+  final int completionEpoch;
+
+  const AuthSessionClearReceipt({
+    required this.owner,
+    required this.completionEpoch,
   });
 }
 

@@ -92,7 +92,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "11bad619a4bf652e91c50fc493b892632407e9d0858c596267181431bb2bb5f5"
+      "sha256": "65dcfcfdff5812ebd2ddf54989e2a758748f453277b512fe889e927a3d5362cc"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "4ef771f9c6f037752826676c824cf8aa3d4cb194d9cf3b71c9072bcc4285ac6f"
+      "sha256": "d591b2e7f11d5c29b01251b2226c4417ca31af926c53946b4f93322e5bc07b05"
     },
     {
       "path": "test/reduced_wave0_local_state_truth_recovery_test.dart",
