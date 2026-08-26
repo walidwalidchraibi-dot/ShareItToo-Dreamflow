@@ -4,8 +4,10 @@ Status: **VORBEREITUNG — KEINE EINLADUNG — KEIN PLAY-UPLOAD**
 
 Diese Anleitung gilt nur fuer den spaeter owner-freigegebenen Kandidaten
 `1.0.0 (2026082601)` auf `com.shareittoo.app`. Vor der Installation muessen
-der private BUILD_READY-Handover, der dort genannte Quell-Commit und der
-AAB-SHA-256 mit dem spaeteren Play-Release uebereinstimmen.
+der private BUILD_READY-Handover, der Artefakt-Quell-Commit
+`a1aa3f2528f1923c092a1fb15bdd3dc083673890` und der AAB-SHA-256
+`8cf36552f39fe9558411809518b374c437125cbd6ef123258ad9df7061acd873`
+mit dem spaeteren Play-Release uebereinstimmen.
 
 ## Google-Konto und privater Opt-in
 

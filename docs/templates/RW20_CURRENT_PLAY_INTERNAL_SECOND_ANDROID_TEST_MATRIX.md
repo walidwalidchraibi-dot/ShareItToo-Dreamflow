@@ -3,8 +3,9 @@
 Status: **VORBEREITUNG — NOCH NICHT AUSGEFUEHRT**
 
 Gebundene Soll-Identitaet: `com.shareittoo.app`, Version `1.0.0`, VersionCode
-`2026082601`, Internal Track, Staging-API. Der spaetere BUILD_READY-Handover
-liefert den exakten Quell-Commit und AAB-SHA-256.
+`2026082601`, Internal Track, Staging-API. Artefakt-Quell-Commit:
+`a1aa3f2528f1923c092a1fb15bdd3dc083673890`; AAB-SHA-256:
+`8cf36552f39fe9558411809518b374c437125cbd6ef123258ad9df7061acd873`.
 
 | Test | Vorbereitung | Erwartung | Stopkriterium |
 | --- | --- | --- | --- |
