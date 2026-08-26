@@ -73,7 +73,7 @@ void main() {
     await expectLater(
       service.deleteAccount(
         context: _contextA,
-        currentPassword: _syntheticPassword,
+        currentPassword: _syntheticAccountProof,
       ),
       throwsA(
         isA<AccountDeletionFailure>()
@@ -97,7 +97,7 @@ void main() {
     await expectLater(
       service.deleteAccount(
         context: _contextA,
-        currentPassword: _syntheticPassword,
+        currentPassword: _syntheticAccountProof,
       ),
       throwsA(
         isA<AccountDeletionFailure>()
@@ -356,7 +356,7 @@ void main() {
   });
 }
 
-const _syntheticPassword = 'synthetic-current-password';
+const _syntheticAccountProof = 'synthetic-current-password';
 
 Future<void> _useStoredSession(String userId, String email) async {
   final prefs = await SharedPreferences.getInstance();
@@ -408,7 +408,7 @@ Future<void> _expectDeletionFailure(
   await expectLater(
     service.deleteAccount(
       context: _contextA,
-      currentPassword: _syntheticPassword,
+      currentPassword: _syntheticAccountProof,
     ),
     throwsA(
       isA<AccountDeletionFailure>().having(
@@ -461,7 +461,7 @@ Future<void> _confirmDeletion(WidgetTester tester) async {
   );
   await tester.enterText(
     find.widgetWithText(TextField, 'Aktuelles Passwort'),
-    _syntheticPassword,
+    _syntheticAccountProof,
   );
   await tester.pump();
   await tester.tap(find.text('Ja, Konto endgültig löschen'));

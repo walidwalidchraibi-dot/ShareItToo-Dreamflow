@@ -210,7 +210,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "de3c54df0a5f6eb6eaad176515ab280adf73a113e4916193ffa3657e2a7845a4"
+      "sha256": "dd3ae45a822a9734fdb0c6209ee9a8f944a4188ef1ffbe98bb448bd40268104c"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
