@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "fcd66d26293b458aed683d181eeb4749da19e53ce775b175cc9cb4488a0e4bea"
+      "sha256": "190750fc19994e4cce7d2db2d1fd7b2b6161b6016f269330473b87843ee2404a"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -716,7 +716,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "f818303d43404c16ef821927890a30619bbeffb88744b420c28d1e1d2af37672"
+      "sha256": "82877a06a25f41d7f184bf87e848ebcd6db08213ccc58052736a8422e55c564a"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
@@ -860,7 +860,7 @@
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
-      "sha256": "595bb7e4b2649a9a85d2603305b03412e715be6c2748f002a02adb7122237dd9"
+      "sha256": "a1aaa56200dfd40e6f8a42acd821a7ffd4074e4a2d59fd6995e92091a8977056"
     },
     {
       "path": "lib/openai/openai_config.dart",
@@ -888,7 +888,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "f4264251557105a8acfae8768b17cf6fc25affc47c0bf338afccd5a987fac909"
+      "sha256": "a89e1c926c2ee85e984385ac90f104b20c80a40753436fcfef8db2de2c1625dc"
     },
     {
       "path": "lib/widgets/supply_enrichment_dialog.dart",

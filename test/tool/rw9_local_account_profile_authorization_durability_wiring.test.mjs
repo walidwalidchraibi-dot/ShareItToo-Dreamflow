@@ -67,7 +67,7 @@ test('paired local profile documents are strict bounded and rollback verified', 
   );
 });
 
-test('user-facing profile screens use field patches rather than snapshot writes', () => {
+test('user-facing profile screens use owner-bound field patches rather than snapshot writes', () => {
   const patchScreens = [
     'lib/screens/change_address_screen.dart',
     'lib/screens/contact_data_screen.dart',
@@ -79,7 +79,10 @@ test('user-facing profile screens use field patches rather than snapshot writes'
   ];
   for (const path of patchScreens) {
     const source = read(path);
-    assert.match(source, /DataService\.updateCurrentUserProfile\(/u, path);
+    assert.match(source, /ProfileMutationService/u, path);
+    assert.match(source, /_profileMutationService\.updateProfile\(/u, path);
+    assert.match(source, /context:\s*owner\.context/u, path);
+    assert.doesNotMatch(source, /DataService\.updateCurrentUserProfile\(/u, path);
     assert.doesNotMatch(source, /DataService\.setCurrentUser\(/u, path);
   }
   const contact = read('lib/screens/contact_data_screen.dart');

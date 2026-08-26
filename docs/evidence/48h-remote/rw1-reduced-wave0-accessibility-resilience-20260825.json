@@ -100,7 +100,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "f0ddb92f437e03dd69055efb1629c0bd5228f022d25930dd7d05dbb4d115af53"
+      "sha256": "32f817f1cae527cbf31b5e7a514a6476a149bfb0fbf9d9f3a717ad93086444d7"
     },
     {
       "path": "test/reduced_wave0_accessibility_resilience_test.dart",

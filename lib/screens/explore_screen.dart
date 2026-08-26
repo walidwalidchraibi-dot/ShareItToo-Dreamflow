@@ -24,6 +24,7 @@ import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/listing_feedback_service.dart';
+import 'package:lendify/services/profile_mutation_service.dart';
 import 'package:lendify/screens/explore_screen_pinned_header.dart';
 import 'package:lendify/widgets/scroll_edge_indicators.dart';
 import 'package:lendify/widgets/app_image.dart';
@@ -34,11 +35,17 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
+import 'package:lendify/widgets/profile_mutation_interaction.dart';
 import 'package:lendify/widgets/supply_enrichment_dialog.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key});
+  final ProfileMutationService profileMutationService;
+
+  const ExploreScreen({
+    super.key,
+    this.profileMutationService = const ProfileMutationService(),
+  });
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
@@ -49,7 +56,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final ScrollController _ctrlGuests = ScrollController();
   final SharedPersistenceRefreshCoordinator _savedRefreshCoordinator =
       SharedPersistenceRefreshCoordinator();
+  final _profileActions = ProfileMutationInteractionController();
   StreamSubscription<String>? _savedStateSubscription;
+  int _loadRevision = 0;
+
+  ProfileMutationService get _profileMutationService =>
+      widget.profileMutationService;
 
   List<Item> _items = [];
 // Map fine category id -> coarse/top-level category label
@@ -109,7 +121,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void initState() {
     super.initState();
     _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
-      if (key == SharedPersistenceSync.wishlistStateKey ||
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _profileActions.invalidate();
+        unawaited(_savedRefreshCoordinator.schedule(_loadData));
+      } else if (key == SharedPersistenceSync.wishlistStateKey ||
           key == SharedPersistenceSync.savedItemsKey) {
         unawaited(_savedRefreshCoordinator.schedule(_reloadSavedState));
       } else if (key == SharedPersistenceSync.localSafetyPrivacyStateKey) {
@@ -123,6 +138,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void dispose() {
     _savedRefreshCoordinator.dispose();
     _savedStateSubscription?.cancel();
+    _profileActions.dispose();
     _scrollController.dispose();
     _feedPager.dispose();
     _ctrlGuests.dispose();
@@ -143,6 +159,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _loadData() async {
+    final revision = ++_loadRevision;
     if (mounted) {
       setState(() {
         _isLoading = true;
@@ -156,10 +173,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final user = await DataService.getCurrentUser();
       final saved = await DataService.getSavedItemIds();
       final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
+      final profileContext = await _profileMutationService.loadCurrentContext();
       // Re-read after account data access: an expired remote session may have
       // been invalidated while that data was resolved.
       final session = await AuthService.readSession();
-      final hasRealSession = session != null;
+      final hasRealSession = session != null && profileContext != null;
+      if (!mounted || revision != _loadRevision) return;
+      if (profileContext != null &&
+          !await _profileMutationService.isContextCurrent(profileContext)) {
+        return;
+      }
 
 // No extra fillers for the five-item showcase
       final extrasTop = <Item>[];
@@ -168,12 +191,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final coarseMap = <String, String>{
         for (final c in categories) c.id: DataService.coarseCategoryFor(c.name)
       };
+      if (!mounted || revision != _loadRevision) return;
+      _profileActions.replaceContext(profileContext);
+      final resolvedUser = profileContext?.user ?? user;
       setState(() {
         _items = items.where((item) => !hiddenIds.contains(item.id)).toList();
         _coarseByCatId = coarseMap;
         _usersById = {for (final u in users) u.id: u};
-        _currentUserName = hasRealSession ? user?.displayName : null;
-        _currentUserCity = hasRealSession ? user?.city : null;
+        _currentUserName = hasRealSession ? resolvedUser?.displayName : null;
+        _currentUserCity = hasRealSession ? resolvedUser?.city : null;
         _savedIds = hasRealSession ? saved : <String>{};
         _extraTopBooked = extrasTop;
         _isLoading = false;
@@ -186,7 +212,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         });
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
       setState(() {
         _isLoading = false;
         _catalogError = 'Anzeigen konnten nicht geladen werden.';
@@ -339,13 +365,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void _openSearch() => SearchOverlay.show(context);
 
   Future<void> _openLocationUpdate() async {
+    final owner = _profileActions.capture();
+    if (owner == null) return;
     final list = DataService.getCities().keys.toList();
     final cities = ['Automatisch', ...list];
-    final selected = await showModalBottomSheet<String>(
+    final selected = await _profileActions.showOwnedSheet<String>(
       context: context,
+      owner: owner,
       backgroundColor: Colors.black.withValues(alpha: 0.7),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: 12),
@@ -376,7 +403,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ? const Icon(Icons.my_location, color: Colors.white70)
                       : const SizedBox.shrink(),
                   title: Text(c, style: const TextStyle(color: Colors.white)),
-                  trailing: (_currentUserCity == c)
+                  trailing: (owner.context.user.city == c)
                       ? const Icon(Icons.check, color: Colors.lightBlueAccent)
                       : null,
                   onTap: () => Navigator.of(context).pop(c),
@@ -388,60 +415,154 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ]),
       ),
     );
-    if (selected == null || selected.isEmpty) return;
-
-    if (selected == 'Automatisch') {
-      await _useAutomaticLocation();
+    if (selected == null ||
+        selected.isEmpty ||
+        !await _profileActions.isCurrent(_profileMutationService, owner)) {
       return;
     }
 
-    await _persistCity(selected);
+    if (selected == 'Automatisch') {
+      await _useAutomaticLocation(owner);
+      return;
+    }
+
+    await _persistCity(selected, owner);
   }
 
-  Future<void> _persistCity(String selected) async {
-    setState(() => _currentUserCity = selected);
-    final user = await DataService.getCurrentUser();
-    if (user != null) {
-      await DataService.updateCurrentUserProfile(
-        expectedUserId: user.id,
+  Future<void> _persistCity(
+    String selected,
+    ProfileMutationActionOwner owner,
+  ) async {
+    try {
+      if (!await _profileActions.isCurrent(_profileMutationService, owner)) {
+        return;
+      }
+      final result = await _profileMutationService.updateProfile(
+        context: owner.context,
         updates: {
           CurrentUserProfileField.city: selected,
         },
       );
-      if (!mounted) return;
-      AppPopup.toast(context,
-          icon: Icons.place, title: 'Standort aktualisiert: $selected');
+      if (!await _profileActions.isCurrent(
+        _profileMutationService,
+        owner,
+      )) {
+        return;
+      }
+      _profileActions.replaceContext(ProfileMutationContext(
+        user: result.user,
+        owner: owner.context.owner,
+      ));
+      setState(() => _currentUserCity = result.user.city);
+      final refreshedOwner = _profileActions.capture();
+      if (refreshedOwner != null) {
+        await _showOwnedProfileStatus(
+          refreshedOwner,
+          title: 'Standort aktualisiert: $selected',
+        );
+      }
+    } on ProfileMutationFailure catch (failure) {
+      if (failure.kind == ProfileMutationFailureKind.principalChanged ||
+          !await _profileActions.isCurrent(
+            _profileMutationService,
+            owner,
+          )) {
+        return;
+      }
+      await _showOwnedProfileStatus(
+        owner,
+        title: failure.remoteAccepted
+            ? 'Serverseitig gespeichert'
+            : failure.kind == ProfileMutationFailureKind.outcomeUnknown
+                ? 'Speicherstatus unklar'
+                : 'Standort nicht gespeichert',
+        message: failure.remoteAccepted
+            ? 'Der Standort wurde serverseitig verarbeitet, aber der lokale Profilstand konnte noch nicht aktualisiert werden.'
+            : failure.kind == ProfileMutationFailureKind.outcomeUnknown
+                ? 'Die Änderung könnte verarbeitet worden sein. Lade dein Profil neu, bevor du erneut speicherst.'
+                : null,
+      );
+    } catch (error) {
+      debugPrint('[Explore] location save failed: ${error.runtimeType}');
+      if (await _profileActions.isCurrent(_profileMutationService, owner)) {
+        await _showOwnedProfileStatus(
+          owner,
+          title: 'Standort nicht gespeichert',
+        );
+      }
     }
   }
 
-  Future<void> _useAutomaticLocation() async {
+  Future<void> _useAutomaticLocation(
+    ProfileMutationActionOwner owner,
+  ) async {
     try {
+      if (!await _profileActions.isCurrent(_profileMutationService, owner)) {
+        return;
+      }
       LocationPermission perm = await Geolocator.checkPermission();
+      if (!await _profileActions.isCurrent(_profileMutationService, owner)) {
+        return;
+      }
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
+        if (!await _profileActions.isCurrent(
+          _profileMutationService,
+          owner,
+        )) {
+          return;
+        }
       }
       if (perm == LocationPermission.deniedForever ||
           perm == LocationPermission.denied) {
-        if (!mounted) return;
-        AppPopup.toast(context,
-            icon: Icons.location_off,
-            title: 'Standortzugriff verweigert.',
-            message: 'Bitte erlaube den Zugriff in den Einstellungen.');
+        await _showOwnedProfileStatus(
+          owner,
+          title: 'Standortzugriff verweigert.',
+          message: 'Bitte erlaube den Zugriff in den Einstellungen.',
+        );
+        return;
+      }
+      if (!await _profileActions.isCurrent(_profileMutationService, owner)) {
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.high),
       );
+      if (!await _profileActions.isCurrent(_profileMutationService, owner)) {
+        return;
+      }
       final nearest = DataService.nearestCityName(pos.latitude, pos.longitude);
-      await _persistCity(nearest);
+      await _persistCity(nearest, owner);
     } catch (e) {
-      if (!mounted) return;
-      AppPopup.toast(context,
-          icon: Icons.location_disabled,
-          title: 'Standort konnte nicht ermittelt werden.');
+      if (await _profileActions.isCurrent(_profileMutationService, owner)) {
+        await _showOwnedProfileStatus(
+          owner,
+          title: 'Standort konnte nicht ermittelt werden.',
+        );
+      }
     }
   }
+
+  Future<void> _showOwnedProfileStatus(
+    ProfileMutationActionOwner owner, {
+    required String title,
+    String? message,
+  }) =>
+      _profileActions.showOwnedDialog<void>(
+        context: context,
+        owner: owner,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(title),
+          content: message == null ? null : Text(message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
 
   Future<void> _toggleFavorite(String id) async {
     if (_favoriteActionInFlight) return;

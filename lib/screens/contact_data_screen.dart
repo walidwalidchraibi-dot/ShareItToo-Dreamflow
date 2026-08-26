@@ -7,18 +7,21 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/contact_verification_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/profile_mutation_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
-import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/profile_mutation_interaction.dart';
 import 'package:lendify/widgets/tracked_dialog_route.dart';
 
 class ContactDataScreen extends StatefulWidget {
   final ContactVerificationService? contactVerificationService;
+  final ProfileMutationService? profileMutationService;
 
   const ContactDataScreen({
     super.key,
     this.contactVerificationService,
+    this.profileMutationService,
   });
 
   @override
@@ -29,6 +32,8 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late final ContactVerificationService _contactVerificationService;
+  late final ProfileMutationService _profileMutationService;
+  final _profileActions = ProfileMutationInteractionController();
   StreamSubscription<String>? _accountStateSubscription;
   ContactVerificationContext? _contactContext;
   User? _user;
@@ -56,6 +61,8 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     super.initState();
     _contactVerificationService =
         widget.contactVerificationService ?? const ContactVerificationService();
+    _profileMutationService =
+        widget.profileMutationService ?? const ProfileMutationService();
     _accountStateSubscription =
         SharedPersistenceSync.changes.listen(_handleAccountStateChange);
     _phoneCtrl = TextEditingController();
@@ -75,6 +82,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     _contactEpoch += 1;
     _accountStateSubscription?.cancel();
     _dismissActiveContactRoute?.call();
+    _profileActions.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _streetCtrl.dispose();
@@ -91,6 +99,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     _contactEpoch += 1;
     _loadRevision += 1;
     _dismissActiveContactRoute?.call();
+    _profileActions.invalidate();
     if (!mounted) return;
     setState(() {
       _contactContext = null;
@@ -107,8 +116,24 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     try {
       final contactContext =
           await _contactVerificationService.loadCurrentContext();
+      final profileContext = widget.profileMutationService == null
+          ? contactContext == null
+              ? null
+              : ProfileMutationContext(
+                  user: contactContext.user,
+                  owner: contactContext.owner,
+                )
+          : await _profileMutationService.loadCurrentContext();
       if (!mounted || revision != _loadRevision) return;
       final u = contactContext?.user;
+      final matchingProfileContext = profileContext != null &&
+              u != null &&
+              profileContext.user.id == u.id &&
+              profileContext.user.email.trim().toLowerCase() ==
+                  u.email.trim().toLowerCase()
+          ? profileContext
+          : null;
+      _profileActions.replaceContext(matchingProfileContext);
       setState(() {
         _contactContext = contactContext;
         _user = u;
@@ -121,6 +146,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       if (!mounted || revision != _loadRevision) return;
       setState(() {
         _contactContext = null;
+        _profileActions.invalidate();
         _loading = false;
         _generalError = 'Laden fehlgeschlagen.';
       });
@@ -380,7 +406,8 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     setState(() => _generalError = '');
     final current = _user;
     final owner = _captureInteractionOwner();
-    if (current == null || owner == null) return;
+    final profileOwner = _profileActions.capture();
+    if (current == null || owner == null || profileOwner == null) return;
 
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok) return;
@@ -408,12 +435,22 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     if (_contactVerificationService.isBackendEnabled && emailChanged) {
       emailChangePassword = await _requestPasswordForEmailChange(owner);
       if (emailChangePassword == null ||
-          !await _isInteractionOwnerCurrent(owner)) {
+          !await _isInteractionOwnerCurrent(owner) ||
+          !await _profileActions.isCurrent(
+            _profileMutationService,
+            profileOwner,
+          )) {
         return;
       }
     }
 
-    if (!await _isInteractionOwnerCurrent(owner)) return;
+    if (!await _isInteractionOwnerCurrent(owner) ||
+        !await _profileActions.isCurrent(
+          _profileMutationService,
+          profileOwner,
+        )) {
+      return;
+    }
     setState(() => _saving = true);
     var emailChangeAccepted = false;
     try {
@@ -426,9 +463,15 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
         emailChangeAccepted = true;
       }
 
-      if (!await _isInteractionOwnerCurrent(owner)) return;
-      final updated = await DataService.updateCurrentUserProfile(
-        expectedUserId: current.id,
+      if (!await _isInteractionOwnerCurrent(owner) ||
+          !await _profileActions.isCurrent(
+            _profileMutationService,
+            profileOwner,
+          )) {
+        return;
+      }
+      final mutation = await _profileMutationService.updateProfile(
+        context: profileOwner.context,
         updates: {
           CurrentUserProfileField.phone: newPhone.isEmpty ? null : newPhone,
           CurrentUserProfileField.addressStreet: _streetCtrl.text.trim(),
@@ -445,8 +488,18 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
           CurrentUserProfileField.country: _countryCtrl.text.trim(),
         },
       );
-      if (!await _isInteractionOwnerCurrent(owner)) return;
-      setState(() => _user = updated);
+      if (!await _isInteractionOwnerCurrent(owner) ||
+          !await _profileActions.isCurrent(
+            _profileMutationService,
+            profileOwner,
+          )) {
+        return;
+      }
+      setState(() => _user = mutation.user);
+      _profileActions.replaceContext(ProfileMutationContext(
+        user: mutation.user,
+        owner: profileOwner.context.owner,
+      ));
       if (_contactVerificationService.isBackendEnabled && emailChanged) {
         _emailCtrl.text = current.email;
         await _showOwnedMessage(
@@ -500,6 +553,36 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
           message: message,
         );
       }
+    } on ProfileMutationFailure catch (failure) {
+      if (failure.kind == ProfileMutationFailureKind.principalChanged ||
+          !await _isInteractionOwnerCurrent(owner) ||
+          !await _profileActions.isCurrent(
+            _profileMutationService,
+            profileOwner,
+          )) {
+        return;
+      }
+      if (emailChangeAccepted) _emailCtrl.text = current.email;
+      await _showOwnedMessage(
+        owner,
+        icon: failure.remoteAccepted || emailChangeAccepted
+            ? Icons.mark_email_read_outlined
+            : Icons.error_outline,
+        title: failure.remoteAccepted
+            ? 'Kontaktdaten serverseitig gespeichert'
+            : failure.kind == ProfileMutationFailureKind.outcomeUnknown
+                ? 'Speicherstatus unklar'
+                : emailChangeAccepted
+                    ? 'Bestätigungslink gesendet'
+                    : 'Kontaktdaten nicht gespeichert',
+        message: failure.remoteAccepted
+            ? 'Die Profiländerung wurde serverseitig verarbeitet, aber der lokale Stand konnte noch nicht aktualisiert werden.'
+            : failure.kind == ProfileMutationFailureKind.outcomeUnknown
+                ? 'Die Profiländerung könnte verarbeitet worden sein. Lade den Profilstand neu, bevor du erneut speicherst.'
+                : emailChangeAccepted
+                    ? 'Der E-Mail-Wechsel wurde angefordert, aber die übrigen Kontaktdaten wurden nicht bestätigt.'
+                    : null,
+      );
     } catch (e) {
       debugPrint('[ContactData] save failed: $e');
       if (!await _isInteractionOwnerCurrent(owner)) return;
@@ -1021,17 +1104,27 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
   }
 
   Future<void> _confirmLocationOnMap() async {
+    final owner = _profileActions.capture();
+    if (owner == null) return;
     if (!_hasRequiredAddressFields) {
-      AppPopup.info(
-        context,
-        title: 'Adresse noch unvollständig',
-        message: 'Bitte vervollständige zuerst die Adresse.',
+      await _profileActions.showOwnedDialog<void>(
+        context: context,
+        owner: owner,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Adresse noch unvollständig'),
+          content: const Text('Bitte vervollständige zuerst die Adresse.'),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
       return;
     }
 
-    final u = _user;
-    if (u == null) return;
+    final u = owner.context.user;
 
     final address = _composeAddressLine();
     final (lat0, lng0) = u.homeLat != null && u.homeLng != null
@@ -1041,9 +1134,12 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     double lat = lat0;
     double lng = lng0;
     bool saving = false;
+    String? inlineError;
 
-    await showModalBottomSheet<void>(
+    final result =
+        await _profileActions.showOwnedSheet<AccountProfileMutationResult>(
       context: context,
+      owner: owner,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
@@ -1056,6 +1152,10 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
               return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (inlineError != null) ...[
+                      _InlineError(text: inlineError!),
+                      const SizedBox(height: 12),
+                    ],
                     ApproxLocationMap(
                         lat: lat, lng: lng, label: 'Dein Standort (ungefähr)'),
                     const SizedBox(height: 12),
@@ -1084,36 +1184,71 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                               : () async {
                                   setLocal(() => saving = true);
                                   try {
-                                    final current = _user;
-                                    if (current == null) return;
-                                    final updated = await DataService
-                                        .updateCurrentUserProfile(
-                                      expectedUserId: current.id,
+                                    if (!await _profileActions.isCurrent(
+                                      _profileMutationService,
+                                      owner,
+                                    )) {
+                                      return;
+                                    }
+                                    final mutation =
+                                        await _profileMutationService
+                                            .updateProfile(
+                                      context: owner.context,
                                       updates: {
                                         CurrentUserProfileField.homeLat: lat,
                                         CurrentUserProfileField.homeLng: lng,
                                       },
                                     );
-                                    if (!mounted || !sheetContext.mounted) {
+                                    if (!await _profileActions.isCurrent(
+                                          _profileMutationService,
+                                          owner,
+                                        ) ||
+                                        !sheetContext.mounted) {
                                       return;
                                     }
-                                    setState(() => _user = updated);
-                                    Navigator.of(sheetContext).pop();
-                                    AppPopup.success(
-                                      this.context,
-                                      title: 'Standort gespeichert',
-                                    );
+                                    Navigator.of(sheetContext).pop(mutation);
+                                  } on ProfileMutationFailure catch (failure) {
+                                    if (failure.kind ==
+                                            ProfileMutationFailureKind
+                                                .principalChanged ||
+                                        !await _profileActions.isCurrent(
+                                          _profileMutationService,
+                                          owner,
+                                        ) ||
+                                        !sheetContext.mounted) {
+                                      return;
+                                    }
+                                    setLocal(() {
+                                      inlineError = failure.remoteAccepted
+                                          ? 'Die Koordinaten wurden serverseitig gespeichert; der lokale Profilstand konnte noch nicht aktualisiert werden.'
+                                          : failure.kind ==
+                                                  ProfileMutationFailureKind
+                                                      .outcomeUnknown
+                                              ? 'Der Speicherstatus ist unklar. Lade dein Profil neu, bevor du erneut speicherst.'
+                                              : 'Der Standort wurde nicht gespeichert.';
+                                    });
                                   } catch (e) {
                                     debugPrint(
-                                        '[ContactData] save coords failed: $e');
-                                    if (!sheetContext.mounted) return;
-                                    AppPopup.error(
-                                      sheetContext,
-                                      title: 'Standort nicht gespeichert',
-                                      message: 'Bitte versuche es erneut.',
+                                      '[ContactData] save coords failed: '
+                                      '${e.runtimeType}',
                                     );
+                                    if (!await _profileActions.isCurrent(
+                                          _profileMutationService,
+                                          owner,
+                                        ) ||
+                                        !sheetContext.mounted) {
+                                      return;
+                                    }
+                                    setLocal(() {
+                                      inlineError =
+                                          'Der Standort wurde nicht gespeichert. Bitte versuche es erneut.';
+                                    });
                                   } finally {
-                                    setLocal(() => saving = false);
+                                    if (sheetContext.mounted &&
+                                        _profileActions
+                                            .isSynchronouslyCurrent(owner)) {
+                                      setLocal(() => saving = false);
+                                    }
                                   }
                                 },
                           child: saving
@@ -1127,6 +1262,30 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
           ),
         );
       },
+    );
+    if (result == null ||
+        !await _profileActions.isCurrent(_profileMutationService, owner)) {
+      return;
+    }
+    setState(() => _user = result.user);
+    _profileActions.replaceContext(ProfileMutationContext(
+      user: result.user,
+      owner: owner.context.owner,
+    ));
+    final refreshedOwner = _profileActions.capture();
+    if (refreshedOwner == null || !mounted) return;
+    await _profileActions.showOwnedDialog<void>(
+      context: context,
+      owner: refreshedOwner,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Standort gespeichert'),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 

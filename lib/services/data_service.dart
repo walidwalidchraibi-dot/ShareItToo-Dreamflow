@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/services/handover_code.dart';
@@ -133,6 +134,57 @@ enum CurrentUserProfileField {
   addressCity,
   addressCountry,
   addressExtra,
+}
+
+enum AccountProfileMutationFailureKind {
+  rejected,
+  localUnavailable,
+  outcomeUnknown,
+  principalChanged,
+}
+
+class AccountProfileMutationFailure implements Exception {
+  final AccountProfileMutationFailureKind kind;
+  final String? code;
+  final bool remoteAccepted;
+
+  const AccountProfileMutationFailure._(
+    this.kind, {
+    this.code,
+    this.remoteAccepted = false,
+  });
+
+  const AccountProfileMutationFailure.rejected(String code)
+      : this._(AccountProfileMutationFailureKind.rejected, code: code);
+
+  const AccountProfileMutationFailure.localUnavailable(
+    String? code, {
+    bool remoteAccepted = false,
+  }) : this._(
+          AccountProfileMutationFailureKind.localUnavailable,
+          code: code,
+          remoteAccepted: remoteAccepted,
+        );
+
+  const AccountProfileMutationFailure.outcomeUnknown([String? code])
+      : this._(AccountProfileMutationFailureKind.outcomeUnknown, code: code);
+
+  const AccountProfileMutationFailure.principalChanged({
+    bool remoteAccepted = false,
+  }) : this._(
+          AccountProfileMutationFailureKind.principalChanged,
+          remoteAccepted: remoteAccepted,
+        );
+}
+
+class AccountProfileMutationResult {
+  final User user;
+  final bool remoteAccepted;
+
+  const AccountProfileMutationResult({
+    required this.user,
+    required this.remoteAccepted,
+  });
 }
 
 class _LocalWishlistState {
@@ -3334,90 +3386,230 @@ class DataService {
     required String expectedUserId,
     required Map<CurrentUserProfileField, Object?> updates,
   }) async {
-    if (updates.isEmpty) {
-      return _requireCurrentOperationalUser(requestedUserId: expectedUserId);
+    final captured =
+        await _requireCurrentOperationalUser(requestedUserId: expectedUserId);
+    AuthSessionOwner? owner;
+    if (!QaRuntimeService.isEnabled) {
+      final session = await AuthService.readSession();
+      if (session == null ||
+          !_sessionMatchesOperationalUser(
+            session,
+            userId: captured.id,
+            email: captured.email,
+          )) {
+        throw StateError('Die lokale Kontositzung hat sich geändert.');
+      }
+      owner = AuthService.captureSessionOwner(session);
+      if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+        throw StateError('Die lokale Kontositzung hat sich geändert.');
+      }
+    }
+    final result = await _updateCurrentUserProfileOwned(
+      captured: captured,
+      owner: owner,
+      updates: updates,
+      typedFailures: false,
+    );
+    return result.user;
+  }
+
+  static Future<AccountProfileMutationResult> updateCurrentUserProfileForOwner({
+    required AuthSessionOwner owner,
+    required String expectedUserId,
+    required Map<CurrentUserProfileField, Object?> updates,
+  }) async {
+    if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const AccountProfileMutationFailure.principalChanged();
     }
     final captured =
         await _requireCurrentOperationalUser(requestedUserId: expectedUserId);
+    if (!_sessionMatchesOperationalUser(
+          AuthSession(
+            userId: owner.userId,
+            sessionId: owner.sessionId,
+            email: owner.email,
+            createdAt: owner.createdAt,
+          ),
+          userId: captured.id,
+          email: captured.email,
+        ) ||
+        !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const AccountProfileMutationFailure.principalChanged();
+    }
+    return _updateCurrentUserProfileOwned(
+      captured: captured,
+      owner: owner,
+      updates: updates,
+      typedFailures: true,
+    );
+  }
+
+  static Future<AccountProfileMutationResult> _updateCurrentUserProfileOwned({
+    required User captured,
+    required AuthSessionOwner? owner,
+    required Map<CurrentUserProfileField, Object?> updates,
+    required bool typedFailures,
+  }) async {
+    if (updates.isEmpty) {
+      return AccountProfileMutationResult(
+        user: captured,
+        remoteAccepted: false,
+      );
+    }
     final validatedUpdates = <String, Object?>{};
     for (final entry in updates.entries) {
       validatedUpdates[entry.key.name] =
           _validatedProfileFieldValue(entry.key, entry.value);
     }
     return _accountProfileMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(
-        captured.id,
-        expectedEmail: captured.email,
-      );
-      final prefs = await SharedPreferences.getInstance();
-      final currentRaw = prefs.getString(_currentUserKey);
-      final usersRaw = prefs.getString(_usersKey);
-      if (currentRaw == null || usersRaw == null) {
-        throw StateError('Der lokale Profilstand ist unvollständig.');
-      }
-      final current = _decodeCurrentUserStrict(currentRaw);
-      if (current.id != captured.id ||
-          current.email.trim().toLowerCase() !=
-              captured.email.trim().toLowerCase()) {
-        throw StateError('Die lokale Kontositzung hat sich geändert.');
-      }
-      final users = List<User>.from(_decodeLocalUsersStrict(usersRaw));
-      final index = users.indexWhere((entry) => entry.id == current.id);
-      if (index < 0 || !_sameLocalUserDocument(users[index], current)) {
-        throw StateError(
-          'Das aktuelle Profil fehlt oder weicht vom Profilbestand ab.',
-        );
-      }
-      final nextJson = Map<String, dynamic>.from(current.toJson())
-        ..addAll(validatedUpdates);
-      if (validatedUpdates.containsKey(CurrentUserProfileField.phone.name) &&
-          nextJson['phone'] != current.phone) {
-        nextJson['phoneVerified'] = false;
-      }
-      var next = _decodeLocalUserStrict(
-        nextJson,
-        context: 'Aktualisiertes lokales Kontoprofil',
-      );
-      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        final remote = await BackendRepository.updateCurrentProfile(
-          next.toJson(),
-        );
-        next = _decodeLocalUserStrict(
-          remote,
-          context: 'Aktualisiertes Backend-Kontoprofil',
-        );
-      }
-      if (next.id != current.id ||
-          next.email != current.email ||
-          next.role != current.role ||
-          next.isVerified != current.isVerified ||
-          next.isBanned != current.isBanned ||
-          next.payoutAccountId != current.payoutAccountId ||
-          next.avgRating != current.avgRating ||
-          next.reviewCount != current.reviewCount ||
-          next.createdAt != current.createdAt ||
-          next.isDeactivated != current.isDeactivated ||
-          next.deactivatedAt != current.deactivatedAt ||
-          next.emailVerified != current.emailVerified) {
-        throw StateError(
-            'Geschützte Kontofelder dürfen nicht geändert werden.');
-      }
-      users[index] = next;
-      await _assertCurrentOperationalUserId(
-        captured.id,
-        expectedEmail: captured.email,
-      );
-      await _persistAccountProfileDocumentsVerified(
-        prefs: prefs,
-        current: next,
-        users: users,
-        verifyAuthorization: () => _assertCurrentOperationalUserId(
+      var remoteAccepted = false;
+
+      Future<void> verifyOwner() async {
+        if (owner != null &&
+            !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          if (typedFailures) {
+            throw AccountProfileMutationFailure.principalChanged(
+              remoteAccepted: remoteAccepted,
+            );
+          }
+          throw StateError('Die lokale Kontositzung hat sich geändert.');
+        }
+        await _assertCurrentOperationalUserId(
           captured.id,
           expectedEmail: captured.email,
-        ),
-      );
-      return next;
+        );
+      }
+
+      try {
+        await verifyOwner();
+        final prefs = await SharedPreferences.getInstance();
+        final currentRaw = prefs.getString(_currentUserKey);
+        final usersRaw = prefs.getString(_usersKey);
+        if (currentRaw == null || usersRaw == null) {
+          throw StateError('Der lokale Profilstand ist unvollständig.');
+        }
+        final current = _decodeCurrentUserStrict(currentRaw);
+        if (current.id != captured.id ||
+            current.email.trim().toLowerCase() !=
+                captured.email.trim().toLowerCase()) {
+          throw const AccountProfileMutationFailure.principalChanged();
+        }
+        final users = List<User>.from(_decodeLocalUsersStrict(usersRaw));
+        final index = users.indexWhere((entry) => entry.id == current.id);
+        if (index < 0 || !_sameLocalUserDocument(users[index], current)) {
+          throw StateError(
+            'Das aktuelle Profil fehlt oder weicht vom Profilbestand ab.',
+          );
+        }
+        final nextJson = Map<String, dynamic>.from(current.toJson())
+          ..addAll(validatedUpdates);
+        if (validatedUpdates.containsKey(CurrentUserProfileField.phone.name) &&
+            nextJson['phone'] != current.phone) {
+          nextJson['phoneVerified'] = false;
+        }
+        var next = _decodeLocalUserStrict(
+          nextJson,
+          context: 'Aktualisiertes lokales Kontoprofil',
+        );
+        if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+          if (owner == null) {
+            throw const AccountProfileMutationFailure.principalChanged();
+          }
+          await verifyOwner();
+          final remote = await BackendRepository.updateCurrentProfileForOwner(
+            owner,
+            next.toJson(),
+          );
+          remoteAccepted = true;
+          await verifyOwner();
+          next = _decodeLocalUserStrict(
+            remote,
+            context: 'Aktualisiertes Backend-Kontoprofil',
+          );
+        }
+        if (next.id != current.id ||
+            next.email != current.email ||
+            next.role != current.role ||
+            next.isVerified != current.isVerified ||
+            next.isBanned != current.isBanned ||
+            next.payoutAccountId != current.payoutAccountId ||
+            next.avgRating != current.avgRating ||
+            next.reviewCount != current.reviewCount ||
+            next.createdAt != current.createdAt ||
+            next.isDeactivated != current.isDeactivated ||
+            next.deactivatedAt != current.deactivatedAt ||
+            next.emailVerified != current.emailVerified) {
+          throw StateError(
+              'Geschützte Kontofelder dürfen nicht geändert werden.');
+        }
+        users[index] = next;
+        await verifyOwner();
+        await _persistAccountProfileDocumentsVerified(
+          prefs: prefs,
+          current: next,
+          users: users,
+          verifyAuthorization: verifyOwner,
+        );
+        return AccountProfileMutationResult(
+          user: next,
+          remoteAccepted: remoteAccepted,
+        );
+      } on AccountProfileMutationFailure catch (failure) {
+        if (typedFailures) rethrow;
+        throw StateError(
+          failure.kind == AccountProfileMutationFailureKind.principalChanged
+              ? 'Die lokale Kontositzung hat sich geändert.'
+              : 'Die Profiländerung konnte nicht abgeschlossen werden.',
+        );
+      } on BackendException catch (error) {
+        if (owner != null &&
+            !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          if (typedFailures) {
+            throw AccountProfileMutationFailure.principalChanged(
+              remoteAccepted: remoteAccepted,
+            );
+          }
+          throw StateError('Die lokale Kontositzung hat sich geändert.');
+        }
+        if (typedFailures) throw _accountProfileBackendFailure(error);
+        rethrow;
+      } catch (error, stackTrace) {
+        if (owner != null &&
+            !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          if (typedFailures) {
+            throw AccountProfileMutationFailure.principalChanged(
+              remoteAccepted: remoteAccepted,
+            );
+          }
+          throw StateError('Die lokale Kontositzung hat sich geändert.');
+        }
+        if (typedFailures) {
+          throw AccountProfileMutationFailure.localUnavailable(
+            'local_profile_persistence_failed',
+            remoteAccepted: remoteAccepted,
+          );
+        }
+        Error.throwWithStackTrace(error, stackTrace);
+      }
     });
+  }
+
+  static AccountProfileMutationFailure _accountProfileBackendFailure(
+    BackendException error,
+  ) {
+    const rejected = <int, Set<String>>{
+      400: <String>{'minimum_age_required', 'invalid_phone'},
+      401: <String>{
+        'authentication_required',
+        'invalid_or_expired_session',
+        'account_not_active',
+      },
+      404: <String>{'user_not_found'},
+    };
+    if (rejected[error.statusCode]?.contains(error.code) == true) {
+      return AccountProfileMutationFailure.rejected(error.code);
+    }
+    return AccountProfileMutationFailure.outcomeUnknown(error.code);
   }
 
   /// Device-local account/profile data for an owner-requested privacy export.
@@ -3563,7 +3755,7 @@ class DataService {
 
     User? match;
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = await BackendRepository.getCurrentProfile();
+      final remote = await BackendRepository.getCurrentProfileForOwner(owner);
       match = User.fromJson(remote);
     } else {
       final users = await getUsers();

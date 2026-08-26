@@ -51,6 +51,32 @@ class BackendRepository {
     }
   }
 
+  /// Sends one request with a credential resolved only for the exact
+  /// token-free session owner captured by the caller. It deliberately does
+  /// not fall back to the globally current session after an await.
+  static Future<Map<String, dynamic>> _authorizedForOwner({
+    required AuthSessionOwner owner,
+    required String method,
+    required String path,
+    Object? body,
+    Duration timeout = const Duration(seconds: 20),
+  }) async {
+    final token = await AuthService.accessTokenForOwner(owner);
+    if (token == null || token.isEmpty) {
+      throw const BackendException(401, 'authentication_required');
+    }
+    if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const BackendException(401, 'authentication_required');
+    }
+    return BackendHttp.requestJson(
+      method: method,
+      path: path,
+      accessToken: token,
+      body: body,
+      timeout: timeout,
+    );
+  }
+
   static List<Map<String, dynamic>> _maps(Object? value) {
     if (value is! List) return <Map<String, dynamic>>[];
     return value
@@ -81,6 +107,17 @@ class BackendRepository {
 
   static Future<Map<String, dynamic>> getCurrentProfile() async {
     final response = await _authorized(method: 'GET', path: '/auth/me');
+    return Map<String, dynamic>.from(response['user'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> getCurrentProfileForOwner(
+    AuthSessionOwner owner,
+  ) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'GET',
+      path: '/auth/me',
+    );
     return Map<String, dynamic>.from(response['user'] as Map);
   }
 
@@ -167,6 +204,19 @@ class BackendRepository {
     Map<String, dynamic> profile,
   ) async {
     final response = await _authorized(
+      method: 'PATCH',
+      path: '/profile',
+      body: {'profile': profile},
+    );
+    return Map<String, dynamic>.from(response['user'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> updateCurrentProfileForOwner(
+    AuthSessionOwner owner,
+    Map<String, dynamic> profile,
+  ) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'PATCH',
       path: '/profile',
       body: {'profile': profile},

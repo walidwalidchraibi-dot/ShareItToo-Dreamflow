@@ -10,15 +10,18 @@ const source = readFileSync(
 test('late profile-load failure cannot update disposed state', () => {
   assert.match(
     source,
-    /catch \(e\) \{\s+\/\/ just fallback[\s\S]*?if \(!mounted\) return;\s+setState\(\(\) \{\s+_loading = false;/u,
+    /catch \(e\) \{\s+\/\/ just fallback[\s\S]*?if \(!mounted \|\| revision != _loadRevision\) return;\s+setState\(\(\) \{\s+_loading = false;/u,
   );
 });
 
-test('successful profile patch rechecks lifecycle and refreshes local state', () => {
+test('successful profile patch rechecks exact owner and refreshes local state', () => {
   assert.match(
     source,
-    /final updated = await DataService\.updateCurrentUserProfile\([\s\S]*?\);\s+if \(!mounted\) return;\s+setState\(\(\) => _user = updated\);\s+await AppPopup\.toast\(context,[\s\S]*?if \(!mounted\) return;\s+Navigator\.of\(context\)\.maybePop\(\);/u,
+    /final owner = _profileActions\.capture\(\);[\s\S]*?final result = await _profileMutationService\.updateProfile\([\s\S]*?context: owner\.context,[\s\S]*?if \(!await _profileActions\.isCurrent\([\s\S]*?owner,[\s\S]*?\)\) \{\s+return;\s+\}[\s\S]*?setState\(\(\) => _user = result\.user\);[\s\S]*?_profileActions\.removeOwnedNavigationRoute\(screenRoute\);/u,
   );
+  assert.match(source, /on ProfileMutationFailure catch \(failure\)/u);
+  assert.doesNotMatch(source, /DataService\.updateCurrentUserProfile\(/u);
+  assert.doesNotMatch(source, /Navigator\.of\(context\)\.maybePop\(\);/u);
   assert.doesNotMatch(source, /DataService\.setCurrentUser\(/u);
 });
 

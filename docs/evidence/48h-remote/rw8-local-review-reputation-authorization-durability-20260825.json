@@ -137,9 +137,9 @@
   },
   "ratchets": {
     "reason": "validated-local-review-lifecycle-privacy-retention-and-provider-source-change",
-    "privacyManifestSha256": "5cc98d1cf0c9d24c4a5e5c1fe79b71a31762518cd1e370bd48e4923a07fafe07",
-    "retentionManifestSha256": "9d15bae7ebf331b579c3cf0ea067577664fca73f0196e9605d8d81c9e10c5d70",
-    "activeProviderEvidenceSha256": "78e5b05529a4129ff923bde56c0b7cb72e11b8e80ae9fed4d1f6ced215c66e1d",
+    "privacyManifestSha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061",
+    "retentionManifestSha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d",
+    "activeProviderEvidenceSha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -173,7 +173,7 @@
   "sourceInventory": [
     {
       "path": "lib/screens/own_profile_screen.dart",
-      "sha256": "aadb8ad831e8bd7958ce0156a549af5075583ee1bb6d9df89adc82cd84d8a044"
+      "sha256": "1b082351d7f11ae15e180d58646ec5bd8c86663ba26259ba243641ac0620dec4"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
@@ -185,7 +185,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "fcd66d26293b458aed683d181eeb4749da19e53ce775b175cc9cb4488a0e4bea"
+      "sha256": "190750fc19994e4cce7d2db2d1fd7b2b6161b6016f269330473b87843ee2404a"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -201,15 +201,15 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "5cc98d1cf0c9d24c4a5e5c1fe79b71a31762518cd1e370bd48e4923a07fafe07"
+      "sha256": "4b36a5d9ff600cd075ec30383210a5fe0113539cd850a5ad8b545b8d21e4a061"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "9d15bae7ebf331b579c3cf0ea067577664fca73f0196e9605d8d81c9e10c5d70"
+      "sha256": "5fb60fbdbe1e494b81bbd83cdf57a2ed30adeb993575a9a49d42d2fb9a343a7d"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "78e5b05529a4129ff923bde56c0b7cb72e11b8e80ae9fed4d1f6ced215c66e1d"
+      "sha256": "7991bc299ef88f91906b542e075d66f12d89468dc80e7c65793ba726aa2fc417"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -225,11 +225,11 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "6ce2d420313f4d44eb8699330a0d8c39c62bd58c8eb5679f86632d6799660461"
+      "sha256": "cde1762e871fd4cecd6cd1566f0b43a2948b73fa4932505df8b57f8933a47e28"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "f0ddb92f437e03dd69055efb1629c0bd5228f022d25930dd7d05dbb4d115af53"
+      "sha256": "32f817f1cae527cbf31b5e7a514a6476a149bfb0fbf9d9f3a717ad93086444d7"
     },
     {
       "path": "test/review_metrics_service_test.dart",
@@ -257,7 +257,7 @@
     },
     {
       "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
-      "sha256": "cb000fa4f58de34b8cee8ff34d7da4ecc6625f0790edadd577e1567ca5545ad5"
+      "sha256": "3d68fa2975250bfa6fbfcdd50981bff02faada016968e46ae5c9f2a19d51a5b2"
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",

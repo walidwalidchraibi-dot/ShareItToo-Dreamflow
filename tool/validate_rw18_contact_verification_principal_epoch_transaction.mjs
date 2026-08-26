@@ -170,6 +170,7 @@ export function validateRw18ContactVerificationPrincipalEpochTransaction({
     ['AuthService.requestEmailChange', {}],
     ['AuthService.requestEmailVerification', {}],
     ['AuthService.accessTokenForOwner', {
+      'lib/services/backend_repository.dart': 1,
       'lib/services/contact_verification_service.dart': 1,
     }],
     ['.requestEmailChange', {'lib/screens/contact_data_screen.dart': 1}],
@@ -188,6 +189,7 @@ export function validateRw18ContactVerificationPrincipalEpochTransaction({
     ['.refreshVerifiedProfile', {'lib/screens/contact_data_screen.dart': 3}],
     ['showTrackedModalBottomSheet<T>', {
       'lib/screens/contact_data_screen.dart': 1,
+      'lib/widgets/profile_mutation_interaction.dart': 1,
       'lib/widgets/tracked_dialog_route.dart': 1,
     }],
   ];
