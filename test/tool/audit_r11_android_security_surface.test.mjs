@@ -16,6 +16,10 @@ const regression = readFileSync(
   new URL('../../scripts/technical_regression_check.sh', import.meta.url),
   'utf8',
 );
+const auditor = readFileSync(
+  new URL('../../tool/audit_r11_android_security_surface.mjs', import.meta.url),
+  'utf8',
+);
 
 test('parses typed, raw and resource-valued aapt XML attributes', () => {
   const tree = parseAaptXmlTree([
@@ -57,4 +61,11 @@ test('the full technical gate audits the actual merged debug artifact', () => {
     regression,
     /audit_r11_android_security_surface[\s\S]{0,500}(?:deploy|publish|upload|install)/u,
   );
+});
+
+test('the Android identity audit binds to the current repository version', () => {
+  assert.match(auditor, /readFileSync\(path\.join\(repositoryRoot, 'pubspec\.yaml'\)/u);
+  assert.match(auditor, /packageIdentity\?\.\[2\] !== expectedVersion\.versionCode/u);
+  assert.match(auditor, /versionCode: expectedVersion\.versionCode/u);
+  assert.doesNotMatch(auditor, /versionCode='2026082302'/u);
 });

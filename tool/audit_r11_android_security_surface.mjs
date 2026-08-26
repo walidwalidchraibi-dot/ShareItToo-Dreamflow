@@ -354,6 +354,7 @@ export function auditR11AndroidSecuritySurface({
   compiledPayload,
   source,
   artifact,
+  expectedVersion,
 }) {
   const manifest = parseAaptXmlTree(manifestDump);
   if (manifest.name !== 'manifest') fail('r11_manifest_root_invalid');
@@ -362,7 +363,14 @@ export function auditR11AndroidSecuritySurface({
   const componentInventorySha256 = sha256Json(componentInventory(values));
   const intentInventorySha256 = sha256Json(intentInventory(values));
 
-  if (!/package: name='com\.shareittoo\.app' versionCode='2026082302' versionName='1\.0\.0'/u.test(badgingDump)
+  const packageIdentity = /package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'/u
+    .exec(badgingDump);
+  if (expectedVersion === undefined
+      || !/^\d+$/u.test(expectedVersion.versionCode ?? '')
+      || typeof expectedVersion.versionName !== 'string'
+      || packageIdentity?.[1] !== 'com.shareittoo.app'
+      || packageIdentity?.[2] !== expectedVersion.versionCode
+      || packageIdentity?.[3] !== expectedVersion.versionName
       || !/compileSdkVersion='35'/u.test(badgingDump)
       || !/sdkVersion:'24'/u.test(badgingDump)
       || !/targetSdkVersion:'35'/u.test(badgingDump)) {
@@ -485,8 +493,8 @@ export function auditR11AndroidSecuritySurface({
       bytes: artifact.bytes,
       sha256: artifact.sha256,
       applicationId: 'com.shareittoo.app',
-      versionName: '1.0.0',
-      versionCode: '2026082302',
+      versionName: expectedVersion.versionName,
+      versionCode: expectedVersion.versionCode,
       compileSdk: 35,
       minSdk: 24,
       targetSdk: 35,
@@ -598,6 +606,9 @@ function runCli() {
   const aapt = path.resolve(args.aapt);
   const output = path.resolve(args.output);
   const apkBytes = readFileSync(apk);
+  const pubspec = readFileSync(path.join(repositoryRoot, 'pubspec.yaml'), 'utf8');
+  const repositoryVersion = /^version:\s+([^+\s]+)\+(\d+)$/mu.exec(pubspec);
+  if (repositoryVersion === null) fail('r11_repository_version_invalid');
   const resourceNamesToRead = [
     'backup_rules',
     'data_extraction_rules',
@@ -626,6 +637,10 @@ function runCli() {
     ])),
     compiledPayload: readRuntimePayload(apk),
     source,
+    expectedVersion: {
+      versionName: repositoryVersion[1],
+      versionCode: repositoryVersion[2],
+    },
     artifact: {
       source: {
         branch: args['source-branch'],
