@@ -50,7 +50,7 @@ test('account-security service is exact-session and server authoritative', () =>
 test('conditional auth clear binds account session and email', () => {
   const auth = read('lib/services/auth_service.dart');
   const clear = auth.match(
-    /static Future<bool> clearSessionIfMatches\([\s\S]*?\n  \}\n\n  static bool _storedRemoteSessionMatches/u,
+    /static Future<bool> clearSessionIfMatches\([\s\S]*?\n  \}\n\n  static AuthSession\? _decodeStoredSession/u,
   )?.[0];
   assert.ok(clear, 'conditional session clear must exist');
   for (const marker of [
@@ -67,6 +67,12 @@ test('conditional auth clear binds account session and email', () => {
     auth,
     /clearSessionOwnerIfMatches\([\s\S]*?_storedSessionMatchesOwner\(raw, owner\)[\s\S]*?prefs\.remove\(_sessionKey\)/u,
   );
+  for (const marker of [
+    "(session.userId ?? '').trim() == (owner.userId ?? '').trim()",
+    "(session.sessionId ?? '').trim() == (owner.sessionId ?? '').trim()",
+    'session.createdAt == owner.createdAt',
+  ]) assert.match(auth, new RegExp(escaped(marker), 'u'));
+  assert.doesNotMatch(auth, /_storedRemoteSessionMatches/u);
   assert.match(auth, /accountSecurityStateKey/u);
 });
 
