@@ -166,6 +166,46 @@ export function validateRw20aPlayInternalDraftOnePlusHandoff({
   if (!Object.values(boundaries).every((value) => value === false)) {
     fail('RW20A boundaries must all remain false.');
   }
+
+  const verification = object(handoff.verification, 'verification');
+  same(verification.initialPackageHead,
+    'dfc3d2e3297ab9d4c4fe3696c7dbbb9d8fbc4e3d',
+    'verification.initialPackageHead');
+  same(verification.implementationHead,
+    '8dbe9b6071b79507eac6414096b8f45949d31d91',
+    'verification.implementationHead');
+  same(verification.focusedTestsPassed, 8, 'verification.focusedTestsPassed');
+  same(verification.completeToolTestsPassed, 1965,
+    'verification.completeToolTestsPassed');
+  same(verification.localTechnicalRegression,
+    'passed-standard-parallelism-no-workaround',
+    'verification.localTechnicalRegression');
+  for (const [key, expectedRunId] of [
+    ['githubRegression', 33023774904],
+    ['githubCodeql', 33023776568],
+  ]) {
+    const run = object(verification[key], `verification.${key}`);
+    same(run.runId, expectedRunId, `verification.${key}.runId`);
+    same(run.headSha, verification.implementationHead,
+      `verification.${key}.headSha`);
+    same(run.conclusion, 'success', `verification.${key}.conclusion`);
+  }
+  same(verification.openCodeScanningAlerts, 0,
+    'verification.openCodeScanningAlerts');
+  const ratchet = object(verification.securityRatchet,
+    'verification.securityRatchet');
+  same(ratchet.findingRule, 'js/regex/missing-regexp-anchor',
+    'verification.securityRatchet.findingRule');
+  same(ratchet.severity, 'high', 'verification.securityRatchet.severity');
+  same(ratchet.scope, 'handoff-url-sanitizer',
+    'verification.securityRatchet.scope');
+  same(ratchet.resolution, 'all-http-and-https-urls-rejected',
+    'verification.securityRatchet.resolution');
+  same(ratchet.regressionTestAdded, true,
+    'verification.securityRatchet.regressionTestAdded');
+  same(ratchet.workaroundIntroduced, false,
+    'verification.securityRatchet.workaroundIntroduced');
+
   for (const key of [
     'containsSecrets',
     'containsTesterIdentity',
@@ -180,6 +220,8 @@ export function validateRw20aPlayInternalDraftOnePlusHandoff({
     exactCandidateUploadedAsDraft: true,
     releaseActivated: false,
     onePlusBaselineReady: true,
+    implementationHead: verification.implementationHead,
+    openCodeScanningAlerts: verification.openCodeScanningAlerts,
   };
 }
 

@@ -25,6 +25,8 @@ test('accepts the exact uploaded-but-inactive candidate and old OnePlus baseline
   assert.equal(result.exactCandidateUploadedAsDraft, true);
   assert.equal(result.releaseActivated, false);
   assert.equal(result.onePlusBaselineReady, true);
+  assert.equal(result.implementationHead, '8dbe9b6071b79507eac6414096b8f45949d31d91');
+  assert.equal(result.openCodeScanningAlerts, 0);
 });
 
 test('rejects activation, publication and test overclaims', () => {
@@ -57,4 +59,14 @@ test('rejects tester identity, opt-in URL, credentials and private paths', () =>
     (value) => { value.testerState.accessToken = 'never'; },
     (value) => { value.transferVerification.localPath = '/Users/person/Downloads/private'; },
   ]) assert.throws(() => validate(mutate), /email|URL|credential|filesystem/u);
+});
+
+test('rejects stale CI, open alerts and weakened security-ratchet evidence', () => {
+  for (const mutate of [
+    (value) => { value.verification.githubRegression.headSha = 'a'.repeat(40); },
+    (value) => { value.verification.githubCodeql.conclusion = 'failure'; },
+    (value) => { value.verification.openCodeScanningAlerts = 1; },
+    (value) => { value.verification.securityRatchet.workaroundIntroduced = true; },
+    (value) => { value.verification.securityRatchet.resolution = 'host allowlist'; },
+  ]) assert.throws(() => validate(mutate), /drifted/u);
 });

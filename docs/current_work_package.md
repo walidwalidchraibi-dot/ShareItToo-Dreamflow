@@ -3869,7 +3869,7 @@ commit is synchronized and verified, work stops at
 billing, Play Console, tester, device, Firebase, Production, Cloud, VPS, DNS,
 payment, public-release or human-pilot change is authorized.
 
-## Active release-readiness package: RW20A Play draft and OnePlus baseline
+## Completed release-readiness package: RW20A Play draft and OnePlus baseline
 
 The exact signed RW20 candidate `1.0.0+2026082601` was subsequently reported
 by the owner-provided MacBook Codex handover as uploaded to Google Play
@@ -3884,3 +3884,11 @@ accepts exactly one physical OnePlus, the Play installer and exact active build
 `2026081509`, while making no device, account, network or Store mutation and no
 claim about draft build `2026082601`. `GOOGLE_PLAY_INTERNAL_RELEASE_GO`, human
 testing and all live/provider/payment/production gates remain closed.
+
+RW20A is technically closed at final implementation head
+`8dbe9b6071b79507eac6414096b8f45949d31d91`. Exact GitHub Regression
+`33023774904` and CodeQL `33023776568` pass, and the branch has zero open
+code-scanning alerts. The CodeQL-discovered URL-sanitizer weakness is fixed by
+rejecting every HTTP/HTTPS value and is permanently regression-tested without
+an allowlist or execution workaround. The only next device lane is the real
+OnePlus Play update and prepared matrix after the separate owner release gate.

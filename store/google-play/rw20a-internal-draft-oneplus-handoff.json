@@ -83,6 +83,32 @@
     "cloudVpsDnsChanged": false,
     "pullRequestMerged": false
   },
+  "verification": {
+    "initialPackageHead": "dfc3d2e3297ab9d4c4fe3696c7dbbb9d8fbc4e3d",
+    "implementationHead": "8dbe9b6071b79507eac6414096b8f45949d31d91",
+    "focusedTestsPassed": 8,
+    "completeToolTestsPassed": 1965,
+    "localTechnicalRegression": "passed-standard-parallelism-no-workaround",
+    "githubRegression": {
+      "runId": 33023774904,
+      "headSha": "8dbe9b6071b79507eac6414096b8f45949d31d91",
+      "conclusion": "success"
+    },
+    "githubCodeql": {
+      "runId": 33023776568,
+      "headSha": "8dbe9b6071b79507eac6414096b8f45949d31d91",
+      "conclusion": "success"
+    },
+    "openCodeScanningAlerts": 0,
+    "securityRatchet": {
+      "findingRule": "js/regex/missing-regexp-anchor",
+      "severity": "high",
+      "scope": "handoff-url-sanitizer",
+      "resolution": "all-http-and-https-urls-rejected",
+      "regressionTestAdded": true,
+      "workaroundIntroduced": false
+    }
+  },
   "candidateManifestRef": "store/google-play/rw20-current-internal-candidate-manifest.json",
   "buildReadyEvidenceRef": "docs/evidence/release-readiness/rw20-current-play-internal-candidate-2026082601.json",
   "operationRef": "docs/operations/RW20A_PLAY_INTERNAL_DRAFT_AND_ONEPLUS_REMOTE_BASELINE_2026-08-27.md",

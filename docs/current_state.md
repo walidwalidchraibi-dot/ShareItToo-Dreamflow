@@ -3920,3 +3920,12 @@ tester-list change, Pixel access, production/payment/provider/Firebase/
 Cloud/VPS/DNS action or PR merge is authorized. The next external decision is
 still `GOOGLE_PLAY_INTERNAL_RELEASE_GO`; until then, only the old-build
 read-only baseline and manually bounded non-destructive checks are available.
+
+RW20A is technically closed at exact implementation head
+`8dbe9b6071b79507eac6414096b8f45949d31d91`. GitHub Regression
+`33023774904` and CodeQL `33023776568` both pass on that SHA; the branch then
+reported zero open code-scanning alerts. The initial CodeQL high-severity
+missing-anchor finding in the new handoff URL sanitizer is closed by rejecting
+all HTTP/HTTPS strings, including uppercase schemes, with no URL allowlist and
+no timing, retry, cache or parallelism workaround. This closure does not
+activate the draft or claim a new-build OnePlus test.
