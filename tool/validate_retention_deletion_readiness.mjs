@@ -543,7 +543,9 @@ function assertSourceContracts(root, sourceTexts) {
   );
   if ([...operationalDeletion.matchAll(
     /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
-  )].length !== 2) {
+  )].length !== 1 || [...operationalDeletion.matchAll(
+    /DataService\.clearOperationalRecordsForConfirmedAccountDeletion\(/gu,
+  )].length !== 1) {
     fail('Both confirmed account deletion paths must apply operational-record cleanup.');
   }
   if ([...operationalDeletion.matchAll(
@@ -1846,13 +1848,13 @@ export function validateRetentionDeletionReadiness({
       || controls.localSafetyPrivacyPrincipalState?.privacyExport
         !== 'current-principal-only'
       || controls.localSafetyPrivacyPrincipalState?.confirmedAccountDeletion
-        !== 'current-principal-purged'
+        !== 'confirmed-account-principal-purged-by-explicit-identity-successor-preserved'
       || controls.localSafetyPrivacyPrincipalState?.retentionPeriodInvented
         !== false
       || controls.localOperationalRecords?.status
         !== 'implemented-authenticated-participant-scoped-local-fallback'
       || controls.localOperationalRecords?.accountConvenienceDeletion
-        !== 'notifications-read-markers-last-seen-selections-and-thread-user-tombstone'
+        !== 'confirmed-account-notifications-read-markers-last-seen-selections-and-thread-user-tombstone-by-explicit-identity'
       || controls.localOperationalRecords?.sharedParticipantRecords
         !== 'retained-for-counterparty-and-legal-audit-continuity'
       || controls.localOperationalRecords?.unattributedLegacyNotifications
@@ -1895,7 +1897,7 @@ export function validateRetentionDeletionReadiness({
       || controls.localAccountProfile?.status
         !== 'implemented-authenticated-current-account-scoped-local-fallback'
       || controls.localAccountProfile?.accountDeletion
-        !== 'exact-current-profile-anonymized-current-cache-and-session-cleared'
+        !== 'confirmed-account-profile-anonymized-exact-current-cache-and-session-cleared-successor-preserved'
       || controls.localAccountProfile?.otherPublicProfiles
         !== 'retained-as-public-cache-until-app-data-clear'
       || controls.localAccountProfile?.corruptData

@@ -688,11 +688,11 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "65dcfcfdff5812ebd2ddf54989e2a758748f453277b512fe889e927a3d5362cc"
+      "sha256": "fcd66d26293b458aed683d181eeb4749da19e53ce775b175cc9cb4488a0e4bea"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
-      "sha256": "562c0926c5e558ba643784d60fc4b66cfa0d17c6b2644cfb20b854700bcb4436"
+      "sha256": "915ba3a7230271b24b222fa92a5ed53baeb2914160009f11106e7b81b799767c"
     },
     {
       "path": "lib/services/blocked_users_service.dart",
@@ -844,7 +844,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "c9ed7cf809bd54bfced8f79885e7278764f85b44f9ccecda12982465a2be30ef"
+      "sha256": "35229adf38b94f17f8c8c5c3779064e0fbac77a42da356d90831cf4c12d1ea1f"
     },
     {
       "path": "lib/services/blue_ocean_draft_recovery_service.dart",
@@ -916,7 +916,7 @@
     },
     {
       "path": "store/g2-data-lifecycle.json",
-      "sha256": "64c73fe3792bc52c3a278eed0a53690da7533a949f37a41572564488647f369a"
+      "sha256": "1753947c8f92f4f6e82a6a7bb5e3a6e990368589b48dc3a1716ca7c9aecd749d"
     }
   ],
   "localDevicePrincipalState": {
@@ -927,7 +927,7 @@
     "legacyMigration": "unattributed-guest-only-attributed-exact-owner-or-quarantine",
     "corruptionPolicy": "preserve-quarantine-fail-closed",
     "privacyExport": "current-principal-only",
-    "confirmedAccountDeletion": "current-principal-purged",
+    "confirmedAccountDeletion": "confirmed-account-principal-purged-by-explicit-identity-successor-preserved",
     "containsCredentials": false,
     "externalTransferAdded": false
   },
@@ -946,7 +946,7 @@
     "unattributedLegacyNotifications": "preserved-unassigned-and-excluded",
     "corruptionPolicy": "preserve-exact-raw-and-fail-closed",
     "privacyExport": "current-account-and-participant-records-only",
-    "confirmedAccountDeletion": "account-convenience-state-purged-shared-counterparty-audit-records-retained",
+    "confirmedAccountDeletion": "confirmed-account-convenience-state-purged-by-explicit-identity-shared-counterparty-audit-records-retained",
     "retentionPeriodInvented": false,
     "containsCredentials": false,
     "externalTransferAdded": false,
@@ -998,7 +998,7 @@
     "protectedFields": "identity-verification-moderation-payout-reputation-and-deactivation",
     "corruptionPolicy": "preserve-exact-raw-and-fail-closed",
     "privacyExport": "current-account-profile-only-other-cache-and-auth-session-excluded",
-    "confirmedAccountDeletion": "exact-current-account-profile-anonymized-and-current-cache-cleared",
+    "confirmedAccountDeletion": "confirmed-account-profile-anonymized-exact-current-cache-and-session-cleared-successor-preserved",
     "retentionPeriodInvented": false,
     "containsCredentials": false,
     "externalTransferAdded": false,

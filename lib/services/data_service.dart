@@ -1998,6 +1998,8 @@ class DataService {
   }) async {
     final previousCurrent = prefs.getString(_currentUserKey);
     final previousUsers = prefs.getString(_usersKey);
+    final hadDeletedMarker = prefs.containsKey(_accountDeletedKey);
+    final previousDeletedMarker = prefs.getBool(_accountDeletedKey);
     final nextCurrent = jsonEncode(current.toJson());
     final nextUsers = jsonEncode(users.map((entry) => entry.toJson()).toList());
     _decodeCurrentUserStrict(nextCurrent);
@@ -2025,6 +2027,12 @@ class DataService {
       if (!currentWritten || prefs.getString(_currentUserKey) != nextCurrent) {
         throw StateError('Das lokale Kontoprofil wurde nicht gespeichert.');
       }
+      if (!await prefs.remove(_accountDeletedKey) ||
+          prefs.containsKey(_accountDeletedKey)) {
+        throw StateError(
+          'Der kontogebundene Löschstatus konnte nicht zurückgesetzt werden.',
+        );
+      }
       _decodeLocalUsersStrict(prefs.getString(_usersKey)!);
       final persistedCurrent =
           _decodeCurrentUserStrict(prefs.getString(_currentUserKey)!);
@@ -2043,10 +2051,17 @@ class DataService {
         _currentUserKey,
         previousCurrent,
       );
+      final deletedMarkerRestored = hadDeletedMarker
+          ? await prefs.setBool(_accountDeletedKey, previousDeletedMarker!)
+          : await prefs.remove(_accountDeletedKey);
       if (!usersRestored ||
           !currentRestored ||
+          !deletedMarkerRestored ||
           prefs.getString(_usersKey) != previousUsers ||
-          prefs.getString(_currentUserKey) != previousCurrent) {
+          prefs.getString(_currentUserKey) != previousCurrent ||
+          (hadDeletedMarker
+              ? prefs.getBool(_accountDeletedKey) != previousDeletedMarker
+              : prefs.containsKey(_accountDeletedKey))) {
         throw StateError(
           'Profil-Speicherfehler; der vorherige Stand konnte nicht vollständig wiederhergestellt werden.',
         );
@@ -3672,6 +3687,148 @@ class DataService {
     });
   }
 
+  static User _anonymizedDeletedUser(User current) {
+    final now = DateTime.now();
+    return _decodeLocalUserStrict(
+      <String, dynamic>{
+        ...current.toJson(),
+        'displayName': 'Gelöschter Nutzer',
+        'email': 'deleted+${current.id}@shareittoo.invalid',
+        'phone': null,
+        'emailVerified': false,
+        'phoneVerified': false,
+        'photoURL': null,
+        'bio': null,
+        'city': null,
+        'country': null,
+        'isVerified': false,
+        'payoutAccountId': null,
+        'languages': const <String>[],
+        'interests': const <String>[],
+        'workTitle': null,
+        'hobbies': null,
+        'homeLocation': null,
+        'favoriteSong': null,
+        'showWork': false,
+        'showHobbies': false,
+        'showHomeLocation': false,
+        'showBioPublic': false,
+        'showLanguagesPublic': false,
+        'showInterestsPublic': false,
+        'showFavoriteSong': false,
+        'homeLat': null,
+        'homeLng': null,
+        'birthDate': null,
+        'socialX': null,
+        'socialFacebook': null,
+        'socialInstagram': null,
+        'socialTiktok': null,
+        'socialSnapchat': null,
+        'addressStreet': null,
+        'addressHouseNumber': null,
+        'addressPostalCode': null,
+        'addressCity': null,
+        'addressCountry': null,
+        'addressExtra': null,
+        'isDeactivated': true,
+        'deactivatedAt': now.toIso8601String(),
+      },
+      context: 'Anonymisiertes lokales Kontoprofil',
+    );
+  }
+
+  /// Applies a server-confirmed account deletion to the exact cached profile.
+  /// The deleted A profile is anonymized in the shared cache. The current
+  /// profile and global deleted marker are changed only when they still belong
+  /// to A, so a successor Account B remains fully usable.
+  static Future<void> finalizeProfileForConfirmedAccountDeletion({
+    required String userId,
+    required String email,
+  }) async {
+    final expectedId = userId.trim();
+    final expectedEmail = email.trim().toLowerCase();
+    if (expectedId.isEmpty || expectedEmail.isEmpty) {
+      throw ArgumentError('A confirmed deletion requires an exact profile.');
+    }
+    if (QaRuntimeService.isEnabled) {
+      final raw = QaRuntimeService.runtimeUserJson;
+      if (raw == null) return;
+      final current = User.fromJson(raw);
+      if (current.id.trim() == expectedId &&
+          current.email.trim().toLowerCase() == expectedEmail) {
+        QaRuntimeService.clearRuntimeUser();
+      }
+      return;
+    }
+
+    await _accountProfileMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final previousUsers = prefs.getString(_usersKey);
+      final previousCurrent = prefs.getString(_currentUserKey);
+      final hadDeletedMarker = prefs.containsKey(_accountDeletedKey);
+      final previousDeletedMarker = prefs.getBool(_accountDeletedKey);
+      if (previousUsers == null) {
+        throw StateError('Der lokale Profilbestand fehlt.');
+      }
+      final users = List<User>.from(_decodeLocalUsersStrict(previousUsers));
+      final index = users.indexWhere((entry) =>
+          entry.id.trim() == expectedId &&
+          entry.email.trim().toLowerCase() == expectedEmail);
+      if (index < 0) {
+        throw StateError('Das bestätigte Löschprofil fehlt lokal.');
+      }
+      users[index] = _anonymizedDeletedUser(users[index]);
+
+      var currentMatchesDeleted = false;
+      if (previousCurrent != null) {
+        final current = _decodeCurrentUserStrict(previousCurrent);
+        currentMatchesDeleted = current.id.trim() == expectedId &&
+            current.email.trim().toLowerCase() == expectedEmail;
+      }
+      final encodedUsers =
+          jsonEncode(users.map((entry) => entry.toJson()).toList());
+      _decodeLocalUsersStrict(encodedUsers);
+      try {
+        if (!await prefs.setString(_usersKey, encodedUsers) ||
+            prefs.getString(_usersKey) != encodedUsers) {
+          throw StateError('Das gelöschte Profil wurde nicht anonymisiert.');
+        }
+        if (currentMatchesDeleted) {
+          if (!await prefs.setBool(_accountDeletedKey, true) ||
+              prefs.getBool(_accountDeletedKey) != true ||
+              !await prefs.remove(_currentUserKey) ||
+              prefs.containsKey(_currentUserKey)) {
+            throw StateError(
+              'Das bestätigte Löschprofil wurde nicht finalisiert.',
+            );
+          }
+        }
+        _decodeLocalUsersStrict(prefs.getString(_usersKey)!);
+        if (!currentMatchesDeleted &&
+            prefs.getString(_currentUserKey) != previousCurrent) {
+          throw StateError('Ein Nachfolgerprofil wurde verändert.');
+        }
+      } catch (error) {
+        final usersRestored =
+            await _restorePreferenceString(prefs, _usersKey, previousUsers);
+        final currentRestored = await _restorePreferenceString(
+          prefs,
+          _currentUserKey,
+          previousCurrent,
+        );
+        final markerRestored = hadDeletedMarker
+            ? await prefs.setBool(_accountDeletedKey, previousDeletedMarker!)
+            : await prefs.remove(_accountDeletedKey);
+        if (!usersRestored || !currentRestored || !markerRestored) {
+          throw StateError(
+            'Profil-Löschfehler; der vorherige Stand konnte nicht vollständig wiederhergestellt werden.',
+          );
+        }
+        rethrow;
+      }
+    });
+  }
+
   static Future<void> anonymizeAndDeactivateUser({
     required String userId,
   }) async {
@@ -3699,53 +3856,7 @@ class DataService {
           'Das aktuelle Profil fehlt oder weicht vom Profilbestand ab.',
         );
       }
-      final now = DateTime.now();
-      final anonymized = _decodeLocalUserStrict(
-        <String, dynamic>{
-          ...current.toJson(),
-          'displayName': 'Gelöschter Nutzer',
-          'email': 'deleted+${current.id}@shareittoo.invalid',
-          'phone': null,
-          'emailVerified': false,
-          'phoneVerified': false,
-          'photoURL': null,
-          'bio': null,
-          'city': null,
-          'country': null,
-          'isVerified': false,
-          'payoutAccountId': null,
-          'languages': const <String>[],
-          'interests': const <String>[],
-          'workTitle': null,
-          'hobbies': null,
-          'homeLocation': null,
-          'favoriteSong': null,
-          'showWork': false,
-          'showHobbies': false,
-          'showHomeLocation': false,
-          'showBioPublic': false,
-          'showLanguagesPublic': false,
-          'showInterestsPublic': false,
-          'showFavoriteSong': false,
-          'homeLat': null,
-          'homeLng': null,
-          'birthDate': null,
-          'socialX': null,
-          'socialFacebook': null,
-          'socialInstagram': null,
-          'socialTiktok': null,
-          'socialSnapchat': null,
-          'addressStreet': null,
-          'addressHouseNumber': null,
-          'addressPostalCode': null,
-          'addressCity': null,
-          'addressCountry': null,
-          'addressExtra': null,
-          'isDeactivated': true,
-          'deactivatedAt': now.toIso8601String(),
-        },
-        context: 'Anonymisiertes lokales Kontoprofil',
-      );
+      final anonymized = _anonymizedDeletedUser(current);
       users[index] = anonymized;
       await _persistAccountProfileDocumentsVerified(
         prefs: prefs,
@@ -5043,8 +5154,36 @@ class DataService {
     String userId,
   ) async {
     await _requireCurrentOperationalUser(requestedUserId: userId);
+    await _clearOperationalRecordsForAccountDeletion(
+      userId,
+      requireCurrentAccount: true,
+    );
+  }
+
+  /// Applies a server-confirmed deletion receipt to Account A records by
+  /// explicit user/principal identity. It is safe after Account B has become
+  /// current and never selects B through a device-global "current" lookup.
+  static Future<void> clearOperationalRecordsForConfirmedAccountDeletion(
+    String userId,
+  ) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(userId, 'userId');
+    }
+    await _clearOperationalRecordsForAccountDeletion(
+      normalized,
+      requireCurrentAccount: false,
+    );
+  }
+
+  static Future<void> _clearOperationalRecordsForAccountDeletion(
+    String userId, {
+    required bool requireCurrentAccount,
+  }) async {
     await _operationalMutationQueue.run(() async {
-      await _assertCurrentOperationalUserId(userId);
+      if (requireCurrentAccount) {
+        await _assertCurrentOperationalUserId(userId);
+      }
       final prefs = await SharedPreferences.getInstance();
 
       final messageRaw = prefs.getString(_messageThreadsKey);
@@ -5104,24 +5243,59 @@ class DataService {
         );
       }
     });
-    await _withCurrentBookingSelectionBucket(
-      (prefs, registry, principal, bucket) async {
-        if (bucket.isEmpty) return;
-        bucket.clear();
-        await _writeBookingSelectionBucket(
-          prefs,
-          registry,
-          principal,
-          bucket,
-        );
-      },
+    final principal = LocalPrincipalIdentity(
+      token: LocalPrincipalScope.tokenForUserId(userId),
+      authenticated: true,
     );
+    await _bookingSelectionMutationQueue.run(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final registry = _readBookingSelectionRegistry(prefs);
+      final removed = registry.principals.remove(principal.token) != null;
+      final quarantineRemoved =
+          registry.quarantinedPrincipals.remove(principal.token) != null;
+      if (!removed && !quarantineRemoved) return;
+      final encoded = jsonEncode(<String, dynamic>{
+        'schemaVersion': 1,
+        'revision': max(1, registry.revision + 1),
+        'legacyGuestQuarantined': registry.legacyGuestQuarantined,
+        'principals': registry.principals,
+        'quarantinedPrincipals': registry.quarantinedPrincipals,
+      });
+      await _writePreferenceString(
+        prefs,
+        _bookingSelectionPrincipalStateKey,
+        encoded,
+      );
+    });
   }
 
   /// Removes only local Gemerkt data after account deletion has already been
   /// confirmed. Unrelated device preferences remain untouched.
   static Future<void> clearSavedItemsForAccountDeletion() async {
     final principal = await _currentLocalPrincipal();
+    await _clearSavedItemsForAccountDeletionPrincipal(principal);
+  }
+
+  /// Removes only the opaque Account A bucket named by a server-confirmed
+  /// deletion. A successor Account B may be current without being selected.
+  static Future<void> clearSavedItemsForConfirmedAccountDeletion(
+    String userId,
+  ) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(userId, 'userId');
+    }
+    await _clearSavedItemsForAccountDeletionPrincipal(
+      LocalPrincipalIdentity(
+        token: LocalPrincipalScope.tokenForUserId(normalized),
+        authenticated: true,
+      ),
+    );
+  }
+
+  static Future<void> _clearSavedItemsForAccountDeletionPrincipal(
+    LocalPrincipalIdentity principal,
+  ) async {
     await _wishlistMutationQueue.run(() async {
       final prefs = await SharedPreferences.getInstance();
       final registry = _readWishlistRegistry(prefs);

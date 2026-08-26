@@ -119,7 +119,8 @@ export function validateG2DataLifecycle({
       || savedItems.principalBinding !== 'opaque-stable-token-or-guest'
       || savedItems.legacyMigrationRule !== 'guest-only-or-quarantine'
       || savedItems.exportStatus !== 'implemented-current-principal-local-section'
-      || savedItems.accountDeletionStatus !== 'implemented-current-principal-local-purge') {
+      || savedItems.accountDeletionStatus
+        !== 'implemented-confirmed-account-principal-purge-by-explicit-identity-successor-preserved') {
     fail('Current Gemerkt lifecycle is incomplete or overstated.');
   }
 
@@ -173,7 +174,7 @@ export function validateG2DataLifecycle({
       || safetyPrivacy.exportStatus
         !== 'implemented-current-principal-local-section'
       || safetyPrivacy.accountDeletionStatus
-        !== 'implemented-current-principal-local-purge'
+        !== 'implemented-confirmed-account-principal-purge-by-explicit-identity-successor-preserved'
       || safetyPrivacy.backendAuthority
         !== 'remote-authoritative-when-enabled-local-qa-fallback-otherwise') {
     fail('Local safety/privacy lifecycle is incomplete or overstated.');
@@ -236,7 +237,7 @@ export function validateG2DataLifecycle({
       || operationalRecords.exportStatus
         !== 'implemented-current-account-and-participant-local-section'
       || operationalRecords.accountDeletionStatus
-        !== 'account-convenience-state-purged-shared-counterparty-audit-records-retained'
+        !== 'confirmed-account-convenience-state-purged-by-explicit-identity-shared-counterparty-audit-records-retained'
       || operationalRecords.retentionRule
         !== 'no-period-invented-shared-records-retained-for-counterparty-and-legal-audit-continuity'
       || operationalRecords.backendAuthority
@@ -395,7 +396,7 @@ export function validateG2DataLifecycle({
       || accountProfile.exportStatus
         !== 'implemented-current-account-profile-only-cache-and-session-excluded'
       || accountProfile.accountDeletionStatus
-        !== 'exact-current-account-profile-anonymized-then-current-session-cache-cleared'
+        !== 'confirmed-account-profile-anonymized-exact-current-cache-and-session-cleared-successor-preserved'
       || accountProfile.retentionRule
         !== 'current-cache-cleared-on-logout-or-deletion-anonymized-public-entry-retained-no-period-invented'
       || accountProfile.backendAuthority
@@ -577,17 +578,26 @@ export function validateG2DataLifecycle({
   }
 
   const deletion = source(root, sourceTexts, sourcePaths.accountDeletion);
-  if (count(deletion, /DataService\.clearSavedItemsForAccountDeletion\(\)/gu) !== 2) {
+  if (count(
+    deletion,
+    /DataService\.clearSavedItemsForConfirmedAccountDeletion\(user\.id\)/gu,
+  ) !== 2) {
     fail('Both confirmed account deletion paths must purge local G2 data.');
   }
-  if (count(deletion, /LocalSafetyPrivacyService\.clearCurrentPrincipal\(\)/gu)
+  if (count(
+    deletion,
+    /LocalSafetyPrivacyService\.clearPrincipalForConfirmedAccountDeletion\(/gu,
+  )
       !== 2) {
     fail('Both confirmed account deletion paths must purge local safety/privacy data.');
   }
   if (count(
     deletion,
     /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
-  ) !== 2) {
+  ) !== 1 || count(
+    deletion,
+    /DataService\.clearOperationalRecordsForConfirmedAccountDeletion\(/gu,
+  ) !== 1) {
     fail('Both confirmed account deletion paths must apply scoped local operational cleanup.');
   }
   const localSafetyPrivacy = source(

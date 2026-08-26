@@ -234,7 +234,6 @@ export function validateRw15SecurityLogoutAllPromptResultPrincipalEpoch({
     ['_securityService.revokeSession', { 'lib/screens/security_screen.dart': 1 }],
     ['_securityService.logoutAllSessions', { 'lib/screens/security_screen.dart': 1 }],
     ['AuthService.clearSession', {
-      'lib/services/account_deletion_service.dart': 2,
       'lib/services/data_service.dart': 1,
     }],
     ['AuthService.requestEmailChange', { 'lib/screens/contact_data_screen.dart': 1 }],
@@ -244,8 +243,8 @@ export function validateRw15SecurityLogoutAllPromptResultPrincipalEpoch({
       'lib/screens/contact_data_screen.dart': 1,
       'lib/screens/login_screen.dart': 1,
     }],
-    ['AccountDeletionService.preflightCheck', { 'lib/screens/account_settings_screen.dart': 1 }],
-    ['AccountDeletionService.deleteAccount', { 'lib/screens/account_settings_screen.dart': 1 }],
+    ['_accountDeletionService.preflightCheck', { 'lib/screens/account_settings_screen.dart': 1 }],
+    ['_accountDeletionService.deleteAccount', { 'lib/screens/account_settings_screen.dart': 1 }],
   ];
   if (!exact(
     value.callSiteInventory?.map(({ symbol, paths }) => [symbol, paths]),

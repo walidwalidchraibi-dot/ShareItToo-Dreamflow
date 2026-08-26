@@ -84,7 +84,9 @@ test('privacy export and confirmed deletion are current-principal operations', (
   assert.match(privacy, /LocalSafetyPrivacyService\.exportCurrentPrincipal\(\)/u);
   const deletion = read('lib/services/account_deletion_service.dart');
   assert.equal(
-    [...deletion.matchAll(/LocalSafetyPrivacyService\.clearCurrentPrincipal\(\)/gu)].length,
+    [...deletion.matchAll(
+      /LocalSafetyPrivacyService\.clearPrincipalForConfirmedAccountDeletion\(/gu,
+    )].length,
     2,
   );
   const service = read('lib/services/local_safety_privacy_service.dart');

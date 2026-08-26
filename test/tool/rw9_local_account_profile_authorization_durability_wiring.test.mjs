@@ -55,9 +55,15 @@ test('paired local profile documents are strict bounded and rollback verified', 
     'failNextAccountProfilePersistenceForTesting()',
     'clearSessionDuringNextAccountProfilePersistenceForTesting()',
   ]) assert.match(service, new RegExp(escaped(marker), 'u'));
+  const getUsersStart = service.indexOf('static Future<List<User>> getUsers()');
+  const getUsersEnd = service.indexOf(
+    'static Future<void> setCurrentUser(',
+    getUsersStart,
+  );
+  assert.ok(getUsersStart >= 0 && getUsersEnd > getUsersStart);
   assert.doesNotMatch(
-    service,
-    /static Future<List<User>> getUsers\(\)[\s\S]*?prefs\.setString\(_usersKey/u,
+    service.slice(getUsersStart, getUsersEnd),
+    /prefs\.setString\(_usersKey/u,
   );
 });
 
@@ -99,12 +105,21 @@ test('privacy export and deletion stay exact-current-account scoped', () => {
   assert.match(privacy, /exportCurrentAccountProfileForPrivacy\(\)/u);
 
   const deletion = read('lib/services/account_deletion_service.dart');
-  const deactivate = deletion.indexOf('deactivateAllListingsForUser(user.id)');
-  const anonymize = deletion.indexOf('anonymizeAndDeactivateUser(userId: user.id)');
-  const clearSession = deletion.lastIndexOf('AuthService.clearSession()');
-  const clearCurrent = deletion.lastIndexOf('clearCurrentUserAndMarkDeleted()');
-  assert.ok(deactivate >= 0 && deactivate < anonymize);
-  assert.ok(anonymize < clearSession && clearSession < clearCurrent);
+  const localStart = deletion.indexOf(
+    'Future<AccountDeletionCompletion> deleteLocalAccount(',
+  );
+  const localEnd = deletion.indexOf(
+    'finalizeConfirmedDeletion(',
+    localStart,
+  );
+  const local = deletion.slice(localStart, localEnd);
+  const deactivate = local.indexOf('deactivateAllListingsForUser(user.id)');
+  const finalize = local.indexOf(
+    'finalizeProfileForConfirmedAccountDeletion(',
+  );
+  const clearSession = local.indexOf('clearSessionOwnerIfMatches(');
+  assert.ok(deactivate >= 0 && deactivate < finalize);
+  assert.ok(finalize < clearSession);
 });
 
 test('lifecycle privacy and retention manifests bind local account profiles', () => {

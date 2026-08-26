@@ -1565,7 +1565,7 @@ export function validatePrivacyDisclosures({
         !== 'preserve-quarantine-fail-closed'
       || localPrincipalState.privacyExport !== 'current-principal-only'
       || localPrincipalState.confirmedAccountDeletion
-        !== 'current-principal-purged'
+        !== 'confirmed-account-principal-purged-by-explicit-identity-successor-preserved'
       || localPrincipalState.containsCredentials !== false
       || localPrincipalState.externalTransferAdded !== false) {
     fail('Local principal privacy disclosure is incomplete or overstated.');
@@ -1608,7 +1608,7 @@ export function validatePrivacyDisclosures({
       || localOperationalRecords.privacyExport
         !== 'current-account-and-participant-records-only'
       || localOperationalRecords.confirmedAccountDeletion
-        !== 'account-convenience-state-purged-shared-counterparty-audit-records-retained'
+        !== 'confirmed-account-convenience-state-purged-by-explicit-identity-shared-counterparty-audit-records-retained'
       || localOperationalRecords.retentionPeriodInvented !== false
       || localOperationalRecords.containsCredentials !== false
       || localOperationalRecords.externalTransferAdded !== false
@@ -1736,7 +1736,7 @@ export function validatePrivacyDisclosures({
       || localAccountProfile.privacyExport
         !== 'current-account-profile-only-other-cache-and-auth-session-excluded'
       || localAccountProfile.confirmedAccountDeletion
-        !== 'exact-current-account-profile-anonymized-and-current-cache-cleared'
+        !== 'confirmed-account-profile-anonymized-exact-current-cache-and-session-cleared-successor-preserved'
       || localAccountProfile.retentionPeriodInvented !== false
       || localAccountProfile.containsCredentials !== false
       || localAccountProfile.externalTransferAdded !== false
@@ -1799,7 +1799,9 @@ export function validatePrivacyDisclosures({
   );
   if ([...operationalDeletion.matchAll(
     /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
-  )].length !== 2) {
+  )].length !== 1 || [...operationalDeletion.matchAll(
+    /DataService\.clearOperationalRecordsForConfirmedAccountDeletion\(/gu,
+  )].length !== 1) {
     fail('Both confirmed account deletion paths must clear scoped local operational records.');
   }
   const localSafetyPrivacy = sourceText(

@@ -1077,38 +1077,61 @@ class LocalSafetyPrivacyService {
       });
 
   static Future<void> clearCurrentPrincipal() =>
-      _runForCurrent((principal) async {
-        final prefs = await SharedPreferences.getInstance();
-        final registry = _readRegistry(prefs);
-        registry.principals.remove(principal.token);
-        registry.quarantinedPrincipals.remove(principal.token);
-        await _writeRegistry(
-          prefs,
-          _SafetyPrivacyRegistry(
-            revision: registry.revision + 1,
-            principals: registry.principals,
-            quarantinedPrincipals: registry.quarantinedPrincipals,
-            legacyGuestQuarantined: principal.authenticated
-                ? registry.legacyGuestQuarantined
-                : false,
-          ),
-        );
-        if (!principal.authenticated) {
-          for (final key in <String>[
-            _legacyBlockedKey,
-            _legacyReportsKey,
-            _legacyHiddenKey,
-            _legacyFeedbackLogKey,
-            _legacyFeedbackProfileKey,
-            _legacyMutedThreadsKey,
-            _legacyMessagesSettingsKey,
-            _legacyNotificationPreferencesKey,
-          ]) {
-            await prefs.remove(key);
-          }
-        }
-        SharedPersistenceSync.notify(
-          SharedPersistenceSync.localSafetyPrivacyStateKey,
-        );
-      });
+      _runForCurrent(_clearPrincipal);
+
+  /// Clears one explicit opaque principal after the server confirmed account
+  /// deletion. It never resolves the target through the device's current
+  /// session, so a successor Account B remains untouched.
+  static Future<void> clearPrincipalForConfirmedAccountDeletion(
+    String userId,
+  ) {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(userId, 'userId');
+    }
+    return _queue.run(
+      () => _clearPrincipal(
+        LocalPrincipalIdentity(
+          token: LocalPrincipalScope.tokenForUserId(normalized),
+          authenticated: true,
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _clearPrincipal(
+    LocalPrincipalIdentity principal,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final registry = _readRegistry(prefs);
+    registry.principals.remove(principal.token);
+    registry.quarantinedPrincipals.remove(principal.token);
+    await _writeRegistry(
+      prefs,
+      _SafetyPrivacyRegistry(
+        revision: registry.revision + 1,
+        principals: registry.principals,
+        quarantinedPrincipals: registry.quarantinedPrincipals,
+        legacyGuestQuarantined:
+            principal.authenticated ? registry.legacyGuestQuarantined : false,
+      ),
+    );
+    if (!principal.authenticated) {
+      for (final key in <String>[
+        _legacyBlockedKey,
+        _legacyReportsKey,
+        _legacyHiddenKey,
+        _legacyFeedbackLogKey,
+        _legacyFeedbackProfileKey,
+        _legacyMutedThreadsKey,
+        _legacyMessagesSettingsKey,
+        _legacyNotificationPreferencesKey,
+      ]) {
+        await prefs.remove(key);
+      }
+    }
+    SharedPersistenceSync.notify(
+      SharedPersistenceSync.localSafetyPrivacyStateKey,
+    );
+  }
 }

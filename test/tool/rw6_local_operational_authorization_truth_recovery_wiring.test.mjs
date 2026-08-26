@@ -60,7 +60,13 @@ test('privacy export and both account deletion paths use scoped operational trut
     [...deletion.matchAll(
       /DataService\.clearOperationalRecordsForAccountDeletion\(user\.id\)/gu,
     )].length,
-    2,
+    1,
+  );
+  assert.equal(
+    [...deletion.matchAll(
+      /DataService\.clearOperationalRecordsForConfirmedAccountDeletion\(/gu,
+    )].length,
+    1,
   );
   const privacy = read('lib/screens/privacy_info_screen.dart');
   assert.match(privacy, /exportOperationalRecordsForPrivacy\(\)/u);
