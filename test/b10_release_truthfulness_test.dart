@@ -435,8 +435,11 @@ void main() {
 
     expect(profile, isNot(contains('walid.placeholder')));
     expect(profile, isNot(contains('responseTimeMinutes: 42')));
-    expect(profile, contains('builder: (dialogContext)'));
-    expect(profile, contains('Navigator.of(dialogContext).pop();'));
+    expect(
+        profile, contains('final handle = TrackedDialogRouteHandle<bool>();'));
+    expect(profile, contains('await showTrackedDialog<bool>('));
+    expect(profile, contains('onPressed: () => handle.dismiss(false)'));
+    expect(profile, contains('onPressed: () => handle.dismiss(true)'));
     expect(
       profile,
       contains(
@@ -447,7 +450,7 @@ void main() {
       profile,
       matches(
         RegExp(
-          r'if \(!mounted\) return;\s+await preview\.setState\(DeveloperUserState\.loggedOut\)',
+          r'!await _sessionTransitions\.isCompletionCurrent\(completion\)\) \{\s+return;\s+\}\s+await preview\.setState\(DeveloperUserState\.loggedOut\)',
         ),
       ),
     );

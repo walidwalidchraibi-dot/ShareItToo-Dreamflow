@@ -186,7 +186,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "cb39b56ea47370cec242f9345cdfdcb84ea6def26c20a9a01777676be1a9c470"
+      "sha256": "bc21fd2900c6585d4962b8ca8bc20e0cf9678f19bbad4dbeb32875955b9ea2f7"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -210,7 +210,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "5fe50795b635be18ac5fec1ca4de8d3a7f5164b368122026d05838d5c3a8b14f"
+      "sha256": "dac10fac7cc613cff319db0ea0853174beed316614f7f25b6b61d6f6eff806bd"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",

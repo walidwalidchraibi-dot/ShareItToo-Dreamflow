@@ -152,8 +152,10 @@ void main() {
     final source = File('lib/screens/profile_screen.dart').readAsStringSync();
     expect(
       source,
-      contains(
-        "case 'Hilfe-Center':\n          case 'Help Center':\n            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));",
+      matches(
+        RegExp(
+          r"case '/help':\s+Navigator\.of\(context\)\s+\.push\(MaterialPageRoute\(builder: \(_\) => const HelpCenterScreen\(\)\)\);",
+        ),
       ),
     );
   });

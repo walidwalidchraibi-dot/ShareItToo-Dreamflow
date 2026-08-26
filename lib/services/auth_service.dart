@@ -403,18 +403,13 @@ class AuthService {
             owner.email.trim().toLowerCase()) {
       return false;
     }
-    final ownerUserId = owner.userId?.trim() ?? '';
-    final ownerSessionId = owner.sessionId?.trim() ?? '';
-    if (ownerUserId.isNotEmpty || ownerSessionId.isNotEmpty) {
-      return _storedRemoteSessionMatches(
-        raw,
-        userId: ownerUserId,
-        sessionId: ownerSessionId,
-        email: owner.email,
-      );
-    }
-    return (session.userId ?? '').trim().isEmpty &&
-        (session.sessionId ?? '').trim().isEmpty &&
+    // Compare every non-secret identity field, including deliberately empty
+    // legacy fields. Older device-local sessions can carry a userId without a
+    // backend sessionId; routing those through the remote-session matcher made
+    // an exact logout a no-op and allowed an in-flight profile write to finish
+    // after that logout request. Tokens remain excluded from the owner value.
+    return (session.userId ?? '').trim() == (owner.userId ?? '').trim() &&
+        (session.sessionId ?? '').trim() == (owner.sessionId ?? '').trim() &&
         session.createdAt == owner.createdAt;
   }
 

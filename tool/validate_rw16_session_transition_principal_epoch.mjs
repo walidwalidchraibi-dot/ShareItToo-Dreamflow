@@ -224,7 +224,7 @@ export function validateRw16SessionTransitionPrincipalEpoch({
   const fullPassed = value.status !== statuses[0];
   const githubPassed = value.status === statuses[2];
   if (value.verification?.redFirst !== 'failed-missing-owner-transition-contract-before-fix'
-      || value.verification?.focusedRw16Flutter !== 'passed-8'
+      || value.verification?.focusedRw16Flutter !== 'passed-9'
       || value.verification?.rw10Rw12Rw13Rw14Rw15CompatibilityFlutter !== 'passed-60'
       || value.verification?.changedFileAnalyze !== 'passed-zero-issues'
       || value.verification?.rw16WiringTests !== 'passed-5'

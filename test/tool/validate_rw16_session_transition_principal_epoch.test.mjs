@@ -23,7 +23,7 @@ test('accepts the bounded RW16 transition closure and follow-up inventory', () =
   });
   assert.equal(result.resolvedFindings, 5);
   assert.equal(result.openActions, 5);
-  assert.equal(result.focusedRw16Flutter, 'passed-8');
+  assert.equal(result.focusedRw16Flutter, 'passed-9');
 });
 
 test('rejects reopening a guarded RW16 transition or granting a gate', () => {

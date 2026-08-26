@@ -47,6 +47,29 @@ void main() {
     expect(preserved?.sessionId, 'session-b');
   });
 
+  test('exact legacy owner with user id and no session id can be cleared',
+      () async {
+    final legacy = AuthSession(
+      userId: 'legacy-account-a',
+      email: 'legacy-a@example.invalid',
+      createdAt: DateTime.utc(2026, 8, 26, 8),
+    );
+    SharedPreferences.setMockInitialValues({
+      'auth_session_v1': _encodedSession(legacy),
+    });
+
+    final owner = AuthService.captureSessionOwner(
+      (await AuthService.readSession())!,
+    );
+    final receipt = await AuthService.clearSessionOwnerIfMatches(
+      owner,
+      runLogoutCleanup: false,
+    );
+
+    expect(receipt, isNotNull);
+    expect(await AuthService.readSession(), isNull);
+  });
+
   test('completion epoch stops being current when a successor signs in',
       () async {
     final sessionA = _session('account-a', 'session-a');

@@ -164,7 +164,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "cb39b56ea47370cec242f9345cdfdcb84ea6def26c20a9a01777676be1a9c470"
+      "sha256": "bc21fd2900c6585d4962b8ca8bc20e0cf9678f19bbad4dbeb32875955b9ea2f7"
     },
     {
       "path": "lib/services/data_service.dart",
