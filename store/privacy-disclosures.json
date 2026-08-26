@@ -748,7 +748,7 @@
     },
     {
       "path": "lib/screens/login_screen.dart",
-      "sha256": "d6ec90ff73924623116cda7f421880c7cfd55c259f818e77f4dc33cbf4b96f31"
+      "sha256": "156e064e9f16ab85f86971562069455b9f1df9d2e3650eea193530215ff107d0"
     },
     {
       "path": "lib/screens/register_screen.dart",
@@ -852,7 +852,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "00373cff9187b019e14f0e3ca563432f539eff437b1902d7f8e45d9d4e8a4ae5"
+      "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"
     },
     {
       "path": "lib/screens/notification_settings_screen.dart",
@@ -860,7 +860,7 @@
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
-      "sha256": "2a031b7d9b7cf2ccf9120e19b0aa7b2c38ede451997301fd251a3f703ae85cfc"
+      "sha256": "595bb7e4b2649a9a85d2603305b03412e715be6c2748f002a02adb7122237dd9"
     },
     {
       "path": "lib/openai/openai_config.dart",

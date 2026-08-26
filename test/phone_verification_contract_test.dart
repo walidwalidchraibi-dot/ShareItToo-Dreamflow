@@ -26,16 +26,23 @@ void main() {
     expect(source, isNot(contains('phoneVerified: true')));
     expect(source, contains('Firebase Authentication (Google)'));
     expect(source, contains('ShareItToo speichert keinen SMS-Code'));
-    expect(source, contains('AuthService.confirmPhoneVerification'));
-    expect(source, contains('AppPopup.show('));
+    expect(source, contains('.confirmPhoneVerification('));
+    expect(source, contains('showTrackedModalBottomSheet'));
     expect(source, contains("'SMS-Code prüfen'"));
     expect(source, contains('gehört zu einer älteren SMS'));
-    expect(source, contains('nicht als gültige SMS-fähige Nummer erkennen'));
     expect(source, contains('Die Ländervorwahl fehlt'));
     expect(source, contains('ungültige Länge'));
-    expect(
-        source, contains('Nummer und Code wurden nicht als falsch bewertet'));
+    expect(source, contains('Der Ergebnisstatus ist unbekannt'));
+    expect(source, contains('serverseitig verarbeitet'));
     expect(source, isNot(contains('Telefonprüfung noch nicht verfügbar')));
+    final coordinatorSource = File(
+      'lib/services/contact_verification_service.dart',
+    ).readAsStringSync();
+    expect(
+      coordinatorSource,
+      contains('AuthService.confirmPhoneVerification'),
+    );
+    expect(source, isNot(contains('AuthService.confirmPhoneVerification')));
     final authSource =
         File('lib/services/auth_service.dart').readAsStringSync();
     expect(authSource, contains('/auth/phone-verification/status'));

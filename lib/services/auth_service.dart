@@ -103,6 +103,7 @@ class AuthService {
   static final _AuthSessionMutationQueue _sessionMutationQueue =
       _AuthSessionMutationQueue();
   static int _sessionGeneration = 0;
+  static int _phoneVerificationAttemptGeneration = 0;
   static bool _sessionClearing = false;
   static Future<void>? _googleInitialization;
   static const bool _googleSocialAuthEnabled = bool.fromEnvironment(
@@ -593,6 +594,27 @@ class AuthService {
     return refreshAccessToken();
   }
 
+  /// Returns a credential only while the exact token-free owner remains the
+  /// persisted session on both sides of any refresh await.
+  static Future<String?> accessTokenForOwner(AuthSessionOwner owner) async {
+    if (!BackendConfig.enabled ||
+        !await isSessionOwnerDefinitelyCurrent(owner)) {
+      return null;
+    }
+    final session = await readSession();
+    if (session == null || !await isSessionOwnerDefinitelyCurrent(owner)) {
+      return null;
+    }
+    final expiresAt = session.accessTokenExpiresAt;
+    if ((session.accessToken ?? '').isNotEmpty &&
+        expiresAt != null &&
+        expiresAt.isAfter(DateTime.now().add(const Duration(seconds: 30)))) {
+      return session.accessToken;
+    }
+    final refreshed = await refreshAccessToken();
+    return await isSessionOwnerDefinitelyCurrent(owner) ? refreshed : null;
+  }
+
   static Future<bool> requestPasswordReset(String email) async {
     if (!BackendConfig.enabled) return true;
     try {
@@ -608,47 +630,38 @@ class AuthService {
     }
   }
 
-  static Future<bool> requestEmailVerification(String email) async {
-    if (!BackendConfig.enabled) return true;
-    try {
-      await BackendHttp.requestJson(
-        method: 'POST',
-        path: '/auth/email-verification/request',
-        body: {'email': email.trim()},
-      );
-      return true;
-    } catch (error) {
-      debugPrint('[AuthService] verification request failed: $error');
-      return false;
-    }
-  }
-
-  static Future<PhoneVerificationChallenge> requestPhoneVerification(
-    String phoneNumber,
-  ) async {
+  static Future<PhoneVerificationChallenge> requestPhoneVerification({
+    required AuthSessionOwner owner,
+    required String phoneNumber,
+  }) async {
     if (!BackendConfig.enabled || kIsWeb) {
       throw const PhoneVerificationException(
         PhoneVerificationFailure.unavailable,
       );
     }
+    await _requirePhoneVerificationOwner(owner);
+    final attemptEpoch = ++_phoneVerificationAttemptGeneration;
     final normalized = normalizePhoneNumber(phoneNumber);
     if (normalized == null) {
       throw const PhoneVerificationException(
         PhoneVerificationFailure.invalidPhone,
       );
     }
-    final access = await accessToken();
+    final access = await accessTokenForOwner(owner);
     if (access == null || access.isEmpty) {
+      await _requirePhoneVerificationOwner(owner);
       throw const PhoneVerificationException(
         PhoneVerificationFailure.sessionExpired,
       );
     }
     try {
+      await _requirePhoneVerificationOwner(owner);
       final status = await BackendHttp.requestJson(
         method: 'GET',
         path: '/auth/phone-verification/status',
         accessToken: access,
       );
+      await _requirePhoneVerificationOwner(owner);
       if (status['available'] != true ||
           status['provider'] != 'firebase-phone') {
         throw const PhoneVerificationException(
@@ -672,6 +685,7 @@ class AuthService {
       );
     }
     try {
+      await _requirePhoneVerificationOwner(owner);
       await FirebaseRuntime.ensureFirebaseApp();
     } catch (_) {
       throw const PhoneVerificationException(
@@ -685,6 +699,7 @@ class AuthService {
     }
     final completer = Completer<PhoneVerificationChallenge>();
     try {
+      await _requirePhoneVerificationOwner(owner);
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: normalized,
         timeout: const Duration(seconds: 60),
@@ -692,6 +707,8 @@ class AuthService {
           if (completer.isCompleted) return;
           try {
             await _confirmPhoneCredential(
+              owner: owner,
+              attemptEpoch: attemptEpoch,
               phoneNumber: normalized,
               credential: credential,
             );
@@ -699,6 +716,8 @@ class AuthService {
               completer.complete(PhoneVerificationChallenge(
                 phoneNumber: normalized,
                 automaticallyVerified: true,
+                owner: owner,
+                attemptEpoch: attemptEpoch,
               ));
             }
           } catch (error, stack) {
@@ -714,6 +733,8 @@ class AuthService {
           completer.complete(PhoneVerificationChallenge(
             phoneNumber: normalized,
             verificationId: verificationId,
+            owner: owner,
+            attemptEpoch: attemptEpoch,
           ));
         },
         codeAutoRetrievalTimeout: (verificationId) {
@@ -721,15 +742,24 @@ class AuthService {
           completer.complete(PhoneVerificationChallenge(
             phoneNumber: normalized,
             verificationId: verificationId,
+            owner: owner,
+            attemptEpoch: attemptEpoch,
           ));
         },
       );
-      return await completer.future.timeout(
+      final challenge = await completer.future.timeout(
         const Duration(seconds: 75),
         onTimeout: () => throw const PhoneVerificationException(
-          PhoneVerificationFailure.timeout,
+          PhoneVerificationFailure.outcomeUnknown,
         ),
       );
+      await _requirePhoneVerificationOwner(owner);
+      if (attemptEpoch != _phoneVerificationAttemptGeneration) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.principalChanged,
+        );
+      }
+      return challenge;
     } on PhoneVerificationException {
       rethrow;
     } on FirebaseAuthException catch (error) {
@@ -743,9 +773,17 @@ class AuthService {
   }
 
   static Future<void> confirmPhoneVerification({
+    required AuthSessionOwner owner,
     required PhoneVerificationChallenge challenge,
     required String smsCode,
   }) async {
+    if (!identical(challenge.owner, owner) ||
+        challenge.attemptEpoch != _phoneVerificationAttemptGeneration) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.principalChanged,
+      );
+    }
+    await _requirePhoneVerificationOwner(owner);
     final verificationId = challenge.verificationId?.trim() ?? '';
     final code = smsCode.trim();
     if (challenge.automaticallyVerified) return;
@@ -756,6 +794,8 @@ class AuthService {
     }
     try {
       await _confirmPhoneCredential(
+        owner: owner,
+        attemptEpoch: challenge.attemptEpoch,
         phoneNumber: challenge.phoneNumber,
         credential: PhoneAuthProvider.credential(
           verificationId: verificationId,
@@ -775,26 +815,42 @@ class AuthService {
   }
 
   static Future<void> _confirmPhoneCredential({
+    required AuthSessionOwner owner,
+    required int attemptEpoch,
     required String phoneNumber,
     required PhoneAuthCredential credential,
   }) async {
+    String? signedInUid;
+    var remoteConfirmed = false;
+    var localIdentityCleanupFailed = false;
     try {
+      await _requirePhoneVerificationOwner(owner);
       final signedIn = await FirebaseAuth.instance.signInWithCredential(
         credential,
       );
+      signedInUid = signedIn.user?.uid;
+      await _requirePhoneVerificationOwner(owner);
+      if (attemptEpoch != _phoneVerificationAttemptGeneration) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.principalChanged,
+        );
+      }
       final firebaseIdToken = await signedIn.user?.getIdToken(true);
       if (firebaseIdToken == null || firebaseIdToken.length < 100) {
         throw const PhoneVerificationException(
           PhoneVerificationFailure.invalidToken,
         );
       }
-      final access = await accessToken();
+      await _requirePhoneVerificationOwner(owner);
+      final access = await accessTokenForOwner(owner);
       if (access == null || access.isEmpty) {
+        await _requirePhoneVerificationOwner(owner);
         throw const PhoneVerificationException(
           PhoneVerificationFailure.sessionExpired,
         );
       }
-      await BackendHttp.requestJson(
+      await _requirePhoneVerificationOwner(owner);
+      final response = await BackendHttp.requestJson(
         method: 'POST',
         path: '/auth/phone-verification/confirm',
         accessToken: access,
@@ -803,29 +859,110 @@ class AuthService {
           'firebaseIdToken': firebaseIdToken,
         },
       );
+      if (response['verified'] != true) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.outcomeUnknown,
+        );
+      }
+      remoteConfirmed = true;
+      if (!await isSessionOwnerDefinitelyCurrent(owner)) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.principalChanged,
+          remoteAcceptedOrConfirmed: true,
+        );
+      }
     } on BackendException catch (error) {
-      final failure = switch (error.code) {
-        'phone_verification_mismatch' => PhoneVerificationFailure.phoneMismatch,
-        'phone_already_verified' =>
-          PhoneVerificationFailure.phoneAlreadyVerified,
-        'invalid_phone' => PhoneVerificationFailure.invalidPhone,
-        'invalid_phone_verification_token' ||
-        'invalid_phone_verification_provider' =>
-          PhoneVerificationFailure.invalidToken,
-        'phone_verification_unavailable' =>
-          PhoneVerificationFailure.unavailable,
-        'authentication_required' ||
-        'invalid_or_expired_session' =>
-          PhoneVerificationFailure.sessionExpired,
-        _ => PhoneVerificationFailure.network,
-      };
+      final failure = classifyPhoneBackendFailure(error);
       throw PhoneVerificationException(failure);
     } finally {
       try {
-        await FirebaseAuth.instance.signOut();
-      } catch (_) {}
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        if (shouldCleanUpPhoneIdentity(
+          attemptEpoch: attemptEpoch,
+          currentAttemptEpoch: _phoneVerificationAttemptGeneration,
+          signedInUid: signedInUid,
+          currentUid: currentUid,
+        )) {
+          await FirebaseAuth.instance.signOut();
+          localIdentityCleanupFailed =
+              FirebaseAuth.instance.currentUser?.uid == signedInUid;
+        }
+      } catch (_) {
+        localIdentityCleanupFailed = true;
+      }
+      if (localIdentityCleanupFailed) {
+        throw PhoneVerificationException(
+          remoteConfirmed
+              ? PhoneVerificationFailure.confirmedLocalIdentityCleanupFailed
+              : PhoneVerificationFailure.localIdentityCleanupFailed,
+          remoteAcceptedOrConfirmed: remoteConfirmed,
+        );
+      }
     }
   }
+
+  static Future<void> _requirePhoneVerificationOwner(
+    AuthSessionOwner owner,
+  ) async {
+    if (!await isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.principalChanged,
+      );
+    }
+  }
+
+  @visibleForTesting
+  static PhoneVerificationFailure classifyPhoneBackendFailure(
+    BackendException error,
+  ) {
+    const allowed = <int, Map<String, PhoneVerificationFailure>>{
+      400: <String, PhoneVerificationFailure>{
+        'invalid_phone': PhoneVerificationFailure.invalidPhone,
+      },
+      401: <String, PhoneVerificationFailure>{
+        'invalid_phone_verification_token':
+            PhoneVerificationFailure.invalidToken,
+        'invalid_phone_verification_provider':
+            PhoneVerificationFailure.invalidToken,
+        'authentication_required': PhoneVerificationFailure.sessionExpired,
+        'invalid_or_expired_session': PhoneVerificationFailure.sessionExpired,
+        'account_not_active': PhoneVerificationFailure.sessionExpired,
+      },
+      404: <String, PhoneVerificationFailure>{
+        'user_not_found': PhoneVerificationFailure.sessionExpired,
+      },
+      409: <String, PhoneVerificationFailure>{
+        'phone_already_verified': PhoneVerificationFailure.phoneAlreadyVerified,
+        'phone_identity_cleanup_unsafe': PhoneVerificationFailure.unavailable,
+      },
+      422: <String, PhoneVerificationFailure>{
+        'phone_verification_mismatch': PhoneVerificationFailure.phoneMismatch,
+      },
+      429: <String, PhoneVerificationFailure>{
+        'rate_limit_exceeded': PhoneVerificationFailure.rateLimited,
+      },
+      503: <String, PhoneVerificationFailure>{
+        'phone_verification_unavailable': PhoneVerificationFailure.unavailable,
+      },
+      502: <String, PhoneVerificationFailure>{
+        'phone_identity_cleanup_failed': PhoneVerificationFailure.unavailable,
+      },
+    };
+    return allowed[error.statusCode]?[error.code] ??
+        PhoneVerificationFailure.outcomeUnknown;
+  }
+
+  @visibleForTesting
+  static bool shouldCleanUpPhoneIdentity({
+    required int attemptEpoch,
+    required int currentAttemptEpoch,
+    required String? signedInUid,
+    required String? currentUid,
+  }) =>
+      attemptEpoch == currentAttemptEpoch &&
+      signedInUid != null &&
+      signedInUid.isNotEmpty &&
+      currentUid == signedInUid;
 
   static String? normalizePhoneNumber(String value) {
     final compact = value
@@ -856,44 +993,6 @@ class AuthService {
       _ => PhoneVerificationFailure.network,
     };
     return PhoneVerificationException(failure);
-  }
-
-  static Future<AuthResult> requestEmailChange({
-    required String newEmail,
-    required String currentPassword,
-  }) async {
-    if (!BackendConfig.enabled) return const AuthResult.success();
-    final token = await accessToken();
-    if (token == null || token.isEmpty) {
-      return const AuthResult.failure(AuthFailure.network);
-    }
-    try {
-      await BackendHttp.requestJson(
-        method: 'POST',
-        path: '/auth/email-change/request',
-        accessToken: token,
-        body: {
-          'newEmail': newEmail.trim(),
-          'currentPassword': currentPassword,
-        },
-      );
-      return const AuthResult.success(verificationEmailSent: true);
-    } on BackendException catch (error) {
-      if (error.code == 'invalid_credentials') {
-        return const AuthResult.failure(AuthFailure.invalidCredentials);
-      }
-      if (error.code == 'email_in_use') {
-        return const AuthResult.failure(AuthFailure.emailInUse);
-      }
-      if (error.code == 'invalid_email' || error.code == 'email_unchanged') {
-        return const AuthResult.failure(AuthFailure.invalidEmail);
-      }
-      debugPrint('[AuthService] email change request failed: $error');
-      return const AuthResult.failure(AuthFailure.network);
-    } catch (error) {
-      debugPrint('[AuthService] email change request failed: $error');
-      return const AuthResult.failure(AuthFailure.network);
-    }
   }
 
   static Future<String?> refreshAccessToken() async {
@@ -1226,21 +1325,33 @@ enum PhoneVerificationFailure {
   timeout,
   unavailable,
   network,
+  outcomeUnknown,
+  principalChanged,
+  localIdentityCleanupFailed,
+  confirmedLocalIdentityCleanupFailed,
 }
 
 class PhoneVerificationException implements Exception {
   final PhoneVerificationFailure failure;
+  final bool remoteAcceptedOrConfirmed;
 
-  const PhoneVerificationException(this.failure);
+  const PhoneVerificationException(
+    this.failure, {
+    this.remoteAcceptedOrConfirmed = false,
+  });
 }
 
 class PhoneVerificationChallenge {
   final String phoneNumber;
   final String? verificationId;
   final bool automaticallyVerified;
+  final AuthSessionOwner owner;
+  final int attemptEpoch;
 
   const PhoneVerificationChallenge({
     required this.phoneNumber,
+    required this.owner,
+    required this.attemptEpoch,
     this.verificationId,
     this.automaticallyVerified = false,
   });

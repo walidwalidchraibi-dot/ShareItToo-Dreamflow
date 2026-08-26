@@ -16,13 +16,13 @@ const evidence = () => JSON.parse(readFileSync(
   'utf8',
 ));
 
-test('accepts the bounded RW17 deletion closure and follow-up inventory', () => {
+test('accepts the bounded RW17 deletion closure and completed follow-up inventory', () => {
   const result = validateRw17AccountDeletionPrincipalEpochTransaction({
     repositoryRoot,
     evidence: evidence(),
   });
   assert.equal(result.resolvedFindings, 6);
-  assert.equal(result.openActions, 4);
+  assert.equal(result.openActions, 0);
   assert.equal(result.focusedRw17Flutter, 'passed-13');
 });
 

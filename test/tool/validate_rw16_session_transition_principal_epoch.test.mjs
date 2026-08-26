@@ -16,13 +16,13 @@ const evidence = () => JSON.parse(readFileSync(
   'utf8',
 ));
 
-test('accepts the bounded RW16 transition closure and follow-up inventory', () => {
+test('accepts the bounded RW16 transition closure and completed follow-up inventory', () => {
   const result = validateRw16SessionTransitionPrincipalEpoch({
     repositoryRoot,
     evidence: evidence(),
   });
   assert.equal(result.resolvedFindings, 5);
-  assert.equal(result.openActions, 5);
+  assert.equal(result.openActions, 0);
   assert.equal(result.focusedRw16Flutter, 'passed-9');
 });
 

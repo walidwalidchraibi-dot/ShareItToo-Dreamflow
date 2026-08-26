@@ -167,12 +167,12 @@ export function validateRw16SessionTransitionPrincipalEpoch({
     ['security.remote-session.revoke', 'lib/screens/security_screen.dart', 'guarded-rw15'],
     ['security.sessions.logout-all', 'lib/screens/security_screen.dart', 'guarded-rw15'],
     ['profile.session.logout', 'lib/screens/profile_screen.dart', 'guarded-rw16'],
-    ['account.deletion', 'lib/screens/account_settings_screen.dart', 'open-p0-rw17'],
-    ['contact.email-change', 'lib/screens/contact_data_screen.dart', 'open-p0-rw18'],
-    ['contact.phone-verification', 'lib/screens/contact_data_screen.dart', 'open-p0-rw18'],
-    ['contact.email-verification', 'lib/screens/contact_data_screen.dart', 'open-p1-rw18'],
+    ['account.deletion', 'lib/screens/account_settings_screen.dart', 'guarded-rw17'],
+    ['contact.email-change', 'lib/screens/contact_data_screen.dart', 'guarded-rw18'],
+    ['contact.phone-verification', 'lib/screens/contact_data_screen.dart', 'guarded-rw18'],
+    ['contact.email-verification', 'lib/screens/contact_data_screen.dart', 'guarded-rw18'],
     ['login.session-clear', 'lib/screens/login_screen.dart', 'guarded-rw16'],
-    ['login.email-verification', 'lib/screens/login_screen.dart', 'open-p1-rw18'],
+    ['login.email-verification', 'lib/screens/login_screen.dart', 'guarded-rw18'],
     ['legacy.change-password-placeholder', 'lib/screens/change_password_screen.dart', 'unreachable-b10-guarded'],
     ['data-service.test-session-clear-hook', 'lib/services/data_service.dart', 'test-only'],
   ];
@@ -193,19 +193,14 @@ export function validateRw16SessionTransitionPrincipalEpoch({
     ['_sessionTransitions.clearStaleSession', {
       'lib/screens/login_screen.dart': 1,
     }],
-    ['AuthService.requestEmailChange', {
-      'lib/screens/contact_data_screen.dart': 1,
-    }],
+    ['AuthService.requestEmailChange', {}],
     ['AuthService.requestPhoneVerification', {
-      'lib/screens/contact_data_screen.dart': 1,
+      'lib/services/contact_verification_service.dart': 1,
     }],
     ['AuthService.confirmPhoneVerification', {
-      'lib/screens/contact_data_screen.dart': 1,
+      'lib/services/contact_verification_service.dart': 1,
     }],
-    ['AuthService.requestEmailVerification', {
-      'lib/screens/contact_data_screen.dart': 1,
-      'lib/screens/login_screen.dart': 1,
-    }],
+    ['AuthService.requestEmailVerification', {}],
     ['_accountDeletionService.deleteAccount', {
       'lib/screens/account_settings_screen.dart': 1,
     }],
@@ -285,11 +280,11 @@ export function validateRw16SessionTransitionPrincipalEpoch({
     fail('RW16 ratchet audit is invalid.');
   }
   if (value.ratchets?.privacyManifestSha256
-        !== '848685287170868fa44577214f463d51ba13b2a5cd83b43ed4b5f4eca0aba08a'
+        !== '5cc98d1cf0c9d24c4a5e5c1fe79b71a31762518cd1e370bd48e4923a07fafe07'
       || value.ratchets?.retentionManifestSha256
         !== '9d15bae7ebf331b579c3cf0ea067577664fca73f0196e9605d8d81c9e10c5d70'
       || value.ratchets?.activeProviderEvidenceSha256
-        !== 'e7a46211d0ca492a2cf116ae9c5a2faaa07d7db709a125ab719fa847782ce8a7'
+        !== '78e5b05529a4129ff923bde56c0b7cb72e11b8e80ae9fed4d1f6ced215c66e1d'
       || value.ratchets?.activeProviderState !== 'prepared-hold'
       || value.ratchets?.completedOwnerDecisions !== 0
       || value.ratchets?.requiredOwnerDecisions !== 10

@@ -6,6 +6,7 @@ import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/screens/register_screen.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/contact_verification_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/firebase_runtime.dart';
@@ -15,6 +16,7 @@ import 'package:lendify/widgets/sit_logo_header.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/blur_modal.dart';
 import 'package:lendify/widgets/social_auth_button.dart';
+import 'package:lendify/widgets/tracked_dialog_route.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,6 +24,7 @@ class LoginScreen extends StatefulWidget {
   final String? initialEmail;
   final bool verificationPending;
   final SessionTransitionService? sessionTransitionService;
+  final ContactVerificationService? contactVerificationService;
 
   const LoginScreen({
     super.key,
@@ -29,6 +32,7 @@ class LoginScreen extends StatefulWidget {
     this.initialEmail,
     this.verificationPending = false,
     this.sessionTransitionService,
+    this.contactVerificationService,
   });
 
   @override
@@ -50,10 +54,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _pwVisible = false;
   bool _peekBackdrop = false;
   late final SessionTransitionService _sessionTransitions;
+  late final ContactVerificationService _contactVerificationService;
   SessionTransitionOwner? _observedSessionOwner;
   int? _confirmedNoSessionEpoch;
   int _bootstrapRevision = 0;
   bool _sessionTransitionInFlight = false;
+  int _loginActionEpoch = 0;
+  TrackedDialogRouteHandle<void>? _activeVerificationResultRoute;
 
   void _exitToExplore() {
     try {
@@ -105,7 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _sessionTransitions =
         widget.sessionTransitionService ?? const SessionTransitionService();
+    _contactVerificationService =
+        widget.contactVerificationService ?? const ContactVerificationService();
     _emailCtrl.text = widget.initialEmail?.trim() ?? '';
+    _emailCtrl.addListener(_handleLoginEmailChanged);
     _bootstrap();
   }
 
@@ -193,11 +203,78 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _loginActionEpoch += 1;
+    _emailCtrl.removeListener(_handleLoginEmailChanged);
+    _activeVerificationResultRoute?.dismiss();
     _emailCtrl.dispose();
     _pwCtrl.dispose();
     _emailFocus.dispose();
     _pwFocus.dispose();
     super.dispose();
+  }
+
+  void _handleLoginEmailChanged() {
+    _loginActionEpoch += 1;
+    _activeVerificationResultRoute?.dismiss();
+  }
+
+  LoginEmailVerificationOwner _captureLoginEmailOwner() =>
+      LoginEmailVerificationOwner(
+        normalizedEmail: _emailCtrl.text.trim().toLowerCase(),
+        actionEpoch: ++_loginActionEpoch,
+      );
+
+  bool _isLoginEmailOwnerCurrent(LoginEmailVerificationOwner owner) =>
+      mounted &&
+      owner.isCurrent(
+        email: _emailCtrl.text,
+        actionEpoch: _loginActionEpoch,
+      );
+
+  Future<bool> _retainSuccessfulLoginOwner(
+    LoginEmailVerificationOwner loginOwner,
+    AuthSessionOwner successfulSessionOwner,
+  ) async {
+    if (_isLoginEmailOwnerCurrent(loginOwner)) return true;
+    await AuthService.clearSessionOwnerIfMatches(
+      successfulSessionOwner,
+      runLogoutCleanup: false,
+    );
+    return false;
+  }
+
+  Future<void> _showLoginVerificationResult(
+    LoginEmailVerificationOwner owner, {
+    required IconData icon,
+    required String title,
+    String? message,
+  }) async {
+    if (!_isLoginEmailOwnerCurrent(owner)) return;
+    final handle = TrackedDialogRouteHandle<void>();
+    _activeVerificationResultRoute = handle;
+    try {
+      await showTrackedDialog<void>(
+        context: context,
+        handle: handle,
+        barrierLabel:
+            MaterialLocalizations.of(context).modalBarrierDismissLabel,
+        builder: (dialogContext) => AlertDialog(
+          icon: Icon(icon),
+          title: Text(title),
+          content: message == null ? null : Text(message),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (identical(_activeVerificationResultRoute, handle)) {
+        _activeVerificationResultRoute = null;
+      }
+    }
   }
 
   bool _isOutsideCard(Offset globalPosition) {
@@ -241,44 +318,144 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok) return;
+    final loginOwner = _captureLoginEmailOwner();
+    final loginPassword = _pwCtrl.text;
+    AuthSessionOwner? successfulSessionOwner;
 
     setState(() => _busy = true);
     try {
       // Simulate realistic latency.
       await Future<void>.delayed(const Duration(milliseconds: 520));
+      if (!_isLoginEmailOwnerCurrent(loginOwner)) return;
 
       final result = await AuthService.signInWithEmailPassword(
-          email: _emailCtrl.text, password: _pwCtrl.text);
-      if (!mounted) return;
-
-      if (!result.ok) {
-        final msg = switch (result.failure) {
-          AuthFailure.invalidCredentials =>
-            'E-Mail oder Passwort ist nicht korrekt.',
-          AuthFailure.emailVerificationRequired =>
-            'Bitte bestätige zuerst deine E-Mail-Adresse. Wir senden dir auf Wunsch einen neuen Link.',
-          AuthFailure.network =>
-            'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
-          _ => 'Es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
-        };
-        await AppPopup.toast(context, icon: Icons.error_outline, title: msg);
-        if (result.failure == AuthFailure.emailVerificationRequired) {
-          await AuthService.requestEmailVerification(_emailCtrl.text.trim());
+        email: loginOwner.normalizedEmail,
+        password: loginPassword,
+      );
+      if (!_isLoginEmailOwnerCurrent(loginOwner)) {
+        final staleSession = result.session;
+        if (staleSession != null) {
+          await AuthService.clearSessionOwnerIfMatches(
+            AuthService.captureSessionOwner(staleSession),
+            runLogoutCleanup: false,
+          );
         }
         return;
       }
 
-      await DataService.syncCurrentUserForSessionEmail(_emailCtrl.text.trim());
+      if (!result.ok) {
+        if (result.failure == AuthFailure.emailVerificationRequired) {
+          try {
+            if (!_isLoginEmailOwnerCurrent(loginOwner)) return;
+            await _contactVerificationService.requestLoginEmailVerification(
+              loginOwner.normalizedEmail,
+            );
+            if (!_isLoginEmailOwnerCurrent(loginOwner)) return;
+            await _showLoginVerificationResult(
+              loginOwner,
+              icon: Icons.mark_email_read_outlined,
+              title: 'Bestätigungs-E-Mail angefordert',
+              message:
+                  'Wenn das Konto existiert und noch unbestätigt ist, erhältst du einen neuen Link.',
+            );
+          } on ContactActionFailure catch (failure) {
+            if (!_isLoginEmailOwnerCurrent(loginOwner)) return;
+            final (title, message) = switch (failure.kind) {
+              ContactActionFailureKind.rejected => (
+                  'Bitte kurz warten',
+                  'Die Anfrage wurde begrenzt. Versuche es später erneut.'
+                ),
+              ContactActionFailureKind.localUnavailable => (
+                  'Bestätigung nicht angefordert',
+                  'Die Funktion ist derzeit nicht verfügbar.'
+                ),
+              ContactActionFailureKind.outcomeUnknown => (
+                  'Versandstatus unklar',
+                  'Die E-Mail könnte bereits gesendet worden sein. Prüfe dein Postfach, bevor du erneut anforderst.'
+                ),
+              ContactActionFailureKind.principalChanged => (null, null),
+            };
+            if (title != null) {
+              await _showLoginVerificationResult(
+                loginOwner,
+                icon: Icons.error_outline,
+                title: title,
+                message: message,
+              );
+            }
+          }
+          return;
+        }
+        final msg = switch (result.failure) {
+          AuthFailure.invalidCredentials =>
+            'E-Mail oder Passwort ist nicht korrekt.',
+          AuthFailure.network =>
+            'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
+          _ => 'Es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
+        };
+        if (mounted && _isLoginEmailOwnerCurrent(loginOwner)) {
+          await AppPopup.toast(
+            context,
+            icon: Icons.error_outline,
+            title: msg,
+          );
+        }
+        return;
+      }
+
+      final successfulSession = result.session;
+      if (successfulSession == null) {
+        throw StateError('Successful login did not return a session owner.');
+      }
+      successfulSessionOwner =
+          AuthService.captureSessionOwner(successfulSession);
+
+      await DataService.syncCurrentUserForSessionEmail(
+        loginOwner.normalizedEmail,
+      );
+      if (!await _retainSuccessfulLoginOwner(
+        loginOwner,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       await _syncRentalCartAfterAuthentication();
+      if (!await _retainSuccessfulLoginOwner(
+        loginOwner,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       unawaited(FirebaseRuntime.syncPushRegistration());
+      if (!await _retainSuccessfulLoginOwner(
+        loginOwner,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       if (!mounted) return;
       await context
           .read<DeveloperPreviewController>()
           .setState(DeveloperUserState.loggedIn);
-      if (!mounted) return;
+      if (!await _retainSuccessfulLoginOwner(
+        loginOwner,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       _goHome(replace: true);
     } catch (e) {
       debugPrint('[LoginScreen] submit failed: $e');
+      final completedOwner = successfulSessionOwner;
+      if (!_isLoginEmailOwnerCurrent(loginOwner)) {
+        if (completedOwner != null) {
+          await AuthService.clearSessionOwnerIfMatches(
+            completedOwner,
+            runLogoutCleanup: false,
+          );
+        }
+        return;
+      }
       if (!mounted) return;
       await AppPopup.toast(context,
           icon: Icons.wifi_off_outlined,

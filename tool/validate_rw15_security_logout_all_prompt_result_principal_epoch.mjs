@@ -210,13 +210,13 @@ export function validateRw15SecurityLogoutAllPromptResultPrincipalEpoch({
     ['security.password.change', 'lib/screens/security_screen.dart', 'guarded-rw15'],
     ['security.remote-session.revoke', 'lib/screens/security_screen.dart', 'guarded-rw15'],
     ['security.sessions.logout-all', 'lib/screens/security_screen.dart', 'guarded-rw15'],
-    ['profile.session.logout', 'lib/screens/profile_screen.dart', 'open-p0'],
-    ['account.deletion', 'lib/screens/account_settings_screen.dart', 'open-p0'],
-    ['contact.email-change', 'lib/screens/contact_data_screen.dart', 'open-p0'],
-    ['contact.phone-verification', 'lib/screens/contact_data_screen.dart', 'open-p0'],
-    ['contact.email-verification', 'lib/screens/contact_data_screen.dart', 'open-p1'],
-    ['login.session-clear', 'lib/screens/login_screen.dart', 'open-p0'],
-    ['login.email-verification', 'lib/screens/login_screen.dart', 'open-p1'],
+    ['profile.session.logout', 'lib/screens/profile_screen.dart', 'guarded-rw16'],
+    ['account.deletion', 'lib/screens/account_settings_screen.dart', 'guarded-rw17'],
+    ['contact.email-change', 'lib/screens/contact_data_screen.dart', 'guarded-rw18'],
+    ['contact.phone-verification', 'lib/screens/contact_data_screen.dart', 'guarded-rw18'],
+    ['contact.email-verification', 'lib/screens/contact_data_screen.dart', 'guarded-rw18'],
+    ['login.session-clear', 'lib/screens/login_screen.dart', 'guarded-rw16'],
+    ['login.email-verification', 'lib/screens/login_screen.dart', 'guarded-rw18'],
     [
       'legacy.change-password-placeholder',
       'lib/screens/change_password_screen.dart',
@@ -236,13 +236,14 @@ export function validateRw15SecurityLogoutAllPromptResultPrincipalEpoch({
     ['AuthService.clearSession', {
       'lib/services/data_service.dart': 1,
     }],
-    ['AuthService.requestEmailChange', { 'lib/screens/contact_data_screen.dart': 1 }],
-    ['AuthService.requestPhoneVerification', { 'lib/screens/contact_data_screen.dart': 1 }],
-    ['AuthService.confirmPhoneVerification', { 'lib/screens/contact_data_screen.dart': 1 }],
-    ['AuthService.requestEmailVerification', {
-      'lib/screens/contact_data_screen.dart': 1,
-      'lib/screens/login_screen.dart': 1,
+    ['AuthService.requestEmailChange', {}],
+    ['AuthService.requestPhoneVerification', {
+      'lib/services/contact_verification_service.dart': 1,
     }],
+    ['AuthService.confirmPhoneVerification', {
+      'lib/services/contact_verification_service.dart': 1,
+    }],
+    ['AuthService.requestEmailVerification', {}],
     ['_accountDeletionService.preflightCheck', { 'lib/screens/account_settings_screen.dart': 1 }],
     ['_accountDeletionService.deleteAccount', { 'lib/screens/account_settings_screen.dart': 1 }],
   ];

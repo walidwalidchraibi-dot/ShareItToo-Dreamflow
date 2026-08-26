@@ -9,41 +9,37 @@ import { readRepositoryFile } from './read_repository_file.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath =
-  'docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json';
+  'docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json';
 const sourcePaths = [
-  'lib/screens/account_settings_screen.dart',
-  'lib/services/account_deletion_service.dart',
-  'lib/services/data_service.dart',
-  'lib/services/local_safety_privacy_service.dart',
+  'backend/src/app.js',
+  'backend/src/firebase_phone_verification.js',
+  'backend/test/firebase_phone_verification.test.js',
+  'backend/test/postgres_foundation.integration.test.js',
+  'lib/screens/contact_data_screen.dart',
+  'lib/screens/login_screen.dart',
   'lib/services/auth_service.dart',
+  'lib/services/backend_http.dart',
+  'lib/services/contact_verification_service.dart',
+  'lib/services/data_service.dart',
   'lib/services/session_transition_service.dart',
   'lib/services/shared_persistence_sync.dart',
   'lib/widgets/tracked_dialog_route.dart',
-  'store/g2-data-lifecycle.json',
-  'store/privacy-disclosures.json',
-  'store/retention-deletion-readiness.json',
-  'docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json',
-  'docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json',
+  'docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json',
   'scripts/technical_regression_check.sh',
-  'test/rw17_account_deletion_principal_epoch_transaction_test.dart',
-  'test/tool/rw5_local_safety_privacy_principal_isolation_wiring.test.mjs',
-  'test/tool/rw6_local_operational_authorization_truth_recovery_wiring.test.mjs',
-  'test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs',
-  'test/tool/rw17_account_deletion_principal_epoch_transaction_wiring.test.mjs',
-  'test/tool/validate_rw17_account_deletion_principal_epoch_transaction.test.mjs',
-  'tool/validate_g2_data_lifecycle.mjs',
-  'tool/validate_privacy_disclosures.mjs',
-  'tool/validate_retention_deletion_readiness.mjs',
-  'tool/validate_rw17_account_deletion_principal_epoch_transaction.mjs',
-  'docs/architecture/rw17-account-deletion-principal-epoch-transaction-2026-08-26.md',
-  'docs/operations/RW17_ACCOUNT_DELETION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md',
+  'test/phone_verification_contract_test.dart',
+  'test/rw18_contact_verification_principal_epoch_transaction_test.dart',
+  'test/tool/rw18_contact_verification_principal_epoch_transaction_wiring.test.mjs',
+  'test/tool/validate_rw18_contact_verification_principal_epoch_transaction.test.mjs',
+  'tool/validate_rw18_contact_verification_principal_epoch_transaction.mjs',
+  'docs/architecture/rw18-contact-verification-principal-epoch-transaction-2026-08-26.md',
+  'docs/operations/RW18_CONTACT_VERIFICATION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md',
 ];
 
 const fail = (message) => { throw new Error(message); };
 const exact = (actual, expected) =>
   JSON.stringify(actual) === JSON.stringify(expected);
 const source = (repositoryRoot, path) =>
-  readRepositoryFile(repositoryRoot, path, { label: `RW17 source ${path}` });
+  readRepositoryFile(repositoryRoot, path, { label: `RW18 source ${path}` });
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const escapeRegExp = (value) =>
   value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
@@ -79,11 +75,11 @@ function countCallSites({ repositoryRoot, sourceTexts, symbol }) {
 function assertSanitized(value) {
   const serialized = JSON.stringify(value);
   if (/\/Users\/|BEGIN PRIVATE|\bsk-[A-Za-z0-9]|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/u.test(serialized)) {
-    fail('RW17 evidence contains private or secret-shaped material.');
+    fail('RW18 evidence contains private or secret-shaped material.');
   }
 }
 
-export function validateRw17AccountDeletionPrincipalEpochTransaction({
+export function validateRw18ContactVerificationPrincipalEpochTransaction({
   repositoryRoot = root,
   evidence,
   sourceTexts = {},
@@ -95,34 +91,61 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
     'verified-regression-and-codeql-passed',
   ];
   if (value.schemaVersion !== 1
-      || value.kind !== 'sit-rw17-account-deletion-principal-epoch-transaction'
+      || value.kind !== 'sit-rw18-contact-verification-principal-epoch-transaction'
       || !statuses.includes(value.status)
       || value.implementationBaseHead
-        !== '5b2862ad40f79fe2287977868660f348806d68ae') {
-    fail('RW17 evidence identity is invalid.');
+        !== '3f1f6aae4e66356712230ecd6b2a560bf6d72680') {
+    fail('RW18 evidence identity is invalid.');
   }
   if (!exact(value.predecessor, {
-    package: 'RW16',
+    package: 'RW17',
     evidence:
-      'docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json',
-    verifiedImplementationHead: '4e307afa7f17cb0ac710ab19cea8f963c12b6dd4',
-    closureCommit: '5b2862ad40f79fe2287977868660f348806d68ae',
-  })) fail('RW17 predecessor binding is invalid.');
+      'docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json',
+    verifiedImplementationHead: '7ec6a24eadd1b04c9e3c77025d0ebf5f6fe59c34',
+    closureCommit: '3f1f6aae4e66356712230ecd6b2a560bf6d72680',
+  })) fail('RW18 predecessor binding is invalid.');
 
   if (!Array.isArray(value.findings)
-      || value.findings.length !== 6
+      || value.findings.length !== 8
       || value.findings.some(({ id, state }) =>
-        !/^RW17-P0-/u.test(id) || state !== 'resolved-and-tested')) {
-    fail('RW17 finding closure is invalid.');
+        !/^RW18-P[01]-/u.test(id) || state !== 'resolved-and-tested')) {
+    fail('RW18 finding closure is invalid.');
   }
-  if (!exact(value.definiteRejectionContracts, [
+
+  const contracts = value.definiteRejectionContracts;
+  if (!exact(contracts?.emailChange, [
+    { status: 400, code: 'invalid_email' },
+    { status: 400, code: 'email_unchanged' },
     { status: 401, code: 'authentication_required' },
     { status: 401, code: 'invalid_or_expired_session' },
     { status: 401, code: 'account_not_active' },
     { status: 401, code: 'invalid_credentials' },
-    { status: 409, code: 'account_deletion_blocked' },
+    { status: 409, code: 'email_in_use' },
     { status: 429, code: 'rate_limit_exceeded' },
-  ])) fail('RW17 definite-rejection contract drifted.');
+  ]) || !exact(contracts?.emailVerificationRequest, [
+    { status: 429, code: 'rate_limit_exceeded' },
+  ]) || !exact(contracts?.phoneConfirmation, [
+    { status: 400, code: 'invalid_phone' },
+    { status: 401, code: 'authentication_required' },
+    { status: 401, code: 'invalid_or_expired_session' },
+    { status: 401, code: 'account_not_active' },
+    { status: 401, code: 'invalid_phone_verification_token' },
+    { status: 401, code: 'invalid_phone_verification_provider' },
+    { status: 404, code: 'user_not_found' },
+    { status: 409, code: 'phone_already_verified' },
+    { status: 409, code: 'phone_identity_cleanup_unsafe' },
+    { status: 422, code: 'phone_verification_mismatch' },
+    { status: 429, code: 'rate_limit_exceeded' },
+    { status: 502, code: 'phone_identity_cleanup_failed' },
+    { status: 503, code: 'phone_verification_unavailable' },
+  ])) fail('RW18 definite-rejection contract drifted.');
+  if ([
+    ...contracts.emailChange,
+    ...contracts.emailVerificationRequest,
+    ...contracts.phoneConfirmation,
+  ].some(({ status }) => status === 408)) {
+    fail('RW18 408 cannot be classified as a definite rejection.');
+  }
 
   const expectedActions = [
     ['security.password.change', 'lib/screens/security_screen.dart', 'guarded-rw15'],
@@ -141,56 +164,55 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
   if (!exact(
     value.securityActionInventory?.map(({ id, file, status }) => [id, file, status]),
     expectedActions,
-  )) fail('RW17 security-action inventory is invalid.');
+  )) fail('RW18 security-action inventory is invalid.');
 
   const expectedCallSites = [
-    ['AuthService.clearSession', {'lib/services/data_service.dart': 1}],
-    ['_sessionTransitions.signOut', {
-      'lib/screens/login_screen.dart': 1,
-      'lib/screens/profile_screen.dart': 1,
-      'lib/services/account_deletion_service.dart': 1,
+    ['AuthService.requestEmailChange', {}],
+    ['AuthService.requestEmailVerification', {}],
+    ['AuthService.accessTokenForOwner', {
+      'lib/services/contact_verification_service.dart': 1,
     }],
-    ['_accountDeletionService.preflightCheck', {
-      'lib/screens/account_settings_screen.dart': 1,
+    ['.requestEmailChange', {'lib/screens/contact_data_screen.dart': 1}],
+    ['.requestContactEmailVerification', {
+      'lib/screens/contact_data_screen.dart': 1,
     }],
-    ['_accountDeletionService.deleteAccount', {
-      'lib/screens/account_settings_screen.dart': 1,
+    ['.requestLoginEmailVerification', {'lib/screens/login_screen.dart': 1}],
+    ['.requestPhoneVerification', {
+      'lib/screens/contact_data_screen.dart': 1,
+      'lib/services/contact_verification_service.dart': 1,
     }],
-    ['DataService.clearOperationalRecordsForConfirmedAccountDeletion', {
-      'lib/services/account_deletion_service.dart': 1,
+    ['.confirmPhoneVerification', {
+      'lib/screens/contact_data_screen.dart': 1,
+      'lib/services/contact_verification_service.dart': 1,
     }],
-    ['DataService.clearSavedItemsForConfirmedAccountDeletion', {
-      'lib/services/account_deletion_service.dart': 2,
-    }],
-    ['LocalSafetyPrivacyService.clearPrincipalForConfirmedAccountDeletion', {
-      'lib/services/account_deletion_service.dart': 2,
-    }],
-    ['DataService.finalizeProfileForConfirmedAccountDeletion', {
-      'lib/services/account_deletion_service.dart': 2,
+    ['.refreshVerifiedProfile', {'lib/screens/contact_data_screen.dart': 3}],
+    ['showTrackedModalBottomSheet<T>', {
+      'lib/screens/contact_data_screen.dart': 1,
+      'lib/widgets/tracked_dialog_route.dart': 1,
     }],
   ];
   if (!exact(
     value.callSiteInventory?.map(({ symbol, paths }) => [symbol, paths]),
     expectedCallSites,
-  )) fail('RW17 call-site inventory declaration is invalid.');
+  )) fail('RW18 call-site inventory declaration is invalid.');
   for (const [symbol, paths] of expectedCallSites) {
     if (!exact(countCallSites({ repositoryRoot, sourceTexts, symbol }), paths)) {
-      fail(`RW17 call-site inventory drifted for ${symbol}.`);
+      fail(`RW18 call-site inventory drifted for ${symbol}.`);
     }
   }
 
   const fullPassed = value.status !== statuses[0];
   const githubPassed = value.status === statuses[2];
   if (value.verification?.redFirst
-        !== 'failed-missing-typed-deletion-context-outcome-and-completion-contract-before-fix'
-      || value.verification?.focusedRw17Flutter !== 'passed-13'
-      || value.verification?.rw17AndAdjacentCompatibilityFlutter
-        !== 'passed-134'
+        !== 'failed-missing-principal-bound-contact-coordinator-phone-owner-attempt-login-owner-and-tracked-modal-contract-before-fix'
+      || value.verification?.focusedRw18Flutter !== 'passed-17'
+      || value.verification?.rw16Rw17AndPhoneCompatibilityFlutter !== 'passed-41'
       || value.verification?.changedFileAnalyze !== 'passed-zero-issues'
-      || value.verification?.rw17WiringTests !== 'passed-6'
-      || value.verification?.rw17ValidatorTests !== 'passed-3'
-      || !['pending', 'passed-1924'].includes(value.verification?.completeToolInventory)
-      || (fullPassed && value.verification.completeToolInventory !== 'passed-1924')
+      || value.verification?.rw18WiringTests !== 'passed-7'
+      || !['pending', 'passed-3'].includes(value.verification?.rw18ValidatorTests)
+      || !['pending', 'passed-1934'].includes(value.verification?.completeToolInventory)
+      || (fullPassed && value.verification.rw18ValidatorTests !== 'passed-3')
+      || (fullPassed && value.verification.completeToolInventory !== 'passed-1934')
       || value.verification?.completeToolInventorySkipped !== 0
       || value.verification?.fullTechnicalRegression
         !== (fullPassed ? 'passed' : 'pending')
@@ -198,17 +220,17 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
         !== (githubPassed ? 'passed' : 'pending')
       || value.verification?.githubCodeql
         !== (githubPassed ? 'passed-no-new-alerts' : 'pending')) {
-    fail('RW17 verification truth is invalid.');
+    fail('RW18 verification truth is invalid.');
   }
   if (!exact(value.inventoryAudit, {
-    predecessorRepositoryOwnedFiles: 334,
-    closureRepositoryOwnedFiles: 341,
-    predecessorPassedTests: 1915,
-    closurePassedTests: 1924,
+    predecessorRepositoryOwnedFiles: 341,
+    closureRepositoryOwnedFiles: 349,
+    predecessorPassedTests: 1924,
+    closurePassedTests: 1934,
     skippedTests: 0,
     executionPattern: 'node --test test/tool/*.test.mjs',
     standardNodeParallelism: true,
-  })) fail('RW17 complete tool inventory is invalid.');
+  })) fail('RW18 complete tool inventory is invalid.');
 
   if (fullPassed) {
     if (!/^[a-f0-9]{40}$/u.test(value.implementationHead ?? '')
@@ -216,10 +238,10 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
         || value.localRegression?.standardParallelism !== true
         || value.localRegression?.timingWorkaroundUsed !== false
         || value.localRegression?.parallelismReductionUsed !== false) {
-      fail('RW17 full-regression evidence is invalid.');
+      fail('RW18 full-regression evidence is invalid.');
     }
   } else if (value.implementationHead !== null || value.localRegression !== null) {
-    fail('RW17 cannot bind an implementation head before full regression.');
+    fail('RW18 cannot bind an implementation head before full regression.');
   }
   if (githubPassed) {
     const github = value.githubVerification;
@@ -229,35 +251,21 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
         || github?.regressionConclusion !== 'success'
         || github?.codeqlConclusion !== 'success'
         || github?.openCodeScanningAlerts !== 0) {
-      fail('RW17 GitHub verification is invalid.');
+      fail('RW18 GitHub verification is invalid.');
     }
   } else if (value.githubVerification !== null) {
-    fail('RW17 cannot claim GitHub verification while CI is pending.');
+    fail('RW18 cannot claim GitHub verification while CI is pending.');
   }
 
-  if (value.ratchetAudit?.privacyDisclosureSemanticsChanged !== true
-      || value.ratchetAudit?.retentionSemanticsChanged !== true
+  if (value.ratchetAudit?.privacyDisclosureSemanticsChanged !== false
+      || value.ratchetAudit?.retentionSemanticsChanged !== false
       || value.ratchetAudit?.providerDecisionChanged !== false
       || value.ratchetAudit?.providerGateChanged !== false
-      || value.ratchetAudit?.rw16VerifiedHeadChanged !== false
+      || value.ratchetAudit?.rw17VerifiedHeadChanged !== false
+      || value.ratchetAudit?.rw17ClosureHeadChanged !== false
       || value.ratchetAudit?.timingWorkaroundIntroduced !== false) {
-    fail('RW17 ratchet cause or boundary is invalid.');
+    fail('RW18 ratchet cause or boundary is invalid.');
   }
-  const sourceHash = (path) =>
-    value.sourceInventory?.find((entry) => entry.path === path)?.sha256;
-  if (value.ratchets?.privacyManifestSha256
-        !== sourceHash('store/privacy-disclosures.json')
-      || value.ratchets?.retentionManifestSha256
-        !== sourceHash('store/retention-deletion-readiness.json')
-      || value.ratchets?.activeProviderEvidenceSha256
-        !== sourceHash('docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json')
-      || value.ratchets?.activeProviderState !== 'prepared-hold'
-      || value.ratchets?.completedOwnerDecisions !== 0
-      || value.ratchets?.requiredOwnerDecisions !== 10
-      || value.ratchets?.externalReadiness !== false) {
-    fail('RW17 ratchet or provider truth is invalid.');
-  }
-
   const gates = [
     'BUILD_READY',
     'PLAY_UPLOAD_APPROVED',
@@ -268,18 +276,18 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
   if (!exact(Object.keys(value.gates), gates)
       || Object.values(value.gates).some((entry) => entry !== 'not-granted')
       || Object.values(value.boundaries).some((entry) => entry !== false)) {
-    fail('RW17 gate or boundary truth is invalid.');
+    fail('RW18 gate or boundary truth is invalid.');
   }
   if (!Array.isArray(value.residualRisks)
       || value.residualRisks.length !== 4
       || value.residualRisks.some((entry) => typeof entry !== 'string' || !entry)) {
-    fail('RW17 residual-risk truth is invalid.');
+    fail('RW18 residual-risk truth is invalid.');
   }
 
   if (!Array.isArray(value.sourceInventory)
       || value.sourceInventory.length !== sourcePaths.length
       || !exact(value.sourceInventory.map(({ path }) => path), sourcePaths)) {
-    fail('RW17 source inventory paths are invalid.');
+    fail('RW18 source inventory paths are invalid.');
   }
   for (const entry of value.sourceInventory) {
     const content = Object.hasOwn(sourceTexts, entry.path)
@@ -287,7 +295,7 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
       : source(repositoryRoot, entry.path);
     if (!/^[a-f0-9]{64}$/u.test(entry.sha256)
         || sha256(content) !== entry.sha256) {
-      fail(`RW17 source inventory hash is stale: ${entry.path}`);
+      fail(`RW18 source inventory hash is stale: ${entry.path}`);
     }
   }
   assertSanitized(value);
@@ -296,13 +304,13 @@ export function validateRw17AccountDeletionPrincipalEpochTransaction({
     resolvedFindings: value.findings.length,
     openActions: value.securityActionInventory
       .filter(({ status }) => status.startsWith('open-')).length,
-    focusedRw17Flutter: value.verification.focusedRw17Flutter,
+    focusedRw18Flutter: value.verification.focusedRw18Flutter,
     residualRisks: value.residualRisks.length,
   };
 }
 
 function main() {
-  const result = validateRw17AccountDeletionPrincipalEpochTransaction();
+  const result = validateRw18ContactVerificationPrincipalEpochTransaction();
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 

@@ -16,13 +16,13 @@ const evidence = () => JSON.parse(readFileSync(
   'utf8',
 ));
 
-test('accepts the bounded RW15 invariant and open follow-up inventory', () => {
+test('accepts the bounded RW15 invariant and completed follow-up inventory', () => {
   const result = validateRw15SecurityLogoutAllPromptResultPrincipalEpoch({
     repositoryRoot,
     evidence: evidence(),
   });
   assert.equal(result.resolvedFindings, 4);
-  assert.equal(result.openActions, 7);
+  assert.equal(result.openActions, 0);
   assert.equal(result.focusedRw15Flutter, 'passed-5');
 });
 

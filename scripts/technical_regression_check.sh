@@ -424,6 +424,11 @@ node --test \
   test/tool/rw17_account_deletion_principal_epoch_transaction_wiring.test.mjs \
   test/tool/validate_rw17_account_deletion_principal_epoch_transaction.test.mjs
 node tool/validate_rw17_account_deletion_principal_epoch_transaction.mjs
+node --check tool/validate_rw18_contact_verification_principal_epoch_transaction.mjs
+node --test \
+  test/tool/rw18_contact_verification_principal_epoch_transaction_wiring.test.mjs \
+  test/tool/validate_rw18_contact_verification_principal_epoch_transaction.test.mjs
+node tool/validate_rw18_contact_verification_principal_epoch_transaction.mjs
 node --check tool/diagnose_android_main_navigation_touch_targets.mjs
 node --test test/tool/diagnose_android_main_navigation_touch_targets.test.mjs
 node --check tool/validate_pf14b_current_head_android_touch_target.mjs
@@ -1009,6 +1014,11 @@ flutter test --reporter expanded \
 # successor preservation, owner/epoch gates and identity-bound dialog matrix.
 flutter test --reporter expanded \
   test/rw17_account_deletion_principal_epoch_transaction_test.dart
+
+# Retain RW18's exact contact/login action owners, typed remote outcome truth,
+# phone-attempt identity cleanup and exact dialog/modal route ownership.
+flutter test --reporter expanded \
+  test/rw18_contact_verification_principal_epoch_transaction_test.dart
 
 if ! web_build_output="$(flutter build web --debug 2>&1)"; then
   printf '%s\n' "$web_build_output"

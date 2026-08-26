@@ -137,9 +137,9 @@
   },
   "ratchets": {
     "reason": "validated-local-review-lifecycle-privacy-retention-and-provider-source-change",
-    "privacyManifestSha256": "848685287170868fa44577214f463d51ba13b2a5cd83b43ed4b5f4eca0aba08a",
+    "privacyManifestSha256": "5cc98d1cf0c9d24c4a5e5c1fe79b71a31762518cd1e370bd48e4923a07fafe07",
     "retentionManifestSha256": "9d15bae7ebf331b579c3cf0ea067577664fca73f0196e9605d8d81c9e10c5d70",
-    "activeProviderEvidenceSha256": "e7a46211d0ca492a2cf116ae9c5a2faaa07d7db709a125ab719fa847782ce8a7",
+    "activeProviderEvidenceSha256": "78e5b05529a4129ff923bde56c0b7cb72e11b8e80ae9fed4d1f6ced215c66e1d",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -201,7 +201,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "848685287170868fa44577214f463d51ba13b2a5cd83b43ed4b5f4eca0aba08a"
+      "sha256": "5cc98d1cf0c9d24c4a5e5c1fe79b71a31762518cd1e370bd48e4923a07fafe07"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -209,7 +209,7 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "e7a46211d0ca492a2cf116ae9c5a2faaa07d7db709a125ab719fa847782ce8a7"
+      "sha256": "78e5b05529a4129ff923bde56c0b7cb72e11b8e80ae9fed4d1f6ced215c66e1d"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -225,11 +225,11 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "8dd3dfd9b2895d98466750257fca19bb2a54d05d1647d0978b59e2ea7908584c"
+      "sha256": "6ce2d420313f4d44eb8699330a0d8c39c62bd58c8eb5679f86632d6799660461"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "fcb9ddb2b6262c8ef0f95f1a951563fc2702387c5d3095f028a8646e665d4e4f"
+      "sha256": "f0ddb92f437e03dd69055efb1629c0bd5228f022d25930dd7d05dbb4d115af53"
     },
     {
       "path": "test/review_metrics_service_test.dart",
@@ -257,7 +257,7 @@
     },
     {
       "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
-      "sha256": "9f3fdd4dcf1875c7183995041cebcae8bf5688de8ef4e04c10166ea490d70193"
+      "sha256": "cb000fa4f58de34b8cee8ff34d7da4ecc6625f0790edadd577e1567ca5545ad5"
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",

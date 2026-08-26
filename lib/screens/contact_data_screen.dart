@@ -1,17 +1,25 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/auth_service.dart';
-import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/contact_verification_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/tracked_dialog_route.dart';
 
 class ContactDataScreen extends StatefulWidget {
-  const ContactDataScreen({super.key});
+  final ContactVerificationService? contactVerificationService;
+
+  const ContactDataScreen({
+    super.key,
+    this.contactVerificationService,
+  });
 
   @override
   State<ContactDataScreen> createState() => _ContactDataScreenState();
@@ -20,9 +28,16 @@ class ContactDataScreen extends StatefulWidget {
 class _ContactDataScreenState extends State<ContactDataScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  late final ContactVerificationService _contactVerificationService;
+  StreamSubscription<String>? _accountStateSubscription;
+  ContactVerificationContext? _contactContext;
   User? _user;
   bool _loading = true;
   bool _saving = false;
+  int _loadRevision = 0;
+  int _contactEpoch = 0;
+  Object? _activeContactRouteIdentity;
+  void Function()? _dismissActiveContactRoute;
 
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _emailCtrl;
@@ -39,6 +54,10 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
   @override
   void initState() {
     super.initState();
+    _contactVerificationService =
+        widget.contactVerificationService ?? const ContactVerificationService();
+    _accountStateSubscription =
+        SharedPersistenceSync.changes.listen(_handleAccountStateChange);
     _phoneCtrl = TextEditingController();
     _emailCtrl = TextEditingController();
     _streetCtrl = TextEditingController();
@@ -47,11 +66,15 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     _cityCtrl = TextEditingController();
     _countryCtrl = TextEditingController();
     _extraCtrl = TextEditingController();
-    _load();
+    unawaited(_load());
   }
 
   @override
   void dispose() {
+    _loadRevision += 1;
+    _contactEpoch += 1;
+    _accountStateSubscription?.cancel();
+    _dismissActiveContactRoute?.call();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _streetCtrl.dispose();
@@ -63,11 +86,31 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     super.dispose();
   }
 
+  void _handleAccountStateChange(String key) {
+    if (key != SharedPersistenceSync.accountSecurityStateKey) return;
+    _contactEpoch += 1;
+    _loadRevision += 1;
+    _dismissActiveContactRoute?.call();
+    if (!mounted) return;
+    setState(() {
+      _contactContext = null;
+      _user = null;
+      _loading = true;
+      _saving = false;
+      _generalError = '';
+    });
+    unawaited(_load());
+  }
+
   Future<void> _load() async {
+    final revision = ++_loadRevision;
     try {
-      final u = await DataService.getCurrentUser();
-      if (!mounted) return;
+      final contactContext =
+          await _contactVerificationService.loadCurrentContext();
+      if (!mounted || revision != _loadRevision) return;
+      final u = contactContext?.user;
       setState(() {
+        _contactContext = contactContext;
         _user = u;
         _loading = false;
         _generalError = '';
@@ -75,11 +118,97 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       _hydrateControllersFromUser(u);
     } catch (e) {
       debugPrint('[ContactData] load failed: $e');
-      if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
       setState(() {
+        _contactContext = null;
         _loading = false;
         _generalError = 'Laden fehlgeschlagen.';
       });
+    }
+  }
+
+  _ContactInteractionOwner? _captureInteractionOwner() {
+    final contactContext = _contactContext;
+    if (contactContext == null || _user == null) return null;
+    return _ContactInteractionOwner(
+      context: contactContext,
+      epoch: ++_contactEpoch,
+    );
+  }
+
+  bool _isInteractionOwnerSynchronouslyCurrent(
+    _ContactInteractionOwner owner,
+  ) =>
+      mounted &&
+      owner.epoch == _contactEpoch &&
+      identical(owner.context, _contactContext);
+
+  Future<bool> _isInteractionOwnerCurrent(
+    _ContactInteractionOwner owner,
+  ) async {
+    if (!_isInteractionOwnerSynchronouslyCurrent(owner)) return false;
+    final current =
+        await _contactVerificationService.isContextCurrent(owner.context);
+    return current && _isInteractionOwnerSynchronouslyCurrent(owner);
+  }
+
+  void _bindContactRoute<T>(
+    _ContactInteractionOwner owner,
+    Object identity,
+    TrackedDialogRouteHandle<T> handle,
+  ) {
+    if (!_isInteractionOwnerSynchronouslyCurrent(owner)) return;
+    _activeContactRouteIdentity = identity;
+    _dismissActiveContactRoute = handle.dismiss;
+  }
+
+  void _releaseContactRoute(Object identity) {
+    if (!identical(identity, _activeContactRouteIdentity)) return;
+    _activeContactRouteIdentity = null;
+    _dismissActiveContactRoute = null;
+  }
+
+  Future<T?> _showOwnedDialog<T>({
+    required _ContactInteractionOwner owner,
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+  }) async {
+    if (!_isInteractionOwnerSynchronouslyCurrent(owner)) return null;
+    final identity = Object();
+    final handle = TrackedDialogRouteHandle<T>();
+    _bindContactRoute(owner, identity, handle);
+    try {
+      return await showTrackedDialog<T>(
+        context: context,
+        handle: handle,
+        builder: builder,
+        barrierDismissible: barrierDismissible,
+        barrierLabel:
+            MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      );
+    } finally {
+      _releaseContactRoute(identity);
+    }
+  }
+
+  Future<T?> _showOwnedSheet<T>({
+    required _ContactInteractionOwner owner,
+    required WidgetBuilder builder,
+  }) async {
+    if (!_isInteractionOwnerSynchronouslyCurrent(owner)) return null;
+    final identity = Object();
+    final handle = TrackedDialogRouteHandle<T>();
+    _bindContactRoute(owner, identity, handle);
+    try {
+      return await showTrackedModalBottomSheet<T>(
+        context: context,
+        handle: handle,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: builder,
+      );
+    } finally {
+      _releaseContactRoute(identity);
     }
   }
 
@@ -192,11 +321,13 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     return null;
   }
 
-  Future<String?> _requestPasswordForEmailChange() async {
+  Future<String?> _requestPasswordForEmailChange(
+    _ContactInteractionOwner owner,
+  ) async {
     final passwordController = TextEditingController();
     try {
-      return await showDialog<String>(
-        context: context,
+      return await _showOwnedDialog<String>(
+        owner: owner,
         builder: (dialogContext) => AlertDialog(
           title: const Text('E-Mail-Änderung bestätigen'),
           content: Column(
@@ -248,7 +379,8 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
   Future<void> _save() async {
     setState(() => _generalError = '');
     final current = _user;
-    if (current == null) return;
+    final owner = _captureInteractionOwner();
+    if (current == null || owner == null) return;
 
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok) return;
@@ -261,9 +393,10 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     final newPhone = _phoneCtrl.text.trim();
     final addressLine = _composeAddressLine();
 
-    final emailChanged = newEmail != current.email;
+    final emailChanged =
+        newEmail.toLowerCase() != current.email.trim().toLowerCase();
 
-    if (!BackendConfig.enabled && emailChanged) {
+    if (!_contactVerificationService.isBackendEnabled && emailChanged) {
       setState(() {
         _generalError =
             'Die E-Mail-Adresse kann nur über den bestätigten Anmeldeweg geändert werden.';
@@ -272,43 +405,32 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     }
 
     String? emailChangePassword;
-    if (BackendConfig.enabled && emailChanged) {
-      emailChangePassword = await _requestPasswordForEmailChange();
-      if (!mounted || emailChangePassword == null) return;
+    if (_contactVerificationService.isBackendEnabled && emailChanged) {
+      emailChangePassword = await _requestPasswordForEmailChange(owner);
+      if (emailChangePassword == null ||
+          !await _isInteractionOwnerCurrent(owner)) {
+        return;
+      }
     }
 
+    if (!await _isInteractionOwnerCurrent(owner)) return;
     setState(() => _saving = true);
+    var emailChangeAccepted = false;
     try {
-      if (BackendConfig.enabled && emailChanged) {
-        final changeResult = await AuthService.requestEmailChange(
+      if (_contactVerificationService.isBackendEnabled && emailChanged) {
+        await _contactVerificationService.requestEmailChange(
+          context: owner.context,
           newEmail: newEmail,
           currentPassword: emailChangePassword!,
         );
-        if (!mounted) return;
-        if (!changeResult.ok) {
-          final message = switch (changeResult.failure) {
-            AuthFailure.invalidCredentials =>
-              'Das aktuelle Passwort ist nicht korrekt.',
-            AuthFailure.emailInUse =>
-              'Diese E-Mail-Adresse wird bereits verwendet.',
-            AuthFailure.invalidEmail => 'Die neue E-Mail-Adresse ist ungültig.',
-            _ =>
-              'Der Bestätigungslink konnte nicht gesendet werden. Bitte versuche es erneut.',
-          };
-          await AppPopup.toast(
-            context,
-            icon: Icons.error_outline,
-            title: message,
-          );
-          return;
-        }
+        emailChangeAccepted = true;
       }
 
+      if (!await _isInteractionOwnerCurrent(owner)) return;
       final updated = await DataService.updateCurrentUserProfile(
         expectedUserId: current.id,
         updates: {
-          CurrentUserProfileField.phone:
-              newPhone.isEmpty ? null : newPhone,
+          CurrentUserProfileField.phone: newPhone.isEmpty ? null : newPhone,
           CurrentUserProfileField.addressStreet: _streetCtrl.text.trim(),
           CurrentUserProfileField.addressHouseNumber:
               _houseNumberCtrl.text.trim(),
@@ -323,34 +445,113 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
           CurrentUserProfileField.country: _countryCtrl.text.trim(),
         },
       );
-      if (!mounted) return;
+      if (!await _isInteractionOwnerCurrent(owner)) return;
       setState(() => _user = updated);
-      if (BackendConfig.enabled && emailChanged) {
+      if (_contactVerificationService.isBackendEnabled && emailChanged) {
         _emailCtrl.text = current.email;
-        await AppPopup.toast(
-          context,
+        await _showOwnedMessage(
+          owner,
           icon: Icons.mark_email_read_outlined,
           title: 'Bestätigungslink gesendet',
           message:
               'Prüfe $newEmail. Nach der Bestätigung meldest du dich mit der neuen Adresse erneut an.',
         );
       } else {
-        AppPopup.success(context, title: 'Kontaktdaten gespeichert');
+        await _showOwnedMessage(
+          owner,
+          icon: Icons.check_circle_outline,
+          title: 'Kontaktdaten gespeichert',
+        );
+      }
+    } on ContactActionFailure catch (failure) {
+      if (failure.kind == ContactActionFailureKind.principalChanged ||
+          !await _isInteractionOwnerCurrent(owner)) {
+        return;
+      }
+      final (title, message) = switch (failure.kind) {
+        ContactActionFailureKind.rejected => switch (failure.code) {
+            'invalid_credentials' => ('Aktuelles Passwort nicht korrekt', null),
+            'email_in_use' => ('E-Mail-Adresse bereits verwendet', null),
+            'invalid_email' || 'email_unchanged' => (
+                'Neue E-Mail-Adresse prüfen',
+                null
+              ),
+            'rate_limit_exceeded' => (
+                'Bitte kurz warten',
+                'Versuche es später erneut.'
+              ),
+            _ => ('E-Mail-Änderung abgelehnt', null),
+          },
+        ContactActionFailureKind.localUnavailable => (
+            'E-Mail-Änderung nicht gestartet',
+            'Melde dich erneut an und versuche es dann noch einmal.'
+          ),
+        ContactActionFailureKind.outcomeUnknown => (
+            'Versandstatus unklar',
+            'Der Bestätigungslink könnte bereits gesendet worden sein. Prüfe dein Postfach, bevor du die Anfrage wiederholst.'
+          ),
+        ContactActionFailureKind.principalChanged => (null, null),
+      };
+      if (title != null) {
+        await _showOwnedMessage(
+          owner,
+          icon: Icons.error_outline,
+          title: title,
+          message: message,
+        );
       }
     } catch (e) {
       debugPrint('[ContactData] save failed: $e');
-      if (!mounted) return;
-      setState(() => _generalError =
-          'Speichern fehlgeschlagen. Bitte versuche es erneut.');
+      if (!await _isInteractionOwnerCurrent(owner)) return;
+      if (emailChangeAccepted) {
+        _emailCtrl.text = current.email;
+        await _showOwnedMessage(
+          owner,
+          icon: Icons.mark_email_read_outlined,
+          title: 'Bestätigungslink gesendet',
+          message:
+              'Der E-Mail-Wechsel wurde angefordert, aber die übrigen Kontaktdaten konnten nicht gespeichert werden.',
+        );
+      } else {
+        setState(() => _generalError =
+            'Speichern fehlgeschlagen. Bitte versuche es erneut.');
+      }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (_isInteractionOwnerSynchronouslyCurrent(owner)) {
+        setState(() => _saving = false);
+      }
     }
   }
 
+  Future<void> _showOwnedMessage(
+    _ContactInteractionOwner owner, {
+    required IconData icon,
+    required String title,
+    String? message,
+  }) async {
+    if (!await _isInteractionOwnerCurrent(owner)) return;
+    await _showOwnedDialog<void>(
+      owner: owner,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(icon),
+        title: Text(title),
+        content: message == null ? null : Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _verifyPhoneFlow() async {
-    if (!BackendConfig.enabled) {
-      await AppPopup.show(
-        context,
+    final owner = _captureInteractionOwner();
+    if (owner == null) return;
+    if (!_contactVerificationService.isBackendEnabled) {
+      await _showOwnedMessage(
+        owner,
         icon: Icons.lock_outline,
         title: 'Telefonprüfung nicht verfügbar',
         message:
@@ -360,95 +561,91 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     }
     final phoneError = _validatePhone(_phoneCtrl.text);
     if (phoneError != null) {
-      await AppPopup.show(
-        context,
+      await _showOwnedMessage(
+        owner,
         icon: Icons.phone_disabled_outlined,
         title: 'Telefonnummer prüfen',
         message: phoneError,
       );
       return;
     }
+    final phoneNumber = _phoneCtrl.text.trim();
 
-    final approved = await AppPopup.showCustom<bool>(
-      context,
-      icon: Icons.sms_outlined,
-      title: 'SMS-Code anfordern?',
-      showCloseIcon: true,
-      showAccentLine: true,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Zur Bestätigung wird deine Telefonnummer an Firebase Authentication (Google) übertragen. Google verwendet sie außerdem zur Spam- und Missbrauchsabwehr. ShareItToo speichert keinen SMS-Code.',
+    final approved = await _showOwnedDialog<bool>(
+      owner: owner,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.sms_outlined),
+        title: const Text('SMS-Code anfordern?'),
+        content: const Text(
+          'Zur Bestätigung wird deine Telefonnummer an Firebase Authentication (Google) übertragen. Google verwendet sie außerdem zur Spam- und Missbrauchsabwehr. ShareItToo speichert keinen SMS-Code.',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Abbrechen'),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () =>
-                      Navigator.of(context, rootNavigator: true).pop(false),
-                  child: const Text('Abbrechen'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () =>
-                      Navigator.of(context, rootNavigator: true).pop(true),
-                  child: const Text('Code senden'),
-                ),
-              ),
-            ],
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Code senden'),
           ),
         ],
       ),
     );
-    if (!mounted || approved != true) return;
+    if (approved != true || !await _isInteractionOwnerCurrent(owner)) return;
 
     PhoneVerificationChallenge challenge;
     try {
       setState(() => _saving = true);
-      challenge = await AuthService.requestPhoneVerification(
-        _phoneCtrl.text,
+      challenge = await _contactVerificationService.requestPhoneVerification(
+        context: owner.context,
+        phoneNumber: phoneNumber,
       );
-    } on PhoneVerificationException catch (error) {
-      if (!mounted) return;
-      await AppPopup.show(
-        context,
+    } on ContactActionFailure catch (failure) {
+      if (failure.kind == ContactActionFailureKind.principalChanged ||
+          !await _isInteractionOwnerCurrent(owner)) {
+        return;
+      }
+      final (title, message) = _phoneContactFailureCopy(failure);
+      await _showOwnedMessage(
+        owner,
         icon: Icons.phone_disabled_outlined,
-        title: _phoneVerificationTitle(error.failure),
-        message: _phoneVerificationMessage(error.failure),
+        title: title,
+        message: message,
       );
       return;
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (_isInteractionOwnerSynchronouslyCurrent(owner)) {
+        setState(() => _saving = false);
+      }
     }
 
+    if (!await _isInteractionOwnerCurrent(owner)) return;
     if (challenge.automaticallyVerified) {
-      final refreshed = await _refreshVerifiedPhone();
-      if (!mounted) return;
-      await AppPopup.show(
-        context,
+      final refresh = await _contactVerificationService.refreshVerifiedProfile(
+        owner.context,
+      );
+      if (!await _isInteractionOwnerCurrent(owner)) return;
+      if (refresh.user case final User updated) {
+        setState(() => _user = updated);
+      }
+      await _showOwnedMessage(
+        owner,
         icon: Icons.verified_outlined,
         title: 'Telefonnummer verifiziert',
-        message: refreshed
+        message: refresh.kind == ContactProfileRefreshKind.refreshed
             ? 'Deine Telefonnummer wurde erfolgreich bestätigt.'
             : 'Die Nummer wurde bestätigt. Der Profilstatus wird beim nächsten Laden aktualisiert.',
       );
       return;
     }
-    if (!mounted) return;
 
     final codeCtrl = TextEditingController();
     bool verifying = false;
-    final popupContext = context;
+    String? inlineErrorTitle;
+    String? inlineErrorMessage;
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    final refreshKind = await _showOwnedSheet<ContactProfileRefreshKind>(
+      owner: owner,
       builder: (sheetContext) {
         return _SheetScaffold(
           title: 'Telefonnummer verifizieren',
@@ -459,6 +656,14 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
               return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (inlineErrorTitle != null) ...[
+                      _InlineError(
+                        text: inlineErrorMessage == null
+                            ? inlineErrorTitle!
+                            : '$inlineErrorTitle\n$inlineErrorMessage',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     TextField(
                       controller: codeCtrl,
                       keyboardType: TextInputType.number,
@@ -474,53 +679,63 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                           : () async {
                               setLocal(() => verifying = true);
                               try {
-                                await AuthService.confirmPhoneVerification(
+                                if (!await _isInteractionOwnerCurrent(owner)) {
+                                  return;
+                                }
+                                await _contactVerificationService
+                                    .confirmPhoneVerification(
+                                  context: owner.context,
                                   challenge: challenge,
                                   smsCode: codeCtrl.text,
                                 );
-                                if (!mounted || !sheetContext.mounted) return;
-                                final refreshed = await _refreshVerifiedPhone();
-                                if (!mounted || !sheetContext.mounted) return;
-                                Navigator.of(sheetContext).pop();
-                                await Future<void>.delayed(Duration.zero);
-                                if (!popupContext.mounted) return;
-                                await AppPopup.show(
-                                  popupContext,
-                                  icon: Icons.verified_outlined,
-                                  title: 'Telefonnummer verifiziert',
-                                  message: refreshed
-                                      ? 'Deine Telefonnummer wurde erfolgreich bestätigt.'
-                                      : 'Die Nummer wurde bestätigt. Der Profilstatus wird beim nächsten Laden aktualisiert.',
-                                );
-                              } on PhoneVerificationException catch (error) {
-                                debugPrint(
-                                    '[ContactData] verify phone failed: ${error.failure.name}');
-                                if (!sheetContext.mounted ||
-                                    !popupContext.mounted) {
+                                if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetContext.mounted) {
                                   return;
                                 }
-                                await AppPopup.show(
-                                  popupContext,
-                                  icon: Icons.error_outline,
-                                  title: _phoneVerificationTitle(error.failure),
-                                  message:
-                                      _phoneVerificationMessage(error.failure),
-                                );
+                                final refresh =
+                                    await _contactVerificationService
+                                        .refreshVerifiedProfile(owner.context);
+                                if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetContext.mounted) {
+                                  return;
+                                }
+                                if (refresh.user case final User updated) {
+                                  setState(() => _user = updated);
+                                }
+                                Navigator.of(sheetContext).pop(refresh.kind);
+                              } on ContactActionFailure catch (failure) {
+                                if (failure.kind ==
+                                        ContactActionFailureKind
+                                            .principalChanged ||
+                                    !await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetContext.mounted) {
+                                  return;
+                                }
+                                final copy = _phoneContactFailureCopy(failure);
+                                setLocal(() {
+                                  inlineErrorTitle = copy.$1;
+                                  inlineErrorMessage = copy.$2;
+                                });
                               } catch (error) {
-                                debugPrint('[ContactData] verify phone failed');
-                                if (!sheetContext.mounted ||
-                                    !popupContext.mounted) {
+                                debugPrint(
+                                  '[ContactData] verify phone failed: '
+                                  '${error.runtimeType}',
+                                );
+                                if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetContext.mounted) {
                                   return;
                                 }
-                                await AppPopup.show(
-                                  popupContext,
-                                  icon: Icons.error_outline,
-                                  title: 'Telefonprüfung fehlgeschlagen',
-                                  message:
-                                      'Die Prüfung konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
-                                );
+                                setLocal(() {
+                                  inlineErrorTitle =
+                                      'Telefonprüfung nicht abgeschlossen';
+                                  inlineErrorMessage =
+                                      'Der Ergebnisstatus ist unbekannt. Lade dein Profil neu, bevor du den Vorgang wiederholst.';
+                                });
                               } finally {
-                                if (sheetContext.mounted) {
+                                if (sheetContext.mounted &&
+                                    _isInteractionOwnerSynchronouslyCurrent(
+                                      owner,
+                                    )) {
                                   setLocal(() => verifying = false);
                                 }
                               }
@@ -536,76 +751,85 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       },
     );
     codeCtrl.dispose();
-  }
-
-  Future<bool> _refreshVerifiedPhone() async {
-    try {
-      await DataService.syncCurrentUserForSessionEmail(_user?.email ?? '');
-      final updated = await DataService.getCurrentUser();
-      if (!mounted) return updated?.phoneVerified ?? false;
-      setState(() => _user = updated);
-      return updated?.phoneVerified ?? false;
-    } catch (_) {
-      debugPrint('[ContactData] verified phone profile refresh deferred');
-      return false;
+    if (refreshKind == null || !await _isInteractionOwnerCurrent(owner)) {
+      return;
     }
+    await _showOwnedMessage(
+      owner,
+      icon: Icons.verified_outlined,
+      title: 'Telefonnummer verifiziert',
+      message: refreshKind == ContactProfileRefreshKind.refreshed
+          ? 'Deine Telefonnummer wurde erfolgreich bestätigt.'
+          : 'Die Nummer wurde bestätigt. Der Profilstatus wird beim nächsten Laden aktualisiert.',
+    );
   }
 
-  String _phoneVerificationMessage(PhoneVerificationFailure failure) {
-    return switch (failure) {
-      PhoneVerificationFailure.invalidPhone =>
-        'Firebase konnte diese Telefonnummer nicht als gültige SMS-fähige Nummer erkennen. Prüfe Ländervorwahl sowie fehlende oder zusätzliche Ziffern.',
-      PhoneVerificationFailure.invalidCode =>
-        'Der SMS-Code ist falsch, abgelaufen oder gehört zu einer älteren SMS. Prüfe den neuesten Code und versuche es erneut.',
-      PhoneVerificationFailure.phoneAlreadyVerified =>
-        'Diese Telefonnummer ist bereits mit einem anderen Konto verifiziert.',
-      PhoneVerificationFailure.rateLimited =>
-        'Zu viele Versuche. Bitte warte und versuche es später erneut.',
-      PhoneVerificationFailure.sessionExpired =>
-        'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
-      PhoneVerificationFailure.timeout =>
-        'Der SMS-Versand hat zu lange gedauert. Bitte versuche es erneut.',
-      PhoneVerificationFailure.unavailable =>
-        'Die sichere SMS-Prüfung ist derzeit noch nicht verfügbar.',
-      PhoneVerificationFailure.invalidToken ||
-      PhoneVerificationFailure.phoneMismatch =>
-        'Die per SMS bestätigte Nummer stimmt nicht mit deiner Eingabe überein. Prüfe die Nummer und fordere einen neuen Code an.',
-      PhoneVerificationFailure.network =>
-        'Die Prüfung konnte technisch nicht abgeschlossen werden. Nummer und Code wurden nicht als falsch bewertet. Prüfe deine Verbindung und versuche es erneut.',
-    };
-  }
-
-  String _phoneVerificationTitle(PhoneVerificationFailure failure) {
-    return switch (failure) {
-      PhoneVerificationFailure.invalidPhone => 'Telefonnummer prüfen',
-      PhoneVerificationFailure.invalidCode => 'SMS-Code prüfen',
-      PhoneVerificationFailure.phoneAlreadyVerified =>
-        'Telefonnummer bereits verwendet',
-      PhoneVerificationFailure.rateLimited => 'Bitte kurz warten',
-      PhoneVerificationFailure.sessionExpired => 'Erneut anmelden',
-      PhoneVerificationFailure.timeout => 'SMS-Versand dauert zu lange',
-      PhoneVerificationFailure.unavailable => 'Telefonprüfung nicht verfügbar',
-      PhoneVerificationFailure.invalidToken ||
-      PhoneVerificationFailure.phoneMismatch =>
-        'Telefonnummer stimmt nicht überein',
-      PhoneVerificationFailure.network => 'Verbindung prüfen',
-    };
-  }
+  (String, String?) _phoneContactFailureCopy(ContactActionFailure failure) =>
+      failure.remoteAcceptedOrConfirmed
+          ? (
+              'Telefonnummer bestätigt',
+              'Die Bestätigung wurde serverseitig verarbeitet, aber die lokale Sicherheitsbereinigung ist noch nicht abgeschlossen. Melde dich erneut an, bevor du fortfährst.'
+            )
+          : switch (failure.kind) {
+              ContactActionFailureKind.rejected => switch (failure.code) {
+                  'invalidPhone' => (
+                      'Telefonnummer prüfen',
+                      'Prüfe Ländervorwahl und alle Ziffern.'
+                    ),
+                  'invalidCode' => (
+                      'SMS-Code prüfen',
+                      'Der Code ist falsch, abgelaufen oder gehört zu einer älteren SMS.'
+                    ),
+                  'phoneAlreadyVerified' => (
+                      'Telefonnummer bereits verwendet',
+                      'Diese Nummer ist bereits mit einem anderen Konto verifiziert.'
+                    ),
+                  'rateLimited' => (
+                      'Bitte kurz warten',
+                      'Versuche es später erneut.'
+                    ),
+                  'sessionExpired' => (
+                      'Erneut anmelden',
+                      'Die Sitzung ist abgelaufen; die Aktion wurde nicht fortgesetzt.'
+                    ),
+                  'invalidToken' || 'phoneMismatch' => (
+                      'Telefonnummer stimmt nicht überein',
+                      'Fordere einen neuen Code für die eingegebene Nummer an.'
+                    ),
+                  _ => ('Telefonprüfung abgelehnt', null),
+                },
+              ContactActionFailureKind.localUnavailable => (
+                  'Telefonprüfung nicht verfügbar',
+                  'Die sichere SMS-Prüfung konnte nicht gestartet werden.'
+                ),
+              ContactActionFailureKind.outcomeUnknown => (
+                  'Ergebnisstatus unklar',
+                  'SMS oder Bestätigung könnten bereits verarbeitet worden sein. Lade den Profilstatus neu, bevor du den Vorgang wiederholst.'
+                ),
+              ContactActionFailureKind.principalChanged => (
+                  'Aktion beendet',
+                  'Das aktive Konto hat gewechselt.'
+                ),
+            };
 
   Future<void> _verifyEmailFlow() async {
+    final owner = _captureInteractionOwner();
+    if (owner == null) return;
     final emailError = _validateEmail(_emailCtrl.text);
     if (emailError != null) {
-      AppPopup.info(
-        context,
+      await _showOwnedMessage(
+        owner,
+        icon: Icons.error_outline,
         title: 'E-Mail-Adresse prüfen',
         message: emailError,
       );
       return;
     }
 
-    if (!BackendConfig.enabled) {
-      AppPopup.info(
-        context,
+    if (!_contactVerificationService.isBackendEnabled) {
+      await _showOwnedMessage(
+        owner,
+        icon: Icons.lock_outline,
         title: 'Bestätigung nicht verfügbar',
         message:
             'Eine E-Mail gilt erst nach Prüfung durch den unterstützten Anmeldeweg als bestätigt.',
@@ -613,21 +837,50 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       return;
     }
 
-    final sent = await AuthService.requestEmailVerification(_emailCtrl.text);
-    if (!mounted) return;
-    if (!sent) {
-      AppPopup.error(
-        context,
-        title: 'Bestätigungs-E-Mail nicht gesendet',
-        message: 'Bitte versuche es erneut.',
+    setState(() => _saving = true);
+    try {
+      await _contactVerificationService.requestContactEmailVerification(
+        owner.context,
       );
+    } on ContactActionFailure catch (failure) {
+      if (failure.kind == ContactActionFailureKind.principalChanged ||
+          !await _isInteractionOwnerCurrent(owner)) {
+        return;
+      }
+      final (title, message) = switch (failure.kind) {
+        ContactActionFailureKind.rejected => (
+            'Bitte kurz warten',
+            'Die Anfrage wurde begrenzt. Versuche es später erneut.'
+          ),
+        ContactActionFailureKind.localUnavailable => (
+            'Bestätigung nicht gestartet',
+            'Die Bestätigungsfunktion ist derzeit nicht verfügbar.'
+          ),
+        ContactActionFailureKind.outcomeUnknown => (
+            'Versandstatus unklar',
+            'Die E-Mail könnte bereits gesendet worden sein. Prüfe dein Postfach, bevor du erneut anforderst.'
+          ),
+        ContactActionFailureKind.principalChanged => (null, null),
+      };
+      if (title != null) {
+        await _showOwnedMessage(
+          owner,
+          icon: Icons.error_outline,
+          title: title,
+          message: message,
+        );
+      }
       return;
+    } finally {
+      if (_isInteractionOwnerSynchronouslyCurrent(owner)) {
+        setState(() => _saving = false);
+      }
     }
+    if (!await _isInteractionOwnerCurrent(owner)) return;
 
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    String? inlineStatus;
+    final verified = await _showOwnedSheet<bool>(
+      owner: owner,
       builder: (sheetContext) {
         bool confirming = false;
         return _SheetScaffold(
@@ -639,6 +892,10 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
               return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (inlineStatus != null) ...[
+                      _InlineError(text: inlineStatus!),
+                      const SizedBox(height: 12),
+                    ],
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -652,7 +909,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                             color: Colors.white.withValues(alpha: 0.85)),
                         const SizedBox(width: 10),
                         Expanded(
-                            child: Text(_emailCtrl.text.trim(),
+                            child: Text(owner.context.user.email,
                                 style: Theme.of(context).textTheme.bodyMedium)),
                       ]),
                     ),
@@ -663,45 +920,63 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                           : () async {
                               setLocal(() => confirming = true);
                               try {
-                                final u = _user;
-                                if (u == null) return;
-                                await DataService
-                                    .syncCurrentUserForSessionEmail(
-                                  _emailCtrl.text.trim(),
-                                );
-                                final updated =
-                                    await DataService.getCurrentUser();
-                                if (updated == null ||
-                                    !updated.emailVerified) {
-                                  if (!context.mounted) return;
-                                  AppPopup.info(
-                                    context,
-                                    title: 'Link noch nicht bestätigt',
-                                    message:
-                                        'Öffne zuerst den neuesten Bestätigungslink in deiner E-Mail.',
-                                  );
+                                if (!await _isInteractionOwnerCurrent(owner)) {
                                   return;
                                 }
-                                if (!context.mounted) return;
-                                if (!mounted) return;
-                                setState(() => _user = updated);
-                                Navigator.of(context).pop();
-                                AppPopup.success(
-                                  this.context,
-                                  title: 'E-Mail bestätigt',
+                                final refresh =
+                                    await _contactVerificationService
+                                        .refreshVerifiedProfile(
+                                  owner.context,
                                 );
+                                if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetContext.mounted) {
+                                  return;
+                                }
+                                final updated = refresh.user;
+                                if (updated != null && updated.emailVerified) {
+                                  setState(() => _user = updated);
+                                  Navigator.of(sheetContext).pop(true);
+                                  return;
+                                }
+                                setLocal(() {
+                                  inlineStatus = refresh.kind ==
+                                          ContactProfileRefreshKind.refreshed
+                                      ? 'Link noch nicht bestätigt. Öffne zuerst den neuesten Bestätigungslink.'
+                                      : 'Der Serverstatus konnte nicht geladen werden. Es wird weder „bestätigt“ noch „nicht bestätigt“ angenommen.';
+                                });
+                              } on ContactActionFailure catch (failure) {
+                                if (failure.kind ==
+                                        ContactActionFailureKind
+                                            .principalChanged ||
+                                    !await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetContext.mounted) {
+                                  return;
+                                }
+                                setLocal(() {
+                                  inlineStatus = failure.kind ==
+                                          ContactActionFailureKind
+                                              .outcomeUnknown
+                                      ? 'Der Serverstatus ist unbekannt. Lade ihn erneut, bevor du eine Bestätigung annimmst.'
+                                      : 'Der Bestätigungsstatus konnte nicht geladen werden.';
+                                });
                               } catch (e) {
                                 debugPrint(
-                                    '[ContactData] verify email failed: $e');
-                                if (!context.mounted) return;
-                                AppPopup.error(
-                                  context,
-                                  title: 'Bestätigung fehlgeschlagen',
-                                  message:
-                                      'Bitte prüfe den neuesten Link und versuche es erneut.',
+                                  '[ContactData] verify email failed: '
+                                  '${e.runtimeType}',
                                 );
+                                if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetContext.mounted) {
+                                  return;
+                                }
+                                setLocal(() {
+                                  inlineStatus =
+                                      'Der Bestätigungsstatus konnte nicht geladen werden.';
+                                });
                               } finally {
-                                if (context.mounted) {
+                                if (sheetContext.mounted &&
+                                    _isInteractionOwnerSynchronouslyCurrent(
+                                      owner,
+                                    )) {
                                   setLocal(() => confirming = false);
                                 }
                               }
@@ -724,6 +999,13 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
         );
       },
     );
+    if (verified == true && await _isInteractionOwnerCurrent(owner)) {
+      await _showOwnedMessage(
+        owner,
+        icon: Icons.verified_outlined,
+        title: 'E-Mail bestätigt',
+      );
+    }
   }
 
   (double, double) _pseudoGeocode(String address) {
@@ -961,7 +1243,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                     children: [
                                       TextFormField(
                                         controller: _emailCtrl,
-                                        readOnly: BackendConfig.enabled,
+                                        readOnly: false,
                                         keyboardType:
                                             TextInputType.emailAddress,
                                         autofillHints: const [
@@ -972,8 +1254,9 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                           labelText: 'E‑Mail‑Adresse',
                                           prefixIcon:
                                               const Icon(Icons.alternate_email),
-                                          helperText: BackendConfig.enabled
-                                              ? 'Die Konto-E-Mail kann derzeit nicht direkt geändert werden.'
+                                          helperText: _contactVerificationService
+                                                  .isBackendEnabled
+                                              ? 'Eine Änderung wird erst nach Bestätigung über den Link wirksam.'
                                               : null,
                                         ),
                                       ),
@@ -986,7 +1269,8 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                       const SizedBox(height: 12),
                                       FilledButton.icon(
                                         onPressed:
-                                            (user?.emailVerified ?? false)
+                                            (user?.emailVerified ?? false) ||
+                                                    _saving
                                                 ? null
                                                 : _verifyEmailFlow,
                                         icon: const Icon(
@@ -1235,6 +1519,16 @@ class _PrivacyNote extends StatelessWidget {
       ]),
     );
   }
+}
+
+class _ContactInteractionOwner {
+  final ContactVerificationContext context;
+  final int epoch;
+
+  const _ContactInteractionOwner({
+    required this.context,
+    required this.epoch,
+  });
 }
 
 class _InlineError extends StatelessWidget {
