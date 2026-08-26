@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "sit-rw18-contact-verification-principal-epoch-transaction",
-  "status": "implemented-focused-passed-full-regression-pending",
+  "status": "verified-regression-and-codeql-passed",
   "implementationBaseHead": "3f1f6aae4e66356712230ecd6b2a560bf6d72680",
-  "implementationHead": null,
+  "implementationHead": "83706e0e22a1b3fe1a8c876d0515d3eb41740a39",
   "architecture": "docs/architecture/rw18-contact-verification-principal-epoch-transaction-2026-08-26.md",
   "report": "docs/operations/RW18_CONTACT_VERIFICATION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md",
   "predecessor": {
@@ -126,9 +126,9 @@
     "rw18ValidatorTests": "passed-3",
     "completeToolInventory": "passed-1934",
     "completeToolInventorySkipped": 0,
-    "fullTechnicalRegression": "pending",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "fullTechnicalRegression": "passed",
+    "githubRegression": "passed",
+    "githubCodeql": "passed-no-new-alerts"
   },
   "inventoryAudit": {
     "predecessorRepositoryOwnedFiles": 341,
@@ -139,8 +139,32 @@
     "executionPattern": "node --test test/tool/*.test.mjs",
     "standardNodeParallelism": true
   },
-  "localRegression": null,
-  "githubVerification": null,
+  "localRegression": {
+    "head": "83706e0e22a1b3fe1a8c876d0515d3eb41740a39",
+    "command": "CI=true SIT_ALLOW_CANDIDATE_ROLLOVER=1 bash scripts/technical_regression_check.sh",
+    "standardParallelism": true,
+    "timingWorkaroundUsed": false,
+    "parallelismReductionUsed": false,
+    "toolTestsPassed": 1934,
+    "toolTestsSkipped": 0,
+    "flutterTestsPassed": 602,
+    "flutterTestsSkipped": 3,
+    "rw18FocusedTestsPassed": 17,
+    "analyzerIssues": 0,
+    "webDebugAndWasmDryRun": "passed",
+    "loopbackWebSmoke": "passed",
+    "androidDebug": "passed-448-tasks-min-sdk-24",
+    "privateReleaseArchive": "ci-unavailable-metadata-validated-not-claimed"
+  },
+  "githubVerification": {
+    "head": "83706e0e22a1b3fe1a8c876d0515d3eb41740a39",
+    "regressionRunId": 32956904701,
+    "codeqlRunId": 32956904593,
+    "regressionConclusion": "success",
+    "codeqlConclusion": "success",
+    "openCodeScanningAlerts": 0,
+    "pr7State": "open-draft-clean-unmerged"
+  },
   "ratchetAudit": {
     "cause": "RW18 replaces mutable-principal and generic-result contact or verification actions with exact owner/action epochs, typed remote truth, exact route identity and provider-attempt cleanup.",
     "privacyDisclosureSemanticsChanged": false,
@@ -214,6 +238,6 @@
     {"path": "test/tool/validate_rw18_contact_verification_principal_epoch_transaction.test.mjs", "sha256": "4c03f8ddceea7a5f34af5e7919fd10bab0ea7b5c7ea03d965a3e27866261c1df"},
     {"path": "tool/validate_rw18_contact_verification_principal_epoch_transaction.mjs", "sha256": "027eb64217763d67b68760fca5cf5470d66dcf6299111a150ab01417d1ef9056"},
     {"path": "docs/architecture/rw18-contact-verification-principal-epoch-transaction-2026-08-26.md", "sha256": "34470af3ad7820cd250d81406ecea3694db1cf8d4531931a12b9accf1409a3f1"},
-    {"path": "docs/operations/RW18_CONTACT_VERIFICATION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md", "sha256": "3a2b6ff991852f87583651c0e9b8a2649c75858f6122956b0867275531429b23"}
+    {"path": "docs/operations/RW18_CONTACT_VERIFICATION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md", "sha256": "7782e087fd8f27a207bede784dfd466b0f3a8e99af0ce7cc7c69c881bbacd753"}
   ]
 }

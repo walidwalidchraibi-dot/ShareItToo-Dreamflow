@@ -41,9 +41,29 @@ unguarded call site that can reintroduce result collapse.
 
 ## Verification state
 
-Focused RW18 and adjacent RW16/RW17/phone-contract tests and changed-file
-analysis pass. Full technical regression and exact-head GitHub
-Regression/CodeQL are recorded only after their commands complete.
+Implementation head `83706e0e22a1b3fe1a8c876d0515d3eb41740a39`
+passes the full local technical regression in the documented CI metadata-only
+mode:
+
+- 1,934 Node tool tests pass with zero skips at standard parallelism;
+- the full Flutter suite passes 602 tests with three documented profile skips;
+- all 17 focused RW18 tests and the retained adjacent matrices pass;
+- analyzer reports zero issues;
+- Web debug/Wasm dry-run and loopback-only web smoke pass;
+- Android debug passes 448 tasks and the built APK retains minSdk 24.
+
+The ordinary local invocation stopped only at the known private-release-archive
+gate because its bound AAB is intentionally unavailable on this Mac mini. The
+successful `CI=true` invocation exercises the repository's checked-in
+metadata-only validation for that one gate and does not claim a private AAB,
+release candidate, upload, Store, Play or device result.
+
+Exact-head GitHub verification for the same implementation commit is complete:
+
+- Regression run `32956904701`: `success`;
+- CodeQL run `32956904593`: `success`;
+- open code-scanning alerts: zero;
+- PR #7 remains open, Draft, clean and unmerged.
 
 No retry, timing relaxation, exclusion, test-order dependency or parallelism
 reduction is an accepted release prerequisite.
