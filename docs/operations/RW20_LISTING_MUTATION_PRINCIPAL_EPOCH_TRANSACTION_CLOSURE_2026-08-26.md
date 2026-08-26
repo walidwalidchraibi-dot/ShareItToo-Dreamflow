@@ -37,13 +37,31 @@ media/draft await revalidation and retained regression inclusion.
 
 ## Verification state
 
-Focused RW20 Flutter tests, retained RW7/RW19 compatibility tests, analyzer,
-wiring and evidence-validator tests are recorded in the machine-readable
-evidence. Full local technical regression and exact-SHA GitHub Regression and
-CodeQL bindings are added only after they actually pass.
+Implementation head:
+`bd1d6f3b2289c85699dd220deaafe34f7ee183fd`.
+
+The supported local technical regression passed on that exact head with
+standard parallelism: Node 1956 passed and 0 skipped; Flutter 624 passed and 3
+intentionally skipped; focused RW20 13/13; analyzer 0 issues; Web build, Wasm
+dry run, loopback-only P0A smoke and Android debug build all passed. The
+Android surface retained minimum SDK 24. No release candidate was created.
+
+GitHub Regression run `32974917299` passed on the same exact head, including
+PostgreSQL, backend, Flutter and clean-checkout reproducibility. CodeQL run
+`32974917182` also passed on that exact head, with 0 open branch code-scanning
+alerts at verification time.
+
+The first complete local attempt exposed one real compatibility defect: local
+developer authentication intentionally has no server `userId`. The new
+listing guard had required a server ID for every mode and therefore rejected
+the valid local Wave-0 owner. RW20 now keeps server-backed sessions strictly
+bound to server `userId`, while backend-disabled local development may bind
+only through the already-established exact normalized login email. A focused
+test covers that boundary. The Wave-0 journey now awaits the actual button
+future instead of sleeping for an arbitrary duration.
 
 No retry accommodation, timeout extension, test exclusion, order dependency or
-parallelism reduction is an accepted release prerequisite.
+parallelism reduction was introduced or used.
 
 ## Ratchet cause
 
