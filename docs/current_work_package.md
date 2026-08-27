@@ -3892,3 +3892,24 @@ code-scanning alerts. The CodeQL-discovered URL-sanitizer weakness is fixed by
 rejecting every HTTP/HTTPS value and is permanently regression-tested without
 an allowlist or execution workaround. The only next device lane is the real
 OnePlus Play update and prepared matrix after the separate owner release gate.
+
+## Active release-readiness package: RW20B OnePlus remote test parity
+
+RW20B prepares, but does not execute, the exact remote OnePlus path requested
+by the owner. Seven Pixel-derived lanes are classified separately: read-only
+install identity, bounded lifecycle, repeated stability, authenticated
+navigation, large-text accessibility, network transitions and clean install.
+Only the read-only identity lane is directly prepared after release; the other
+lanes retain their owner, synthetic-session, settings-restoration, connectivity
+or data-loss boundaries.
+
+The future candidate preflight requires the literal
+`GOOGLE_PLAY_INTERNAL_RELEASE_GO` argument before its first ADB query and then
+accepts only one physical OnePlus over Wireless ADB with exact version
+`2026082601`, minSdk 24, targetSdk 35 and Google Play installer identity. It
+does not launch, stop, install, reset, screenshot or read logs/account data and
+does not claim AAB byte equivalence or Play-app-signing verification.
+
+The plan remains `NOT_RUN`: the release gate is not granted, the draft is not
+active, the expected installed OnePlus build remains `2026081509`, and no
+device access occurred.

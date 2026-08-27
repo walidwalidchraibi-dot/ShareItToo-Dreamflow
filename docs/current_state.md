@@ -3929,3 +3929,19 @@ missing-anchor finding in the new handoff URL sanitizer is closed by rejecting
 all HTTP/HTTPS strings, including uppercase schemes, with no URL allowlist and
 no timing, retry, cache or parallelism workaround. This closure does not
 activate the draft or claim a new-build OnePlus test.
+
+## RW20B OnePlus remote-test parity preparation (2026-08-27)
+
+RW20B inventories seven Pixel-derived device lanes without executing any of
+them. Exact Play candidate identity is transferable through a new read-only,
+release-gated Wireless-ADB preflight. Lifecycle and repeated stability require
+an owner window; authenticated navigation requires a synthetic owner session;
+large-text and network transitions remain manual on the personal phone; clean
+install remains unauthorized because it would risk data loss.
+
+The candidate preflight refuses all ADB access before the literal
+`GOOGLE_PLAY_INTERNAL_RELEASE_GO` confirmation. After that future gate it still
+checks only package/version/SDK/Play-installer truth and deliberately makes no
+AAB byte-equivalence, Play-app-signing or functional-behavior claim. At this
+state the gate is not granted, build `2026082601` remains inactive, no OnePlus
+access occurred and every RW20B result remains `NOT_RUN`.
