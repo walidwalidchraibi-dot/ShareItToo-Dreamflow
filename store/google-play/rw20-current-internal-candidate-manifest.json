@@ -3,6 +3,7 @@
   "kind": "rw20-current-google-play-internal-candidate-manifest",
   "status": "build-ready-local-only",
   "generatedAt": "2026-08-26T20:12:16Z",
+  "manifestScope": "artifact-build-snapshot-with-post-build-play-state",
   "provenance": {
     "rw20ClosureHead": "088f6a2f7eac962f0bf1b6aa5ba9815364ac23eb",
     "branch": "codex/master-workflow-20260808",
@@ -51,6 +52,7 @@
     "nonOverwritingArchive": true
   },
   "providerAndLiveHolds": {
+    "snapshotScope": "artifact-build-time",
     "externalListingAiEnabled": false,
     "openAiRuntimeEndpointDetected": false,
     "realPaymentsEnabled": false,
@@ -61,6 +63,18 @@
     "productionChanged": false,
     "cloudOrVpsChanged": false,
     "pixelAccessed": false
+  },
+  "postBuildPlayState": {
+    "sourceRef": "store/google-play/rw20a-internal-draft-oneplus-handoff.json",
+    "sourceClassification": "owner-provided-macbook-codex-handover",
+    "directConsoleReverifiedFromThisWorktree": false,
+    "exactCandidateUploaded": true,
+    "bundleProcessed": true,
+    "draftSaved": true,
+    "releaseActivated": false,
+    "sentForReview": false,
+    "activeInternalVersionCode": "2026081509",
+    "candidateExpectedInstalledOnOnePlus": false
   },
   "evidenceRef": "docs/evidence/release-readiness/rw20-current-play-internal-candidate-2026082601.json",
   "playInternalHandoffRef": "store/google-play/rw20-current-internal-upload-handoff.json",

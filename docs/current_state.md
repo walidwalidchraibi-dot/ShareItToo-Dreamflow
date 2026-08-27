@@ -2,32 +2,32 @@
 
 Verified: 2026-08-27 on the Mac mini.
 
-## Current RW20C release-readiness state
+## Current RW20D release-readiness state
 
-RW20B is technically closed at final documentation commit
-`5ee14d4d0e7a1ebcf25d435b4813171b843fcfd4`. The exact candidate remains
-`1.0.0+2026082601`, uploaded to Google Play Internal only as owner-reported
-draft evidence. The active release and expected OnePlus installation remain
-`2026081509`; no candidate test has occurred.
+The exact candidate remains `1.0.0+2026082601`. Historical BUILD_READY evidence
+truthfully records that no Play upload had occurred at build time. A later
+owner-provided MacBook Codex handover records the exact AAB as uploaded,
+processed and saved only as an inactive Play Internal draft. RW20D separates
+these two observation times in the canonical manifest and upload handoff; no
+direct Console re-verification is claimed.
 
-RW20C technically verifies one future, non-destructive process-lifecycle
-smoke. It rejects all ADB access until both `GOOGLE_PLAY_INTERNAL_RELEASE_GO` and
-`ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO` are supplied. Both are
-currently unissued, Wireless pairing is not performed and every check remains
-`NOT_RUN`. No Store, device, account, network, permission, production, Payment,
-provider, Firebase, Cloud/VPS/DNS or merge state changed.
+The active release and expected OnePlus installation remain `2026081509`.
+Candidate `2026082601` is not activated, published or sent for review, and no
+candidate test has occurred. The next exact Store gate is
+`GOOGLE_PLAY_INTERNAL_RELEASE_GO`. Future non-destructive device inspection
+also requires `ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO`.
 
-Implementation commit `bd2999c7342419a10f1672ab6e58934cae1320a9`
-prepared the double-gated runner. Correction head
-`00ad69eca82df9e2f5d6742d3650574fd87a9203` passes exact GitHub Regression
-`33030526368`, CodeQL `33030526373` and clean-checkout reproducibility, with
-zero open code-scanning alerts. The local standard-parallelism technical
-regression and the 18-check focused RW20A/B/C matrix pass without a retry,
-timing, rate-limit or reduced-parallelism workaround. The correction removes a
-credential-shaped literal from a negative sanitizer test and records only its
-exact already-pushed historical tuple; the secret scanner itself remains
-unchanged. These results close technical preparation only, not Play activation
-or a real OnePlus test.
+The RW20D validator permanently rejects historical-fact rewriting, stale
+upload-pending current state, candidate/hash drift, release/review/device
+overclaims and private identity, URL, credential, device or network material.
+Focused implementation checks pass; exact local full regression and exact-SHA
+GitHub Regression/CodeQL are pending. No Console, Store, device, tester-list,
+production, Payment, provider, Firebase, Cloud/VPS/DNS or merge state changed.
+
+RW20C remains technically closed at correction head
+`00ad69eca82df9e2f5d6742d3650574fd87a9203`, with exact GitHub Regression
+`33030526368`, CodeQL `33030526373` and zero open code-scanning alerts. Its
+double-gated process-lifecycle runner remains prepared but not executed.
 
 ## Historical RW6 state
 

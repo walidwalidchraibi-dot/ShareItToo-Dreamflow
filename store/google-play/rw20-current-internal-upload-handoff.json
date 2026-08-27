@@ -1,9 +1,14 @@
 {
   "schemaVersion": 1,
   "kind": "rw20-current-google-play-internal-upload-handoff",
-  "status": "build-ready-awaiting-play-upload-approved",
+  "status": "uploaded-draft-awaiting-google-play-internal-release-go",
   "submissionAllowed": false,
   "track": "internal",
+  "source": {
+    "type": "owner-provided-macbook-codex-handover",
+    "currentStateRef": "store/google-play/rw20a-internal-draft-oneplus-handoff.json",
+    "directConsoleReverificationFromThisWorktree": false
+  },
   "candidateManifestRef": "store/google-play/rw20-current-internal-candidate-manifest.json",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -25,10 +30,22 @@
     "name": "1.0.0-internal-2026082601",
     "notesPath": "store/google-play/de-DE/blue_ocean_internal_release_notes.txt",
     "language": "de-DE",
+    "uploadCompleted": true,
     "uploadAllowed": false,
     "activationAllowed": false
   },
+  "currentDraftState": {
+    "exactCandidateUploaded": true,
+    "bundleProcessed": true,
+    "draftSaved": true,
+    "releaseActivated": false,
+    "published": false,
+    "sentForReview": false,
+    "activeInternalVersionCode": "2026081509",
+    "candidateInstalledOnSecondAndroid": false
+  },
   "preUploadChecks": {
+    "state": "completed-for-exact-owner-reported-draft-upload",
     "highestPlayVersionCodeObserved": "2026081509",
     "candidateVersionCodeStrictlyHigher": true,
     "candidateVersionCodeUnusedInObservedPlayInventory": true,
@@ -45,10 +62,24 @@
     "matrixRef": "docs/templates/RW20_CURRENT_PLAY_INTERNAL_SECOND_ANDROID_TEST_MATRIX.md"
   },
   "requiredFutureOwnerGates": {
-    "PLAY_UPLOAD_APPROVED": "not-granted",
+    "PLAY_UPLOAD_APPROVED": "consumed-for-exact-bound-aab",
     "GOOGLE_PLAY_INTERNAL_RELEASE_GO": "not-granted",
-    "testerListChange": "not-authorized",
-    "secondAndroidInstall": "not-started"
+    "testerListChange": "owner-reported-completed-no-further-change-authorized",
+    "secondAndroidInstall": "owner-confirmed-active-build-only"
+  },
+  "postUploadBoundaries": {
+    "repeatUploadPerformed": false,
+    "releaseActivated": false,
+    "reviewSubmissionPerformed": false,
+    "additionalTesterChangePerformed": false,
+    "activeInternalReleasePaused": false,
+    "deviceAccessed": false,
+    "productionChanged": false,
+    "paymentChanged": false,
+    "providerChanged": false,
+    "firebaseChanged": false,
+    "cloudVpsDnsChanged": false,
+    "pullRequestMerged": false
   },
   "hardStops": {
     "differentArtifact": true,

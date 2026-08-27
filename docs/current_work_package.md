@@ -1,29 +1,32 @@
-# Current Work Package: RW20C OnePlus owner-window smoke readiness
+# Current Work Package: RW20D Play draft truth reconciliation
 
-Status: **RW20C TECHNICALLY CLOSED, DEVICE RUN NOT RUN, RELEASE AND OWNER-WINDOW GATED**
-on 27.08.2026.
+Status: **RW20D IMPLEMENTED, EXACT VERIFICATION PENDING, RELEASE AND DEVICE
+GATES CLOSED** on 27.08.2026.
 
-RW20B is technically closed at documentation commit
-`5ee14d4d0e7a1ebcf25d435b4813171b843fcfd4`. RW20C prepares the smallest
-non-destructive future OnePlus lifecycle smoke and requires both exact literals
-`GOOGLE_PLAY_INTERNAL_RELEASE_GO` and
-`ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO` before its first ADB query.
-Neither gate is granted; candidate `2026082601` remains inactive and every
-device result remains `NOT_RUN`. The package performs no Store, device, account,
-network, permission, production, Payment, provider, Firebase, Cloud/VPS/DNS or
-merge action while Walid is absent.
+The historical BUILD_READY evidence remains a build-time snapshot in which no
+Play upload had occurred. A separate, later owner-provided MacBook Codex
+handover records that the exact candidate `2026082601` was uploaded, processed
+and saved only as an inactive Play Internal draft. RW20D makes this temporal
+separation explicit in the candidate manifest and canonical upload handoff; it
+does not convert owner-provided evidence into a direct console re-verification.
 
-Implementation commit `bd2999c7342419a10f1672ab6e58934cae1320a9`
-prepared the runner. Deterministic correction head
-`00ad69eca82df9e2f5d6742d3650574fd87a9203` passes exact GitHub Regression
-`33030526368`, CodeQL `33030526373`, clean-checkout reproducibility and the
-standard-parallelism local technical regression, with zero open code-scanning
-alerts and no retained workaround. The first implementation Regression exposed
-only a literal credential-shaped key in a negative sanitizer test; the fixture
-was corrected without weakening the scanner, and its exact pushed historical
-tuple is bound by the existing reviewed-history mechanism. The focused
-RW20A/B/C matrix passes 18 checks. This evidence verifies preparation only and
-does not imply any OnePlus execution or Play activation.
+The active Internal release and expected OnePlus installation remain
+`2026081509`. Candidate `2026082601` is neither activated nor sent for review,
+and every candidate device result remains `NOT_RUN`. The next exact external
+gate is `GOOGLE_PLAY_INTERNAL_RELEASE_GO`; a later device run additionally
+requires `ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO`.
+
+The RW20D validator rejects a rewritten historical snapshot, a stale
+upload-pending current handoff, candidate/hash drift, activation or review
+overclaims, device-test overclaims and private identity, URL, credential,
+device or network material. Exact local and GitHub verification are still
+pending. This package performs no Console, Store, device, tester-list,
+production, Payment, provider, Firebase, Cloud/VPS/DNS or merge action.
+
+RW20C remains technically closed at correction head
+`00ad69eca82df9e2f5d6742d3650574fd87a9203`, with exact GitHub Regression
+`33030526368`, CodeQL `33030526373` and zero open code-scanning alerts. Its
+double-gated process-lifecycle runner remains prepared but not executed.
 
 ## Historical RW6 closure
 

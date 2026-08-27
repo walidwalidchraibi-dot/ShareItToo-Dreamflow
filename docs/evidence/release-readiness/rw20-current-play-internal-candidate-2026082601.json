@@ -3,6 +3,8 @@
   "kind": "rw20-current-google-play-internal-build-ready-evidence",
   "status": "passed-build-ready-local-only",
   "generatedAt": "2026-08-26T20:12:16Z",
+  "evidenceScope": "artifact-build-time-snapshot",
+  "postBuildPlayStateRef": "store/google-play/rw20a-internal-draft-oneplus-handoff.json",
   "provenance": {
     "worktree": "/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808",
     "gitTopLevel": "/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808",

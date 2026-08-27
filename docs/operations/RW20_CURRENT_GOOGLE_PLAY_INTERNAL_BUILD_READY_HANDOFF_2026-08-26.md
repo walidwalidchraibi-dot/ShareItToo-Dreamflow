@@ -1,6 +1,13 @@
 # RW20 aktueller Google-Play-Internal-Kandidat — BUILD_READY
 
-Status: **BUILD_READY — LOKAL GEBAUT — KEIN PLAY-UPLOAD**
+Status: **HISTORISCHER BUILD_READY-SNAPSHOT — SPAETERER DRAFT-UPLOAD SEPARAT BELEGT**
+
+Diese Datei beschreibt den Zustand beim Kandidatenbau am 26.08.2026. Der
+spaetere owner-gemeldete Upload desselben AAB als inaktiver Play-Internal-
+Entwurf ist separat in RW20A belegt. Die damaligen `nicht ausgefuehrt`-Felder
+werden nicht rueckwirkend in aktuelle Console-Evidence umgedeutet. Der aktuelle
+post-build Zustand steht im Kandidatenmanifest und im Upload-Handoff; die
+Release-Aktivierung bleibt hinter `GOOGLE_PLAY_INTERNAL_RELEASE_GO` geschlossen.
 
 ## Provenienz und Kandidatenbindung
 
@@ -58,7 +65,7 @@ lauf, repository-eigener Clean Checkout und GitHub-CI ohne Parallelitaets-,
 Timing- oder Cache-Workaround. Keine solche Hilfsmassnahme ist Release-
 Voraussetzung.
 
-## Geschlossene Gates und Testgrenzen
+## Am historischen BUILD_READY-Zeitpunkt geschlossene Gates und Testgrenzen
 
 Kein Play-Upload, keine Testerliste, keine Release-Aktivierung und kein
 physisches Geraet wurden veraendert. Produktion, Payment, externe Provider,
@@ -67,7 +74,12 @@ echte Zahlungen/Refunds/Auszahlungen, bindende Vertragsablaeufe, produktive
 Benachrichtigungen sowie nicht freigegebene G3/G4/G5-/Support-/Providerpfade
 sind ohne ihre separaten Gates nicht vollstaendig testbar.
 
-## Naechster Owner-Ablauf fuer das zweite Android-Handy
+## Damals vorgesehener Owner-Ablauf fuer das zweite Android-Handy
+
+Die Schritte 1 bis 3 wurden laut spaeterem RW20A-Handoff teilweise bis zum
+inaktiven Draft ausgefuehrt. Diese Liste bleibt als historischer Plan erhalten;
+der aktuelle Ablauf und seine weiterhin geschlossenen Gates stehen im
+kanonischen Upload-Handoff.
 
 1. Walid erteilt nur fuer den oben genannten AAB-Hash
    `PLAY_UPLOAD_APPROVED`.
