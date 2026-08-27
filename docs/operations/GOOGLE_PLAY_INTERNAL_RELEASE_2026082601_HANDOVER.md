@@ -76,3 +76,18 @@ skips, analyzer, Web/Wasm build, Loopback P0A smoke and Android debug build
 passed. No timing, retry, reduced-parallelism or other transient workaround was
 used. Exact-SHA GitHub Regression and CodeQL are recorded after the evidence
 commit is pushed.
+
+Evidence implementation HEAD
+`93618412e3844cb332dd140e6fda7c7de6bf4a7c` passed exact-SHA GitHub Regression
+run `33096966436` and CodeQL run `33096966443`. The post-run code-scanning query
+reported `0` open alerts. PR #7 remained Draft, open, clean/mergeable and
+unmerged.
+
+The first GitHub evidence run `33096332117` exposed a deterministic ratchet
+ordering defect: changing the permanent regression runner changed direct RW
+inventory hashes, which in turn changed the hashes of evidence files referenced
+by RW12 through RW20. Those transitive hashes had not yet reached their fixed
+point. The correction changed only the affected source-inventory hashes,
+converged in two deterministic passes, and passed all 33 focused ratchet tests
+plus the complete local and clean-checkout GitHub regressions. No retry, timing,
+parallelism reduction or other transient workaround was retained.
