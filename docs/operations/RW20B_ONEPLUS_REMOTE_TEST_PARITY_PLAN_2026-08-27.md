@@ -1,6 +1,6 @@
 # RW20B OnePlus Remote-Test-Paritaetsplan
 
-Status: **VORBEREITET — NICHT AUSGEFUEHRT — RELEASE- UND GERAETE-GATE GESCHLOSSEN**
+Status: **RW20B TECHNISCH GESCHLOSSEN — NICHT AUSGEFUEHRT — RELEASE- UND GERAETE-GATE GESCHLOSSEN**
 
 ## Zweck
 
@@ -86,3 +86,20 @@ markieren. Jede Phase bleibt `NOT_RUN`, bis ihr eigener Nachweis vorliegt.
 
 Maschinenlesbarer Plan:
 `store/google-play/rw20b-oneplus-remote-test-plan.json`.
+
+## Exact-SHA-Closure
+
+Implementation-HEAD `fd874bb9584ee3445047c0c7a300754905cb7c3a` bestand die
+vollstaendige lokale technische Regression ohne reduzierte Parallelitaet,
+Retry, Timing- oder Cache-Umgehung. Acht fokussierte RW20B-Tests und die
+kombinierte 17-Test-Matrix mit RW20A/Altbuild-Baseline bestanden.
+
+GitHub Regression `33026839775` und CodeQL `33026839780` sind auf exakt diesem
+HEAD erfolgreich. Flutter, Backend, PostgreSQL und Clean-Checkout-
+Reproduzierbarkeit bestanden; der Image-Publish-Job blieb uebersprungen. Die
+Branch-Abfrage meldete danach null offene Code-Scanning-Alerts. PR #7 blieb
+Draft, offen, mergefaehig und ungemergt.
+
+Diese technische Closure ist ausschliesslich ein Ausfuehrungspaket. Sie ist
+kein OnePlus-Testresultat und erteilt weder Release-, Store-, Device-, Login-
+noch Human-Pilot-Freigabe.

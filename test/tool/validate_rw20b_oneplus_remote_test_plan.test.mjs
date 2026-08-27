@@ -24,6 +24,8 @@ test('accepts the release-gated seven-part OnePlus parity plan', () => {
   assert.equal(result.parityItemCount, 7);
   assert.equal(result.runnableNow, false);
   assert.equal(result.nextRequired, 'GOOGLE_PLAY_INTERNAL_RELEASE_GO');
+  assert.equal(result.implementationHead, 'fd874bb9584ee3445047c0c7a300754905cb7c3a');
+  assert.equal(result.openCodeScanningAlerts, 0);
 });
 
 test('rejects execution or result claims before the external gate', () => {
@@ -56,4 +58,14 @@ test('rejects candidate drift, private values, URLs and network addresses', () =
     (value) => { value.localPath = '/Users/person/private'; },
     (value) => { value.deviceAddress = '192.0.2.44:39211'; },
   ]) assert.throws(() => validate(mutate), /drifted|email|URL|filesystem|network address/u);
+});
+
+test('rejects stale CI, open alerts and execution workarounds', () => {
+  for (const mutate of [
+    (value) => { value.verification.githubRegression.headSha = 'a'.repeat(40); },
+    (value) => { value.verification.githubCodeql.conclusion = 'failure'; },
+    (value) => { value.verification.githubRegression.publishApiImage = 'success'; },
+    (value) => { value.verification.openCodeScanningAlerts = 1; },
+    (value) => { value.verification.workaroundIntroduced = true; },
+  ]) assert.throws(() => validate(mutate), /drifted/u);
 });

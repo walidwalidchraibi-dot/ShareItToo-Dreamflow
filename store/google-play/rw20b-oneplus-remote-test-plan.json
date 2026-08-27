@@ -158,6 +158,25 @@
     "cloudVpsDnsChanged": false,
     "pullRequestMerged": false
   },
+  "verification": {
+    "implementationHead": "fd874bb9584ee3445047c0c7a300754905cb7c3a",
+    "rw20bFocusedTestsPassed": 8,
+    "combinedPredecessorAndRw20bTestsPassed": 17,
+    "localTechnicalRegression": "passed-standard-parallelism-no-workaround",
+    "githubRegression": {
+      "runId": 33026839775,
+      "headSha": "fd874bb9584ee3445047c0c7a300754905cb7c3a",
+      "conclusion": "success",
+      "publishApiImage": "skipped"
+    },
+    "githubCodeql": {
+      "runId": 33026839780,
+      "headSha": "fd874bb9584ee3445047c0c7a300754905cb7c3a",
+      "conclusion": "success"
+    },
+    "openCodeScanningAlerts": 0,
+    "workaroundIntroduced": false
+  },
   "candidateManifestRef": "store/google-play/rw20-current-internal-candidate-manifest.json",
   "predecessorHandoffRef": "store/google-play/rw20a-internal-draft-oneplus-handoff.json",
   "testMatrixRef": "docs/templates/RW20_CURRENT_PLAY_INTERNAL_SECOND_ANDROID_TEST_MATRIX.md",

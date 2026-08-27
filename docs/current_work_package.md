@@ -3893,7 +3893,7 @@ rejecting every HTTP/HTTPS value and is permanently regression-tested without
 an allowlist or execution workaround. The only next device lane is the real
 OnePlus Play update and prepared matrix after the separate owner release gate.
 
-## Active release-readiness package: RW20B OnePlus remote test parity
+## Completed release-readiness package: RW20B OnePlus remote test parity
 
 RW20B prepares, but does not execute, the exact remote OnePlus path requested
 by the owner. Seven Pixel-derived lanes are classified separately: read-only
@@ -3913,3 +3913,10 @@ does not claim AAB byte equivalence or Play-app-signing verification.
 The plan remains `NOT_RUN`: the release gate is not granted, the draft is not
 active, the expected installed OnePlus build remains `2026081509`, and no
 device access occurred.
+
+RW20B is technically verified at exact implementation head
+`fd874bb9584ee3445047c0c7a300754905cb7c3a`. GitHub Regression
+`33026839775` and CodeQL `33026839780` pass, with zero open code-scanning
+alerts and the image-publish job skipped. This closes preparation only; every
+real OnePlus result remains `NOT_RUN` behind the release, Play-update,
+Wireless-pairing and owner-session sequence.

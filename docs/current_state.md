@@ -3945,3 +3945,9 @@ checks only package/version/SDK/Play-installer truth and deliberately makes no
 AAB byte-equivalence, Play-app-signing or functional-behavior claim. At this
 state the gate is not granted, build `2026082601` remains inactive, no OnePlus
 access occurred and every RW20B result remains `NOT_RUN`.
+
+RW20B preparation is exact-SHA verified at implementation head
+`fd874bb9584ee3445047c0c7a300754905cb7c3a`: Regression `33026839775` and
+CodeQL `33026839780` pass, the image-publish job is skipped and the branch has
+zero open code-scanning alerts. This technical closure does not change any
+`NOT_RUN` result or external gate.

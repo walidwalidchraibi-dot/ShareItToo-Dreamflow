@@ -195,6 +195,35 @@ export function validateRw20bOnePlusRemoteTestPlan({
   if (!Object.values(boundaries).every((value) => value === false)) {
     fail('RW20B boundaries must all remain false before execution.');
   }
+
+  const verification = object(plan.verification, 'verification');
+  same(verification.implementationHead,
+    'fd874bb9584ee3445047c0c7a300754905cb7c3a',
+    'verification.implementationHead');
+  same(verification.rw20bFocusedTestsPassed, 8,
+    'verification.rw20bFocusedTestsPassed');
+  same(verification.combinedPredecessorAndRw20bTestsPassed, 17,
+    'verification.combinedPredecessorAndRw20bTestsPassed');
+  same(verification.localTechnicalRegression,
+    'passed-standard-parallelism-no-workaround',
+    'verification.localTechnicalRegression');
+  for (const [key, expectedRunId] of [
+    ['githubRegression', 33026839775],
+    ['githubCodeql', 33026839780],
+  ]) {
+    const run = object(verification[key], `verification.${key}`);
+    same(run.runId, expectedRunId, `verification.${key}.runId`);
+    same(run.headSha, verification.implementationHead,
+      `verification.${key}.headSha`);
+    same(run.conclusion, 'success', `verification.${key}.conclusion`);
+  }
+  same(verification.githubRegression.publishApiImage, 'skipped',
+    'verification.githubRegression.publishApiImage');
+  same(verification.openCodeScanningAlerts, 0,
+    'verification.openCodeScanningAlerts');
+  same(verification.workaroundIntroduced, false,
+    'verification.workaroundIntroduced');
+
   for (const key of [
     'containsSecrets',
     'containsTesterIdentity',
@@ -216,6 +245,8 @@ export function validateRw20bOnePlusRemoteTestPlan({
     parityItemCount: plan.pixelParityInventory.length,
     runnableNow: false,
     nextRequired: 'GOOGLE_PLAY_INTERNAL_RELEASE_GO',
+    implementationHead: verification.implementationHead,
+    openCodeScanningAlerts: verification.openCodeScanningAlerts,
   };
 }
 
