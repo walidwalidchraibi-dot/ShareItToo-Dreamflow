@@ -130,7 +130,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "5f28428012f528d3ce6299afc34ac29dadce18d056729a4e7ca1673086da5b17"
+      "sha256": "19cb13a7184d74c5b79786a822c783e6a04cf58af0bbdb530eeab8c6d9121479"
     },
     {
       "path": "test/g2a_rental_cart_screen_test.dart",

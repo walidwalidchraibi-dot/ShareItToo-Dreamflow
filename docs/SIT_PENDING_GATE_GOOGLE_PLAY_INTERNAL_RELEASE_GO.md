@@ -2,9 +2,16 @@
 
 Gate ID: `GOOGLE_PLAY_INTERNAL_RELEASE_GO`
 
-Status: **HOLD - Walid decision required**
+Status: **RESOLVED - consumed for exact Internal candidate 2026082601**
 
 Recorded: 27.08.2026
+
+Resolved on 27.08.2026 after a complete authenticated read-only recheck. The
+exact gate was consumed only for build `2026082601` in `Internal testing`.
+Final evidence is recorded in
+`docs/operations/GOOGLE_PLAY_INTERNAL_RELEASE_2026082601_HANDOVER.md`. The
+historical decision instructions below are retained unchanged as the audit
+record; they are no longer the current gate state.
 
 ## Why this gate exists
 

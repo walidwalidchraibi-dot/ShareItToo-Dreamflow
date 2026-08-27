@@ -1,4 +1,37 @@
-# Current Work Package: RW20E current-candidate external-gate reconciliation
+# Current Work Package: Google Play Internal release 2026082601 completion
+
+Status: **GOOGLE_PLAY_INTERNAL_RELEASE_COMPLETE; LOCAL REGRESSION PASSED;
+EXACT-SHA GITHUB VERIFICATION PENDING** on 27.08.2026.
+
+The authenticated read-only gate check bound the original Console AAB directly
+to package `com.shareittoo.app`, version `1.0.0+2026082601`, prepared source
+commit `a1aa3f2528f1923c092a1fb15bdd3dc083673890` and SHA-256
+`8cf36552f39fe9558411809518b374c437125cbd6ef123258ad9df7061acd873`.
+After the explicitly authorized release-name and German-note correction, the
+exact `GOOGLE_PLAY_INTERNAL_RELEASE_GO` was consumed only for Internal testing.
+
+Post-release readback reports `1.0.0-internal-2026082601` as `Available to
+internal testers` / `Full rollout` and not reviewed. The tester list remains
+unchanged at two users, Closed Alpha remains on `2026081506`, the known 13
+not-yet-submitted Publishing-overview changes remain unchanged, and no other
+track, upload, review, public release or external system was changed.
+
+Machine evidence:
+`store/google-play/google-play-internal-release-2026082601-completion.json`.
+Human handover:
+`docs/operations/GOOGLE_PLAY_INTERNAL_RELEASE_2026082601_HANDOVER.md`.
+All device results remain `NOT_RUN`; the next separate gate is
+`ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO`. This package stops before any
+device installation, access or test.
+
+The complete deterministic local regression passed with `CI=true` and the
+explicit current-candidate rollover environment required by the established
+release validator. Results included 624 Flutter tests passed with 3 documented
+skips, analyzer, Web/Wasm build, Loopback smoke and Android debug build. No
+timing, retry or parallelism workaround was used. Exact-SHA GitHub Regression
+and CodeQL are the remaining repository-evidence step.
+
+# Previous Work Package: RW20E current-candidate external-gate reconciliation
 
 Status: **RW20E TECHNICALLY CLOSED, EXACT-SHA VERIFIED, RELEASE AND DEVICE GATES
 CLOSED** on 27.08.2026.

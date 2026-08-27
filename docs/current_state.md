@@ -2,6 +2,32 @@
 
 Verified: 2026-08-27 on the Mac mini.
 
+## Current Google Play Internal release state
+
+Exact candidate `1.0.0+2026082601` is now active only in Google Play
+`Internal testing`. Direct authenticated Console readback reports release
+`1.0.0-internal-2026082601` as `Available to internal testers` / `Full rollout`
+and `Not reviewed`. The original Bundle Explorer AAB was independently matched
+to SHA-256
+`8cf36552f39fe9558411809518b374c437125cbd6ef123258ad9df7061acd873`,
+the upload certificate and prepared source commit
+`a1aa3f2528f1923c092a1fb15bdd3dc083673890`.
+
+The selected tester list remains unchanged at two users. Closed Alpha remains
+on `2026081506`; no Production, Open testing, Closed testing, review submission,
+new upload or public release action occurred. The known 13 not-yet-submitted
+Publishing-overview changes remain unchanged and submission remains disabled.
+The exact completion evidence is
+`store/google-play/google-play-internal-release-2026082601-completion.json` and
+the human handover is
+`docs/operations/GOOGLE_PLAY_INTERNAL_RELEASE_2026082601_HANDOVER.md`.
+
+No device was installed, contacted or controlled. Every current-candidate
+physical result remains `NOT_RUN`; any later OnePlus run requires the separate
+gate `ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO`. The earlier RW20D/RW20E
+draft sections below remain historical snapshots and are superseded only for
+current Play-release state by this completion evidence.
+
 ## Current RW20E release-readiness state
 
 Candidate `2026082601` is the current inactive Play Internal draft; active

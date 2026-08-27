@@ -2,9 +2,17 @@
 
 Gate ID: `GOOGLE_PLAY_INTERNAL_RELEASE_GO`
 
-Status: **HOLD - READ-ONLY GATE CHECK FAILED**
+Status: **RESOLVED - corrected under later explicit owner authorization**
 
 Recorded: 27.08.2026
+
+Resolved on 27.08.2026. Walid later expressly allowed the required changes.
+The release name and exact prepared German notes were corrected without another
+AAB upload, the complete read-only gate check was repeated and passed, and the
+exact candidate was activated only in Internal testing. Final evidence is in
+`docs/operations/GOOGLE_PLAY_INTERNAL_RELEASE_2026082601_HANDOVER.md`. The
+original mismatch and fail-closed decision below remain unchanged as the audit
+record of the earlier stopped attempt.
 
 ## Decision
 
@@ -111,4 +119,3 @@ how to handle the enhancement notice. A resumed run must repeat the complete
 read-only gate check before any Store mutation. Never infer permission to edit
 metadata, upload another artifact or activate this draft from the consumed but
 failed `GOOGLE_PLAY_INTERNAL_RELEASE_GO` token.
-
