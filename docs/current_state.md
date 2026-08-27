@@ -1,8 +1,23 @@
 # ShareItToo Current State
 
-Verified: 2026-08-25 on the Mac mini.
+Verified: 2026-08-27 on the Mac mini.
 
-## Current RW6 state
+## Current RW20C release-readiness state
+
+RW20B is technically closed at final documentation commit
+`5ee14d4d0e7a1ebcf25d435b4813171b843fcfd4`. The exact candidate remains
+`1.0.0+2026082601`, uploaded to Google Play Internal only as owner-reported
+draft evidence. The active release and expected OnePlus installation remain
+`2026081509`; no candidate test has occurred.
+
+RW20C prepares one future, non-destructive process-lifecycle smoke. It rejects
+all ADB access until both `GOOGLE_PLAY_INTERNAL_RELEASE_GO` and
+`ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO` are supplied. Both are
+currently unissued, Wireless pairing is not performed and every check remains
+`NOT_RUN`. No Store, device, account, network, permission, production, Payment,
+provider, Firebase, Cloud/VPS/DNS or merge state changed.
+
+## Historical RW6 state
 
 - RW0 is closed at documentation commit
   `ccdc1ec981d0f520605bf5900ccc0ae4e9fad787`. Its exact synthetic, local-only
@@ -3951,3 +3966,23 @@ RW20B preparation is exact-SHA verified at implementation head
 CodeQL `33026839780` pass, the image-publish job is skipped and the branch has
 zero open code-scanning alerts. This technical closure does not change any
 `NOT_RUN` result or external gate.
+
+## RW20C OnePlus owner-window smoke readiness (2026-08-27)
+
+RW20C prepares, but does not execute, one bounded Play-candidate lifecycle on
+the owner's OnePlus. Before the first ADB query, the command requires both the
+exact Play release gate and a separate personal-device owner-window gate. It
+then reuses the RW20B read-only candidate preflight and refuses a non-OnePlus,
+non-Wireless, locked, sideloaded or wrong-version phone before process mutation.
+
+The prepared scope is force-stop/process absence, cold foreground start, warm
+same-process start, Home/background and same-process foreground resume, with
+unchanged installation-time and app-data-inode markers. UI hierarchy,
+screenshots, logs, taps, text, credentials, account content, network,
+permissions, settings, install/update/uninstall and data reset are excluded.
+The output cannot claim functional screens, authentication, account isolation,
+accessibility, repeated stability, clean installation, AAB byte equivalence or
+Play app-signing verification.
+
+Both gates remain unissued, the candidate is not expected on the OnePlus,
+Wireless pairing did not occur and all seven prepared checks remain `NOT_RUN`.

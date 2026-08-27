@@ -51,7 +51,7 @@ function packagePaths(output) {
     .filter(Boolean);
   if (paths.length === 0
       || paths.some((path) => !path.startsWith('/data/app/'))
-      || paths.filter((path) => path.endsWith('/base.apk')).length > 1) {
+      || paths.filter((path) => path.endsWith('/base.apk')).length !== 1) {
     fail('Installed ShareItToo Play split paths are missing or ambiguous.');
   }
   return paths;

@@ -24,6 +24,7 @@ function fakeRunner({
   manufacturer = 'OnePlus',
   versionCode = '2026081509',
   installer = 'com.android.vending',
+  packagePathOutput = 'package:/data/app/example/base.apk\npackage:/data/app/example/split_config.arm64_v8a.apk\n',
 } = {}) {
   const calls = [];
   const runner = (_file, args) => {
@@ -38,7 +39,7 @@ function fakeRunner({
       return `  versionCode=${versionCode} minSdk=24 targetSdk=35\n  versionName=1.0.0\n`;
     }
     if (command === 'shell pm path com.shareittoo.app') {
-      return 'package:/data/app/example/base.apk\npackage:/data/app/example/split_config.arm64_v8a.apk\n';
+      return packagePathOutput;
     }
     if (command === 'shell pm list packages -i com.shareittoo.app') {
       return `package:com.shareittoo.app installer=${installer}\n`;
@@ -112,4 +113,10 @@ test('fails closed for wrong device, transport, build or installer', () => {
   }), /Wireless debugging/u);
   assert.throws(() => inspect(fakeRunner({ versionCode: '2026082601' })), /expected active/u);
   assert.throws(() => inspect(fakeRunner({ installer: 'com.example.sideload' })), /not delivered by Google Play/u);
+  assert.throws(() => inspect(fakeRunner({
+    packagePathOutput: 'package:/data/app/example/split_config.arm64_v8a.apk\n',
+  })), /split paths are missing or ambiguous/u);
+  assert.throws(() => inspect(fakeRunner({
+    packagePathOutput: 'package:/data/app/one/base.apk\npackage:/data/app/two/base.apk\n',
+  })), /split paths are missing or ambiguous/u);
 });

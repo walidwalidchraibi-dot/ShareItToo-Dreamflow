@@ -114,7 +114,7 @@ export function inspectOnePlusPlayInternalBaseline({
     .filter(Boolean);
   if (packagePaths.length === 0
       || packagePaths.some((path) => !path.startsWith('/data/app/'))
-      || packagePaths.filter((path) => path.endsWith('/base.apk')).length > 1) {
+      || packagePaths.filter((path) => path.endsWith('/base.apk')).length !== 1) {
     fail('Installed ShareItToo Play split paths are missing or ambiguous.');
   }
   const installerPackageName = parsePlayInstaller(adb(

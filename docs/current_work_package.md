@@ -1,7 +1,19 @@
-# Current Work Package: RW6 local operational-record authorization recovery
+# Current Work Package: RW20C OnePlus owner-window smoke readiness
 
-Status: **RW6 VERIFIED AND CLOSED**
-on 25.08.2026.
+Status: **RW20C PREPARED, NOT RUN, RELEASE AND OWNER-WINDOW GATED**
+on 27.08.2026.
+
+RW20B is technically closed at documentation commit
+`5ee14d4d0e7a1ebcf25d435b4813171b843fcfd4`. RW20C prepares the smallest
+non-destructive future OnePlus lifecycle smoke and requires both exact literals
+`GOOGLE_PLAY_INTERNAL_RELEASE_GO` and
+`ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO` before its first ADB query.
+Neither gate is granted; candidate `2026082601` remains inactive and every
+device result remains `NOT_RUN`. The package performs no Store, device, account,
+network, permission, production, Payment, provider, Firebase, Cloud/VPS/DNS or
+merge action while Walid is absent.
+
+## Historical RW6 closure
 
 RW4 is closed at documentation commit
 `bed1e8923a82b745050a6c421ac12c77eacf1e42`. `wishlist_state_v3` and
@@ -3920,3 +3932,23 @@ RW20B is technically verified at exact implementation head
 alerts and the image-publish job skipped. This closes preparation only; every
 real OnePlus result remains `NOT_RUN` behind the release, Play-update,
 Wireless-pairing and owner-session sequence.
+
+## Active release-readiness package: RW20C OnePlus owner-window smoke readiness
+
+RW20C converts only RW20B's bounded `R4_LIFECYCLE_CORE` subset into a future
+MacBook command. Both exact release and personal-device owner-window gates are
+parsed before any ADB access. After the gates, the command still requires the
+exact Play-delivered candidate, a physical OnePlus over Wireless ADB and an
+already unlocked phone before it may perform one force-stop/cold-start,
+warm-start and background/resume lifecycle.
+
+The command never installs, updates, uninstalls or clears app data; it never
+changes network, permission or global settings; and it never reads UI
+hierarchies, screenshots, logcat, credentials or account content. It records no
+ADB address or process identifier and makes no functional, authenticated,
+accessibility, repeated-stability, clean-install, AAB-equivalence or Play
+app-signing claim.
+
+At the current state both gates are unissued, candidate `2026082601` remains
+inactive, Wireless pairing did not occur and all seven prepared checks remain
+`NOT_RUN`. No device or external system was accessed by RW20C.
