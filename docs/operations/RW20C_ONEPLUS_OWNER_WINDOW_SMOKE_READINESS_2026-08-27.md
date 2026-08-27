@@ -1,6 +1,6 @@
 # RW20C — OnePlus owner-window smoke readiness
 
-Status: **PREPARED — NOT RUN — RELEASE AND OWNER WINDOW GATED**
+Status: **TECHNICALLY VERIFIED — DEVICE RUN NOT RUN — RELEASE AND OWNER WINDOW GATED**
 
 ## Decision
 
@@ -95,3 +95,25 @@ immutable and history rewrite is prohibited, the exact old commit, rule and
 test path are recorded in the existing reviewed-history baseline. The scanner
 rule is unchanged, working-tree findings remain impossible to baseline, and no
 broad path, rule or value exception was added.
+
+## Technical closure evidence
+
+Implementation commit `bd2999c7342419a10f1672ab6e58934cae1320a9`
+introduced the double-gated runner and fail-closed tests. Its first GitHub
+Regression found the synthetic sanitizer fixture described above, so that run
+was intentionally cancelled after the failure evidence was retained. CodeQL
+for the same implementation commit passed.
+
+Deterministic correction head
+`00ad69eca82df9e2f5d6742d3650574fd87a9203` passes exact GitHub Regression
+`33030526368`, including Backend/PostgreSQL, the full Flutter/Web/Android
+regression and clean-checkout reproducibility. API image publication was
+skipped. Exact CodeQL `33030526373` passes and the repository has zero open
+code-scanning alerts. The local technical regression passes with standard
+parallelism and no retry, rate-limit, timing or reduced-parallelism workaround.
+The focused RW20A/B/C matrix passes 18 checks, including rejection of false CI,
+alert and workaround evidence.
+
+This closes only the technical preparation. Both owner gates remain unissued,
+candidate `2026082601` remains inactive, no phone was contacted, and all seven
+real-device checks remain `NOT_RUN`.

@@ -1,6 +1,6 @@
 # Current Work Package: RW20C OnePlus owner-window smoke readiness
 
-Status: **RW20C PREPARED, NOT RUN, RELEASE AND OWNER-WINDOW GATED**
+Status: **RW20C TECHNICALLY CLOSED, DEVICE RUN NOT RUN, RELEASE AND OWNER-WINDOW GATED**
 on 27.08.2026.
 
 RW20B is technically closed at documentation commit
@@ -12,6 +12,18 @@ Neither gate is granted; candidate `2026082601` remains inactive and every
 device result remains `NOT_RUN`. The package performs no Store, device, account,
 network, permission, production, Payment, provider, Firebase, Cloud/VPS/DNS or
 merge action while Walid is absent.
+
+Implementation commit `bd2999c7342419a10f1672ab6e58934cae1320a9`
+prepared the runner. Deterministic correction head
+`00ad69eca82df9e2f5d6742d3650574fd87a9203` passes exact GitHub Regression
+`33030526368`, CodeQL `33030526373`, clean-checkout reproducibility and the
+standard-parallelism local technical regression, with zero open code-scanning
+alerts and no retained workaround. The first implementation Regression exposed
+only a literal credential-shaped key in a negative sanitizer test; the fixture
+was corrected without weakening the scanner, and its exact pushed historical
+tuple is bound by the existing reviewed-history mechanism. The focused
+RW20A/B/C matrix passes 18 checks. This evidence verifies preparation only and
+does not imply any OnePlus execution or Play activation.
 
 ## Historical RW6 closure
 

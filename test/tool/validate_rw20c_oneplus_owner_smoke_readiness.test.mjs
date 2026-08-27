@@ -16,7 +16,7 @@ function clone() {
   return structuredClone(source);
 }
 
-test('accepts only the honest pending, gate-closed RW20C readiness', () => {
+test('accepts only the honestly verified, gate-closed RW20C readiness', () => {
   assert.deepEqual(validateRw20cOnePlusOwnerSmokeReadiness({ root, readiness: clone() }), {
     status: 'prepared-not-run-owner-and-release-gated',
     candidateVersionCode: '2026082601',
@@ -24,7 +24,7 @@ test('accepts only the honest pending, gate-closed RW20C readiness', () => {
     runnableNow: false,
     nextRequired: 'GOOGLE_PLAY_INTERNAL_RELEASE_GO',
     executionResult: 'NOT_RUN',
-    verificationState: 'pending-exact-sha',
+    verificationState: 'verified-exact-sha',
   });
 });
 
@@ -101,6 +101,18 @@ test('accepts only structurally exact successful verification evidence', () => {
     'verified-exact-sha',
   );
 
-  value.verification.githubRegression.headSha = 'b'.repeat(40);
-  assert.throws(() => validateRw20cOnePlusOwnerSmokeReadiness({ root, readiness: value }));
+  for (const mutate of [
+    (candidate) => { candidate.verification.githubRegression.headSha = 'b'.repeat(40); },
+    (candidate) => { candidate.verification.githubCodeql.conclusion = 'failure'; },
+    (candidate) => { candidate.verification.githubRegression.publishApiImage = 'success'; },
+    (candidate) => { candidate.verification.openCodeScanningAlerts = 1; },
+    (candidate) => { candidate.verification.workaroundIntroduced = true; },
+  ]) {
+    const invalid = structuredClone(value);
+    mutate(invalid);
+    assert.throws(() => validateRw20cOnePlusOwnerSmokeReadiness({
+      root,
+      readiness: invalid,
+    }));
+  }
 });

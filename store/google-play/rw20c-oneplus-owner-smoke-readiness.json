@@ -99,12 +99,21 @@
     "pullRequestMerged": false
   },
   "verification": {
-    "state": "pending-exact-sha",
-    "implementationHead": null,
-    "localTechnicalRegression": "pending",
-    "githubRegression": null,
-    "githubCodeql": null,
-    "openCodeScanningAlerts": null,
+    "state": "verified-exact-sha",
+    "implementationHead": "00ad69eca82df9e2f5d6742d3650574fd87a9203",
+    "localTechnicalRegression": "passed-standard-parallelism-no-workaround",
+    "githubRegression": {
+      "runId": 33030526368,
+      "headSha": "00ad69eca82df9e2f5d6742d3650574fd87a9203",
+      "conclusion": "success",
+      "publishApiImage": "skipped"
+    },
+    "githubCodeql": {
+      "runId": 33030526373,
+      "headSha": "00ad69eca82df9e2f5d6742d3650574fd87a9203",
+      "conclusion": "success"
+    },
+    "openCodeScanningAlerts": 0,
     "workaroundIntroduced": false
   },
   "candidateManifestRef": "store/google-play/rw20-current-internal-candidate-manifest.json",

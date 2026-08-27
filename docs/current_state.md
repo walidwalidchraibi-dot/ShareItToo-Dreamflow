@@ -10,12 +10,24 @@ RW20B is technically closed at final documentation commit
 draft evidence. The active release and expected OnePlus installation remain
 `2026081509`; no candidate test has occurred.
 
-RW20C prepares one future, non-destructive process-lifecycle smoke. It rejects
-all ADB access until both `GOOGLE_PLAY_INTERNAL_RELEASE_GO` and
+RW20C technically verifies one future, non-destructive process-lifecycle
+smoke. It rejects all ADB access until both `GOOGLE_PLAY_INTERNAL_RELEASE_GO` and
 `ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO` are supplied. Both are
 currently unissued, Wireless pairing is not performed and every check remains
 `NOT_RUN`. No Store, device, account, network, permission, production, Payment,
 provider, Firebase, Cloud/VPS/DNS or merge state changed.
+
+Implementation commit `bd2999c7342419a10f1672ab6e58934cae1320a9`
+prepared the double-gated runner. Correction head
+`00ad69eca82df9e2f5d6742d3650574fd87a9203` passes exact GitHub Regression
+`33030526368`, CodeQL `33030526373` and clean-checkout reproducibility, with
+zero open code-scanning alerts. The local standard-parallelism technical
+regression and the 18-check focused RW20A/B/C matrix pass without a retry,
+timing, rate-limit or reduced-parallelism workaround. The correction removes a
+credential-shaped literal from a negative sanitizer test and records only its
+exact already-pushed historical tuple; the secret scanner itself remains
+unchanged. These results close technical preparation only, not Play activation
+or a real OnePlus test.
 
 ## Historical RW6 state
 
