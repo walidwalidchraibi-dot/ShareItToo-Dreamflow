@@ -1,6 +1,6 @@
 # RW20E — Current Play candidate external-gate reconciliation
 
-Status: **IMPLEMENTED, VERIFICATION PENDING, HOLD / NO-GO**
+Status: **TECHNICALLY CLOSED, EXACT-SHA VERIFIED, HOLD / NO-GO**
 
 ## Purpose
 
@@ -44,6 +44,10 @@ candidate truth; historical physical references are stored separately.
 
 ## Verification
 
-Pending exact implementation SHA, full local technical regression, exact-SHA
-GitHub Regression and CodeQL, and zero-open-alert confirmation. No workaround
-is introduced.
+Implementation head `028cb20ecf7a5775a534ee3bff8e4893204a2301`
+passes the full local technical regression at standard parallelism, including
+the complete Flutter suite, Web/Wasm, loopback smoke, Android debug and the
+resource guard. Exact GitHub Regression `33036420665` and CodeQL
+`33036420668` pass on that SHA; the independent clean-checkout proof passes,
+the image-publish job is skipped and the branch reports zero open code-scanning
+alerts. No workaround is introduced.

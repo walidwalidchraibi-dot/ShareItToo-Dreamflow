@@ -1,6 +1,6 @@
 # Current Work Package: RW20E current-candidate external-gate reconciliation
 
-Status: **RW20E IMPLEMENTED, VERIFICATION PENDING, RELEASE AND DEVICE GATES
+Status: **RW20E TECHNICALLY CLOSED, EXACT-SHA VERIFIED, RELEASE AND DEVICE GATES
 CLOSED** on 27.08.2026.
 
 The canonical external-gate setup, machine/human execution boards and Walid
@@ -11,10 +11,13 @@ accessibility, lifecycle and authenticated evidence for `2026082302` is retained
 in an explicitly historical lane and cannot transfer to the current candidate.
 
 The RW20E validator and negative tests bind this temporal separation, the exact
-release/device gates and every non-live boundary. Full local and exact-SHA
-GitHub verification is pending. No Store, device, tester-list, Production,
-Payment, provider, Firebase, Cloud/VPS/DNS, PR-merge or credential action is
-authorized or performed.
+release/device gates and every non-live boundary. Implementation head
+`028cb20ecf7a5775a534ee3bff8e4893204a2301` passed the full local technical
+regression at standard parallelism, exact GitHub Regression `33036420665`,
+CodeQL `33036420668` and the independent clean-checkout proof. Image publish
+was skipped, zero code-scanning alerts remain and no workaround was introduced.
+No Store, device, tester-list, Production, Payment, provider, Firebase,
+Cloud/VPS/DNS, PR-merge or credential action is authorized or performed.
 
 # Previous Work Package: RW20D Play draft truth reconciliation
 

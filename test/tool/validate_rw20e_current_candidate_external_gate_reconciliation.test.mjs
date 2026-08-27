@@ -41,7 +41,7 @@ test('accepts the current draft and historical physical evidence boundary', () =
     historicalPhysicalVersionCode: '2026082302',
     evidenceTransfersToCurrentCandidate: false,
     nextRequiredGate: 'GOOGLE_PLAY_INTERNAL_RELEASE_GO',
-    verificationState: 'pending-exact-sha',
+    verificationState: 'verified-exact-sha',
   });
 });
 

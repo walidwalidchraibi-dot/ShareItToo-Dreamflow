@@ -15,9 +15,13 @@ physical pass transfers to `2026082601`.
 The exact Store gate remains `GOOGLE_PLAY_INTERNAL_RELEASE_GO`; any later
 non-destructive OnePlus access additionally requires
 `ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO`. RW20E implementation and
-negative tests are present; full local and exact-SHA GitHub verification is
-pending. No Console, Store, device, tester-list, Production, Payment, provider,
-Firebase, Cloud/VPS/DNS or merge state changed.
+negative tests are exact-SHA verified at implementation head
+`028cb20ecf7a5775a534ee3bff8e4893204a2301`: the full local technical
+regression passed at standard parallelism, GitHub Regression `33036420665`
+and CodeQL `33036420668` passed on that SHA, the clean-checkout proof passed,
+image publish was skipped and zero code-scanning alerts remain. No workaround
+was introduced. No Console, Store, device, tester-list, Production, Payment,
+provider, Firebase, Cloud/VPS/DNS or merge state changed.
 
 ## Previous RW20D release-readiness state
 

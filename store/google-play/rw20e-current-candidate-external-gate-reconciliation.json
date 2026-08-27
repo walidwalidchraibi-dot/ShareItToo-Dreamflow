@@ -62,12 +62,21 @@
     "pullRequestMerged": false
   },
   "verification": {
-    "state": "pending-exact-sha",
-    "implementationHead": null,
-    "localTechnicalRegression": "pending",
-    "githubRegression": null,
-    "githubCodeql": null,
-    "openCodeScanningAlerts": null,
+    "state": "verified-exact-sha",
+    "implementationHead": "028cb20ecf7a5775a534ee3bff8e4893204a2301",
+    "localTechnicalRegression": "passed-standard-parallelism-no-workaround",
+    "githubRegression": {
+      "runId": 33036420665,
+      "headSha": "028cb20ecf7a5775a534ee3bff8e4893204a2301",
+      "conclusion": "success",
+      "publishApiImage": "skipped"
+    },
+    "githubCodeql": {
+      "runId": 33036420668,
+      "headSha": "028cb20ecf7a5775a534ee3bff8e4893204a2301",
+      "conclusion": "success"
+    },
+    "openCodeScanningAlerts": 0,
     "workaroundIntroduced": false
   },
   "containsSecrets": false,
