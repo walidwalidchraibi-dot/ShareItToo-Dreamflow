@@ -21,7 +21,11 @@ The RW20D validator permanently rejects historical-fact rewriting, stale
 upload-pending current state, candidate/hash drift, release/review/device
 overclaims and private identity, URL, credential, device or network material.
 Focused implementation checks pass; exact local full regression and exact-SHA
-GitHub Regression/CodeQL are pending. No Console, Store, device, tester-list,
+GitHub Regression/CodeQL are complete. Implementation head
+`9fdca671b174b5b521fe797f202ffeca07abd595` passed the full local technical
+regression at standard parallelism, GitHub Regression `33033342045`, CodeQL
+`33033342059` and clean-checkout reproducibility, with zero open code-scanning
+alerts and no retained workaround. No Console, Store, device, tester-list,
 production, Payment, provider, Firebase, Cloud/VPS/DNS or merge state changed.
 
 RW20C remains technically closed at correction head

@@ -37,7 +37,7 @@ test('separates the historical BUILD_READY snapshot from current draft truth', (
     activeInternalVersionCode: '2026081509',
     releaseActivated: false,
     nextRequiredGate: 'GOOGLE_PLAY_INTERNAL_RELEASE_GO',
-    verificationState: 'pending-exact-sha',
+    verificationState: 'verified-exact-sha',
   });
 });
 

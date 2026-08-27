@@ -1,6 +1,6 @@
 # RW20D — Play-Draft-Wahrheit zeitlich reconciliert
 
-Status: **IMPLEMENTIERT — EXAKTE VERIFIKATION AUSSTEHEND — RELEASE-GATE GESCHLOSSEN**
+Status: **TECHNISCH GESCHLOSSEN — EXAKT VERIFIZIERT — RELEASE-GATE GESCHLOSSEN**
 
 ## Befund
 
@@ -38,3 +38,17 @@ nicht auf Google Play oder ein Geraet zu und veraendert keine Testerliste,
 Release-, Produktions-, Payment-, Provider-, Firebase-, Cloud-, VPS-, DNS- oder
 PR-Merge-Einstellung. Der naechste reale Schritt bleibt unveraendert
 `GOOGLE_PLAY_INTERNAL_RELEASE_GO` im Owner-Zeitfenster.
+
+## Verifikation
+
+Implementierungs-HEAD `9fdca671b174b5b521fe797f202ffeca07abd595`
+bestand die vollstaendige lokale technische Regression mit Standardparallelitaet:
+624 Flutter-Tests plus drei dokumentierte Profilausnahmen, Analyzer ohne neuen
+Befund, 1.991 Tool-Tests, Web/Wasm, Loopback-Smoke, Android-Build mit 448 Tasks
+und minSdk 24 sowie den Resource Guard. Kein Retry-, Timing-, Rate-Limit- oder
+Parallelitaets-Workaround wurde eingefuehrt.
+
+Exakt derselbe HEAD bestand GitHub Regression `33033342045` einschliesslich
+Clean-Checkout-Reproduzierbarkeit sowie CodeQL `33033342059`. Der optionale
+API-Image-Publish blieb erwartungsgemaess uebersprungen; es bestehen null offene
+Code-Scanning-Alerts.
