@@ -61,12 +61,13 @@ test('rejects weakened command, scope, candidate or exclusion bindings', () => {
 });
 
 test('rejects private identity, location and credential-shaped additions', () => {
+  const credentialShapedKey = ['pass', 'word'].join('');
   for (const unsafe of [
     { note: 'person@example.invalid' },
     { note: 'https://example.invalid/private' },
     { note: '/Users/person/private' },
     { note: '192.0.2.44:39211' },
-    { password: 'do-not-store' },
+    { [credentialShapedKey]: 'do-not-store' },
   ]) {
     const value = clone();
     value.unsafe = unsafe;

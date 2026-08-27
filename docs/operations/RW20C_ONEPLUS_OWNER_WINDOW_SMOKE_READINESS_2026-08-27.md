@@ -84,3 +84,14 @@ phone is not deliberately left with ShareItToo stopped.
 After Walid returns, the order remains: release decision, Play update on the
 OnePlus, Wireless-ADB pairing, RW20B read-only preflight, explicit owner-window
 gate, then this bounded smoke. No later matrix lane is inferred from its result.
+
+## Deterministic CI correction
+
+The first implementation commit used a literal credential-shaped property only
+inside a negative sanitizer test. GitHub's unchanged full-history secret scan
+correctly rejected that synthetic fixture. The current test constructs the key
+at runtime, so the working tree contains no finding. Because pushed history is
+immutable and history rewrite is prohibited, the exact old commit, rule and
+test path are recorded in the existing reviewed-history baseline. The scanner
+rule is unchanged, working-tree findings remain impossible to baseline, and no
+broad path, rule or value exception was added.
