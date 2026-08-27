@@ -31,6 +31,15 @@ import {
 import {
   validatePf21CurrentCandidateTalkBackSettingsPreflight,
 } from './validate_pf21_current_candidate_talkback_settings_preflight.mjs';
+import {
+  validateRw20bOnePlusRemoteTestPlan,
+} from './validate_rw20b_oneplus_remote_test_plan.mjs';
+import {
+  validateRw20cOnePlusOwnerSmokeReadiness,
+} from './validate_rw20c_oneplus_owner_smoke_readiness.mjs';
+import {
+  validateRw20dPlayDraftTruthReconciliation,
+} from './validate_rw20d_play_draft_truth_reconciliation.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifestPath = 'docs/evidence/external-gates/technical-setup-manifest.json';
@@ -54,6 +63,15 @@ const pf21EvidencePath =
   'docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
+const rw20CandidateManifestPath =
+  'store/google-play/rw20-current-internal-candidate-manifest.json';
+const rw20UploadHandoffPath =
+  'store/google-play/rw20-current-internal-upload-handoff.json';
+const rw20bPlanPath = 'store/google-play/rw20b-oneplus-remote-test-plan.json';
+const rw20cReadinessPath =
+  'store/google-play/rw20c-oneplus-owner-smoke-readiness.json';
+const rw20dReconciliationPath =
+  'store/google-play/rw20d-play-draft-truth-reconciliation.json';
 
 const expectedGates = Object.freeze([
   ['legal_and_operator_approval', 'prepared-external-review-required'],
@@ -66,7 +84,10 @@ const expectedGates = Object.freeze([
   ],
   ['psp_contract_and_sandbox_e2e', 'provider-contract-and-sandbox-required'],
   ['privacy_retention_and_legal_hold', 'prepared-owner-and-legal-decisions-required'],
-  ['store_submission_and_closed_testing', 'google-account-ready-submission-gates-open'],
+  [
+    'store_submission_and_closed_testing',
+    'exact-internal-draft-uploaded-release-and-device-evidence-open',
+  ],
   ['economics_and_cost_inputs', 'external-cost-inputs-required'],
   ['pilot_region_roster_and_scope', 'prepared-prerequisites-open'],
   ['explicit_activation_decision', 'hold-explicit-decision-required'],
@@ -117,6 +138,7 @@ export function validateExternalGateSetup({
 
   assertCondition(manifest.schemaVersion === 1, 'schema_version_invalid');
   assertCondition(manifest.kind === 'sit-external-gate-technical-setup', 'kind_invalid');
+  assertCondition(manifest.reconciledThrough === '2026-08-27', 'reconciliation_date_invalid');
   assertCondition(
     manifest.state === 'technically-prepared-external-inputs-required',
     'state_invalid',
@@ -341,6 +363,20 @@ export function validateExternalGateSetup({
       && pf21Result.decision === 'hold-no-go',
     'pf21_store_candidate_talkback_settings_state_invalid',
   );
+  const rw20bResult = validateRw20bOnePlusRemoteTestPlan({ root });
+  const rw20cResult = validateRw20cOnePlusOwnerSmokeReadiness({ root });
+  const rw20dResult = validateRw20dPlayDraftTruthReconciliation({ root });
+  assertCondition(
+    rw20bResult.candidateVersionCode === '2026082601'
+      && rw20bResult.nextRequired === 'GOOGLE_PLAY_INTERNAL_RELEASE_GO'
+      && rw20cResult.candidateVersionCode === '2026082601'
+      && rw20cResult.executionResult === 'NOT_RUN'
+      && rw20dResult.currentExactDraftUploaded === true
+      && rw20dResult.activeInternalVersionCode === '2026081509'
+      && rw20dResult.releaseActivated === false
+      && rw20dResult.verificationState === 'verified-exact-sha',
+    'rw20_current_candidate_state_invalid',
+  );
 
   for (let index = 0; index < expectedGates.length; index += 1) {
     const gate = manifest.gates[index];
@@ -365,6 +401,15 @@ export function validateExternalGateSetup({
       );
       assertCondition(existsSync(path.join(root, reference)), `evidence_ref_missing:${reference}`);
     }
+    for (const reference of gate.historicalPhysicalEvidenceRefs ?? []) {
+      assertCondition(
+        typeof reference === 'string'
+          && !path.isAbsolute(reference)
+          && !reference.includes('..')
+          && existsSync(path.join(root, reference)),
+        `historical_evidence_ref_invalid:${expectedId}:${reference}`,
+      );
+    }
     assertCondition(
       gate.currentEvidenceRefs.includes(supportTraceabilityPath)
         === supportTraceabilityConsumers.has(expectedId),
@@ -383,18 +428,40 @@ export function validateExternalGateSetup({
     );
     if (expectedId === 'store_submission_and_closed_testing') {
       assertCondition(
-        gate.currentEvidenceRefs.includes(pf14bEvidencePath)
-          && gate.currentEvidenceRefs.includes(pf16EvidencePath)
-          && gate.currentEvidenceRefs.includes(pf17EvidencePath)
-          && gate.currentEvidenceRefs.includes(pf19EvidencePath)
-          && gate.currentEvidenceRefs.includes(pf21EvidencePath)
+        gate.currentEvidenceRefs.includes(rw20CandidateManifestPath)
+          && gate.currentEvidenceRefs.includes(rw20UploadHandoffPath)
+          && gate.currentEvidenceRefs.includes(rw20bPlanPath)
+          && gate.currentEvidenceRefs.includes(rw20cReadinessPath)
+          && gate.currentEvidenceRefs.includes(rw20dReconciliationPath)
+          && gate.historicalPhysicalEvidenceRefs?.includes(pf14bEvidencePath)
+          && gate.historicalPhysicalEvidenceRefs?.includes(pf16EvidencePath)
+          && gate.historicalPhysicalEvidenceRefs?.includes(pf17EvidencePath)
+          && gate.historicalPhysicalEvidenceRefs?.includes(pf19EvidencePath)
+          && gate.historicalPhysicalEvidenceRefs?.includes(pf21EvidencePath)
           && !gate.currentEvidenceRefs.includes(supersededAndroidCandidatePath),
         'store_candidate_ref_invalid:store_submission_and_closed_testing',
+      );
+      assertCondition(
+        JSON.stringify(gate.currentCandidateTruth) === JSON.stringify({
+          versionCode: '2026082601',
+          playState: 'uploaded-inactive-internal-draft',
+          activeInternalVersionCode: '2026081509',
+          candidateExpectedInstalledOnOnePlus: false,
+          candidateDeviceResults: 'NOT_RUN',
+          nextRequiredGate: 'GOOGLE_PLAY_INTERNAL_RELEASE_GO',
+        })
+          && gate.historicalPhysicalCandidateBoundary?.versionCode === '2026082302'
+          && gate.historicalPhysicalCandidateBoundary?.evidenceTransfersToCurrentCandidate
+            === false,
+        'store_candidate_temporal_boundary_invalid',
       );
     }
     if (expectedId === 'firebase_owner_terms_and_controls') {
       assertCondition(
-        gate.currentEvidenceRefs.includes(pf20EvidencePath),
+        gate.currentEvidenceRefs.includes(rw20CandidateManifestPath)
+          && gate.currentEvidenceRefs.includes(rw20dReconciliationPath)
+          && gate.historicalPhysicalEvidenceRefs?.includes(pf20EvidencePath)
+          && !gate.currentEvidenceRefs.includes(pf20EvidencePath),
         'firebase_device_services_ref_invalid:firebase_owner_terms_and_controls',
       );
     }

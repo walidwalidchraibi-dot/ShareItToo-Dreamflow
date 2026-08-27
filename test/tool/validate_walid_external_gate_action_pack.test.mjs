@@ -18,7 +18,7 @@ test('accepts four ordered tiers and twelve bounded action blocks', () => {
     status: 'hold-no-go',
     tierCount: 4,
     actionBlockCount: 12,
-    responseTokenCount: 29,
+    responseTokenCount: 31,
     externalGateCount: 11,
     externallyReadyGateCount: 0,
     issuedReleaseTokenCount: 0,

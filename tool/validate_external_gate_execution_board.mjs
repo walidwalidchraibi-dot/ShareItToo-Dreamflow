@@ -23,6 +23,15 @@ import {
 import {
   validatePf21CurrentCandidateTalkBackSettingsPreflight,
 } from './validate_pf21_current_candidate_talkback_settings_preflight.mjs';
+import {
+  validateRw20bOnePlusRemoteTestPlan,
+} from './validate_rw20b_oneplus_remote_test_plan.mjs';
+import {
+  validateRw20cOnePlusOwnerSmokeReadiness,
+} from './validate_rw20c_oneplus_owner_smoke_readiness.mjs';
+import {
+  validateRw20dPlayDraftTruthReconciliation,
+} from './validate_rw20d_play_draft_truth_reconciliation.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const boardPath =
@@ -44,6 +53,15 @@ const pf21EvidencePath =
   'docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json';
 const supersededAndroidCandidatePath =
   'docs/evidence/external-gates/current-head-android-candidate-2026082301.json';
+const rw20CandidateManifestPath =
+  'store/google-play/rw20-current-internal-candidate-manifest.json';
+const rw20UploadHandoffPath =
+  'store/google-play/rw20-current-internal-upload-handoff.json';
+const rw20bPlanPath = 'store/google-play/rw20b-oneplus-remote-test-plan.json';
+const rw20cReadinessPath =
+  'store/google-play/rw20c-oneplus-owner-smoke-readiness.json';
+const rw20dReconciliationPath =
+  'store/google-play/rw20d-play-draft-truth-reconciliation.json';
 
 const stageABlockers = Object.freeze([
   'legal_and_operator_approval',
@@ -63,7 +81,12 @@ const expectedGates = Object.freeze([
   ['support_evidence_scanner_and_upload_policy', 'KANN FÜR STUFE A ZURÜCKGESTELLT WERDEN', ['stage_b', 'stage_c'], 'intake-disabled-external-scanner-and-policy-required'],
   ['psp_contract_and_sandbox_e2e', 'BLOCKIERT NUR STUFE B', ['stage_b', 'stage_c'], 'provider-contract-and-sandbox-required'],
   ['privacy_retention_and_legal_hold', 'BLOCKIERT STUFE A', ['stage_a', 'stage_b', 'stage_c'], 'prepared-owner-and-legal-decisions-required'],
-  ['store_submission_and_closed_testing', 'BLOCKIERT STUFE A', ['stage_a', 'stage_b', 'stage_c'], 'google-account-ready-submission-gates-open'],
+  [
+    'store_submission_and_closed_testing',
+    'BLOCKIERT STUFE A',
+    ['stage_a', 'stage_b', 'stage_c'],
+    'exact-internal-draft-uploaded-release-and-device-evidence-open',
+  ],
   ['economics_and_cost_inputs', 'BLOCKIERT NUR STUFE C', ['stage_c'], 'external-cost-inputs-required'],
   ['pilot_region_roster_and_scope', 'BLOCKIERT STUFE A', ['stage_a', 'stage_b', 'stage_c'], 'prepared-prerequisites-open'],
   ['explicit_activation_decision', 'BLOCKIERT STUFE A', ['stage_a', 'stage_b', 'stage_c'], 'hold-explicit-decision-required'],
@@ -132,6 +155,7 @@ export function validateExternalGateExecutionBoard({
 
   assertCondition(board.schemaVersion === 1, 'schema_version_invalid');
   assertCondition(board.kind === 'sit-external-gate-execution-board', 'kind_invalid');
+  assertCondition(board.assessedOn === '2026-08-27', 'assessment_date_invalid');
   assertCondition(
     board.state === 'pilot-freeze-external-evidence-required',
     'state_invalid',
@@ -174,6 +198,15 @@ export function validateExternalGateExecutionBoard({
           && !reference.includes('..')
           && existsSync(path.join(root, reference)),
         `technical_evidence_ref_invalid:${id}:${reference}`,
+      );
+    }
+    for (const reference of gate.historicalPhysicalEvidenceRefs ?? []) {
+      assertCondition(
+        typeof reference === 'string'
+          && !path.isAbsolute(reference)
+          && !reference.includes('..')
+          && existsSync(path.join(root, reference)),
+        `historical_evidence_ref_invalid:${id}:${reference}`,
       );
     }
     assertCondition(
@@ -240,7 +273,10 @@ export function validateExternalGateExecutionBoard({
   );
   const firebaseGate = board.gates[3];
   assertCondition(
-    firebaseGate.technicalEvidenceRefs.includes(pf20EvidencePath)
+    firebaseGate.technicalEvidenceRefs.includes(rw20CandidateManifestPath)
+      && firebaseGate.technicalEvidenceRefs.includes(rw20dReconciliationPath)
+      && firebaseGate.historicalPhysicalEvidenceRefs?.includes(pf20EvidencePath)
+      && !firebaseGate.technicalEvidenceRefs.includes(pf20EvidencePath)
       && /2026082302/u.test(firebaseGate.technicalEvidenceSummary)
       && /separate Push and voluntary Crash-diagnostics switches/iu.test(
         firebaseGate.technicalEvidenceSummary,
@@ -257,12 +293,18 @@ export function validateExternalGateExecutionBoard({
   );
   const storeGate = board.gates[7];
   assertCondition(
-    storeGate.technicalEvidenceRefs.includes(pf14bEvidencePath)
-      && storeGate.technicalEvidenceRefs.includes(pf16EvidencePath)
-      && storeGate.technicalEvidenceRefs.includes(pf17EvidencePath)
-      && storeGate.technicalEvidenceRefs.includes(pf19EvidencePath)
-      && storeGate.technicalEvidenceRefs.includes(pf21EvidencePath)
+    storeGate.technicalEvidenceRefs.includes(rw20CandidateManifestPath)
+      && storeGate.technicalEvidenceRefs.includes(rw20UploadHandoffPath)
+      && storeGate.technicalEvidenceRefs.includes(rw20bPlanPath)
+      && storeGate.technicalEvidenceRefs.includes(rw20cReadinessPath)
+      && storeGate.technicalEvidenceRefs.includes(rw20dReconciliationPath)
+      && storeGate.historicalPhysicalEvidenceRefs?.includes(pf14bEvidencePath)
+      && storeGate.historicalPhysicalEvidenceRefs?.includes(pf16EvidencePath)
+      && storeGate.historicalPhysicalEvidenceRefs?.includes(pf17EvidencePath)
+      && storeGate.historicalPhysicalEvidenceRefs?.includes(pf19EvidencePath)
+      && storeGate.historicalPhysicalEvidenceRefs?.includes(pf21EvidencePath)
       && !storeGate.technicalEvidenceRefs.includes(supersededAndroidCandidatePath)
+      && /2026082601/u.test(storeGate.technicalEvidenceSummary)
       && /2026082302/u.test(storeGate.technicalEvidenceSummary)
       && /two authenticated cold starts/iu.test(storeGate.technicalEvidenceSummary)
       && /offline recovery/iu.test(storeGate.technicalEvidenceSummary)
@@ -274,8 +316,25 @@ export function validateExternalGateExecutionBoard({
         storeGate.technicalEvidenceSummary,
       )
       && /restored every setting exactly/iu.test(storeGate.technicalEvidenceSummary)
-      && /no traversal or pass claim/iu.test(storeGate.technicalEvidenceSummary),
+      && /do not transfer|does not transfer|none of those physical passes transfers/iu.test(
+        storeGate.technicalEvidenceSummary,
+      )
+      && /NOT_RUN/u.test(storeGate.technicalEvidenceSummary),
     'store_candidate_evidence_invalid',
+  );
+  assertCondition(
+    JSON.stringify(storeGate.currentCandidateTruth) === JSON.stringify({
+      versionCode: '2026082601',
+      playState: 'uploaded-inactive-internal-draft',
+      activeInternalVersionCode: '2026081509',
+      candidateExpectedInstalledOnOnePlus: false,
+      candidateDeviceResults: 'NOT_RUN',
+      nextRequiredGate: 'GOOGLE_PLAY_INTERNAL_RELEASE_GO',
+    })
+      && storeGate.historicalPhysicalCandidateBoundary?.versionCode === '2026082302'
+      && storeGate.historicalPhysicalCandidateBoundary?.evidenceTransfersToCurrentCandidate
+        === false,
+    'store_candidate_temporal_boundary_invalid',
   );
   const pf14bResult = validatePf14bCurrentHeadAndroidTouchTarget({
     root,
@@ -408,6 +467,20 @@ export function validateExternalGateExecutionBoard({
       && pf21Result.stageAReady === false
       && pf21Result.decision === 'hold-no-go',
     'store_candidate_talkback_settings_preflight_state_invalid',
+  );
+  const rw20bResult = validateRw20bOnePlusRemoteTestPlan({ root });
+  const rw20cResult = validateRw20cOnePlusOwnerSmokeReadiness({ root });
+  const rw20dResult = validateRw20dPlayDraftTruthReconciliation({ root });
+  assertCondition(
+    rw20bResult.candidateVersionCode === '2026082601'
+      && rw20bResult.nextRequired === 'GOOGLE_PLAY_INTERNAL_RELEASE_GO'
+      && rw20cResult.candidateVersionCode === '2026082601'
+      && rw20cResult.executionResult === 'NOT_RUN'
+      && rw20dResult.currentExactDraftUploaded === true
+      && rw20dResult.activeInternalVersionCode === '2026081509'
+      && rw20dResult.releaseActivated === false
+      && rw20dResult.verificationState === 'verified-exact-sha',
+    'rw20_current_candidate_state_invalid',
   );
   validateDependencies(board.gates);
 

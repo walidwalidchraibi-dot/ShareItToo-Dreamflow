@@ -860,6 +860,9 @@ node tool/validate_external_gate_execution_board.mjs
 node --check tool/validate_walid_external_gate_action_pack.mjs
 node --test test/tool/validate_walid_external_gate_action_pack.test.mjs
 node tool/validate_walid_external_gate_action_pack.mjs
+node --check tool/validate_rw20e_current_candidate_external_gate_reconciliation.mjs
+node --test test/tool/validate_rw20e_current_candidate_external_gate_reconciliation.test.mjs
+node tool/validate_rw20e_current_candidate_external_gate_reconciliation.mjs
 node --test test/tool/release_host_capacity_guard_wiring.test.mjs
 
 analyze_log="$(mktemp)"

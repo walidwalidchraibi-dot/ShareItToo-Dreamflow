@@ -83,11 +83,12 @@ test('requires both Stage A deferrals to remain fail closed', () => {
   );
 });
 
-test('Firebase lane is bound to PF20 default-off controls and keeps owner evidence open', () => {
+test('Firebase lane keeps PF20 historical and current owner evidence open', () => {
   const missing = copy(board);
-  missing.gates[3].technicalEvidenceRefs = missing.gates[3].technicalEvidenceRefs.filter(
-    (reference) => !reference.includes('firebase-device-services-opt-in'),
-  );
+  missing.gates[3].historicalPhysicalEvidenceRefs =
+    missing.gates[3].historicalPhysicalEvidenceRefs.filter(
+      (reference) => !reference.includes('firebase-device-services-opt-in'),
+    );
   assert.throws(
     () => validateExternalGateExecutionBoard({ boardOverride: missing }),
     /firebase_device_services_evidence_invalid/u,
@@ -105,9 +106,10 @@ test('Firebase lane is bound to PF20 default-off controls and keeps owner eviden
   );
 });
 
-test('Store lane is bound through PF21 and retains manual review holds', () => {
+test('Store lane separates current RW20 truth from historical PF evidence', () => {
   const stale = copy(board);
-  stale.gates[7].technicalEvidenceRefs = stale.gates[7].technicalEvidenceRefs.map(
+  stale.gates[7].historicalPhysicalEvidenceRefs =
+    stale.gates[7].historicalPhysicalEvidenceRefs.map(
     (reference) => (
       reference.includes('touch-target-remediation-2026082302')
         ? 'docs/evidence/external-gates/current-head-android-candidate-2026082301.json'
@@ -120,8 +122,8 @@ test('Store lane is bound through PF21 and retains manual review holds', () => {
   );
 
   const missingPf21 = copy(board);
-  missingPf21.gates[7].technicalEvidenceRefs = missingPf21.gates[7]
-    .technicalEvidenceRefs.filter(
+  missingPf21.gates[7].historicalPhysicalEvidenceRefs = missingPf21.gates[7]
+    .historicalPhysicalEvidenceRefs.filter(
       (reference) => !reference.includes('current-candidate-talkback-settings-preflight'),
     );
   assert.throws(
@@ -130,8 +132,8 @@ test('Store lane is bound through PF21 and retains manual review holds', () => {
   );
 
   const missingPf16 = copy(board);
-  missingPf16.gates[7].technicalEvidenceRefs = missingPf16.gates[7]
-    .technicalEvidenceRefs.filter(
+  missingPf16.gates[7].historicalPhysicalEvidenceRefs = missingPf16.gates[7]
+    .historicalPhysicalEvidenceRefs.filter(
       (reference) => !reference.includes('current-candidate-read-only-regression'),
     );
   assert.throws(
@@ -140,8 +142,8 @@ test('Store lane is bound through PF21 and retains manual review holds', () => {
   );
 
   const missingPf17 = copy(board);
-  missingPf17.gates[7].technicalEvidenceRefs = missingPf17.gates[7]
-    .technicalEvidenceRefs.filter(
+  missingPf17.gates[7].historicalPhysicalEvidenceRefs = missingPf17.gates[7]
+    .historicalPhysicalEvidenceRefs.filter(
       (reference) => !reference.includes('current-candidate-authenticated-safe-links'),
     );
   assert.throws(
@@ -150,8 +152,8 @@ test('Store lane is bound through PF21 and retains manual review holds', () => {
   );
 
   const missingPf19 = copy(board);
-  missingPf19.gates[7].technicalEvidenceRefs = missingPf19.gates[7]
-    .technicalEvidenceRefs.filter(
+  missingPf19.gates[7].historicalPhysicalEvidenceRefs = missingPf19.gates[7]
+    .historicalPhysicalEvidenceRefs.filter(
       (reference) => !reference.includes('current-candidate-talkback-preflight'),
     );
   assert.throws(
@@ -176,6 +178,24 @@ test('Store lane is bound through PF21 and retains manual review holds', () => {
   assert.throws(
     () => validateExternalGateExecutionBoard({ boardOverride: talkBackOverclaim }),
     /store_candidate_evidence_invalid/u,
+  );
+
+  const missingCurrentTruth = copy(board);
+  missingCurrentTruth.gates[7].technicalEvidenceRefs = missingCurrentTruth.gates[7]
+    .technicalEvidenceRefs.filter(
+      (reference) => !reference.includes('rw20d-play-draft-truth-reconciliation'),
+    );
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: missingCurrentTruth }),
+    /store_candidate_evidence_invalid/u,
+  );
+
+  const transferredEvidence = copy(board);
+  transferredEvidence.gates[7].historicalPhysicalCandidateBoundary
+    .evidenceTransfersToCurrentCandidate = true;
+  assert.throws(
+    () => validateExternalGateExecutionBoard({ boardOverride: transferredEvidence }),
+    /store_candidate_temporal_boundary_invalid/u,
   );
 });
 

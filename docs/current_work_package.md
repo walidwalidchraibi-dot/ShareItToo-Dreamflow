@@ -1,4 +1,22 @@
-# Current Work Package: RW20D Play draft truth reconciliation
+# Current Work Package: RW20E current-candidate external-gate reconciliation
+
+Status: **RW20E IMPLEMENTED, VERIFICATION PENDING, RELEASE AND DEVICE GATES
+CLOSED** on 27.08.2026.
+
+The canonical external-gate setup, machine/human execution boards and Walid
+action pack now identify `2026082601` as the current inactive Play Internal
+draft. Active Internal version `2026081509` remains unchanged and every current
+candidate device result is `NOT_RUN`. Direct Pixel, Firebase-default-off,
+accessibility, lifecycle and authenticated evidence for `2026082302` is retained
+in an explicitly historical lane and cannot transfer to the current candidate.
+
+The RW20E validator and negative tests bind this temporal separation, the exact
+release/device gates and every non-live boundary. Full local and exact-SHA
+GitHub verification is pending. No Store, device, tester-list, Production,
+Payment, provider, Firebase, Cloud/VPS/DNS, PR-merge or credential action is
+authorized or performed.
+
+# Previous Work Package: RW20D Play draft truth reconciliation
 
 Status: **RW20D TECHNICALLY CLOSED, EXACT-SHA VERIFIED, RELEASE AND DEVICE
 GATES CLOSED** on 27.08.2026.

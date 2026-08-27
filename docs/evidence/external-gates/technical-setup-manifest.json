@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "kind": "sit-external-gate-technical-setup",
   "preparedOn": "2026-08-23",
+  "reconciledThrough": "2026-08-27",
   "state": "technically-prepared-external-inputs-required",
   "releaseDecision": "hold-no-go",
   "supportMatrixTraceability": {
@@ -83,6 +84,10 @@
         "store/platform-account-readiness.json",
         "store/privacy-disclosures.json",
         "store/phone-verification-readiness.json",
+        "store/google-play/rw20-current-internal-candidate-manifest.json",
+        "store/google-play/rw20d-play-draft-truth-reconciliation.json"
+      ],
+      "historicalPhysicalEvidenceRefs": [
         "docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json"
       ]
     },
@@ -130,7 +135,7 @@
     },
     {
       "id": "store_submission_and_closed_testing",
-      "state": "google-account-ready-submission-gates-open",
+      "state": "exact-internal-draft-uploaded-release-and-device-evidence-open",
       "technicalPreparation": "complete",
       "ready": false,
       "externalEvidenceRef": null,
@@ -141,12 +146,31 @@
         "store/review-access.json",
         "docs/evidence/support/support-test-matrix-v1-traceability.json",
         "store/device-validation.json",
+        "store/google-play/rw20-current-internal-candidate-manifest.json",
+        "store/google-play/rw20-current-internal-upload-handoff.json",
+        "store/google-play/rw20b-oneplus-remote-test-plan.json",
+        "store/google-play/rw20c-oneplus-owner-smoke-readiness.json",
+        "store/google-play/rw20d-play-draft-truth-reconciliation.json"
+      ],
+      "historicalPhysicalEvidenceRefs": [
         "docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json",
         "docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json",
         "docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json",
         "docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json",
         "docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json"
-      ]
+      ],
+      "currentCandidateTruth": {
+        "versionCode": "2026082601",
+        "playState": "uploaded-inactive-internal-draft",
+        "activeInternalVersionCode": "2026081509",
+        "candidateExpectedInstalledOnOnePlus": false,
+        "candidateDeviceResults": "NOT_RUN",
+        "nextRequiredGate": "GOOGLE_PLAY_INTERNAL_RELEASE_GO"
+      },
+      "historicalPhysicalCandidateBoundary": {
+        "versionCode": "2026082302",
+        "evidenceTransfersToCurrentCandidate": false
+      }
     },
     {
       "id": "economics_and_cost_inputs",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-external-gate-execution-board",
-  "assessedOn": "2026-08-23",
+  "assessedOn": "2026-08-27",
   "state": "pilot-freeze-external-evidence-required",
   "releaseDecision": "hold-no-go",
   "tierMatrixRef": "docs/evidence/external-gates/pilot-launch-tier-matrix.json",
@@ -129,13 +129,17 @@
       "readinessClassification": "TECHNISCH BEREIT, EXTERNE EVIDENZ FEHLT",
       "blocksTiers": ["stage_a", "stage_b", "stage_c"],
       "currentStatus": "owner-console-confirmation-required",
-    "technicalEvidenceRefs": [
-      "store/platform-account-readiness.json",
-      "store/privacy-disclosures.json",
-      "store/phone-verification-readiness.json",
-      "docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json"
-    ],
-    "technicalEvidenceSummary": "Runtime collection is fail-closed and Store/Privacy/phone-readiness artifacts identify the required controls. Exact physical candidate 2026082302 exposes separate Push and voluntary Crash-diagnostics switches; two read-only observations found both off, opened no consent dialog and requested no opt-in-dependent registration or report. Owner terms and console controls remain unconfirmed.",
+      "technicalEvidenceRefs": [
+        "store/platform-account-readiness.json",
+        "store/privacy-disclosures.json",
+        "store/phone-verification-readiness.json",
+        "store/google-play/rw20-current-internal-candidate-manifest.json",
+        "store/google-play/rw20d-play-draft-truth-reconciliation.json"
+      ],
+      "historicalPhysicalEvidenceRefs": [
+        "docs/evidence/external-gates/current-candidate-firebase-device-services-opt-in-2026082302.json"
+      ],
+      "technicalEvidenceSummary": "Runtime collection is fail-closed and Store/Privacy/phone-readiness artifacts identify the required controls. The last direct physical default-off observation belongs only to historical Pixel candidate 2026082302: separate Push and voluntary Crash-diagnostics switches were both off, opened no consent dialog and requested no opt-in-dependent registration or report. Current Play draft 2026082601 is source-bound but has no transferred device-control pass. Owner terms and console controls remain unconfirmed.",
       "missingExternalEvidence": [
         "current owner terms confirmation",
         "required Android FCM and any in-scope APNs configuration evidence",
@@ -273,22 +277,43 @@
       "tierClassification": "BLOCKIERT STUFE A",
       "readinessClassification": "TECHNISCH BEREIT, EXTERNE EVIDENZ FEHLT",
       "blocksTiers": ["stage_a", "stage_b", "stage_c"],
-      "currentStatus": "google-account-ready-submission-gates-open",
+      "currentStatus": "exact-internal-draft-uploaded-release-and-device-evidence-open",
       "technicalEvidenceRefs": [
         "store/submission.json",
         "store/platform-account-readiness.json",
         "store/google-play/closed-testing-readiness.json",
         "store/review-access.json",
         "store/device-validation.json",
+        "store/google-play/rw20-current-internal-candidate-manifest.json",
+        "store/google-play/rw20-current-internal-upload-handoff.json",
+        "store/google-play/rw20b-oneplus-remote-test-plan.json",
+        "store/google-play/rw20c-oneplus-owner-smoke-readiness.json",
+        "store/google-play/rw20d-play-draft-truth-reconciliation.json"
+      ],
+      "historicalPhysicalEvidenceRefs": [
         "docs/evidence/external-gates/current-head-android-touch-target-remediation-2026082302.json",
         "docs/evidence/external-gates/current-candidate-read-only-regression-2026082302.json",
         "docs/evidence/external-gates/current-candidate-authenticated-safe-links-2026082302.json",
         "docs/evidence/external-gates/current-candidate-talkback-preflight-2026082302.json",
         "docs/evidence/external-gates/current-candidate-talkback-settings-preflight-2026082302.json"
       ],
-      "technicalEvidenceSummary": "The Google Play account and checklists exist. Signed internal Staging candidate 2026082302 passed its binary privacy scan, owner-only archive check, data-preserving Pixel update, physical 200-percent touch-target geometry and an exact-installed-APK read-only regression covering restart, two authenticated cold starts, offline recovery, five main-navigation surfaces, seven legal routes, five large-text surfaces and five authenticated safe-link checks with session preservation. Both the official TalkBack keyboard shortcut and user-visible Settings route bound its service but the Android runtime did not enable touch exploration, restored every setting exactly and made no traversal or pass claim; private Google Play distribution, protected review access, manual visual review and manual TalkBack evidence remain open.",
+      "currentCandidateTruth": {
+        "versionCode": "2026082601",
+        "playState": "uploaded-inactive-internal-draft",
+        "activeInternalVersionCode": "2026081509",
+        "candidateExpectedInstalledOnOnePlus": false,
+        "candidateDeviceResults": "NOT_RUN",
+        "nextRequiredGate": "GOOGLE_PLAY_INTERNAL_RELEASE_GO"
+      },
+      "historicalPhysicalCandidateBoundary": {
+        "versionCode": "2026082302",
+        "evidenceTransfersToCurrentCandidate": false
+      },
+      "technicalEvidenceSummary": "The Google Play account and checklists exist. Exact candidate 2026082601 is built, signed, hash-bound and owner-reported as uploaded, processed and saved only as an inactive Internal draft; active Internal version 2026081509 remains unchanged and every 2026082601 device result is NOT_RUN. Historical direct Pixel evidence for 2026082302 covers privacy, data-preserving update, touch targets, restart, two authenticated cold starts, offline recovery, navigation, legal routes, large text and authenticated safe-link checks. Both the TalkBack keyboard shortcut and user-visible Settings route were tried on that historical candidate; the Android runtime did not enable touch exploration and restored every setting exactly. None of those physical passes transfers to 2026082601. Release activation, Play update, current-candidate OnePlus preflight/smoke, protected review access, manual visual review and manual TalkBack evidence remain open.",
       "missingExternalEvidence": [
-        "approved Stage A private Android distribution route bound to signed candidate 2026082302",
+        "GOOGLE_PLAY_INTERNAL_RELEASE_GO for exact inactive draft 2026082601",
+        "Play-delivered update from active 2026081509 to candidate 2026082601",
+        "current-candidate OnePlus read-only identity preflight and bounded owner-window smoke",
         "Google Play closed-testing requirement and sanitized observation evidence",
         "protected review-account plus manual visual-review and TalkBack evidence on the distributed candidate",
         "public Store approval for Stage C",
@@ -302,9 +327,9 @@
       },
       "contractRequirement": "yes-current-platform-agreements",
       "walidPresenceRequired": true,
-      "exactNextAction": "With Walid present, inspect the current Google Play closed-testing and app-access state, choose the Stage A private Android distribution route for signed candidate 2026082302 and separately authorize any later upload or review step; do not submit publicly or publish.",
+      "exactNextAction": "With Walid present, re-open the exact inactive Internal draft 2026082601, verify it remains unreviewed and inactive, and decide only the separate GOOGLE_PLAY_INTERNAL_RELEASE_GO gate. After an authorized Internal activation, update the OnePlus through Google Play and run the separately gated current-candidate preflight and bounded smoke; do not submit publicly or publish.",
       "dependencies": ["legal_and_operator_approval", "firebase_owner_terms_and_controls", "privacy_retention_and_legal_hold"],
-      "stopCondition": "Stop this lane before replacement signing, physical installation with data risk, review credentials, 2FA, Store upload/submission, agreement acceptance or public publication.",
+      "stopCondition": "Stop this lane before Internal activation without GOOGLE_PLAY_INTERNAL_RELEASE_GO, device access without ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO, replacement signing, physical installation with data risk, review credentials, 2FA, Store submission, agreement acceptance or public publication.",
       "releaseToken": "PILOT_STAGE_A_ANDROID_DISTRIBUTION_EVIDENCE_ACCEPTED",
       "releaseTokenState": "not-issued",
       "codexCanContinueIndependentLane": true

@@ -174,12 +174,13 @@ test('aggregate setup is bound to the active hosting and mail provider hold', ()
   );
 });
 
-test('Firebase setup is bound to PF20 default-off controls and no consent change', () => {
+test('Firebase setup keeps PF20 as historical evidence and no consent change', () => {
   const missing = copy(manifest);
   const firebaseGate = missing.gates.find(
     ({ id }) => id === 'firebase_owner_terms_and_controls',
   );
-  firebaseGate.currentEvidenceRefs = firebaseGate.currentEvidenceRefs.filter(
+  firebaseGate.historicalPhysicalEvidenceRefs =
+    firebaseGate.historicalPhysicalEvidenceRefs.filter(
     (reference) => !reference.includes('firebase-device-services-opt-in'),
   );
   assert.throws(
@@ -200,12 +201,13 @@ test('Firebase setup is bound to PF20 default-off controls and no consent change
   );
 });
 
-test('Store setup is bound through PF21 while manual review remains open', () => {
+test('Store setup separates current RW20 truth from historical PF evidence', () => {
   const changedRef = copy(manifest);
   const storeGate = changedRef.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
   );
-  storeGate.currentEvidenceRefs = storeGate.currentEvidenceRefs.map((reference) => (
+  storeGate.historicalPhysicalEvidenceRefs =
+    storeGate.historicalPhysicalEvidenceRefs.map((reference) => (
     reference.includes('touch-target-remediation-2026082302')
       ? 'docs/evidence/external-gates/current-head-android-candidate-2026082301.json'
       : reference
@@ -219,9 +221,10 @@ test('Store setup is bound through PF21 while manual review remains open', () =>
   const missingPf21StoreGate = missingPf21.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
   );
-  missingPf21StoreGate.currentEvidenceRefs = missingPf21StoreGate.currentEvidenceRefs.filter(
-    (reference) => !reference.includes('current-candidate-talkback-settings-preflight'),
-  );
+  missingPf21StoreGate.historicalPhysicalEvidenceRefs =
+    missingPf21StoreGate.historicalPhysicalEvidenceRefs.filter(
+      (reference) => !reference.includes('current-candidate-talkback-settings-preflight'),
+    );
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: missingPf21 }),
     /store_candidate_ref_invalid/u,
@@ -231,9 +234,10 @@ test('Store setup is bound through PF21 while manual review remains open', () =>
   const missingPf17StoreGate = missingPf17.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
   );
-  missingPf17StoreGate.currentEvidenceRefs = missingPf17StoreGate.currentEvidenceRefs.filter(
-    (reference) => !reference.includes('current-candidate-authenticated-safe-links'),
-  );
+  missingPf17StoreGate.historicalPhysicalEvidenceRefs =
+    missingPf17StoreGate.historicalPhysicalEvidenceRefs.filter(
+      (reference) => !reference.includes('current-candidate-authenticated-safe-links'),
+    );
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: missingPf17 }),
     /store_candidate_ref_invalid/u,
@@ -243,9 +247,10 @@ test('Store setup is bound through PF21 while manual review remains open', () =>
   const missingPf19StoreGate = missingPf19.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
   );
-  missingPf19StoreGate.currentEvidenceRefs = missingPf19StoreGate.currentEvidenceRefs.filter(
-    (reference) => !reference.includes('current-candidate-talkback-preflight'),
-  );
+  missingPf19StoreGate.historicalPhysicalEvidenceRefs =
+    missingPf19StoreGate.historicalPhysicalEvidenceRefs.filter(
+      (reference) => !reference.includes('current-candidate-talkback-preflight'),
+    );
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: missingPf19 }),
     /store_candidate_ref_invalid/u,
@@ -267,9 +272,10 @@ test('Store setup is bound through PF21 while manual review remains open', () =>
   const missingPf16Store = missingPf16.gates.find(
     ({ id }) => id === 'store_submission_and_closed_testing',
   );
-  missingPf16Store.currentEvidenceRefs = missingPf16Store.currentEvidenceRefs.filter(
-    (reference) => !reference.includes('current-candidate-read-only-regression'),
-  );
+  missingPf16Store.historicalPhysicalEvidenceRefs =
+    missingPf16Store.historicalPhysicalEvidenceRefs.filter(
+      (reference) => !reference.includes('current-candidate-read-only-regression'),
+    );
   assert.throws(
     () => validateExternalGateSetup({ manifestOverride: missingPf16 }),
     /store_candidate_ref_invalid/u,
@@ -309,6 +315,30 @@ test('Store setup is bound through PF21 while manual review remains open', () =>
       },
     }),
     /must not claim/iu,
+  );
+
+  const missingCurrentTruth = copy(manifest);
+  const missingCurrentTruthStore = missingCurrentTruth.gates.find(
+    ({ id }) => id === 'store_submission_and_closed_testing',
+  );
+  missingCurrentTruthStore.currentEvidenceRefs =
+    missingCurrentTruthStore.currentEvidenceRefs.filter(
+      (reference) => !reference.includes('rw20d-play-draft-truth-reconciliation'),
+    );
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: missingCurrentTruth }),
+    /store_candidate_ref_invalid/u,
+  );
+
+  const transferredEvidence = copy(manifest);
+  const transferredEvidenceStore = transferredEvidence.gates.find(
+    ({ id }) => id === 'store_submission_and_closed_testing',
+  );
+  transferredEvidenceStore.historicalPhysicalCandidateBoundary
+    .evidenceTransfersToCurrentCandidate = true;
+  assert.throws(
+    () => validateExternalGateSetup({ manifestOverride: transferredEvidence }),
+    /store_candidate_temporal_boundary_invalid/u,
   );
 });
 

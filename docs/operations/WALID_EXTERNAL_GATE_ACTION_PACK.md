@@ -70,9 +70,10 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
   Schlüssel oder Billing stoppt Codex; keine geheimen Werte werden geteilt.
 - Codex parallel: Ja/Nein-Evidenzvorlage und Kandidatenbindung prüfen; keine
   Cloud-, Provider- oder Produktionskonfiguration verändern. Die zwei
-  unabhängigen Gerätedienst-Schalter sind auf dem exakten Pixel-Kandidaten
+  unabhängigen Gerätedienst-Schalter sind auf dem historischen Pixel-Kandidaten
   `2026082302` bereits zweimal als aus verifiziert; es wurde keine Einwilligung,
-  Registrierung oder Crashdiagnose ausgelöst.
+  Registrierung oder Crashdiagnose ausgelöst. Dieser physische Nachweis wird
+  nicht auf den aktuellen Play-Entwurf `2026082601` übertragen.
 - Antworttokens: `PF3_A3_OWNER_CONSOLE_READ_ONLY_READY` oder `PF3_A3_HOLD`;
   nach vollständiger sanitierter Evidenz
   `PILOT_STAGE_A_FIREBASE_OWNER_CONTROLS_CONFIRMED`.
@@ -81,30 +82,31 @@ zweite Freigabe beginnt kein kostenpflichtiger Auftrag.
 
 ### A4 — Private Android-Distributionsroute festlegen
 
-- Warum Walid jetzt gebraucht wird: Der Store-Owner muss bestätigen, welche
-  aktuelle Google-Play-Closed-Test-Anforderung und welcher private Kanal für
-  den signierten internen Kandidaten `2026082302` gelten. Binärdatenschutz,
-  datenerhaltendes Pixel-Update und physische 200%-Touch-Target-Geometrie sind
-  bereits technisch belegt. Der exakt installierte Kandidat besteht außerdem
-  Prozess-Neustart, zwei authentifizierte Kaltstarts, Offline-Wiederherstellung,
-  fünf Hauptnavigationen, sieben Rechtsrouten und fünf Großschrift-Flächen
-  read-only. Fünf sichere App-Link-Prüfungen erhalten die authentifizierte
-  Sitzung auf demselben exakten Kandidaten. Zwei offizielle TalkBack-
-  Aktivierungswege wurden fail-closed geprüft; beide binden den Dienst, aber
-  die aktuelle Pixel-Laufzeit aktiviert keine Touch-Exploration. Daher bleiben
-  manuelle Sichtprüfung und manueller TalkBack-Durchlauf offen.
+- Warum Walid jetzt gebraucht wird: Der aktuelle signierte Kandidat
+  `2026082601` liegt bereits als inaktiver Google-Play-Internal-Entwurf vor.
+  Nur der Store-Owner darf entscheiden, ob genau dieser Entwurf mit
+  `GOOGLE_PLAY_INTERNAL_RELEASE_GO` intern aktiviert wird. Die umfangreichen
+  Pixel-Nachweise gehören zum historischen Kandidaten `2026082302` und werden
+  nicht auf den neuen Build übertragen. Auf dem OnePlus wird weiterhin der
+  aktive Altbuild `2026081509` erwartet; alle Tests für `2026082601` sind
+  `NOT_RUN`.
 - Dauer: etwa 20 Minuten nur lesende Console-Prüfung; Signierung, Upload und
   Review sind separate spätere Schritte.
 - Mögliche Kosten: Google-Registrierung ist als bereits bezahlt dokumentiert;
   neue Kosten sind unbekannt und nicht freigegeben.
-- Walid öffnet/bestätigt: Google Play Console im eigenen Browser und zeigt nur
-  die Closed-Testing-, App-Access- und Agreement-Statusseiten. Codex stoppt bei
-  Login/2FA, Zugangsdaten, Agreement-Annahme, Signierung oder Upload.
-- Codex parallel: die vorhandene Kandidaten-, Datenschutz- und physische
-  Accessibility-Evidenz gegen die Closed-Test-Checklisten prüfen;
-  keine Binärdatei signieren oder hochladen.
+- Walid öffnet/bestätigt: Google Play Console im eigenen Browser, öffnet nur den
+  bestehenden Internal-Entwurf `2026082601` und prüft, dass er weiterhin
+  inaktiv und nicht zur Review gesendet ist. Keine Schaltfläche zur Aktivierung
+  anklicken, bevor das exakte Gate erteilt wurde. Codex stoppt bei Login/2FA,
+  Zugangsdaten, Agreement-Annahme oder einer unerwarteten Store-Abweichung.
+- Codex parallel: Nach einer später ausdrücklich autorisierten Internal-
+  Aktivierung den Play-Update-/OnePlus-Preflight vorbereiten; kein Gerät ohne
+  `ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO` ansprechen; keine Binärdatei signieren oder hochladen.
 - Antworttokens: `PF3_A4_PLAY_CONSOLE_READ_ONLY_READY` oder `PF3_A4_HOLD`;
-  nach separat autorisierter echter Evidenz
+  für die genaue Internal-Aktivierung separat
+  `GOOGLE_PLAY_INTERNAL_RELEASE_GO`; für den anschließenden begrenzten
+  OnePlus-Lauf separat `ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO`; erst
+  nach echter Kandidaten-/Geräteevidenz
   `PILOT_STAGE_A_ANDROID_DISTRIBUTION_EVIDENCE_ACCEPTED`.
 - Ohne Entscheidung blockiert: exakte private Verteilung, Pilot-Envelope und
   Stage A; öffentliche Store-Veröffentlichung bleibt unabhängig davon gesperrt.

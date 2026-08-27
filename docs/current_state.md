@@ -2,7 +2,24 @@
 
 Verified: 2026-08-27 on the Mac mini.
 
-## Current RW20D release-readiness state
+## Current RW20E release-readiness state
+
+Candidate `2026082601` is the current inactive Play Internal draft; active
+Internal version `2026081509` remains unchanged and every current-candidate
+device result is `NOT_RUN`. The external-gate manifest, machine/human execution
+boards and Walid action pack now separate this current truth from direct Pixel,
+Firebase-default-off, accessibility, lifecycle and authenticated evidence for
+historical candidate `2026082302`. Because source changed, no historical
+physical pass transfers to `2026082601`.
+
+The exact Store gate remains `GOOGLE_PLAY_INTERNAL_RELEASE_GO`; any later
+non-destructive OnePlus access additionally requires
+`ONEPLUS_PERSONAL_DEVICE_NONDESTRUCTIVE_TEST_GO`. RW20E implementation and
+negative tests are present; full local and exact-SHA GitHub verification is
+pending. No Console, Store, device, tester-list, Production, Payment, provider,
+Firebase, Cloud/VPS/DNS or merge state changed.
+
+## Previous RW20D release-readiness state
 
 The exact candidate remains `1.0.0+2026082601`. Historical BUILD_READY evidence
 truthfully records that no Play upload had occurred at build time. A later
