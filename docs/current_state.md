@@ -23,6 +23,11 @@ image publish was skipped and zero code-scanning alerts remain. No workaround
 was introduced. No Console, Store, device, tester-list, Production, Payment,
 provider, Firebase, Cloud/VPS/DNS or merge state changed.
 
+No Telegram or Maximus send capability is exposed in the current Codex
+environment. The immediately required owner decision is therefore preserved
+fail-closed in `docs/SIT_PENDING_GATE_GOOGLE_PLAY_INTERNAL_RELEASE_GO.md`.
+This handoff grants neither the release nor the later OnePlus device gate.
+
 ## Previous RW20D release-readiness state
 
 The exact candidate remains `1.0.0+2026082601`. Historical BUILD_READY evidence

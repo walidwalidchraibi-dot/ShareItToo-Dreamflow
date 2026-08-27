@@ -19,6 +19,11 @@ was skipped, zero code-scanning alerts remain and no workaround was introduced.
 No Store, device, tester-list, Production, Payment, provider, Firebase,
 Cloud/VPS/DNS, PR-merge or credential action is authorized or performed.
 
+Because this Codex environment exposes no Telegram or Maximus send capability,
+the immediate owner decision is preserved without inferred approval in
+`docs/SIT_PENDING_GATE_GOOGLE_PLAY_INTERNAL_RELEASE_GO.md`. The handoff keeps
+the Play release and subsequent OnePlus access as two separate exact gates.
+
 # Previous Work Package: RW20D Play draft truth reconciliation
 
 Status: **RW20D TECHNICALLY CLOSED, EXACT-SHA VERIFIED, RELEASE AND DEVICE
