@@ -106,7 +106,7 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "3c025180f4e083ed4ce8ad20c983d6608714e54820cab5d1a51122c43136013d"
+      "sha256": "1b78279a772f4f2ace4600a7c8b600c1980f951ce84f596d371846391371bf25"
     },
     {
       "path": "test/data_service_non_destructive_catalog_bootstrap_test.dart",
@@ -138,7 +138,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "b84c196190dfdfe98258a3a130f50b26a5e01776a32efaeed36caa05bf37fc7e"
+      "sha256": "490180c78dfeb6932261f545585886e85c4570176fd6f1d524cb1b3e3570d942"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -146,7 +146,7 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "50d5e6f40e0970ddb3951eec04941a1e9df9ade22b0356578834021585b240d5"
+      "sha256": "36a459a6dc0dd2f2a2a19e5eaf0dddc3dd908480658371b7caa9005156131813"
     }
   ],
   "gates": {

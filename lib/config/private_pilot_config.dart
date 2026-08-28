@@ -85,7 +85,7 @@ class PrivatePilotConfig {
   static const String v52DocumentName =
       'ShareItToo Rechtsmappe Privat-Launch V5.2';
   static const String v52DocumentVersion = 'V5.2-2026-08-16';
-  static const String v52ClientBuild = '1.0.0+2026082601';
+  static const String v52ClientBuild = '1.0.0+2026082801';
   static const String v52PrivateAndPlatformTermsDeclaration =
       'Ich handle bei dieser Buchung ausschließlich privat und akzeptiere die SIT-Plattformbedingungen [Teil A, Version V5.2-2026-08-16] sowie die Privat-Mietbedingungen einschließlich Storno-, Übergabe- und Schadenregeln [Teile B-D, Version V5.2-2026-08-16].';
   static const String v52EarlyPerformanceAndWithdrawalDeclaration =
