@@ -169,7 +169,7 @@
     {"path": "docs/decisions/ADR-073-atomic-non-acute-harassment-block-report.md", "sha256": "276c33c94f7028b61d0bcbbc3795ba9913ae052989d0e11d1431f5a67e35b53c"},
     {"path": "docs/architecture/s3x-support-case-ui-accessibility-2026-08-22.md", "sha256": "665415f7ce5e6951ae14b9533f3041459d3f08e8b13c6ed7b77bf512cacc52dc"},
     {"path": "docs/decisions/ADR-061-support-case-semantic-order-and-empty-blocked-filter.md", "sha256": "60b783937f4e241f30c57ef556eb596150d43395df5d5602c5c8ee4d36b0ff93"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "19cb13a7184d74c5b79786a822c783e6a04cf58af0bbdb530eeab8c6d9121479"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "d2f0a0108ae8fb9027c2c5f58d5dda5426d6e52fe94304a5cfc771b3b301601b"},
     {"path": "test/tool/harassment_block_report_wiring.test.mjs", "sha256": "4b9ab9f84d9c608104fbde2e6a76f5ca2b6a3890caa59e01e9ca69326b03a8b8"},
     {"path": "test/tool/support_case_ui_accessibility_wiring.test.mjs", "sha256": "8daf23c9dd2156d8d46d600c9ae3173ae83816c2dcb134d9859503d59ae5163a"},
     {"path": "test/tool/rw11_regression_completeness_wiring.test.mjs", "sha256": "e6a9ecf7cda2115d1605b54339d2696bc7edd66f2304bc162d39cbdfedfb13a0"},

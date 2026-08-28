@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import {
+  validateCurrentHeadAndroidReleaseArchive,
+} from './validate_current_head_android_release_archive.mjs';
 
 const expectedHardStops = [
   'productionRelease',
@@ -634,28 +639,100 @@ export function validateGooglePlayInternalHandoff({
   };
 }
 
-function runCli() {
+async function runCli() {
   const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
   const ciMetadataOnly = process.argv.slice(2).includes('--ci-metadata-only');
-  if (process.argv.slice(2).some((value) => value !== '--ci-metadata-only')) {
+  const candidateRollover = process.argv.slice(2).includes('--candidate-rollover');
+  if (process.argv.slice(2).some((value) =>
+    !['--ci-metadata-only', '--candidate-rollover'].includes(value))) {
     fail('Unknown Google Play internal handoff argument.');
+  }
+  if (ciMetadataOnly && candidateRollover) {
+    fail('Google Play internal handoff modes are mutually exclusive.');
   }
   if (ciMetadataOnly && process.env.CI !== 'true') {
     fail('--ci-metadata-only is restricted to the isolated CI environment.');
   }
+  if (candidateRollover && process.env.SIT_ALLOW_CANDIDATE_ROLLOVER !== '1') {
+    fail('--candidate-rollover requires the explicit candidate-rollover environment.');
+  }
+  let rolloverCandidate = null;
+  if (candidateRollover) {
+    const rollover = object(readJson(
+      resolve(repositoryRoot, 'store', 'google-play', 'current-rollover-candidate.json'),
+      'current rollover candidate',
+    ), 'current rollover candidate');
+    const candidate = object(rollover.candidate, 'current rollover candidate.candidate');
+    const artifact = object(rollover.artifact, 'current rollover candidate.artifact');
+    same(rollover.schemaVersion, 1, 'current rollover candidate.schemaVersion');
+    same(rollover.status, 'build-ready-play-internal-upload-pending',
+      'current rollover candidate.status');
+    const expectedIdentity = {
+      versionName: candidate.versionName,
+      buildNumber: candidate.versionCode,
+      commit: candidate.artifactSourceHead,
+    };
+    rolloverCandidate = await validateCurrentHeadAndroidReleaseArchive({
+      root: repositoryRoot,
+      expectedIdentity,
+    });
+    same(rolloverCandidate.aabSha256, artifact.aabSha256,
+      'current rollover candidate.artifact.aabSha256');
+    same(rolloverCandidate.apkSha256, artifact.apkSha256,
+      'current rollover candidate.artifact.apkSha256');
+    same(rolloverCandidate.signingCertificateSha256, artifact.uploadCertificateSha256,
+      'current rollover candidate.artifact.uploadCertificateSha256');
+    const git = (args) => String(execFileSync('git', args, {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })).trim();
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', expectedIdentity.commit, 'HEAD'], {
+        cwd: repositoryRoot,
+        stdio: 'ignore',
+      });
+    } catch {
+      fail('The rollover artifact source is not an ancestor of the current repository HEAD.');
+    }
+    const changedPaths = new Set([
+      ...git(['diff', '--name-only', `${expectedIdentity.commit}..HEAD`]).split('\n'),
+      ...git(['diff', '--name-only']).split('\n'),
+      ...git(['diff', '--cached', '--name-only']).split('\n'),
+    ].filter(Boolean));
+    const allowedEvidencePrefixes = [
+      '.github/',
+      'docs/',
+      'scripts/',
+      'store/',
+      'test/',
+      'tool/',
+    ];
+    const runtimeDrift = [...changedPaths].filter((path) =>
+      !allowedEvidencePrefixes.some((prefix) => path.startsWith(prefix)));
+    if (runtimeDrift.length > 0) {
+      fail('Runtime-affecting files changed after the rollover artifact source commit.');
+    }
+  }
   const result = validateGooglePlayInternalHandoff({
     repositoryRoot,
-    allowMissingPrivateArtifact: ciMetadataOnly,
+    allowMissingPrivateArtifact: ciMetadataOnly || candidateRollover,
   });
+  if (rolloverCandidate !== null &&
+      BigInt(rolloverCandidate.buildNumber) <= BigInt(result.buildNumber)) {
+    fail('The verified rollover candidate must be newer than the historical Play handoff.');
+  }
   process.stdout.write(
     `Google Play internal handoff: PASS (build ${result.buildNumber}; `
-      + `privateArtifact=${result.artifactVerified ? 'verified' : 'CI-unavailable-metadata-validated'})\n`,
+      + `privateArtifact=${result.artifactVerified ? 'verified' :
+        candidateRollover ? 'historical-metadata-with-newer-rollover-artifact-verified' :
+          'CI-unavailable-metadata-validated'})\n`,
   );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   try {
-    runCli();
+    await runCli();
   } catch (error) {
     process.stderr.write(`${error?.message ?? 'Google Play internal handoff failed.'}\n`);
     process.exitCode = 1;

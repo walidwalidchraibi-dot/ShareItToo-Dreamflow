@@ -209,7 +209,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "19cb13a7184d74c5b79786a822c783e6a04cf58af0bbdb530eeab8c6d9121479"
+      "sha256": "d2f0a0108ae8fb9027c2c5f58d5dda5426d6e52fe94304a5cfc771b3b301601b"
     },
     {
       "path": "test/rw7_local_listing_catalog_authorization_durability_test.dart",

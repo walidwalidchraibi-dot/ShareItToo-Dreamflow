@@ -1,6 +1,30 @@
 # ShareItToo Current State
 
-Verified: 2026-08-27 on the Mac mini.
+Verified: 2026-08-28 on the Mac mini.
+
+## Current OnePlus guest-discovery hotfix state
+
+The OnePlus symptom is reproduced and corrected at artifact-source commit
+`135fa726aaa7192bd57b729a5e3becbdeeeb9bee`. Guest discovery had incorrectly
+waited for the authenticated user-blocks endpoint: public listings returned
+HTTP 200, while the guest block-list request returned the expected HTTP 401 and
+caused the whole page to fail. Guests now use their principal-scoped local
+block list; authenticated sessions retain remote filtering and the established
+Account-A-to-B mutation isolation.
+
+The exact signed replacement is `com.shareittoo.app`,
+`1.0.0+2026082801`, Internal/Staging, AAB SHA-256
+`56f17ee5a788db69c6099cab4a9d648b28e2eeca7dd9c6e162d7247bce0067da`.
+Canonical signing, owner-only archive, privacy scan, ZIP integrity and
+Bundletool 1.18.1 validation passed. Artifact-source GitHub Regression
+`33208564193` and CodeQL `33208564198` passed on the exact source SHA with zero
+open code-scanning alerts.
+
+Candidate `2026082801` is not yet uploaded or active. `2026082601` remains the
+current active Internal release until the bounded Play replacement completes.
+Tester lists and all Production, Open, Closed, review, Firebase, payment,
+provider, Cloud/VPS/DNS and PR-merge states remain unchanged. Exact evidence is
+`docs/evidence/release-readiness/oneplus-guest-discovery-hotfix-2026082801.json`.
 
 ## Current Google Play Internal release state
 

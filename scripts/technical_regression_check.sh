@@ -174,6 +174,8 @@ node --check tool/validate_google_play_internal_handoff.mjs
 node --test test/tool/validate_google_play_internal_handoff.test.mjs
 if [[ "${CI:-false}" == "true" ]]; then
   node tool/validate_google_play_internal_handoff.mjs --ci-metadata-only
+elif [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_google_play_internal_handoff.mjs --candidate-rollover
 else
   node tool/validate_google_play_internal_handoff.mjs
 fi

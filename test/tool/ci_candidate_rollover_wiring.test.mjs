@@ -72,6 +72,17 @@ test('candidate rollover keeps the prior phone evidence read-only until the new 
   );
 });
 
+test('local rollover verifies current-head bytes before accepting historical Play metadata', () => {
+  assert.match(
+    technicalRegression,
+    /SIT_ALLOW_CANDIDATE_ROLLOVER[\s\S]*?validate_google_play_internal_handoff\.mjs --candidate-rollover/,
+  );
+  assert.match(
+    technicalRegression,
+    /validate_current_head_android_release_archive\.test\.mjs/,
+  );
+});
+
 test('Android packaging derives missing Firebase client values from the exact local config without logging them', () => {
   assert.match(androidBuild, /deriveAndroidFirebaseReleaseEnvironment/);
   assert.match(androidBuild, /android\/app\/google-services\.json/);

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "kind": "android-current-rollover-candidate",
+  "status": "build-ready-play-internal-upload-pending",
+  "generatedAt": "2026-08-28T20:56:42Z",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "versionCode": "2026082801",
+    "artifactSourceHead": "135fa726aaa7192bd57b729a5e3becbdeeeb9bee",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "compileSdkVersion": 35,
+    "minSdkVersion": 24,
+    "targetSdkVersion": 35,
+    "firebaseAndroidConfigured": true,
+    "blueOceanListingAssistantEnabled": true,
+    "stageANonBindingPilotEnabled": true
+  },
+  "artifact": {
+    "archiveDirectoryName": "2026082801-135fa726aaa7192bd57b729a5e3becbdeeeb9bee",
+    "aabFileName": "shareittoo-1.0.0-2026082801-135fa726aaa7192bd57b729a5e3becbdeeeb9bee.aab",
+    "aabBytes": 108626931,
+    "aabSha256": "56f17ee5a788db69c6099cab4a9d648b28e2eeca7dd9c6e162d7247bce0067da",
+    "apkFileName": "shareittoo-1.0.0-2026082801-135fa726aaa7192bd57b729a5e3becbdeeeb9bee.apk",
+    "apkBytes": 134762123,
+    "apkSha256": "d08922f59e7d9931c2ddbb7fc7b73fbfa1aeb30e41f4a55ce2ac493e6484fb89",
+    "privacyReportSha256": "f654dc1602251b7e5f569f303db08c097ed23da7078839d12d8f9f6656ac94ce",
+    "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+    "signatureVerified": true,
+    "zipStructureValidation": "passed",
+    "bundletoolVersion": "1.18.1",
+    "bundletoolValidation": "passed",
+    "binaryPrivacyScan": "passed",
+    "ownerOnlyPermissionsVerified": true,
+    "nonOverwritingArchive": true
+  },
+  "sourceVerification": {
+    "focusedFlutterTests": "passed-14-of-14",
+    "affectedRatchetTests": "passed-33-of-33",
+    "localCiProfileRegression": "passed",
+    "artifactAwareStandardRegression": "passed",
+    "githubRegressionRunId": 33208564193,
+    "githubRegressionConclusion": "success",
+    "githubCodeqlRunId": 33208564198,
+    "githubCodeqlConclusion": "success",
+    "openCodeScanningAlerts": 0
+  },
+  "playStateAtBuild": {
+    "highestKnownActiveInternalVersionCode": "2026082601",
+    "candidateVersionCodeStrictlyHigher": true,
+    "candidateUploaded": false,
+    "candidateActivated": false,
+    "testerListChanged": false
+  },
+  "providerAndLiveHolds": {
+    "externalListingAiEnabled": false,
+    "realPaymentsEnabled": false,
+    "productionChanged": false,
+    "firebaseProjectChanged": false,
+    "cloudVpsDnsChanged": false,
+    "pullRequestMerged": false,
+    "deviceAccessed": false
+  },
+  "evidenceRef": "docs/evidence/release-readiness/oneplus-guest-discovery-hotfix-2026082801.json",
+  "handoverRef": "docs/operations/ONEPLUS_GUEST_DISCOVERY_HOTFIX_2026082801_HANDOVER.md",
+  "releaseNotesRef": "store/google-play/de-DE/internal_release_notes_2026082801.txt",
+  "containsSecrets": false,
+  "containsTesterIdentity": false,
+  "containsOptInUrl": false,
+  "containsPrivateFilesystemPath": false
+}

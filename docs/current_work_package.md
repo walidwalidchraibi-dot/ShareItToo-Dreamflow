@@ -1,4 +1,28 @@
-# Current Work Package: Google Play Internal release 2026082601 completion
+# Current Work Package: OnePlus guest-discovery hotfix 2026082801
+
+Status: **BUILD READY; PLAY INTERNAL REPLACEMENT PENDING** on 28.08.2026.
+
+The OnePlus guest error was traced to public catalog loading awaiting the
+authenticated block-list endpoint. The focused correction preserves public
+guest listing access, authenticated remote filtering and principal/epoch
+isolation. Exact signed candidate `1.0.0+2026082801` is bound to source commit
+`135fa726aaa7192bd57b729a5e3becbdeeeb9bee` and AAB SHA-256
+`56f17ee5a788db69c6099cab4a9d648b28e2eeca7dd9c6e162d7247bce0067da`.
+
+The candidate is Internal/Staging only. Archive, signature, package, SDK,
+privacy, ZIP and Bundletool checks passed; source-head Regression and CodeQL
+are exact-SHA green with zero open alerts. The remaining sequence is evidence
+closure, exact-SHA CI for the evidence HEAD, authenticated read-only Play
+preflight, exact AAB upload and Internal-only activation, followed by Play
+readback and owner-run OnePlus update/test. No tester-list or other track is to
+change.
+
+Machine evidence:
+`docs/evidence/release-readiness/oneplus-guest-discovery-hotfix-2026082801.json`.
+Human handover:
+`docs/operations/ONEPLUS_GUEST_DISCOVERY_HOTFIX_2026082801_HANDOVER.md`.
+
+# Previous Work Package: Google Play Internal release 2026082601 completion
 
 Status: **GOOGLE_PLAY_INTERNAL_RELEASE_COMPLETE; LOCAL AND EXACT-SHA GITHUB
 VERIFICATION PASSED** on 27.08.2026.
