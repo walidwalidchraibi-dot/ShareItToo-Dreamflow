@@ -88,7 +88,7 @@
   "privateDriveHandoff": {
     "status": "uploaded-and-size-verified",
     "folderName": "PRIVATE_PLAY_UPLOAD_2026083001",
-    "fileCount": 5,
+    "fileCount": 7,
     "shared": false,
     "part00Bytes": 60000000,
     "part00Sha256": "6cdaf24c9b066cf98c95decf4355964061dc61f2746ccdc20ac1707990727b35",

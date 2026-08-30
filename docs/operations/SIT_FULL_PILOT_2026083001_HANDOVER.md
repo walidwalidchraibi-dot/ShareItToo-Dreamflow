@@ -58,10 +58,11 @@ account selection and must then use the exact published image plus
 Google Play readback confirmed only Internal testing, active version
 `2026082601`, the unchanged two-user tester list and an empty unsaved draft.
 The local Mac was locked and Chrome file access remained disabled, so the AAB
-was not uploaded or activated. A private, unshared five-file handoff named
+was not uploaded or activated. A private, unshared seven-file handoff named
 `PRIVATE_PLAY_UPLOAD_2026083001` is present in the SIT Drive folder. Its two
 parts are exactly 60000000 and 48943212 bytes and the README binds both hashes,
-reassembly, full AAB hash and the Internal-only procedure.
+reassembly, full AAB hash and the Internal-only procedure. It also carries the
+exact de-DE release notes and a bounded MacBook Codex execution prompt.
 
 Physical OnePlus/Pixel results remain `NOT_RUN` until the exact Internal build
 is distributed and a device is reachable. These observations must be updated
