@@ -68,3 +68,39 @@ Physical OnePlus/Pixel results remain `NOT_RUN` until the exact Internal build
 is distributed and a device is reachable. These observations must be updated
 only from direct readback; no older candidate or device result transfers to
 `2026083001`.
+
+## Physical acceptance matrix after distribution
+
+Run this matrix only after Play reports `2026083001` as available and Staging
+reports source commit `8cf69273fcc31dd5183d265fb6d4e43d6b2cc9b5`:
+
+1. Confirm Play update/clean install and in-app version identity; retain data
+   only for the explicit update lane.
+2. Load guest discovery on working WLAN, offline and restored WLAN. A network
+   error must never appear as a truthful empty catalog.
+3. Exercise registration/login where Staging permits it, then kill/restart the
+   process and verify the same principal resumes without another account's
+   local state.
+4. Under Account A, add two available items from the same owner to one
+   non-binding project. Verify itemized quote and inventory snapshot; no
+   reservation, contract or payment claim may appear.
+5. Open all five deterministic planner templates, resolve at least one
+   available and one unavailable variant, and add only the revalidated exact
+   variant to the non-reserving cart.
+6. As an owner, create and end a listing set; as a renter, discover an active
+   set and verify unavailable members are not presented as a complete
+   available set.
+7. Start a mutation or dialog as Account A, switch to Account B before its
+   completion, and verify no A result, dialog closure or navigation appears
+   under B. Repeat once with a delayed/error response.
+8. During every mutation, interrupt and restore connectivity. A transport
+   loss must remain outcome-unknown until server truth is refreshed; it must
+   not become empty state or success.
+9. Verify permissions, background/foreground, process kill/restart and a
+   second WLAN where available. Record device model, OS and build, but keep
+   account identity and network identifiers outside Git.
+10. Confirm the payment surface remains simulated/non-binding and that no real
+    charge, refund, payout, public listing or external-AI call is possible.
+
+Record each row as `PASS`, `FAIL`, `BLOCKED` or `NOT_RUN` with direct evidence.
+A technical or automated pass does not substitute for the physical row.
