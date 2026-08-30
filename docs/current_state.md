@@ -1,6 +1,35 @@
 # ShareItToo Current State
 
-Verified: 2026-08-28 on the Mac mini.
+Verified: 2026-08-30 on the Mac mini.
+
+## Current closed-pilot candidate state
+
+The complete non-public G3-G5 pilot implementation is frozen at artifact
+source commit `8cf69273fcc31dd5183d265fb6d4e43d6b2cc9b5`. Exact local regression,
+GitHub Regression `33318505901`, CodeQL `33318505919` and clean-checkout
+reproducibility passed; open code-scanning alerts are zero.
+
+The canonical signed Android candidate is `com.shareittoo.app`,
+`1.0.0+2026083001`, Internal/Staging, pilot `heilbronn_wave0`, with AAB
+SHA-256 `008d24a8ae7dc879f6ab55eafa490db98811270572448cbf66b87c81005d6cc1`.
+ZIP structure, Bundletool 1.18.1, binary privacy, package/version identity and
+upload signature passed. G3 same-owner multi-item, G4 deterministic planning
+and G5 supply enrichment/listing sets are enabled only inside the exact signed
+envelope; reservations, contracts, real payments, external AI and public
+release remain disabled.
+
+API-image workflow `33318951234` passed on the exact source HEAD. Staging is
+healthy but still exposes old commit `cedc5ecf...`; exact deployment is pending
+the existing Hostinger Google-account selection. Play readback still shows
+active Internal `2026082601`, an empty unsaved draft and the unchanged two-user
+tester list. The Mac was locked and Chrome file access disabled, so no AAB was
+uploaded or activated. The complete private handoff is uploaded, unshared, as
+`PRIVATE_PLAY_UPLOAD_2026083001` in the SIT Drive folder.
+
+The physical-device run remains pending. No Production, Open testing, Closed
+testing, tester-list, payment, Firebase-project, Cloud/VPS/DNS or PR-merge
+state has changed. Exact evidence is
+`docs/evidence/release-readiness/full-pilot-candidate-2026083001.json`.
 
 ## Current OnePlus guest-discovery hotfix state
 

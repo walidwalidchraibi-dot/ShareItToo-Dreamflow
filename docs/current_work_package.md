@@ -1,4 +1,29 @@
-# Current Work Package: OnePlus guest-discovery hotfix 2026082801
+# Current Work Package: closed-pilot candidate 2026083001
+
+Status: **BUILD READY; STAGING AND PLAY INTERNAL PENDING** on 30.08.2026.
+
+The G3-G5 closed pilot is frozen at artifact source commit
+`8cf69273fcc31dd5183d265fb6d4e43d6b2cc9b5`. Exact local regression and
+clean-checkout reproducibility passed together with GitHub Regression
+`33318505901`, CodeQL `33318505919` and zero open code-scanning alerts.
+
+The signed candidate is `com.shareittoo.app`, `1.0.0+2026083001`, bound to
+Internal/Staging and pilot `heilbronn_wave0`. Its AAB SHA-256 is
+`008d24a8ae7dc879f6ab55eafa490db98811270572448cbf66b87c81005d6cc1`.
+Canonical signing, package and SDK identity, ZIP structure, Bundletool 1.18.1
+and binary privacy checks passed. Exact API-image workflow `33318951234`
+passed. Staging remains healthy on old commit `cedc5ecf...` pending Hostinger
+login; Play remains active on Internal `2026082601` with an empty unsaved draft
+pending local file access. The private unshared Drive handoff
+`PRIVATE_PLAY_UPLOAD_2026083001` is complete. Play activation and the physical
+device run remain pending.
+
+Machine evidence:
+`docs/evidence/release-readiness/full-pilot-candidate-2026083001.json`.
+Human handover:
+`docs/operations/SIT_FULL_PILOT_2026083001_HANDOVER.md`.
+
+# Previous Work Package: OnePlus guest-discovery hotfix 2026082801
 
 Status: **BUILD READY; PLAY INTERNAL REPLACEMENT PENDING** on 28.08.2026.
 
