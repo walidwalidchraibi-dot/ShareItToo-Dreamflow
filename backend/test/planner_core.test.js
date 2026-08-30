@@ -228,7 +228,7 @@ test('technical access requires every disabled G4A boundary to remain exact', ()
   }
 });
 
-test('deployment and Flutter surfaces keep planner disabled and reject production enablement', () => {
+test('deployment and Flutter surfaces keep planner fail closed outside the signed Internal envelope', () => {
   const config = readFileSync(new URL('../src/config.js', import.meta.url), 'utf8');
   const productionCompose = readFileSync(new URL('../compose.prod.yml', import.meta.url), 'utf8');
   const stagingCompose = readFileSync(new URL('../compose.staging.yml', import.meta.url), 'utf8');
@@ -247,5 +247,7 @@ test('deployment and Flutter surfaces keep planner disabled and reject productio
   assert.match(flutterConfig, /defaultValue: false/u);
   assert.match(flutterConfig, /!externalGenerativeAiAllowed/u);
   assert.match(flutterConfig, /!inventoryResolutionAllowed/u);
-  assert.match(flutterConfig, /!releaseMode/u);
+  assert.match(flutterConfig, /signedStageAInternalEnvelopeEnabled/u);
+  assert.match(flutterConfig, /technicalSurfaceAvailableFor/u);
+  assert.match(flutterConfig, /signedStageAInternalEnvelope:/u);
 });
