@@ -21,6 +21,11 @@ on:
         required: true
         default: false
         type: boolean
+      publish_api_image:
+        description: Publish the exact verified API image for the closed staging pilot
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: regression-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -96,6 +101,10 @@ jobs:
           docker compose \
             -f compose.staging.yml \
             -f compose.staging.fcm.yml \
+            config --quiet
+          docker compose \
+            -f compose.staging.yml \
+            -f compose.staging.pilot.yml \
             config --quiet
           docker run --rm \
             --volume "$PWD/ops/Caddyfile:/etc/caddy/Caddyfile:ro" \
@@ -246,10 +255,13 @@ jobs:
           rm android/key.properties
 
   publish-api-image:
-    if: github.event_name == 'push'
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish_api_image)
     needs:
       - backend-regression
       - postgres-runner-proof
+      - r10-clean-reproducibility
       - flutter-regression
     runs-on: ubuntu-latest
     permissions:

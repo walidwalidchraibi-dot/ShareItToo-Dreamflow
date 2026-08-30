@@ -11,6 +11,7 @@ import {
   plannerInventoryVersion,
   resolvePlannerInventory,
 } from '../src/planner_inventory_workflow.js';
+import { plannerTemplateCatalog } from '../src/planner_core.js';
 
 const rawPlan = Object.freeze({
   templateId: 'move',
@@ -158,6 +159,25 @@ test('G4B resolves three truthful deterministic variants from current server quo
   assert.equal(result.externalGenerativeAiUsed, false);
   assert.match(result.inventorySnapshotHash, /^[0-9a-f]{64}$/u);
   assert.equal(JSON.stringify(result).includes('ownerId'), false);
+});
+
+test('closed-pilot question catalog exposes only deterministic client inputs', () => {
+  const catalog = plannerTemplateCatalog();
+  assert.equal(catalog.plannerVersion, 'G4A-2026-08-21.1');
+  assert.equal(catalog.templates.length, 5);
+  assert.equal(catalog.externalGenerativeAiUsed, false);
+  assert.equal(catalog.serverResolutionRequired, true);
+  for (const template of catalog.templates) {
+    assert.match(template.id, /^[a-z][a-z0-9_]{2,39}$/u);
+    assert.ok(template.title.length >= 3);
+    assert.ok(template.questions.length >= 3);
+    for (const question of template.questions) {
+      assert.equal(question.type, 'single_choice');
+      assert.ok(question.options.length >= 2);
+    }
+  }
+  assert.equal(JSON.stringify(catalog).includes('catalogTargets'), false);
+  assert.equal(JSON.stringify(catalog).includes('ownerId'), false);
 });
 
 test('1-Stop and top-rated labels fail closed when their exact factual basis is absent', async () => {
@@ -345,6 +365,7 @@ test('deployment and route wiring keep G4B disabled, internal, and non-reserving
   assert.match(app, /assertPlannerInventoryTechnicalAccess\(config\)/u);
   assert.match(app, /\/v1\/planner\/resolve/u);
   assert.match(app, /\/v1\/planner\/projects\/:id\/cart/u);
+  assert.match(app, /\/v1\/planner\/templates/u);
   assert.match(workflow, /quoteCandidate/u);
   assert.match(workflow, /persist: false/u);
   assert.doesNotMatch(workflow, /createBooking/u);

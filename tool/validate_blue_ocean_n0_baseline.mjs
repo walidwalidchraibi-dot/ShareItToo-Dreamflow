@@ -170,7 +170,12 @@ export function validateBlueOceanN0Baseline({
     ['lib/config/listing_sets_technical_config.dart', 'SIT_LISTING_SETS_TECHNICAL_UI_ENABLED'],
   ]) {
     const content = readFileSync(resolve(repositoryRoot, path), 'utf8');
-    requireMarkers(content, [flag, 'defaultValue: false', '!releaseMode'], path);
+    requireMarkers(content, [
+      flag,
+      'defaultValue: false',
+      'signedStageAInternalEnvelope',
+      'technicalSurfaceAvailableFor',
+    ], path);
   }
 
   const serialized = JSON.stringify(value);

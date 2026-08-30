@@ -139,8 +139,8 @@ test('rejects removal of the backend production or Flutter release guard', (t) =
   const root = fixture(t);
   const path = resolve(root, 'lib/config/booking_group_technical_config.dart');
   const content = readFileSync(path, 'utf8').replace(
-    'enabled && !publicReleaseAllowed && !releaseMode',
-    'enabled',
+    'PrivatePilotConfig.technicalSurfaceAvailableFor',
+    'PrivatePilotConfig.bindingCheckoutAvailableFor',
   );
   writeFileSync(path, content);
   assert.throws(

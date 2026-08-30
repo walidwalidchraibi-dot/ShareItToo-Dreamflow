@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 
-/// G4 planner work remains an inactive deterministic technical path.
+import 'private_pilot_config.dart';
+
+/// G4 planner work remains a closed-pilot deterministic technical path.
 ///
-/// G4A has no public UI and no inventory resolver. A later release cannot
-/// expose the surface through this flag, and external generative AI has no
-/// runtime switch in this package.
+/// G4A/G4B may be exposed only by the exact signed Stage-A Internal/Staging
+/// envelope. External generative AI and public release remain unavailable.
 class PlannerTechnicalConfig {
   static const bool enabled = bool.fromEnvironment(
     'SIT_PLANNER_TECHNICAL_UI_ENABLED',
@@ -19,10 +20,27 @@ class PlannerTechnicalConfig {
 
   @visibleForTesting
   static bool availableForMode({required bool releaseMode}) {
-    return enabled &&
-        !publicReleaseAllowed &&
+    return availableForConfiguration(
+      featureEnabled: enabled,
+      releaseMode: releaseMode,
+      signedStageAInternalEnvelope:
+          PrivatePilotConfig.signedStageAInternalEnvelopeEnabled,
+    );
+  }
+
+  @visibleForTesting
+  static bool availableForConfiguration({
+    required bool featureEnabled,
+    required bool releaseMode,
+    required bool signedStageAInternalEnvelope,
+  }) {
+    return !publicReleaseAllowed &&
         !externalGenerativeAiAllowed &&
         !inventoryResolutionAllowed &&
-        !releaseMode;
+        PrivatePilotConfig.technicalSurfaceAvailableFor(
+          featureEnabled: featureEnabled,
+          releaseMode: releaseMode,
+          signedStageAInternalEnvelope: signedStageAInternalEnvelope,
+        );
   }
 }

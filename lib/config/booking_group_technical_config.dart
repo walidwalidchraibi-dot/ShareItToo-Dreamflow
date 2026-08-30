@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 
-/// G3 multi-item work remains a local/test-only technical path.
+import 'private_pilot_config.dart';
+
+/// G3 multi-item work remains a closed-pilot technical path.
 ///
-/// A release build cannot expose this surface even when a build-time value is
-/// supplied accidentally. Public activation requires the later legal and
-/// release gates and therefore has no runtime override here.
+/// A release build can expose it only inside the exact signed Stage-A
+/// Internal/Staging envelope. Public activation remains impossible.
 class BookingGroupTechnicalConfig {
   static const bool enabled = bool.fromEnvironment(
     'SIT_BOOKING_GROUPS_TECHNICAL_UI_ENABLED',
@@ -20,6 +21,25 @@ class BookingGroupTechnicalConfig {
 
   @visibleForTesting
   static bool availableForMode({required bool releaseMode}) {
-    return enabled && !publicReleaseAllowed && !releaseMode;
+    return availableForConfiguration(
+      featureEnabled: enabled,
+      releaseMode: releaseMode,
+      signedStageAInternalEnvelope:
+          PrivatePilotConfig.signedStageAInternalEnvelopeEnabled,
+    );
+  }
+
+  @visibleForTesting
+  static bool availableForConfiguration({
+    required bool featureEnabled,
+    required bool releaseMode,
+    required bool signedStageAInternalEnvelope,
+  }) {
+    return !publicReleaseAllowed &&
+        PrivatePilotConfig.technicalSurfaceAvailableFor(
+          featureEnabled: featureEnabled,
+          releaseMode: releaseMode,
+          signedStageAInternalEnvelope: signedStageAInternalEnvelope,
+        );
   }
 }

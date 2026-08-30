@@ -91,6 +91,22 @@ void main() {
       ListingSetsTechnicalConfig.availableForMode(releaseMode: true),
       isFalse,
     );
+    expect(
+      ListingSetsTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: false,
+      ),
+      isFalse,
+    );
+    expect(
+      ListingSetsTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: true,
+      ),
+      isTrue,
+    );
   });
 
   test('resolution preserves exact item price and operational boundaries', () {
@@ -102,6 +118,44 @@ void main() {
     expect(
       resolution.items.every((item) => item.quote.securityDepositMinor == 0),
       isTrue,
+    );
+  });
+
+  test('owner view accepts only versioned, individually bookable sets', () {
+    final row = <String, dynamic>{
+      'listingSetVersion': 'G5B-2026-08-21.1',
+      'id': 'listing_set_11111111-1111-4111-8111-111111111111',
+      'revision': 1,
+      'setKind': 'sit_set',
+      'title': 'Werkstatt Set',
+      'status': 'active',
+      'currency': 'EUR',
+      'membershipHash': List<String>.filled(64, 'c').join(),
+      'individualBookabilityPreserved': true,
+      'members': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'listingId': 'listing-0001',
+          'role': 'required',
+          'sortOrder': 0,
+          'title': 'Bohrmaschine',
+        },
+        <String, dynamic>{
+          'listingId': 'listing-0002',
+          'role': 'required',
+          'sortOrder': 1,
+          'title': 'Schleifer',
+        },
+      ],
+    };
+
+    final set = ListingSetOwnerView.fromJson(row);
+    expect(set.members, hasLength(2));
+    expect(set.status, 'active');
+
+    row['individualBookabilityPreserved'] = false;
+    expect(
+      () => ListingSetOwnerView.fromJson(row),
+      throwsFormatException,
     );
   });
 

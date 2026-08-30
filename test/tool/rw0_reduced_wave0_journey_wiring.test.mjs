@@ -84,7 +84,7 @@ test('project-name controller is owned until its dialog route is disposed', () =
   assert.doesNotMatch(screen, /final title = await AppPopup\.showCustom<String>[\s\S]{0,500}?controller\.dispose\(\)/u);
 });
 
-test('binding and G3-G5 release gates remain closed', () => {
+test('binding stays closed and G3-G5 require the exact signed Internal envelope', () => {
   const checkout = read('lib/screens/private_pilot_checkout_screen.dart');
   assert.match(checkout, /Mietanfrage im Stage-A-Pilot gesperrt/u);
   assert.match(checkout, /onPressed: null/u);
@@ -93,5 +93,9 @@ test('binding and G3-G5 release gates remain closed', () => {
     'lib/config/planner_technical_config.dart',
     'lib/config/supply_enrichment_technical_config.dart',
     'lib/config/listing_sets_technical_config.dart',
-  ]) assert.match(read(path), /!releaseMode/u);
+  ]) {
+    assert.match(read(path), /signedStageAInternalEnvelope/u);
+    assert.match(read(path), /technicalSurfaceAvailableFor/u);
+    assert.match(read(path), /publicReleaseAllowed/u);
+  }
 });

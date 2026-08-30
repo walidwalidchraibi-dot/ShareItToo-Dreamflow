@@ -13,6 +13,8 @@ task_previous_version='unknown'
 task_previous_build_time='unknown'
 task_rollback_override=''
 task_release_dir="${RELEASE_LOG_DIR:-/docker/shareittoo/releases}"
+task_staging_pilot_id="${SIT_STAGING_PILOT_ID:-}"
+task_pull_release_image="${PULL_RELEASE_IMAGE:-0}"
 
 cleanup() {
   if [[ -n "$task_rollback_override" ]]; then
@@ -92,8 +94,27 @@ if [[ "$task_environment" == production && "$task_enable_staging_fcm" == 1 ]]; t
   echo "The staging FCM override is forbidden for production deployments." >&2
   exit 1
 fi
+if [[ "$task_pull_release_image" != 0 && "$task_pull_release_image" != 1 ]]; then
+  echo "PULL_RELEASE_IMAGE must be 0 or 1." >&2
+  exit 1
+fi
+if [[ "$task_environment" == production && -n "$task_staging_pilot_id" ]]; then
+  echo "SIT_STAGING_PILOT_ID is forbidden for production deployments." >&2
+  exit 1
+fi
+if [[ -n "$task_staging_pilot_id" && "$task_staging_pilot_id" != heilbronn_wave0 ]]; then
+  echo "SIT_STAGING_PILOT_ID must be empty or heilbronn_wave0." >&2
+  exit 1
+fi
 
 task_image="${IMAGE_REPOSITORY:-shareittoo-api}:$task_commit"
+if [[ "$task_pull_release_image" == 1 ]]; then
+  if [[ ! "${IMAGE_REPOSITORY:-}" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+$ ]]; then
+    echo "PULL_RELEASE_IMAGE requires an explicit GHCR IMAGE_REPOSITORY." >&2
+    exit 1
+  fi
+  docker pull "$task_image"
+fi
 task_image_commit="$(docker image inspect "$task_image" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
 task_version="$(docker image inspect "$task_image" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')"
 task_build_time="$(docker image inspect "$task_image" --format '{{ index .Config.Labels "org.opencontainers.image.created" }}')"
@@ -123,6 +144,9 @@ else
   task_project_name=sit-staging
   task_api_container=shareittoo-staging-api
   task_fcm_enabled=false
+  if [[ "$task_staging_pilot_id" == heilbronn_wave0 ]]; then
+    task_compose_args+=(-f "$task_backend_root/compose.staging.pilot.yml")
+  fi
   if [[ "$task_enable_staging_fcm" == 1 ]]; then
     FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID:-}" \
     FIREBASE_SERVICE_ACCOUNT_HOST_FILE="${FIREBASE_SERVICE_ACCOUNT_HOST_FILE:-}" \
@@ -166,9 +190,10 @@ curl --fail --silent --show-error --max-time 20 "$task_health_url/health/ready" 
 install -d -m 700 "$task_release_dir"
 task_timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 task_report="$task_release_dir/${task_environment}-${task_timestamp}-${task_commit:0:12}.json"
-printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s}\n' \
+printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingPilotId":"%s"}\n' \
   "$task_environment" "$task_commit" "$task_previous_commit" "$task_version" \
-  "$task_build_time" "$task_timestamp" "$task_fcm_enabled" > "$task_report"
+  "$task_build_time" "$task_timestamp" "$task_fcm_enabled" \
+  "$task_staging_pilot_id" > "$task_report"
 chmod 600 "$task_report"
 task_deployment_started=false
 

@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 
-/// G5A is a disabled technical path for deterministic post-listing questions.
+import 'private_pilot_config.dart';
+
+/// G5A is a closed-pilot path for deterministic post-listing questions.
 ///
-/// It cannot be exposed by a signed release build and has no external-AI
-/// runtime switch.
+/// It may be exposed by the exact signed Stage-A Internal/Staging envelope and
+/// has no external-AI or public-release switch.
 class SupplyEnrichmentTechnicalConfig {
   static const bool enabled = bool.fromEnvironment(
     'SIT_SUPPLY_ENRICHMENT_TECHNICAL_UI_ENABLED',
@@ -17,9 +19,26 @@ class SupplyEnrichmentTechnicalConfig {
 
   @visibleForTesting
   static bool availableForMode({required bool releaseMode}) {
-    return enabled &&
-        !publicReleaseAllowed &&
+    return availableForConfiguration(
+      featureEnabled: enabled,
+      releaseMode: releaseMode,
+      signedStageAInternalEnvelope:
+          PrivatePilotConfig.signedStageAInternalEnvelopeEnabled,
+    );
+  }
+
+  @visibleForTesting
+  static bool availableForConfiguration({
+    required bool featureEnabled,
+    required bool releaseMode,
+    required bool signedStageAInternalEnvelope,
+  }) {
+    return !publicReleaseAllowed &&
         !externalGenerativeAiAllowed &&
-        !releaseMode;
+        PrivatePilotConfig.technicalSurfaceAvailableFor(
+          featureEnabled: featureEnabled,
+          releaseMode: releaseMode,
+          signedStageAInternalEnvelope: signedStageAInternalEnvelope,
+        );
   }
 }

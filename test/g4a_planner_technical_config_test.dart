@@ -15,5 +15,21 @@ void main() {
       PlannerTechnicalConfig.availableForMode(releaseMode: true),
       isFalse,
     );
+    expect(
+      PlannerTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: false,
+      ),
+      isFalse,
+    );
+    expect(
+      PlannerTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: true,
+      ),
+      isTrue,
+    );
   });
 }

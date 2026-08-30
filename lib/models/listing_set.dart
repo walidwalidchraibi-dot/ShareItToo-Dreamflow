@@ -28,6 +28,112 @@ enum ListingSetMemberRole {
   }
 }
 
+class ListingSetOwnerMember {
+  const ListingSetOwnerMember({
+    required this.listingId,
+    required this.role,
+    required this.sortOrder,
+    required this.title,
+  });
+
+  final String listingId;
+  final ListingSetMemberRole role;
+  final int sortOrder;
+  final String title;
+
+  factory ListingSetOwnerMember.fromJson(Map<String, dynamic> json) {
+    final listingId = json['listingId']?.toString() ?? '';
+    final title = json['title']?.toString() ?? '';
+    final sortOrder = json['sortOrder'];
+    if (listingId.isEmpty ||
+        title.isEmpty ||
+        sortOrder is! int ||
+        sortOrder < 0 ||
+        sortOrder > 11) {
+      throw const FormatException('invalid_listing_set_owner_member');
+    }
+    return ListingSetOwnerMember(
+      listingId: listingId,
+      role: ListingSetMemberRole.parse(json['role']),
+      sortOrder: sortOrder,
+      title: title,
+    );
+  }
+}
+
+class ListingSetOwnerView {
+  const ListingSetOwnerView({
+    required this.id,
+    required this.revision,
+    required this.kind,
+    required this.title,
+    required this.status,
+    required this.currency,
+    required this.members,
+  });
+
+  final String id;
+  final int revision;
+  final ListingSetKind kind;
+  final String title;
+  final String status;
+  final String currency;
+  final List<ListingSetOwnerMember> members;
+
+  factory ListingSetOwnerView.fromJson(Map<String, dynamic> json) {
+    final rawMembers = json['members'];
+    final members = rawMembers is List
+        ? rawMembers
+            .whereType<Map>()
+            .map(
+              (entry) => ListingSetOwnerMember.fromJson(
+                Map<String, dynamic>.from(entry),
+              ),
+            )
+            .toList(growable: false)
+        : const <ListingSetOwnerMember>[];
+    final id = json['id']?.toString() ?? '';
+    final title = json['title']?.toString() ?? '';
+    final revision = json['revision'];
+    final status = json['status']?.toString() ?? '';
+    final currency = json['currency']?.toString() ?? '';
+    final membershipHash = json['membershipHash']?.toString() ?? '';
+    if (json['listingSetVersion'] != 'G5B-2026-08-21.1' ||
+        !RegExp(
+          r'^listing_set_[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        ).hasMatch(id) ||
+        revision is! int ||
+        revision < 1 ||
+        title.trim().length < 3 ||
+        title.length > 120 ||
+        !const {'active', 'paused', 'ended'}.contains(status) ||
+        currency != 'EUR' ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(membershipHash) ||
+        rawMembers is! List ||
+        members.length != rawMembers.length ||
+        members.length < 2 ||
+        members.length > 12 ||
+        members
+                .where((entry) => entry.role == ListingSetMemberRole.required)
+                .length <
+            2 ||
+        members.map((entry) => entry.listingId).toSet().length !=
+            members.length ||
+        json['individualBookabilityPreserved'] != true) {
+      throw const FormatException('unsafe_listing_set_owner_view');
+    }
+    return ListingSetOwnerView(
+      id: id,
+      revision: revision,
+      kind: ListingSetKind.parse(json['setKind']),
+      title: title,
+      status: status,
+      currency: currency,
+      members: members,
+    );
+  }
+}
+
 class ListingSetItemQuote {
   const ListingSetItemQuote({
     required this.quoteHash,

@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:lendify/config/booking_group_technical_config.dart';
+import 'package:lendify/config/planner_technical_config.dart';
+import 'package:lendify/config/listing_sets_technical_config.dart';
 import 'package:lendify/models/booking_group.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_cart.dart';
 import 'package:lendify/screens/booking_group_technical_screen.dart';
+import 'package:lendify/screens/closed_pilot_planner_screen.dart';
+import 'package:lendify/screens/closed_pilot_listing_set_discovery_screen.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/private_pilot_checkout_screen.dart';
 import 'package:lendify/services/auth_service.dart';
@@ -294,6 +298,40 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
     }
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => BookingGroupTechnicalScreen(candidate: candidate),
+    ));
+  }
+
+  Future<void> _openPlanner() async {
+    final session = await AuthService.readSession();
+    if (!mounted) return;
+    if (session == null) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => const LoginScreen(returnTabIndex: 1),
+      ));
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => const ClosedPilotPlannerScreen(),
+    ));
+    if (mounted) await _reload();
+  }
+
+  Future<void> _openListingSetDiscovery(RentalCartItem item) async {
+    final session = await AuthService.readSession();
+    if (!mounted) return;
+    if (session == null) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => const LoginScreen(returnTabIndex: 1),
+      ));
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => ClosedPilotListingSetDiscoveryScreen(
+        listingId: item.listingId,
+        listingTitle: (item.listing['title'] ?? 'Mietartikel').toString(),
+        startDate: item.startDate,
+        endDate: item.endDate,
+      ),
     ));
   }
 
@@ -634,6 +672,36 @@ extension on _RentalCartScreenState {
                   onTap: () => _openBookingGroupCandidate(candidate),
                 ),
             ],
+            if (ListingSetsTechnicalConfig.available &&
+                cart.items.isNotEmpty) ...[
+              const Divider(height: 20),
+              Text(
+                'Passende SIT Sets',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Serverbestätigte Mehrartikel-Sets entdecken. Alle Artikel bleiben einzeln buchbar.',
+              ),
+              for (final item in cart.items)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.view_carousel_outlined),
+                  title: Text(
+                    (item.listing['title'] ?? 'Mietartikel').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    '${_cartDate(item.startDate)} – ${_cartDate(item.endDate)}',
+                  ),
+                  trailing: const Icon(Icons.arrow_forward),
+                  onTap: () => _openListingSetDiscovery(item),
+                ),
+            ],
             LayoutBuilder(
               builder: (context, constraints) {
                 final compactActions = constraints.maxWidth < 360 ||
@@ -643,6 +711,14 @@ extension on _RentalCartScreenState {
                   icon: const Icon(Icons.create_new_folder_outlined, size: 18),
                   label: const Text('Projekt anlegen'),
                 );
+                final plannerAction = PlannerTechnicalConfig.available
+                    ? TextButton.icon(
+                        onPressed: _openPlanner,
+                        icon: const Icon(Icons.auto_awesome_mosaic_outlined,
+                            size: 18),
+                        label: const Text('SIT Planer'),
+                      )
+                    : null;
                 final syncAction = cart.localDeviceOnly && cart.items.isNotEmpty
                     ? TextButton(
                         onPressed: () => Navigator.of(context).push(
@@ -658,6 +734,7 @@ extension on _RentalCartScreenState {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (plannerAction != null) plannerAction,
                       projectAction,
                       if (syncAction != null) syncAction,
                     ],
@@ -665,6 +742,10 @@ extension on _RentalCartScreenState {
                 }
                 return Row(
                   children: [
+                    if (plannerAction != null) ...[
+                      plannerAction,
+                      const SizedBox(width: 4),
+                    ],
                     projectAction,
                     const Spacer(),
                     if (syncAction != null) syncAction,

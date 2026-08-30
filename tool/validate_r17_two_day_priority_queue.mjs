@@ -256,7 +256,10 @@ export function validateR17TwoDayPriorityQueue({
     'lib/config/planner_technical_config.dart',
     'lib/config/supply_enrichment_technical_config.dart',
     'lib/config/listing_sets_technical_config.dart',
-  ]) markers(source(repositoryRoot, path), path, ['!releaseMode']);
+  ]) markers(source(repositoryRoot, path), path, [
+    'signedStageAInternalEnvelope',
+    'technicalSurfaceAvailableFor',
+  ]);
 
   const report = source(repositoryRoot, value.report);
   markers(report, value.report, [

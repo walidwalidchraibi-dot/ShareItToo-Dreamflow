@@ -274,7 +274,8 @@ function assertTechnicalBinding(root, manifest) {
       || !backendConfig.includes('booking groups cannot be enabled in production before the release gate')
       || !flutterConfig.includes("'SIT_BOOKING_GROUPS_TECHNICAL_UI_ENABLED'")
       || !flutterConfig.includes('defaultValue: false')
-      || !flutterConfig.includes('enabled && !publicReleaseAllowed && !releaseMode')) {
+      || !flutterConfig.includes('signedStageAInternalEnvelope')
+      || !flutterConfig.includes('PrivatePilotConfig.technicalSurfaceAvailableFor')) {
     fail('G3L public/live feature controls are not fail-closed.');
   }
 }

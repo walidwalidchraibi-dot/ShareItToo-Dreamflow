@@ -280,11 +280,11 @@ export function validateRw16SessionTransitionPrincipalEpoch({
     fail('RW16 ratchet audit is invalid.');
   }
   if (value.ratchets?.privacyManifestSha256
-        !== '490180c78dfeb6932261f545585886e85c4570176fd6f1d524cb1b3e3570d942'
+        !== 'c7388a0657184bc431d194b02deb8caec67cca1d0a7d3f3f04cedd3b28b56824'
       || value.ratchets?.retentionManifestSha256
-        !== '46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5'
+        !== '8d64500345542b7455b59f0060e65e3393fda79936432d6c275937c542218af3'
       || value.ratchets?.activeProviderEvidenceSha256
-        !== '1b78279a772f4f2ace4600a7c8b600c1980f951ce84f596d371846391371bf25'
+        !== 'ecabaa56fbbbf82a3d1cf3828d27b29bf28b58b79a4541a1fec72f681a0690e7'
       || value.ratchets?.activeProviderState !== 'prepared-hold'
       || value.ratchets?.completedOwnerDecisions !== 0
       || value.ratchets?.requiredOwnerDecisions !== 10

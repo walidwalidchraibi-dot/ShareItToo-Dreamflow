@@ -278,7 +278,10 @@ export function validateR16Pr7PilotFreezeIntegrationReview({
     'lib/config/planner_technical_config.dart',
     'lib/config/supply_enrichment_technical_config.dart',
     'lib/config/listing_sets_technical_config.dart',
-  ]) markers(source(repositoryRoot, path), path, ['!releaseMode']);
+  ]) markers(source(repositoryRoot, path), path, [
+    'signedStageAInternalEnvelope',
+    'technicalSurfaceAvailableFor',
+  ]);
   const legal = JSON.parse(source(repositoryRoot, 'assets/legal/de/legal_review_intake_p0b_20260821.json'));
   const g3l = JSON.parse(source(repositoryRoot, 'assets/legal/de/legal_manifest_g3l_draft.json'));
   if (legal.professionallyReviewed !== false || legal.openDecisionKeys?.length !== 18

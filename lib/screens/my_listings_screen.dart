@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/config/listing_sets_technical_config.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/listing_mutation_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
+import 'package:lendify/screens/closed_pilot_listing_sets_screen.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 
 import 'package:provider/provider.dart';
@@ -149,6 +151,22 @@ class _MyListingsScreenState extends State<MyListingsScreen>
         message: created.title,
       );
     }
+  }
+
+  Future<void> _openListingSets() async {
+    final owner = _listingActions.capture();
+    if (owner == null) return;
+    await _listingActions.pushOwnedRoute<void>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute<void>(
+        builder: (_) => ClosedPilotListingSetsScreen(
+          initialContext: owner.context,
+          ownerListings: List<Item>.unmodifiable(_items),
+          listingMutationService: _listingMutationService,
+        ),
+      ),
+    );
   }
 
   // All listed items except drafts
@@ -424,6 +442,14 @@ class _MyListingsScreenState extends State<MyListingsScreen>
         title: Text(l10n.t('Meine Anzeigen')),
         centerTitle: true,
         actions: [
+          if (ListingSetsTechnicalConfig.available)
+            IconButton(
+              tooltip: 'SIT Artikel-Sets',
+              onPressed: _currentUserId == null || _actionBusy
+                  ? null
+                  : _openListingSets,
+              icon: const Icon(Icons.view_carousel_outlined),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Tooltip(

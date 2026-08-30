@@ -44,6 +44,54 @@ class PrivatePilotConfig {
     defaultValue: false,
   );
 
+  /// Exact closed-pilot identity carried only by the signed Internal/Staging
+  /// Wave-0 candidate. A feature flag on its own is never enough to expose
+  /// the G3-G5 technical surfaces from a release build.
+  static const String stageAPilotId = String.fromEnvironment(
+    'SIT_STAGE_A_PILOT_ID',
+    defaultValue: '',
+  );
+  static const String supportedStageAPilotId = 'heilbronn_wave0';
+  static const String _releaseChannel = String.fromEnvironment(
+    'SIT_RELEASE_CHANNEL',
+    defaultValue: 'development',
+  );
+  static const String _apiBaseUrl = String.fromEnvironment(
+    'SIT_API_BASE_URL',
+    defaultValue: 'https://shareittoo.com/api/v1',
+  );
+
+  static bool signedStageAInternalEnvelopeFor({
+    required bool listingAssistantEnabled,
+    required bool nonBindingPilotEnabled,
+    required String pilotId,
+    required String releaseChannel,
+    required String apiBaseUrl,
+  }) {
+    return listingAssistantEnabled &&
+        nonBindingPilotEnabled &&
+        pilotId == supportedStageAPilotId &&
+        releaseChannel == 'internal' &&
+        apiBaseUrl == 'https://staging.shareittoo.com/api/v1';
+  }
+
+  static bool get signedStageAInternalEnvelopeEnabled =>
+      signedStageAInternalEnvelopeFor(
+        listingAssistantEnabled: blueOceanListingAssistantEnabled,
+        nonBindingPilotEnabled: stageANonBindingPilotEnabled,
+        pilotId: stageAPilotId,
+        releaseChannel: _releaseChannel,
+        apiBaseUrl: _apiBaseUrl,
+      );
+
+  static bool technicalSurfaceAvailableFor({
+    required bool featureEnabled,
+    required bool releaseMode,
+    required bool signedStageAInternalEnvelope,
+  }) {
+    return featureEnabled && (!releaseMode || signedStageAInternalEnvelope);
+  }
+
   static bool bindingCheckoutAvailableFor({
     required bool stageANonBindingPilot,
   }) =>
@@ -85,7 +133,10 @@ class PrivatePilotConfig {
   static const String v52DocumentName =
       'ShareItToo Rechtsmappe Privat-Launch V5.2';
   static const String v52DocumentVersion = 'V5.2-2026-08-16';
-  static const String v52ClientBuild = '1.0.0+2026082801';
+  static const String v52ClientBuild = String.fromEnvironment(
+    'SIT_CLIENT_BUILD',
+    defaultValue: '1.0.0+2026082801',
+  );
   static const String v52PrivateAndPlatformTermsDeclaration =
       'Ich handle bei dieser Buchung ausschließlich privat und akzeptiere die SIT-Plattformbedingungen [Teil A, Version V5.2-2026-08-16] sowie die Privat-Mietbedingungen einschließlich Storno-, Übergabe- und Schadenregeln [Teile B-D, Version V5.2-2026-08-16].';
   static const String v52EarlyPerformanceAndWithdrawalDeclaration =

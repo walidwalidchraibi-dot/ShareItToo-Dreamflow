@@ -44,6 +44,22 @@ void main() {
       SupplyEnrichmentTechnicalConfig.availableForMode(releaseMode: true),
       isFalse,
     );
+    expect(
+      SupplyEnrichmentTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: false,
+      ),
+      isFalse,
+    );
+    expect(
+      SupplyEnrichmentTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: true,
+      ),
+      isTrue,
+    );
   });
 
   test('session parser rejects more than three suggestions', () {

@@ -458,6 +458,27 @@ export function plannerTemplateQuestions(templateId) {
   return selectedTemplate.questions;
 }
 
+/// Public, deterministic question catalog for the closed-pilot client.
+/// It deliberately omits rules and assumptions that are only meaningful to
+/// the server-side resolver; the resolver remains the source of truth.
+export function plannerTemplateCatalog() {
+  return deepFreeze({
+    plannerVersion: plannerCoreVersion,
+    templates: plannerTemplates.map((entry) => ({
+      id: entry.id,
+      title: entry.title,
+      questions: entry.questions.map((questionEntry) => ({
+        id: questionEntry.id,
+        prompt: questionEntry.prompt,
+        type: questionEntry.type,
+        options: [...questionEntry.options],
+      })),
+    })),
+    externalGenerativeAiUsed: false,
+    serverResolutionRequired: true,
+  });
+}
+
 export function createDeterministicFirstPlan(templateId, rawAnswers) {
   const selectedTemplate = templateById(templateId);
   const answers = validatedAnswers(rawAnswers, selectedTemplate);

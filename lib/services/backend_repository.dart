@@ -529,10 +529,34 @@ class BackendRepository {
     return _maps(response['sets']);
   }
 
+  static Future<List<Map<String, dynamic>>> getMyListingSetsForOwner(
+    AuthSessionOwner owner,
+  ) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'GET',
+      path: '/listing-sets/mine',
+    );
+    return _strictMaps(response['sets']);
+  }
+
   static Future<Map<String, dynamic>> createListingSet(
     Map<String, dynamic> listingSet,
   ) async {
     final response = await _authorized(
+      method: 'POST',
+      path: '/listing-sets',
+      body: listingSet,
+    );
+    return Map<String, dynamic>.from(response['listingSet'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> createListingSetForOwner({
+    required AuthSessionOwner owner,
+    required Map<String, dynamic> listingSet,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/listing-sets',
       body: listingSet,
@@ -552,12 +576,41 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['listingSet'] as Map);
   }
 
+  static Future<Map<String, dynamic>> reviseListingSetForOwner({
+    required AuthSessionOwner owner,
+    required String listingSetId,
+    required Map<String, dynamic> revision,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'PUT',
+      path: '/listing-sets/${Uri.encodeComponent(listingSetId)}',
+      body: revision,
+    );
+    return Map<String, dynamic>.from(response['listingSet'] as Map);
+  }
+
   static Future<Map<String, dynamic>> resolveListingSet({
     required String listingSetId,
     required String startDate,
     required String endDate,
   }) async {
     final response = await _authorized(
+      method: 'POST',
+      path: '/listing-sets/${Uri.encodeComponent(listingSetId)}/resolve',
+      body: <String, dynamic>{'startDate': startDate, 'endDate': endDate},
+    );
+    return Map<String, dynamic>.from(response['resolution'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> resolveListingSetForOwner({
+    required AuthSessionOwner owner,
+    required String listingSetId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/listing-sets/${Uri.encodeComponent(listingSetId)}/resolve',
       body: <String, dynamic>{'startDate': startDate, 'endDate': endDate},
@@ -581,6 +634,61 @@ class BackendRepository {
     );
     return Map<String, dynamic>.from(response['discovery'] as Map);
   }
+
+  static Future<Map<String, dynamic>> discoverListingSetsForOwner({
+    required AuthSessionOwner owner,
+    required String listingId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path: '/listing-sets/discover',
+      body: <String, dynamic>{
+        'listingId': listingId,
+        'startDate': startDate,
+        'endDate': endDate,
+      },
+    );
+    return Map<String, dynamic>.from(response['discovery'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> getPlannerTemplateCatalogForOwner(
+    AuthSessionOwner owner,
+  ) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'GET',
+      path: '/planner/templates',
+    );
+    return Map<String, dynamic>.from(response['catalog'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> resolvePlannerForOwner({
+    required AuthSessionOwner owner,
+    required Map<String, dynamic> request,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path: '/planner/resolve',
+      body: request,
+    );
+    return Map<String, dynamic>.from(response['resolution'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> addPlannerProjectToCartForOwner({
+    required AuthSessionOwner owner,
+    required String projectId,
+    required Map<String, dynamic> request,
+  }) =>
+      _authorizedForOwner(
+        owner: owner,
+        method: 'POST',
+        path: '/planner/projects/${Uri.encodeComponent(projectId)}/cart',
+        body: request,
+      );
 
   static Future<Map<String, dynamic>> updateListing(
     Map<String, dynamic> listing,

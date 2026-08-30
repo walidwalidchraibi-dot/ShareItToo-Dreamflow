@@ -118,9 +118,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "b84c196190dfdfe98258a3a130f50b26a5e01776a32efaeed36caa05bf37fc7e",
-    "retentionManifestSha256": "46a2ca63b655e9d0d24816035f9659dea3a84b1e67f7b5d83a0f6e85a01873e5",
-    "activeProviderEvidenceSha256": "3c025180f4e083ed4ce8ad20c983d6608714e54820cab5d1a51122c43136013d",
+    "privacyManifestSha256": "c7388a0657184bc431d194b02deb8caec67cca1d0a7d3f3f04cedd3b28b56824",
+    "retentionManifestSha256": "8d64500345542b7455b59f0060e65e3393fda79936432d6c275937c542218af3",
+    "activeProviderEvidenceSha256": "ecabaa56fbbbf82a3d1cf3828d27b29bf28b58b79a4541a1fec72f681a0690e7",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -159,17 +159,17 @@
     "The distinct RW10 post-service success-popup epoch window remains open for a separately bounded product correction and is not claimed closed by RW11."
   ],
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "1cc0c82c567d8ae7e37a3125f5dd4ed90d257073cd800e33c8a2bd0b7dd692a5"},
+    {"path": "backend/src/app.js", "sha256": "1bd432f5a412c40a9f4036c02b0bc92f2bdf6879a510238e4270450ca1b7aace"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "534253d5bcdcb541b73740d9b58e7b70568397dc9f53e04fa28ef2c8158a912a"},
     {"path": "lib/screens/messages_screen.dart", "sha256": "80d4c76a2f4913ffabdb928eaca24216486bb1a7c05791ab83e0d261f8dc0672"},
-    {"path": "lib/services/backend_repository.dart", "sha256": "c05e83f2b33f325e4209054ea757617074aef88965cdf8d63b9d8911c4db3cd6"},
+    {"path": "lib/services/backend_repository.dart", "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"},
     {"path": "lib/services/local_safety_privacy_service.dart", "sha256": "915ba3a7230271b24b222fa92a5ed53baeb2914160009f11106e7b81b799767c"},
     {"path": "lib/services/user_reports_service.dart", "sha256": "94399bb6798ee4132f0b2ba15f1c3dbf2f755729029410b6d91057e5409f107c"},
     {"path": "docs/architecture/s4j-non-acute-harassment-block-report-2026-08-22.md", "sha256": "e86872b44543aca403185c50b938b65e3c04a5b1164c8a1b05e774428fdf5263"},
     {"path": "docs/decisions/ADR-073-atomic-non-acute-harassment-block-report.md", "sha256": "276c33c94f7028b61d0bcbbc3795ba9913ae052989d0e11d1431f5a67e35b53c"},
     {"path": "docs/architecture/s3x-support-case-ui-accessibility-2026-08-22.md", "sha256": "665415f7ce5e6951ae14b9533f3041459d3f08e8b13c6ed7b77bf512cacc52dc"},
     {"path": "docs/decisions/ADR-061-support-case-semantic-order-and-empty-blocked-filter.md", "sha256": "60b783937f4e241f30c57ef556eb596150d43395df5d5602c5c8ee4d36b0ff93"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "d2f0a0108ae8fb9027c2c5f58d5dda5426d6e52fe94304a5cfc771b3b301601b"},
+    {"path": "scripts/technical_regression_check.sh", "sha256": "c8a296f7fee922b263522f133ab7d80a7738f181ffd30664a1cae67886868c89"},
     {"path": "test/tool/harassment_block_report_wiring.test.mjs", "sha256": "4b9ab9f84d9c608104fbde2e6a76f5ca2b6a3890caa59e01e9ca69326b03a8b8"},
     {"path": "test/tool/support_case_ui_accessibility_wiring.test.mjs", "sha256": "8daf23c9dd2156d8d46d600c9ae3173ae83816c2dcb134d9859503d59ae5163a"},
     {"path": "test/tool/rw11_regression_completeness_wiring.test.mjs", "sha256": "e6a9ecf7cda2115d1605b54339d2696bc7edd66f2304bc162d39cbdfedfb13a0"},

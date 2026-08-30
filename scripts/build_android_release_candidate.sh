@@ -15,6 +15,36 @@ case "${SIT_BLUE_OCEAN_LISTING_ASSISTANT:-0}" in
     ;;
 esac
 stage_a_non_binding_pilot="$blue_ocean_listing_assistant"
+case "${SIT_CLOSED_PILOT_ENVELOPE:-0}" in
+  1|true) closed_pilot_envelope=true ;;
+  0|false|'') closed_pilot_envelope=false ;;
+  *)
+    echo "ERROR: SIT_CLOSED_PILOT_ENVELOPE must be 0, 1, false, or true." >&2
+    exit 1
+    ;;
+esac
+stage_a_pilot_id="${SIT_STAGE_A_PILOT_ID:-}"
+booking_groups_technical_ui=false
+planner_technical_ui=false
+supply_enrichment_technical_ui=false
+listing_sets_technical_ui=false
+if [[ "$closed_pilot_envelope" == "true" ]]; then
+  if [[ "$blue_ocean_listing_assistant" != "true" ||
+        "$stage_a_pilot_id" != "heilbronn_wave0" ||
+        "$CHANNEL" != "internal" ||
+        "$API_BASE_URL" != "https://staging.shareittoo.com/api/v1" ||
+        "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
+    echo "ERROR: The closed pilot envelope requires exact heilbronn_wave0 Internal Staging no-submission configuration." >&2
+    exit 1
+  fi
+  booking_groups_technical_ui=true
+  planner_technical_ui=true
+  supply_enrichment_technical_ui=true
+  listing_sets_technical_ui=true
+elif [[ -n "$stage_a_pilot_id" ]]; then
+  echo "ERROR: SIT_STAGE_A_PILOT_ID is accepted only with SIT_CLOSED_PILOT_ENVELOPE=1." >&2
+  exit 1
+fi
 case "${SIT_REQUIRE_CANONICAL_SIGNING:-0}" in
   1|true) require_canonical_signing=true ;;
   0|false|'') require_canonical_signing=false ;;
@@ -108,8 +138,15 @@ common_args=(
   "--dart-define=SIT_BUILD_NUMBER=$build_number"
   "--dart-define=SIT_RELEASE_CHANNEL=$CHANNEL"
   "--dart-define=SIT_BUNDLE_ID=com.shareittoo.app"
+  "--dart-define=SIT_CLIENT_BUILD=$build_name+$build_number"
   "--dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=$blue_ocean_listing_assistant"
   "--dart-define=SIT_STAGE_A_NON_BINDING_PILOT=$stage_a_non_binding_pilot"
+  "--dart-define=SIT_STAGE_A_PILOT_ID=$stage_a_pilot_id"
+  "--dart-define=SIT_BOOKING_GROUPS_TECHNICAL_UI_ENABLED=$booking_groups_technical_ui"
+  "--dart-define=SIT_BOOKING_GROUPS_PUBLIC_RELEASE_ALLOWED=false"
+  "--dart-define=SIT_PLANNER_TECHNICAL_UI_ENABLED=$planner_technical_ui"
+  "--dart-define=SIT_SUPPLY_ENRICHMENT_TECHNICAL_UI_ENABLED=$supply_enrichment_technical_ui"
+  "--dart-define=SIT_LISTING_SETS_TECHNICAL_UI_ENABLED=$listing_sets_technical_ui"
 )
 
 social_google_enabled=false
@@ -314,8 +351,15 @@ printf '%s\n' \
   "  \"commit\": \"$commit\"," \
   "  \"channel\": \"$CHANNEL\"," \
   "  \"apiBaseUrl\": \"$API_BASE_URL\"," \
+  "  \"clientBuild\": \"$build_name+$build_number\"," \
   "  \"blueOceanListingAssistantEnabled\": $blue_ocean_listing_assistant," \
   "  \"stageANonBindingPilotEnabled\": $stage_a_non_binding_pilot," \
+  "  \"closedPilotEnvelopeEnabled\": $closed_pilot_envelope," \
+  "  \"stageAPilotId\": \"$stage_a_pilot_id\"," \
+  "  \"g3TechnicalUiEnabled\": $booking_groups_technical_ui," \
+  "  \"g4TechnicalUiEnabled\": $planner_technical_ui," \
+  "  \"g5SupplyEnrichmentTechnicalUiEnabled\": $supply_enrichment_technical_ui," \
+  "  \"g5ListingSetsTechnicalUiEnabled\": $listing_sets_technical_ui," \
   "  \"firebaseConfigured\": $firebase_configured," \
   "  \"signingCertificateSha256\": \"$signing_certificate_sha256\"," \
   "  \"createdAt\": \"$created_at\"," \

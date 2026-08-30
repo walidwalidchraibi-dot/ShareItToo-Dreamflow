@@ -286,12 +286,15 @@ export function validateR15GooglePlayInternalReadyPack({
     [value.preparedArtifacts.testerInstructions, ['future R15 candidate handoff', 'wrong build']],
     [value.preparedArtifacts.feedbackTemplate, ['BLANK TEMPLATE', 'NO OBSERVED HUMAN RESULT']],
   ]) requireMarkers(source(repositoryRoot, path), path, markers);
-  for (const [path, marker] of [
-    ['lib/config/booking_group_technical_config.dart', '!releaseMode'],
-    ['lib/config/planner_technical_config.dart', '!releaseMode'],
-    ['lib/config/supply_enrichment_technical_config.dart', '!releaseMode'],
-    ['lib/config/listing_sets_technical_config.dart', '!releaseMode'],
-  ]) requireMarkers(source(repositoryRoot, path), path, [marker]);
+  for (const path of [
+    'lib/config/booking_group_technical_config.dart',
+    'lib/config/planner_technical_config.dart',
+    'lib/config/supply_enrichment_technical_config.dart',
+    'lib/config/listing_sets_technical_config.dart',
+  ]) requireMarkers(source(repositoryRoot, path), path, [
+    'signedStageAInternalEnvelope',
+    'technicalSurfaceAvailableFor',
+  ]);
   assertSanitized(value, 'R15 evidence');
   assertSanitized(matrix, 'R15 feature matrix');
   return {

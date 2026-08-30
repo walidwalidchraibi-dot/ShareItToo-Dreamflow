@@ -956,6 +956,23 @@ flutter test --reporter expanded \
   --dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=true \
   test/reduced_wave0_accessibility_resilience_test.dart
 
+# Compile the exact signed-release pilot envelope and simulate release-mode
+# availability. The profile remains Internal/Staging/no-money and keeps every
+# public/Production switch false.
+flutter test --reporter expanded \
+  --dart-define=SIT_CLOSED_PILOT_PROFILE_TEST=true \
+  --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
+  --dart-define=SIT_BLUE_OCEAN_LISTING_ASSISTANT=true \
+  --dart-define=SIT_STAGE_A_PILOT_ID=heilbronn_wave0 \
+  --dart-define=SIT_RELEASE_CHANNEL=internal \
+  --dart-define=SIT_API_BASE_URL=https://staging.shareittoo.com/api/v1 \
+  --dart-define=SIT_BOOKING_GROUPS_TECHNICAL_UI_ENABLED=true \
+  --dart-define=SIT_BOOKING_GROUPS_PUBLIC_RELEASE_ALLOWED=false \
+  --dart-define=SIT_PLANNER_TECHNICAL_UI_ENABLED=true \
+  --dart-define=SIT_SUPPLY_ENRICHMENT_TECHNICAL_UI_ENABLED=true \
+  --dart-define=SIT_LISTING_SETS_TECHNICAL_UI_ENABLED=true \
+  test/closed_pilot_release_envelope_profile_test.dart
+
 # Retain RW2's profile-independent local-state corruption, verified-write,
 # retry, process-recreation and compact semantic error-state matrix explicitly.
 flutter test --reporter expanded \

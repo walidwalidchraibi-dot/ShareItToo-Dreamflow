@@ -67,7 +67,7 @@ test('publication and the complete local gate retain the runner proof', () => {
   const publish = workflow.slice(workflow.indexOf('  publish-api-image:\n'));
   assert.match(
     publish,
-    /needs:\n\s+- backend-regression\n\s+- postgres-runner-proof\n\s+- flutter-regression/u,
+    /needs:\n\s+- backend-regression\n\s+- postgres-runner-proof\n\s+- r10-clean-reproducibility\n\s+- flutter-regression/u,
   );
   assert.match(
     regression,

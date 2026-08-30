@@ -77,6 +77,7 @@ import {
   PlannerInventoryError,
   resolvePlannerInventory,
 } from './planner_inventory_workflow.js';
+import { plannerTemplateCatalog } from './planner_core.js';
 import {
   BookingFlowTimeError,
   getBookingFlowTime,
@@ -3941,6 +3942,13 @@ export function createApp({
   app.get('/v1/rental-cart', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const cart = await inTransaction((client) => getRentalCart(client, req.auth.userId));
     res.set('Cache-Control', 'private, no-store').json({ cart });
+  }));
+
+  app.get('/v1/planner/templates', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (_req, res) => {
+    assertPlannerInventoryTechnicalAccess(config);
+    res.set('Cache-Control', 'private, no-store').json({
+      catalog: plannerTemplateCatalog(),
+    });
   }));
 
   app.post('/v1/planner/resolve', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {

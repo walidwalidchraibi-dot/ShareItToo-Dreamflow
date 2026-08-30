@@ -21,7 +21,8 @@ test('optional G5A UI runs only after the success popup and fails open', () => {
   assert.match(explore, /SupplyEnrichmentTechnicalConfig\.available/u);
   assert.match(explore, /catch \(error\)[\s\S]*already-created listing stays/u);
   assert.match(config, /defaultValue: false/u);
-  assert.match(config, /!releaseMode/u);
+  assert.match(config, /signedStageAInternalEnvelope/u);
+  assert.match(config, /technicalSurfaceAvailableFor/u);
   assert.match(config, /externalGenerativeAiAllowed = false/u);
 });
 

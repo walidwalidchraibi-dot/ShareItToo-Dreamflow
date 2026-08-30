@@ -44,8 +44,9 @@ test('client declarations carry exact quote, build and document references', () 
   }
   const sourceBuild = pubspec.match(/^version:\s*(\S+)\s*$/mu)?.[1];
   const boundBuild = clientConfig.match(
-    /v52ClientBuild = '([^']+)'/u,
+    /v52ClientBuild = String\.fromEnvironment\([\s\S]{0,160}defaultValue: '([^']+)'/u,
   )?.[1];
+  assert.match(clientConfig, /'SIT_CLIENT_BUILD'/u);
   assert.equal(boundBuild, sourceBuild);
 });
 

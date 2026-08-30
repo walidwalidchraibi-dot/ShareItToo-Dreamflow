@@ -51,7 +51,7 @@ test('R17 release notes describe only the reduced non-binding path', () => {
   assert.doesNotMatch(notes, /Anfrage-, Übergabe- und Rückgabeabläufe/u);
 });
 
-test('R17 reduces human Wave-0 without unlocking G3 G4 or G5', () => {
+test('R17 historical human Wave-0 stays inactive while G3-G5 require the signed pilot envelope', () => {
   assert.equal(matrix.humanWave0.activated, false);
   assert.deepEqual(matrix.humanWave0.forbiddenTaskFamilies, [
     'rental-request-contract', 'accept-reject', 'payment-refund-payout',
@@ -62,7 +62,11 @@ test('R17 reduces human Wave-0 without unlocking G3 G4 or G5', () => {
     'lib/config/planner_technical_config.dart',
     'lib/config/supply_enrichment_technical_config.dart',
     'lib/config/listing_sets_technical_config.dart',
-  ]) assert.match(read(path), /!releaseMode/u);
+  ]) {
+    assert.match(read(path), /signedStageAInternalEnvelope/u);
+    assert.match(read(path), /technicalSurfaceAvailableFor/u);
+    assert.match(read(path), /publicReleaseAllowed/u);
+  }
 });
 
 test('R17 records the P0 owner action without credential inspection', () => {

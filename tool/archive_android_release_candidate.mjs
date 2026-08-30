@@ -90,10 +90,33 @@ export function archiveAndroidReleaseCandidate({
       manifest.commit !== expectedCommit ||
       manifest.channel !== 'internal' ||
       manifest.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
+      manifest.clientBuild !== `${expectedVersionName}+${expectedBuildNumber}` ||
       typeof manifest.blueOceanListingAssistantEnabled !== 'boolean' ||
       typeof manifest.stageANonBindingPilotEnabled !== 'boolean' ||
+      typeof manifest.closedPilotEnvelopeEnabled !== 'boolean' ||
+      typeof manifest.stageAPilotId !== 'string' ||
+      typeof manifest.g3TechnicalUiEnabled !== 'boolean' ||
+      typeof manifest.g4TechnicalUiEnabled !== 'boolean' ||
+      typeof manifest.g5SupplyEnrichmentTechnicalUiEnabled !== 'boolean' ||
+      typeof manifest.g5ListingSetsTechnicalUiEnabled !== 'boolean' ||
       (manifest.blueOceanListingAssistantEnabled === true &&
         manifest.stageANonBindingPilotEnabled !== true) ||
+      (manifest.closedPilotEnvelopeEnabled === true && (
+        manifest.blueOceanListingAssistantEnabled !== true ||
+        manifest.stageANonBindingPilotEnabled !== true ||
+        manifest.stageAPilotId !== 'heilbronn_wave0' ||
+        manifest.g3TechnicalUiEnabled !== true ||
+        manifest.g4TechnicalUiEnabled !== true ||
+        manifest.g5SupplyEnrichmentTechnicalUiEnabled !== true ||
+        manifest.g5ListingSetsTechnicalUiEnabled !== true
+      )) ||
+      (manifest.closedPilotEnvelopeEnabled === false && (
+        manifest.stageAPilotId !== '' ||
+        manifest.g3TechnicalUiEnabled !== false ||
+        manifest.g4TechnicalUiEnabled !== false ||
+        manifest.g5SupplyEnrichmentTechnicalUiEnabled !== false ||
+        manifest.g5ListingSetsTechnicalUiEnabled !== false
+      )) ||
       manifest.firebaseConfigured !== true ||
       manifest.signingCertificateSha256 !== canonicalSigningCertificateSha256 ||
       manifest.androidBinaryPrivacyScan !== 'passed' ||
@@ -148,8 +171,16 @@ export function archiveAndroidReleaseCandidate({
       versionName: expectedVersionName,
       buildNumber: expectedBuildNumber,
       commit: expectedCommit,
+      clientBuild: manifest.clientBuild,
       blueOceanListingAssistantEnabled: manifest.blueOceanListingAssistantEnabled,
       stageANonBindingPilotEnabled: manifest.stageANonBindingPilotEnabled,
+      closedPilotEnvelopeEnabled: manifest.closedPilotEnvelopeEnabled,
+      stageAPilotId: manifest.stageAPilotId,
+      g3TechnicalUiEnabled: manifest.g3TechnicalUiEnabled,
+      g4TechnicalUiEnabled: manifest.g4TechnicalUiEnabled,
+      g5SupplyEnrichmentTechnicalUiEnabled:
+        manifest.g5SupplyEnrichmentTechnicalUiEnabled,
+      g5ListingSetsTechnicalUiEnabled: manifest.g5ListingSetsTechnicalUiEnabled,
     },
     archiveDirectoryName,
     files,

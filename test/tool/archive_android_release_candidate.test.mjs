@@ -42,8 +42,15 @@ async function fixture(mutate = () => {}) {
     commit,
     channel: 'internal',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+    clientBuild: `${versionName}+${buildNumber}`,
     blueOceanListingAssistantEnabled: false,
     stageANonBindingPilotEnabled: false,
+    closedPilotEnvelopeEnabled: false,
+    stageAPilotId: '',
+    g3TechnicalUiEnabled: false,
+    g4TechnicalUiEnabled: false,
+    g5SupplyEnrichmentTechnicalUiEnabled: false,
+    g5ListingSetsTechnicalUiEnabled: false,
     firebaseConfigured: true,
     signingCertificateSha256: certificate,
     androidBinaryPrivacyScan: 'passed',
@@ -80,6 +87,7 @@ test('archives and verifies the exact candidate without exposing its path', asyn
   assert.equal(result.boundaries.externalUploadPerformed, false);
   assert.equal(result.candidate.blueOceanListingAssistantEnabled, false);
   assert.equal(result.candidate.stageANonBindingPilotEnabled, false);
+  assert.equal(result.candidate.closedPilotEnvelopeEnabled, false);
   assert.equal(JSON.stringify(result).includes(data.root), false);
   const archived = join(data.archiveRoot, result.archiveDirectoryName, data.aabName);
   assert.deepEqual(await readFile(archived), Buffer.from('exact-aab'));
@@ -119,6 +127,42 @@ test('rejects a Blue Ocean candidate without the non-binding Stage-A gate', asyn
   const data = await fixture(({ manifest }) => {
     manifest.blueOceanListingAssistantEnabled = true;
     manifest.stageANonBindingPilotEnabled = false;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => archive(data), /exact internal Staging candidate/);
+});
+
+test('accepts only the exact fully bound closed heilbronn Wave-0 envelope', async (t) => {
+  const data = await fixture(({ manifest }) => {
+    manifest.blueOceanListingAssistantEnabled = true;
+    manifest.stageANonBindingPilotEnabled = true;
+    manifest.closedPilotEnvelopeEnabled = true;
+    manifest.stageAPilotId = 'heilbronn_wave0';
+    manifest.g3TechnicalUiEnabled = true;
+    manifest.g4TechnicalUiEnabled = true;
+    manifest.g5SupplyEnrichmentTechnicalUiEnabled = true;
+    manifest.g5ListingSetsTechnicalUiEnabled = true;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  const result = archive(data);
+  assert.equal(result.candidate.closedPilotEnvelopeEnabled, true);
+  assert.equal(result.candidate.stageAPilotId, 'heilbronn_wave0');
+  assert.equal(result.candidate.g3TechnicalUiEnabled, true);
+  assert.equal(result.candidate.g4TechnicalUiEnabled, true);
+  assert.equal(result.candidate.g5SupplyEnrichmentTechnicalUiEnabled, true);
+  assert.equal(result.candidate.g5ListingSetsTechnicalUiEnabled, true);
+});
+
+test('rejects a partial or differently identified closed pilot envelope', async (t) => {
+  const data = await fixture(({ manifest }) => {
+    manifest.blueOceanListingAssistantEnabled = true;
+    manifest.stageANonBindingPilotEnabled = true;
+    manifest.closedPilotEnvelopeEnabled = true;
+    manifest.stageAPilotId = 'other_wave';
+    manifest.g3TechnicalUiEnabled = true;
+    manifest.g4TechnicalUiEnabled = true;
+    manifest.g5SupplyEnrichmentTechnicalUiEnabled = false;
+    manifest.g5ListingSetsTechnicalUiEnabled = true;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => archive(data), /exact internal Staging candidate/);

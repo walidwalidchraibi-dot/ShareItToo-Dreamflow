@@ -13,6 +13,22 @@ void main() {
       isFalse,
     );
     expect(BookingGroupTechnicalConfig.publicReleaseAllowed, isFalse);
+    expect(
+      BookingGroupTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: false,
+      ),
+      isFalse,
+    );
+    expect(
+      BookingGroupTechnicalConfig.availableForConfiguration(
+        featureEnabled: true,
+        releaseMode: true,
+        signedStageAInternalEnvelope: true,
+      ),
+      isTrue,
+    );
   });
 
   test('same-owner cart candidates keep project, period and currency isolated',

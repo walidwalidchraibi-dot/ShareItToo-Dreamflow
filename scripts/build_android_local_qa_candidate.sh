@@ -70,6 +70,7 @@ flutter build apk \
   "--dart-define=SIT_BUILD_NUMBER=$BUILD_NUMBER" \
   --dart-define=SIT_RELEASE_CHANNEL=internal \
   "--dart-define=SIT_BUNDLE_ID=$APPLICATION_ID" \
+  "--dart-define=SIT_CLIENT_BUILD=$BUILD_NAME+$BUILD_NUMBER" \
   --dart-define=SIT_SOCIAL_GOOGLE_ENABLED=false \
   --dart-define=SIT_SOCIAL_APPLE_ENABLED=false \
   --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=false \
