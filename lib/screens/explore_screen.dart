@@ -178,16 +178,48 @@ class _ExploreScreenState extends State<ExploreScreen> {
     try {
       final items = await DataService.getPublicItems();
       final categories = await DataService.getCategories();
-      final users = await DataService.getUsers();
-      final user = await DataService.getCurrentUser();
-      final saved = await DataService.getSavedItemIds();
+      // The public guest catalog must not depend on an old or corrupt local
+      // account document. Account-scoped presentation data is resolved only
+      // when this load actually started with an authenticated session; a
+      // later session re-read and the mutation contexts below still guard a
+      // concurrent guest/account or account/account transition.
+      final initialSession = await AuthService.readSession();
+      final initialSessionEpoch = AuthService.sessionEpoch;
+      final initialSessionOwner = initialSession == null
+          ? null
+          : AuthService.captureSessionOwner(initialSession);
+      final users = initialSession == null
+          ? const <model.User>[]
+          : await DataService.getUsers();
+      final user =
+          initialSession == null ? null : await DataService.getCurrentUser();
+      final saved = initialSession == null
+          ? const <String>{}
+          : await DataService.getSavedItemIds();
       final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
-      final profileContext = await _profileMutationService.loadCurrentContext();
-      final listingContext = await _listingMutationService.loadCurrentContext();
-      // Re-read after account data access: an expired remote session may have
-      // been invalidated while that data was resolved.
-      final session = await AuthService.readSession();
-      final hasRealSession = session != null && profileContext != null;
+      final profileContext = initialSession == null
+          ? null
+          : await _profileMutationService.loadCurrentContext();
+      final listingContext = initialSession == null
+          ? null
+          : await _listingMutationService.loadCurrentContext();
+      // A guest result is committed only if the session stayed definitely
+      // absent at the same epoch. An authenticated result is committed only
+      // for the exact captured owner and epoch. This prevents an A load from
+      // appearing under B and also catches guest -> account -> guest races.
+      if (initialSessionOwner == null) {
+        if (AuthService.sessionEpoch != initialSessionEpoch ||
+            !await AuthService.isStoredSessionDefinitelyAbsent() ||
+            AuthService.sessionEpoch != initialSessionEpoch) {
+          return;
+        }
+      } else if (!await AuthService.isSessionOwnerDefinitelyCurrent(
+        initialSessionOwner,
+      )) {
+        return;
+      }
+      final hasRealSession =
+          initialSessionOwner != null && profileContext != null;
       if (!mounted || revision != _loadRevision) return;
       if (profileContext != null &&
           !await _profileMutationService.isContextCurrent(profileContext)) {
@@ -213,7 +245,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       setState(() {
         _items = items.where((item) => !hiddenIds.contains(item.id)).toList();
         _coarseByCatId = coarseMap;
-        _usersById = {for (final u in users) u.id: u};
+        _usersById = hasRealSession
+            ? {for (final u in users) u.id: u}
+            : <String, model.User>{};
         _currentUserName = hasRealSession ? resolvedUser?.displayName : null;
         _currentUserCity = hasRealSession ? resolvedUser?.city : null;
         _savedIds = hasRealSession ? saved : <String>{};

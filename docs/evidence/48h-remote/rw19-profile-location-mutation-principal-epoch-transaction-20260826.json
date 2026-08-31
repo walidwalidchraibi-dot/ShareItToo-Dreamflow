@@ -369,7 +369,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "4eca35986e26d89baac928b2924e4f8621d4176e371a0495128defb036f4393e"
+      "sha256": "c64fee2f81399ff44575c85536a4e58b02b4388941b8c602737ef36192e74117"
     },
     {
       "path": "lib/screens/own_profile_screen.dart",
@@ -413,7 +413,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
-      "sha256": "f450d4e4a2ce9a466316074af38d1e0d6d8c854e13be970e3c5bfde4ef35c2dd"
+      "sha256": "b488008711bd7a7a4634159a23a47f393da78660876c1e8b4e1c0bdbd5c9ca57"
     },
     {
       "path": "scripts/technical_regression_check.sh",
