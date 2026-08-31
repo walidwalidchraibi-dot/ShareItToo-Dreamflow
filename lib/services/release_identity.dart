@@ -14,6 +14,10 @@ class ReleaseIdentity {
     'SIT_BUNDLE_ID',
     defaultValue: 'com.shareittoo.app',
   );
+  static const bool remoteQaBuild = bool.fromEnvironment(
+    'SIT_REMOTE_QA_BUILD',
+    defaultValue: false,
+  );
 
   static String? validationError({
     required bool releaseMode,
@@ -22,6 +26,7 @@ class ReleaseIdentity {
     required String channel,
     required String applicationId,
     required String apiBaseUrl,
+    bool remoteQa = false,
   }) {
     if (!releaseMode) return null;
     if (!RegExp(r'^[0-9a-f]{40}$').hasMatch(commit)) {
@@ -33,8 +38,16 @@ class ReleaseIdentity {
     if (!const {'internal', 'staging', 'production'}.contains(channel)) {
       return 'SIT_RELEASE_CHANNEL must be internal, staging, or production.';
     }
-    if (applicationId != 'com.shareittoo.app') {
+    final productionIdentity = applicationId == 'com.shareittoo.app';
+    final remoteQaIdentity = applicationId == 'com.shareittoo.app.qa';
+    if (!productionIdentity && !remoteQaIdentity) {
       return 'Unexpected application identifier: $applicationId.';
+    }
+    if (remoteQa != remoteQaIdentity) {
+      return 'Remote QA identity and application identifier do not match.';
+    }
+    if (remoteQa && channel != 'staging') {
+      return 'Remote QA builds are restricted to the staging channel.';
     }
     final apiUri = Uri.tryParse(apiBaseUrl);
     if (apiUri == null || apiUri.scheme != 'https' || apiUri.host.isEmpty) {
@@ -51,6 +64,7 @@ class ReleaseIdentity {
       channel: releaseChannel,
       applicationId: bundleId,
       apiBaseUrl: BackendConfig.apiBaseUrl,
+      remoteQa: remoteQaBuild,
     );
     if (error != null) {
       throw StateError('Invalid ShareItToo release identity: $error');

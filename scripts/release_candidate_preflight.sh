@@ -235,8 +235,14 @@ grep -Fq "applinks:shareittoo.com" ios/Runner/Runner.entitlements || \
   fail "iOS associated-domain entitlement is missing."
 grep -Fq '<key>aps-environment</key>' ios/Runner/Runner.entitlements || \
   fail "iOS push-notification entitlement is missing."
-grep -Fq 'android:autoVerify="true"' android/app/src/main/AndroidManifest.xml || \
-  fail "Android verified links are not enabled."
+grep -Fq 'android:autoVerify="${sitAppLinksAutoVerify}"' \
+  android/app/src/main/AndroidManifest.xml || \
+  fail "Android verified links must use the guarded manifest placeholder."
+grep -Fq 'manifestPlaceholders.sitAppLinksAutoVerify = remoteQaRequested ? "false" : "true"' \
+  android/app/build.gradle || \
+  fail "Android verified links must remain enabled for production identities and disabled for Remote QA."
+grep -Fq 'android:label="${sitAppLabel}"' android/app/src/main/AndroidManifest.xml || \
+  fail "Android app labels must use the guarded manifest placeholder."
 grep -Fq 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml || \
   fail "Android application backup must be disabled."
 grep -Fq 'android:usesCleartextTraffic="${sitUsesCleartextTraffic}"' \

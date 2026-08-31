@@ -19,6 +19,10 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
+const applicationId = args['application-id'] ?? 'com.shareittoo.app';
+if (!/^com\.shareittoo\.app(?:\.qa)?$/.test(applicationId)) {
+  throw new Error('Unsupported --application-id');
+}
 const required = [
   'apk',
   'aab',
@@ -98,7 +102,7 @@ const manifestMetadataBooleanIsFalse = (name) => {
 
 requireCheck(
   badging.includes(
-    `package: name='com.shareittoo.app' versionCode='${args['version-code']}' versionName='${args['version-name']}'`,
+    `package: name='${applicationId}' versionCode='${args['version-code']}' versionName='${args['version-name']}'`,
   ),
   'identity_mismatch',
   'Package name or release version does not match the release request.',
@@ -327,7 +331,7 @@ const report = {
   status: findings.length === 0 ? 'passed' : 'failed',
   generatedAt: new Date().toISOString(),
   identity: {
-    applicationId: 'com.shareittoo.app',
+    applicationId,
     versionName: args['version-name'],
     versionCode: args['version-code'],
     commit: args.commit,

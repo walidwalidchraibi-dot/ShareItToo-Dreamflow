@@ -7,10 +7,19 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def remoteQaRequested = System.getenv('SIT_REMOTE_QA_BUILD') == '1'
+def firebaseAndroidPluginsDisabled =
+        System.getenv('SIT_DISABLE_FIREBASE_ANDROID_PLUGINS') == '1'
+if (remoteQaRequested != firebaseAndroidPluginsDisabled) {
+    throw new GradleException(
+            'Remote QA builds must explicitly disable the production Firebase Android plugins, and only Remote QA builds may disable them.'
+    )
+}
+
 // Firebase release plugins require the console-generated Android project file.
 // Keep non-Firebase developer and CI builds functional, while applying the full
 // official pipeline as soon as the real project configuration is present.
-if (file("google-services.json").exists()) {
+if (file("google-services.json").exists() && !firebaseAndroidPluginsDisabled) {
     pluginManager.apply("com.google.gms.google-services")
     pluginManager.apply("com.google.firebase.crashlytics")
 }
@@ -101,7 +110,13 @@ android {
     }
 
     defaultConfig {
+        // The owner-only Remote QA app is deliberately a separate Android app
+        // so it can coexist with Google Play's differently signed package.
+        // It is selected only through the paired environment gates above.
         applicationId = "com.shareittoo.app"
+        if (remoteQaRequested) {
+            applicationId = "com.shareittoo.app.qa"
+        }
         // Meta requires both values to be Android string resources. Direct
         // numeric manifest values are decoded as integers and prevent the
         // Facebook SDK (and therefore later Flutter plugins) from registering.
@@ -114,6 +129,8 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         manifestPlaceholders.sitUsesCleartextTraffic = "false"
+        manifestPlaceholders.sitAppLabel = remoteQaRequested ? "ShareItToo QA" : "ShareItToo"
+        manifestPlaceholders.sitAppLinksAutoVerify = remoteQaRequested ? "false" : "true"
     }
 
     buildTypes {

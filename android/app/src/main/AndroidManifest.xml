@@ -20,7 +20,7 @@
     <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove" />
 
     <application
-        android:label="ShareItToo"
+        android:label="${sitAppLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher_v2"
         android:roundIcon="@mipmap/ic_launcher_round_v2"
@@ -87,7 +87,7 @@
             <meta-data
                 android:name="flutter_deeplinking_enabled"
                 android:value="true" />
-            <intent-filter android:autoVerify="true">
+            <intent-filter android:autoVerify="${sitAppLinksAutoVerify}">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
