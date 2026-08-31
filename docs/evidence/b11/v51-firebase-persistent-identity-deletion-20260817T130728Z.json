@@ -43,7 +43,7 @@
     "backendServerSha256": "3872b89075a655a36dab55d14b9bdb645f95fb45f3191f8fdb759e2fef46df58",
     "unitTestsSha256": "192266e76d15de02ad4ca69cce55466e4f2b84e4dfabba4bde12f7084b469c7d",
     "wiringTestsSha256": "62566d793865d84cfb7c3e85dae4d0015fd98b428dfc36c864e5773f5f92f38a",
-    "privacyManifestSha256": "8cb34d14e724f3a28e7253146af643f1a2210f8da16540bab336040c053f2ae3",
+    "privacyManifestSha256": "a2841daec8c4cd5282f34ae1d0cf1c06f503ccacc402265354aafade39acf7c8",
     "retentionManifestSha256": "3330aa4bccf643cbf3c4953ca757928db9abe96cd9ab07d6581fae11dfe8b05f",
     "legalManifestSha256": "846555ca36d62fe73c51ee65d271660a9bedb9d7f841d85ef76940f0e0b08e36"
   },

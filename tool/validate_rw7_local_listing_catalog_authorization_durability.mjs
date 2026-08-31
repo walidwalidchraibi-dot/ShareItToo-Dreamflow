@@ -163,7 +163,7 @@ export function validateRw7LocalListingCatalogAuthorizationDurability({
   if (!exact(value.ratchets, {
     reason: 'validated-local-listing-lifecycle-privacy-and-retention-source-change',
     privacyManifestSha256:
-      '8cb34d14e724f3a28e7253146af643f1a2210f8da16540bab336040c053f2ae3',
+      'a2841daec8c4cd5282f34ae1d0cf1c06f503ccacc402265354aafade39acf7c8',
     retentionManifestSha256:
       '3330aa4bccf643cbf3c4953ca757928db9abe96cd9ab07d6581fae11dfe8b05f',
     activeProviderState: 'prepared-hold',
