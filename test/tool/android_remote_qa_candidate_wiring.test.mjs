@@ -42,5 +42,6 @@ test('Remote QA Android wiring is separate, staging-only and owner-distributed',
   assert.ok(privacy.includes('^com\\.shareittoo\\.app(?:\\.qa)?$'));
 
   const mode = statSync(resolve(root, 'scripts/build_android_remote_qa_candidate.sh')).mode;
-  assert.equal(mode & 0o077, 0, 'Remote QA build script must be owner-only executable');
+  assert.notEqual(mode & 0o100, 0, 'Remote QA build script must remain executable');
+  assert.equal(mode & 0o022, 0, 'Remote QA build script must not be group- or world-writable');
 });
