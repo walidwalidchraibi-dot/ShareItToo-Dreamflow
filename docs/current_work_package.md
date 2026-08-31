@@ -1,27 +1,34 @@
-# Current Work Package: closed-pilot candidate 2026083001
+# Current Work Package: full closed-pilot candidate 2026083101
 
-Status: **BUILD READY; STAGING AND PLAY INTERNAL PENDING** on 30.08.2026.
+Status: **PILOT_READY = PARTIAL; EXACT STAGING DEPLOYMENT AND PLAY INTERNAL
+ACTIVATION DEFERRED** on 31.08.2026.
 
-The G3-G5 closed pilot is frozen at artifact source commit
-`8cf69273fcc31dd5183d265fb6d4e43d6b2cc9b5`. Exact local regression and
-clean-checkout reproducibility passed together with GitHub Regression
-`33318505901`, CodeQL `33318505919` and zero open code-scanning alerts.
+Artifact source commit `1ba604ca249a7454be52009a13ea2c7755cf037c`
+contains the guest Explore isolation fix and the frozen closed-pilot envelope.
+The signed candidate is `com.shareittoo.app`, `1.0.0+2026083101`, Internal and
+Staging only, with AAB SHA-256
+`d3f04245ad33ea700537da6aa3593047d62ec107a4eadc72decfc2eab07a4af8`.
 
-The signed candidate is `com.shareittoo.app`, `1.0.0+2026083001`, bound to
-Internal/Staging and pilot `heilbronn_wave0`. Its AAB SHA-256 is
-`008d24a8ae7dc879f6ab55eafa490db98811270572448cbf66b87c81005d6cc1`.
-Canonical signing, package and SDK identity, ZIP structure, Bundletool 1.18.1
-and binary privacy checks passed. Exact API-image workflow `33318951234`
-passed. Staging remains healthy on old commit `cedc5ecf...` pending Hostinger
-login; Play remains active on Internal `2026082601` with an empty unsaved draft
-pending local file access. The private unshared Drive handoff
-`PRIVATE_PLAY_UPLOAD_2026083001` is complete. Play activation and the physical
-device run remain pending.
+The complete local technical regression, analyzer, Web/Wasm, loopback,
+Android, database/recovery and privacy/security/price/AI-contract checks pass.
+Exact GitHub Regression `33433680525`, CodeQL `33433680485` and clean-checkout
+reproducibility are green with zero open code-scanning alerts. The reachable
+Pixel runs the exact direct APK non-destructively; guest online, explicit
+offline failure and online recovery passed.
+
+Play has processed `2026083101` as a ready Internal draft, while active
+Internal remains `2026082601` and testers/other tracks remain unchanged.
+Staging is healthy on old commit `cedc5ecf...` with memory payments and
+`livemode=false`. Exact deploy, Internal activation, Store split delivery and
+authenticated physical G3-G5 tests remain pending at the existing official
+account selection or physical device actions. Firebase Console and GitHub CLI
+authentication are valid; no credential was inspected. No P0/P1 code blocker
+is known.
 
 Machine evidence:
-`docs/evidence/release-readiness/full-pilot-candidate-2026083001.json`.
+`docs/evidence/release-readiness/full-pilot-candidate-2026083101.json`.
 Human handover:
-`docs/operations/SIT_FULL_PILOT_2026083001_HANDOVER.md`.
+`docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
 # Previous Work Package: OnePlus guest-discovery hotfix 2026082801
 

@@ -1,35 +1,43 @@
 # ShareItToo Current State
 
-Verified: 2026-08-30 on the Mac mini.
+Verified: 2026-08-31 on the Mac mini.
 
 ## Current closed-pilot candidate state
 
-The complete non-public G3-G5 pilot implementation is frozen at artifact
-source commit `8cf69273fcc31dd5183d265fb6d4e43d6b2cc9b5`. Exact local regression,
-GitHub Regression `33318505901`, CodeQL `33318505919` and clean-checkout
-reproducibility passed; open code-scanning alerts are zero.
+The current non-public pilot is frozen at artifact source commit
+`1ba604ca249a7454be52009a13ea2c7755cf037c`. Guest Explore no longer awaits
+account-only cached user data, so a corrupt historical account cache cannot
+block public discovery. Corrupt bytes remain preserved and authenticated loads
+retain principal/session-epoch checks.
 
-The canonical signed Android candidate is `com.shareittoo.app`,
-`1.0.0+2026083001`, Internal/Staging, pilot `heilbronn_wave0`, with AAB
-SHA-256 `008d24a8ae7dc879f6ab55eafa490db98811270572448cbf66b87c81005d6cc1`.
-ZIP structure, Bundletool 1.18.1, binary privacy, package/version identity and
-upload signature passed. G3 same-owner multi-item, G4 deterministic planning
-and G5 supply enrichment/listing sets are enabled only inside the exact signed
-envelope; reservations, contracts, real payments, external AI and public
-release remain disabled.
+The canonical signed candidate is `com.shareittoo.app`,
+`1.0.0+2026083101`, Internal/Staging, pilot `heilbronn_wave0`, with AAB
+SHA-256 `d3f04245ad33ea700537da6aa3593047d62ec107a4eadc72decfc2eab07a4af8`.
+Canonical signing, ZIP structure, Bundletool 1.18.1, binary privacy and exact
+package/version/SDK identity passed. Full local regression, GitHub Regression
+`33433680525`, CodeQL `33433680485` and clean-checkout reproducibility passed;
+open code-scanning alerts are zero.
 
-API-image workflow `33318951234` passed on the exact source HEAD. Staging is
-healthy but still exposes old commit `cedc5ecf...`; exact deployment is pending
-the existing Hostinger Google-account selection. Play readback still shows
-active Internal `2026082601`, an empty unsaved draft and the unchanged two-user
-tester list. The Mac was locked and Chrome file access disabled, so no AAB was
-uploaded or activated. The complete private handoff is uploaded, unshared, as
-`PRIVATE_PLAY_UPLOAD_2026083001` in the SIT Drive folder.
+Google Play processed exact `2026083101` in Internal testing and reports the
+draft ready to release. Active Internal remains `2026082601`; the selected
+two-user tester list and Closed Alpha `2026081506` are unchanged. Production
+and Open testing are unavailable. Final Internal activation remains pending
+the existing SIT Play Developer account selection in the official Google
+chooser; no account was created.
 
-The physical-device run remains pending. No Production, Open testing, Closed
-testing, tester-list, payment, Firebase-project, Cloud/VPS/DNS or PR-merge
-state has changed. Exact evidence is
-`docs/evidence/release-readiness/full-pilot-candidate-2026083001.json`.
+The exact direct APK is installed non-destructively on the reachable Pixel.
+Guest online catalog, explicit offline error and recovery after connectivity
+return/process restart passed. This is not Store split-delivery evidence.
+Authenticated G3-G5 physical journeys and the remote OnePlus remain deferred.
+
+Staging health/readiness pass but still expose old commit `cedc5ecf...`, memory
+payments and `livemode=false`; exact candidate deployment remains pending the
+existing Hostinger account selection in the official Google chooser. No
+Production, Open, Closed,
+tester-list, real-payment, Firebase-project, Cloud/VPS/DNS or PR-merge state
+changed. Current assessment is `PILOT_READY = PARTIAL`. Exact evidence is
+`docs/evidence/release-readiness/full-pilot-candidate-2026083101.json`; the
+final human handover is `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
 ## Current OnePlus guest-discovery hotfix state
 

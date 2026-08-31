@@ -665,8 +665,14 @@ async function runCli() {
     const candidate = object(rollover.candidate, 'current rollover candidate.candidate');
     const artifact = object(rollover.artifact, 'current rollover candidate.artifact');
     same(rollover.schemaVersion, 1, 'current rollover candidate.schemaVersion');
-    same(rollover.status, 'build-ready-play-internal-upload-pending',
-      'current rollover candidate.status');
+    const allowedRolloverStatuses = new Set([
+      'build-ready-play-internal-upload-pending',
+      'build-ready-play-internal-activation-pending',
+      'play-internal-active-device-verification-pending',
+    ]);
+    if (!allowedRolloverStatuses.has(rollover.status)) {
+      fail('current rollover candidate.status is not an allowed fail-closed Play state.');
+    }
     const expectedIdentity = {
       versionName: candidate.versionName,
       buildNumber: candidate.versionCode,
