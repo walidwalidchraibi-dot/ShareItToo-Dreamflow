@@ -26,8 +26,9 @@ test('Remote QA Android wiring is separate, staging-only and owner-distributed',
 
   assert.match(build, /https:\/\/staging\.shareittoo\.com\/api\/v1/u);
   assert.match(build, /com\.shareittoo\.app\.qa/u);
-  assert.match(build, /--split-per-abi/u);
-  assert.match(build, /app-arm64-v8a-release\.apk/u);
+  assert.match(build, /--target-platform android-arm64/u);
+  assert.match(build, /app-release\.apk/u);
+  assert.doesNotMatch(build, /--split-per-abi/u);
   assert.match(build, /SIT_SOCIAL_GOOGLE_ENABLED=false/u);
   assert.match(build, /SIT_SOCIAL_APPLE_ENABLED=false/u);
   assert.match(build, /SIT_SOCIAL_FACEBOOK_ENABLED=false/u);

@@ -101,10 +101,10 @@ flutter build appbundle "${common_args[@]}"
 
 SIT_REMOTE_QA_BUILD=1 \
 SIT_DISABLE_FIREBASE_ANDROID_PLUGINS=1 \
-flutter build apk --split-per-abi "${common_args[@]}"
+flutter build apk --target-platform android-arm64 "${common_args[@]}"
 
 aab="build/app/outputs/bundle/release/app-release.aab"
-apk="build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
+apk="build/app/outputs/flutter-apk/app-release.apk"
 [[ -f "$aab" && -f "$apk" ]] || {
   echo "ERROR: Remote QA AAB or arm64 APK was not created." >&2
   exit 1
