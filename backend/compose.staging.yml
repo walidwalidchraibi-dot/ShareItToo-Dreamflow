@@ -19,6 +19,12 @@ services:
 
   api:
     image: shareittoo-api:${APP_COMMIT:-local}
+    # Firebase Auth and phone verification can remain enabled while push stays
+    # on the in-memory staging transport. The non-root API process therefore
+    # needs the dedicated read-only credential group in the base profile, not
+    # only in the optional FCM push overlay.
+    group_add:
+      - "65532"
     build:
       context: .
       args:

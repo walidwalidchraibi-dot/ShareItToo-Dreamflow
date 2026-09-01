@@ -1,10 +1,5 @@
 services:
   api:
-    # This high numeric group is deliberately not mapped to a VPS login.
-    # It grants the non-root container process read-only access to the
-    # root-owned credential without making the file world-readable.
-    group_add:
-      - "65532"
     environment:
       PUSH_TRANSPORT: fcm
       FIREBASE_AUTH_ENABLED: ${FIREBASE_AUTH_ENABLED:-false}

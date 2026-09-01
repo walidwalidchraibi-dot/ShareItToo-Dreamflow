@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import {
@@ -11,6 +12,7 @@ import {
 } from '../ops/validate_fcm_staging_secret.mjs';
 
 const projectId = 'shareittoo-staging';
+const backendRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const keyBegin = ['-----BEGIN', 'PRIVATE', 'KEY-----'].join(' ');
 const keyEnd = ['-----END', 'PRIVATE', 'KEY-----'].join(' ');
 
@@ -95,6 +97,15 @@ test('allows group-read only for the root-owned dedicated runtime group', () => 
     uid: 0,
     gid: fcmRuntimeGroupId,
   }, 501), false);
+});
+
+test('base staging profile grants the Firebase runtime group without enabling FCM push', async () => {
+  const compose = await readFile(join(backendRoot, 'compose.staging.yml'), 'utf8');
+  const fcmOverlay = await readFile(join(backendRoot, 'compose.staging.fcm.yml'), 'utf8');
+
+  assert.match(compose, /\n  api:\n(?:.|\n)*?\n    group_add:\n      - "65532"\n/);
+  assert.match(compose, /\n      PUSH_TRANSPORT: \$\{PUSH_TRANSPORT:-memory\}\n/);
+  assert.doesNotMatch(fcmOverlay, /\n    group_add:/);
 });
 
 test('rejects symbolic links even when their target is owner-only', async (t) => {
