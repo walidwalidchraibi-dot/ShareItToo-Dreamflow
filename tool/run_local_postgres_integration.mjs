@@ -260,7 +260,9 @@ export async function runLocalPostgresIntegration({
     await checkedRun(nodeBin, [
       '--throw-deprecation',
       '--import', './backend/test_setup.js',
-      '--test', 'backend/test/postgres_foundation.integration.test.js',
+      '--test',
+      'backend/test/postgres_foundation.integration.test.js',
+      'backend/test/foreign_key_integrity.integration.test.js',
     ], { env: testEnvironment, inherit: inheritTestOutput });
   } catch (error) {
     let postgresDetail = '';

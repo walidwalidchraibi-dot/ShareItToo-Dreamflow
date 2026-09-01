@@ -33,6 +33,10 @@ test('a failed production rollout restores and verifies the previous exact image
   await writeFile(join(backend, 'compose.prod.yml'), 'services:\n  api:\n    image: placeholder\n');
   await writeFile(join(backend, '.env'), 'POSTGRES_PASSWORD=test\nJWT_SECRET=test\n');
   await executable(join(ops, 'backup.sh'), '#!/usr/bin/env bash\nexit 0\n');
+  await executable(
+    join(ops, 'check_foreign_key_integrity.sh'),
+    '#!/usr/bin/env bash\nexit 0\n',
+  );
 
   await executable(join(fakeBin, 'curl'), `#!/usr/bin/env bash
 case "\${*: -1}" in

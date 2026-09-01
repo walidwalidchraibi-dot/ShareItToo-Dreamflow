@@ -131,6 +131,9 @@ if [[ "$task_environment" == production ]]; then
   task_project_name=backend
   task_api_container=shareittoo-api
   task_fcm_enabled=false
+  task_database_container=shareittoo-postgres
+  task_database_user=shareittoo
+  task_database_name=shareittoo
   if [[ "${CONFIRM_PRODUCTION_DEPLOY:-}" != "$task_commit" ]]; then
     echo "Set CONFIRM_PRODUCTION_DEPLOY to the exact commit before a production rollout." >&2
     exit 1
@@ -144,6 +147,9 @@ else
   task_project_name=sit-staging
   task_api_container=shareittoo-staging-api
   task_fcm_enabled=false
+  task_database_container=shareittoo-staging-postgres
+  task_database_user=shareittoo_staging
+  task_database_name=shareittoo_staging
   if [[ "$task_staging_pilot_id" == heilbronn_wave0 ]]; then
     task_compose_args+=(-f "$task_backend_root/compose.staging.pilot.yml")
   fi
@@ -160,6 +166,11 @@ if [[ ! -f "$task_env_file" ]]; then
   echo "Missing environment file: $task_env_file" >&2
   exit 1
 fi
+
+DATABASE_CONTAINER="$task_database_container" \
+DATABASE_USER="$task_database_user" \
+DATABASE_NAME="$task_database_name" \
+  "$task_backend_root/ops/check_foreign_key_integrity.sh"
 
 task_previous_commit="$(curl --fail --silent --show-error --max-time 15 "$task_health_url/version" 2>/dev/null | sed -n 's/.*"commit":"\([0-9a-f]*\)".*/\1/p' || true)"
 task_previous_image_id="$(docker inspect --format '{{.Image}}' "$task_api_container" 2>/dev/null || true)"

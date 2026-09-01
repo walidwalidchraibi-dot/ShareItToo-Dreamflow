@@ -80,7 +80,12 @@ ACCEPTANCE_CLIENT_IP=198.51.100.249 \
 
 `backup.sh` writes a PostgreSQL custom-format dump, an upload archive and a
 SHA-256 manifest to `/docker/shareittoo/backups/daily`. Files are mode `0600`
-and retained for 14 days.
+and retained for 14 days. Before every staging or production deployment,
+`check_foreign_key_integrity.sh` evaluates every application foreign-key
+constraint from a repeatable, read-only database snapshot. It reports only
+table, constraint and aggregate orphan counts, never row values or IDs, and
+fails closed before the deployment changes any runtime state when an
+inconsistency exists.
 
 `verify_restore.sh` verifies the manifest and archive, starts a temporary
 PostgreSQL container backed by a temporary volume, restores the dump, checks
