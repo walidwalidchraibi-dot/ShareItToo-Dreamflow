@@ -39,8 +39,9 @@
     "nonOverwritingArchive": true
   },
   "pilotEnvelope": {
-    "blueOceanListingAssistant": "passed-mock-fixture-pilot-evaluator",
-    "codexAuthClassification": "CODEX_AUTH_AGENT_ONLY",
+    "blueOceanListingAssistant": "passed-codex-local-dev-synthetic-fixture-and-mock-runtime-fallback",
+    "codexAuthClassification": "CODEX_AUTH_LOCAL_DEV_SUPPORTED",
+    "codexLocalDevEvaluation": "passed-chatgpt-auth-no-api-billing",
     "externalGenerativeAiEnabled": false,
     "regionalPriceEngineV2": "passed",
     "g2DiscoverySavedCart": "passed-automated-and-current-pixel-guest-discovery",
