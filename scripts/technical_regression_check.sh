@@ -41,6 +41,11 @@ flutter --version
 
 dart --version
 
+# The complete tool inventory includes package-floor checks that read Flutter's
+# generated package_config metadata. Recreate it from the committed lockfile so
+# a clean checkout and a just-cleaned release host follow the same path.
+flutter pub get --enforce-lockfile
+
 # Permanent completeness gate: the shell glob expands every repository-owned
 # Node tool test, including files added after this script was last edited.
 # The package-specific invocations below remain for localized failure context.
