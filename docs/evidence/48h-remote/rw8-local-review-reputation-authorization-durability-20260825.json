@@ -137,9 +137,9 @@
   },
   "ratchets": {
     "reason": "validated-local-review-lifecycle-privacy-retention-and-provider-source-change",
-    "privacyManifestSha256": "dc43aa9e93e7e511f9d5b795e01cffc6a4f7f143b0fea9929841eded247e5233",
+    "privacyManifestSha256": "1aec39ace9eef95e5c2ddaeff8d270e14c58a18fee98e8b006bf693017c4aff6",
     "retentionManifestSha256": "7e85613c14de6d6957308ad805671dd4829d2e6afb0e3cfb99c01b30e2e5c65f",
-    "activeProviderEvidenceSha256": "03f4815757e34f9c31a688969b71ad7fb97fdfaf2cc71495c5a9ce4af29a3878",
+    "activeProviderEvidenceSha256": "bab2939ff7b4e7620982c6e9104326e9de24193bb9c31b2666adaf36e95280fc",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -201,7 +201,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "dc43aa9e93e7e511f9d5b795e01cffc6a4f7f143b0fea9929841eded247e5233"
+      "sha256": "1aec39ace9eef95e5c2ddaeff8d270e14c58a18fee98e8b006bf693017c4aff6"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -209,7 +209,7 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "03f4815757e34f9c31a688969b71ad7fb97fdfaf2cc71495c5a9ce4af29a3878"
+      "sha256": "bab2939ff7b4e7620982c6e9104326e9de24193bb9c31b2666adaf36e95280fc"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -225,7 +225,7 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "140840ac9abce3386fa3d62d6b5b8cd1f8c6b93c1f592793ede3c6926b4c9364"
+      "sha256": "bfbcab054cc4c519bb55feee8c09580cd11053dbf107faf33ff4203a35255e18"
     },
     {
       "path": "scripts/technical_regression_check.sh",
@@ -257,7 +257,7 @@
     },
     {
       "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
-      "sha256": "1acacaa1216e6369c4a4db7e3fcb9e02a47363cf4cb806448c243bd58b5c0be5"
+      "sha256": "43dbd71028dfd1354dcbfdcd3438a5b0ae2d798a28c5ad0e66d3a867b616f3f4"
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",
