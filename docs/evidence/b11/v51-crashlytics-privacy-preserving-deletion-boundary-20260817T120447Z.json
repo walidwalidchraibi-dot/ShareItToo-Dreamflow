@@ -33,7 +33,7 @@
   "sourceBindings": {
     "backendPrivacySha256": "398a1f485cecbf839f5503d3b8cca7f3e31935043c23a589322ea119659eec12",
     "notificationSettingsSha256": "d8f2baaf72da1b79db724142b959c098fdcc3d12e00fceb9ec24e619b6083597",
-    "privacyManifestSha256": "8841476c7c6d2d5c957024c44dca459bb441a7d4578409cd8661c07a6d4ef826",
+    "privacyManifestSha256": "dc43aa9e93e7e511f9d5b795e01cffc6a4f7f143b0fea9929841eded247e5233",
     "retentionManifestSha256": "7e85613c14de6d6957308ad805671dd4829d2e6afb0e3cfb99c01b30e2e5c65f",
     "wiringTestSha256": "ebde0a4760c0d941001abb1f87d91342edb03374d5452e66c51f07c2d3e80447"
   },

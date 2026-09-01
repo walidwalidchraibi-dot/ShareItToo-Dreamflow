@@ -216,7 +216,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "8841476c7c6d2d5c957024c44dca459bb441a7d4578409cd8661c07a6d4ef826"
+      "sha256": "dc43aa9e93e7e511f9d5b795e01cffc6a4f7f143b0fea9929841eded247e5233"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -236,7 +236,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "c8a296f7fee922b263522f133ab7d80a7738f181ffd30664a1cae67886868c89"
+      "sha256": "14eeae7e161a674f7d95617b9d7f0d246b7ca43f20a346ff978f0ee90fec3d4f"
     },
     {
       "path": "test/rw5_local_safety_privacy_principal_isolation_test.dart",
