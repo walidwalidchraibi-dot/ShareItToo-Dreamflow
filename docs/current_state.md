@@ -1,43 +1,45 @@
 # ShareItToo Current State
 
-Verified: 2026-08-31 on the Mac mini.
+Verified: 2026-09-01 on the Mac mini.
 
 ## Current closed-pilot candidate state
 
 The current non-public pilot is frozen at artifact source commit
-`1ba604ca249a7454be52009a13ea2c7755cf037c`. Guest Explore no longer awaits
-account-only cached user data, so a corrupt historical account cache cannot
-block public discovery. Corrupt bytes remain preserved and authenticated loads
-retain principal/session-epoch checks.
-
-The canonical signed candidate is `com.shareittoo.app`,
-`1.0.0+2026083101`, Internal/Staging, pilot `heilbronn_wave0`, with AAB
-SHA-256 `d3f04245ad33ea700537da6aa3593047d62ec107a4eadc72decfc2eab07a4af8`.
+`0c0624c9f1a76c886112a15c41564d6375b69238`. Its canonical signed candidate is
+`com.shareittoo.app`, `1.0.0+2026090103`, Internal/Staging, pilot
+`heilbronn_wave0`, with AAB SHA-256
+`b6fac301b932b024014fdadbe5e8a01f545ddad50815f8e9f53df0045afe39bc`.
 Canonical signing, ZIP structure, Bundletool 1.18.1, binary privacy and exact
-package/version/SDK identity passed. Full local regression, GitHub Regression
-`33433680525`, CodeQL `33433680485` and clean-checkout reproducibility passed;
-open code-scanning alerts are zero.
+package/version/SDK identity passed.
 
-Google Play processed exact `2026083101` in Internal testing and reports the
-draft ready to release. Active Internal remains `2026082601`; the selected
-two-user tester list and Closed Alpha `2026081506` are unchanged. Production
-and Open testing are unavailable. Final Internal activation remains pending
-the existing SIT Play Developer account selection in the official Google
-chooser; no account was created.
+The complete standard local regression passes from `flutter clean` with 2,013
+of 2,013 tool checks, backend and PostgreSQL, Flutter, analyzer zero, Web/Wasm,
+loopback and Android. Locked Flutter metadata is bootstrapped deterministically
+before the tool inventory, so no local setup workaround is retained. Official
+ChatGPT/Codex authentication is
+`CODEX_AUTH_LOCAL_DEV_SUPPORTED`; a fresh synthetic cordless-drill evaluation
+passed in an ephemeral read-only session with no API billing, no credential
+extraction, no runtime provider and no publication authority.
 
-The exact direct APK is installed non-destructively on the reachable Pixel.
-Guest online catalog, explicit offline error and recovery after connectivity
-return/process restart passed. This is not Store split-delivery evidence.
-Authenticated G3-G5 physical journeys and the remote OnePlus remain deferred.
+The exact APK is installed non-destructively on the reachable Pixel. Existing
+app data was preserved; guest catalog online, explicit offline failure,
+network recovery and process restart passed. The device is signed out, so the
+authenticated physical G3-G5 matrix is not claimed. The remote OnePlus remains
+deferred, and direct APK evidence is not Play split-delivery evidence.
 
-Staging health/readiness pass but still expose old commit `cedc5ecf...`, memory
-payments and `livemode=false`; exact candidate deployment remains pending the
-existing Hostinger account selection in the official Google chooser. No
-Production, Open, Closed,
-tester-list, real-payment, Firebase-project, Cloud/VPS/DNS or PR-merge state
-changed. Current assessment is `PILOT_READY = PARTIAL`. Exact evidence is
-`docs/evidence/release-readiness/full-pilot-candidate-2026083101.json`; the
-final human handover is `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
+Direct Play readback before the Mac locked confirmed Internal testing only:
+active `2026082601`, inactive draft `2026083101`, unchanged two-user tester
+list and unchanged Closed Alpha `2026081506`. Candidate `2026090103` is not yet
+uploaded or active. Staging remains healthy on old commit `cedc5ecf...`, memory
+payments and `livemode=false`. GitHub device approval, exact-source CI/CodeQL,
+exact Staging deployment and Play upload/activation are the only deferred
+external lanes. No Production, Open, Closed, tester-list, real-payment,
+Firebase-project, Cloud/VPS/DNS or PR-merge state changed.
+
+Current assessment is `PILOT_READY = PARTIAL`. Exact evidence is
+`docs/evidence/release-readiness/full-pilot-candidate-2026090103.json`; the
+current human handover is
+`docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
 ## Current OnePlus guest-discovery hotfix state
 

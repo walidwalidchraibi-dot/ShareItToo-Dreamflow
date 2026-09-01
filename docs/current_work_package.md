@@ -1,32 +1,37 @@
-# Current Work Package: full closed-pilot candidate 2026083101
+# Current Work Package: full closed-pilot candidate 2026090103
 
-Status: **PILOT_READY = PARTIAL; EXACT STAGING DEPLOYMENT AND PLAY INTERNAL
-ACTIVATION DEFERRED** on 31.08.2026.
+Status: **PILOT_READY = PARTIAL; EXACT GITHUB, STAGING AND PLAY INTERNAL
+COMPLETION DEFERRED BY MAC LOCK** on 01.09.2026.
 
-Artifact source commit `1ba604ca249a7454be52009a13ea2c7755cf037c`
-contains the guest Explore isolation fix and the frozen closed-pilot envelope.
-The signed candidate is `com.shareittoo.app`, `1.0.0+2026083101`, Internal and
-Staging only, with AAB SHA-256
-`d3f04245ad33ea700537da6aa3593047d62ec107a4eadc72decfc2eab07a4af8`.
+Artifact source commit `0c0624c9f1a76c886112a15c41564d6375b69238`
+contains the current frozen closed-pilot envelope. The signed candidate is
+`com.shareittoo.app`, `1.0.0+2026090103`, Internal and Staging only, with AAB
+SHA-256 `b6fac301b932b024014fdadbe5e8a01f545ddad50815f8e9f53df0045afe39bc`.
 
-The complete local technical regression, analyzer, Web/Wasm, loopback,
-Android, database/recovery and privacy/security/price/AI-contract checks pass.
-Exact GitHub Regression `33433680525`, CodeQL `33433680485` and clean-checkout
-reproducibility are green with zero open code-scanning alerts. The reachable
-Pixel runs the exact direct APK non-destructively; guest online, explicit
-offline failure and online recovery passed.
+The complete local technical regression passes from `flutter clean` with
+2,013/2,013 tool checks, analyzer zero, Web/Wasm, loopback, Android,
+database/recovery and privacy/security/price/AI-contract checks. The locked
+Flutter metadata is now bootstrapped deterministically and no local workaround
+is retained.
+The official `codex_local_dev` synthetic evaluation passed with ChatGPT auth,
+zero API billing and no runtime entitlement. The reachable Pixel runs the
+exact direct APK non-destructively; data-preserving update, guest online,
+explicit offline failure, online recovery and process restart passed.
 
-Play has processed `2026083101` as a ready Internal draft, while active
-Internal remains `2026082601` and testers/other tracks remain unchanged.
-Staging is healthy on old commit `cedc5ecf...` with memory payments and
-`livemode=false`. Exact deploy, Internal activation, Store split delivery and
-authenticated physical G3-G5 tests remain pending at the existing official
-account selection or physical device actions. Firebase Console and GitHub CLI
-authentication are valid; no credential was inspected. No P0/P1 code blocker
-is known.
+Active Play Internal remains `2026082601`, inactive draft `2026083101` remains
+unactivated and testers/other tracks remain unchanged. Candidate `2026090103`
+has not yet been uploaded. Staging is healthy on old commit `cedc5ecf...` with
+memory payments and `livemode=false`. A locked Mac prevents the official
+GitHub device approval and authenticated Play/Hostinger browser actions; those
+lanes are explicitly deferred without credential extraction. Exact-source
+GitHub CI/CodeQL, image publish/deploy, Play activation, Store split delivery
+and authenticated physical G3-G5 tests remain pending. No P0/P1 code blocker
+is known. The current seven-file private Drive handoff has been read back as
+owner-only and not shared; the superseded `2026090102` folder is visibly marked
+do-not-use.
 
 Machine evidence:
-`docs/evidence/release-readiness/full-pilot-candidate-2026083101.json`.
+`docs/evidence/release-readiness/full-pilot-candidate-2026090103.json`.
 Human handover:
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
