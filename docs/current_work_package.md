@@ -1,36 +1,39 @@
-# Current Work Package: full closed-pilot candidate 2026090203
+# Current Work Package: API-36 full closed-pilot candidate 2026090204
 
-Status: **TECHNICAL_CANDIDATE_READY / PILOT_BLOCKED_LEGAL_GATE** on
-02.09.2026.
+Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_UPLOAD_PENDING /
+PILOT_BLOCKED_LEGAL_GATE** on 02.09.2026.
 
-Artifact source commit `941c59d78ad8005a3d29b5eefac8925ec86a8c71`
-contains the frozen closed-pilot envelope, the dedicated inline planner limiter
-and the CodeQL-visible direct global baseline. The signed candidate is
-`com.shareittoo.app`, `1.0.0+2026090203`, Internal and Staging only, with AAB
-SHA-256 `8d9107769a857fcfa66e65e95fc4bf896cf4d4cc407263e5da1dc219bccc9499`.
+Artifact source commit `30cc73cee8f10915ad4447da4a2fa7ae928f7410`
+contains the frozen closed-pilot envelope and the API-36 Play remediation. The
+canonical signed candidate is `com.shareittoo.app`, `1.0.0+2026090204`,
+Internal and Staging only, with AAB SHA-256
+`5d77d2526e66fee814aa45ad776b37b07ab21d33e91f1d38588c98fde14e01d9`.
 
-The complete local technical regression passes from a clean Flutter bootstrap:
-the complete tool inventory, backend/PostgreSQL, 634 Flutter tests with three
-documented skips, analyzer zero, Web/Wasm, loopback, Android with 448 tasks and
-clean-checkout reproducibility. No timing, retry, rate-limit, parallelism or
-build-path workaround is retained. The exact APK runs non-destructively on the
-Pixel; signed-out guest online, explicit offline failure, recovery and exact
-process restart all pass with the app-data container preserved.
+The complete local technical regression passes: tool inventory,
+backend/PostgreSQL, 634 Flutter tests with three documented skips, analyzer
+zero, Web/Wasm, loopback and Android debug with 448 tasks. A separate isolated
+clean checkout repeated the full gate and produced byte-identical debug APKs.
+The first attempt exposed insufficient host capacity; deleting only the
+rebuildable Gradle 8.12 transform cache let the unchanged deterministic run
+pass. No timing, retry, rate-limit, parallelism or build-path workaround is
+retained.
 
-Exact Staging runs the matching source and API image, memory payments,
-`livemode=false` and the local listing-AI mock. Active Play Internal remains
-`2026082601`; candidate `2026090203` is not uploaded or activated, testers and
-all other tracks are unchanged. Exact final-evidence GitHub Regression and
-CodeQL are the remaining autonomous checks after the evidence push. Store split
-delivery and authenticated G3-G5 tests remain unclaimed.
+Staging remains healthy on API source `941c59d7`, with memory payments,
+`livemode=false` and the local listing-AI mock; the 0204 delta is Android-build
+only. Active Play Internal remains `2026082601`; the unpublishable API-35 0203
+draft was discarded and candidate 0204 is not yet uploaded or activated.
+Testers and all other tracks are unchanged. Artifact-source GitHub Regression
+`33590941669` and CodeQL `33590941491` are green with zero open alerts. Exact
+physical-device and Play split-delivery checks remain deferred.
 
 The external hard stop is authentic: V5.2 is still `draft-blocked`, independent
 professional approval and approved document snapshots do not exist, and the
-preflight fails before fixture creation. No Play activation, booking acceptance,
-public registration or real payment is allowed under this package.
+preflight fails before fixture creation. Google Play Internal may expose only
+the fail-closed non-binding surfaces; booking acceptance, public registration
+and real payment remain blocked.
 
 Machine evidence:
-`docs/evidence/release-readiness/full-pilot-candidate-2026090203.json`.
+`docs/evidence/release-readiness/full-pilot-candidate-2026090204.json`.
 Human handover:
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 

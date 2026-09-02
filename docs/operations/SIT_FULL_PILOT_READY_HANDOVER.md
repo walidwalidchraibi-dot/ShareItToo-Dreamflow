@@ -1,36 +1,39 @@
 # SIT closed-pilot candidate handover
 
-Status: **TECHNICAL_CANDIDATE_READY / PILOT_BLOCKED_LEGAL_GATE** on
+Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_UPLOAD_PENDING /
+PILOT_BLOCKED_LEGAL_GATE** on
 02.09.2026.
 
 ## Frozen technical candidate
 
 - Worktree: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
 - Branch: `codex/master-workflow-20260808`.
-- Artifact source HEAD: `941c59d78ad8005a3d29b5eefac8925ec86a8c71`.
-- Android: `com.shareittoo.app`, `1.0.0+2026090203`, minSdk 24,
-  targetSdk 35.
+- Artifact source HEAD: `30cc73cee8f10915ad4447da4a2fa7ae928f7410`.
+- Android: `com.shareittoo.app`, `1.0.0+2026090204`, compileSdk 36,
+  minSdk 24 and targetSdk 36, with AGP 8.9.1.
 - Scope: Google Play Internal testing, Staging API and private pilot
   `heilbronn_wave0` only.
 - AAB SHA-256:
-  `8d9107769a857fcfa66e65e95fc4bf896cf4d4cc407263e5da1dc219bccc9499`.
+  `5d77d2526e66fee814aa45ad776b37b07ab21d33e91f1d38588c98fde14e01d9`.
 - APK SHA-256:
-  `763bf6c71832ababcca77d2fb4478fef39d750e5eded3cc81ad8537f0314a354`.
+  `75cb30237389937a008e82aaffb06f0b601ffa6e39e4b1cb4df15116222bfc2f`.
 - Upload-certificate SHA-256:
   `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4`.
 
 The signed release AAB and APK are stored in the private owner-only archive
-`2026090203-941c59d78ad8005a3d29b5eefac8925ec86a8c71`. Package, version,
+`2026090204-30cc73cee8f10915ad4447da4a2fa7ae928f7410`. Package, version,
 SDK identity, signing certificate, ZIP structure, Bundletool 1.18.1 validation
 and binary privacy scan passed. No secret or tester identity is present in
 repository evidence.
 
-The complete local candidate-rollover regression passed after a clean Flutter
-bootstrap. It includes the repository tool inventory, Backend/PostgreSQL,
-Flutter (634 tests with only documented skips), analyzer with zero issues,
-Web/Wasm, a real loopback smoke and Android debug (448 tasks). The release-host
-capacity guard passed without retaining a timing, retry, rate-limit,
-parallelism or build-path workaround.
+The complete local candidate-rollover regression passed. It includes the
+repository tool inventory, Backend/PostgreSQL, Flutter (634 tests with three
+documented skips), analyzer with zero issues, Web/Wasm, a real loopback smoke
+and Android debug (448 tasks). A separate isolated checkout repeated the full
+gate and produced byte-identical debug APKs. Its first attempt truthfully failed
+when a rebuildable Gradle transform cache left insufficient disk space; after
+that cache alone was removed, the unchanged deterministic run passed. No
+timing, retry, rate-limit, parallelism or build-path workaround is retained.
 
 The preceding PR CodeQL quality check reported three high-severity missing-rate-
 limit findings. Runtime protection already existed through the
@@ -42,43 +45,32 @@ structural and behavior regressions prove both layers and their ordering; the
 complete local CodeQL contract suite passes. The final GitHub CodeQL readback
 below remains the independent confirmation.
 
-The exact final-evidence GitHub Regression and CodeQL run IDs are recorded only
-after the evidence commit is pushed and both workflows complete. PR #7 remains
-Draft, open and unmerged throughout that readback.
+Artifact-source GitHub Regression `33590941669` and CodeQL `33590941491`
+passed on exact HEAD `30cc73cee8f10915ad4447da4a2fa7ae928f7410`;
+open code-scanning alerts are zero. PR #7 remains Draft, open, mergeable and
+unmerged.
 
-## Pixel candidate verification
+## Physical-device boundary
 
-The Pixel 7 Pro now runs the exact direct APK `1.0.0+2026090203`. The update
-from `2026090202` was non-destructive: the upload signature and installed APK
-hash match the private candidate, while first-install and app-data-container
-identity remained unchanged. The device is signed out; no login, logout or
-account mutation occurred.
-
-The public Staging endpoint and the guest UI both confirmed an empty catalog,
-not an endless loader and not a transport failure. Temporarily disabling Wi-Fi
-produced the explicit `Anzeigen konnten nicht geladen werden.` state. After
-restoring the existing Wi-Fi and verifying real Staging reachability, the
-server-confirmed empty catalog returned after the explicit user-visible retry.
-A force-stop/relaunch also preserved
-the exact APK and data-container identity.
-
-No timing workaround was introduced: the offline state exposes an explicit
-retry, and recovery was proved only after restored connectivity and that
-user-visible retry. A fixed sleep or silent retry is not a release prerequisite.
-The run retained no screenshot, hierarchy, network identifier, account content
-or device ID.
-Google Play split delivery and the authenticated pilot matrix remain unclaimed;
-the latter is correctly blocked by the V5.2 legal-snapshot gate.
+The Pixel's last directly verified build remains `1.0.0+2026090203` and its
+historical direct-APK checks do not transfer to `2026090204`. The OnePlus and
+Pixel are not physically reachable for the exact new candidate, so the current
+classification is `DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS`. Google Play split
+delivery and the authenticated pilot matrix remain unclaimed; the latter is
+also blocked by the V5.2 legal-snapshot gate.
 
 ## Exact Staging state
 
-Staging runs the exact source checkout and API image
+Staging runs source checkout and API image
 `shareittoo-api:941c59d78ad8005a3d29b5eefac8925ec86a8c71` with client-build
 requirement `1.0.0+2026090203`. Health and readiness are green, and all 354
 foreign-key constraints pass the deploy guard. Payment transport remains
 in-memory with `livemode=false`; listing AI remains the local mock with no
 external provider or billing. The deployment evidence is
 `/docker/shareittoo/releases/staging-20260902T033333Z-941c59d78ad8.json`.
+The 0204 delta is limited to Android target/compile SDK, Android build tooling,
+the monotonically newer version and their release ratchets; the API contract is
+unchanged, so no new VPS deployment is required for this candidate.
 
 ## Closed-pilot acceptance truth
 
@@ -104,19 +96,22 @@ open operator/provider facts. The P0B review intake is
 `professionallyReviewed=false` and no permission to claim professional
 approval.
 
-Accordingly, the nine V5.2 contract snapshots must not be provisioned, even on
-Staging, and no booking acceptance, Play activation, public registration or
-real-money path may be presented as ready. This is an external professional
+Accordingly, the nine V5.2 contract snapshots must not be provisioned and no
+booking acceptance, public registration or real-money path may be presented as
+ready. Google Play Internal distribution may exercise only the already
+fail-closed non-binding surfaces. This is an external professional
 legal gate, not a technical failure and not a gate that Codex may fabricate or
 self-approve.
 
 ## Play and repository boundaries
 
-Build `2026090203` has not been uploaded or activated. The last directly
-observed active Internal build remains `2026082601`; the tester list remains at
-two entries. Production, Open testing, Closed testing, Store metadata and all
-tester settings remain unchanged. Superseded Internal drafts must not be used
-as this candidate.
+Build `2026090203` was uploaded and processed, but Play rejected its target API
+35 after the 31.08.2026 deadline. Its unpublishable draft was discarded and it
+must not be activated. Build `2026090204` is the exact API-36 replacement and
+has not yet been uploaded or activated. The last directly observed active
+Internal build remains `2026082601`; the tester list remains at two entries.
+Production, Open testing, Closed testing, Store metadata and all tester settings
+remain unchanged.
 
 PR #7 remains Draft and unmerged. No Production, Firebase, public Cloud,
 payment, DNS, public Store, external listing-AI provider or account mutation is
@@ -124,21 +119,24 @@ part of this closure.
 
 ## Required gate to continue the real pilot
 
-1. Obtain independent professional V5.2 review and approval evidence.
-2. Resolve the open operator, provider, PSP, privacy and retention facts.
-3. Produce an effective approved manifest with final document hashes and
+1. Upload and activate only exact build `2026090204` on Google Play Internal,
+   then read back the release, tester and competing-track state.
+2. When a device is physically reachable, install from Play and run the exact
+   current-candidate guest, offline/online, restart and account-isolation matrix.
+3. Obtain independent professional V5.2 review and approval evidence.
+4. Resolve the open operator, provider, PSP, privacy and retention facts.
+5. Produce an effective approved manifest with final document hashes and
    explicit authorization to provision its snapshots on Staging.
-4. Provision only those approved snapshots, then rerun B7-B10 and the complete
+6. Provision only those approved snapshots, then rerun B7-B10 and the complete
    authenticated physical-device pilot matrix.
-5. Cut or revalidate a candidate only after those results; any Play Internal
-   activation remains a separate exact-candidate owner action.
 
 Machine evidence:
-`docs/evidence/release-readiness/full-pilot-candidate-2026090203.json`.
+`docs/evidence/release-readiness/full-pilot-candidate-2026090204.json`.
 
 ## Final assessment
 
-The code, Staging deployment and signed Android artifact are prepared as far
-as technically and safely possible. **PILOT_READY must not be claimed.** The
-correct closure is `PILOT_BLOCKED_LEGAL_GATE` until the professional V5.2 gate
-and approved snapshot provisioning are real and evidenced.
+The code, Staging API and signed API-36 Android artifact are prepared as far as
+technically and safely possible. The current classification is
+**PILOT_READY=PARTIAL**: technical candidate readiness is proven, while Play
+Internal distribution, exact-build device checks and the independent
+professional V5.2 gate remain open.

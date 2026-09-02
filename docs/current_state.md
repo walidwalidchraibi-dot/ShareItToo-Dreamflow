@@ -5,41 +5,45 @@ Verified: 2026-09-02 on the Mac mini.
 ## Current closed-pilot candidate state
 
 The current non-public technical candidate is frozen at artifact source commit
-`941c59d78ad8005a3d29b5eefac8925ec86a8c71`. Its canonical signed candidate is
-`com.shareittoo.app`, `1.0.0+2026090203`, Internal/Staging, pilot
+`30cc73cee8f10915ad4447da4a2fa7ae928f7410`. Its canonical signed candidate is
+`com.shareittoo.app`, `1.0.0+2026090204`, Internal/Staging, pilot
 `heilbronn_wave0`, with AAB SHA-256
-`8d9107769a857fcfa66e65e95fc4bf896cf4d4cc407263e5da1dc219bccc9499`.
+`5d77d2526e66fee814aa45ad776b37b07ab21d33e91f1d38588c98fde14e01d9`.
 Canonical signing, ZIP structure, Bundletool 1.18.1, binary privacy and exact
-package/version/SDK identity passed.
+package/version identity, minSdk 24 and target/compile SDK 36 passed.
 
 The complete standard local regression passes with exit 0 from a clean Flutter bootstrap:
 the complete tool inventory, backend and PostgreSQL, 634 Flutter tests with
-three documented skips, analyzer zero, Web/Wasm, loopback, Android with 448
-tasks and clean-checkout reproducibility. The planner-resolution endpoint keeps
+three documented skips, analyzer zero, Web/Wasm, loopback and Android with 448
+tasks. The independent clean-checkout reproduction passed with byte-identical
+debug APKs after removing only a rebuildable Gradle transform cache; no
+permanent workaround remains. The planner-resolution endpoint keeps
 its dedicated inline limiter, while the global baseline is now exposed directly
 as `app.use(rateLimit({...}))` so CodeQL can prove the runtime protection that
 previously flowed through a factory. Permanent tests prove both layers and their
 ordering. No local timing, retry, rate-limit,
 parallelism or build-path workaround is retained.
 
-The exact APK is installed non-destructively on the reachable Pixel. Existing
-app data was preserved; signed-out guest catalog online, explicit offline
-failure, network recovery and exact process restart passed. The authenticated
-physical G3-G5 matrix is not claimed. The remote OnePlus remains deferred, and
-direct APK evidence is not Play split-delivery evidence.
+The exact 0204 APK is not installed on a physical device. Pixel evidence for
+0203 is historical and does not transfer. Pixel and remote OnePlus checks are
+`DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS`; Play split delivery and the
+authenticated G3-G5 matrix remain unclaimed.
 
-Exact Staging runs the matching source and API image with memory payments,
-`livemode=false`, local listing-AI mock and healthy/readiness readback. Active
-Play Internal remains `2026082601`; candidate `2026090203` is neither uploaded
-nor active and the two-user tester list is unchanged. Exact final-evidence
-GitHub Regression/CodeQL are pending the evidence push. No Production, Open,
+Staging remains healthy on API source `941c59d7` with memory payments,
+`livemode=false` and the local listing-AI mock. The 0204 delta is Android-build
+only and does not require a backend deployment. Active Play Internal remains
+`2026082601`; the unpublishable API-35 draft 0203 was discarded and candidate
+`2026090204` is not yet uploaded or active. The two-user tester list is
+unchanged. Artifact-source GitHub Regression `33590941669` and CodeQL
+`33590941491` passed, with zero open alerts. No Production, Open,
 Closed, tester-list, real-payment, Firebase-project, Cloud/VPS/DNS or PR-merge
 state changed.
 
-Current assessment is `TECHNICAL_CANDIDATE_READY / PILOT_BLOCKED_LEGAL_GATE`.
+Current assessment is `PILOT_READY=PARTIAL / PLAY_INTERNAL_UPLOAD_PENDING /
+PILOT_BLOCKED_LEGAL_GATE`.
 The V5.2 manifest remains draft-blocked without independent professional
 approval or approved snapshots. Exact evidence is
-`docs/evidence/release-readiness/full-pilot-candidate-2026090203.json`; the
+`docs/evidence/release-readiness/full-pilot-candidate-2026090204.json`; the
 current human handover is
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
