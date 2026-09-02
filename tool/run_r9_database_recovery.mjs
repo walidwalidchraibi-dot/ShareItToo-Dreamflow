@@ -28,7 +28,7 @@ const requireFromBackend = createRequire(
   new URL('../backend/package.json', import.meta.url),
 );
 
-export const r9RequiredMigrationCount = 69;
+export const r9RequiredMigrationCount = 70;
 export const r9SyntheticAccountCount = 12;
 export const r9SyntheticListingCount = 6;
 export const r9ResultClassification = 'LOCAL_ISOLATED_DATABASE_RECOVERY_PROOF';
@@ -134,7 +134,7 @@ async function readMigrationPlan(root) {
   }
   if (plan.length !== r9RequiredMigrationCount
       || plan[0]?.filename !== '001_b3_foundation.up.sql'
-      || plan.at(-1)?.filename !== '069_regional_price_engine_r6_hardening.up.sql') {
+      || plan.at(-1)?.filename !== '070_stage_a_non_binding_simulation_guard.up.sql') {
     fail('r9_migration_inventory_unexpected');
   }
   return Object.freeze(plan);
@@ -635,7 +635,10 @@ async function closePools(pools) {
   if (rejected) throw rejected.reason;
 }
 
-export function validateR9Observation(value) {
+export function validateR9Observation(value, {
+  requiredMigrationCount = r9RequiredMigrationCount,
+  requiredLastMigration = '070_stage_a_non_binding_simulation_guard.up.sql',
+} = {}) {
   if (value?.schemaVersion !== 1
       || value.kind !== 'sit-r9-database-recovery-observation'
       || value.status !== 'passed-and-cleaned'
@@ -645,9 +648,9 @@ export function validateR9Observation(value) {
   }
   const migration = value.migration ?? {};
   if (migration.emptyDatabaseTablesBeforeBootstrap !== 0
-      || migration.totalMigrations !== r9RequiredMigrationCount
+      || migration.totalMigrations !== requiredMigrationCount
       || migration.firstMigration !== '001_b3_foundation.up.sql'
-      || migration.lastMigration !== '069_regional_price_engine_r6_hardening.up.sql'
+      || migration.lastMigration !== requiredLastMigration
       || migration.secondRunAppliedMigrations !== 0
       || migration.checksumMismatches !== 0
       || !/^[0-9a-f]{64}$/u.test(migration.schemaFingerprintSha256 ?? '')
@@ -691,7 +694,7 @@ export function validateR9Observation(value) {
   if (!exact(value.olderUpgrade, {
     startingMigration: '027_g2_persistent_rental_cart.up.sql',
     startingMigrationCount: 27,
-    finalMigrationCount: r9RequiredMigrationCount,
+    finalMigrationCount: requiredMigrationCount,
     secondRunAppliedMigrations: 0,
     legacyUsersPreserved: 4,
     legacyListingsPreserved: 2,

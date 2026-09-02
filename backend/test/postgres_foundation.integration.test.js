@@ -2012,6 +2012,24 @@ if (!databaseUrl) {
       await setupPool.query(
         `UPDATE bookings SET simulation_only = true WHERE id = 'booking-a'`,
       );
+      const stageASimulationRollback = await fs.readFile(
+        path.resolve(
+          currentDir,
+          '../sql/migrations/070_stage_a_non_binding_simulation_guard.down.sql',
+        ),
+        'utf8',
+      );
+      const stageARollbackClient = await setupPool.connect();
+      try {
+        await stageARollbackClient.query('BEGIN');
+        await assert.rejects(
+          stageARollbackClient.query(stageASimulationRollback),
+          /Stage A simulation rollback blocked: simulation bookings exist/u,
+        );
+        await stageARollbackClient.query('ROLLBACK');
+      } finally {
+        stageARollbackClient.release();
+      }
       await assert.rejects(
         setupPool.query(
           `INSERT INTO payment_commands (

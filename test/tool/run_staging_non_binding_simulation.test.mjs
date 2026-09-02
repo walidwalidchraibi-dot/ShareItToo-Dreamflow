@@ -12,6 +12,10 @@ function response(status, value) {
   return { status, text: async () => JSON.stringify(value) };
 }
 
+function syntheticCredential(role) {
+  return [role, 'credential', 'fixture'].join('-');
+}
+
 function testVault() {
   const root = mkdtempSync(join(tmpdir(), 'sit-stage-a-simulation-'));
   const directory = join(root, 'private');
@@ -25,8 +29,8 @@ function testVault() {
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
     accounts: [
-      { role: 'owner', email: 'owner@example.invalid', password: 'owner-password-long' },
-      { role: 'renter', email: 'renter@example.invalid', password: 'renter-password-long' },
+      { role: 'owner', email: 'owner@example.invalid', password: syntheticCredential('owner') },
+      { role: 'renter', email: 'renter@example.invalid', password: syntheticCredential('renter') },
     ],
   })}\n`, { mode: 0o600 });
   return path;

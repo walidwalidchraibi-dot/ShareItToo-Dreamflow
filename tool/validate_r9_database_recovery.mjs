@@ -62,7 +62,10 @@ export function validateR9DatabaseRecovery({
     retryOrTimingWorkaround: false,
   })) fail('R9 CI red-first finding is invalid.');
 
-  validateR9Observation(value.observation);
+  validateR9Observation(value.observation, {
+    requiredMigrationCount: 69,
+    requiredLastMigration: '069_regional_price_engine_r6_hardening.up.sql',
+  });
   const observation = value.observation;
   if (observation.resultClassification !== r9ResultClassification
       || !exact(observation.migration, {
@@ -156,7 +159,7 @@ export function validateR9DatabaseRecovery({
 
   const runnerPath = 'tool/run_r9_database_recovery.mjs';
   requireMarkers(source(repositoryRoot, runnerPath), runnerPath, [
-    "r9RequiredMigrationCount = 69",
+    "r9RequiredMigrationCount = 70",
     "r9SyntheticAccountCount = 12",
     "r9SyntheticListingCount = 6",
     "'pg_dump'",

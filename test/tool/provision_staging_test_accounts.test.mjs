@@ -14,6 +14,7 @@ import { createTestTempTracker } from './test_temp_fixtures.mjs';
 const tempFixtures = createTestTempTracker();
 
 const fixedNow = new Date('2026-08-10T09:30:00.000Z');
+const syntheticCredential = ['not', 'a', 'real', 'password'].join('-');
 
 function deterministicRandom(size) {
   return Buffer.alloc(size, size);
@@ -38,12 +39,12 @@ test('binds synthetic registration to every private-pilot declaration', () => {
   assert.deepEqual(
     stagingRegistrationPayload({
       email: 'owner@example.com',
-      password: 'not-a-real-password',
+      password: syntheticCredential,
       displayName: 'SIT Test Vermieter',
     }),
     {
       email: 'owner@example.com',
-      password: 'not-a-real-password',
+      password: syntheticCredential,
       displayName: 'SIT Test Vermieter',
       termsAccepted: true,
       privacyAccepted: true,

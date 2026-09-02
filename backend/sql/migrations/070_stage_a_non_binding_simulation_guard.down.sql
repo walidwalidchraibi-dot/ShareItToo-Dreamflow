@@ -1,3 +1,14 @@
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM bookings WHERE simulation_only IS TRUE
+  ) THEN
+    RAISE EXCEPTION
+      'Stage A simulation rollback blocked: simulation bookings exist';
+  END IF;
+END;
+$$;
+
 DROP TRIGGER IF EXISTS financial_documents_reject_simulation_booking ON financial_documents;
 DROP TRIGGER IF EXISTS v52_actual_loss_reject_simulation_booking ON v52_actual_loss_cases;
 DROP TRIGGER IF EXISTS v51_cancellation_refund_reject_simulation_booking ON v51_cancellation_refund_obligations;
