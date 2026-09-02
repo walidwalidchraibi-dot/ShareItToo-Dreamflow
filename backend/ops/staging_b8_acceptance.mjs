@@ -3,6 +3,12 @@ import crypto from 'node:crypto';
 
 import sharp from 'sharp';
 
+import {
+  closedPilotBookingBody,
+  closedPilotLocation,
+  closedPilotOwnerAcceptanceBody,
+  closedPilotQuoteBody,
+} from './closed_pilot_acceptance.mjs';
 import { createEphemeralAcceptancePassword } from './ephemeral_acceptance_password.mjs';
 
 import { config } from '../src/config.js';
@@ -87,8 +93,8 @@ async function main() {
       `INSERT INTO users (
          id, email, password_hash, profile, role, account_status,
          email_verified_at, terms_accepted_at, privacy_accepted_at,
-         minimum_age_confirmed_at
-       ) VALUES ($1, $2, $3, $4::jsonb, $5, 'active', now(), now(), now(), now())`,
+         minimum_age_confirmed_at, private_use_confirmed_at
+       ) VALUES ($1, $2, $3, $4::jsonb, $5, 'active', now(), now(), now(), now(), now())`,
       [
         user.id,
         user.email,
@@ -172,16 +178,13 @@ async function main() {
       currency: 'EUR',
       deposit: null,
       photos: [listingUpload.url],
-      locationText: 'Staging Testadresse 8',
-      city: 'Berlin',
-      country: 'Deutschland',
-      lat: 52.5205,
-      lng: 13.4095,
+      ...closedPilotLocation,
       geohash: 'private',
       condition: 'good',
       minDays: 1,
       maxDays: 14,
       protectionModel: 'none',
+      privateStatusConfirmed: true,
       status: 'active',
       isActive: true,
     },
@@ -211,16 +214,25 @@ async function main() {
   });
 
   const bookingId = `${runId}-booking`;
+  const bookingDates = {
+    itemId: listingId,
+    startDate: dateOnly(60),
+    endDate: dateOnly(62),
+  };
+  const quote = (await api('/bookings/quote', {
+    method: 'POST',
+    token: users.renter.token,
+    body: closedPilotQuoteBody(bookingDates),
+  })).value;
   const created = await api('/bookings', {
     method: 'POST',
     token: users.renter.token,
     headers: { 'Idempotency-Key': `${runId}-create-booking` },
-    body: {
+    body: closedPilotBookingBody({
       id: bookingId,
-      itemId: listingId,
-      startDate: dateOnly(60),
-      endDate: dateOnly(62),
-    },
+      ...bookingDates,
+      quote,
+    }),
     expected: [201],
   });
   assert.equal(created.value.booking.workflowStatus, 'requested');
@@ -230,7 +242,7 @@ async function main() {
     method: 'POST',
     token: users.owner.token,
     headers: { 'Idempotency-Key': `${runId}-accept-booking` },
-    body: { status: 'accepted' },
+    body: closedPilotOwnerAcceptanceBody(),
   });
   assert.equal(accepted.value.booking.workflowStatus, 'accepted');
 

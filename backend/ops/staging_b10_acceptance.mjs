@@ -3,6 +3,12 @@ import crypto from 'node:crypto';
 
 import sharp from 'sharp';
 
+import {
+  closedPilotBookingBody,
+  closedPilotLocation,
+  closedPilotOwnerAcceptanceBody,
+  closedPilotQuoteBody,
+} from './closed_pilot_acceptance.mjs';
 import { createEphemeralAcceptancePassword } from './ephemeral_acceptance_password.mjs';
 
 import { pool } from '../src/db.js';
@@ -95,8 +101,8 @@ async function main() {
         `INSERT INTO users (
            id, email, password_hash, profile, role, account_status,
            email_verified_at, terms_accepted_at, privacy_accepted_at,
-           minimum_age_confirmed_at
-         ) VALUES ($1, $2, $3, $4::jsonb, 'user', 'active', now(), now(), now(), now())`,
+           minimum_age_confirmed_at, private_use_confirmed_at
+         ) VALUES ($1, $2, $3, $4::jsonb, 'user', 'active', now(), now(), now(), now(), now())`,
         [
           user.id,
           user.email,
@@ -157,16 +163,13 @@ async function main() {
         currency: 'EUR',
         deposit: null,
         photos: [upload.url],
-        locationText: 'Staging Testadresse 10',
-        city: 'Berlin',
-        country: 'Deutschland',
-        lat: 52.5205,
-        lng: 13.4095,
+        ...closedPilotLocation,
         geohash: 'private',
         condition: 'good',
         minDays: 1,
         maxDays: 14,
         protectionModel: 'none',
+        privateStatusConfirmed: true,
         status: 'active',
         isActive: true,
       },
@@ -191,23 +194,32 @@ async function main() {
     });
 
     bookingId = `${runId}-booking`;
+    const bookingDates = {
+      itemId: listingId,
+      startDate: dateOnly(60),
+      endDate: dateOnly(62),
+    };
+    const bookingQuote = (await api('/bookings/quote', {
+      method: 'POST',
+      token: users.renter.token,
+      body: closedPilotQuoteBody(bookingDates),
+    })).value;
     await api('/bookings', {
       method: 'POST',
       token: users.renter.token,
       headers: { 'Idempotency-Key': `${runId}-booking-create` },
       expected: [201],
-      body: {
+      body: closedPilotBookingBody({
         id: bookingId,
-        itemId: listingId,
-        startDate: dateOnly(60),
-        endDate: dateOnly(62),
-      },
+        ...bookingDates,
+        quote: bookingQuote,
+      }),
     });
     await api(`/bookings/${bookingId}/transitions`, {
       method: 'POST',
       token: users.owner.token,
       headers: { 'Idempotency-Key': `${runId}-booking-accept` },
-      body: { status: 'accepted' },
+      body: closedPilotOwnerAcceptanceBody(),
     });
     const thread = (await api(`/message-threads/booking/${bookingId}`, {
       method: 'POST',

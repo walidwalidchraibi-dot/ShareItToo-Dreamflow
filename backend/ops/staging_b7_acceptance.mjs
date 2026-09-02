@@ -5,6 +5,12 @@ import { resolve } from 'node:path';
 
 import sharp from 'sharp';
 
+import {
+  closedPilotBookingBody,
+  closedPilotLocation,
+  closedPilotOwnerAcceptanceBody,
+  closedPilotQuoteBody,
+} from './closed_pilot_acceptance.mjs';
 import { createEphemeralAcceptancePassword } from './ephemeral_acceptance_password.mjs';
 
 import { pool } from '../src/db.js';
@@ -132,8 +138,8 @@ async function main() {
       `INSERT INTO users (
          id, email, password_hash, profile, role, account_status,
          email_verified_at, terms_accepted_at, privacy_accepted_at,
-         minimum_age_confirmed_at
-       ) VALUES ($1, $2, $3, $4::jsonb, 'user', 'active', now(), now(), now(), now())`,
+         minimum_age_confirmed_at, private_use_confirmed_at
+       ) VALUES ($1, $2, $3, $4::jsonb, 'user', 'active', now(), now(), now(), now(), now())`,
       [
         user.id,
         user.email,
@@ -200,16 +206,13 @@ async function main() {
       priceUnit: 'day',
       currency: 'EUR',
       photos: [listingUpload.url],
-      locationText: 'Staging Testadresse 7',
-      city: 'Berlin',
-      country: 'Deutschland',
-      lat: 52.5205,
-      lng: 13.4095,
+      ...closedPilotLocation,
       geohash: 'private',
       condition: 'good',
       minDays: 1,
       maxDays: 14,
       protectionModel: 'none',
+      privateStatusConfirmed: true,
       status: 'active',
       isActive: true,
     },
@@ -238,12 +241,21 @@ async function main() {
 
   const bookingId = `${runId}-booking`;
   const createKey = `${runId}-create-booking`;
-  const bookingPayload = {
-    id: bookingId,
+  const bookingDates = {
     itemId: listingId,
     startDate: dateOnly(45),
     endDate: dateOnly(47),
   };
+  const quote = (await api('/bookings/quote', {
+    method: 'POST',
+    token: users.renter.token,
+    body: closedPilotQuoteBody(bookingDates),
+  })).value;
+  const bookingPayload = closedPilotBookingBody({
+    id: bookingId,
+    ...bookingDates,
+    quote,
+  });
   const created = await api('/bookings', {
     method: 'POST',
     token: users.renter.token,
@@ -275,7 +287,7 @@ async function main() {
     method: 'POST',
     token: users.owner.token,
     headers: { 'Idempotency-Key': acceptKey },
-    body: { status: 'accepted' },
+    body: closedPilotOwnerAcceptanceBody(),
   });
   assert.equal(accepted.value.booking.workflowStatus, 'accepted');
   const acceptedEvent = `booking:${bookingId}:accepted:${acceptKey}:0`;

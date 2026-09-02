@@ -9,6 +9,7 @@ import { detectHighConfidenceSecretRules } from '../ops/secret_scan_rules.mjs';
 
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const acceptanceFiles = [
+  'ops/closed_pilot_acceptance.mjs',
   'ops/staging_b7_acceptance.mjs',
   'ops/staging_b8_acceptance.mjs',
   'ops/staging_b9_acceptance.mjs',
@@ -34,6 +35,17 @@ test('acceptance sources do not contain static password literals', async () => {
     const contents = await fs.readFile(path.join(backendRoot, relativePath), 'utf8');
     const findings = detectHighConfidenceSecretRules(contents, relativePath);
     assert.deepEqual(findings, [], relativePath);
+  }
+});
+
+test('staging acceptance fixtures satisfy the closed-pilot declarations', async () => {
+  for (const relativePath of acceptanceFiles.slice(1, 5)) {
+    const contents = await fs.readFile(path.join(backendRoot, relativePath), 'utf8');
+    assert.match(contents, /private_use_confirmed_at/u, relativePath);
+    assert.match(contents, /privateStatusConfirmed:\s*true/u, relativePath);
+    assert.match(contents, /\.\.\.closedPilotLocation/u, relativePath);
+    assert.match(contents, /closedPilotBookingBody\(/u, relativePath);
+    assert.match(contents, /closedPilotOwnerAcceptanceBody\(\)/u, relativePath);
   }
 });
 
