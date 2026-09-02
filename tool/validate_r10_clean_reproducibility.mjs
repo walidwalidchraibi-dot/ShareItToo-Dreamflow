@@ -224,13 +224,16 @@ function validateAndroid(value, { executionOnly = false } = {}) {
   const expectedVersion = executionOnly
     ? currentRepositoryVersion()
     : { versionName: '1.0.0', versionCode: '2026082302' };
+  const expectedSdk = executionOnly
+    ? { compileSdk: 36, targetSdk: 36 }
+    : { compileSdk: 35, targetSdk: 35 };
   requireExact(value.identity, {
     applicationId: 'com.shareittoo.app',
     versionCode: expectedVersion.versionCode,
     versionName: expectedVersion.versionName,
-    compileSdk: 35,
+    compileSdk: expectedSdk.compileSdk,
     minSdk: 24,
-    targetSdk: 35,
+    targetSdk: expectedSdk.targetSdk,
     debuggable: true,
   }, 'R10 Android build identity changed.');
   requireExact(value.permissions, r10ExpectedPermissions, 'R10 Android permission surface changed.');

@@ -52,6 +52,8 @@ test('accepts a structurally exact detached CI execution result', () => {
   ci.observedOn = '2026-08-25';
   ci.android.identity.versionName = currentVersion.versionName;
   ci.android.identity.versionCode = currentVersion.versionCode;
+  ci.android.identity.compileSdk = 36;
+  ci.android.identity.targetSdk = 36;
   assert.equal(validate(ci, { executionOnly: true }).implementationHead, 'a'.repeat(40));
 
   ci.observedOn = '2026-02-31';

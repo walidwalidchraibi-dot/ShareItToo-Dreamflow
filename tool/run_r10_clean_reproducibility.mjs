@@ -578,9 +578,9 @@ async function androidCharacteristics(checkout, apk, aapt) {
     applicationId: 'com.shareittoo.app',
     versionCode: expectedVersion.versionCode,
     versionName: expectedVersion.versionName,
-    compileSdk: 35,
+    compileSdk: 36,
     minSdk: 24,
-    targetSdk: 35,
+    targetSdk: 36,
     debuggable: true,
   })) fail('r10_android_identity_unexpected');
   if (!exact(permissions, r10ExpectedPermissions)) fail('r10_android_permission_surface_unexpected');

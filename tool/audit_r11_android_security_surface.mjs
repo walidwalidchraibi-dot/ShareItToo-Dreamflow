@@ -371,9 +371,9 @@ export function auditR11AndroidSecuritySurface({
       || packageIdentity?.[1] !== 'com.shareittoo.app'
       || packageIdentity?.[2] !== expectedVersion.versionCode
       || packageIdentity?.[3] !== expectedVersion.versionName
-      || !/compileSdkVersion='35'/u.test(badgingDump)
+      || !/compileSdkVersion='36'/u.test(badgingDump)
       || !/sdkVersion:'24'/u.test(badgingDump)
-      || !/targetSdkVersion:'35'/u.test(badgingDump)) {
+      || !/targetSdkVersion:'36'/u.test(badgingDump)) {
     fail('r11_android_identity_changed');
   }
   requireExact(
@@ -495,9 +495,9 @@ export function auditR11AndroidSecuritySurface({
       applicationId: 'com.shareittoo.app',
       versionName: expectedVersion.versionName,
       versionCode: expectedVersion.versionCode,
-      compileSdk: 35,
+      compileSdk: 36,
       minSdk: 24,
-      targetSdk: 35,
+      targetSdk: 36,
     },
     permissions: normalizedPermissions(permissionDump),
     components: {

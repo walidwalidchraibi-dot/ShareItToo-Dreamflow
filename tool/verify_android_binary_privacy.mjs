@@ -108,9 +108,9 @@ requireCheck(
   'Package name or release version does not match the release request.',
 );
 requireCheck(
-  /targetSdkVersion:'35'/.test(badging),
+  /targetSdkVersion:'36'/.test(badging),
   'target_sdk_mismatch',
-  'The signed APK must target Android API 35.',
+  'The signed APK must target Android API 36.',
 );
 requireCheck(
   manifestBooleanIsFalse('allowBackup'),
@@ -336,7 +336,7 @@ const report = {
     versionCode: args['version-code'],
     commit: args.commit,
     apiBaseUrl: args['api-base-url'],
-    targetSdkVersion: 35,
+    targetSdkVersion: 36,
   },
   artifacts: {
     apk: { path: args.apk, sha256: sha256(args.apk) },
