@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "ba64cfb8d866f210ff42f72a90a7ae265bbfea4cacf98e771bcba948a7398986"
+      "sha256": "8aaba365c5b429d8b890996a77e6b2c738d3e7bf717948ec59c5daec43bcdbd6"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -764,7 +764,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "ece6d59a3108048ad48027a1591c4beda0153d156aee1ed91ec752d32422b276"
+      "sha256": "1fc1675ad5433060619081f7c8c58def0d6be4f70ca23069f8feb95f1f6ed361"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
@@ -872,7 +872,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "1bd432f5a412c40a9f4036c02b0bc92f2bdf6879a510238e4270450ca1b7aace"
+      "sha256": "a320f4934b5e942898859ae61ef3b07e4e04f4f6863a4988b5d52b2636c2fa0f"
     },
     {
       "path": "backend/src/rate_limit_policy.js",

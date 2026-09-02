@@ -1688,6 +1688,7 @@ export function createApp({
   const supportMessageReviewLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportMessagePublishLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const blueOceanListingMutationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const plannerInventoryResolveLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const supportEvidenceUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: config.supportEvidence.maxFileBytes, files: 1, fields: 4 },
@@ -3951,7 +3952,7 @@ export function createApp({
     });
   }));
 
-  app.post('/v1/planner/resolve', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+  app.post('/v1/planner/resolve', plannerInventoryResolveLimiter, requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
     assertPlannerInventoryTechnicalAccess(config);
     const resolution = await inTransaction((client) => resolvePlannerInventory(client, {
       actorId: req.auth.userId,

@@ -81,3 +81,16 @@ test('Blue-Ocean listing mutations retain a dedicated bounded limiter before aut
     );
   }
 });
+
+test('planner inventory resolution retains a dedicated bounded limiter before authentication', () => {
+  assert.match(
+    backendApp,
+    /const plannerInventoryResolveLimiter = rateLimit\(\{ windowMs: 15 \* 60_000, limit: 30,[^\n]+\}\);/u,
+  );
+  assert.equal(
+    backendApp.includes(
+      "app.post('/v1/planner/resolve', plannerInventoryResolveLimiter, requireAuth, requireActiveAccount, requireUnsuspendedScope('booking')",
+    ),
+    true,
+  );
+});

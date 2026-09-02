@@ -216,11 +216,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "e6ddc87420ed87ed530d046757ea21f2cea77b49effc11a5cfa6c34f275a2caf"
+      "sha256": "e078a1588a7e2f3236230269d6df4caac2277ae297db303f56d2964e0ce82667"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "7e85613c14de6d6957308ad805671dd4829d2e6afb0e3cfb99c01b30e2e5c65f"
+      "sha256": "479f7a5744a325ddf4285aa67794dbf6aa50df692554274a4537365591bd14df"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",

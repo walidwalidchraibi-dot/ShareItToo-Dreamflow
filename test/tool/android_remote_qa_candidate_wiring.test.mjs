@@ -24,7 +24,7 @@ test('Remote QA Android wiring is separate, staging-only and owner-distributed',
   assert.match(identity, /remoteQa != remoteQaIdentity/u);
   assert.match(identity, /remoteQa && channel != 'staging'/u);
 
-  assert.match(build, /https:\/\/staging\.shareittoo\.com\/api\/v1/u);
+  assert.ok(build.includes('API_BASE_URL="https://staging.shareittoo.com/api/v1"'));
   assert.match(build, /com\.shareittoo\.app\.qa/u);
   assert.match(build, /--target-platform android-arm64/u);
   assert.match(build, /app-release\.apk/u);

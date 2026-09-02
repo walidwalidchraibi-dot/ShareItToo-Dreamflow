@@ -349,7 +349,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "1bd432f5a412c40a9f4036c02b0bc92f2bdf6879a510238e4270450ca1b7aace"
+      "sha256": "a320f4934b5e942898859ae61ef3b07e4e04f4f6863a4988b5d52b2636c2fa0f"
     },
     {
       "path": "lib/screens/change_address_screen.dart",
@@ -413,7 +413,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
-      "sha256": "3d3fd5283e34ab41edfcfb18ea09d7f8a6cc7c1a3b97082b7e359032224ad0ba"
+      "sha256": "832b0a976141406ee9b91dea6221b0a22b174c1f4c95e2deae7a77b526d8334c"
     },
     {
       "path": "scripts/technical_regression_check.sh",

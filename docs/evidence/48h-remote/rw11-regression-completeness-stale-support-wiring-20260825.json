@@ -118,9 +118,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "e6ddc87420ed87ed530d046757ea21f2cea77b49effc11a5cfa6c34f275a2caf",
-    "retentionManifestSha256": "7e85613c14de6d6957308ad805671dd4829d2e6afb0e3cfb99c01b30e2e5c65f",
-    "activeProviderEvidenceSha256": "bc13c0af6b2c9271d8fc80f5c5e811f5b27f143c180de36798a59cacdf7a4f65",
+    "privacyManifestSha256": "e078a1588a7e2f3236230269d6df4caac2277ae297db303f56d2964e0ce82667",
+    "retentionManifestSha256": "479f7a5744a325ddf4285aa67794dbf6aa50df692554274a4537365591bd14df",
+    "activeProviderEvidenceSha256": "d39a9b879588a27b084ca35f41a086f0e66ef59026d152af3d024e5c55b19a1c",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -159,7 +159,7 @@
     "The distinct RW10 post-service success-popup epoch window remains open for a separately bounded product correction and is not claimed closed by RW11."
   ],
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "1bd432f5a412c40a9f4036c02b0bc92f2bdf6879a510238e4270450ca1b7aace"},
+    {"path": "backend/src/app.js", "sha256": "a320f4934b5e942898859ae61ef3b07e4e04f4f6863a4988b5d52b2636c2fa0f"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "534253d5bcdcb541b73740d9b58e7b70568397dc9f53e04fa28ef2c8158a912a"},
     {"path": "lib/screens/messages_screen.dart", "sha256": "80d4c76a2f4913ffabdb928eaca24216486bb1a7c05791ab83e0d261f8dc0672"},
     {"path": "lib/services/backend_repository.dart", "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"},
