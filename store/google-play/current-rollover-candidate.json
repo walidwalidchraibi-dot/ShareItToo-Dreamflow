@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "android-current-rollover-candidate",
   "status": "build-ready-play-internal-upload-pending",
-  "generatedAt": "2026-09-02T00:14:52Z",
+  "generatedAt": "2026-09-02T01:22:03.887Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -47,10 +47,10 @@
     "fullToolInventory": "passed",
     "localCiProfileRegression": "passed",
     "cleanCheckoutReproducibility": "passed",
-    "githubVerifiedHead": "e026e6cb6b609747e51bf8f977064a636e7b6f8e",
-    "githubRegressionRunId": 33575280604,
+    "githubVerifiedHead": "8301f6ad59145f1f03468aeb81e5843b165b58ef",
+    "githubRegressionRunId": 33576595774,
     "githubRegressionConclusion": "success",
-    "githubCodeqlRunId": 33575280587,
+    "githubCodeqlRunId": 33576595755,
     "githubCodeqlConclusion": "success",
     "githubApiImagePublishRunId": null,
     "githubApiImagePublishConclusion": "pending",
@@ -102,13 +102,14 @@
     "requiredNextGate": "independent-professional-v5.2-approval-and-approved-snapshot-provisioning"
   },
   "deviceVerification": {
-    "preferredDeviceExactApkInstalled": false,
-    "preferredDeviceDataPreserved": false,
-    "guestCatalogOnline": "pending-current-candidate-device-run",
-    "offlineTruthfulError": "pending-current-candidate-device-run",
-    "onlineRecovery": "pending-current-candidate-device-run",
+    "preferredDeviceExactApkInstalled": true,
+    "preferredDeviceDataPreserved": true,
+    "guestCatalogOnline": "passed-server-confirmed-empty-state",
+    "offlineTruthfulError": "passed-explicit-error",
+    "onlineRecovery": "passed-after-validated-staging-reachability",
+    "processRestart": "passed-data-container-preserved",
     "storeDeliveredSplitVerified": false,
-    "authenticatedPilotMatrix": "deferred-exact-staging-and-current-candidate-device-run",
+    "authenticatedPilotMatrix": "blocked-until-approved-v52-snapshots-exist",
     "secondaryDevice": "DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS"
   },
   "privateDriveHandoff": {

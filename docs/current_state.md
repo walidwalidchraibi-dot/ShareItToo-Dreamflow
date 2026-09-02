@@ -4142,3 +4142,13 @@ Build `2026090106` is not uploaded or activated in Play. The technically
 prepared state is therefore `TECHNICAL_CANDIDATE_READY`, while the real pilot
 state is `PILOT_BLOCKED_LEGAL_GATE`. No Production, real-money, public-user,
 provider, Firebase, Cloud/VPS/DNS, tester-list or PR-merge boundary changed.
+
+The exact direct APK `1.0.0+2026090106` is now installed on the Pixel 7 Pro by
+a non-destructive update from `2026090103`; signature, installed bytes,
+first-install identity and app-data-container preservation pass. The signed-out
+guest UI matches the currently empty public Staging catalog, exposes the
+explicit offline error when Wi-Fi is temporarily disabled, recovers after
+validated Staging reachability and survives a process restart. Wi-Fi was
+restored. No login, logout, account/booking mutation, screenshot, hierarchy,
+identifier or personal content was retained. Play split delivery remains
+unclaimed, and the authenticated matrix remains behind the V5.2 legal gate.

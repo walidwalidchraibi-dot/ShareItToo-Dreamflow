@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "sit-full-pilot-candidate-evidence",
   "status": "technical-candidate-ready-pilot-blocked-v52-legal",
-  "recordedAt": "2026-09-02T00:14:52Z",
+  "recordedAt": "2026-09-02T01:22:03.887Z",
   "source": {
     "branch": "codex/master-workflow-20260808",
     "artifactSourceHead": "c678c6911569139eabdbcd45a57112f2ef8567fb",
@@ -62,8 +62,8 @@
     "webWasm": "passed",
     "loopbackSmoke": "passed",
     "androidDebugBuild": "passed-448-tasks",
-    "githubVerifiedHead": "e026e6cb6b609747e51bf8f977064a636e7b6f8e",
-    "githubRegressionRunId": 33575280604,
+    "githubVerifiedHead": "8301f6ad59145f1f03468aeb81e5843b165b58ef",
+    "githubRegressionRunId": 33576595774,
     "githubRegressionConclusion": "success",
     "githubRegressionJobs": {
       "flutterRegression": "success",
@@ -72,9 +72,25 @@
       "cleanCheckoutReproducibility": "success",
       "publishApiImage": "skipped"
     },
-    "githubCodeqlRunId": 33575280587,
+    "githubCodeqlRunId": 33576595755,
     "githubCodeqlConclusion": "success",
     "openCodeScanningAlerts": 0
+  },
+  "device": {
+    "model": "Pixel 7 Pro",
+    "installedVersion": "1.0.0+2026090106",
+    "installation": "passed-data-preserving-direct-update",
+    "installedApkHashMatched": true,
+    "candidateSignatureMatched": true,
+    "existingDataPreserved": true,
+    "signedOutGuestSession": "passed",
+    "guestCatalogOnline": "passed-server-confirmed-empty-state",
+    "offlineTruthfulError": "passed",
+    "onlineRecovery": "passed-after-validated-staging-reachability",
+    "processRestart": "passed-data-container-preserved",
+    "googlePlaySplitDelivery": "not-run-direct-apk-only",
+    "authenticatedPilotMatrix": "blocked-until-approved-v52-snapshots-exist",
+    "evidenceRef": "docs/evidence/release-readiness/pixel-direct-diagnostic-2026090106.json"
   },
   "play": {
     "track": "internal",

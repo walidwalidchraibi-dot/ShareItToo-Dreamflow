@@ -32,11 +32,33 @@ Web/Wasm, a real loopback smoke and Android debug (448 tasks). The release-host
 capacity guard passed without retaining a timing, retry, rate-limit,
 parallelism or build-path workaround.
 
-GitHub Regression `33575280604` and CodeQL `33575280587` both passed on exact
-evidence HEAD `e026e6cb6b609747e51bf8f977064a636e7b6f8e`. Regression includes
+GitHub Regression `33576595774` and CodeQL `33576595755` both passed on exact
+evidence HEAD `8301f6ad59145f1f03468aeb81e5843b165b58ef`. Regression includes
 successful Flutter, Backend, PostgreSQL fresh/recovery and clean-checkout jobs;
 API-image publication was correctly skipped. The following readback found zero
 open code-scanning alerts. PR #7 remained Draft, open, mergeable and unmerged.
+
+## Pixel candidate verification
+
+The Pixel 7 Pro now runs the exact direct APK `1.0.0+2026090106`. The update
+from `2026090103` was non-destructive: the upload signature and installed APK
+hash match the private candidate, while first-install and app-data-container
+identity remained unchanged. The device is signed out; no login, logout or
+account mutation occurred.
+
+The public Staging endpoint and the guest UI both confirmed an empty catalog,
+not an endless loader and not a transport failure. Temporarily disabling Wi-Fi
+produced the explicit `Anzeigen konnten nicht geladen werden.` state. After
+restoring the existing Wi-Fi and verifying real Staging reachability, the
+server-confirmed empty catalog returned. A force-stop/relaunch also preserved
+the exact APK and data-container identity.
+
+Android can report Wi-Fi enabled before Staging is reachable. That timing debt
+is closed by a deterministic reachability gate and five regression tests; a
+fixed sleep or retry workaround is not a release prerequisite. The run retained
+no screenshot, hierarchy, network identifier, account content or device ID.
+Google Play split delivery and the authenticated pilot matrix remain unclaimed;
+the latter is correctly blocked by the V5.2 legal-snapshot gate.
 
 ## Exact Staging state
 
