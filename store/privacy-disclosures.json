@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "4dbb6b887c488b2ef62a9eb11d19dcaf4ecbd73d6febd0db143beb130918ba95"
+      "sha256": "d2042f9ef54913533afd3b067ecd9ea8ae4ac8606e4b931ca72187e690380228"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -748,11 +748,11 @@
     },
     {
       "path": "lib/screens/login_screen.dart",
-      "sha256": "a31ab2e8c8aa797a77458f596aa02372d528ce1e999f304016ced5ec3b0db391"
+      "sha256": "f36326a76ff636088bebd1f981b5ff2b9606329e810d802ac1122611428b3e73"
     },
     {
       "path": "lib/screens/register_screen.dart",
-      "sha256": "20b39c1fe1ed941879808ae74a18d37abeb7f4dbcfbafef7c1d09fe4bc46509e"
+      "sha256": "5af1366c578d8416db5d5cb2e99c0c602b1994b59c2d23144d3d3e06b2113f43"
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
@@ -852,7 +852,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"
+      "sha256": "fcccf36152ccf5c6fe92e297b93ec813cd2ceceb8b58b5a5d1dd121371a9b6b4"
     },
     {
       "path": "lib/screens/notification_settings_screen.dart",
