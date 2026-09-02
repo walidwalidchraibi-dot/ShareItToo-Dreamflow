@@ -289,6 +289,9 @@ export async function createPaymentCheckout({ actor, bookingId, key: rawKey }) {
     if (!result.rowCount) throw new PaymentDomainError(404, 'booking_not_found');
     const booking = result.rows[0];
     if (booking.renter_id !== actor.id) throw new PaymentDomainError(403, 'payment_forbidden');
+    if (booking.simulation_only === true) {
+      throw new PaymentDomainError(409, 'pilot_simulation_payment_forbidden');
+    }
     if (!['accepted', 'payment_pending'].includes(booking.workflow_status)) {
       throw new PaymentDomainError(409, 'booking_not_ready_for_payment', { status: booking.workflow_status });
     }
@@ -426,6 +429,7 @@ export async function getBookingPayment({ actor, bookingId }) {
   ensurePaymentsEnabled(actor.id);
   const result = await pool.query(
     `SELECT payment.*, booking.owner_id, booking.renter_id, booking.workflow_status,
+            booking.simulation_only,
             booking.quoted_total_minor AS booking_total_minor,
             booking.rental_subtotal_minor AS booking_rental_subtotal_minor,
             booking.owner_payout_minor AS booking_owner_payout_minor,
@@ -446,6 +450,9 @@ export async function getBookingPayment({ actor, bookingId }) {
   const row = result.rows[0];
   if (![row.owner_id, row.renter_id].includes(actor.id) && actor.role !== 'admin') {
     throw new PaymentDomainError(403, 'payment_forbidden');
+  }
+  if (row.simulation_only === true) {
+    throw new PaymentDomainError(409, 'pilot_simulation_payment_forbidden');
   }
   return {
     bookingId,

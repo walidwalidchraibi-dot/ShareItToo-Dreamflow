@@ -228,18 +228,17 @@ void main() {
         await tester.tap(find.byTooltip('Einzelmiete prüfen'));
         await tester.pumpAndSettle();
         expect(find.text('Unverbindliche Stage-A-Vorschau'), findsOneWidget);
-        final lockedRequest =
-            find.text('Mietanfrage im Stage-A-Pilot gesperrt');
+        final simulationRequest = find.text('Test-Mietanfrage senden');
         await tester.scrollUntilVisible(
-          lockedRequest,
+          simulationRequest,
           500,
           scrollable: find.byType(Scrollable).first,
         );
         expect(
-          lockedRequest,
+          simulationRequest,
           findsOneWidget,
         );
-        expect(find.byType(CheckboxListTile), findsNothing);
+        expect(find.byType(CheckboxListTile), findsOneWidget);
         await tester.pageBack();
         await tester.pumpAndSettle();
 

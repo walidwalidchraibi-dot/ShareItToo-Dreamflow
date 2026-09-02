@@ -73,6 +73,18 @@ function safeRunId(now, random) {
   return `${date}-${suffix}`;
 }
 
+export function stagingRegistrationPayload(account) {
+  return Object.freeze({
+    email: account.email,
+    password: account.password,
+    displayName: account.displayName,
+    termsAccepted: true,
+    privacyAccepted: true,
+    minimumAgeConfirmed: true,
+    privateUseConfirmed: true,
+  });
+}
+
 async function defaultRegister(account) {
   const response = await fetch(`${stagingApiBaseUrl}/auth/register`, {
     method: 'POST',
@@ -80,14 +92,7 @@ async function defaultRegister(account) {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
     },
-    body: JSON.stringify({
-      email: account.email,
-      password: account.password,
-      displayName: account.displayName,
-      termsAccepted: true,
-      privacyAccepted: true,
-      minimumAgeConfirmed: true,
-    }),
+    body: JSON.stringify(stagingRegistrationPayload(account)),
     signal: AbortSignal.timeout(15_000),
   });
   return { accepted: response.status === 202, status: response.status };

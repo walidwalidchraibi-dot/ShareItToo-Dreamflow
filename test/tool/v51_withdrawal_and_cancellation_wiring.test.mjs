@@ -52,7 +52,10 @@ test('withdrawal creates separate immutable obligations and resolves rent only a
   ]) assert.match(migration, new RegExp(marker, 'u'));
   assert.match(withdrawalWorkflow, /settleV51WithdrawalRefundAtReturn/u);
   assert.match(withdrawalWorkflow, /source: 'verified_return_transition'/u);
-  assert.match(bookingWorkflow, /if \(next === 'returned'\)[\s\S]*settleV51WithdrawalRefundAtReturn/u);
+  assert.match(
+    bookingWorkflow,
+    /if \(next === 'returned' && !simulationOnly\)[\s\S]*settleV51WithdrawalRefundAtReturn/u,
+  );
 });
 
 test('cancellation stores two obligations and never invents an after-start amount', () => {

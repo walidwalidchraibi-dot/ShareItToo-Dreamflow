@@ -242,7 +242,7 @@ test('owner review remains direction-bound inside the review action', () => {
   );
   assert.match(
     reviewEntry,
-    /if \(!isTrulyCompleted \|\| r\.needsReview\) \{\s*return const SizedBox\.shrink\(\);\s*\}/,
+    /if \(!isTrulyCompleted \|\| r\.needsReview \|\| r\.simulationOnly\) \{\s*return const SizedBox\.shrink\(\);\s*\}/,
   );
   assert.match(
     reviewEntry,

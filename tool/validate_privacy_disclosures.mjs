@@ -224,6 +224,7 @@ const sourcePaths = [
   'backend/src/app.js',
   'backend/src/rate_limit_policy.js',
   'tool/run_staging_synthetic_booking.mjs',
+  'tool/run_staging_non_binding_simulation.mjs',
   'lib/screens/create_listing_screen.dart',
   'lib/screens/explore_screen.dart',
   'lib/widgets/supply_enrichment_dialog.dart',

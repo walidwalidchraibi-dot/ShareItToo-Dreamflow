@@ -9422,20 +9422,35 @@ class DataService {
       expressRequested: req.expressRequested,
       expressStatus: req.expressStatus,
       expressFee: req.expressFee,
-      ownerDeliversAtDropoffChosen: ownerDelivers,
-      ownerPicksUpAtReturnChosen: ownerPicksUp,
-      deliveryAddressLine: (deliverySel?['deliveryAddressLine'] as String?) ??
-          (deliverySel?['addressLine'] as String?),
-      deliveryCity: (deliverySel?['deliveryCity'] as String?) ??
-          (deliverySel?['city'] as String?),
-      deliveryLat: (deliverySel?['deliveryLat'] as num?)?.toDouble() ??
-          (deliverySel?['lat'] as num?)?.toDouble(),
-      deliveryLng: (deliverySel?['deliveryLng'] as num?)?.toDouble() ??
-          (deliverySel?['lng'] as num?)?.toDouble(),
-      returnAddressLine: (deliverySel?['returnAddressLine'] as String?),
-      returnCity: (deliverySel?['returnCity'] as String?),
-      returnLat: (deliverySel?['returnLat'] as num?)?.toDouble(),
-      returnLng: (deliverySel?['returnLng'] as num?)?.toDouble(),
+      ownerDeliversAtDropoffChosen: req.simulationOnly ? false : ownerDelivers,
+      ownerPicksUpAtReturnChosen: req.simulationOnly ? false : ownerPicksUp,
+      deliveryAddressLine: req.simulationOnly
+          ? null
+          : (deliverySel?['deliveryAddressLine'] as String?) ??
+              (deliverySel?['addressLine'] as String?),
+      deliveryCity: req.simulationOnly
+          ? null
+          : (deliverySel?['deliveryCity'] as String?) ??
+              (deliverySel?['city'] as String?),
+      deliveryLat: req.simulationOnly
+          ? null
+          : (deliverySel?['deliveryLat'] as num?)?.toDouble() ??
+              (deliverySel?['lat'] as num?)?.toDouble(),
+      deliveryLng: req.simulationOnly
+          ? null
+          : (deliverySel?['deliveryLng'] as num?)?.toDouble() ??
+              (deliverySel?['lng'] as num?)?.toDouble(),
+      returnAddressLine: req.simulationOnly
+          ? null
+          : (deliverySel?['returnAddressLine'] as String?),
+      returnCity:
+          req.simulationOnly ? null : (deliverySel?['returnCity'] as String?),
+      returnLat: req.simulationOnly
+          ? null
+          : (deliverySel?['returnLat'] as num?)?.toDouble(),
+      returnLng: req.simulationOnly
+          ? null
+          : (deliverySel?['returnLng'] as num?)?.toDouble(),
       createdAt: now,
       bindingExpiresAt: req.bindingExpiresAt,
       expressRequestedAt: req.expressRequested ? now : null,
@@ -9443,6 +9458,7 @@ class DataService {
       quotedTotalRenter: quotedTotal,
       quotedSubtitle: quotedSub,
       privateStatusConfirmed: req.privateStatusConfirmed,
+      simulationOnly: req.simulationOnly,
       quotedQuoteVersion: req.quotedQuoteVersion,
       quotedDays: req.quotedDays,
       quotedPricePerDayMinor: req.quotedPricePerDayMinor,
@@ -9473,22 +9489,26 @@ class DataService {
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final createPayload = toStore.toJson();
       createPayload['clientBuild'] = PrivatePilotConfig.v52ClientBuild;
-      final freshQuote = checkoutQuote == null
-          ? await BackendRepository.quoteBooking(createPayload)
-          : Map<String, dynamic>.from(checkoutQuote);
-      final quoteId = freshQuote['quoteId'] as String?;
-      final quoteHash = freshQuote['quoteHash'] as String?;
-      final expiresAt = DateTime.tryParse(
-        freshQuote['expiresAt']?.toString() ?? '',
-      );
-      if (quoteId == null ||
-          quoteHash == null ||
-          expiresAt == null ||
-          !expiresAt.isAfter(DateTime.now().toUtc())) {
-        throw StateError('Der Server hat kein bindendes Angebot geliefert.');
+      if (toStore.simulationOnly) {
+        createPayload['simulationAcknowledged'] = true;
+      } else {
+        final freshQuote = checkoutQuote == null
+            ? await BackendRepository.quoteBooking(createPayload)
+            : Map<String, dynamic>.from(checkoutQuote);
+        final quoteId = freshQuote['quoteId'] as String?;
+        final quoteHash = freshQuote['quoteHash'] as String?;
+        final expiresAt = DateTime.tryParse(
+          freshQuote['expiresAt']?.toString() ?? '',
+        );
+        if (quoteId == null ||
+            quoteHash == null ||
+            expiresAt == null ||
+            !expiresAt.isAfter(DateTime.now().toUtc())) {
+          throw StateError('Der Server hat kein bindendes Angebot geliefert.');
+        }
+        createPayload['quoteId'] = quoteId;
+        createPayload['quoteHash'] = quoteHash;
       }
-      createPayload['quoteId'] = quoteId;
-      createPayload['quoteHash'] = quoteHash;
       final remote = await BackendRepository.createBooking(
         createPayload,
         idempotencyKey: 'create_$nextId',
@@ -9519,9 +9539,12 @@ class DataService {
           userId: toStore.ownerId,
           category: 'bookings',
           priority: 2,
-          title: 'Neue Mietanfrage eingegangen',
-          body:
-              '${renter?.displayName ?? 'Ein Mieter'} möchte „${item.title}“ vom ${toStore.start.day.toString().padLeft(2, '0')}.${toStore.start.month.toString().padLeft(2, '0')}.${toStore.start.year} bis ${toStore.end.day.toString().padLeft(2, '0')}.${toStore.end.month.toString().padLeft(2, '0')}.${toStore.end.year} mieten.',
+          title: toStore.simulationOnly
+              ? 'Neue Test-Mietanfrage'
+              : 'Neue Mietanfrage eingegangen',
+          body: toStore.simulationOnly
+              ? '${renter?.displayName ?? 'Ein Tester'} möchte den unverbindlichen Pilotablauf für „${item.title}“ testen. Es entstehen kein Vertrag, keine Reservierung und keine Zahlung.'
+              : '${renter?.displayName ?? 'Ein Mieter'} möchte „${item.title}“ vom ${toStore.start.day.toString().padLeft(2, '0')}.${toStore.start.month.toString().padLeft(2, '0')}.${toStore.start.year} bis ${toStore.end.day.toString().padLeft(2, '0')}.${toStore.end.month.toString().padLeft(2, '0')}.${toStore.end.year} mieten.',
           entityType: 'booking',
           entityId: toStore.id,
           ctaLabel: 'Anfrage prüfen',
@@ -9531,6 +9554,7 @@ class DataService {
             'counterpartyUserId': toStore.renterId,
             'counterpartyName': renter?.displayName ?? '',
             'role': 'owner',
+            'simulationOnly': toStore.simulationOnly,
           },
         );
       }
@@ -9626,9 +9650,12 @@ class DataService {
                 userId: updatedRequest.renterId,
                 category: 'bookings',
                 priority: 2,
-                title: 'Mietanfrage angenommen',
-                body:
-                    'Deine Anfrage für „${item.title}“ wurde angenommen. Öffne die Buchung für Details.',
+                title: updatedRequest.simulationOnly
+                    ? 'Test-Mietanfrage angenommen'
+                    : 'Mietanfrage angenommen',
+                body: updatedRequest.simulationOnly
+                    ? 'Deine Pilot-Simulation für „${item.title}“ wurde angenommen. Es entstehen kein Vertrag, keine Reservierung und keine Zahlung.'
+                    : 'Deine Anfrage für „${item.title}“ wurde angenommen. Öffne die Buchung für Details.',
                 entityType: 'booking',
                 entityId: updatedRequest.id,
                 ctaLabel: 'Zur Buchung',
@@ -9637,6 +9664,7 @@ class DataService {
                   'listingId': updatedRequest.itemId,
                   'counterpartyUserId': updatedRequest.ownerId,
                   'role': 'renter',
+                  'simulationOnly': updatedRequest.simulationOnly,
                 },
               );
               // For owner
@@ -9644,9 +9672,12 @@ class DataService {
                 userId: updatedRequest.ownerId,
                 category: 'bookings',
                 priority: 2,
-                title: 'Buchung bestätigt',
-                body:
-                    'Du hast die Anfrage für „${item.title}“ angenommen. Öffne die Vermietung für Übergabe & Rückgabe.',
+                title: updatedRequest.simulationOnly
+                    ? 'Pilot-Simulation bestätigt'
+                    : 'Buchung bestätigt',
+                body: updatedRequest.simulationOnly
+                    ? 'Du hast den unverbindlichen Test für „${item.title}“ angenommen. Öffne ihn, um den weiteren Ablauf und den Chat zu testen.'
+                    : 'Du hast die Anfrage für „${item.title}“ angenommen. Öffne die Vermietung für Übergabe & Rückgabe.',
                 entityType: 'booking',
                 entityId: updatedRequest.id,
                 ctaLabel: 'Zur Vermietung',
@@ -9655,6 +9686,7 @@ class DataService {
                   'listingId': updatedRequest.itemId,
                   'counterpartyUserId': updatedRequest.renterId,
                   'role': 'owner',
+                  'simulationOnly': updatedRequest.simulationOnly,
                 },
               );
             }

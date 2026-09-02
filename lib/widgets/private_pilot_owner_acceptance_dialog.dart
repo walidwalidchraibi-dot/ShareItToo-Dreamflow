@@ -24,12 +24,14 @@ Future<List<Map<String, dynamic>>?> showPrivatePilotOwnerAcceptanceDialog(
     requestSnapshot = null;
   }
   final displayedQuote = quote ?? requestSnapshot;
-  final bindingServerQuote = isBindingServerQuote ??
-      (BackendConfig.enabled &&
-          !QaRuntimeService.isEnabled &&
-          requestSnapshot != null);
-  final requiresRemoteDeadline =
-      BackendConfig.enabled && !QaRuntimeService.isEnabled;
+  final bindingServerQuote = !request.simulationOnly &&
+      (isBindingServerQuote ??
+          (BackendConfig.enabled &&
+              !QaRuntimeService.isEnabled &&
+              requestSnapshot != null));
+  final requiresRemoteDeadline = !request.simulationOnly &&
+      BackendConfig.enabled &&
+      !QaRuntimeService.isEnabled;
   final bindingDeadline = request.bindingExpiresAt;
   return showDialog<List<Map<String, dynamic>>>(
     context: context,
@@ -97,7 +99,11 @@ class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
     final deadlineValid = _deadlineValid;
     final acceptanceAllowed = displayedQuote != null && deadlineValid;
     return AlertDialog(
-      title: const Text('Buchungsanfrage annehmen'),
+      title: Text(
+        widget.request.simulationOnly
+            ? 'Test-Mietanfrage annehmen'
+            : 'Buchungsanfrage annehmen',
+      ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
         child: SingleChildScrollView(
@@ -112,9 +118,11 @@ class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
               Text(
                 displayedQuote == null
                     ? 'Preisprüfung fehlgeschlagen'
-                    : widget.bindingServerQuote
-                        ? 'Verbindlicher Serverpreis'
-                        : 'Lokaler Testpreis · kein Echtgeld',
+                    : widget.request.simulationOnly
+                        ? 'Unverbindliche Pilot-Simulation · kein Echtgeld'
+                        : widget.bindingServerQuote
+                            ? 'Verbindlicher Serverpreis'
+                            : 'Lokaler Testpreis · kein Echtgeld',
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               if (!deadlineValid) ...[
@@ -164,9 +172,21 @@ class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
                 ),
               ],
               const SizedBox(height: 12),
-              const PrivatePilotRiskNotice(
-                title: 'Privatvermietung ohne SIT-Schadenschutz',
-              ),
+              if (widget.request.simulationOnly)
+                Card(
+                  color: Theme.of(context).colorScheme.tertiaryContainer,
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      'Diese Annahme bestätigt nur den Testablauf. Sie schließt keinen Miet- oder Plattformvertrag, reserviert den Artikel nicht und löst keine Zahlung aus.',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                )
+              else
+                const PrivatePilotRiskNotice(
+                  title: 'Privatvermietung ohne SIT-Schadenschutz',
+                ),
               const SizedBox(height: 8),
               CheckboxListTile(
                 value: _confirmed,
@@ -175,12 +195,17 @@ class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
                     : null,
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
-                title: const Text(
-                  PrivatePilotConfig.ownerAcceptanceDeclaration,
+                title: Text(
+                  widget.request.simulationOnly
+                      ? 'Ich nehme ausschließlich diese unverbindliche Pilot-Simulation an.'
+                      : PrivatePilotConfig.ownerAcceptanceDeclaration,
                 ),
-                subtitle: const Text(
-                  '${PrivatePilotConfig.documentName} · ${PrivatePilotConfig.documentVersion}',
-                ),
+                subtitle: widget.request.simulationOnly
+                    ? const Text(
+                        'Kein Vertrag · keine Reservierung · keine Zahlung')
+                    : const Text(
+                        '${PrivatePilotConfig.documentName} · ${PrivatePilotConfig.documentVersion}',
+                      ),
               ),
             ],
           ),
@@ -200,6 +225,10 @@ class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
                     setState(() => _confirmed = false);
                     return;
                   }
+                  if (widget.request.simulationOnly) {
+                    Navigator.of(context).pop(<Map<String, dynamic>>[]);
+                    return;
+                  }
                   final acceptedAt = DateTime.now();
                   Navigator.of(context).pop([
                     {
@@ -215,7 +244,11 @@ class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
                   ]);
                 }
               : null,
-          child: const Text('Verbindlich annehmen'),
+          child: Text(
+            widget.request.simulationOnly
+                ? 'Test annehmen'
+                : 'Verbindlich annehmen',
+          ),
         ),
       ],
     );

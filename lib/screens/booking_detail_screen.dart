@@ -57,6 +57,29 @@ class BookingDetailScreen extends StatefulWidget {
   State<BookingDetailScreen> createState() => _BookingDetailScreenState();
 }
 
+class _SimulationPaymentNotice extends StatelessWidget {
+  const _SimulationPaymentNotice();
+
+  @override
+  Widget build(BuildContext context) => const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Unverbindliche Pilot-Simulation',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Zahlung entfällt. Dieser Test erzeugt keinen Vertrag, keine Reservierung, keine Auszahlung und keine Erstattung.',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ],
+      );
+}
+
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
   late final PageController _pageController;
   int _page = 0;
@@ -71,6 +94,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   StreamSubscription<String>? _sharedPersistenceSub;
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
       SharedPersistenceRefreshCoordinator();
+
+  bool get _simulationOnly => widget.booking['simulationOnly'] == true;
 
   Map<String, dynamic>? get _platformContract {
     if (widget.viewerIsOwner) return null;
@@ -987,7 +1012,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_pageTitle()),
+        title: Text(
+          _simulationOnly ? 'Pilot-Simulation · ${_pageTitle()}' : _pageTitle(),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -1013,7 +1040,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     label: 'Anfrage zurückziehen',
                     value: 'withdraw',
                   ),
-                if (!_isViewerOwnerSync() &&
+                if (!_simulationOnly &&
+                    !_isViewerOwnerSync() &&
                     ((widget.booking['requestId'] as String?) ?? '').isNotEmpty)
                   const SitMenuOption(
                     icon: Icons.lock_outline,
@@ -1528,8 +1556,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         // (moved later) Next steps for laufend
         const SizedBox(height: 16),
         // Cancellation policy must appear directly above the payment summary
-        _CancellationPolicyCard(booking: widget.booking),
-        const SizedBox(height: 12),
+        if (!_simulationOnly) ...[
+          _CancellationPolicyCard(booking: widget.booking),
+          const SizedBox(height: 12),
+        ],
         // Payment summary
         Container(
           decoration: BoxDecoration(
@@ -1540,6 +1570,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           padding: const EdgeInsets.all(12),
           child: Builder(
             builder: (context) {
+              if (_simulationOnly) {
+                return const _SimulationPaymentNotice();
+              }
               final daysLocal = (start != null && end != null)
                   ? end.difference(start).inDays.clamp(1, 365)
                   : 1;
@@ -2445,7 +2478,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         // Removed separate top-level Übergabe-Button to avoid duplication.
         const SizedBox(height: 16),
         // Show cancellation policy above the payment summary, except for truly completed (Abgeschlossen)
-        if (status != 'Abgeschlossen') ...[
+        if (!_simulationOnly && status != 'Abgeschlossen') ...[
           _CancellationPolicyCard(booking: widget.booking),
           const SizedBox(height: 12),
         ],
@@ -2459,6 +2492,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           padding: const EdgeInsets.all(12),
           child: Builder(
             builder: (context) {
+              if (_simulationOnly) {
+                return const _SimulationPaymentNotice();
+              }
               final totalRenter = boundPrice?.total ??
                   (rentalSubtotal + fee).clamp(0.0, double.infinity);
               if (_isViewerOwnerSync()) {
@@ -2710,19 +2746,34 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   right: 0,
                   bottom: 12,
                 ),
-                children: const [
-                  _Bullet(
-                    text: 'Warte, bis der Vermieter die Anfrage annimmt.',
-                  ),
-                  _Bullet(
-                    text:
-                        'Sobald deine Anfrage akzeptiert wird, erscheint sie unter Kommende Buchungen.',
-                  ),
-                  _Bullet(
-                    text:
-                        'Vereinbare mit dem Vermieter einen konkreten Zeitpunkt für Übergabe und Rückgabe.',
-                  ),
-                ],
+                children: _simulationOnly
+                    ? const [
+                        _Bullet(
+                          text:
+                              'Warte, bis der Vermieter die unverbindliche Testanfrage annimmt.',
+                        ),
+                        _Bullet(
+                          text:
+                              'Danach könnt ihr Sichtbarkeit, Benachrichtigungen und den Chat testen.',
+                        ),
+                        _Bullet(
+                          text:
+                              'Übergabe, Rückgabe, Vertrag, Reservierung und Zahlung bleiben in dieser Simulation gesperrt.',
+                        ),
+                      ]
+                    : const [
+                        _Bullet(
+                          text: 'Warte, bis der Vermieter die Anfrage annimmt.',
+                        ),
+                        _Bullet(
+                          text:
+                              'Sobald deine Anfrage akzeptiert wird, erscheint sie unter Kommende Buchungen.',
+                        ),
+                        _Bullet(
+                          text:
+                              'Vereinbare mit dem Vermieter einen konkreten Zeitpunkt für Übergabe und Rückgabe.',
+                        ),
+                      ],
               ),
             ),
           ),
@@ -2730,7 +2781,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           // Button wurde an die feste Fußleiste (bottomNavigationBar) verschoben
         ],
 
-        if (isUpcoming && _isViewerOwnerSync()) ...[
+        if (isUpcoming && _isViewerOwnerSync() && !_simulationOnly) ...[
           const SizedBox(height: 16),
           // Pickup code & QR
           Container(
@@ -2825,7 +2876,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ),
         ],
 
-        if (isUpcoming && !_isViewerOwnerSync()) ...[
+        if (isUpcoming && !_isViewerOwnerSync() && !_simulationOnly) ...[
           const SizedBox(height: 16),
           // Button moved to the page bottom per request
           // Next steps (collapsible) for upcoming (renter)
@@ -2899,7 +2950,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
         const SizedBox(height: 16),
         // Bottom primary action for upcoming bookings: move here per request
-        if (isUpcoming && widget.booking['needsReview'] != true) ...[
+        if (isUpcoming &&
+            !_simulationOnly &&
+            widget.booking['needsReview'] != true) ...[
           _InlineTimeActionButton(
             icon: Icons.inventory_2_rounded,
             label: 'Übergabezeit',

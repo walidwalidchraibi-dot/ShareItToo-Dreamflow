@@ -18,7 +18,13 @@ const pubspec = read('pubspec.yaml');
 const manifest = JSON.parse(read('assets/legal/de/legal_manifest_v52.json'));
 
 test('V5.2 checkout has exactly two non-preselected declarations and separate privacy', () => {
-  assert.equal((checkout.match(/CheckboxListTile\(/gu) ?? []).length, 2);
+  assert.equal((checkout.match(/value: _privateAndTermsConfirmed/gu) ?? []).length, 1);
+  assert.equal(
+    (checkout.match(/value: _earlyPerformanceAndWithdrawalConfirmed/gu) ?? [])
+      .length,
+    1,
+  );
+  assert.equal((checkout.match(/value: _simulationAcknowledged/gu) ?? []).length, 1);
   assert.match(checkout, /bool _privateAndTermsConfirmed = false;/u);
   assert.match(checkout, /bool _earlyPerformanceAndWithdrawalConfirmed = false;/u);
   assert.match(checkout, /v52PrivateAndPlatformTermsDeclaration/u);

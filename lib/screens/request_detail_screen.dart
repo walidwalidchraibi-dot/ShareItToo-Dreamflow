@@ -88,7 +88,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final usesRemoteBackend =
         BackendConfig.enabled && !QaRuntimeService.isEnabled;
     final bindingDeadline = req?.bindingExpiresAt;
-    final deadlineValid = !usesRemoteBackend ||
+    final deadlineValid = req?.simulationOnly == true ||
+        !usesRemoteBackend ||
         (bindingDeadline != null && bindingDeadline.isAfter(DateTime.now()));
     final displayedQuote = req == null || item == null
         ? null
@@ -99,14 +100,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                     item: item,
                     days: _rentalDays(req),
                   ));
-    final acceptanceBlockedReason = usesRemoteBackend && serverQuote == null
+    final acceptanceBlockedReason = usesRemoteBackend &&
+            req?.simulationOnly != true &&
+            serverQuote == null
         ? 'Der verbindliche Serverpreis fehlt oder ist widersprüchlich. Bitte lade die Anfrage neu; bis dahin ist die Annahme gesperrt.'
         : !deadlineValid
             ? 'Die 30-Minuten-Annahmefrist ist abgelaufen. Diese Anfrage kann nicht mehr angenommen werden.'
             : null;
-    final acceptanceInfo = usesRemoteBackend && deadlineValid
-        ? 'Annahme möglich bis ${_formatDeadline(bindingDeadline!)}.'
-        : null;
+    final acceptanceInfo =
+        usesRemoteBackend && req?.simulationOnly != true && deadlineValid
+            ? 'Annahme möglich bis ${_formatDeadline(bindingDeadline!)}.'
+            : null;
     return Scaffold(
       appBar: AppBar(title: Text(widget.titleOverride ?? l10n.t('Anfrage'))),
       body: (req == null || item == null || renter == null)

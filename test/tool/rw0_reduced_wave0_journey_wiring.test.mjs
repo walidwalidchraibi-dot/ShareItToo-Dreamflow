@@ -21,7 +21,7 @@ test('reduced Wave-0 journey is retained under the exact non-binding profile', (
     'Unter Gemerkt speichern',
     'Projekt anlegen',
     'Im Mietkorb – noch nicht reserviert',
-    'Mietanfrage im Stage-A-Pilot gesperrt',
+    'Test-Mietanfrage senden',
     'too_expensive',
     "prefs.containsKey('payment_intents')",
     "prefs.containsKey('refunds')",
@@ -84,10 +84,30 @@ test('project-name controller is owned until its dialog route is disposed', () =
   assert.doesNotMatch(screen, /final title = await AppPopup\.showCustom<String>[\s\S]{0,500}?controller\.dispose\(\)/u);
 });
 
-test('binding stays closed and G3-G5 require the exact signed Internal envelope', () => {
+test('binding stays closed while Stage-A exposes only the acknowledged simulation', () => {
   const checkout = read('lib/screens/private_pilot_checkout_screen.dart');
-  assert.match(checkout, /Mietanfrage im Stage-A-Pilot gesperrt/u);
-  assert.match(checkout, /onPressed: null/u);
+  const bookingDetail = read('lib/screens/booking_detail_screen.dart');
+  const ownerDetail = read('lib/screens/ongoing_owner_detail_screen.dart');
+  const workflow = read('backend/src/booking_workflow.js');
+  assert.match(checkout, /Test-Mietanfrage senden/u);
+  assert.match(checkout, /_simulationAcknowledged/u);
+  assert.match(checkout, /simulationOnly: simulationOnly/u);
+  assert.match(
+    workflow,
+    /simulationOnly && !\['accepted', 'declined', 'cancelled'\]\.includes\(requested\)[\s\S]*pilot_simulation_transition_forbidden/u,
+  );
+  assert.match(
+    bookingDetail,
+    /isUpcoming &&[\s\S]*!_simulationOnly &&[\s\S]*widget\.booking\['needsReview'\]/u,
+  );
+  assert.match(
+    bookingDetail,
+    /Übergabe, Rückgabe, Vertrag, Reservierung und Zahlung bleiben in dieser Simulation gesperrt/u,
+  );
+  assert.match(
+    ownerDetail,
+    /!req\.simulationOnly &&[\s\S]*category == 'upcoming' \|\| category == 'ongoing'/u,
+  );
   for (const path of [
     'lib/config/booking_group_technical_config.dart',
     'lib/config/planner_technical_config.dart',

@@ -33,6 +33,7 @@ class _PrivatePilotCheckoutScreenState
     extends State<PrivatePilotCheckoutScreen> {
   bool _privateAndTermsConfirmed = false;
   bool _earlyPerformanceAndWithdrawalConfirmed = false;
+  bool _simulationAcknowledged = false;
   bool _submitting = false;
   bool _loadingQuote = false;
   bool _paymentMethodAvailable = false;
@@ -249,12 +250,13 @@ class _PrivatePilotCheckoutScreenState
   bool get _allConfirmed =>
       _privateAndTermsConfirmed && _earlyPerformanceAndWithdrawalConfirmed;
 
-  bool get _canSubmit =>
-      PrivatePilotConfig.bindingCheckoutEnabled &&
-      _allConfirmed &&
-      _freshQuoteAvailable &&
-      _paymentMethodAvailable &&
-      !_submitting;
+  bool get _canSubmit => _stageANonBindingPilot
+      ? _simulationAcknowledged && !_submitting
+      : PrivatePilotConfig.bindingCheckoutEnabled &&
+          _allConfirmed &&
+          _freshQuoteAvailable &&
+          _paymentMethodAvailable &&
+          !_submitting;
 
   Future<void> _submitRequest() async {
     if (!_canSubmit) return;
@@ -273,6 +275,7 @@ class _PrivatePilotCheckoutScreenState
     setState(() => _submitting = true);
     try {
       final declarationTime = DateTime.now();
+      final simulationOnly = _stageANonBindingPilot;
       final request = RentalRequest(
         id: 'local',
         itemId: widget.item.id,
@@ -282,10 +285,11 @@ class _PrivatePilotCheckoutScreenState
         end: widget.range.end,
         status: 'pending',
         expressRequested: false,
-        bindingExpiresAt: _bindingDeadline,
+        bindingExpiresAt: simulationOnly ? null : _bindingDeadline,
         quotedTotalRenter: PrivatePilotPricing.minorToEuros(quote.totalMinor),
         quotedSubtitle: 'inkl. ShareItToo-Plattformbeitrag 10 %',
         privateStatusConfirmed: true,
+        simulationOnly: simulationOnly,
         quotedQuoteVersion: quote.quoteVersion,
         quotedDays: quote.days,
         quotedPricePerDayMinor: quote.ownerPricePerDayMinor,
@@ -301,13 +305,14 @@ class _PrivatePilotCheckoutScreenState
         quotedTotalMinor: quote.totalMinor,
         quotedOwnerPayoutMinor: quote.rentalSubtotalMinor,
         quotedCurrency: quote.currency,
-        legalDeclarations: _legalDeclarations(declarationTime),
+        legalDeclarations:
+            simulationOnly ? const [] : _legalDeclarations(declarationTime),
       );
       final stored = await DataService.addRentalRequest(
         request,
         checkoutQuote: _checkoutQuote,
       );
-      if (_usesRemoteBackend) {
+      if (_usesRemoteBackend && !simulationOnly) {
         final contract = stored.platformContract;
         final receipt = contract?['receipt'];
         if (contract?['state'] != 'platformContractAccepted' ||
@@ -328,9 +333,12 @@ class _PrivatePilotCheckoutScreenState
       if (!rootContext.mounted) return;
       await AppPopup.success(
         rootContext,
-        title: 'SIT-Plattformvertrag angenommen',
-        message:
-            'ShareItToo hat den SIT-Plattformvertrag ausdrücklich angenommen und die dauerhafte Vertragsbestätigung bereitgestellt. Erst danach wurde Anfrage ${stored.id} an den Vermieter gesendet. Es wurde noch kein echtes Zahlungsmittel belastet.',
+        title: simulationOnly
+            ? 'Test-Mietanfrage gesendet'
+            : 'SIT-Plattformvertrag angenommen',
+        message: simulationOnly
+            ? 'Die unverbindliche Pilot-Simulation ${stored.id} wurde an den Vermieter gesendet. Sie reserviert keinen Gegenstand, schließt keinen Vertrag und löst keine Zahlung aus.'
+            : 'ShareItToo hat den SIT-Plattformvertrag ausdrücklich angenommen und die dauerhafte Vertragsbestätigung bereitgestellt. Erst danach wurde Anfrage ${stored.id} an den Vermieter gesendet. Es wurde noch kein echtes Zahlungsmittel belastet.',
       );
     } on BackendException catch (error) {
       if (!mounted) return;
@@ -711,16 +719,35 @@ class _PrivatePilotCheckoutScreenState
           ),
           if (_stageANonBindingPilot) ...[
             const SizedBox(height: 8),
+            CheckboxListTile(
+              value: _simulationAcknowledged,
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                        () => _simulationAcknowledged = value == true,
+                      ),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Ich starte nur eine unverbindliche Pilot-Simulation. Es entstehen kein Vertrag, keine Reservierung und keine Zahlung.',
+              ),
+            ),
+            const SizedBox(height: 8),
             FilledButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.lock_outline),
-              label: const Text(
-                'Mietanfrage im Stage-A-Pilot gesperrt',
+              onPressed: _canSubmit ? _submitRequest : null,
+              icon: _submitting
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.science_outlined),
+              label: Text(
+                _submitting ? 'Test wird gesendet…' : 'Test-Mietanfrage senden',
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Diese Ansicht dient ausschließlich der Produkt- und Preisprüfung. Sie sendet keine Anfrage, erzeugt keinen Vertrag und reserviert keinen Gegenstand.',
+              'Die Testanfrage wird serverseitig zwischen den beiden Pilotkonten gespeichert. Sie erzeugt weiterhin keinen Vertrag, keine Reservierung und keine Geldbewegung.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
             ),

@@ -130,7 +130,10 @@ test('creates an isolated requested booking and returns no credentials or identi
   });
   assert.equal(calls.some(({ path }) => path.includes('payment')), false);
   const listingCall = calls.find(({ path }) => path === '/listings');
-  assert.equal(listingCall.body.categoryId, 'cat1');
+  assert.equal(listingCall.body.categoryId, 'cat3');
+  assert.equal(listingCall.body.subcategory, 'Kameras');
+  assert.equal(listingCall.body.city, 'Heilbronn');
+  assert.equal(listingCall.body.country, 'Deutschland');
   assert.equal(listingCall.body.privateStatusConfirmed, true);
   const bookingCall = calls.find(({ path }) => path === '/bookings');
   assert.equal(bookingCall.body.privateStatusConfirmed, true);

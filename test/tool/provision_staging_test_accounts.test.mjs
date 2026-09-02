@@ -7,6 +7,7 @@ import {
   buildSyntheticAlias,
   provisionSyntheticAccounts,
   recordSyntheticAccountVerification,
+  stagingRegistrationPayload,
 } from '../../tool/provision_staging_test_accounts.mjs';
 import { createTestTempTracker } from './test_temp_fixtures.mjs';
 
@@ -30,6 +31,25 @@ test('builds distinct role aliases without retaining an existing plus tag', () =
   assert.throws(
     () => buildSyntheticAlias('walid@example.com', '20260810t093000z-04040404', 'admin'),
     /role is invalid/,
+  );
+});
+
+test('binds synthetic registration to every private-pilot declaration', () => {
+  assert.deepEqual(
+    stagingRegistrationPayload({
+      email: 'owner@example.com',
+      password: 'not-a-real-password',
+      displayName: 'SIT Test Vermieter',
+    }),
+    {
+      email: 'owner@example.com',
+      password: 'not-a-real-password',
+      displayName: 'SIT Test Vermieter',
+      termsAccepted: true,
+      privacyAccepted: true,
+      minimumAgeConfirmed: true,
+      privateUseConfirmed: true,
+    },
   );
 });
 

@@ -4044,6 +4044,7 @@ export function createApp({
       key: req.get('Idempotency-Key'),
       privatePilot: config.privatePilotV4Enabled,
       privatePilotAllowedRegions: config.privatePilot.allowedRegions,
+      allowNonBindingSimulation: config.nonBindingSimulationEnabled,
     }), { deadlockRetries: 2 });
     publishToUsers([result.booking.ownerId, result.booking.renterId], {
       type: 'changed',

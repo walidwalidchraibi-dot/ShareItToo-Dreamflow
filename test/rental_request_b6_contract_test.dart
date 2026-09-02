@@ -91,4 +91,20 @@ void main() {
     expect(json['quotedCurrency'], 'EUR');
     expect(json['bindingExpiresAt'], '2026-09-01T10:30:00.000Z');
   });
+
+  test('non-binding simulation marker survives parsing, copy and serialization', () {
+    final request = RentalRequest.fromJson({
+      'id': 'simulation-1',
+      'itemId': 'listing-1',
+      'ownerId': 'owner',
+      'renterId': 'renter',
+      'start': '2026-09-10T10:00:00.000Z',
+      'end': '2026-09-11T10:00:00.000Z',
+      'simulationOnly': true,
+    });
+
+    expect(request.simulationOnly, isTrue);
+    expect(request.copyWith(status: 'accepted').simulationOnly, isTrue);
+    expect(request.toJson()['simulationOnly'], isTrue);
+  });
 }

@@ -48,7 +48,7 @@ test('owner acceptance reconstructs the strict immutable request snapshot', () =
 test('remote owner acceptance is disabled when the server snapshot is invalid', () => {
   assert.match(
     requestDetail,
-    /usesRemoteBackend && serverQuote == null[\s\S]*?Annahme gesperrt/u,
+    /usesRemoteBackend &&[\s\S]*?simulationOnly != true &&[\s\S]*?serverQuote == null[\s\S]*?Annahme gesperrt/u,
   );
   assert.match(
     requestDetail,
@@ -137,7 +137,10 @@ test('remote owner acceptance is bound to the server 30-minute deadline', () => 
   assert.match(model, /final DateTime\? bindingExpiresAt/u);
   assert.match(model, /bindingExpiresAt: _parseDt\(json\['bindingExpiresAt'\]\)/u);
   assert.match(model, /'bindingExpiresAt': bindingExpiresAt\?\.toIso8601String\(\)/u);
-  assert.match(checkout, /bindingExpiresAt: _bindingDeadline/u);
+  assert.match(
+    checkout,
+    /bindingExpiresAt: simulationOnly \? null : _bindingDeadline/u,
+  );
   assert.match(dataService, /bindingExpiresAt: req\.bindingExpiresAt/u);
   assert.match(
     requestDetail,
@@ -167,7 +170,7 @@ test('an open request detail view rebuilds exactly when the binding deadline exp
   assert.doesNotMatch(requestDetail, /Timer\.periodic/u);
   assert.match(
     requestDetail,
-    /final deadlineValid = !usesRemoteBackend \|\|[\s\S]*?bindingDeadline\.isAfter\(DateTime\.now\(\)\)/u,
+    /final deadlineValid = req\?\.simulationOnly == true \|\|[\s\S]*?!usesRemoteBackend \|\|[\s\S]*?bindingDeadline\.isAfter\(DateTime\.now\(\)\)/u,
   );
   assert.match(
     requestDetail,

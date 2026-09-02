@@ -185,6 +185,7 @@ export async function enqueueBookingNotifications(client, {
   if (!definition) return 0;
   const result = await client.query(
     `SELECT booking.id, booking.owner_id, booking.renter_id,
+            booking.simulation_only,
             booking.currency, booking.quoted_total_minor,
             booking.rental_start_date, booking.rental_end_date,
             listing.payload AS listing_payload,
@@ -199,19 +200,25 @@ export async function enqueueBookingNotifications(client, {
   );
   if (!result.rowCount) return 0;
   const row = result.rows[0];
+  const simulationOnly = row.simulation_only === true;
   const title = itemTitle(row.listing_payload);
   const actionUrl = bookingActionUrl(bookingId);
   let count = 0;
   for (const role of definition.recipients) {
     const userId = role === 'owner' ? row.owner_id : row.renter_id;
     const displayName = profileName(role === 'owner' ? row.owner_profile : row.renter_profile);
-    const notificationBody = definition.body({ itemTitle: title });
+    const notificationBody = simulationOnly
+      ? `Pilot-Simulation: ${definition.body({ itemTitle: title })} Es entstehen kein Vertrag, keine Reservierung und keine Zahlung.`
+      : definition.body({ itemTitle: title });
+    const notificationTitle = simulationOnly
+      ? `Pilot-Simulation · ${definition.title}`
+      : definition.title;
     const payload = {
       notification: {
         category: definition.category,
         kind: definition.kind,
         priority: ['support', 'payments'].includes(definition.category) ? 3 : 2,
-        title: definition.title,
+        title: notificationTitle,
         body: notificationBody,
         entityType: 'booking',
         entityId: bookingId,
@@ -219,7 +226,7 @@ export async function enqueueBookingNotifications(client, {
         requestId: bookingId,
         actionUrl,
         ctaLabel: role === 'owner' ? 'Zur Vermietung' : 'Zur Buchung',
-        payload: { role, workflowStatus },
+        payload: { role, workflowStatus, simulationOnly },
       },
       email: {
         displayName,
@@ -236,7 +243,7 @@ export async function enqueueBookingNotifications(client, {
       userId,
       kind: definition.kind,
       bookingId,
-      channels: ['in_app', 'email', 'push'],
+      channels: simulationOnly ? ['in_app', 'push'] : ['in_app', 'email', 'push'],
       payload,
     });
     count += 1;

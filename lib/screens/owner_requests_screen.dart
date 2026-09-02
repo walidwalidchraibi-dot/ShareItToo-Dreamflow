@@ -940,6 +940,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   }
 
   bool _ownerAcceptanceDeadlineValid(_OwnerEntry entry) {
+    if (entry.r.simulationOnly) return true;
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return true;
     final deadline = entry.r.bindingExpiresAt;
     return deadline != null && deadline.isAfter(DateTime.now());
@@ -975,9 +976,12 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
               AppPopup.show(
                 context,
                 icon: Icons.check_circle_outline,
-                title: 'Du hast die Anfrage akzeptiert.',
-                message:
-                    'Du findest diese Anmietung jetzt unter „Kommende Vermietungen“.\n\nDu kannst jetzt mit ${e.renter.displayName} unter Nachrichten einen Chat starten.',
+                title: e.r.simulationOnly
+                    ? 'Du hast den Test angenommen.'
+                    : 'Du hast die Anfrage akzeptiert.',
+                message: e.r.simulationOnly
+                    ? 'Die unverbindliche Pilot-Simulation ist jetzt für beide Testkonten sichtbar. Du kannst mit ${e.renter.displayName} den Chat testen. Es bestehen kein Vertrag, keine Reservierung und keine Zahlung.'
+                    : 'Du findest diese Anmietung jetzt unter „Kommende Vermietungen“.\n\nDu kannst jetzt mit ${e.renter.displayName} unter Nachrichten einen Chat starten.',
                 barrierDismissible: false,
                 showCloseIcon: false,
                 plainCloseIcon: true,

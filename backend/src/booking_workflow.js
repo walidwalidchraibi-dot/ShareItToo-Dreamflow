@@ -173,6 +173,7 @@ function bookingPayload(row, viewerUserId = null) {
     workflowStatus: row.workflow_status,
     workflowVersion: Number(row.workflow_version),
     workflowRevision: Number(row.workflow_revision),
+    simulationOnly: row.simulation_only === true,
     startDate: databaseDate(row.rental_start_date),
     endDate: databaseDate(row.rental_end_date),
     timezone: row.rental_timezone,
@@ -213,7 +214,7 @@ const bookingProjection = `
   booking.delivery_fee_minor, booking.pickup_fee_minor, booking.express_fee_minor,
   booking.owner_payout_minor, booking.quote_version, booking.quote_breakdown,
   booking.hold_expires_at, booking.created_at, booking.updated_at
-  , booking.accepted_at
+  , booking.accepted_at, booking.simulation_only
 `;
 
 async function writeAudit(client, {
@@ -467,6 +468,7 @@ async function checkPeriodAvailability(client, { listing, dates, startsAt, endsA
      FROM bookings
      WHERE listing_id = $1
        AND workflow_version = 1
+       AND simulation_only = false
        AND workflow_status = ANY($4::text[])
        AND ($5::text IS NULL OR id <> $5)
        AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
@@ -560,6 +562,7 @@ export async function expireBookingHolds(client) {
      FROM bookings AS booking
      JOIN rental_requests AS request ON request.id = booking.id
      WHERE booking.workflow_version = 1
+       AND booking.simulation_only = false
        AND booking.workflow_status IN ('accepted', 'payment_pending')
        AND booking.hold_expires_at IS NOT NULL
        AND booking.hold_expires_at <= now()
@@ -705,15 +708,23 @@ export async function createBooking(client, {
   key,
   privatePilot = false,
   privatePilotAllowedRegions = [],
+  allowNonBindingSimulation = false,
 }) {
   const candidate = object(raw);
+  const simulationOnly = candidate.simulationOnly === true;
+  if (simulationOnly && !allowNonBindingSimulation) {
+    throw new BookingWorkflowError(503, 'pilot_simulation_unavailable');
+  }
+  if (simulationOnly && candidate.simulationAcknowledged !== true) {
+    throw new BookingWorkflowError(400, 'pilot_simulation_acknowledgement_required');
+  }
   const clientBuild = text(candidate.clientBuild, 120);
   if (privatePilot && !clientBuild) {
     throw new BookingWorkflowError(400, 'v52_contract_build_required');
   }
   if (privatePilot) {
     try {
-      assertPrivatePilotBooking(candidate);
+      assertPrivatePilotBooking(candidate, { requireDeclaration: !simulationOnly });
     } catch (error) {
       if (error instanceof PrivatePilotValidationError) {
         throw new BookingWorkflowError(400, error.code);
@@ -755,9 +766,10 @@ export async function createBooking(client, {
     `SELECT id FROM bookings
      WHERE listing_id = $1 AND renter_id = $2 AND workflow_version = 1
        AND rental_start_date = $3 AND rental_end_date = $4
+       AND simulation_only = $5
        AND workflow_status NOT IN ('declined', 'cancelled', 'refunded', 'completed')
      LIMIT 1`,
-    [listing.id, actor.id, dates.startDate, dates.endDate],
+    [listing.id, actor.id, dates.startDate, dates.endDate, simulationOnly],
   );
   if (duplicate.rowCount) {
     throw new BookingWorkflowError(409, 'duplicate_booking_request', {
@@ -765,7 +777,7 @@ export async function createBooking(client, {
     });
   }
   const quote = quoteForListing(candidate, dates, listing);
-  const quoteBinding = privatePilot
+  const quoteBinding = privatePilot && !simulationOnly
     ? await requireFreshBookingQuote(client, {
         actorId: actor.id,
         candidate,
@@ -798,7 +810,16 @@ export async function createBooking(client, {
     start: new Date(period.starts_at).toISOString(),
     end: new Date(period.ends_at).toISOString(),
     createdAt: createdAt.toISOString(),
-    bindingExpiresAt: bindingExpiresAt.toISOString(),
+    bindingExpiresAt: simulationOnly ? null : bindingExpiresAt.toISOString(),
+    simulationOnly,
+    ...(simulationOnly ? {
+      simulationAcknowledged: true,
+      contractCreated: false,
+      paymentCreated: false,
+      reservationCreated: false,
+      monetaryEffectMinor: 0,
+      simulationNotice: 'Unverbindliche Stage-A-Pilot-Simulation ohne Vertrag, Reservierung oder Geldbewegung.',
+    } : {}),
     quotedTotalRenter: money(quote.totalMinor),
     ...quoteSnapshotPayload(quote),
     quote,
@@ -820,13 +841,14 @@ export async function createBooking(client, {
        rental_subtotal_minor, platform_fee_minor, delivery_fee_minor,
        pickup_fee_minor, express_fee_minor, owner_payout_minor,
        quote_version, quote_breakdown, requested_at, created_at,
-       private_status_confirmed_at
+       private_status_confirmed_at, simulation_only
      ) VALUES (
        $1, $2, $3, $4, 'pending', 'requested', 1, 1, $5, $6,
        $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
        $17, $18, $19, $20, $21, $22, $23, $24::jsonb,
        $25::timestamptz, $25::timestamptz,
-       CASE WHEN $26::boolean THEN $25::timestamptz ELSE NULL::timestamptz END
+       CASE WHEN $26::boolean THEN $25::timestamptz ELSE NULL::timestamptz END,
+       $27::boolean
      )`,
     [
       id, listing.id, listing.owner_id, actor.id, period.starts_at, period.ends_at,
@@ -835,10 +857,10 @@ export async function createBooking(client, {
       quote.baseRentalMinor, quote.discountMinor, quote.rentalSubtotalMinor,
       quote.platformFeeMinor, quote.deliveryFeeMinor, quote.pickupFeeMinor,
       quote.expressFeeMinor, quote.ownerPayoutMinor, quote.quoteVersion,
-      JSON.stringify(quote), createdAt, privatePilot,
+      JSON.stringify(quote), createdAt, privatePilot, simulationOnly,
     ],
   );
-  if (privatePilot) {
+  if (privatePilot && !simulationOnly) {
     try {
       payload.platformContract = await persistV52PlatformContract(client, {
         userId: actor.id,
@@ -883,7 +905,7 @@ export async function createBooking(client, {
       ],
     );
   }
-  if (privatePilot) {
+  if (privatePilot && !simulationOnly) {
     const acceptedByType = new Map(
       candidate.legalDeclarations.map((entry) => [entry.type, entry]),
     );
@@ -911,18 +933,19 @@ export async function createBooking(client, {
   await client.query(
     `INSERT INTO booking_events (
        booking_id, actor_id, event_type, to_status, idempotency_key, metadata
-     ) VALUES ($1, $2, 'booking.requested', 'requested', $3, $4::jsonb)`,
-    [id, actor.id, `${commandKey}:event`, JSON.stringify({
+     ) VALUES ($1, $2, $3, 'requested', $4, $5::jsonb)`,
+    [id, actor.id, simulationOnly ? 'pilot_simulation.requested' : 'booking.requested', `${commandKey}:event`, JSON.stringify({
       availabilityRevision: listing.availability_revision,
       quote,
+      simulationOnly,
       ...(quoteBinding ?? {}),
     })],
   );
   await writeAudit(client, {
     actor,
-    action: 'booking.requested',
+    action: simulationOnly ? 'pilot_simulation.requested' : 'booking.requested',
     bookingId: id,
-    metadata: { listingId: listing.id, quoteVersion: quote.quoteVersion },
+    metadata: { listingId: listing.id, quoteVersion: quote.quoteVersion, simulationOnly },
   });
   await enqueueBookingNotifications(client, {
     bookingId: id,
@@ -1101,8 +1124,15 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
 
   await expireBookingHolds(client);
   const row = await lockedBooking(client, bookingId);
+  const simulationOnly = row.simulation_only === true;
   if (row.owner_id !== actor.id && row.renter_id !== actor.id && actor.role !== 'admin') {
     throw new BookingWorkflowError(403, 'booking_forbidden');
+  }
+  if (simulationOnly && !['accepted', 'declined', 'cancelled'].includes(requested)) {
+    throw new BookingWorkflowError(409, 'pilot_simulation_transition_forbidden', {
+      requestedStatus: requested,
+      allowedStatuses: ['accepted', 'declined', 'cancelled'],
+    });
   }
   const expectedRevision = Number(candidate.expectedRevision);
   if (Number.isSafeInteger(expectedRevision) && expectedRevision !== Number(row.workflow_revision)) {
@@ -1118,7 +1148,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     renterId: row.renter_id,
   });
   const transitionedAt = new Date();
-  if (requested === 'cancelled' && actorRole === 'renter') {
+  if (requested === 'cancelled' && actorRole === 'renter' && !simulationOnly) {
     const contract = await client.query(
       `SELECT contract_version, accepted_at
          FROM platform_contracts WHERE booking_id = $1`,
@@ -1141,6 +1171,9 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     }
   }
   if (requested === 'cancelled' && cancellationType === 'renter_no_show') {
+    if (simulationOnly) {
+      throw new BookingWorkflowError(409, 'pilot_simulation_no_show_not_applicable');
+    }
     if (actorRole !== 'owner') {
       throw new BookingWorkflowError(403, 'renter_no_show_owner_required');
     }
@@ -1158,11 +1191,13 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     pilotWithoutPayment: config.bookingPilotWithoutPayment,
   });
   if (config.privatePilotV4Enabled
+      && !simulationOnly
       && steps.includes('active')
       && !hasVerifiedBookingConfirmation(row.payload, 'pickup')) {
     throw new BookingWorkflowError(409, 'verified_pickup_confirmation_required');
   }
   if (config.privatePilotV4Enabled
+      && !simulationOnly
       && steps.includes('completed')
       && !hasVerifiedBookingConfirmation(row.payload, 'return')) {
     throw new BookingWorkflowError(409, 'verified_return_confirmation_required');
@@ -1174,11 +1209,11 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
           new Date(row.created_at).getTime() + (30 * 60 * 1000),
           new Date(row.starts_at).getTime(),
         ));
-    if (!Number.isFinite(bindingExpiresAt.getTime())
-        || Date.now() >= bindingExpiresAt.getTime()) {
+    if (!simulationOnly && (!Number.isFinite(bindingExpiresAt.getTime())
+        || Date.now() >= bindingExpiresAt.getTime())) {
       throw new BookingWorkflowError(409, 'booking_request_expired');
     }
-    if (config.privatePilotV4Enabled) {
+    if (config.privatePilotV4Enabled && !simulationOnly) {
       requiredPrivatePilotOwnerAcceptance(candidate);
     }
     const listing = await listingForBooking(client, row.listing_id, { lock: true });
@@ -1214,7 +1249,9 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     }
     const legacyStatus = legacyStatusForWorkflow(next);
     const holdMinutes = Number(row.acceptance_window_minutes ?? 30);
-    const holdExpiresAt = next === 'accepted'
+    const holdExpiresAt = simulationOnly
+      ? null
+      : next === 'accepted'
       ? new Date(Date.now() + holdMinutes * 60_000)
       : (next === 'payment_pending' ? row.hold_expires_at : null);
     const timestampColumn = {
@@ -1238,7 +1275,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
        WHERE id = $1`,
       [bookingId, legacyStatus, next, holdExpiresAt],
     );
-    if (next === 'accepted' && config.privatePilotV4Enabled) {
+    if (next === 'accepted' && config.privatePilotV4Enabled && !simulationOnly) {
       const declaration = requiredPrivatePilotOwnerAcceptance(candidate);
       await client.query(
         `INSERT INTO legal_declarations (
@@ -1265,8 +1302,25 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
       workflowRevision: Number(row.workflow_revision) + index + 1,
       holdExpiresAt: holdExpiresAt?.toISOString() ?? null,
       ...(next === 'cancelled' ? { cancelledBy: actorRole } : {}),
+      simulationOnly,
+      ...(simulationOnly ? {
+        contractCreated: false,
+        paymentCreated: false,
+        reservationCreated: false,
+        monetaryEffectMinor: 0,
+      } : {}),
     };
-    if (next === 'cancelled' && config.privatePilotV4Enabled) {
+    if (next === 'cancelled' && config.privatePilotV4Enabled && simulationOnly) {
+      nextPayload.cancellationOutcome = {
+        simulationOnly: true,
+        reasonCode: 'stage_a_non_binding_simulation',
+        refundMinor: 0,
+        retainedMinor: 0,
+        monetaryEffectMinor: 0,
+        calculatedAt: new Date().toISOString(),
+      };
+    }
+    if (next === 'cancelled' && config.privatePilotV4Enabled && !simulationOnly) {
       const outcome = evaluateCancellation({
         rentalStartAt: row.starts_at,
         cancelAt: transitionedAt,
@@ -1382,21 +1436,25 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
         current,
         next,
         `${commandKey}:event:${index}`,
-        JSON.stringify({ actorRole, pilotWithoutPayment: config.bookingPilotWithoutPayment }),
+        JSON.stringify({
+          actorRole,
+          pilotWithoutPayment: config.bookingPilotWithoutPayment,
+          simulationOnly,
+        }),
       ],
     );
     await writeAudit(client, {
       actor,
       action: 'booking.status_changed',
       bookingId,
-      metadata: { fromStatus: current, toStatus: next, actorRole },
+      metadata: { fromStatus: current, toStatus: next, actorRole, simulationOnly },
     });
     await enqueueBookingNotifications(client, {
       bookingId,
       eventKey: `booking:${bookingId}:${next}:${commandKey}:${index}`,
       workflowStatus: next,
     });
-    if (next === 'returned') {
+    if (next === 'returned' && !simulationOnly) {
       await settleV51WithdrawalRefundAtReturn(client, {
         bookingId,
         confirmedReturnAt: new Date(),
@@ -1429,6 +1487,7 @@ export async function getListingAvailability(client, { listingId, fromDate, toDa
     `SELECT id, starts_at, ends_at
      FROM bookings
      WHERE listing_id = $1 AND workflow_version = 1
+       AND simulation_only = false
        AND workflow_status = ANY($4::text[])
        AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
      ORDER BY starts_at`,
@@ -1540,6 +1599,7 @@ export async function replaceListingAvailability(client, { actor, listingId, raw
     const occupied = await client.query(
       `SELECT id FROM bookings
        WHERE listing_id = $1 AND workflow_version = 1
+         AND simulation_only = false
          AND workflow_status = ANY($4::text[])
          AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
        LIMIT 1`,

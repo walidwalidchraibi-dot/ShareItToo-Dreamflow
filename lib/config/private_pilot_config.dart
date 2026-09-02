@@ -37,8 +37,8 @@ class PrivatePilotConfig {
       'Nichts ist öffentlich; Anzeigen bleiben im geschlossenen Pilot.';
 
   /// Every Blue Ocean/Internal Stage-A candidate sets this build-time gate.
-  /// It keeps the listing, search and non-reserving cart evaluation available
-  /// while preventing the candidate from creating a rental request or contract.
+  /// It permits only a clearly labelled server-persistent simulation while
+  /// binding checkout, contract, reservation and every money effect stay off.
   static const bool stageANonBindingPilotEnabled = bool.fromEnvironment(
     'SIT_STAGE_A_NON_BINDING_PILOT',
     defaultValue: false,
@@ -98,7 +98,7 @@ class PrivatePilotConfig {
       !stageANonBindingPilot;
 
   /// Ordinary V5.2 development keeps the binding contract path testable.
-  /// A Stage-A candidate always fails closed before request creation.
+  /// A Stage-A candidate always fails closed before binding checkout.
   static bool get bindingCheckoutEnabled => bindingCheckoutAvailableFor(
         stageANonBindingPilot: stageANonBindingPilotEnabled,
       );

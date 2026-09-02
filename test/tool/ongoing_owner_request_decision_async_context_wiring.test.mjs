@@ -10,7 +10,7 @@ const requestActionsStart = source.indexOf(
   "        if (category == 'requests') ...[",
 );
 const requestActionsEnd = source.indexOf(
-  "        if (category == 'upcoming' || category == 'requests')",
+  '        if (!req.simulationOnly &&',
   requestActionsStart,
 );
 

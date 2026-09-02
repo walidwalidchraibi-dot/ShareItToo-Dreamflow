@@ -90,7 +90,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "33025acab9f61c52bbdcf06b7b18862504827cec12ac0a3eda0b1e69db7dfc90"
+      "sha256": "46fff5eab1d981de58def53a5227d11d48f30343f082f7ff7f3531c14485b23a"
     },
     {
       "path": "lib/screens/search_results_screen.dart",
@@ -106,7 +106,7 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "b1f9eceb2b8a35175c35baa043213f8a8c1923f5b6eff7a2cf1cfa1f3e43d569"
+      "sha256": "22fce3c745b7b1b3efe47ef7425618ad78daaf7728ae20951928fe5c9614bf33"
     },
     {
       "path": "test/data_service_non_destructive_catalog_bootstrap_test.dart",
@@ -122,7 +122,7 @@
     },
     {
       "path": "test/reduced_wave0_product_journey_test.dart",
-      "sha256": "a88f6458fbc761b8aa1423e183188fc34e7621ead6f9d3be6fd57d97bfe93715"
+      "sha256": "80bb5eb273249beafb106cfc04e7cbc91c98283b166911536740e068222ba66f"
     },
     {
       "path": "test/public_profile_screen_logic_test.dart",
@@ -134,19 +134,19 @@
     },
     {
       "path": "test/tool/rw0_reduced_wave0_journey_wiring.test.mjs",
-      "sha256": "7f74ffa0d84d6cf6d5267ca09f0f0b127d490aa0efffc10ef61c436c7ed84d47"
+      "sha256": "5f34d0eb70c00a613c91d66f5d7e95b796ff6734e7dd09f11eaf2144def31940"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "41a6751e9cde72b2f5451d8c68dee50e1da644f14ef56fec3e4fd357eb2afa40"
+      "sha256": "83ef4ab3f1dcc4087ad2e545f24f60680d143258870e428c8d941280b7bdb6cc"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "b2511337d5710fa8d7ec1422fccd17d15873727887234d58063c2c4b7c439a3e"
+      "sha256": "c1a5a846f0f72a3a24bd14ea879c2490e20572b6f89c84433fc05ca64482d98e"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "dc1a7813c28420b649cac296fc1f5dfacb319d1fce2190754b458865e49a7fa5"
+      "sha256": "83daa2c8268d947e0c7e428f1cbce7d88c3e64247df1ff37d66007be8acb169a"
     }
   ],
   "gates": {

@@ -191,6 +191,7 @@ if (!databaseUrl) {
         '067_blue_ocean_regional_price_engine_v2.up.sql',
         '068_blue_ocean_listing_workflow.up.sql',
         '069_regional_price_engine_r6_hardening.up.sql',
+        '070_stage_a_non_binding_simulation_guard.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -2007,6 +2008,25 @@ if (!databaseUrl) {
              workflow_status = 'requested',
              workflow_revision = workflow_revision + 1
          WHERE id IN ('booking-a', 'booking-b')`,
+      );
+      await setupPool.query(
+        `UPDATE bookings SET simulation_only = true WHERE id = 'booking-a'`,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `INSERT INTO payment_commands (
+             idempotency_key, actor_id, command_type, request_hash, booking_id
+           ) VALUES (
+             'stage-a-simulation-payment-guard', 'renter-a', 'payment.checkout',
+             $1, 'booking-a'
+           )`,
+          ['a'.repeat(64)],
+        ),
+        (error) => error?.code === '23514'
+          && /stage_a_simulation_side_effect_forbidden/u.test(error.message),
+      );
+      await setupPool.query(
+        `UPDATE bookings SET simulation_only = false WHERE id = 'booking-a'`,
       );
 
       await setupPool.query(

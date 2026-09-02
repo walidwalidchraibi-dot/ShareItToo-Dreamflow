@@ -306,7 +306,7 @@ export async function createSyntheticBookingFixture({
         id: listingId,
         title,
         description: 'Isoliertes Staging-Inserat für die ShareItToo Rollen- und Buchungsprüfung ohne Echtgeld.',
-        categoryId: 'cat1',
+        categoryId: 'cat3',
         subcategory: 'Kameras',
         tags: ['sit', 'role-fixture'],
         pricePerDay: 12,
@@ -316,10 +316,10 @@ export async function createSyntheticBookingFixture({
         deposit: null,
         photos: [upload.url],
         locationText: 'Staging Testadresse',
-        city: 'Berlin',
+        city: 'Heilbronn',
         country: 'Deutschland',
-        lat: 52.52,
-        lng: 13.405,
+        lat: 49.1427,
+        lng: 9.2109,
         geohash: 'private',
         condition: 'good',
         minDays: 1,
@@ -349,7 +349,6 @@ export async function createSyntheticBookingFixture({
       },
     });
   }
-  const acceptedAt = now.toISOString();
   const quote = await request(fetchImpl, '/bookings/quote', {
     method: 'POST',
     token: renterToken,
@@ -367,6 +366,10 @@ export async function createSyntheticBookingFixture({
       || !/^[0-9a-f]{64}$/.test(quote.quoteHash)) {
     fail('The synthetic booking quote is not immutably bound.');
   }
+  // Acceptance must be recorded after the server issued the quote. Reusing
+  // the fixture start time can predate a real remote quote and is rejected by
+  // the V5.2 binding contract.
+  const acceptedAt = new Date().toISOString();
   const clientBuild = 'synthetic-review-tool-v52';
   const legalDeclarations = privatePilotRequiredCheckoutDeclarations.map(
     ({ type, wording, documentReferences }) => ({

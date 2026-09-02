@@ -231,7 +231,8 @@ export function validateR17TwoDayPriorityQueue({
   );
   markers(checkout, 'lib/screens/private_pilot_checkout_screen.dart', [
     'Unverbindliche Stage-A-Vorschau', 'Simulierte Gesamtsumme',
-    'Mietanfrage im Stage-A-Pilot gesperrt', 'onPressed: null',
+    'Test-Mietanfrage senden', '_simulationAcknowledged',
+    'simulationOnly: simulationOnly',
     'PrivatePilotConfig.bindingCheckoutEnabled',
   ]);
   const builder = source(repositoryRoot, 'scripts/build_android_release_candidate.sh');
@@ -287,7 +288,7 @@ export function validateR17TwoDayPriorityQueue({
   );
   markers(releaseNotes, 'blue_ocean_internal_release_notes.txt', [
     'nicht reservierender Mietkorb',
-    'Mietanfragen bleiben im nicht bindenden Stage-A-Pilot gesperrt',
+    'unverbindliche Test-Mietanfrage',
   ]);
   if (/Anfrage-, Übergabe- und Rückgabeabläufe/u.test(releaseNotes)) {
     fail('R17 release notes still overclaim the reduced human path.');

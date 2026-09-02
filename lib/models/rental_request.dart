@@ -48,6 +48,7 @@ class RentalRequest {
   final String?
       quotedSubtitle; // the small info line under Gesamtbetrag at request time
   final bool privateStatusConfirmed;
+  final bool simulationOnly;
   final int? quotedQuoteVersion;
   final int? quotedDays;
   final int? quotedPricePerDayMinor;
@@ -117,6 +118,7 @@ class RentalRequest {
     this.quotedTotalRenter,
     this.quotedSubtitle,
     this.privateStatusConfirmed = false,
+    this.simulationOnly = false,
     this.quotedQuoteVersion,
     this.quotedDays,
     this.quotedPricePerDayMinor,
@@ -183,6 +185,7 @@ class RentalRequest {
     double? quotedTotalRenter,
     String? quotedSubtitle,
     bool? privateStatusConfirmed,
+    bool? simulationOnly,
     int? quotedQuoteVersion,
     int? quotedDays,
     int? quotedPricePerDayMinor,
@@ -256,6 +259,7 @@ class RentalRequest {
         quotedSubtitle: quotedSubtitle ?? this.quotedSubtitle,
         privateStatusConfirmed:
             privateStatusConfirmed ?? this.privateStatusConfirmed,
+        simulationOnly: simulationOnly ?? this.simulationOnly,
         quotedQuoteVersion: quotedQuoteVersion ?? this.quotedQuoteVersion,
         quotedDays: quotedDays ?? this.quotedDays,
         quotedPricePerDayMinor:
@@ -345,6 +349,7 @@ class RentalRequest {
       quotedTotalRenter: (json['quotedTotalRenter'] as num?)?.toDouble(),
       quotedSubtitle: json['quotedSubtitle'] as String?,
       privateStatusConfirmed: json['privateStatusConfirmed'] == true,
+      simulationOnly: json['simulationOnly'] == true,
       quotedQuoteVersion: (quote['quoteVersion'] as num?)?.toInt() ??
           (json['quotedQuoteVersion'] as num?)?.toInt(),
       quotedDays: (quote['days'] as num?)?.toInt() ??
@@ -436,6 +441,7 @@ class RentalRequest {
         'quotedTotalRenter': quotedTotalRenter,
         'quotedSubtitle': quotedSubtitle,
         'privateStatusConfirmed': privateStatusConfirmed,
+        'simulationOnly': simulationOnly,
         'quotedQuoteVersion': quotedQuoteVersion,
         'quotedDays': quotedDays,
         'quotedPricePerDayMinor': quotedPricePerDayMinor,

@@ -48,6 +48,11 @@ if (!['off', 'pilot', 'on'].includes(bookingPilotMode)) {
 const privatePilotV4Enabled = (process.env.PRIVATE_PILOT_V4_ENABLED ?? 'false')
   .trim()
   .toLowerCase() === 'true';
+const nonBindingSimulationEnabled = (
+  (deploymentEnvironment === 'staging' || deploymentEnvironment === 'test')
+  && bookingPilotMode === 'pilot'
+  && privatePilotV4Enabled
+);
 const bookingGroupsEnabled = (process.env.BOOKING_GROUPS_ENABLED ?? 'false')
   .trim()
   .toLowerCase() === 'true';
@@ -322,6 +327,7 @@ export const config = Object.freeze({
   bookingPilotEnabled: bookingPilotMode !== 'off',
   bookingPilotWithoutPayment: bookingPilotMode === 'pilot',
   privatePilotV4Enabled,
+  nonBindingSimulationEnabled,
   bookingGroups: Object.freeze({
     enabled: bookingGroupsEnabled,
     publicReleaseAllowed: false,

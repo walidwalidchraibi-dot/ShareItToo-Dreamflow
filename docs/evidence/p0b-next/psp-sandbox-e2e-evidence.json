@@ -17,7 +17,7 @@
       },
       {
         "path": "backend/src/payment_workflow.js",
-        "sha256": "42167c57682f5075c1a38b5e04bb5a74c4c066f564bfaff8615b72117993395b"
+        "sha256": "adc8f6a2f0da9b77791e9e708fdd8655dfcae7ed31e4f04f3b87d350719050c4"
       },
       {
         "path": "backend/test/payment_domain.test.js",
@@ -25,7 +25,7 @@
       },
       {
         "path": "backend/test/postgres_foundation.integration.test.js",
-        "sha256": "dcbfc652d3aac107957a41cb7427d4c1c7df7a7096065df018e6b5b6815b491e"
+        "sha256": "24c1369bd5d2e4007d91bf52c5e02fda7eec06db7e77d3fd90f52e49c0cc0fb8"
       },
       {
         "path": "backend/src/psp_sandbox_readiness_gate.js",

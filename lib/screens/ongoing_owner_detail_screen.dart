@@ -132,6 +132,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }
 
   bool _ownerAcceptanceDeadlineValid(RentalRequest request) {
+    if (request.simulationOnly) return true;
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return true;
     final deadline = request.bindingExpiresAt;
     return deadline != null && deadline.isAfter(DateTime.now());
@@ -523,7 +524,11 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final renter = _renter;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.titleOverride ?? _titleFromReq()),
+        title: Text(
+          req?.simulationOnly == true
+              ? 'Pilot-Simulation · ${widget.titleOverride ?? _titleFromReq()}'
+              : widget.titleOverride ?? _titleFromReq(),
+        ),
         centerTitle: true,
         actions: [
           if (req != null && item != null)
@@ -627,7 +632,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           final isTrulyCompleted = (cat == 'completed') &&
               r.status != 'cancelled' &&
               r.status != 'declined';
-          if (!isTrulyCompleted || r.needsReview) {
+          if (!isTrulyCompleted || r.needsReview || r.simulationOnly) {
             return const SizedBox.shrink();
           }
           return SafeArea(
@@ -1209,7 +1214,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               Builder(
                 builder: (context) {
                   String? t;
-                  if (category == 'upcoming' || category == 'requests') {
+                  if (req.simulationOnly) {
+                    t = 'Unverbindliche Pilot-Simulation: kein Vertrag, keine Reservierung und keine Zahlung.';
+                  } else if (category == 'upcoming' || category == 'requests') {
                     t = 'Der Mieter holt den Artikel selbst ab.';
                   } else if (category == 'ongoing') {
                     t = 'Der Mieter bringt den Artikel selbst zurück.';
@@ -1327,81 +1334,84 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
         const SizedBox(height: 16),
         // Payment summary (owner view): only payout shown
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.20),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Zahlungsübersicht',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 10),
-              // If this rental was cancelled by the owner, there is no payout
-              if (req.status == 'cancelled' &&
-                  (req.cancelledBy == 'owner')) ...[
-                _AmountRow(label: 'Auszahlung', value: '0,00 €', strong: true),
-                const SizedBox(height: 2),
+        if (!req.simulationOnly)
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.20),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  'Keine Auszahlung, da vom Vermieter storniert.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white70,
+                  'Zahlungsübersicht',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ] else if (isCompleted && isHeldForReview) ...[
-                _AmountRow(
-                  label: 'Wird geprüft',
-                  value: 'Wird nach Prüfung abgeschlossen',
-                  strong: true,
-                ),
-              ] else if (isCompleted) ...[
-                _AmountRow(
-                  label: 'Ausgezahlt (an Vermieter)',
-                  value: _formatEuro(totalPaid - fee),
-                  strong: true,
-                ),
-                Text(
-                  'Ausgezahlt am ${_formatPayoutDate(req.end)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white70,
+                const SizedBox(height: 10),
+                // If this rental was cancelled by the owner, there is no payout
+                if (req.status == 'cancelled' &&
+                    (req.cancelledBy == 'owner')) ...[
+                  _AmountRow(
+                      label: 'Auszahlung', value: '0,00 €', strong: true),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Keine Auszahlung, da vom Vermieter storniert.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
+                    ),
                   ),
-                ),
-              ] else ...[
-                _AmountRow(
-                  label: 'Vorauss. Auszahlung',
-                  value: _formatEuro(breakdown.payoutOwner),
-                  strong: true,
-                ),
-                Text(
-                  'Auszahlung am ${_formatPayoutDate(req.end)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white70,
+                ] else if (isCompleted && isHeldForReview) ...[
+                  _AmountRow(
+                    label: 'Wird geprüft',
+                    value: 'Wird nach Prüfung abgeschlossen',
+                    strong: true,
                   ),
-                ),
+                ] else if (isCompleted) ...[
+                  _AmountRow(
+                    label: 'Ausgezahlt (an Vermieter)',
+                    value: _formatEuro(totalPaid - fee),
+                    strong: true,
+                  ),
+                  Text(
+                    'Ausgezahlt am ${_formatPayoutDate(req.end)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ] else ...[
+                  _AmountRow(
+                    label: 'Vorauss. Auszahlung',
+                    value: _formatEuro(breakdown.payoutOwner),
+                    strong: true,
+                  ),
+                  Text(
+                    'Auszahlung am ${_formatPayoutDate(req.end)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                if (!isHeldForReview &&
+                    (category == 'ongoing' || category == 'completed') &&
+                    !(req.status == 'cancelled' &&
+                        (req.cancelledBy == 'owner')))
+                  Align(
+                    alignment: Alignment.center,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _downloadReceiptPdf(req),
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text('Beleg herunterladen (PDF)'),
+                    ),
+                  ),
               ],
-              const SizedBox(height: 8),
-              if (!isHeldForReview &&
-                  (category == 'ongoing' || category == 'completed') &&
-                  !(req.status == 'cancelled' && (req.cancelledBy == 'owner')))
-                Align(
-                  alignment: Alignment.center,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _downloadReceiptPdf(req),
-                    icon: const Icon(Icons.picture_as_pdf),
-                    label: const Text('Beleg herunterladen (PDF)'),
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
 
         // Completion summary (like renter view) – show for completed bucket including cancelled
         const SizedBox(height: 12),
@@ -1480,9 +1490,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
         // Bottom timeline removed in favor of compact status card
         const SizedBox(height: 12),
-        if (category == 'requests' ||
-            category == 'upcoming' ||
-            category == 'ongoing')
+        if (!req.simulationOnly &&
+            (category == 'requests' ||
+                category == 'upcoming' ||
+                category == 'ongoing'))
           Container(
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.20),
@@ -1571,7 +1582,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         // Handover/Return block moved to the very bottom (above page padding)
         // Show only for upcoming or ongoing. Hide for completed (incl. cancelled/declined)
         // and for requests.
-        if (category == 'upcoming' || category == 'ongoing')
+        if (!req.simulationOnly &&
+            (category == 'upcoming' || category == 'ongoing'))
           Container(
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.20),

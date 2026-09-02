@@ -16,10 +16,11 @@ test('R17 gives Stage-A an explicit default-off non-binding build gate', () => {
   assert.match(config, /!stageANonBindingPilot/u);
 });
 
-test('R17 checkout keeps request creation unreachable in Stage-A', () => {
+test('Stage-A keeps binding unreachable and permits only explicit simulation', () => {
   const checkout = read('lib/screens/private_pilot_checkout_screen.dart');
-  assert.match(checkout, /Mietanfrage im Stage-A-Pilot gesperrt/u);
-  assert.match(checkout, /onPressed: null/u);
+  assert.match(checkout, /Test-Mietanfrage senden/u);
+  assert.match(checkout, /_simulationAcknowledged/u);
+  assert.match(checkout, /simulationOnly: simulationOnly/u);
   assert.match(checkout, /Unverbindliche Stage-A-Vorschau/u);
   assert.match(checkout, /PrivatePilotConfig\.bindingCheckoutEnabled/u);
 });
@@ -47,8 +48,8 @@ test('R17 private archive refuses a Blue Ocean candidate without the gate', () =
 test('R17 release notes describe only the reduced non-binding path', () => {
   const notes = read('store/google-play/de-DE/blue_ocean_internal_release_notes.txt');
   assert.match(notes, /nicht reservierender Mietkorb/u);
-  assert.match(notes, /Mietanfragen bleiben im nicht bindenden Stage-A-Pilot gesperrt/u);
-  assert.doesNotMatch(notes, /Anfrage-, Übergabe- und Rückgabeabläufe/u);
+  assert.match(notes, /unverbindliche Test-Mietanfrage/u);
+  assert.doesNotMatch(notes, /echte Buchung|echte Zahlung/u);
 });
 
 test('R17 historical human Wave-0 stays inactive while G3-G5 require the signed pilot envelope', () => {
