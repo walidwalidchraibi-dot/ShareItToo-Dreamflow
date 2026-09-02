@@ -12,6 +12,7 @@ task_previous_commit=''
 task_previous_version='unknown'
 task_previous_build_time='unknown'
 task_rollback_override=''
+task_deployment_override=''
 task_release_dir="${RELEASE_LOG_DIR:-/docker/shareittoo/releases}"
 task_staging_pilot_id="${SIT_STAGING_PILOT_ID:-}"
 task_pull_release_image="${PULL_RELEASE_IMAGE:-0}"
@@ -19,6 +20,9 @@ task_pull_release_image="${PULL_RELEASE_IMAGE:-0}"
 cleanup() {
   if [[ -n "$task_rollback_override" ]]; then
     rm -f -- "$task_rollback_override"
+  fi
+  if [[ -n "$task_deployment_override" ]]; then
+    rm -f -- "$task_deployment_override"
   fi
 }
 
@@ -123,6 +127,10 @@ if [[ "$task_image_commit" != "$task_commit" ]]; then
   exit 1
 fi
 
+task_deployment_override="$(mktemp)"
+printf 'services:\n  api:\n    image: "%s"\n' \
+  "$task_image" > "$task_deployment_override"
+
 if [[ "$task_environment" == production ]]; then
   task_compose="$task_backend_root/compose.prod.yml"
   task_compose_args=(-f "$task_compose")
@@ -189,6 +197,7 @@ APP_COMMIT="$task_commit" \
 APP_BUILD_TIME="$task_build_time" \
 docker compose --project-name "$task_project_name" \
   --env-file "$task_env_file" "${task_compose_args[@]}" \
+  -f "$task_deployment_override" \
   up -d --no-build --wait --wait-timeout 180
 
 task_version_payload="$(curl --fail --silent --show-error --max-time 20 "$task_health_url/version")"

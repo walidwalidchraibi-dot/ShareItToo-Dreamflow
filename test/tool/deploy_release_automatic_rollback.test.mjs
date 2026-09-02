@@ -23,6 +23,7 @@ test('a failed production rollout restores and verifies the previous exact image
   const releases = join(root, 'releases');
   const state = join(root, 'docker-state');
   const log = join(root, 'docker-log');
+  const composeFiles = join(root, 'compose-files');
   await Promise.all([
     mkdir(ops, { recursive: true }),
     mkdir(fakeBin, { recursive: true }),
@@ -71,6 +72,13 @@ if [[ "$1" == inspect ]]; then
   exit 0
 fi
 if [[ "$1" == compose ]]; then
+  previous=''
+  for argument in "$@"; do
+    if [[ "$previous" == -f && -f "$argument" ]]; then
+      printf '%s\n' "$(<"$argument")" >> "\${COMPOSE_FILES}"
+    fi
+    previous="$argument"
+  done
   count=0
   [[ -f "\${DOCKER_STATE}" ]] && count=$(<"\${DOCKER_STATE}")
   count=$((count + 1))
@@ -97,6 +105,7 @@ exit 1
         RELEASE_LOG_DIR: releases,
         DOCKER_STATE: state,
         DOCKER_LOG: log,
+        COMPOSE_FILES: composeFiles,
       },
     });
 
@@ -105,6 +114,11 @@ exit 1
   const dockerLog = await readFile(log, 'utf8');
   assert.equal((dockerLog.match(/compose /g) ?? []).length, 2);
   assert.match(dockerLog, /sha256:previous-image/);
+  const composeFileContents = await readFile(composeFiles, 'utf8');
+  assert.match(
+    composeFileContents,
+    new RegExp(`image: "registry\\.invalid/sit-api:${targetCommit}"`, 'u'),
+  );
   const reports = await readdir(releases);
   assert.equal(reports.length, 1);
   const report = JSON.parse(await readFile(join(releases, reports[0]), 'utf8'));

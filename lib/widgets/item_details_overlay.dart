@@ -94,12 +94,7 @@ class ItemDetailsOverlay {
   }
 
   static Future<model.User?> _loadOwner(String id) async {
-    final users = await DataService.getUsers();
-    try {
-      return users.firstWhere((u) => u.id == id);
-    } catch (_) {
-      return null;
-    }
+    return DataService.getUserById(id);
   }
 }
 

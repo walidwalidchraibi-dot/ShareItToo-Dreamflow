@@ -9008,22 +9008,32 @@ class DataService {
   }
 
   static Future<User?> getUserById(String id) async {
-    final users = await getUsers();
     try {
+      final users = await getUsers();
       return users.firstWhere((e) => e.id.toString() == id.toString());
-    } catch (_) {
-      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        try {
-          final remote = await BackendRepository.getPublicProfile(id);
-          if (remote != null) {
-            return User.fromJson(remote);
-          }
-        } catch (error) {
-          debugPrint('[DataService] public profile load failed: $error');
-        }
-      }
-      return null;
+    } on FormatException catch (error) {
+      // A corrupt legacy cache must remain byte-for-byte untouched for account
+      // and privacy operations, but it must not prevent an independent public
+      // profile read from using the server as its source of truth.
+      debugPrint(
+        '[DataService] local public profile cache unavailable '
+        '(${error.runtimeType})',
+      );
+    } on StateError {
+      // No matching local public profile. The remote lookup below remains the
+      // authoritative path when the backend is enabled.
     }
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      try {
+        final remote = await BackendRepository.getPublicProfile(id);
+        if (remote != null) {
+          return User.fromJson(remote);
+        }
+      } catch (error) {
+        debugPrint('[DataService] public profile load failed: $error');
+      }
+    }
+    return null;
   }
 
   // Rental requests storage (demo, persisted locally)

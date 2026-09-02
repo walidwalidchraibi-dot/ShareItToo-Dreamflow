@@ -94,7 +94,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "46fff5eab1d981de58def53a5227d11d48f30343f082f7ff7f3531c14485b23a"
+      "sha256": "f676b428a721ec690f5734ee640b63b7d93e4b76781adf5783ce763ec411fe4f"
     },
     {
       "path": "lib/screens/explore_screen.dart",
@@ -114,7 +114,7 @@
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",
-      "sha256": "ba2352016de900bfd06c0534593926d78b324fa079a1c79bfc8da2c90db900aa"
+      "sha256": "fccffdd961e5c0c712288a2e19b9aa37d55f73d8fd18bc3db7c3f6e7bcbaebc0"
     },
     {
       "path": "lib/widgets/listing_options_dialog.dart",
