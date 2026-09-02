@@ -614,6 +614,12 @@ class LocalSafetyPrivacyService {
         );
         final prefs = await SharedPreferences.getInstance();
         final state = await _readState(prefs, principal);
+        // Remote block-list reads are part of catalog loading. Persisting and
+        // notifying an identical snapshot would schedule the catalog again,
+        // causing a self-sustaining refresh loop on authenticated Explore.
+        // Keep a real change observable, but make a read-through sync
+        // idempotent.
+        if (_sameStrings(state.blockedUserIds, cleaned)) return;
         await _writeState(
           prefs,
           principal,
@@ -623,6 +629,14 @@ class LocalSafetyPrivacyService {
           ),
         );
       });
+
+  static bool _sameStrings(List<String> left, List<String> right) {
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index += 1) {
+      if (left[index] != right[index]) return false;
+    }
+    return true;
+  }
 
   static Future<void> blockUser(String userId) =>
       _runForCurrent((principal) async {

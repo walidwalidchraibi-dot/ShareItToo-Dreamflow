@@ -122,6 +122,33 @@ void main() {
     );
   });
 
+  test('identical block-list sync is idempotent and does not refresh again',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await useAccount('rw5-idempotent-blocks@example.invalid');
+    final notifications = <String>[];
+    final subscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.localSafetyPrivacyStateKey) {
+        notifications.add(key);
+      }
+    });
+    addTearDown(subscription.cancel);
+
+    await LocalSafetyPrivacyService.setBlockedUserIds(
+      const <String>['blocked-z', 'blocked-a'],
+    );
+    expect(notifications, hasLength(1));
+
+    await LocalSafetyPrivacyService.setBlockedUserIds(
+      const <String>['blocked-a', 'blocked-z'],
+    );
+    expect(notifications, hasLength(1));
+    expect(
+      await LocalSafetyPrivacyService.getBlockedUserIds(),
+      <String>['blocked-a', 'blocked-z'],
+    );
+  });
+
   test('unattributed legacy safety and discovery state belongs only to guest',
       () async {
     SharedPreferences.setMockInitialValues(<String, Object>{

@@ -118,9 +118,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3",
-    "retentionManifestSha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9",
-    "activeProviderEvidenceSha256": "f68acc81c954a28d78e3d226df2d43b2a429668ea22bf0f3f3edd06a8ae10ff8",
+    "privacyManifestSha256": "3745e8d72fa1a3995c81cfadc55082b12f02eb31db5e4dd4de09c40efb540fde",
+    "retentionManifestSha256": "a09536f49d9e0a8afe906046641772e0cb333eadc2630ffef1cb40114bacaea0",
+    "activeProviderEvidenceSha256": "24b206b53dfb2208df970811873c457ef8dfa46904043ffc8ddb85ea13065a82",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -159,23 +159,77 @@
     "The distinct RW10 post-service success-popup epoch window remains open for a separately bounded product correction and is not claimed closed by RW11."
   ],
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "0965bf86a87caac1455bbab7cb4918d6869d46651e4314a1425ab6275410a606"},
-    {"path": "backend/src/moderation_workflow.js", "sha256": "534253d5bcdcb541b73740d9b58e7b70568397dc9f53e04fa28ef2c8158a912a"},
-    {"path": "lib/screens/messages_screen.dart", "sha256": "80d4c76a2f4913ffabdb928eaca24216486bb1a7c05791ab83e0d261f8dc0672"},
-    {"path": "lib/services/backend_repository.dart", "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"},
-    {"path": "lib/services/local_safety_privacy_service.dart", "sha256": "915ba3a7230271b24b222fa92a5ed53baeb2914160009f11106e7b81b799767c"},
-    {"path": "lib/services/user_reports_service.dart", "sha256": "94399bb6798ee4132f0b2ba15f1c3dbf2f755729029410b6d91057e5409f107c"},
-    {"path": "docs/architecture/s4j-non-acute-harassment-block-report-2026-08-22.md", "sha256": "e86872b44543aca403185c50b938b65e3c04a5b1164c8a1b05e774428fdf5263"},
-    {"path": "docs/decisions/ADR-073-atomic-non-acute-harassment-block-report.md", "sha256": "276c33c94f7028b61d0bcbbc3795ba9913ae052989d0e11d1431f5a67e35b53c"},
-    {"path": "docs/architecture/s3x-support-case-ui-accessibility-2026-08-22.md", "sha256": "665415f7ce5e6951ae14b9533f3041459d3f08e8b13c6ed7b77bf512cacc52dc"},
-    {"path": "docs/decisions/ADR-061-support-case-semantic-order-and-empty-blocked-filter.md", "sha256": "60b783937f4e241f30c57ef556eb596150d43395df5d5602c5c8ee4d36b0ff93"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"},
-    {"path": "test/tool/harassment_block_report_wiring.test.mjs", "sha256": "4b9ab9f84d9c608104fbde2e6a76f5ca2b6a3890caa59e01e9ca69326b03a8b8"},
-    {"path": "test/tool/support_case_ui_accessibility_wiring.test.mjs", "sha256": "8daf23c9dd2156d8d46d600c9ae3173ae83816c2dcb134d9859503d59ae5163a"},
-    {"path": "test/tool/rw11_regression_completeness_wiring.test.mjs", "sha256": "e6a9ecf7cda2115d1605b54339d2696bc7edd66f2304bc162d39cbdfedfb13a0"},
-    {"path": "test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs", "sha256": "4193ccb0c8ebd25d3eacc2443e71b4b92468f6855d3116c06acb6b0254640b31"},
-    {"path": "tool/validate_rw11_regression_completeness_stale_support_wiring.mjs", "sha256": "2b7e4e45cef395745e139844b7810612d1324f1fdb5df7112245545b7faf9c35"},
-    {"path": "docs/architecture/rw11-regression-completeness-stale-support-wiring-2026-08-25.md", "sha256": "cf87216854e3b685b038feb62de5ce747c039c88863086ad9b391ea8cb4054fd"},
-    {"path": "docs/operations/RW11_REGRESSION_COMPLETENESS_STALE_SUPPORT_WIRING_2026-08-25.md", "sha256": "f55668a8e38c2ef3eb45a8bda3a8d503ed7f34a5468dee581ef0afd87983135d"}
+    {
+      "path": "backend/src/app.js",
+      "sha256": "0965bf86a87caac1455bbab7cb4918d6869d46651e4314a1425ab6275410a606"
+    },
+    {
+      "path": "backend/src/moderation_workflow.js",
+      "sha256": "534253d5bcdcb541b73740d9b58e7b70568397dc9f53e04fa28ef2c8158a912a"
+    },
+    {
+      "path": "lib/screens/messages_screen.dart",
+      "sha256": "80d4c76a2f4913ffabdb928eaca24216486bb1a7c05791ab83e0d261f8dc0672"
+    },
+    {
+      "path": "lib/services/backend_repository.dart",
+      "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"
+    },
+    {
+      "path": "lib/services/local_safety_privacy_service.dart",
+      "sha256": "64c817fd544ac6fba038ec41e4b1045aa09cb3a8ec3bfb944f4d05e5d4118105"
+    },
+    {
+      "path": "lib/services/user_reports_service.dart",
+      "sha256": "94399bb6798ee4132f0b2ba15f1c3dbf2f755729029410b6d91057e5409f107c"
+    },
+    {
+      "path": "docs/architecture/s4j-non-acute-harassment-block-report-2026-08-22.md",
+      "sha256": "e86872b44543aca403185c50b938b65e3c04a5b1164c8a1b05e774428fdf5263"
+    },
+    {
+      "path": "docs/decisions/ADR-073-atomic-non-acute-harassment-block-report.md",
+      "sha256": "276c33c94f7028b61d0bcbbc3795ba9913ae052989d0e11d1431f5a67e35b53c"
+    },
+    {
+      "path": "docs/architecture/s3x-support-case-ui-accessibility-2026-08-22.md",
+      "sha256": "665415f7ce5e6951ae14b9533f3041459d3f08e8b13c6ed7b77bf512cacc52dc"
+    },
+    {
+      "path": "docs/decisions/ADR-061-support-case-semantic-order-and-empty-blocked-filter.md",
+      "sha256": "60b783937f4e241f30c57ef556eb596150d43395df5d5602c5c8ee4d36b0ff93"
+    },
+    {
+      "path": "scripts/technical_regression_check.sh",
+      "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"
+    },
+    {
+      "path": "test/tool/harassment_block_report_wiring.test.mjs",
+      "sha256": "4b9ab9f84d9c608104fbde2e6a76f5ca2b6a3890caa59e01e9ca69326b03a8b8"
+    },
+    {
+      "path": "test/tool/support_case_ui_accessibility_wiring.test.mjs",
+      "sha256": "8daf23c9dd2156d8d46d600c9ae3173ae83816c2dcb134d9859503d59ae5163a"
+    },
+    {
+      "path": "test/tool/rw11_regression_completeness_wiring.test.mjs",
+      "sha256": "e6a9ecf7cda2115d1605b54339d2696bc7edd66f2304bc162d39cbdfedfb13a0"
+    },
+    {
+      "path": "test/tool/validate_rw11_regression_completeness_stale_support_wiring.test.mjs",
+      "sha256": "4193ccb0c8ebd25d3eacc2443e71b4b92468f6855d3116c06acb6b0254640b31"
+    },
+    {
+      "path": "tool/validate_rw11_regression_completeness_stale_support_wiring.mjs",
+      "sha256": "2b7e4e45cef395745e139844b7810612d1324f1fdb5df7112245545b7faf9c35"
+    },
+    {
+      "path": "docs/architecture/rw11-regression-completeness-stale-support-wiring-2026-08-25.md",
+      "sha256": "cf87216854e3b685b038feb62de5ce747c039c88863086ad9b391ea8cb4054fd"
+    },
+    {
+      "path": "docs/operations/RW11_REGRESSION_COMPLETENESS_STALE_SUPPORT_WIRING_2026-08-25.md",
+      "sha256": "f55668a8e38c2ef3eb45a8bda3a8d503ed7f34a5468dee581ef0afd87983135d"
+    }
   ]
 }
