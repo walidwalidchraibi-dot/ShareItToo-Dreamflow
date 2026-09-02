@@ -4122,3 +4122,23 @@ Play app-signing verification.
 
 Both gates remain unissued, the candidate is not expected on the OnePlus,
 Wireless pairing did not occur and all seven prepared checks remain `NOT_RUN`.
+
+## Current closed-pilot candidate and legal hold (2026-09-02)
+
+The frozen technical candidate is `1.0.0+2026090106` from source HEAD
+`c678c6911569139eabdbcd45a57112f2ef8567fb`. Its signed AAB SHA-256 is
+`534844a37a5790e5bcb67370671e1a48c099bc0b9a8c65136c4b2a0f7cd7d883`.
+Exact Staging is deployed and healthy with the matching API image, memory
+payments, `livemode=false`, local listing-AI mock and all 354 foreign-key
+constraints verified.
+
+Closed-pilot B7-B10 acceptance now fails closed before fixture creation unless
+the approved V5.2 document snapshots are available. The current legal manifest
+is `draft-blocked`, has no effective date and has not received independent
+professional approval. The verified preflight result is
+`closed_pilot_v52_legal_snapshots_not_ready` with zero active fixtures.
+
+Build `2026090106` is not uploaded or activated in Play. The technically
+prepared state is therefore `TECHNICAL_CANDIDATE_READY`, while the real pilot
+state is `PILOT_BLOCKED_LEGAL_GATE`. No Production, real-money, public-user,
+provider, Firebase, Cloud/VPS/DNS, tester-list or PR-merge boundary changed.

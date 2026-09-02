@@ -4094,3 +4094,20 @@ app-signing claim.
 At the current state both gates are unissued, candidate `2026082601` remains
 inactive, Wireless pairing did not occur and all seven prepared checks remain
 `NOT_RUN`. No device or external system was accessed by RW20C.
+
+## Active package: final technical candidate evidence under V5.2 hold
+
+The current package freezes and verifies Android candidate
+`1.0.0+2026090106` from artifact source
+`c678c6911569139eabdbcd45a57112f2ef8567fb`, exact Staging and the fail-closed
+B7-B10 acceptance preflight. Remaining autonomous work is limited to the full
+local regression, exact final-head GitHub Regression/CodeQL and evidence
+readback.
+
+The completion state is intentionally not `PILOT_READY`. The hard stop is the
+authentic P0B/V5.2 professional-review gate: the manifest remains
+`draft-blocked`, final approved hashes and document snapshots are unavailable,
+and pilot activation is forbidden. The next external runway begins only after
+independent professional approval and explicit approved-snapshot provisioning;
+until then, no Play activation, pilot fixture, real booking or payment may be
+created.
