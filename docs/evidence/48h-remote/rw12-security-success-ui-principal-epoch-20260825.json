@@ -133,9 +133,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "2d9ba3673122b67911af8675331945bdbb4ea7ddbb2ce35d21ddd2cf7ed435b1",
-    "retentionManifestSha256": "105d6c18874ada95ed8f1a26f506c4c82a880fd887cd6e9238fbd0c2eab43381",
-    "activeProviderEvidenceSha256": "81e10bee7d065466c2f93f35535cf7b411bf3ae2659129de2eba342bb9ad1344",
+    "privacyManifestSha256": "40f64333a553295275bcba6174c00679c380543404d9fc12036558938b3f2b0f",
+    "retentionManifestSha256": "b2511337d5710fa8d7ec1422fccd17d15873727887234d58063c2c4b7c439a3e",
+    "activeProviderEvidenceSha256": "23b9fd1aba884184689608e91eafe9dff37d3e3cc800418681d61c7967b17c01",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -198,23 +198,23 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "2d9ba3673122b67911af8675331945bdbb4ea7ddbb2ce35d21ddd2cf7ed435b1"
+      "sha256": "40f64333a553295275bcba6174c00679c380543404d9fc12036558938b3f2b0f"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "105d6c18874ada95ed8f1a26f506c4c82a880fd887cd6e9238fbd0c2eab43381"
+      "sha256": "b2511337d5710fa8d7ec1422fccd17d15873727887234d58063c2c4b7c439a3e"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "81e10bee7d065466c2f93f35535cf7b411bf3ae2659129de2eba342bb9ad1344"
+      "sha256": "23b9fd1aba884184689608e91eafe9dff37d3e3cc800418681d61c7967b17c01"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "48e5e70e7a73d651a1499689c6d2a9f5f1c5d1b746fdd1745963ae6cf5e5eaf4"
+      "sha256": "5f60fee617226c68493127a4077ec8b8f650921609f607cc3c7e1fc488245a17"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
-      "sha256": "afb8f61ae27a5933ab8caa274b8313f82766162a66a0e04ceaec1f1327cf74ff"
+      "sha256": "7d6fc95ee9e0a5b032cbdc471cfeee685053813d345c276ad27eacee8723ddb3"
     },
     {
       "path": "scripts/technical_regression_check.sh",

@@ -42,7 +42,7 @@
   "sourceBindings": {
     "firebaseAuthenticationReadinessSha256": "7dbab88404cd2c5f4c131302bbab8c682cb2ac1a156a00aa2806eaf9c29f66dc",
     "googleMapsReadinessSha256": "49e21dae826afe4140c5284d8f9529bb2d41105491ca392ece4c4b0446557608",
-    "retentionManifestSha256": "105d6c18874ada95ed8f1a26f506c4c82a880fd887cd6e9238fbd0c2eab43381",
+    "retentionManifestSha256": "b2511337d5710fa8d7ec1422fccd17d15873727887234d58063c2c4b7c439a3e",
     "validatorSha256": "064bf009240a7508d3430003f852541b2522f339ba22d8068bc141106c25ca06",
     "validatorTestsSha256": "8abfe797022244063db9bbbb7aa212eb246b03da3c455313c35e49cad0c07b26",
     "decisionMatrixSha256": "5b2c33c7f4d4dcb177437fd0aa1bc25c10c63b3e905341e26feca4b37ed772f4"
