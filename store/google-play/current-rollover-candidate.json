@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "android-current-rollover-candidate",
-  "status": "build-ready-play-internal-upload-pending",
-  "generatedAt": "2026-09-02T04:35:40.000Z",
+  "status": "play-internal-active-device-verification-pending",
+  "generatedAt": "2026-09-02T05:18:00.000Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -70,12 +70,15 @@
     "externalListingAiEnabled": false
   },
   "playStateAtReadback": {
-    "activeInternalVersionCode": "2026082601",
+    "activeInternalVersionCode": "2026090204",
     "candidateVersionCodeStrictlyHigher": true,
-    "candidateUploaded": false,
-    "candidateProcessed": false,
-    "candidateDraftReadyToRelease": false,
-    "candidateActivated": false,
+    "candidateUploaded": true,
+    "candidateProcessed": true,
+    "candidateDraftReadyToRelease": true,
+    "candidateActivated": true,
+    "candidateReleaseName": "1.0.0-internal-2026090204",
+    "candidateReleaseStatus": "available-to-internal-testers",
+    "candidateReleasedAtConsoleLocal": "2026-09-02 07:18",
     "testerListCount": 2,
     "testerListChanged": false,
     "productionUnavailable": true,
@@ -104,10 +107,10 @@
   "deviceVerification": {
     "preferredDeviceExactApkInstalled": false,
     "preferredDeviceDataPreserved": false,
-    "guestCatalogOnline": "pending-exact-build",
-    "offlineTruthfulError": "pending-exact-build",
-    "onlineRecovery": "pending-exact-build",
-    "processRestart": "pending-exact-build",
+    "guestCatalogOnline": "pending-physical-access",
+    "offlineTruthfulError": "pending-physical-access",
+    "onlineRecovery": "pending-physical-access",
+    "processRestart": "pending-physical-access",
     "storeDeliveredSplitVerified": false,
     "authenticatedPilotMatrix": "blocked-until-approved-v52-snapshots-exist",
     "secondaryDevice": "DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS"
@@ -122,6 +125,7 @@
     "shared": false
   },
   "evidenceRef": "docs/evidence/release-readiness/full-pilot-candidate-2026090204.json",
+  "playCompletionEvidenceRef": "store/google-play/google-play-internal-release-2026090204-completion.json",
   "handoverRef": "docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md",
   "releaseNotesRef": "store/google-play/de-DE/internal_release_notes_2026090204.txt",
   "containsSecrets": false,

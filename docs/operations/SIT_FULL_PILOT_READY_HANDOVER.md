@@ -1,7 +1,7 @@
 # SIT closed-pilot candidate handover
 
-Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_UPLOAD_PENDING /
-PILOT_BLOCKED_LEGAL_GATE** on
+Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_ACTIVE /
+DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS / PILOT_BLOCKED_LEGAL_GATE** on
 02.09.2026.
 
 ## Frozen technical candidate
@@ -107,11 +107,14 @@ self-approve.
 
 Build `2026090203` was uploaded and processed, but Play rejected its target API
 35 after the 31.08.2026 deadline. Its unpublishable draft was discarded and it
-must not be activated. Build `2026090204` is the exact API-36 replacement and
-has not yet been uploaded or activated. The last directly observed active
-Internal build remains `2026082601`; the tester list remains at two entries.
-Production, Open testing, Closed testing, Store metadata and all tester settings
-remain unchanged.
+must not be activated. Build `2026090204` is the exact API-36 replacement. It
+was uploaded only to Google Play Internal testing, processed without validation
+errors and activated as `1.0.0-internal-2026090204`. Direct post-release
+readback reports `Available to internal testers`; the tester list remains at
+two entries. Production and Open testing remain unavailable, Closed Alpha
+remains on `2026081506`, and Store metadata and all tester settings remain
+unchanged. Completion evidence is
+`store/google-play/google-play-internal-release-2026090204-completion.json`.
 
 PR #7 remains Draft and unmerged. No Production, Firebase, public Cloud,
 payment, DNS, public Store, external listing-AI provider or account mutation is
@@ -119,15 +122,13 @@ part of this closure.
 
 ## Required gate to continue the real pilot
 
-1. Upload and activate only exact build `2026090204` on Google Play Internal,
-   then read back the release, tester and competing-track state.
-2. When a device is physically reachable, install from Play and run the exact
+1. When a device is physically reachable, install from Play and run the exact
    current-candidate guest, offline/online, restart and account-isolation matrix.
-3. Obtain independent professional V5.2 review and approval evidence.
-4. Resolve the open operator, provider, PSP, privacy and retention facts.
-5. Produce an effective approved manifest with final document hashes and
+2. Obtain independent professional V5.2 review and approval evidence.
+3. Resolve the open operator, provider, PSP, privacy and retention facts.
+4. Produce an effective approved manifest with final document hashes and
    explicit authorization to provision its snapshots on Staging.
-6. Provision only those approved snapshots, then rerun B7-B10 and the complete
+5. Provision only those approved snapshots, then rerun B7-B10 and the complete
    authenticated physical-device pilot matrix.
 
 Machine evidence:
@@ -137,6 +138,6 @@ Machine evidence:
 
 The code, Staging API and signed API-36 Android artifact are prepared as far as
 technically and safely possible. The current classification is
-**PILOT_READY=PARTIAL**: technical candidate readiness is proven, while Play
-Internal distribution, exact-build device checks and the independent
+**PILOT_READY=PARTIAL**: technical candidate readiness and Internal distribution
+are proven, while exact-build physical-device checks and the independent
 professional V5.2 gate remain open.

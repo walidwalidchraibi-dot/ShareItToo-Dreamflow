@@ -1,7 +1,8 @@
 # Current Work Package: API-36 full closed-pilot candidate 2026090204
 
-Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_UPLOAD_PENDING /
-PILOT_BLOCKED_LEGAL_GATE** on 02.09.2026.
+Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_ACTIVE /
+DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS / PILOT_BLOCKED_LEGAL_GATE** on
+02.09.2026.
 
 Artifact source commit `30cc73cee8f10915ad4447da4a2fa7ae928f7410`
 contains the frozen closed-pilot envelope and the API-36 Play remediation. The
@@ -20,9 +21,10 @@ retained.
 
 Staging remains healthy on API source `941c59d7`, with memory payments,
 `livemode=false` and the local listing-AI mock; the 0204 delta is Android-build
-only. Active Play Internal remains `2026082601`; the unpublishable API-35 0203
-draft was discarded and candidate 0204 is not yet uploaded or activated.
-Testers and all other tracks are unchanged. Artifact-source GitHub Regression
+only. Exact candidate 0204 is active only in Google Play Internal testing and
+is `Available to internal testers`; the unpublishable API-35 0203 draft was
+discarded. Testers remain at two, Production and Open remain unavailable, and
+Closed Alpha remains on `2026081506`. Artifact-source GitHub Regression
 `33590941669` and CodeQL `33590941491` are green with zero open alerts. Exact
 physical-device and Play split-delivery checks remain deferred.
 
@@ -34,6 +36,8 @@ and real payment remain blocked.
 
 Machine evidence:
 `docs/evidence/release-readiness/full-pilot-candidate-2026090204.json`.
+Play completion evidence:
+`store/google-play/google-play-internal-release-2026090204-completion.json`.
 Human handover:
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 

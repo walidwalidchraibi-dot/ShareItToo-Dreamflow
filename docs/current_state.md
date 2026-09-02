@@ -26,26 +26,30 @@ parallelism or build-path workaround is retained.
 
 The exact 0204 APK is not installed on a physical device. Pixel evidence for
 0203 is historical and does not transfer. Pixel and remote OnePlus checks are
-`DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS`; Play split delivery and the
+`DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS`; Play split delivery is active but its
+device installation remains unverified, and the
 authenticated G3-G5 matrix remain unclaimed.
 
 Staging remains healthy on API source `941c59d7` with memory payments,
 `livemode=false` and the local listing-AI mock. The 0204 delta is Android-build
-only and does not require a backend deployment. Active Play Internal remains
-`2026082601`; the unpublishable API-35 draft 0203 was discarded and candidate
-`2026090204` is not yet uploaded or active. The two-user tester list is
-unchanged. Artifact-source GitHub Regression `33590941669` and CodeQL
+only and does not require a backend deployment. Play Internal now exposes exact
+candidate `2026090204` as `Available to internal testers`; the unpublishable
+API-35 draft 0203 was discarded. The two-user tester list is unchanged,
+Production and Open remain unavailable, and Closed Alpha remains on
+`2026081506`. Artifact-source GitHub Regression `33590941669` and CodeQL
 `33590941491` passed, with zero open alerts. No Production, Open,
 Closed, tester-list, real-payment, Firebase-project, Cloud/VPS/DNS or PR-merge
 state changed.
 
-Current assessment is `PILOT_READY=PARTIAL / PLAY_INTERNAL_UPLOAD_PENDING /
-PILOT_BLOCKED_LEGAL_GATE`.
+Current assessment is `PILOT_READY=PARTIAL / PLAY_INTERNAL_ACTIVE /
+DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS / PILOT_BLOCKED_LEGAL_GATE`.
 The V5.2 manifest remains draft-blocked without independent professional
 approval or approved snapshots. Exact evidence is
 `docs/evidence/release-readiness/full-pilot-candidate-2026090204.json`; the
 current human handover is
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
+Direct Play completion evidence is
+`store/google-play/google-play-internal-release-2026090204-completion.json`.
 
 ## Current OnePlus guest-discovery hotfix state
 

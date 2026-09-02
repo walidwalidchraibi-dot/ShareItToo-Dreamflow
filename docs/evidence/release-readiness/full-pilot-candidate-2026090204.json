@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "sit-full-pilot-candidate-evidence",
-  "status": "technical-candidate-ready-play-internal-upload-pending-pilot-blocked-v52-legal",
+  "status": "technical-candidate-play-internal-active-device-pending-pilot-blocked-v52-legal",
   "recordedAt": "2026-09-02T04:35:40.000Z",
   "source": {
     "branch": "codex/master-workflow-20260808",
@@ -82,15 +82,18 @@
     "exactCandidatePhysicalChecks": "DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS",
     "priorInstalledVersion": "1.0.0+2026090203",
     "priorEvidenceTransfersToCandidate": false,
-    "googlePlaySplitDelivery": "pending-internal-activation-and-device-access",
+    "googlePlaySplitDelivery": "available-to-internal-testers-awaiting-device-access",
     "authenticatedPilotMatrix": "blocked-until-approved-v52-snapshots-exist",
     "secondaryDevice": "DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS"
   },
   "play": {
     "track": "internal",
-    "candidateUploaded": false,
-    "candidateActivated": false,
-    "activeInternalVersionCode": "2026082601",
+    "candidateUploaded": true,
+    "candidateActivated": true,
+    "activeInternalVersionCode": "2026090204",
+    "releaseName": "1.0.0-internal-2026090204",
+    "releaseStatus": "available-to-internal-testers",
+    "releasedAtConsoleLocal": "2026-09-02 07:18",
     "testerListCount": 2,
     "testerListChanged": false,
     "otherTracksChanged": false,
@@ -111,8 +114,9 @@
     "firebaseChanged": false,
     "cloudVpsDnsChanged": false,
     "externalProviderEnabled": false,
-    "playReleaseActivated": false
+    "playReleaseActivated": true
   },
+  "playCompletionEvidenceRef": "store/google-play/google-play-internal-release-2026090204-completion.json",
   "containsSecrets": false,
   "containsTesterIdentity": false
 }
