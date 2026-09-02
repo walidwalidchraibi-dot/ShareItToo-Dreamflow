@@ -52,7 +52,9 @@ test('current-session cleanup is user-bound and idempotent', async () => {
   assert.equal(deleted, 0);
   assert.equal(calls.length, 1);
   assert.match(calls[0].sql, /session_id = \$1/);
-  assert.match(calls[0].sql, /user_id = \$2::uuid/);
+  assert.match(calls[0].sql, /\$2::text IS NULL/);
+  assert.match(calls[0].sql, /user_id = \$2::text/);
+  assert.doesNotMatch(calls[0].sql, /user_id = \$2::uuid/);
   assert.match(calls[0].sql, /RETURNING id/);
   assert.deepEqual(calls[0].parameters, [
     'session-1',

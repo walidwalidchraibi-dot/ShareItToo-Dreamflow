@@ -5470,6 +5470,17 @@ if (!databaseUrl) {
       assert.ok(messageOutbox.rows.every((row) => ['sent', 'suppressed'].includes(row.status)));
       assert.ok(messageOutbox.rows.every((row) => row.attempt_count === 1));
 
+      const deleteCurrentSessionPush = () => fetch(
+        `${baseUrl}/v1/auth/devices/push/current`,
+        { method: 'DELETE', headers: ownerHeaders },
+      );
+      const firstPushCleanup = await deleteCurrentSessionPush();
+      assert.equal(firstPushCleanup.status, 200);
+      assert.equal((await firstPushCleanup.json()).deletedCount, 1);
+      const repeatedPushCleanup = await deleteCurrentSessionPush();
+      assert.equal(repeatedPushCleanup.status, 200);
+      assert.equal((await repeatedPushCleanup.json()).deletedCount, 0);
+
       const deepLinkFallback = await fetch(
         `${baseUrl}/v1/open/booking/${acceptedBookingId}`,
       );

@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/auth_session_actions.js",
-      "sha256": "ee5cbd3051ae8868c9a914c50470ca83556ee937c3ef580a7631091e0ffbf9b5"
+      "sha256": "39ccb3080ecb6d4225ee727e9ccdd733f3d88a47d79b01262924b50010c7a89f"
     },
     {
       "path": "backend/src/privacy_export.js",

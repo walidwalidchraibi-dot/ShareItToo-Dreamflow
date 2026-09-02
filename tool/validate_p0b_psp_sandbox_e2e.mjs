@@ -18,7 +18,7 @@ const expectedRepoSources = Object.freeze([
   Object.freeze(['backend/src/payment_domain.js', 'f15bf2b3d688d53a1f97e17f304e2dea85a8327be143ff65863ef545a57add46']),
   Object.freeze(['backend/src/payment_workflow.js', 'adc8f6a2f0da9b77791e9e708fdd8655dfcae7ed31e4f04f3b87d350719050c4']),
   Object.freeze(['backend/test/payment_domain.test.js', 'e2004112e83d08a34c4a48e3e4bca71d97e8b3b50131569f793c42722ee5abb3']),
-  Object.freeze(['backend/test/postgres_foundation.integration.test.js', 'a14b23b7b055d21e2e477daab30ba1712d52b91bde04257e8022c1c3791d2dee']),
+  Object.freeze(['backend/test/postgres_foundation.integration.test.js', '9d9fad778b187250b81fca8c5c40b530b1d84da84ab8895161c2596406c9faa9']),
   Object.freeze(['backend/src/psp_sandbox_readiness_gate.js', '81e80a617e90b4184e32fa4b7d2f8f7cb6243735b1c85f73b2e880b8b42c6979']),
   Object.freeze(['backend/test/psp_sandbox_readiness_gate.test.js', '575384b897d0b93693c6014e8109bda714ac924c9530f96cc034456780f090ea']),
   Object.freeze(['docs/operations/P0B_PSP_SANDBOX_E2E_RUNBOOK.md', '55ec008f8ad9b790ba2af6f708a01c13362a155991dc7eb6255d01918dcb3dde']),

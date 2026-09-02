@@ -9,7 +9,7 @@ export async function deletePushDevicesForSession(client, { sessionId, userId = 
   const result = await client.query(
     `DELETE FROM push_devices
      WHERE session_id = $1
-       AND ($2::uuid IS NULL OR user_id = $2::uuid)
+       AND ($2::text IS NULL OR user_id = $2::text)
      RETURNING id`,
     [sessionId, userId],
   );
