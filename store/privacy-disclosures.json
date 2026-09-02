@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "c16754bc8cee10b9c3bf9a4ed05c65367dd244e8f64abe25c37f9349a18675de"
+      "sha256": "7f3a12f8dcb6904498ad5f886097d225cad7e9f6f8d19561d955a9e348855302"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
