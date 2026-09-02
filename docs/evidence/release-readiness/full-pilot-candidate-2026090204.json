@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "sit-full-pilot-candidate-evidence",
-  "status": "technical-candidate-play-internal-active-device-pending-pilot-blocked-v52-legal",
-  "recordedAt": "2026-09-02T04:35:40.000Z",
+  "status": "technical-candidate-play-internal-active-oneplus-read-only-passed-pilot-blocked-v52-legal",
+  "recordedAt": "2026-09-02T13:54:57.000Z",
   "source": {
     "branch": "codex/master-workflow-20260808",
     "artifactSourceHead": "30cc73cee8f10915ad4447da4a2fa7ae928f7410",
@@ -78,13 +78,15 @@
   },
   "device": {
     "preferredModel": "Pixel 7 Pro",
-    "exactCandidateInstalled": false,
-    "exactCandidatePhysicalChecks": "DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS",
+    "exactCandidateInstalled": true,
+    "exactCandidatePhysicalChecks": "ONEPLUS_READ_ONLY_AND_ACCOUNT_ISOLATION_PASSED_PARTIAL_MATRIX",
     "priorInstalledVersion": "1.0.0+2026090203",
     "priorEvidenceTransfersToCandidate": false,
-    "googlePlaySplitDelivery": "available-to-internal-testers-awaiting-device-access",
-    "authenticatedPilotMatrix": "blocked-until-approved-v52-snapshots-exist",
-    "secondaryDevice": "DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS"
+    "preferredPixelExactCandidateInstalled": false,
+    "googlePlaySplitDelivery": "verified-on-oneplus",
+    "authenticatedPilotMatrix": "partial-read-only-role-isolation-passed-binding-flows-blocked-by-v52-and-fixture-drift",
+    "secondaryDevice": "ONEPLUS_READ_ONLY_AND_ACCOUNT_ISOLATION_PASSED",
+    "secondaryDeviceEvidenceRef": "docs/evidence/release-readiness/oneplus-play-internal-2026090204-read-only.json"
   },
   "play": {
     "track": "internal",

@@ -1,7 +1,7 @@
 # Current Work Package: API-36 full closed-pilot candidate 2026090204
 
 Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_ACTIVE /
-DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS / PILOT_BLOCKED_LEGAL_GATE** on
+ONEPLUS_READ_ONLY_AND_ACCOUNT_ISOLATION_PASSED / PILOT_BLOCKED_LEGAL_GATE** on
 02.09.2026.
 
 Artifact source commit `30cc73cee8f10915ad4447da4a2fa7ae928f7410`
@@ -26,7 +26,19 @@ is `Available to internal testers`; the unpublishable API-35 0203 draft was
 discarded. Testers remain at two, Production and Open remain unavailable, and
 Closed Alpha remains on `2026081506`. Artifact-source GitHub Regression
 `33590941669` and CodeQL `33590941491` are green with zero open alerts. Exact
-physical-device and Play split-delivery checks remain deferred.
+Play split delivery, guest discovery, force-stop restart, synthetic owner/renter
+authentication, session persistence and A-to-B isolation now pass on a physical
+OnePlus CPH2581 running Android 16/API 36. The device ended as guest, and the
+bounded run changed no business or Store state.
+
+The device result remains partial: the existing synthetic owner listing is
+absent from the public catalog for an internal reason not provable through the
+ordinary owner/public APIs, and the historical booking fixture has workflow
+state drift for both roles. Neither is repaired or claimed as passed. The full
+binding business matrix remains blocked by the V5.2 legal gate. The remote
+execution needed only a transient label mapping because its tool snapshot was
+older; the canonical repository already supports both label generations, so no
+workaround is retained.
 
 The external hard stop is authentic: V5.2 is still `draft-blocked`, independent
 professional approval and approved document snapshots do not exist, and the
@@ -40,6 +52,8 @@ Play completion evidence:
 `store/google-play/google-play-internal-release-2026090204-completion.json`.
 Human handover:
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
+OnePlus evidence:
+`docs/evidence/release-readiness/oneplus-play-internal-2026090204-read-only.json`.
 
 # Previous Work Package: OnePlus guest-discovery hotfix 2026082801
 

@@ -1,6 +1,7 @@
 # ShareItToo Current State
 
-Verified: 2026-09-02 on the Mac mini.
+Verified: 2026-09-02 from the Mac mini repository and the owner-authorized
+MacBook Pro device task with the OnePlus connected directly by USB.
 
 ## Current closed-pilot candidate state
 
@@ -24,11 +25,15 @@ previously flowed through a factory. Permanent tests prove both layers and their
 ordering. No local timing, retry, rate-limit,
 parallelism or build-path workaround is retained.
 
-The exact 0204 APK is not installed on a physical device. Pixel evidence for
-0203 is historical and does not transfer. Pixel and remote OnePlus checks are
-`DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS`; Play split delivery is active but its
-device installation remains unverified, and the
-authenticated G3-G5 matrix remain unclaimed.
+The exact 0204 Play split is installed and verified on a physical OnePlus
+CPH2581 with Android 16/API 36. Guest discovery, force-stop restart, synthetic
+owner and renter authentication, session persistence and Account-A-to-B
+isolation passed without an observed crash or ANR. The device ended in a
+confirmed guest state and no business data was mutated. The existing synthetic
+owner listing is not in the public catalog, and the ordinary APIs cannot prove
+the four remaining internal eligibility fields; the historical booking fixture
+also has unresolved workflow-state drift. Neither finding is hidden or treated
+as a pass. Pixel evidence for 0203 remains historical and does not transfer.
 
 Staging remains healthy on API source `941c59d7` with memory payments,
 `livemode=false` and the local listing-AI mock. The 0204 delta is Android-build
@@ -42,7 +47,7 @@ Closed, tester-list, real-payment, Firebase-project, Cloud/VPS/DNS or PR-merge
 state changed.
 
 Current assessment is `PILOT_READY=PARTIAL / PLAY_INTERNAL_ACTIVE /
-DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS / PILOT_BLOCKED_LEGAL_GATE`.
+ONEPLUS_READ_ONLY_AND_ACCOUNT_ISOLATION_PASSED / PILOT_BLOCKED_LEGAL_GATE`.
 The V5.2 manifest remains draft-blocked without independent professional
 approval or approved snapshots. Exact evidence is
 `docs/evidence/release-readiness/full-pilot-candidate-2026090204.json`; the
@@ -50,6 +55,8 @@ current human handover is
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 Direct Play completion evidence is
 `store/google-play/google-play-internal-release-2026090204-completion.json`.
+Bounded OnePlus evidence is
+`docs/evidence/release-readiness/oneplus-play-internal-2026090204-read-only.json`.
 
 ## Current OnePlus guest-discovery hotfix state
 

@@ -1,7 +1,7 @@
 # SIT closed-pilot candidate handover
 
 Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_ACTIVE /
-DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS / PILOT_BLOCKED_LEGAL_GATE** on
+ONEPLUS_READ_ONLY_AND_ACCOUNT_ISOLATION_PASSED / PILOT_BLOCKED_LEGAL_GATE** on
 02.09.2026.
 
 ## Frozen technical candidate
@@ -50,14 +50,36 @@ passed on exact HEAD `30cc73cee8f10915ad4447da4a2fa7ae928f7410`;
 open code-scanning alerts are zero. PR #7 remains Draft, open, mergeable and
 unmerged.
 
-## Physical-device boundary
+## Physical-device result and boundary
 
-The Pixel's last directly verified build remains `1.0.0+2026090203` and its
-historical direct-APK checks do not transfer to `2026090204`. The OnePlus and
-Pixel are not physically reachable for the exact new candidate, so the current
-classification is `DEVICE_TEST_DEFERRED_PHYSICAL_ACCESS`. Google Play split
-delivery and the authenticated pilot matrix remain unclaimed; the latter is
-also blocked by the V5.2 legal-snapshot gate.
+The exact Play-delivered `1.0.0+2026090204` candidate is now verified on a
+physical OnePlus CPH2581 running Android 16/API 36. Package identity, four Play
+splits, Play installer and the expected Play App Signing certificate matched.
+Guest discovery reached a truthful empty state without the former loading
+failure, survived a force-stop/fresh restart and produced no observed crash or
+ANR.
+
+Using only the private synthetic Staging roles, owner and renter login,
+principal binding, authenticated profile, owner listing access, force-stop
+session persistence and owner-to-guest-to-renter isolation passed. No owner
+listing, owner navigation or stale owner success appeared under the renter,
+and the device was returned to a confirmed guest state. No business data,
+listing, booking, chat, payment, contract, Play or repository state was changed
+by the device run.
+
+This is deliberately a partial read-only matrix, not a full pilot pass. The
+existing owner fixture is absent from the public catalog even though its
+owner-visible state is active and its region/category/photo host are suitable.
+The ordinary owner/public APIs cannot prove catalog version, moderation status
+or both owner pilot-review fields, so no cause is guessed and no moderation or
+legal gate is bypassed. The historical booking fixture also no longer matches
+the vault-bound workflow state for either role and remains explicitly open.
+The exact capture time was not recorded, so the evidence records it as unknown
+rather than inventing precision.
+
+The Pixel's last directly verified build remains `1.0.0+2026090203`; its
+historical evidence does not transfer. Exact evidence for the OnePlus run is
+`docs/evidence/release-readiness/oneplus-play-internal-2026090204-read-only.json`.
 
 ## Exact Staging state
 
@@ -122,13 +144,15 @@ part of this closure.
 
 ## Required gate to continue the real pilot
 
-1. When a device is physically reachable, install from Play and run the exact
-   current-candidate guest, offline/online, restart and account-isolation matrix.
-2. Obtain independent professional V5.2 review and approval evidence.
-3. Resolve the open operator, provider, PSP, privacy and retention facts.
-4. Produce an effective approved manifest with final document hashes and
+1. Diagnose the existing synthetic listing's hidden catalog eligibility through
+   an authorized read-only operator view; do not alter moderation or legal state.
+2. Reconcile or replace the stale isolated booking fixture only through a
+   dedicated synthetic Staging lifecycle with deterministic cleanup.
+3. Obtain independent professional V5.2 review and approval evidence.
+4. Resolve the open operator, provider, PSP, privacy and retention facts.
+5. Produce an effective approved manifest with final document hashes and
    explicit authorization to provision its snapshots on Staging.
-5. Provision only those approved snapshots, then rerun B7-B10 and the complete
+6. Provision only those approved snapshots, then rerun B7-B10 and the complete
    authenticated physical-device pilot matrix.
 
 Machine evidence:
@@ -137,7 +161,9 @@ Machine evidence:
 ## Final assessment
 
 The code, Staging API and signed API-36 Android artifact are prepared as far as
-technically and safely possible. The current classification is
-**PILOT_READY=PARTIAL**: technical candidate readiness and Internal distribution
-are proven, while exact-build physical-device checks and the independent
-professional V5.2 gate remain open.
+technically and safely possible. The current classification remains
+**PILOT_READY=PARTIAL**: technical candidate readiness, Internal distribution
+and the bounded exact-build OnePlus read-only/account-isolation matrix are
+proven. Public-catalog fixture eligibility, the stale synthetic booking context,
+the full binding device matrix and the independent professional V5.2 gate remain
+open.
