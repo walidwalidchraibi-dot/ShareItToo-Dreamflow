@@ -22,6 +22,10 @@ const wrapperProperties = readFileSync(
   new URL('../../android/gradle/wrapper/gradle-wrapper.properties', import.meta.url),
   'utf8',
 );
+const playHandoffValidator = readFileSync(
+  new URL('../../tool/validate_google_play_internal_handoff.mjs', import.meta.url),
+  'utf8',
+);
 
 test('CI validates rollover metadata but builds a signed candidate only on explicit manual request', () => {
   assert.match(
@@ -81,6 +85,25 @@ test('local rollover verifies current-head bytes before accepting historical Pla
     technicalRegression,
     /validate_current_head_android_release_archive\.test\.mjs/,
   );
+});
+
+test('Play API 36 replacement transition is exact and remains fail closed', () => {
+  assert.match(
+    playHandoffValidator,
+    /superseded-play-api36-replacement-pending/,
+  );
+  for (const path of [
+    'android/app/build.gradle',
+    'android/build.gradle',
+    'android/settings.gradle',
+    'lib/config/private_pilot_config.dart',
+    'pubspec.yaml',
+  ]) {
+    assert.match(playHandoffValidator, new RegExp(path.replaceAll('/', '\\/')));
+  }
+  assert.match(playHandoffValidator, /unexpected runtime change/);
+  assert.match(playHandoffValidator, /compileSdk and targetSdk must both be exactly 36/);
+  assert.match(playHandoffValidator, /AGP 8\.9\.1 and compileSdkVersion 36/);
 });
 
 test('Android packaging derives missing Firebase client values from the exact local config without logging them', () => {

@@ -79,6 +79,101 @@ function sha256File(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
+export const playApi36ReplacementStatus =
+  'superseded-play-api36-replacement-pending';
+
+export const playApi36ReplacementRuntimePaths = Object.freeze([
+  'android/app/build.gradle',
+  'android/build.gradle',
+  'android/settings.gradle',
+  'lib/config/private_pilot_config.dart',
+  'pubspec.yaml',
+]);
+
+export function validatePlayApi36ReplacementTransition({
+  repositoryRoot,
+  rollover,
+  changedPaths,
+}) {
+  const candidate = object(rollover.candidate, 'current rollover candidate.candidate');
+  const replacement = object(
+    rollover.replacement,
+    'current rollover candidate.replacement',
+  );
+  same(rollover.status, playApi36ReplacementStatus,
+    'current rollover candidate.status');
+  same(candidate.compileSdkVersion, 35,
+    'superseded candidate.compileSdkVersion');
+  same(candidate.targetSdkVersion, 35,
+    'superseded candidate.targetSdkVersion');
+  same(replacement.reason, 'google-play-target-api-36-required-after-2026-08-31',
+    'replacement.reason');
+  same(replacement.versionName, candidate.versionName, 'replacement.versionName');
+  if (!/^\d{10}$/u.test(replacement.versionCode ?? '')
+      || BigInt(replacement.versionCode) <= BigInt(candidate.versionCode ?? '0')) {
+    fail('replacement.versionCode must be a newer ten-digit candidate build.');
+  }
+  same(replacement.compileSdkVersion, 36, 'replacement.compileSdkVersion');
+  same(replacement.targetSdkVersion, 36, 'replacement.targetSdkVersion');
+  same(replacement.androidGradlePluginVersion, '8.9.1',
+    'replacement.androidGradlePluginVersion');
+  same(replacement.uploadAttempted, false, 'replacement.uploadAttempted');
+  same(replacement.activationAttempted, false, 'replacement.activationAttempted');
+
+  const expectedRuntimePaths = new Set(playApi36ReplacementRuntimePaths);
+  const actualRuntimePaths = new Set(changedPaths.filter((path) =>
+    !['.github/', 'docs/', 'scripts/', 'store/', 'test/', 'tool/']
+      .some((prefix) => path.startsWith(prefix))));
+  for (const path of expectedRuntimePaths) {
+    if (!actualRuntimePaths.has(path)) {
+      fail(`Play API 36 replacement is missing required runtime change: ${path}.`);
+    }
+  }
+  const unexpectedRuntimePaths = [...actualRuntimePaths].filter(
+    (path) => !expectedRuntimePaths.has(path),
+  );
+  if (unexpectedRuntimePaths.length > 0) {
+    fail(`Play API 36 replacement contains unexpected runtime change: ${unexpectedRuntimePaths[0]}.`);
+  }
+
+  const pubspec = readFileSync(resolve(repositoryRoot, 'pubspec.yaml'), 'utf8');
+  if (!new RegExp(
+    `^version:\\s+${replacement.versionName.replaceAll('.', '\\.')}`
+      + `\\+${replacement.versionCode}$`,
+    'mu',
+  ).test(pubspec)) {
+    fail('pubspec.yaml is not bound to the declared Play API 36 replacement.');
+  }
+  const appGradle = readFileSync(resolve(repositoryRoot, 'android/app/build.gradle'), 'utf8');
+  if (!/^\s*compileSdk\s*=\s*36\s*$/mu.test(appGradle)
+      || !/^\s*targetSdk\s*=\s*36\s*$/mu.test(appGradle)) {
+    fail('Android app compileSdk and targetSdk must both be exactly 36.');
+  }
+  const rootGradle = readFileSync(resolve(repositoryRoot, 'android/build.gradle'), 'utf8');
+  if (!/classpath ['"]com\.android\.tools\.build:gradle:8\.9\.1['"]/u.test(rootGradle)
+      || !/^\s*compileSdkVersion\s+36\s*$/mu.test(rootGradle)) {
+    fail('Android root build must enforce AGP 8.9.1 and compileSdkVersion 36.');
+  }
+  const settingsGradle = readFileSync(resolve(repositoryRoot, 'android/settings.gradle'), 'utf8');
+  if (!/id ['"]com\.android\.application['"] version ['"]8\.9\.1['"] apply false/u
+    .test(settingsGradle)) {
+    fail('Android settings must pin the application plugin to AGP 8.9.1.');
+  }
+  const pilotConfig = readFileSync(
+    resolve(repositoryRoot, 'lib/config/private_pilot_config.dart'),
+    'utf8',
+  );
+  if (!pilotConfig.includes(`defaultValue: '${replacement.versionName}+${replacement.versionCode}'`)) {
+    fail('Private pilot client build is not bound to the Play API 36 replacement.');
+  }
+  return Object.freeze({
+    versionName: replacement.versionName,
+    buildNumber: replacement.versionCode,
+    compileSdkVersion: replacement.compileSdkVersion,
+    targetSdkVersion: replacement.targetSdkVersion,
+  });
+}
+
 export function validateGooglePlayInternalHandoff({
   repositoryRoot,
   archiveRoot = resolve(homedir(), 'Library', 'Application Support', 'ShareItToo', 'release', 'android'),
@@ -657,6 +752,7 @@ async function runCli() {
     fail('--candidate-rollover requires the explicit candidate-rollover environment.');
   }
   let rolloverCandidate = null;
+  let rolloverMode = null;
   if (candidateRollover) {
     const rollover = object(readJson(
       resolve(repositoryRoot, 'store', 'google-play', 'current-rollover-candidate.json'),
@@ -669,6 +765,7 @@ async function runCli() {
       'build-ready-play-internal-upload-pending',
       'build-ready-play-internal-activation-pending',
       'play-internal-active-device-verification-pending',
+      playApi36ReplacementStatus,
     ]);
     if (!allowedRolloverStatuses.has(rollover.status)) {
       fail('current rollover candidate.status is not an allowed fail-closed Play state.');
@@ -714,10 +811,20 @@ async function runCli() {
       'test/',
       'tool/',
     ];
-    const runtimeDrift = [...changedPaths].filter((path) =>
-      !allowedEvidencePrefixes.some((prefix) => path.startsWith(prefix)));
-    if (runtimeDrift.length > 0) {
-      fail('Runtime-affecting files changed after the rollover artifact source commit.');
+    if (rollover.status === playApi36ReplacementStatus) {
+      validatePlayApi36ReplacementTransition({
+        repositoryRoot,
+        rollover,
+        changedPaths: [...changedPaths],
+      });
+      rolloverMode = 'api36-replacement-transition-verified';
+    } else {
+      const runtimeDrift = [...changedPaths].filter((path) =>
+        !allowedEvidencePrefixes.some((prefix) => path.startsWith(prefix)));
+      if (runtimeDrift.length > 0) {
+        fail('Runtime-affecting files changed after the rollover artifact source commit.');
+      }
+      rolloverMode = 'historical-metadata-with-newer-rollover-artifact-verified';
     }
   }
   const result = validateGooglePlayInternalHandoff({
@@ -731,7 +838,7 @@ async function runCli() {
   process.stdout.write(
     `Google Play internal handoff: PASS (build ${result.buildNumber}; `
       + `privateArtifact=${result.artifactVerified ? 'verified' :
-        candidateRollover ? 'historical-metadata-with-newer-rollover-artifact-verified' :
+        candidateRollover ? rolloverMode :
           'CI-unavailable-metadata-validated'})\n`,
   );
 }

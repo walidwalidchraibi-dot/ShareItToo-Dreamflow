@@ -1,8 +1,18 @@
 {
   "schemaVersion": 1,
   "kind": "android-current-rollover-candidate",
-  "status": "build-ready-play-internal-upload-pending",
+  "status": "superseded-play-api36-replacement-pending",
   "generatedAt": "2026-09-02T03:36:01.000Z",
+  "replacement": {
+    "reason": "google-play-target-api-36-required-after-2026-08-31",
+    "versionName": "1.0.0",
+    "versionCode": "2026090204",
+    "compileSdkVersion": 36,
+    "targetSdkVersion": 36,
+    "androidGradlePluginVersion": "8.9.1",
+    "uploadAttempted": false,
+    "activationAttempted": false
+  },
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
