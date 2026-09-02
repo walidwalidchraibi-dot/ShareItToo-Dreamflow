@@ -1,13 +1,13 @@
-# Current Work Package: full closed-pilot candidate 2026090202
+# Current Work Package: full closed-pilot candidate 2026090203
 
 Status: **TECHNICAL_CANDIDATE_READY / PILOT_BLOCKED_LEGAL_GATE** on
 02.09.2026.
 
-Artifact source commit `e7b76f9e5d787e88fb46b6ad5a777d54f8066d63`
-contains the frozen closed-pilot envelope and the CodeQL-visible inline planner
-rate limiter. The signed candidate is `com.shareittoo.app`,
-`1.0.0+2026090202`, Internal and Staging only, with AAB SHA-256
-`fa1105a630e5c2c050a61a1baa05bce0d0d102bfd711d057a2048709546a1a1b`.
+Artifact source commit `941c59d78ad8005a3d29b5eefac8925ec86a8c71`
+contains the frozen closed-pilot envelope, the dedicated inline planner limiter
+and the CodeQL-visible direct global baseline. The signed candidate is
+`com.shareittoo.app`, `1.0.0+2026090203`, Internal and Staging only, with AAB
+SHA-256 `8d9107769a857fcfa66e65e95fc4bf896cf4d4cc407263e5da1dc219bccc9499`.
 
 The complete local technical regression passes from a clean Flutter bootstrap:
 the complete tool inventory, backend/PostgreSQL, 634 Flutter tests with three
@@ -19,7 +19,7 @@ process restart all pass with the app-data container preserved.
 
 Exact Staging runs the matching source and API image, memory payments,
 `livemode=false` and the local listing-AI mock. Active Play Internal remains
-`2026082601`; candidate `2026090202` is not uploaded or activated, testers and
+`2026082601`; candidate `2026090203` is not uploaded or activated, testers and
 all other tracks are unchanged. Exact final-evidence GitHub Regression and
 CodeQL are the remaining autonomous checks after the evidence push. Store split
 delivery and authenticated G3-G5 tests remain unclaimed.
@@ -30,7 +30,7 @@ preflight fails before fixture creation. No Play activation, booking acceptance,
 public registration or real payment is allowed under this package.
 
 Machine evidence:
-`docs/evidence/release-readiness/full-pilot-candidate-2026090202.json`.
+`docs/evidence/release-readiness/full-pilot-candidate-2026090203.json`.
 Human handover:
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
@@ -4097,19 +4097,19 @@ inactive, Wireless pairing did not occur and all seven prepared checks remain
 ## Active package: final technical candidate evidence under V5.2 hold
 
 The current package freezes and verifies Android candidate
-`1.0.0+2026090202` from artifact source
-`e7b76f9e5d787e88fb46b6ad5a777d54f8066d63`, exact Staging and the fail-closed
+`1.0.0+2026090203` from artifact source
+`941c59d78ad8005a3d29b5eefac8925ec86a8c71`, exact Staging and the fail-closed
 B7-B10 acceptance preflight. The exact direct APK is now installed on the
 Pixel through a data-preserving update. Signed-out guest online truth, explicit
-offline failure, connectivity-validated recovery and process restart all pass;
-the timing gap between Wi-Fi enabled and Staging reachable is closed by a
-deterministic probe and regression tests rather than a fixed delay.
+offline failure, explicit-retry recovery and process restart all pass without a
+fixed-delay workaround.
 
 The final local regression and clean-checkout proof pass. Remaining autonomous
 work is limited to exact final-head GitHub Regression/CodeQL and evidence
-readback. The candidate also contains the inline planner-resolution limiter and
-anchored CodeQL structure test that close the three high-severity PR findings
-observed on the prior candidate. Google Play split delivery and authenticated
+readback. The candidate preserves the inline planner-resolution limiter and
+adds the direct global baseline plus anchored CodeQL structure tests that close
+the three high-severity PR findings observed on the prior candidate. Google Play
+split delivery and authenticated
 pilot flows remain unclaimed.
 
 The completion state is intentionally not `PILOT_READY`. The hard stop is the
