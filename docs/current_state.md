@@ -4125,9 +4125,9 @@ Wireless pairing did not occur and all seven prepared checks remain `NOT_RUN`.
 
 ## Current closed-pilot candidate and legal hold (2026-09-02)
 
-The frozen technical candidate is `1.0.0+2026090106` from source HEAD
-`c678c6911569139eabdbcd45a57112f2ef8567fb`. Its signed AAB SHA-256 is
-`534844a37a5790e5bcb67370671e1a48c099bc0b9a8c65136c4b2a0f7cd7d883`.
+The frozen technical candidate is `1.0.0+2026090201` from source HEAD
+`94dd09ea562107c4dd758bd9a73e7c3e8f97e21c`. Its signed AAB SHA-256 is
+`5301dabccada20f2b77b5668adfc4f1aa60fb45eb43fc8590a3257d7bf796bec`.
 Exact Staging is deployed and healthy with the matching API image, memory
 payments, `livemode=false`, local listing-AI mock and all 354 foreign-key
 constraints verified.
@@ -4138,13 +4138,13 @@ is `draft-blocked`, has no effective date and has not received independent
 professional approval. The verified preflight result is
 `closed_pilot_v52_legal_snapshots_not_ready` with zero active fixtures.
 
-Build `2026090106` is not uploaded or activated in Play. The technically
+Build `2026090201` is not uploaded or activated in Play. The technically
 prepared state is therefore `TECHNICAL_CANDIDATE_READY`, while the real pilot
 state is `PILOT_BLOCKED_LEGAL_GATE`. No Production, real-money, public-user,
 provider, Firebase, Cloud/VPS/DNS, tester-list or PR-merge boundary changed.
 
-The exact direct APK `1.0.0+2026090106` is now installed on the Pixel 7 Pro by
-a non-destructive update from `2026090103`; signature, installed bytes,
+The exact direct APK `1.0.0+2026090201` is now installed on the Pixel 7 Pro by
+a non-destructive update from `2026090106`; signature, installed bytes,
 first-install identity and app-data-container preservation pass. The signed-out
 guest UI matches the currently empty public Staging catalog, exposes the
 explicit offline error when Wi-Fi is temporarily disabled, recovers after

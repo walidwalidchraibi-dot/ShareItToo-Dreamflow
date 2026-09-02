@@ -4098,8 +4098,8 @@ inactive, Wireless pairing did not occur and all seven prepared checks remain
 ## Active package: final technical candidate evidence under V5.2 hold
 
 The current package freezes and verifies Android candidate
-`1.0.0+2026090106` from artifact source
-`c678c6911569139eabdbcd45a57112f2ef8567fb`, exact Staging and the fail-closed
+`1.0.0+2026090201` from artifact source
+`94dd09ea562107c4dd758bd9a73e7c3e8f97e21c`, exact Staging and the fail-closed
 B7-B10 acceptance preflight. The exact direct APK is now installed on the
 Pixel through a data-preserving update. Signed-out guest online truth, explicit
 offline failure, connectivity-validated recovery and process restart all pass;
@@ -4107,7 +4107,10 @@ the timing gap between Wi-Fi enabled and Staging reachable is closed by a
 deterministic probe and regression tests rather than a fixed delay.
 
 Remaining autonomous work is limited to the final local regression, exact
-final-head GitHub Regression/CodeQL and evidence readback. Google Play split
+final-head GitHub Regression/CodeQL and evidence readback. The candidate also
+contains the dedicated planner-resolution limiter and anchored CodeQL test URL
+check that close the four high-severity PR findings observed on the prior
+candidate. Google Play split
 delivery and authenticated pilot flows remain unclaimed.
 
 The completion state is intentionally not `PILOT_READY`. The hard stop is the

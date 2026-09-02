@@ -7,20 +7,20 @@ Status: **TECHNICAL_CANDIDATE_READY / PILOT_BLOCKED_LEGAL_GATE** on
 
 - Worktree: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
 - Branch: `codex/master-workflow-20260808`.
-- Artifact source HEAD: `c678c6911569139eabdbcd45a57112f2ef8567fb`.
-- Android: `com.shareittoo.app`, `1.0.0+2026090106`, minSdk 24,
+- Artifact source HEAD: `94dd09ea562107c4dd758bd9a73e7c3e8f97e21c`.
+- Android: `com.shareittoo.app`, `1.0.0+2026090201`, minSdk 24,
   targetSdk 35.
 - Scope: Google Play Internal testing, Staging API and private pilot
   `heilbronn_wave0` only.
 - AAB SHA-256:
-  `534844a37a5790e5bcb67370671e1a48c099bc0b9a8c65136c4b2a0f7cd7d883`.
+  `5301dabccada20f2b77b5668adfc4f1aa60fb45eb43fc8590a3257d7bf796bec`.
 - APK SHA-256:
-  `309e1982b40ecc2f8679d8bb35d6e91e05109b4770bac806bebacb43350da24b`.
+  `a0e0f63219986d44ae6b626409aeebc34035f100e842c57d85616c5aad550593`.
 - Upload-certificate SHA-256:
   `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4`.
 
 The signed release AAB and APK are stored in the private owner-only archive
-`2026090106-c678c6911569139eabdbcd45a57112f2ef8567fb`. Package, version,
+`2026090201-94dd09ea562107c4dd758bd9a73e7c3e8f97e21c`. Package, version,
 SDK identity, signing certificate, ZIP structure, Bundletool 1.18.1 validation
 and binary privacy scan passed. No secret or tester identity is present in
 repository evidence.
@@ -32,16 +32,14 @@ Web/Wasm, a real loopback smoke and Android debug (448 tasks). The release-host
 capacity guard passed without retaining a timing, retry, rate-limit,
 parallelism or build-path workaround.
 
-GitHub Regression `33576595774` and CodeQL `33576595755` both passed on exact
-evidence HEAD `8301f6ad59145f1f03468aeb81e5843b165b58ef`. Regression includes
-successful Flutter, Backend, PostgreSQL fresh/recovery and clean-checkout jobs;
-API-image publication was correctly skipped. The following readback found zero
-open code-scanning alerts. PR #7 remained Draft, open, mergeable and unmerged.
+The exact final-evidence GitHub Regression and CodeQL run IDs are recorded only
+after the evidence commit is pushed and both workflows complete. PR #7 remains
+Draft, open and unmerged throughout that readback.
 
 ## Pixel candidate verification
 
-The Pixel 7 Pro now runs the exact direct APK `1.0.0+2026090106`. The update
-from `2026090103` was non-destructive: the upload signature and installed APK
+The Pixel 7 Pro now runs the exact direct APK `1.0.0+2026090201`. The update
+from `2026090106` was non-destructive: the upload signature and installed APK
 hash match the private candidate, while first-install and app-data-container
 identity remained unchanged. The device is signed out; no login, logout or
 account mutation occurred.
@@ -63,12 +61,12 @@ the latter is correctly blocked by the V5.2 legal-snapshot gate.
 ## Exact Staging state
 
 Staging runs the exact source checkout and API image
-`shareittoo-api:c678c6911569139eabdbcd45a57112f2ef8567fb` with client-build
-requirement `1.0.0+2026090106`. Health and readiness are green, and all 354
+`shareittoo-api:94dd09ea562107c4dd758bd9a73e7c3e8f97e21c` with client-build
+requirement `1.0.0+2026090201`. Health and readiness are green, and all 354
 foreign-key constraints pass the deploy guard. Payment transport remains
 in-memory with `livemode=false`; listing AI remains the local mock with no
 external provider or billing. The deployment evidence is
-`/docker/shareittoo/releases/staging-20260902T001250Z-c678c6911569.json`.
+`/docker/shareittoo/releases/staging-20260902T015652Z-94dd09ea5621.json`.
 
 ## Closed-pilot acceptance truth
 
@@ -102,7 +100,7 @@ self-approve.
 
 ## Play and repository boundaries
 
-Build `2026090106` has not been uploaded or activated. The last directly
+Build `2026090201` has not been uploaded or activated. The last directly
 observed active Internal build remains `2026082601`; the tester list remains at
 two entries. Production, Open testing, Closed testing, Store metadata and all
 tester settings remain unchanged. Superseded Internal drafts must not be used
@@ -124,7 +122,7 @@ part of this closure.
    activation remains a separate exact-candidate owner action.
 
 Machine evidence:
-`docs/evidence/release-readiness/full-pilot-candidate-2026090106.json`.
+`docs/evidence/release-readiness/full-pilot-candidate-2026090201.json`.
 
 ## Final assessment
 
