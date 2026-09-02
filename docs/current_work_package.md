@@ -1,4 +1,32 @@
-# Current Work Package: RW23 Pixel authentication-cache recovery 2026090207
+# Current Work Package: RW24 Pixel controlled-FCM closure 2026090210
+
+Status: **CLOSED / PIXEL VERIFIED / ONEPLUS UNTOUCHED** on 03.09.2026.
+
+The signed Internal/Staging candidate `com.shareittoo.app`
+`1.0.0+2026090210`, artifact source
+`79f39cb11c47ea96cb7c468e57d211605989d439`, passed controlled FCM delivery on
+the physical Pixel 7 Pro in foreground, background and terminated-process
+states. The installed APK is byte-identical to the private archive at SHA-256
+`a7f48b7fee0aeb68ff0e65e47db545833f3c03bee3ee05e78bd470bafb103496`.
+
+The initial foreground result was a QA false negative: the app correctly
+displayed the current neutral V5.2 push contract, while the diagnostic searched
+for obsolete message-specific copy. Commit
+`3ae7806f3f97f5e9d7ec0981b07d5faf3d23fbcc` fixes that matcher and adds a
+regression test. The current ShareItToo notification icon and neutral copy
+were visually reviewed and passed.
+
+Exact Staging API `576c1a22af75ec9d56b710158604452642996436` is healthy
+with FCM enabled only for Staging. No payment endpoint, real money, Production,
+Play, tester-list, OnePlus or PR-merge action occurred. Mail and Payment remain
+memory-only and listing AI remains mock with zero provider budget.
+
+Machine evidence:
+`docs/evidence/release-readiness/pixel-controlled-fcm-2026090210.json`.
+Human closure:
+`docs/operations/RW24_PIXEL_CONTROLLED_FCM_CLOSURE_2026-09-03.md`.
+
+# Previous Work Package: RW23 Pixel authentication-cache recovery 2026090207
 
 Status: **CLOSED / PIXEL VERIFIED / A-TO-B ISOLATION PASSED** on
 02.09.2026.

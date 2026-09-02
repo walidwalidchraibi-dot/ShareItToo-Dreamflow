@@ -1,8 +1,32 @@
 # ShareItToo Current State
 
-Verified: 2026-09-02 from the Mac mini repository, exact Staging and the
+Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
+
+## Current RW24 Pixel controlled-FCM state
+
+The signed Internal/Staging candidate `com.shareittoo.app`,
+`1.0.0+2026090210`, from artifact source
+`79f39cb11c47ea96cb7c468e57d211605989d439` is installed directly on the Pixel
+7 Pro with exact APK hash
+`a7f48b7fee0aeb68ff0e65e47db545833f3c03bee3ee05e78bd470bafb103496`.
+Exact Staging API `576c1a22af75ec9d56b710158604452642996436` is healthy
+with FCM enabled for Staging.
+
+Controlled synthetic delivery passed in foreground, background and with the
+app process stopped. The foreground popup, Android notification and current
+ShareItToo icon were visually verified. The original foreground failure was a
+false-negative QA matcher for obsolete notification copy; commit
+`3ae7806f3f97f5e9d7ec0981b07d5faf3d23fbcc` now binds the diagnostic to the
+neutral V5.2 contract and rejects the obsolete matcher in a focused test.
+
+No payment endpoint, real money, Production push, Play change, tester change
+or OnePlus access occurred. Mail and Payment remain memory-only; listing AI
+remains mock with zero external-provider budget. Exact evidence is
+`docs/evidence/release-readiness/pixel-controlled-fcm-2026090210.json`; human
+closure is
+`docs/operations/RW24_PIXEL_CONTROLLED_FCM_CLOSURE_2026-09-03.md`.
 
 ## Current RW23 Pixel authentication-cache recovery state
 
