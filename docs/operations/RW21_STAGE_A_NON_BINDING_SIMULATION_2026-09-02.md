@@ -1,7 +1,7 @@
 # RW21 Stage-A non-binding simulation
 
-Status: **IMPLEMENTED AND LOCALLY VERIFIED / STAGING DEPLOYMENT PENDING** on
-02.09.2026.
+Status: **CLOSED / STAGING ROLE-FLOW VERIFIED / PIXEL FOLLOW-UP RW22 CLOSED**
+on 02.09.2026.
 
 ## Purpose
 
@@ -44,23 +44,24 @@ environment flag.
 - Flutter analyzer: 0 issues.
 - Focused Stage-A checkout, server-boundary and remote-runner tests passed.
 
-The complete release regression is intentionally not yet claimable for the
-old `2026090204` artifact: runtime-affecting files changed after that
-candidate's source commit. A new candidate must be cut only after Staging
-deployment and remote role-flow verification.
+The implementation was committed and pushed through correction/final binding
+HEAD `0102414c38cb97b11d6461e36e7c808d33458d16`. Complete local regression,
+exact-head GitHub Regression and CodeQL passed. The exact Staging deployment
+and sanitized two-role run then proved request/acceptance visibility, shared
+chat, in-app notifications, unaffected availability and payment rejection
+without a contract, reservation or money effect.
 
 ## Deployment, device and external boundaries
 
-No Staging deployment, Store upload, tester-list change, Firebase change,
-payment activation, Production action or device installation is part of this
-implementation checkpoint. Subsequent physical validation is Pixel-only;
-OnePlus is explicitly outside this package.
+Staging was deployed and verified first on exact RW21 candidate source
+`0102414c38cb97b11d6461e36e7c808d33458d16`. Candidate `2026090205` was then
+built and installed only on the Pixel. That physical run exposed a separate
+legacy public-profile cache problem; RW22 corrected it and replaced the Pixel
+candidate with `2026090206`. OnePlus remained outside both packages.
 
-Staging must apply migration 070 and deploy the exact committed backend before
-the private synthetic runner is executed. The runner reads credentials only
-from the owner-only vault outside Git, returns sanitized booleans, and proves
-requested-to-accepted visibility, unaffected availability, payment rejection,
-shared chat and in-app notifications.
+Migration 070, exact deployment and the private synthetic runner all passed.
+The runner read credentials only from the owner-only vault outside Git and
+returned sanitized role/behavior facts without credential or identity output.
 
 ## Rollback and next gate
 
@@ -68,7 +69,7 @@ Code rollback is the normal forward Git revert. The migration down script
 removes the simulation triggers, function, index and column; it must not be run
 while simulation rows exist without an explicit data-preservation decision.
 
-Next: commit and push this implementation, obtain exact-SHA Regression and
-CodeQL, deploy the same backend to Staging, run the sanitized two-role E2E, then
-cut a strictly newer Internal/Staging candidate for the Pixel. Real contracts,
-real money, public rollout and unreviewed V5.2 legal assets remain closed.
+RW21 is complete. Pixel public-profile resilience is separately closed by
+`docs/operations/RW22_PIXEL_PUBLIC_PROFILE_CACHE_RESILIENCE_2026-09-02.md`.
+Real contracts, real money, public rollout and unreviewed V5.2 legal assets
+remain closed.

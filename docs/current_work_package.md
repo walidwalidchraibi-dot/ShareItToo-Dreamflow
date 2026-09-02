@@ -1,4 +1,35 @@
-# Current Work Package: API-36 full closed-pilot candidate 2026090204
+# Current Work Package: RW22 Pixel public-profile resilience 2026090206
+
+Status: **CLOSED / PIXEL VERIFIED / STAGING HEALTHY** on 02.09.2026.
+
+The Stage-A Staging role-flow passed on RW21. The first Pixel-only candidate
+then exposed a malformed legacy public-profile cache blocking the independent
+owner lookup. RW22 preserves strict account/privacy decoding and the exact raw
+cache bytes while allowing only the public-profile read to use authoritative
+server truth. The deployment helper's registry/local image-name mismatch is
+also permanently corrected and rollback-tested.
+
+Exact artifact source `a64586497516bfeac2d2a9eee4b76e31b8bc9948` passed
+the complete local regression, GitHub Regression `33665318965`, clean-checkout
+reproducibility and CodeQL `33665286253`, with zero open alerts. The canonical
+signed Internal/Staging candidate is `com.shareittoo.app`,
+`1.0.0+2026090206`, AAB SHA-256
+`e114b319c0e6167003bf1e12c047660c9accad1d45edc22b2b4ec7df64a798f5`.
+
+Staging is healthy on the same exact commit with memory-only
+Mail/Push/Payment, listing-AI mock and zero AI budget. The Pixel was updated in
+place and passed discovery, the affected listing owner load, force-stop and
+cold-restart retest without uncaught error. OnePlus, Play, tester lists,
+Production, Firebase project state, DNS, real money and PR merge were not
+changed. Real email and OS push delivery remain unproven while their Staging
+transports are memory-only; V5.2 remains draft-blocked.
+
+Machine evidence:
+`docs/evidence/release-readiness/pixel-public-profile-cache-resilience-2026090206.json`.
+Human closure:
+`docs/operations/RW22_PIXEL_PUBLIC_PROFILE_CACHE_RESILIENCE_2026-09-02.md`.
+
+# Previous Work Package: API-36 full closed-pilot candidate 2026090204
 
 Status: **TECHNICAL_CANDIDATE_READY / PLAY_INTERNAL_ACTIVE /
 ONEPLUS_READ_ONLY_AND_ACCOUNT_ISOLATION_PASSED / PILOT_BLOCKED_LEGAL_GATE** on

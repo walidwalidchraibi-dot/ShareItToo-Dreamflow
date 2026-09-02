@@ -3,6 +3,38 @@
 Verified: 2026-09-02 from the Mac mini repository and the owner-authorized
 MacBook Pro device task with the OnePlus connected directly by USB.
 
+## Current RW22 Pixel candidate state
+
+The current Pixel-only Internal/Staging candidate is
+`com.shareittoo.app`, `1.0.0+2026090206`, built from exact artifact source
+`a64586497516bfeac2d2a9eee4b76e31b8bc9948`. AAB SHA-256 is
+`e114b319c0e6167003bf1e12c047660c9accad1d45edc22b2b4ec7df64a798f5`;
+APK SHA-256 is
+`d3cf66a8935c80b79e7e4365f7a1886cad819d16deece09907f4b795a694ccb5`.
+Signing, package/version/SDK identity, archive structure, Firebase Android
+configuration and binary privacy checks passed.
+
+The complete local regression passed with 2,027 Node checks, 636 Flutter
+checks plus three documented skips, analyzer zero, backend/PostgreSQL,
+Web/Wasm, loopback smoke and Android debug. Exact-head GitHub Regression
+`33665318965`, clean-checkout reproducibility and API-image publication passed.
+CodeQL `33665286253` passed and open code-scanning alerts are zero.
+
+Staging is healthy on the same full commit with the non-binding Stage-A pilot,
+memory-only Mail/Push/Payment, listing AI mock and zero AI budget. The Pixel was
+updated in place and now loads the authoritative owner on the affected listing
+despite the preserved malformed legacy cache. Discovery and owner loading pass
+again after a forced process stop and cold restart, without an uncaught async
+error, fatal exception or Flutter error. OnePlus was not contacted.
+
+This does not prove real email delivery, OS push delivery, a binding booking,
+real payment or legal release readiness. No Play, tester-list, Production,
+Firebase-project, Cloud/VPS/DNS, public-registration or PR-merge change was
+made. V5.2 remains draft-blocked. Exact evidence is
+`docs/evidence/release-readiness/pixel-public-profile-cache-resilience-2026090206.json`;
+the human closure is
+`docs/operations/RW22_PIXEL_PUBLIC_PROFILE_CACHE_RESILIENCE_2026-09-02.md`.
+
 ## Current closed-pilot candidate state
 
 The current non-public technical candidate is frozen at artifact source commit
