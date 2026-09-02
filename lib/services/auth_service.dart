@@ -131,7 +131,10 @@ class AuthService {
     );
   }
 
-  @visibleForTesting
+  /// Returns whether [provider] was explicitly enabled for this candidate.
+  ///
+  /// The UI uses this release gate to keep unavailable providers disabled;
+  /// token acquisition enforces the same gate again before any SDK call.
   static bool socialProviderEnabled(AuthSocialProvider provider) =>
       switch (provider) {
         AuthSocialProvider.google => _googleSocialAuthEnabled,

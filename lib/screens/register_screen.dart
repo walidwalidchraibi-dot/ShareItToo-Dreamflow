@@ -734,7 +734,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                             .google,
                                                         label:
                                                             'Mit Google registrieren',
-                                                        onTap: _busy
+                                                        onTap: _busy ||
+                                                                !AuthService
+                                                                    .socialProviderEnabled(
+                                                                        AuthSocialProvider
+                                                                            .google)
                                                             ? null
                                                             : () => _socialRegister(
                                                                 AuthSocialProvider
@@ -745,7 +749,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                             .apple,
                                                         label:
                                                             'Mit Apple registrieren',
-                                                        onTap: _busy
+                                                        onTap: _busy ||
+                                                                !AuthService
+                                                                    .socialProviderEnabled(
+                                                                        AuthSocialProvider
+                                                                            .apple)
                                                             ? null
                                                             : () => _socialRegister(
                                                                 AuthSocialProvider
@@ -756,7 +764,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                             .facebook,
                                                         label:
                                                             'Mit Facebook registrieren',
-                                                        onTap: _busy
+                                                        onTap: _busy ||
+                                                                !AuthService
+                                                                    .socialProviderEnabled(
+                                                                        AuthSocialProvider
+                                                                            .facebook)
                                                             ? null
                                                             : () => _socialRegister(
                                                                 AuthSocialProvider

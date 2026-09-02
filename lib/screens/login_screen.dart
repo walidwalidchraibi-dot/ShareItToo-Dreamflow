@@ -775,7 +775,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                               SocialAuthButton(
                                                   brand: SocialAuthBrand.google,
                                                   label: 'Mit Google anmelden',
-                                                  onTap: _busy
+                                                  onTap: _busy ||
+                                                          !AuthService
+                                                              .socialProviderEnabled(
+                                                                  AuthSocialProvider
+                                                                      .google)
                                                       ? null
                                                       : () => _socialSignIn(
                                                           AuthSocialProvider
@@ -784,7 +788,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                               SocialAuthButton(
                                                   brand: SocialAuthBrand.apple,
                                                   label: 'Mit Apple anmelden',
-                                                  onTap: _busy
+                                                  onTap: _busy ||
+                                                          !AuthService
+                                                              .socialProviderEnabled(
+                                                                  AuthSocialProvider
+                                                                      .apple)
                                                       ? null
                                                       : () => _socialSignIn(
                                                           AuthSocialProvider
@@ -795,7 +803,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                                       SocialAuthBrand.facebook,
                                                   label:
                                                       'Mit Facebook anmelden',
-                                                  onTap: _busy
+                                                  onTap: _busy ||
+                                                          !AuthService
+                                                              .socialProviderEnabled(
+                                                                  AuthSocialProvider
+                                                                      .facebook)
                                                       ? null
                                                       : () => _socialSignIn(
                                                           AuthSocialProvider

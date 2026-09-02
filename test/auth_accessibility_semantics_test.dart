@@ -1,4 +1,4 @@
-import 'dart:ui' show SemanticsAction;
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,7 +53,8 @@ void main() {
         expect(button, findsOneWidget);
         final node = tester.getSemantics(button);
         expect(node.flagsCollection.isButton, isTrue);
-        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+        expect(node.flagsCollection.isEnabled, Tristate.isFalse);
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isFalse);
       }
 
       final visibility = find.bySemanticsLabel('Passwort anzeigen');
