@@ -35,6 +35,18 @@ claimed until every item below has reproducible evidence and is closed.
 
 ## Observation log
 
+- 02.09.2026, RW23: two local complete-gate attempts stopped only at the fixed
+  capacity bounds after prior generated Android/Gradle output consumed the Mac
+  mini reserve. Only rebuildable output/caches and the superseded private
+  `2026090205` candidate were removed. The unchanged gate then passed locally;
+  exact GitHub Regression `33671122573` independently passed on a clean runner
+  and produced a byte-identical debug APK, while the same-commit signed builder
+  completed its cold cleanup/archive lifecycle. The manual cleanup is retained
+  only as incident recovery and is not release acceptance evidence, a timing
+  workaround or a permanent prerequisite. This is a recurrence observation
+  under the still-enforced deterministic contracts `TD-RR-012` and
+  `TD-RR-021`; their fixed capacity and cold-builder guards were not weakened.
+
 - 23.08.2026, PF14B: the first signed `2026082302` internal Staging build
   completed compilation and privacy verification but retained no archive after
   an `ENOSPC` failure during the private copy. One exact `flutter clean`

@@ -1,7 +1,46 @@
 # ShareItToo Current State
 
-Verified: 2026-09-02 from the Mac mini repository and the owner-authorized
-MacBook Pro device task with the OnePlus connected directly by USB.
+Verified: 2026-09-02 from the Mac mini repository, exact Staging and the
+owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
+by the current package.
+
+## Current RW23 Pixel authentication-cache recovery state
+
+The current Pixel-only Internal/Staging candidate is `com.shareittoo.app`,
+`1.0.0+2026090207`, built from exact artifact source
+`1814912b7542a4500626ba4a2909c232cd7b401f`. AAB SHA-256 is
+`408d365fc701041fb547999a21a56409cca98bf2debff50180e9f5035fa4e6da`;
+APK SHA-256 is
+`c09e4306875feeeabcaac329650afa0bb45856a614f8c9dbccfdaa62389341fa`.
+Signing, package/version/SDK identity, private archive, Firebase Android and
+binary privacy checks passed.
+
+RW23 repairs the Pixel login state in which Backend authentication succeeded
+but authoritative profile hydration was blocked by a malformed legacy local
+profile cache. Strict decoding remains the default; only authenticated Backend
+hydration may replace that cache. Any later login failure clears only the exact
+completed session and verifies its receipt before presenting failure, so an
+A-owned result cannot affect or appear under successor B.
+
+The complete local gate, GitHub Regression `33671122573`, byte-identical clean
+checkout, CodeQL `33671122566` and API-image publication `33671914048` pass;
+open code-scanning alerts are zero. Exact Staging is healthy on the same commit
+with memory-only Mail/Push/Payment, listing-AI mock and zero AI budget.
+
+The Pixel updated in place from `2026090206` to `2026090207`. The trapped owner
+session recovered without credential re-entry, authenticated profile and cold
+restart passed, and a bounded owner-to-guest-to-renter transition showed only
+the renter identity after the switch. The renter session survived a cold
+restart; the device then returned to guest. Its public catalog matched the one
+live Staging listing, exposed a real offline load error, recovered online and
+left Wi-Fi restored. OnePlus was not contacted.
+
+Real mail, OS push, binding booking and real money remain unproven and closed.
+No Play, tester-list, Production, Firebase-project, DNS, public-registration or
+PR-merge change was made. V5.2 remains draft-blocked. Exact evidence is
+`docs/evidence/release-readiness/pixel-authentication-cache-recovery-2026090207.json`;
+the human closure is
+`docs/operations/RW23_PIXEL_AUTHENTICATION_CACHE_RECOVERY_2026-09-02.md`.
 
 ## Current RW22 Pixel candidate state
 

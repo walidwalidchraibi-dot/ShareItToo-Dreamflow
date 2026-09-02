@@ -1,4 +1,40 @@
-# Current Work Package: RW22 Pixel public-profile resilience 2026090206
+# Current Work Package: RW23 Pixel authentication-cache recovery 2026090207
+
+Status: **CLOSED / PIXEL VERIFIED / A-TO-B ISOLATION PASSED** on
+02.09.2026.
+
+RW23 closes the login failure found after RW22: a valid Backend session could
+be trapped behind the login form when strict hydration encountered a malformed
+legacy local profile cache. Strict decoding remains unchanged for every normal
+read/mutation. Only authoritative post-authentication Backend hydration may
+replace the corrupt cache, and any later failure clears only the exact
+completed session before showing a typed local-completion failure.
+
+Exact implementation and artifact source
+`1814912b7542a4500626ba4a2909c232cd7b401f` passed the complete local gate,
+GitHub Regression `33671122573`, clean-checkout byte identity, CodeQL
+`33671122566` and API-image publication `33671914048`, with zero open scanning
+alerts. The canonical Internal/Staging candidate is `com.shareittoo.app`,
+`1.0.0+2026090207`, AAB SHA-256
+`408d365fc701041fb547999a21a56409cca98bf2debff50180e9f5035fa4e6da`.
+
+Staging is healthy on the same full commit with memory-only Mail/Push/Payment,
+listing-AI mock and zero budget. The Pixel updated in place, recovered the
+trapped owner session without credential re-entry, passed authenticated
+profile and cold restart, then passed owner logout, distinct renter login,
+prior-owner absence, renter cold restart and final guest logout. Guest public
+catalog, explicit offline error and online recovery passed; Wi-Fi was restored.
+
+OnePlus, Play, tester lists, Production, Firebase project state, DNS, real money
+and PR merge were not changed. Real email and OS push remain unproven while
+their Staging transports are memory-only; V5.2 remains draft-blocked.
+
+Machine evidence:
+`docs/evidence/release-readiness/pixel-authentication-cache-recovery-2026090207.json`.
+Human closure:
+`docs/operations/RW23_PIXEL_AUTHENTICATION_CACHE_RECOVERY_2026-09-02.md`.
+
+# Previous Work Package: RW22 Pixel public-profile resilience 2026090206
 
 Status: **CLOSED / PIXEL VERIFIED / STAGING HEALTHY** on 02.09.2026.
 
