@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import { diagnoseAndroidControlledFcm } from '../../tool/diagnose_android_controlled_fcm.mjs';
+import {
+  diagnoseAndroidControlledFcm,
+  foregroundPushContractVisible,
+} from '../../tool/diagnose_android_controlled_fcm.mjs';
 import { createTestTempTracker } from './test_temp_fixtures.mjs';
 
 const tempFixtures = createTestTempTracker();
@@ -65,7 +68,7 @@ function fakeRunner({ playSplit = false, playInstaller = 'com.android.vending', 
     }
     if (command[0] === 'shell' && command[1] === 'uiautomator') return 'UI hierarchy dumped';
     if (joined === 'exec-out cat /sdcard/sit-controlled-fcm.xml') {
-      return '<hierarchy><node text="Benachrichtigung: Neue Nachricht"/><node text="Du hast eine neue Nachricht"/></hierarchy>';
+      return '<hierarchy><node content-desc="Neue ShareItToo-Aktualisierung"/><node content-desc="Benachrichtigung: Neue ShareItToo-Aktualisierung. In der App ansehen."/></hierarchy>';
     }
     if (command[0] === 'shell' && command[1] === 'rm') return '';
     if (joined === 'shell cmd statusbar expand-notifications' || joined === 'shell cmd statusbar collapse') return '';
@@ -92,6 +95,15 @@ async function run(fake) {
     capturedAt: '2026-08-14T10:00:00.000Z', wait: async () => {}, sender: fake.sender,
   });
 }
+
+test('recognizes only the current privacy-preserving V5.2 foreground copy', () => {
+  assert.equal(foregroundPushContractVisible(
+    '<node content-desc="Benachrichtigung: Neue ShareItToo-Aktualisierung. In der App ansehen."/>',
+  ), true);
+  assert.equal(foregroundPushContractVisible(
+    '<node text="Benachrichtigung: Neue Nachricht"/><node text="Du hast eine neue Nachricht"/>',
+  ), false);
+});
 
 test('accepts the exact Google Play split candidate for controlled FCM', async () => {
   const result = await run(fakeRunner({ playSplit: true }));

@@ -17,6 +17,8 @@ import { sendSyntheticBookingDiagnosticMessage } from './run_staging_synthetic_b
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-controlled-fcm.xml';
+const v52ForegroundPushTitle = 'Neue ShareItToo-Aktualisierung';
+const v52ForegroundPushBody = 'In der App ansehen.';
 
 function fail(message) {
   throw new Error(message);
@@ -138,6 +140,12 @@ function dumpUi(commandRunner, adbPath, device) {
   }
 }
 
+export function foregroundPushContractVisible(uiHierarchy) {
+  return typeof uiHierarchy === 'string'
+    && uiHierarchy.includes(v52ForegroundPushTitle)
+    && uiHierarchy.includes(v52ForegroundPushBody);
+}
+
 async function waitFor(predicate, { attempts = 30, intervalMs = 700, wait }) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (await predicate()) return true;
@@ -181,8 +189,7 @@ export async function diagnoseAndroidControlledFcm({
   await sendPair(vaultFile, 'foreground', sender);
   const foregroundVisible = await waitFor(() => {
     const hierarchy = dumpUi(commandRunner, adbPath, device);
-    return hierarchy.includes('Benachrichtigung: Neue Nachricht')
-      && hierarchy.includes('Du hast eine neue Nachricht');
+    return foregroundPushContractVisible(hierarchy);
   }, { attempts: 30, intervalMs: 500, wait });
   if (!foregroundVisible) fail('The foreground FCM banner did not become visible.');
 
