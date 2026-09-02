@@ -43,6 +43,7 @@ test('staging acceptance fixtures satisfy the closed-pilot declarations', async 
     const contents = await fs.readFile(path.join(backendRoot, relativePath), 'utf8');
     assert.match(contents, /private_use_confirmed_at/u, relativePath);
     assert.match(contents, /privateStatusConfirmed:\s*true/u, relativePath);
+    assert.match(contents, /\.\.\.closedPilotListingCategory/u, relativePath);
     assert.match(contents, /\.\.\.closedPilotLocation/u, relativePath);
     assert.match(contents, /closedPilotBookingBody\(/u, relativePath);
     assert.match(contents, /closedPilotOwnerAcceptanceBody\(\)/u, relativePath);

@@ -13,6 +13,11 @@ export const closedPilotLocation = Object.freeze({
   lng: 9.2109,
 });
 
+export const closedPilotListingCategory = Object.freeze({
+  categoryId: 'cat3',
+  subcategory: 'Kameras',
+});
+
 function acceptanceClientBuild() {
   const value = process.env.ACCEPTANCE_CLIENT_BUILD?.trim() ?? '';
   if (!/^1\.0\.0\+[1-9][0-9]{9}$/u.test(value)) {

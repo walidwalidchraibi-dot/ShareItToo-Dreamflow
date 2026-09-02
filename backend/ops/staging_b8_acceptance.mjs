@@ -5,6 +5,7 @@ import sharp from 'sharp';
 
 import {
   closedPilotBookingBody,
+  closedPilotListingCategory,
   closedPilotLocation,
   closedPilotOwnerAcceptanceBody,
   closedPilotQuoteBody,
@@ -169,8 +170,7 @@ async function main() {
       id: listingId,
       title: 'B8 Staging Zahlungstestkamera',
       description: 'Isoliertes Staging-Inserat für die B8 Zahlungs- und Ledger-Abnahme.',
-      categoryId: 'electronics',
-      subcategory: 'Kameras',
+      ...closedPilotListingCategory,
       tags: ['b8', 'payment'],
       pricePerDay: 20,
       priceRaw: 20,

@@ -5,6 +5,7 @@ import sharp from 'sharp';
 
 import {
   closedPilotBookingBody,
+  closedPilotListingCategory,
   closedPilotLocation,
   closedPilotOwnerAcceptanceBody,
   closedPilotQuoteBody,
@@ -151,8 +152,7 @@ async function main() {
       id: listingId,
       title: `B9 Vertrauens-Testkamera ${runId}`,
       description: 'Isoliertes Staging-Inserat für Moderation, Sperren, Rollen und Bewertungen.',
-      categoryId: 'electronics',
-      subcategory: 'Kameras',
+      ...closedPilotListingCategory,
       tags: ['b9', 'moderation'],
       pricePerDay: 20,
       priceRaw: 20,

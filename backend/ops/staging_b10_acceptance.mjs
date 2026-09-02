@@ -5,6 +5,7 @@ import sharp from 'sharp';
 
 import {
   closedPilotBookingBody,
+  closedPilotListingCategory,
   closedPilotLocation,
   closedPilotOwnerAcceptanceBody,
   closedPilotQuoteBody,
@@ -154,8 +155,7 @@ async function main() {
         id: listingId,
         title: `B10 Lasttestkamera ${runId}`,
         description: 'Isoliertes Inserat für Sicherheit, Datenschutz und Lastprüfung.',
-        categoryId: 'electronics',
-        subcategory: 'Kameras',
+        ...closedPilotListingCategory,
         tags: ['b10', 'performance'],
         pricePerDay: 20,
         priceRaw: 20,

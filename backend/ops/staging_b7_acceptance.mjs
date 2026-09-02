@@ -7,6 +7,7 @@ import sharp from 'sharp';
 
 import {
   closedPilotBookingBody,
+  closedPilotListingCategory,
   closedPilotLocation,
   closedPilotOwnerAcceptanceBody,
   closedPilotQuoteBody,
@@ -198,8 +199,7 @@ async function main() {
       id: listingId,
       title: 'B7 Live Testkamera',
       description: 'Isoliertes Staging-Inserat für die B7 Kommunikationsabnahme.',
-      categoryId: 'electronics',
-      subcategory: 'Kameras',
+      ...closedPilotListingCategory,
       tags: ['b7', 'kamera'],
       pricePerDay: 20,
       priceRaw: 20,
