@@ -167,6 +167,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  void _retryAfterPrincipalTransition(int revision) {
+    if (!mounted || revision != _loadRevision) return;
+    unawaited(_savedRefreshCoordinator.schedule(_loadData));
+  }
+
   Future<void> _loadData() async {
     final revision = ++_loadRevision;
     if (mounted) {
@@ -176,50 +181,73 @@ class _ExploreScreenState extends State<ExploreScreen> {
       });
     }
     try {
-      final items = await DataService.getPublicItems();
-      final categories = await DataService.getCategories();
-      // The public guest catalog must not depend on an old or corrupt local
-      // account document. Account-scoped presentation data is resolved only
-      // when this load actually started with an authenticated session; a
-      // later session re-read and the mutation contexts below still guard a
-      // concurrent guest/account or account/account transition.
       final initialSession = await AuthService.readSession();
       final initialSessionEpoch = AuthService.sessionEpoch;
       final initialSessionOwner = initialSession == null
           ? null
           : AuthService.captureSessionOwner(initialSession);
-      final users = initialSession == null
-          ? const <model.User>[]
-          : await DataService.getUsers();
-      final user =
-          initialSession == null ? null : await DataService.getCurrentUser();
-      final saved = initialSession == null
-          ? const <String>{}
-          : await DataService.getSavedItemIds();
-      final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
-      final profileContext = initialSession == null
-          ? null
-          : await _profileMutationService.loadCurrentContext();
-      final listingContext = initialSession == null
-          ? null
-          : await _listingMutationService.loadCurrentContext();
-      // A guest result is committed only if the session stayed definitely
-      // absent at the same epoch. An authenticated result is committed only
-      // for the exact captured owner and epoch. This prevents an A load from
-      // appearing under B and also catches guest -> account -> guest races.
+      final items = await DataService.getPublicItems();
+      final categories = await DataService.getCategories();
+      // Public catalog truth must not wait for account-scoped presentation
+      // state. In particular, a stale/slow profile, saved-items or mutation
+      // context read may never turn a reachable catalog into an endless
+      // loading surface. Commit only public data first; authenticated
+      // enrichment below remains bound to the exact principal and epoch.
+      if (!mounted || revision != _loadRevision) return;
       if (initialSessionOwner == null) {
         if (AuthService.sessionEpoch != initialSessionEpoch ||
             !await AuthService.isStoredSessionDefinitelyAbsent() ||
             AuthService.sessionEpoch != initialSessionEpoch) {
+          _retryAfterPrincipalTransition(revision);
           return;
         }
-      } else if (!await AuthService.isSessionOwnerDefinitelyCurrent(
-        initialSessionOwner,
-      )) {
+      } else if (AuthService.sessionEpoch != initialSessionEpoch ||
+          !await AuthService.isSessionOwnerDefinitelyCurrent(
+            initialSessionOwner,
+          )) {
+        _retryAfterPrincipalTransition(revision);
         return;
       }
-      final hasRealSession =
-          initialSessionOwner != null && profileContext != null;
+      if (!mounted || revision != _loadRevision) return;
+      final coarseMap = <String, String>{
+        for (final c in categories) c.id: DataService.coarseCategoryFor(c.name)
+      };
+      setState(() {
+        _items = List<Item>.from(items);
+        _coarseByCatId = coarseMap;
+        _usersById = <String, model.User>{};
+        _currentUserName = null;
+        _currentUserCity = null;
+        _savedIds = <String>{};
+        _extraTopBooked = <Item>[];
+        _isLoading = false;
+      });
+      // The public guest catalog must not depend on an old or corrupt local
+      // account document. Account-scoped presentation data is resolved only
+      // when this load actually started with an authenticated session; a
+      // later session re-read and the mutation contexts below still guard a
+      // concurrent guest/account or account/account transition.
+      if (initialSession == null) {
+        // The public snapshot above is already the complete guest result.
+        // Do not read or initialize any account-scoped local document.
+        return;
+      }
+      final users = await DataService.getUsers();
+      final user = await DataService.getCurrentUser();
+      final saved = await DataService.getSavedItemIds();
+      final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
+      final profileContext = await _profileMutationService.loadCurrentContext();
+      final listingContext = await _listingMutationService.loadCurrentContext();
+      // Authenticated enrichment is committed only for the exact captured
+      // owner and epoch. A stale result is simply discarded while the public
+      // snapshot remains usable and free of A-owned presentation state.
+      if (AuthService.sessionEpoch != initialSessionEpoch ||
+          !await AuthService.isSessionOwnerDefinitelyCurrent(
+            initialSessionOwner!,
+          )) {
+        return;
+      }
+      final hasRealSession = profileContext != null;
       if (!mounted || revision != _loadRevision) return;
       if (profileContext != null &&
           !await _profileMutationService.isContextCurrent(profileContext)) {
@@ -234,10 +262,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
 // No extra fillers for the five-item showcase
       final extrasTop = <Item>[];
 
-      // Precompute mapping: fine category id -> coarse label for filters and display
-      final coarseMap = <String, String>{
-        for (final c in categories) c.id: DataService.coarseCategoryFor(c.name)
-      };
       if (!mounted || revision != _loadRevision) return;
       _profileActions.replaceContext(profileContext);
       _listingActions.replaceContext(listingContext);

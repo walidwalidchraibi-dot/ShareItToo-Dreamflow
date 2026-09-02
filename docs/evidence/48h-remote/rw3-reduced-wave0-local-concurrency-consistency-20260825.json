@@ -104,7 +104,7 @@
     },
     {
       "path": "lib/screens/explore_screen.dart",
-      "sha256": "c64fee2f81399ff44575c85536a4e58b02b4388941b8c602737ef36192e74117"
+      "sha256": "da3fdd19a41c20d663fb358c5660645f81803f9a5d77c59498def5f35338aef8"
     },
     {
       "path": "lib/screens/search_results_screen.dart",

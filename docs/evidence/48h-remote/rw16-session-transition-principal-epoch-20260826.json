@@ -166,9 +166,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "d59cd6a1a0467fe5c8ff2cbcabe31fa3519bfda8e71aec8ec012632643bd34a1",
-    "retentionManifestSha256": "2d8f40b6dbfa7ff24fce5fb93a398c5ba928ea1e358e2088fd3075616d2e5724",
-    "activeProviderEvidenceSha256": "64b8666954cba43136f794d86a012a118c1f05f13e6e386b1c1975fce4f54592",
+    "privacyManifestSha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3",
+    "retentionManifestSha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9",
+    "activeProviderEvidenceSha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -220,15 +220,15 @@
     {"path": "lib/services/session_transition_service.dart", "sha256": "f7ff42ca7649ac1681d772e707d87d8a805c63e2962f71707a0490f321389804"},
     {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
     {"path": "lib/widgets/tracked_dialog_route.dart", "sha256": "e01ac3c1006f4098e6d5b289fa499272c44e2a314da93351f088879d43012454"},
-    {"path": "store/privacy-disclosures.json", "sha256": "d59cd6a1a0467fe5c8ff2cbcabe31fa3519bfda8e71aec8ec012632643bd34a1"},
-    {"path": "store/retention-deletion-readiness.json", "sha256": "2d8f40b6dbfa7ff24fce5fb93a398c5ba928ea1e358e2088fd3075616d2e5724"},
-    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "64b8666954cba43136f794d86a012a118c1f05f13e6e386b1c1975fce4f54592"},
-    {"path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json", "sha256": "180784e153e4bc9e0106f9bd9beb0726ab0d04fef9f0fbe544aa584c7ec59947"},
+    {"path": "store/privacy-disclosures.json", "sha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3"},
+    {"path": "store/retention-deletion-readiness.json", "sha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9"},
+    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688"},
+    {"path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json", "sha256": "1d5aa81b4c0e02a9ddba51c744522eb5bb19d2eda6ff20902750e3b6d1616bf8"},
     {"path": "scripts/technical_regression_check.sh", "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"},
     {"path": "test/rw16_session_transition_principal_epoch_test.dart", "sha256": "639b3cfe0c202f4a9e904cd841c8e9ee9403f2084d72bf78b232db4e35285c99"},
     {"path": "test/tool/rw16_session_transition_principal_epoch_wiring.test.mjs", "sha256": "c8fa98752e3c0ca2f663eef48b0b3c152ca87eebec5da1cd98d1389002669f9a"},
     {"path": "test/tool/validate_rw16_session_transition_principal_epoch.test.mjs", "sha256": "cf61e6c8809fa3ac1a3def1298014719cb6ab0d6aa35a25182a36b4dc4e571bd"},
-    {"path": "tool/validate_rw16_session_transition_principal_epoch.mjs", "sha256": "1ab6cc8b438053ed64a7ed0b7746ec2fa966462ae118a548a9f4325ecfd849d8"},
+    {"path": "tool/validate_rw16_session_transition_principal_epoch.mjs", "sha256": "ffe9521ff3ba9fc3afa6af0d50d7695d2d90da3f0bbadcdf287c22b57ed9c17c"},
     {"path": "docs/architecture/rw16-session-transition-principal-epoch-invariant-2026-08-26.md", "sha256": "0833d1ffa2fdbec023cf6ca8e790b5464542cf0c4ebc85e9dcde34059bc5adf1"},
     {"path": "docs/operations/RW16_SESSION_TRANSITION_PRINCIPAL_EPOCH_CLOSURE_2026-08-26.md", "sha256": "4500975aa6ed7d3d4df286194df1ed8c27c5a496dc16e164d1735ceb435568a4"}
   ]
