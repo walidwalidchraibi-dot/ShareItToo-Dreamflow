@@ -94,7 +94,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "f676b428a721ec690f5734ee640b63b7d93e4b76781adf5783ce763ec411fe4f"
+      "sha256": "c6b7a28b8b6f214a2a6b23fb2f0bb04aaf66231abb690f1bb36ec5442a931d9b"
     },
     {
       "path": "lib/screens/explore_screen.dart",

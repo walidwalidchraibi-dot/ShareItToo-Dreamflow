@@ -456,11 +456,30 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         return;
       }
+      if (completedOwner != null) {
+        final receipt = await AuthService.clearSessionOwnerIfMatches(
+          completedOwner,
+          runLogoutCleanup: false,
+        );
+        if (receipt == null ||
+            !await AuthService.isSessionClearReceiptCurrent(receipt)) {
+          // Never present an A-owned login failure after a successor session
+          // has become current, and never claim a clean failure when the
+          // exact successful session could not be removed.
+          return;
+        }
+      }
+      if (!_isLoginEmailOwnerCurrent(loginOwner)) return;
       if (!mounted) return;
       await AppPopup.toast(context,
           icon: Icons.wifi_off_outlined,
-          title: 'Es ist ein Netzwerkfehler aufgetreten.',
-          message: 'Bitte versuche es erneut.');
+          title: completedOwner == null
+              ? 'Es ist ein Netzwerkfehler aufgetreten.'
+              : 'Anmeldung nicht abgeschlossen.',
+          message: completedOwner == null
+              ? 'Bitte versuche es erneut.'
+              : 'Die lokale Sitzung wurde sicher entfernt. '
+                  'Bitte versuche es erneut.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

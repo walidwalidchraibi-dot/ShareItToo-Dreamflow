@@ -3580,7 +3580,10 @@ class DataService {
     }
   }
 
-  static Future<void> setCurrentUser(User user) async {
+  static Future<void> setCurrentUser(
+    User user, {
+    bool recoverCorruptBackendProfileCache = false,
+  }) async {
     // Trusted authentication/registration hydration path. User-facing profile
     // edits must use updateCurrentUserProfile so protected fields stay closed.
     if (QaRuntimeService.isEnabled) {
@@ -3597,9 +3600,24 @@ class DataService {
     await _accountProfileMutationQueue.run(() async {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_usersKey);
-      final users = raw == null
-          ? <User>[]
-          : List<User>.from(_decodeLocalUsersStrict(raw));
+      late final List<User> users;
+      try {
+        users = raw == null
+            ? <User>[]
+            : List<User>.from(_decodeLocalUsersStrict(raw));
+      } on FormatException catch (error) {
+        if (!recoverCorruptBackendProfileCache) rethrow;
+        // This opt-in is limited to authentication hydration after the
+        // backend has returned the authoritative current profile. The local
+        // users document is only a cache in that path; keeping malformed
+        // entries active would leave a valid server session trapped behind a
+        // failed login screen. Other reads and local mutations remain strict.
+        debugPrint(
+          '[DataService] replacing corrupt profile cache during '
+          'authoritative authentication hydration (${error.runtimeType})',
+        );
+        users = <User>[];
+      }
       final index = users.indexWhere((entry) => entry.id == effectiveUser.id);
       if (index >= 0) {
         users[index] = effectiveUser;
@@ -4151,7 +4169,10 @@ class DataService {
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final remote = await BackendRepository.getCurrentProfile();
       final user = User.fromJson(remote);
-      await setCurrentUser(user);
+      await setCurrentUser(
+        user,
+        recoverCorruptBackendProfileCache: true,
+      );
       return;
     }
 

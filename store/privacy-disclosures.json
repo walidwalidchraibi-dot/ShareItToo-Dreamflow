@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "552f8b5dd7bc3076b1e243cc3574fd1e5b9503783460e68941e68c32414ef152"
+      "sha256": "36973e88ed12cc253ace236d91c1f0f50c7cbfc03cd599179f7c54365798e70e"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -688,7 +688,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "f676b428a721ec690f5734ee640b63b7d93e4b76781adf5783ce763ec411fe4f"
+      "sha256": "c6b7a28b8b6f214a2a6b23fb2f0bb04aaf66231abb690f1bb36ec5442a931d9b"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -748,7 +748,7 @@
     },
     {
       "path": "lib/screens/login_screen.dart",
-      "sha256": "156e064e9f16ab85f86971562069455b9f1df9d2e3650eea193530215ff107d0"
+      "sha256": "a31ab2e8c8aa797a77458f596aa02372d528ce1e999f304016ced5ec3b0db391"
     },
     {
       "path": "lib/screens/register_screen.dart",
@@ -764,7 +764,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "7ab06a8fe1f4ed113386237a2f4997128c0f0f85c29cbd6f3422d434c339c4c1"
+      "sha256": "9c137e2cfee96f76f8bdd9066a77e11f150d086961ec280f1cea97b91ca4a797"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",

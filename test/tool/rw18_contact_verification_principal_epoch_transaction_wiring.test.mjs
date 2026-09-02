@@ -137,6 +137,11 @@ test('login verification binds normalized input and epoch through resend and pre
     [...login.matchAll(/_retainSuccessfulLoginOwner\(/gu)].length >= 5,
     'every post-login await boundary must use exact stale-session cleanup',
   );
+  assert.match(
+    login,
+    /catch \(e\)[\s\S]*?completedOwner[\s\S]*?clearSessionOwnerIfMatches\([\s\S]*?isSessionClearReceiptCurrent\(receipt\)[\s\S]*?Anmeldung nicht abgeschlossen\./u,
+    'post-authentication local failures must clear only the exact completed session before presenting failure',
+  );
   assert.match(login, /_activeVerificationResultRoute\?\.dismiss\(\)/u);
 });
 
