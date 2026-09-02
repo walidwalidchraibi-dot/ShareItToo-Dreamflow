@@ -28,17 +28,22 @@ function limiter(policy, handler, extra = {}) {
   });
 }
 
-export function createCoreRateLimiters({ limitHandler }) {
+export function createCoreRateLimiters({
+  limitHandler,
+  includeGeneralLimiter = true,
+}) {
   if (typeof limitHandler !== 'function') {
     throw new TypeError('rate_limit_handler_required');
   }
-  const generalLimiter = limiter(coreRateLimitPolicies.general, limitHandler, {
-    // These exact routes are not unbounded: their dedicated 30-attempt limiter
-    // executes before authentication and database work. Skipping only the
-    // general bucket prevents unrelated traffic from making urgent intake
-    // unreachable while preserving abuse protection.
-    skip: isProtectedSafetyRateLimitRequest,
-  });
+  const generalLimiter = includeGeneralLimiter
+    ? limiter(coreRateLimitPolicies.general, limitHandler, {
+      // These exact routes are not unbounded: their dedicated 30-attempt limiter
+      // executes before authentication and database work. Skipping only the
+      // general bucket prevents unrelated traffic from making urgent intake
+      // unreachable while preserving abuse protection.
+      skip: isProtectedSafetyRateLimitRequest,
+    })
+    : null;
   const supportIntakeLimiter = limiter(
     coreRateLimitPolicies.supportIntake,
     limitHandler,

@@ -80,6 +80,10 @@ test('core limiter policy keeps the exact production thresholds immutable', () =
     () => createCoreRateLimiters({ limitHandler: null }),
     /rate_limit_handler_required/u,
   );
+  assert.equal(createCoreRateLimiters({
+    limitHandler: (_req, _res, next) => next(),
+    includeGeneralLimiter: false,
+  }).generalLimiter, null);
   assert.equal(isProtectedSafetyRateLimitRequest({
     method: 'POST',
     path: '/v1/support/cases',

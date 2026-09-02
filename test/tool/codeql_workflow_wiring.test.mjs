@@ -44,11 +44,17 @@ test('CodeQL is bounded and cannot silently ignore findings or workflow failures
 });
 
 test('every general API route remains behind the global limiter', () => {
-  const globalLimiter = backendApp.indexOf('app.use(generalLimiter);');
+  const globalLimiter = backendApp.indexOf('app.use(rateLimit({');
   const firstGeneralRoute = backendApp.indexOf("app.get('/v1/maps/places/autocomplete'");
   const webhookRoute = backendApp.indexOf("app.post('/v1/payments/webhook'");
   assert.ok(webhookRoute >= 0 && webhookRoute < globalLimiter);
   assert.ok(globalLimiter >= 0 && globalLimiter < firstGeneralRoute);
+  assert.equal(
+    backendApp.slice(globalLimiter, firstGeneralRoute).includes(
+      'skip: isProtectedSafetyRateLimitRequest',
+    ),
+    true,
+  );
   assert.equal(
     backendApp.slice(webhookRoute, globalLimiter).includes('webhookLimiter'),
     true,

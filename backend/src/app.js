@@ -297,7 +297,11 @@ import {
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
 import { addReturnPolicyCalendarDays } from './return_calendar_policy.js';
-import { createCoreRateLimiters } from './rate_limit_policy.js';
+import {
+  coreRateLimitPolicies,
+  createCoreRateLimiters,
+  isProtectedSafetyRateLimitRequest,
+} from './rate_limit_policy.js';
 import {
   errorPayload,
   requestContext,
@@ -1655,10 +1659,9 @@ export function createApp({
 
   const limitHandler = (req, res) => res.status(429).json(errorPayload(req, 'rate_limit_exceeded'));
   const {
-    generalLimiter,
     supportSafetyIntakeLimiter,
     supportIntakeRateLimiter,
-  } = createCoreRateLimiters({ limitHandler });
+  } = createCoreRateLimiters({ limitHandler, includeGeneralLimiter: false });
   const registrationLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const loginLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const socialAuthLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
@@ -1692,7 +1695,13 @@ export function createApp({
     storage: multer.memoryStorage(),
     limits: { fileSize: config.supportEvidence.maxFileBytes, files: 1, fields: 4 },
   });
-  app.use(generalLimiter);
+  app.use(rateLimit({
+    ...coreRateLimitPolicies.general,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: limitHandler,
+    skip: isProtectedSafetyRateLimitRequest,
+  }));
 
   app.get('/v1/maps/places/autocomplete', requireAuth, requireActiveAccount, mapsLimiter, asyncRoute(async (req, res) => {
     const suggestions = await mapsProxy.autocomplete({
