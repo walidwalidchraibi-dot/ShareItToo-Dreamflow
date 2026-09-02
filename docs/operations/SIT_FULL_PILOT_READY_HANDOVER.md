@@ -32,6 +32,12 @@ Web/Wasm, a real loopback smoke and Android debug (448 tasks). The release-host
 capacity guard passed without retaining a timing, retry, rate-limit,
 parallelism or build-path workaround.
 
+GitHub Regression `33575280604` and CodeQL `33575280587` both passed on exact
+evidence HEAD `e026e6cb6b609747e51bf8f977064a636e7b6f8e`. Regression includes
+successful Flutter, Backend, PostgreSQL fresh/recovery and clean-checkout jobs;
+API-image publication was correctly skipped. The following readback found zero
+open code-scanning alerts. PR #7 remained Draft, open, mergeable and unmerged.
+
 ## Exact Staging state
 
 Staging runs the exact source checkout and API image

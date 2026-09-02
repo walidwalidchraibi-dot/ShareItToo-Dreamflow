@@ -47,13 +47,14 @@
     "fullToolInventory": "passed",
     "localCiProfileRegression": "passed",
     "cleanCheckoutReproducibility": "passed",
-    "githubRegressionRunId": null,
-    "githubRegressionConclusion": "pending",
-    "githubCodeqlRunId": null,
-    "githubCodeqlConclusion": "pending",
+    "githubVerifiedHead": "e026e6cb6b609747e51bf8f977064a636e7b6f8e",
+    "githubRegressionRunId": 33575280604,
+    "githubRegressionConclusion": "success",
+    "githubCodeqlRunId": 33575280587,
+    "githubCodeqlConclusion": "success",
     "githubApiImagePublishRunId": null,
     "githubApiImagePublishConclusion": "pending",
-    "openCodeScanningAlerts": "pending-current-head-readback"
+    "openCodeScanningAlerts": 0
   },
   "stagingStateAtReadback": {
     "sourceHead": "c678c6911569139eabdbcd45a57112f2ef8567fb",
