@@ -85,36 +85,144 @@
     "dialogDismissal": "remove-exact-a-owned-route-never-pop-current-route"
   },
   "definiteRejectionContracts": [
-    {"status": 401, "code": "authentication_required"},
-    {"status": 401, "code": "invalid_or_expired_session"},
-    {"status": 401, "code": "account_not_active"},
-    {"status": 401, "code": "invalid_credentials"},
-    {"status": 409, "code": "account_deletion_blocked"},
-    {"status": 429, "code": "rate_limit_exceeded"}
+    {
+      "status": 401,
+      "code": "authentication_required"
+    },
+    {
+      "status": 401,
+      "code": "invalid_or_expired_session"
+    },
+    {
+      "status": 401,
+      "code": "account_not_active"
+    },
+    {
+      "status": 401,
+      "code": "invalid_credentials"
+    },
+    {
+      "status": 409,
+      "code": "account_deletion_blocked"
+    },
+    {
+      "status": 429,
+      "code": "rate_limit_exceeded"
+    }
   ],
   "securityActionInventory": [
-    {"id": "security.password.change", "file": "lib/screens/security_screen.dart", "status": "guarded-rw15"},
-    {"id": "security.remote-session.revoke", "file": "lib/screens/security_screen.dart", "status": "guarded-rw15"},
-    {"id": "security.sessions.logout-all", "file": "lib/screens/security_screen.dart", "status": "guarded-rw15"},
-    {"id": "profile.session.logout", "file": "lib/screens/profile_screen.dart", "status": "guarded-rw16"},
-    {"id": "account.deletion", "file": "lib/screens/account_settings_screen.dart", "status": "guarded-rw17"},
-    {"id": "contact.email-change", "file": "lib/screens/contact_data_screen.dart", "status": "guarded-rw18"},
-    {"id": "contact.phone-verification", "file": "lib/screens/contact_data_screen.dart", "status": "guarded-rw18"},
-    {"id": "contact.email-verification", "file": "lib/screens/contact_data_screen.dart", "status": "guarded-rw18"},
-    {"id": "login.session-clear", "file": "lib/screens/login_screen.dart", "status": "guarded-rw16"},
-    {"id": "login.email-verification", "file": "lib/screens/login_screen.dart", "status": "guarded-rw18"},
-    {"id": "legacy.change-password-placeholder", "file": "lib/screens/change_password_screen.dart", "status": "unreachable-b10-guarded"},
-    {"id": "data-service.test-session-clear-hook", "file": "lib/services/data_service.dart", "status": "test-only"}
+    {
+      "id": "security.password.change",
+      "file": "lib/screens/security_screen.dart",
+      "status": "guarded-rw15"
+    },
+    {
+      "id": "security.remote-session.revoke",
+      "file": "lib/screens/security_screen.dart",
+      "status": "guarded-rw15"
+    },
+    {
+      "id": "security.sessions.logout-all",
+      "file": "lib/screens/security_screen.dart",
+      "status": "guarded-rw15"
+    },
+    {
+      "id": "profile.session.logout",
+      "file": "lib/screens/profile_screen.dart",
+      "status": "guarded-rw16"
+    },
+    {
+      "id": "account.deletion",
+      "file": "lib/screens/account_settings_screen.dart",
+      "status": "guarded-rw17"
+    },
+    {
+      "id": "contact.email-change",
+      "file": "lib/screens/contact_data_screen.dart",
+      "status": "guarded-rw18"
+    },
+    {
+      "id": "contact.phone-verification",
+      "file": "lib/screens/contact_data_screen.dart",
+      "status": "guarded-rw18"
+    },
+    {
+      "id": "contact.email-verification",
+      "file": "lib/screens/contact_data_screen.dart",
+      "status": "guarded-rw18"
+    },
+    {
+      "id": "login.session-clear",
+      "file": "lib/screens/login_screen.dart",
+      "status": "guarded-rw16"
+    },
+    {
+      "id": "login.email-verification",
+      "file": "lib/screens/login_screen.dart",
+      "status": "guarded-rw18"
+    },
+    {
+      "id": "legacy.change-password-placeholder",
+      "file": "lib/screens/change_password_screen.dart",
+      "status": "unreachable-b10-guarded"
+    },
+    {
+      "id": "data-service.test-session-clear-hook",
+      "file": "lib/services/data_service.dart",
+      "status": "test-only"
+    }
   ],
   "callSiteInventory": [
-    {"symbol": "AuthService.clearSession", "paths": {"lib/services/data_service.dart": 2}},
-    {"symbol": "_sessionTransitions.signOut", "paths": {"lib/screens/login_screen.dart": 1, "lib/screens/profile_screen.dart": 1, "lib/services/account_deletion_service.dart": 1}},
-    {"symbol": "_accountDeletionService.preflightCheck", "paths": {"lib/screens/account_settings_screen.dart": 1}},
-    {"symbol": "_accountDeletionService.deleteAccount", "paths": {"lib/screens/account_settings_screen.dart": 1}},
-    {"symbol": "DataService.clearOperationalRecordsForConfirmedAccountDeletion", "paths": {"lib/services/account_deletion_service.dart": 1}},
-    {"symbol": "DataService.clearSavedItemsForConfirmedAccountDeletion", "paths": {"lib/services/account_deletion_service.dart": 2}},
-    {"symbol": "LocalSafetyPrivacyService.clearPrincipalForConfirmedAccountDeletion", "paths": {"lib/services/account_deletion_service.dart": 2}},
-    {"symbol": "DataService.finalizeProfileForConfirmedAccountDeletion", "paths": {"lib/services/account_deletion_service.dart": 2}}
+    {
+      "symbol": "AuthService.clearSession",
+      "paths": {
+        "lib/services/data_service.dart": 2
+      }
+    },
+    {
+      "symbol": "_sessionTransitions.signOut",
+      "paths": {
+        "lib/screens/login_screen.dart": 1,
+        "lib/screens/profile_screen.dart": 1,
+        "lib/services/account_deletion_service.dart": 1
+      }
+    },
+    {
+      "symbol": "_accountDeletionService.preflightCheck",
+      "paths": {
+        "lib/screens/account_settings_screen.dart": 1
+      }
+    },
+    {
+      "symbol": "_accountDeletionService.deleteAccount",
+      "paths": {
+        "lib/screens/account_settings_screen.dart": 1
+      }
+    },
+    {
+      "symbol": "DataService.clearOperationalRecordsForConfirmedAccountDeletion",
+      "paths": {
+        "lib/services/account_deletion_service.dart": 1
+      }
+    },
+    {
+      "symbol": "DataService.clearSavedItemsForConfirmedAccountDeletion",
+      "paths": {
+        "lib/services/account_deletion_service.dart": 2
+      }
+    },
+    {
+      "symbol": "LocalSafetyPrivacyService.clearPrincipalForConfirmedAccountDeletion",
+      "paths": {
+        "lib/services/account_deletion_service.dart": 2
+      }
+    },
+    {
+      "symbol": "DataService.finalizeProfileForConfirmedAccountDeletion",
+      "paths": {
+        "lib/services/account_deletion_service.dart": 2
+      }
+    }
   ],
   "verification": {
     "redFirst": "failed-missing-typed-deletion-context-outcome-and-completion-contract-before-fix",
@@ -181,9 +289,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3",
-    "retentionManifestSha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9",
-    "activeProviderEvidenceSha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688",
+    "privacyManifestSha256": "dcbb84887e6dc19e5671b928323cb1f3cd384f53ee539cf1e377d94d18f0ce16",
+    "retentionManifestSha256": "1862d7619f07ac12ba91baf99f46933e937ef626a6c49aecd7218822fec5c4e5",
+    "activeProviderEvidenceSha256": "f68acc81c954a28d78e3d226df2d43b2a429668ea22bf0f3f3edd06a8ae10ff8",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -224,31 +332,109 @@
     "No live backend, process-termination, release artifact, Store or device proof is claimed."
   ],
   "sourceInventory": [
-    {"path": "lib/screens/account_settings_screen.dart", "sha256": "834bbac55e6e07ac9d69bace94bb5ad7072eb420dbe7d2ee940099b6d25aef68"},
-    {"path": "lib/services/account_deletion_service.dart", "sha256": "35229adf38b94f17f8c8c5c3779064e0fbac77a42da356d90831cf4c12d1ea1f"},
-    {"path": "lib/services/data_service.dart", "sha256": "c6b7a28b8b6f214a2a6b23fb2f0bb04aaf66231abb690f1bb36ec5442a931d9b"},
-    {"path": "lib/services/local_safety_privacy_service.dart", "sha256": "915ba3a7230271b24b222fa92a5ed53baeb2914160009f11106e7b81b799767c"},
-    {"path": "lib/services/auth_service.dart", "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"},
-    {"path": "lib/services/session_transition_service.dart", "sha256": "f7ff42ca7649ac1681d772e707d87d8a805c63e2962f71707a0490f321389804"},
-    {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
-    {"path": "lib/widgets/tracked_dialog_route.dart", "sha256": "e01ac3c1006f4098e6d5b289fa499272c44e2a314da93351f088879d43012454"},
-    {"path": "store/g2-data-lifecycle.json", "sha256": "1753947c8f92f4f6e82a6a7bb5e3a6e990368589b48dc3a1716ca7c9aecd749d"},
-    {"path": "store/privacy-disclosures.json", "sha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3"},
-    {"path": "store/retention-deletion-readiness.json", "sha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9"},
-    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688"},
-    {"path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json", "sha256": "4a0429ab5908cea50bf51fd14c566418b4a9d0213d746f8a4839935af9f98671"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"},
-    {"path": "test/rw17_account_deletion_principal_epoch_transaction_test.dart", "sha256": "b0557fc87729ec2a41b63e0413672706c2f8989bf25c1fb04526f802b4ff7c00"},
-    {"path": "test/tool/rw5_local_safety_privacy_principal_isolation_wiring.test.mjs", "sha256": "a4dab4cfeee0ccb8d3275661dc779223493c7a3151dcba581fae52f25b3e69db"},
-    {"path": "test/tool/rw6_local_operational_authorization_truth_recovery_wiring.test.mjs", "sha256": "747bafdbca6511cc36f439d5b9b48ef178659512b3beb4b148539a64c2638c8c"},
-    {"path": "test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs", "sha256": "8edefd2f1ff679f59615b28e57eb637bb1a8c7d45621ab49a82558f30b265bea"},
-    {"path": "test/tool/rw17_account_deletion_principal_epoch_transaction_wiring.test.mjs", "sha256": "4266c889c93e8908acabb97f0417b83c719169b17af6db3ee7ca5a36ebf499db"},
-    {"path": "test/tool/validate_rw17_account_deletion_principal_epoch_transaction.test.mjs", "sha256": "0327c4b9ace9562c59d577f82f665fd7c45c6e1c22d81333eb03ce2bf1617643"},
-    {"path": "tool/validate_g2_data_lifecycle.mjs", "sha256": "6af95e4f644c3bcbec1fe8079af3ee22e5519dbc9e35e2fe165269e65f5dc400"},
-    {"path": "tool/validate_privacy_disclosures.mjs", "sha256": "bf2e0984ebc806458e2fa1f63d9a5ec14aa21cf40ded36c03c88c4af3d24c4c1"},
-    {"path": "tool/validate_retention_deletion_readiness.mjs", "sha256": "6f813c1eae502d8a1188560dafa81e9c76872468e513b00fc15b6b1810d10cbf"},
-    {"path": "tool/validate_rw17_account_deletion_principal_epoch_transaction.mjs", "sha256": "8eb49893bee15be2601eeb5928250a8a6fac28ccd4d7eb588192674d8a9481c0"},
-    {"path": "docs/architecture/rw17-account-deletion-principal-epoch-transaction-2026-08-26.md", "sha256": "4bb68272d4dab4d5e5d323004aac0e50f78b2e468b9bd782f5505280ec740ffc"},
-    {"path": "docs/operations/RW17_ACCOUNT_DELETION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md", "sha256": "b251a3a131ff9dd434c417df4ef86aaca6e2aeb992db076d5a988a947f806fa7"}
+    {
+      "path": "lib/screens/account_settings_screen.dart",
+      "sha256": "834bbac55e6e07ac9d69bace94bb5ad7072eb420dbe7d2ee940099b6d25aef68"
+    },
+    {
+      "path": "lib/services/account_deletion_service.dart",
+      "sha256": "35229adf38b94f17f8c8c5c3779064e0fbac77a42da356d90831cf4c12d1ea1f"
+    },
+    {
+      "path": "lib/services/data_service.dart",
+      "sha256": "5288612cdc6018a3b17b3a9064f02ac9356c3e7b1fdeb42ce19a491e58a9bfd4"
+    },
+    {
+      "path": "lib/services/local_safety_privacy_service.dart",
+      "sha256": "915ba3a7230271b24b222fa92a5ed53baeb2914160009f11106e7b81b799767c"
+    },
+    {
+      "path": "lib/services/auth_service.dart",
+      "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"
+    },
+    {
+      "path": "lib/services/session_transition_service.dart",
+      "sha256": "f7ff42ca7649ac1681d772e707d87d8a805c63e2962f71707a0490f321389804"
+    },
+    {
+      "path": "lib/services/shared_persistence_sync.dart",
+      "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"
+    },
+    {
+      "path": "lib/widgets/tracked_dialog_route.dart",
+      "sha256": "e01ac3c1006f4098e6d5b289fa499272c44e2a314da93351f088879d43012454"
+    },
+    {
+      "path": "store/g2-data-lifecycle.json",
+      "sha256": "1753947c8f92f4f6e82a6a7bb5e3a6e990368589b48dc3a1716ca7c9aecd749d"
+    },
+    {
+      "path": "store/privacy-disclosures.json",
+      "sha256": "dcbb84887e6dc19e5671b928323cb1f3cd384f53ee539cf1e377d94d18f0ce16"
+    },
+    {
+      "path": "store/retention-deletion-readiness.json",
+      "sha256": "1862d7619f07ac12ba91baf99f46933e937ef626a6c49aecd7218822fec5c4e5"
+    },
+    {
+      "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+      "sha256": "f68acc81c954a28d78e3d226df2d43b2a429668ea22bf0f3f3edd06a8ae10ff8"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
+      "sha256": "a3903d2e26bd4c560006b32a85ffdb1ea4c717197ebb340fe8818be4283d9a48"
+    },
+    {
+      "path": "scripts/technical_regression_check.sh",
+      "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"
+    },
+    {
+      "path": "test/rw17_account_deletion_principal_epoch_transaction_test.dart",
+      "sha256": "b0557fc87729ec2a41b63e0413672706c2f8989bf25c1fb04526f802b4ff7c00"
+    },
+    {
+      "path": "test/tool/rw5_local_safety_privacy_principal_isolation_wiring.test.mjs",
+      "sha256": "a4dab4cfeee0ccb8d3275661dc779223493c7a3151dcba581fae52f25b3e69db"
+    },
+    {
+      "path": "test/tool/rw6_local_operational_authorization_truth_recovery_wiring.test.mjs",
+      "sha256": "747bafdbca6511cc36f439d5b9b48ef178659512b3beb4b148539a64c2638c8c"
+    },
+    {
+      "path": "test/tool/rw9_local_account_profile_authorization_durability_wiring.test.mjs",
+      "sha256": "8edefd2f1ff679f59615b28e57eb637bb1a8c7d45621ab49a82558f30b265bea"
+    },
+    {
+      "path": "test/tool/rw17_account_deletion_principal_epoch_transaction_wiring.test.mjs",
+      "sha256": "4266c889c93e8908acabb97f0417b83c719169b17af6db3ee7ca5a36ebf499db"
+    },
+    {
+      "path": "test/tool/validate_rw17_account_deletion_principal_epoch_transaction.test.mjs",
+      "sha256": "0327c4b9ace9562c59d577f82f665fd7c45c6e1c22d81333eb03ce2bf1617643"
+    },
+    {
+      "path": "tool/validate_g2_data_lifecycle.mjs",
+      "sha256": "6af95e4f644c3bcbec1fe8079af3ee22e5519dbc9e35e2fe165269e65f5dc400"
+    },
+    {
+      "path": "tool/validate_privacy_disclosures.mjs",
+      "sha256": "bf2e0984ebc806458e2fa1f63d9a5ec14aa21cf40ded36c03c88c4af3d24c4c1"
+    },
+    {
+      "path": "tool/validate_retention_deletion_readiness.mjs",
+      "sha256": "6f813c1eae502d8a1188560dafa81e9c76872468e513b00fc15b6b1810d10cbf"
+    },
+    {
+      "path": "tool/validate_rw17_account_deletion_principal_epoch_transaction.mjs",
+      "sha256": "8eb49893bee15be2601eeb5928250a8a6fac28ccd4d7eb588192674d8a9481c0"
+    },
+    {
+      "path": "docs/architecture/rw17-account-deletion-principal-epoch-transaction-2026-08-26.md",
+      "sha256": "4bb68272d4dab4d5e5d323004aac0e50f78b2e468b9bd782f5505280ec740ffc"
+    },
+    {
+      "path": "docs/operations/RW17_ACCOUNT_DELETION_PRINCIPAL_EPOCH_TRANSACTION_CLOSURE_2026-08-26.md",
+      "sha256": "b251a3a131ff9dd434c417df4ef86aaca6e2aeb992db076d5a988a947f806fa7"
+    }
   ]
 }

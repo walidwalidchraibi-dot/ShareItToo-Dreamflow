@@ -4835,8 +4835,37 @@ class DataService {
   static bool isPublicCatalogItem(Item item) =>
       item.status == 'active' && item.isActive == true;
 
+  @visibleForTesting
+  static bool shouldUseDedicatedPublicRemoteCatalog({
+    required bool backendEnabled,
+    required bool qaRuntimeEnabled,
+  }) =>
+      backendEnabled && !qaRuntimeEnabled;
+
   static Future<List<Item>> getPublicItems() async {
-    final items = await getItems();
+    final items = <Item>[];
+    if (shouldUseDedicatedPublicRemoteCatalog(
+      backendEnabled: BackendConfig.enabled,
+      qaRuntimeEnabled: QaRuntimeService.isEnabled,
+    )) {
+      // Explore is a public-catalog surface. Do not route it through
+      // getItems(), whose authenticated backend path deliberately merges
+      // /listings/mine for owner-management screens. A slow account-scoped
+      // owner request must never hold the public catalog spinner open.
+      final remote = await BackendRepository.searchListings(
+        sort: 'newest',
+        limit: 100,
+      );
+      for (final entry in remote) {
+        try {
+          items.add(Item.fromJson(entry));
+        } catch (error) {
+          debugPrint('[DataService] skipped invalid public listing: $error');
+        }
+      }
+    } else {
+      items.addAll(await getItems());
+    }
     final blockedUserIds =
         (await BlockedUsersService.getBlockedUserIds()).toSet();
     final filtered = items

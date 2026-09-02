@@ -134,9 +134,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3",
-    "retentionManifestSha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9",
-    "activeProviderEvidenceSha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688",
+    "privacyManifestSha256": "dcbb84887e6dc19e5671b928323cb1f3cd384f53ee539cf1e377d94d18f0ce16",
+    "retentionManifestSha256": "1862d7619f07ac12ba91baf99f46933e937ef626a6c49aecd7218822fec5c4e5",
+    "activeProviderEvidenceSha256": "f68acc81c954a28d78e3d226df2d43b2a429668ea22bf0f3f3edd06a8ae10ff8",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -177,24 +177,81 @@
     "An already rendered error popup is not forcibly dismissed if a later account switch occurs during its animation; post-popup navigation remains epoch-suppressed."
   ],
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "0965bf86a87caac1455bbab7cb4918d6869d46651e4314a1425ab6275410a606"},
-    {"path": "lib/screens/security_screen.dart", "sha256": "86107d2852d5363cec8cf5554de0ca5eef70a6b69cb21e1a042441d9dcf1c629"},
-    {"path": "lib/services/account_security_service.dart", "sha256": "774492379049744c40ac82c9a01b46439d5f5b9bcbde80c94684822b33787b0e"},
-    {"path": "lib/services/auth_service.dart", "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"},
-    {"path": "lib/services/backend_repository.dart", "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"},
-    {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
-    {"path": "store/privacy-disclosures.json", "sha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3"},
-    {"path": "store/retention-deletion-readiness.json", "sha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9"},
-    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688"},
-    {"path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json", "sha256": "375ed540a8cab42da88513faa5d190812391f9adb0890895f006f05b4ced4d5d"},
-    {"path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json", "sha256": "974f812158accd0a703eda1cdd781cf4639d53407c0feaf71fbb74bc5a1127a3"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"},
-    {"path": "test/rw10_local_security_control_truthfulness_test.dart", "sha256": "19f2475e25a045502340fb399423d258a4238a72467be1606858cee2be5a2e66"},
-    {"path": "test/rw13_security_logout_all_outcome_principal_epoch_test.dart", "sha256": "b920e4491e8e814ad7d43c7767411cbe21eea8a54936ef6c816ec0fb9391f0af"},
-    {"path": "test/tool/rw13_security_logout_all_outcome_principal_epoch_wiring.test.mjs", "sha256": "9e4f23d1113bb3e30f881838f97fced16e3b9337cfe12d6d82651abd63573164"},
-    {"path": "test/tool/validate_rw13_security_logout_all_outcome_principal_epoch.test.mjs", "sha256": "90190636a98ecd3cc2fbd9c59281dd0d9e0adcdf5d078bce3505ce47494f25f7"},
-    {"path": "tool/validate_rw13_security_logout_all_outcome_principal_epoch.mjs", "sha256": "4a625b100bc3636c84a3bbca2a535c78557ebc16a8d9f53440ef97ad1e2d194d"},
-    {"path": "docs/architecture/rw13-security-logout-all-outcome-principal-epoch-2026-08-25.md", "sha256": "bdb5e4c1516bf7cee39ef23591e8bb8b6d552c67b0b1777148d143fc3d399d04"},
-    {"path": "docs/operations/RW13_SECURITY_LOGOUT_ALL_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md", "sha256": "6cfa91618be97237493bcfcc1292d6499c75ad0f1f62a661ba819c2fdb40477f"}
+    {
+      "path": "backend/src/app.js",
+      "sha256": "0965bf86a87caac1455bbab7cb4918d6869d46651e4314a1425ab6275410a606"
+    },
+    {
+      "path": "lib/screens/security_screen.dart",
+      "sha256": "86107d2852d5363cec8cf5554de0ca5eef70a6b69cb21e1a042441d9dcf1c629"
+    },
+    {
+      "path": "lib/services/account_security_service.dart",
+      "sha256": "774492379049744c40ac82c9a01b46439d5f5b9bcbde80c94684822b33787b0e"
+    },
+    {
+      "path": "lib/services/auth_service.dart",
+      "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"
+    },
+    {
+      "path": "lib/services/backend_repository.dart",
+      "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"
+    },
+    {
+      "path": "lib/services/shared_persistence_sync.dart",
+      "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"
+    },
+    {
+      "path": "store/privacy-disclosures.json",
+      "sha256": "dcbb84887e6dc19e5671b928323cb1f3cd384f53ee539cf1e377d94d18f0ce16"
+    },
+    {
+      "path": "store/retention-deletion-readiness.json",
+      "sha256": "1862d7619f07ac12ba91baf99f46933e937ef626a6c49aecd7218822fec5c4e5"
+    },
+    {
+      "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+      "sha256": "f68acc81c954a28d78e3d226df2d43b2a429668ea22bf0f3f3edd06a8ae10ff8"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
+      "sha256": "60c969ba7a1096b2e0bcd332209b597828522f822fcd67cedc9f63c337660326"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
+      "sha256": "26525c5c1bd1d58d6bafbbd2bb3aec000f4aad6571964aac0947eadc7f248c0e"
+    },
+    {
+      "path": "scripts/technical_regression_check.sh",
+      "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"
+    },
+    {
+      "path": "test/rw10_local_security_control_truthfulness_test.dart",
+      "sha256": "19f2475e25a045502340fb399423d258a4238a72467be1606858cee2be5a2e66"
+    },
+    {
+      "path": "test/rw13_security_logout_all_outcome_principal_epoch_test.dart",
+      "sha256": "b920e4491e8e814ad7d43c7767411cbe21eea8a54936ef6c816ec0fb9391f0af"
+    },
+    {
+      "path": "test/tool/rw13_security_logout_all_outcome_principal_epoch_wiring.test.mjs",
+      "sha256": "9e4f23d1113bb3e30f881838f97fced16e3b9337cfe12d6d82651abd63573164"
+    },
+    {
+      "path": "test/tool/validate_rw13_security_logout_all_outcome_principal_epoch.test.mjs",
+      "sha256": "90190636a98ecd3cc2fbd9c59281dd0d9e0adcdf5d078bce3505ce47494f25f7"
+    },
+    {
+      "path": "tool/validate_rw13_security_logout_all_outcome_principal_epoch.mjs",
+      "sha256": "4a625b100bc3636c84a3bbca2a535c78557ebc16a8d9f53440ef97ad1e2d194d"
+    },
+    {
+      "path": "docs/architecture/rw13-security-logout-all-outcome-principal-epoch-2026-08-25.md",
+      "sha256": "bdb5e4c1516bf7cee39ef23591e8bb8b6d552c67b0b1777148d143fc3d399d04"
+    },
+    {
+      "path": "docs/operations/RW13_SECURITY_LOGOUT_ALL_OUTCOME_PRINCIPAL_EPOCH_2026-08-25.md",
+      "sha256": "6cfa91618be97237493bcfcc1292d6499c75ad0f1f62a661ba819c2fdb40477f"
+    }
   ]
 }

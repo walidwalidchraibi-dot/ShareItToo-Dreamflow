@@ -144,9 +144,9 @@
   },
   "ratchets": {
     "reason": "retired-local-security-simulation-and-exact-session-clear-source-change",
-    "privacyManifestSha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3",
-    "retentionManifestSha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9",
-    "activeProviderEvidenceSha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688",
+    "privacyManifestSha256": "dcbb84887e6dc19e5671b928323cb1f3cd384f53ee539cf1e377d94d18f0ce16",
+    "retentionManifestSha256": "1862d7619f07ac12ba91baf99f46933e937ef626a6c49aecd7218822fec5c4e5",
+    "activeProviderEvidenceSha256": "f68acc81c954a28d78e3d226df2d43b2a429668ea22bf0f3f3edd06a8ae10ff8",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -185,28 +185,97 @@
     "Two-factor authentication and identity verification remain unavailable until separately approved server and provider work exists."
   ],
   "sourceInventory": [
-    {"path": "lib/models/security.dart", "sha256": "ff8d5942c8bd8816bea166c56d9a872f2f394a9d6445dc58798a95ca8ddb4b13"},
-    {"path": "lib/screens/security_screen.dart", "sha256": "86107d2852d5363cec8cf5554de0ca5eef70a6b69cb21e1a042441d9dcf1c629"},
-    {"path": "lib/screens/two_factor_auth_screen.dart", "sha256": "628e5b2f90bdba041c791cbe7efa1b2395a461e7268422fa08e305d49ff7096b"},
-    {"path": "lib/services/account_security_service.dart", "sha256": "774492379049744c40ac82c9a01b46439d5f5b9bcbde80c94684822b33787b0e"},
-    {"path": "lib/services/auth_service.dart", "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"},
-    {"path": "lib/services/backend_repository.dart", "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"},
-    {"path": "lib/services/data_service.dart", "sha256": "c6b7a28b8b6f214a2a6b23fb2f0bb04aaf66231abb690f1bb36ec5442a931d9b"},
-    {"path": "lib/services/shared_persistence_sync.dart", "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"},
-    {"path": "backend/ops/secret_scan_history_baseline.json", "sha256": "64608a824b977b76e5c51d51c169d52450734b16989c5772473ead6ebc19f6b4"},
-    {"path": "store/privacy-disclosures.json", "sha256": "edec5ca2e3c38d916985d8807819d35cbd05fdc7d78a22abc77a42bb835d5da3"},
-    {"path": "store/retention-deletion-readiness.json", "sha256": "5737c39ba86dbb8bd254e068387cd9086afefd6a652a4bbf0d4a92eeaaeeeec9"},
-    {"path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json", "sha256": "9f86ce060be9d3e1bf17f1221c49edbbdb22c3455b06e3bdb9cf681f938db688"},
-    {"path": "tool/validate_privacy_disclosures.mjs", "sha256": "bf2e0984ebc806458e2fa1f63d9a5ec14aa21cf40ded36c03c88c4af3d24c4c1"},
-    {"path": "tool/validate_retention_deletion_readiness.mjs", "sha256": "6f813c1eae502d8a1188560dafa81e9c76872468e513b00fc15b6b1810d10cbf"},
-    {"path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs", "sha256": "4d105828ac2a30234f618fbd0b513f10901af0239f48e183d70c8a878a58d99f"},
-    {"path": "scripts/technical_regression_check.sh", "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"},
-    {"path": "test/b10_release_truthfulness_test.dart", "sha256": "34d3c274c3f5d4c088d591b98b8c67f8bb27a9939df35dad7baf0d3f07542bbb"},
-    {"path": "test/rw10_local_security_control_truthfulness_test.dart", "sha256": "19f2475e25a045502340fb399423d258a4238a72467be1606858cee2be5a2e66"},
-    {"path": "test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs", "sha256": "753acb51c4b92c48d6a4b2df5ed32a400f64c5101dec85f9f4584c1dc0dbeebd"},
-    {"path": "test/tool/validate_rw10_local_security_control_truthfulness.test.mjs", "sha256": "ecec0be574ff2af59771f4fc1ee28dbdfc3290e29463e9d5a943b928eeffae25"},
-    {"path": "tool/validate_rw10_local_security_control_truthfulness.mjs", "sha256": "7fb727719059145119107975c85124b24ff297a2907660002b9066136d2a91fe"},
-    {"path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md", "sha256": "ce9231888736e3ce1e3bb2ff7ac8889bb145538bfd825299d992041e7b7b3d64"},
-    {"path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md", "sha256": "432aeeb6b9d4ea04568701b39d353f78b5e0f6b6eaf72d5dd6371900b3eaf524"}
+    {
+      "path": "lib/models/security.dart",
+      "sha256": "ff8d5942c8bd8816bea166c56d9a872f2f394a9d6445dc58798a95ca8ddb4b13"
+    },
+    {
+      "path": "lib/screens/security_screen.dart",
+      "sha256": "86107d2852d5363cec8cf5554de0ca5eef70a6b69cb21e1a042441d9dcf1c629"
+    },
+    {
+      "path": "lib/screens/two_factor_auth_screen.dart",
+      "sha256": "628e5b2f90bdba041c791cbe7efa1b2395a461e7268422fa08e305d49ff7096b"
+    },
+    {
+      "path": "lib/services/account_security_service.dart",
+      "sha256": "774492379049744c40ac82c9a01b46439d5f5b9bcbde80c94684822b33787b0e"
+    },
+    {
+      "path": "lib/services/auth_service.dart",
+      "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"
+    },
+    {
+      "path": "lib/services/backend_repository.dart",
+      "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"
+    },
+    {
+      "path": "lib/services/data_service.dart",
+      "sha256": "5288612cdc6018a3b17b3a9064f02ac9356c3e7b1fdeb42ce19a491e58a9bfd4"
+    },
+    {
+      "path": "lib/services/shared_persistence_sync.dart",
+      "sha256": "3b9b402adf145a54dd39779a70fa6bfe2e458944dc62aabf33b6d72c95e588af"
+    },
+    {
+      "path": "backend/ops/secret_scan_history_baseline.json",
+      "sha256": "64608a824b977b76e5c51d51c169d52450734b16989c5772473ead6ebc19f6b4"
+    },
+    {
+      "path": "store/privacy-disclosures.json",
+      "sha256": "dcbb84887e6dc19e5671b928323cb1f3cd384f53ee539cf1e377d94d18f0ce16"
+    },
+    {
+      "path": "store/retention-deletion-readiness.json",
+      "sha256": "1862d7619f07ac12ba91baf99f46933e937ef626a6c49aecd7218822fec5c4e5"
+    },
+    {
+      "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+      "sha256": "f68acc81c954a28d78e3d226df2d43b2a429668ea22bf0f3f3edd06a8ae10ff8"
+    },
+    {
+      "path": "tool/validate_privacy_disclosures.mjs",
+      "sha256": "bf2e0984ebc806458e2fa1f63d9a5ec14aa21cf40ded36c03c88c4af3d24c4c1"
+    },
+    {
+      "path": "tool/validate_retention_deletion_readiness.mjs",
+      "sha256": "6f813c1eae502d8a1188560dafa81e9c76872468e513b00fc15b6b1810d10cbf"
+    },
+    {
+      "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
+      "sha256": "7710847dfb8f9083d660efede0928383a4f66a74d0f974ecce25d73177328597"
+    },
+    {
+      "path": "scripts/technical_regression_check.sh",
+      "sha256": "d80e383414612c908665ff678b279a4b54fc634db27ab54779948c6baa0ed079"
+    },
+    {
+      "path": "test/b10_release_truthfulness_test.dart",
+      "sha256": "34d3c274c3f5d4c088d591b98b8c67f8bb27a9939df35dad7baf0d3f07542bbb"
+    },
+    {
+      "path": "test/rw10_local_security_control_truthfulness_test.dart",
+      "sha256": "19f2475e25a045502340fb399423d258a4238a72467be1606858cee2be5a2e66"
+    },
+    {
+      "path": "test/tool/rw10_local_security_control_truthfulness_wiring.test.mjs",
+      "sha256": "753acb51c4b92c48d6a4b2df5ed32a400f64c5101dec85f9f4584c1dc0dbeebd"
+    },
+    {
+      "path": "test/tool/validate_rw10_local_security_control_truthfulness.test.mjs",
+      "sha256": "ecec0be574ff2af59771f4fc1ee28dbdfc3290e29463e9d5a943b928eeffae25"
+    },
+    {
+      "path": "tool/validate_rw10_local_security_control_truthfulness.mjs",
+      "sha256": "7fb727719059145119107975c85124b24ff297a2907660002b9066136d2a91fe"
+    },
+    {
+      "path": "docs/architecture/rw10-local-security-control-truthfulness-2026-08-25.md",
+      "sha256": "ce9231888736e3ce1e3bb2ff7ac8889bb145538bfd825299d992041e7b7b3d64"
+    },
+    {
+      "path": "docs/operations/RW10_LOCAL_SECURITY_CONTROL_TRUTHFULNESS_2026-08-25.md",
+      "sha256": "432aeeb6b9d4ea04568701b39d353f78b5e0f6b6eaf72d5dd6371900b3eaf524"
+    }
   ]
 }

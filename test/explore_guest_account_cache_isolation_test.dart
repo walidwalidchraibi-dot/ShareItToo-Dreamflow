@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/screens/explore_screen.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/listing_mutation_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/profile_mutation_service.dart';
@@ -21,6 +22,23 @@ void main() {
 
   setUp(() {
     QaRuntimeService.reset();
+  });
+
+  test('authenticated backend explore uses the dedicated public catalog', () {
+    expect(
+      DataService.shouldUseDedicatedPublicRemoteCatalog(
+        backendEnabled: true,
+        qaRuntimeEnabled: false,
+      ),
+      isTrue,
+    );
+    expect(
+      DataService.shouldUseDedicatedPublicRemoteCatalog(
+        backendEnabled: true,
+        qaRuntimeEnabled: true,
+      ),
+      isFalse,
+    );
   });
 
   testWidgets(
