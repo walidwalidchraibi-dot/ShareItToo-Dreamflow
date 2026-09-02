@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import sharp from 'sharp';
 
 import {
+  assertClosedPilotLegalReadiness,
   closedPilotBookingBody,
   closedPilotListingCategory,
   closedPilotLocation,
@@ -87,6 +88,7 @@ async function performanceProbe(name, count, thresholdMs, request) {
 }
 
 async function main() {
+  await assertClosedPilotLegalReadiness(pool);
   const users = {
     owner: { id: `${runId}-owner`, email: `${runId}-owner@example.invalid` },
     renter: { id: `${runId}-renter`, email: `${runId}-renter@example.invalid` },

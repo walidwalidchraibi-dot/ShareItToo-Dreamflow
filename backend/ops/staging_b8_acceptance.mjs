@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import sharp from 'sharp';
 
 import {
+  assertClosedPilotLegalReadiness,
   closedPilotBookingBody,
   closedPilotListingCategory,
   closedPilotLocation,
@@ -63,6 +64,7 @@ async function api(path, {
 async function main() {
   assert.equal(config.payments.transport, 'memory', 'B8 acceptance requires PAYMENT_TRANSPORT=memory');
   assert.equal(config.payments.livemode, false, 'B8 acceptance must never run in live mode');
+  await assertClosedPilotLegalReadiness(pool);
 
   const passwordHash = await hashPassword(password);
   const users = {

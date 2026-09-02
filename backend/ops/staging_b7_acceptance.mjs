@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import sharp from 'sharp';
 
 import {
+  assertClosedPilotLegalReadiness,
   closedPilotBookingBody,
   closedPilotListingCategory,
   closedPilotLocation,
@@ -112,6 +113,7 @@ async function insertAcceptancePushDevice(user, platform) {
 }
 
 async function main() {
+  await assertClosedPilotLegalReadiness(pool);
   const passwordHash = await hashPassword(password);
   const users = {
     owner: {

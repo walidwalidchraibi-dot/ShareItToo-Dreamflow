@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { createEphemeralAcceptancePassword } from '../ops/ephemeral_acceptance_password.mjs';
+import { assertClosedPilotLegalReadiness } from '../ops/closed_pilot_acceptance.mjs';
 import { detectHighConfidenceSecretRules } from '../ops/secret_scan_rules.mjs';
 
 const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,7 +48,15 @@ test('staging acceptance fixtures satisfy the closed-pilot declarations', async 
     assert.match(contents, /\.\.\.closedPilotLocation/u, relativePath);
     assert.match(contents, /closedPilotBookingBody\(/u, relativePath);
     assert.match(contents, /closedPilotOwnerAcceptanceBody\(\)/u, relativePath);
+    assert.match(contents, /assertClosedPilotLegalReadiness\(pool\)/u, relativePath);
   }
+});
+
+test('closed-pilot acceptance fails before fixtures when V5.2 snapshots are unavailable', async () => {
+  await assert.rejects(
+    assertClosedPilotLegalReadiness({ query: async () => ({ rows: [] }) }),
+    /closed_pilot_v52_legal_snapshots_not_ready/u,
+  );
 });
 
 test('secret scan catches bare password names and mostly-static templates', () => {

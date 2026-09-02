@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import sharp from 'sharp';
 
 import {
+  assertClosedPilotLegalReadiness,
   closedPilotBookingBody,
   closedPilotListingCategory,
   closedPilotLocation,
@@ -68,6 +69,7 @@ async function stepUp(user) {
 }
 
 async function main() {
+  await assertClosedPilotLegalReadiness(pool);
   const passwordHash = await hashPassword(password);
   const users = {
     owner: { role: 'user', displayName: 'B9 Staging Owner' },

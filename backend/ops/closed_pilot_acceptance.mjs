@@ -4,6 +4,7 @@ import {
   privatePilotDocument,
   privatePilotRequiredCheckoutDeclarations,
 } from '../src/private_pilot_domain.js';
+import { v52ContractDocumentReadiness } from '../src/v52_contract_workflow.js';
 
 export const closedPilotLocation = Object.freeze({
   locationText: 'Staging Testadresse Heilbronn',
@@ -24,6 +25,14 @@ function acceptanceClientBuild() {
     throw new Error('ACCEPTANCE_CLIENT_BUILD must bind the exact closed-pilot Android candidate.');
   }
   return value;
+}
+
+export async function assertClosedPilotLegalReadiness(database) {
+  const readiness = await v52ContractDocumentReadiness(database);
+  if (!readiness.ready) {
+    throw new Error('closed_pilot_v52_legal_snapshots_not_ready');
+  }
+  return readiness;
 }
 
 export function closedPilotQuoteBody({ itemId, startDate, endDate }) {
