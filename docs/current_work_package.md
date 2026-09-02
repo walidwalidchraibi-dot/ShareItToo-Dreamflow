@@ -1,37 +1,36 @@
-# Current Work Package: full closed-pilot candidate 2026090103
+# Current Work Package: full closed-pilot candidate 2026090202
 
-Status: **PILOT_READY = PARTIAL; EXACT GITHUB, STAGING AND PLAY INTERNAL
-COMPLETION DEFERRED BY MAC LOCK** on 01.09.2026.
+Status: **TECHNICAL_CANDIDATE_READY / PILOT_BLOCKED_LEGAL_GATE** on
+02.09.2026.
 
-Artifact source commit `0c0624c9f1a76c886112a15c41564d6375b69238`
-contains the current frozen closed-pilot envelope. The signed candidate is
-`com.shareittoo.app`, `1.0.0+2026090103`, Internal and Staging only, with AAB
-SHA-256 `b6fac301b932b024014fdadbe5e8a01f545ddad50815f8e9f53df0045afe39bc`.
+Artifact source commit `e7b76f9e5d787e88fb46b6ad5a777d54f8066d63`
+contains the frozen closed-pilot envelope and the CodeQL-visible inline planner
+rate limiter. The signed candidate is `com.shareittoo.app`,
+`1.0.0+2026090202`, Internal and Staging only, with AAB SHA-256
+`fa1105a630e5c2c050a61a1baa05bce0d0d102bfd711d057a2048709546a1a1b`.
 
-The complete local technical regression passes from `flutter clean` with
-2,013/2,013 tool checks, analyzer zero, Web/Wasm, loopback, Android,
-database/recovery and privacy/security/price/AI-contract checks. The locked
-Flutter metadata is now bootstrapped deterministically and no local workaround
-is retained.
-The official `codex_local_dev` synthetic evaluation passed with ChatGPT auth,
-zero API billing and no runtime entitlement. The reachable Pixel runs the
-exact direct APK non-destructively; data-preserving update, guest online,
-explicit offline failure, online recovery and process restart passed.
+The complete local technical regression passes from a clean Flutter bootstrap:
+the complete tool inventory, backend/PostgreSQL, 634 Flutter tests with three
+documented skips, analyzer zero, Web/Wasm, loopback, Android with 448 tasks and
+clean-checkout reproducibility. No timing, retry, rate-limit, parallelism or
+build-path workaround is retained. The exact APK runs non-destructively on the
+Pixel; signed-out guest online, explicit offline failure, recovery and exact
+process restart all pass with the app-data container preserved.
 
-Active Play Internal remains `2026082601`, inactive draft `2026083101` remains
-unactivated and testers/other tracks remain unchanged. Candidate `2026090103`
-has not yet been uploaded. Staging is healthy on old commit `cedc5ecf...` with
-memory payments and `livemode=false`. A locked Mac prevents the official
-GitHub device approval and authenticated Play/Hostinger browser actions; those
-lanes are explicitly deferred without credential extraction. Exact-source
-GitHub CI/CodeQL, image publish/deploy, Play activation, Store split delivery
-and authenticated physical G3-G5 tests remain pending. No P0/P1 code blocker
-is known. The current seven-file private Drive handoff has been read back as
-owner-only and not shared; the superseded `2026090102` folder is visibly marked
-do-not-use.
+Exact Staging runs the matching source and API image, memory payments,
+`livemode=false` and the local listing-AI mock. Active Play Internal remains
+`2026082601`; candidate `2026090202` is not uploaded or activated, testers and
+all other tracks are unchanged. Exact final-evidence GitHub Regression and
+CodeQL are the remaining autonomous checks after the evidence push. Store split
+delivery and authenticated G3-G5 tests remain unclaimed.
+
+The external hard stop is authentic: V5.2 is still `draft-blocked`, independent
+professional approval and approved document snapshots do not exist, and the
+preflight fails before fixture creation. No Play activation, booking acceptance,
+public registration or real payment is allowed under this package.
 
 Machine evidence:
-`docs/evidence/release-readiness/full-pilot-candidate-2026090103.json`.
+`docs/evidence/release-readiness/full-pilot-candidate-2026090202.json`.
 Human handover:
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
@@ -4098,20 +4097,20 @@ inactive, Wireless pairing did not occur and all seven prepared checks remain
 ## Active package: final technical candidate evidence under V5.2 hold
 
 The current package freezes and verifies Android candidate
-`1.0.0+2026090201` from artifact source
-`94dd09ea562107c4dd758bd9a73e7c3e8f97e21c`, exact Staging and the fail-closed
+`1.0.0+2026090202` from artifact source
+`e7b76f9e5d787e88fb46b6ad5a777d54f8066d63`, exact Staging and the fail-closed
 B7-B10 acceptance preflight. The exact direct APK is now installed on the
 Pixel through a data-preserving update. Signed-out guest online truth, explicit
 offline failure, connectivity-validated recovery and process restart all pass;
 the timing gap between Wi-Fi enabled and Staging reachable is closed by a
 deterministic probe and regression tests rather than a fixed delay.
 
-Remaining autonomous work is limited to the final local regression, exact
-final-head GitHub Regression/CodeQL and evidence readback. The candidate also
-contains the dedicated planner-resolution limiter and anchored CodeQL test URL
-check that close the four high-severity PR findings observed on the prior
-candidate. Google Play split
-delivery and authenticated pilot flows remain unclaimed.
+The final local regression and clean-checkout proof pass. Remaining autonomous
+work is limited to exact final-head GitHub Regression/CodeQL and evidence
+readback. The candidate also contains the inline planner-resolution limiter and
+anchored CodeQL structure test that close the three high-severity PR findings
+observed on the prior candidate. Google Play split delivery and authenticated
+pilot flows remain unclaimed.
 
 The completion state is intentionally not `PILOT_READY`. The hard stop is the
 authentic P0B/V5.2 professional-review gate: the manifest remains

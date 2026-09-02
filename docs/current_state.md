@@ -4,40 +4,40 @@ Verified: 2026-09-01 on the Mac mini.
 
 ## Current closed-pilot candidate state
 
-The current non-public pilot is frozen at artifact source commit
-`0c0624c9f1a76c886112a15c41564d6375b69238`. Its canonical signed candidate is
-`com.shareittoo.app`, `1.0.0+2026090103`, Internal/Staging, pilot
+The current non-public technical candidate is frozen at artifact source commit
+`e7b76f9e5d787e88fb46b6ad5a777d54f8066d63`. Its canonical signed candidate is
+`com.shareittoo.app`, `1.0.0+2026090202`, Internal/Staging, pilot
 `heilbronn_wave0`, with AAB SHA-256
-`b6fac301b932b024014fdadbe5e8a01f545ddad50815f8e9f53df0045afe39bc`.
+`fa1105a630e5c2c050a61a1baa05bce0d0d102bfd711d057a2048709546a1a1b`.
 Canonical signing, ZIP structure, Bundletool 1.18.1, binary privacy and exact
 package/version/SDK identity passed.
 
-The complete standard local regression passes from `flutter clean` with 2,013
-of 2,013 tool checks, backend and PostgreSQL, Flutter, analyzer zero, Web/Wasm,
-loopback and Android. Locked Flutter metadata is bootstrapped deterministically
-before the tool inventory, so no local setup workaround is retained. Official
-ChatGPT/Codex authentication is
-`CODEX_AUTH_LOCAL_DEV_SUPPORTED`; a fresh synthetic cordless-drill evaluation
-passed in an ephemeral read-only session with no API billing, no credential
-extraction, no runtime provider and no publication authority.
+The complete standard local regression passes from a clean Flutter bootstrap:
+the complete tool inventory, backend and PostgreSQL, 634 Flutter tests with
+three documented skips, analyzer zero, Web/Wasm, loopback, Android with 448
+tasks and clean-checkout reproducibility. The planner-resolution endpoint now
+uses its dedicated inline rate limiter before authentication, and the permanent
+CodeQL structure test proves that ordering. No local timing, retry, rate-limit,
+parallelism or build-path workaround is retained.
 
 The exact APK is installed non-destructively on the reachable Pixel. Existing
-app data was preserved; guest catalog online, explicit offline failure,
-network recovery and process restart passed. The device is signed out, so the
-authenticated physical G3-G5 matrix is not claimed. The remote OnePlus remains
-deferred, and direct APK evidence is not Play split-delivery evidence.
+app data was preserved; signed-out guest catalog online, explicit offline
+failure, network recovery and exact process restart passed. The authenticated
+physical G3-G5 matrix is not claimed. The remote OnePlus remains deferred, and
+direct APK evidence is not Play split-delivery evidence.
 
-Direct Play readback before the Mac locked confirmed Internal testing only:
-active `2026082601`, inactive draft `2026083101`, unchanged two-user tester
-list and unchanged Closed Alpha `2026081506`. Candidate `2026090103` is not yet
-uploaded or active. Staging remains healthy on old commit `cedc5ecf...`, memory
-payments and `livemode=false`. GitHub device approval, exact-source CI/CodeQL,
-exact Staging deployment and Play upload/activation are the only deferred
-external lanes. No Production, Open, Closed, tester-list, real-payment,
-Firebase-project, Cloud/VPS/DNS or PR-merge state changed.
+Exact Staging runs the matching source and API image with memory payments,
+`livemode=false`, local listing-AI mock and healthy/readiness readback. Active
+Play Internal remains `2026082601`; candidate `2026090202` is neither uploaded
+nor active and the two-user tester list is unchanged. Exact final-evidence
+GitHub Regression/CodeQL are pending the evidence push. No Production, Open,
+Closed, tester-list, real-payment, Firebase-project, Cloud/VPS/DNS or PR-merge
+state changed.
 
-Current assessment is `PILOT_READY = PARTIAL`. Exact evidence is
-`docs/evidence/release-readiness/full-pilot-candidate-2026090103.json`; the
+Current assessment is `TECHNICAL_CANDIDATE_READY / PILOT_BLOCKED_LEGAL_GATE`.
+The V5.2 manifest remains draft-blocked without independent professional
+approval or approved snapshots. Exact evidence is
+`docs/evidence/release-readiness/full-pilot-candidate-2026090202.json`; the
 current human handover is
 `docs/operations/SIT_FULL_PILOT_READY_HANDOVER.md`.
 
@@ -4125,9 +4125,9 @@ Wireless pairing did not occur and all seven prepared checks remain `NOT_RUN`.
 
 ## Current closed-pilot candidate and legal hold (2026-09-02)
 
-The frozen technical candidate is `1.0.0+2026090201` from source HEAD
-`94dd09ea562107c4dd758bd9a73e7c3e8f97e21c`. Its signed AAB SHA-256 is
-`5301dabccada20f2b77b5668adfc4f1aa60fb45eb43fc8590a3257d7bf796bec`.
+The frozen technical candidate is `1.0.0+2026090202` from source HEAD
+`e7b76f9e5d787e88fb46b6ad5a777d54f8066d63`. Its signed AAB SHA-256 is
+`fa1105a630e5c2c050a61a1baa05bce0d0d102bfd711d057a2048709546a1a1b`.
 Exact Staging is deployed and healthy with the matching API image, memory
 payments, `livemode=false`, local listing-AI mock and all 354 foreign-key
 constraints verified.
@@ -4138,13 +4138,13 @@ is `draft-blocked`, has no effective date and has not received independent
 professional approval. The verified preflight result is
 `closed_pilot_v52_legal_snapshots_not_ready` with zero active fixtures.
 
-Build `2026090201` is not uploaded or activated in Play. The technically
+Build `2026090202` is not uploaded or activated in Play. The technically
 prepared state is therefore `TECHNICAL_CANDIDATE_READY`, while the real pilot
 state is `PILOT_BLOCKED_LEGAL_GATE`. No Production, real-money, public-user,
 provider, Firebase, Cloud/VPS/DNS, tester-list or PR-merge boundary changed.
 
-The exact direct APK `1.0.0+2026090201` is now installed on the Pixel 7 Pro by
-a non-destructive update from `2026090106`; signature, installed bytes,
+The exact direct APK `1.0.0+2026090202` is now installed on the Pixel 7 Pro by
+a non-destructive update from `2026090201`; signature, installed bytes,
 first-install identity and app-data-container preservation pass. The signed-out
 guest UI matches the currently empty public Staging catalog, exposes the
 explicit offline error when Wi-Fi is temporarily disabled, recovers after
