@@ -27,8 +27,9 @@ The ordinary binding role flow fails closed before fixture creation with
 `v52_contract_documents_unavailable`; no listing, reservation, contract or
 payment was created. Two real role registrations and SMTP messages were
 accepted, but neither owner verification link was followed. Real account
-login, current-candidate icon review and the two-role Pixel journey remain
-open. V5.2 remains draft-blocked.
+login and the two-role Pixel journey remain open. The current-candidate
+notification icon passes direct private-screenshot review. V5.2 remains
+draft-blocked.
 
 Google sign-in is configured but not owner-executed; Facebook and Apple remain
 disabled. Listing AI remains mock-backed at runtime with zero budget. The

@@ -63,6 +63,7 @@ test('rejects weakening exact dialog ownership or offline recovery evidence', ()
     [['pixel', 'logoutLifecycle', 'dialogClosureScope'], 'global-current-dialog', /dialog closure scope/u],
     [['pixel', 'offlineRealtime', 'neutralPopupAbsentBeforeSend'], false, /pre-send popup absence/u],
     [['pixel', 'offlineRealtime', 'networkRestored'], false, /network restoration/u],
+    [['pixel', 'controlledFcm', 'notificationIconVisual'], 'prior-candidate-only', /notification icon review/u],
   ]) {
     const changed = structuredClone(evidence);
     changed[path[0]][path[1]][path[2]] = value;

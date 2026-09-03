@@ -87,7 +87,8 @@
       "foregroundPushDelivery": "passed-popup-visible",
       "backgroundNotificationCount": "0-to-1",
       "terminatedProcessNotificationCount": "1-to-2",
-      "notificationIconVisual": "prior-candidate-passed-current-candidate-review-pending",
+      "notificationIconVisual": "passed-current-candidate-private-screenshot-review",
+      "notificationIconVisualReviewObservedAt": "2026-09-03",
       "privateScreenshotSha256": "2920057de520b0990f7d566f57d97347cb7afe5e0c050bd664a1e2d0064d08a5",
       "privateScreenshotCommitted": false
     },

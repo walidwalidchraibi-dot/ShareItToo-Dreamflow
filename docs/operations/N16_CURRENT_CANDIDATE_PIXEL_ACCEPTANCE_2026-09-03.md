@@ -24,8 +24,10 @@ with zero external budget.
 The current candidate passed controlled FCM delivery in foreground,
 background and terminated-process states. Its private current-candidate
 notification screenshot remains outside Git and is bound only by SHA-256.
-Current-candidate icon review is deliberately recorded as pending rather than
-inheriting the visual pass from candidate 0303.
+The current-candidate screenshot was reviewed directly and both controlled
+ShareItToo notifications show the expected recognizable application icon. The
+review does not inherit the result from candidate 0303 and stores no private
+notification content in Git.
 
 The Pixel also passed a repeatable offline/realtime probe: a new controlled
 message stayed absent for 15 seconds offline, the visible count advanced from
@@ -69,6 +71,6 @@ Machine-readable evidence is
 `docs/evidence/release-readiness/n16-current-candidate-pixel-acceptance-2026090304.json`.
 N16 closes only the repeatable current-candidate transport/session evidence.
 It leaves real email verification, two real accounts, legal approval, Stripe
-sandbox, external listing-AI runtime and current-candidate notification-icon
-review explicitly open. OnePlus, Google Play, Production, tester lists, public
-registration, real money and PR merge were not changed.
+sandbox and external listing-AI runtime explicitly open. OnePlus, Google Play,
+Production, tester lists, public registration, real money and PR merge were not
+changed.

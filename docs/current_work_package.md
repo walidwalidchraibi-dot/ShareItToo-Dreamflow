@@ -23,10 +23,11 @@ CodeQL `33706352977` and zero open alerts.
 The remaining Pixel sequence is owner completion of both email-verification
 links, real account login and two-role isolation. An ordinary binding attempt
 correctly failed closed before fixture creation because V5.2 remains draft-
-blocked. Current-candidate icon review, external listing-AI runtime and Stripe
-sandbox remain open; the runtime still uses the zero-cost mock and memory
-payment. Google sign-in is configured but not owner-executed, and Facebook/
-Apple are disabled. OnePlus remains untouched until Pixel closure.
+blocked. The current-candidate notification icon now also passes direct visual
+review against its private hash-bound screenshot. External listing-AI runtime
+and Stripe sandbox remain open; the runtime still uses the zero-cost mock and
+memory payment. Google sign-in is configured but not owner-executed, and
+Facebook/Apple are disabled. OnePlus remains untouched until Pixel closure.
 
 Machine evidence:
 `docs/evidence/release-readiness/n16-current-candidate-pixel-acceptance-2026090304.json`.

@@ -103,6 +103,16 @@ export function validateN16CurrentCandidatePixelAcceptance(evidence) {
     'passed-current-candidate-bounded-full-fcm-diagnostic',
     'FCM status',
   );
+  same(
+    evidence?.pixel?.controlledFcm?.notificationIconVisual,
+    'passed-current-candidate-private-screenshot-review',
+    'current-candidate notification icon review',
+  );
+  same(
+    evidence?.pixel?.controlledFcm?.notificationIconVisualReviewObservedAt,
+    '2026-09-03',
+    'current-candidate notification icon review date',
+  );
   same(evidence?.pixel?.controlledFcm?.privateScreenshotCommitted, false, 'private screenshot exclusion');
   same(
     evidence?.pixel?.offlineRealtime?.status,
