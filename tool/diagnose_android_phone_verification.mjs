@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   chmodSync,
@@ -37,12 +38,19 @@ import {
   readEmailVerifiedJourneyVault,
 } from './run_staging_email_verified_two_role_journey.mjs';
 import {
-  validateCurrentHeadAndroidReleaseArchive,
+  validatePrivateAndroidReleaseArchive,
 } from './validate_current_head_android_release_archive.mjs';
 
 const repositoryRoot = realpathSync(resolve(fileURLToPath(new URL('..', import.meta.url))));
 const applicationId = 'com.shareittoo.app';
 const apiBaseUrl = 'https://staging.shareittoo.com/api/v1';
+const frozenCandidateCompatiblePaths = Object.freeze([
+  /^backend\//u,
+  /^docs\//u,
+  /^tool\//u,
+  /^test\/tool\//u,
+  /^store\/(?:privacy-disclosures|retention-deletion-readiness)\.json$/u,
+]);
 
 function fail(message) {
   throw new Error(message);
@@ -97,6 +105,28 @@ export function sanitizePhoneVerificationFailure(error) {
     return 'safe diagnostic reason unavailable';
   }
   return message;
+}
+
+export function validateFrozenCandidateMobileCompatibility({
+  candidateIsAncestor,
+  changedPaths,
+} = {}) {
+  if (candidateIsAncestor !== true || !Array.isArray(changedPaths)) {
+    fail('The frozen Android candidate is not an ancestor of the diagnostic source.');
+  }
+  const unsafe = changedPaths.filter((path) => (
+    typeof path !== 'string'
+      || path.length === 0
+      || !frozenCandidateCompatiblePaths.some((pattern) => pattern.test(path))
+  ));
+  if (unsafe.length > 0) {
+    fail('Mobile source changed after the frozen Android candidate was built.');
+  }
+  return Object.freeze({
+    candidateIsAncestor: true,
+    changedPathCount: changedPaths.length,
+    mobileSourceChanged: false,
+  });
 }
 
 function pointForNode(node, label) {
@@ -161,28 +191,71 @@ function replaceInput(commandRunner, adbPath, device, hierarchy, label, value, d
   ]);
 }
 
-async function stagingPhoneStatus(fetchImpl, account) {
+export async function inspectStagingPhoneProvider(fetchImpl, account) {
   const login = await fetchImpl(`${apiBaseUrl}/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email: account.email, password: account.password }),
     signal: AbortSignal.timeout(20_000),
   });
-  const loginValue = await login.json();
-  if (login.status !== 200 || typeof loginValue?.accessToken !== 'string') {
+  let loginValue = null;
+  try {
+    loginValue = await login.json();
+  } catch {
+    loginValue = null;
+  }
+  if (login.status !== 200
+      || typeof loginValue?.accessToken !== 'string'
+      || loginValue.accessToken.length < 20
+      || typeof loginValue?.refreshToken !== 'string'
+      || loginValue.refreshToken.length < 20) {
     fail('The protected Staging owner login is unavailable.');
   }
-  const status = await fetchImpl(`${apiBaseUrl}/auth/phone-verification/status`, {
-    headers: { authorization: `Bearer ${loginValue.accessToken}` },
-    signal: AbortSignal.timeout(20_000),
-  });
-  const statusValue = await status.json();
-  if (status.status !== 200
-      || statusValue?.available !== true
-      || statusValue?.provider !== 'firebase-phone') {
-    fail('The Staging phone-verification provider is unavailable.');
+
+  let result = null;
+  let inspectionError = null;
+  try {
+    const statusResponse = await fetchImpl(`${apiBaseUrl}/auth/phone-verification/status`, {
+      headers: { authorization: `Bearer ${loginValue.accessToken}` },
+      signal: AbortSignal.timeout(20_000),
+    });
+    let statusValue = null;
+    try {
+      statusValue = await statusResponse.json();
+    } catch {
+      statusValue = null;
+    }
+    const disabled = statusValue?.available === false && statusValue?.provider === null;
+    const enabled = statusValue?.available === true && statusValue?.provider === 'firebase-phone';
+    if (statusResponse.status !== 200 || (!disabled && !enabled)) {
+      fail('The Staging phone-verification provider status is ambiguous.');
+    }
+    result = Object.freeze({
+      available: enabled,
+      provider: enabled ? 'firebase-phone' : null,
+      diagnosticSessionRevoked: true,
+    });
+  } catch (error) {
+    inspectionError = error;
   }
-  return true;
+
+  let cleanupPassed = false;
+  try {
+    const logout = await fetchImpl(`${apiBaseUrl}/auth/logout`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ refreshToken: loginValue.refreshToken }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    cleanupPassed = logout.status === 204;
+  } catch {
+    cleanupPassed = false;
+  }
+  if (!cleanupPassed) {
+    fail('The protected Staging diagnostic session cleanup failed.');
+  }
+  if (inspectionError !== null) throw inspectionError;
+  return result;
 }
 
 async function openContactInformation({ commandRunner, adbPath, device, wait }) {
@@ -254,7 +327,9 @@ export async function diagnoseAndroidPhoneVerification({
   capturedAt = new Date().toISOString(),
   wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
 }) {
-  if (!['request', 'observe'].includes(phase)) fail('N24 phase must be request or observe.');
+  if (!['preflight', 'request', 'observe'].includes(phase)) {
+    fail('N24 phase must be preflight, request or observe.');
+  }
   assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device);
   const installed = verifyCurrentHeadAndroidInstalledCandidate(
     commandRunner,
@@ -265,8 +340,81 @@ export async function diagnoseAndroidPhoneVerification({
   const { vault } = readEmailVerifiedJourneyVault(protectedOwnerVaultFile);
   const owner = vault.accounts.find((entry) => entry.role === 'owner');
   if (!owner) fail('The protected synthetic owner role is unavailable.');
+  const providerStatus = await inspectStagingPhoneProvider(fetchImpl, owner);
+
+  if (phase === 'preflight') {
+    const status = providerStatus.available
+      ? 'firebase-phone-provider-available-current-candidate'
+      : 'firebase-phone-provider-disabled-current-candidate';
+    const stateSha256 = writePrivateState(privateEvidenceDirectory, {
+      schemaVersion: 1,
+      kind: 'n24-private-phone-verification-state',
+      status,
+      capturedAt,
+      candidateCommit: candidate.commit,
+      candidateBuildNumber: candidate.buildNumber,
+      providerAvailable: providerStatus.available,
+      diagnosticSessionRevoked: providerStatus.diagnosticSessionRevoked,
+      containsPhoneNumber: false,
+      containsSmsCode: false,
+    });
+    return {
+      schemaVersion: 1,
+      kind: 'android-current-candidate-phone-verification-diagnostic',
+      status,
+      capturedAt,
+      candidate: {
+        applicationId: candidate.applicationId,
+        versionName: candidate.versionName,
+        buildNumber: candidate.buildNumber,
+        commit: candidate.commit,
+        apkSha256: candidate.apkSha256,
+        signingCertificateSha256: candidate.signingCertificateSha256,
+        apiBaseUrl: candidate.apiBaseUrl,
+        repositoryHeadAtObservation: candidate.repositoryHeadAtObservation,
+        postCandidateChangedPathCount: candidate.postCandidateChangedPathCount,
+        mobileSourceChangedAfterCandidate: false,
+      },
+      installed: {
+        physicalDevice: true,
+        exactCandidateHashMatched: true,
+        versionName: installed.versionName,
+        buildNumber: installed.buildNumber,
+        delivery: installed.delivery,
+      },
+      device: deviceSummary,
+      results: {
+        stagingProviderAvailable: providerStatus.available,
+        provider: providerStatus.provider,
+        diagnosticSessionRevoked: providerStatus.diagnosticSessionRevoked,
+        smsRequested: false,
+        ownerActionRequired: !providerStatus.available,
+        privateStateSha256: stateSha256,
+        protectedSyntheticOwnerRetained: true,
+      },
+      boundaries: {
+        stagingOnly: true,
+        productionChanged: false,
+        googlePlayChanged: false,
+        firebaseConfigurationChanged: false,
+        smsSent: false,
+        paymentCalled: false,
+        realMoneyUsed: false,
+        kycCalled: false,
+        containsPhoneNumber: false,
+        containsSmsCode: false,
+        containsCredential: false,
+        containsToken: false,
+        containsRawDeviceIdentifiers: false,
+        containsPrivateFilesystemPaths: false,
+      },
+    };
+  }
+
+  if (!providerStatus.available) {
+    fail('The Staging phone-verification provider is unavailable.');
+  }
   const phoneNumber = readPrivatePhone(phoneFile);
-  await stagingPhoneStatus(fetchImpl, owner);
 
   await ensureAndroidGuestSession({ commandRunner, adbPath, device, wait });
   const restored = await restoreSyntheticSession({
@@ -417,6 +565,7 @@ export async function diagnoseAndroidPhoneVerification({
         || status === 'already-verified-current-candidate',
       verifiedStatePersistedAfterColdRestart: status === 'passed-valid-code-and-cold-restart',
       ownerActionRequired: status === 'awaiting-owner-sms-code',
+      diagnosticSessionRevoked: providerStatus.diagnosticSessionRevoked,
       privateStateSha256: stateSha256,
       protectedSyntheticOwnerRetained: true,
     },
@@ -447,10 +596,45 @@ function requiredEnvironment(name) {
 async function run() {
   const phase = process.env.SIT_N24_PHASE?.trim() || 'request';
   const protectedOwnerVaultFile = requiredEnvironment('SIT_N24_PROTECTED_OWNER_VAULT_FILE');
-  const phoneFile = requiredEnvironment('SIT_N24_PHONE_FILE');
+  const candidateDirectory = requiredEnvironment('SIT_N24_CANDIDATE_DIRECTORY');
+  const phoneFile = phase === 'preflight'
+    ? undefined
+    : requiredEnvironment('SIT_N24_PHONE_FILE');
   const privateEvidenceDirectory = process.env.SIT_N24_PRIVATE_EVIDENCE_DIR?.trim()
     || resolve(homedir(), 'Library', 'Application Support', 'ShareItToo', 'qa', 'n24-phone-verification');
-  const candidate = await validateCurrentHeadAndroidReleaseArchive();
+  const archive = await validatePrivateAndroidReleaseArchive({ candidateDirectory });
+  const repositoryHeadAtObservation = String(execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  })).trim();
+  let candidateIsAncestor = true;
+  try {
+    execFileSync('git', [
+      'merge-base', '--is-ancestor', archive.commit, repositoryHeadAtObservation,
+    ], {
+      cwd: repositoryRoot,
+      stdio: 'ignore',
+    });
+  } catch {
+    candidateIsAncestor = false;
+  }
+  const changedPaths = String(execFileSync('git', [
+    'diff', '--name-only', `${archive.commit}..${repositoryHeadAtObservation}`,
+  ], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  })).trim().split(/\r?\n/u).filter(Boolean);
+  const compatibility = validateFrozenCandidateMobileCompatibility({
+    candidateIsAncestor,
+    changedPaths,
+  });
+  const candidate = Object.freeze({
+    ...archive,
+    repositoryHeadAtObservation,
+    postCandidateChangedPathCount: compatibility.changedPathCount,
+  });
   const devices = parseAdbDevices(
     defaultCurrentHeadAndroidCommandRunner('adb', ['devices', '-l']),
   );
