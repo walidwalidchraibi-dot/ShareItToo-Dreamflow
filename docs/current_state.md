@@ -14,6 +14,16 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
+Latest owner-ready run on 2026090307: invalid code rejected, owner-provided
+fresh code accepted by Backend, verified phone visible after cold restart,
+then exact Backend/Pixel cleanup passed. Temporary phone/code files removed.
+Direct confirmation-dialog closure remains unverified. The previous rejection
+persisted in the UI and the diagnostic accepted that stale label as a result;
+a local widget test reproduces stale rejection during a pending retry. See
+`docs/operations/N29_PIXEL_SMS_RETRY_CHECKPOINT_2026-09-03.md`. The older
+paragraphs below describe their original candidate/checkpoint, not a rollback
+of these newly verified facts. WP01 is still not DONE.
+
 One owner-authorized SMS reached the owner from the exact Pixel candidate
 `1.0.0+2026090306`. Exact Backend preconditions before cleanup prove the phone
 was verified, but the UI completion was not captured. Cleanup then removed the
@@ -53,9 +63,13 @@ Exact candidate-source Regression `33797592791`, clean checkout and CodeQL
 `33797592920` pass, as does the already-recorded complete local candidate gate.
 The exact installed APK passed authenticated cold launch, all five main
 destinations and no-SMS phone preflight; its temporary backend session was
-revoked. No new SMS was requested. Maximus's send action requested a fresh
-owner-assisted SMS window; the tab was closed immediately, without reading
-the reply or claiming watch delivery. WP01 remains PARTIAL.
+revoked. No new SMS was requested. The original notification attempt was later
+found as a Telegram draft. It was replaced with one combined SMS/Meta/Apple
+owner request using the explicit Send button, then immediately closed without
+reading the reply or claiming relay/watch delivery. WP01 remains PARTIAL.
+Read-only provider prerequisites and a reproduced, unfixed provider-session
+cleanup defect are recorded in `WP02_PROVIDER_READINESS_2026-09-03.md`.
+No new mobile source or Pixel candidate is introduced by that preparation.
 New host-capacity and Kotlin-metadata debt remain OPEN, not hidden by build
 success. See `docs/operations/N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md`
 and `docs/operations/N29_BUILD_HOST_DEBT_2026-09-03.md`.

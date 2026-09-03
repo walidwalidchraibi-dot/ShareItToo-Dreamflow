@@ -93,6 +93,10 @@
   "openDebt": ["TD-N29-HOST-CAPACITY", "TD-N29-KOTLIN-METADATA"],
   "ownerNotification": {
     "destination": "Maximus via Telegram",
+    "initialEnterActionLaterFoundAsDraft": true,
+    "initialDeliveryProven": false,
+    "replacementCombinedSmsMetaAppleRequest": true,
+    "explicitSendButtonClicked": true,
     "sendActionPerformed": true,
     "tabClosedImmediately": true,
     "botReplyRead": false,

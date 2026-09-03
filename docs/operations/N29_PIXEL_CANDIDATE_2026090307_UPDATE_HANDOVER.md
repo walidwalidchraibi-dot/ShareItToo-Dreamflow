@@ -67,12 +67,15 @@ Fresh-code invalid rejection, valid-code UI completion, verified cold restart
 and exact phone cleanup remain OPEN. Historical 2026090306 delivery and backend
 cleanup do not prove these requirements on 2026090307. No old code is reused.
 
-The agreed Maximus message requested a short fresh SMS window and asked Walid
-to write `SMS bereit` in Codex. The send action was performed in the verified
-ShareItToo Chrome profile; the Telegram tab was immediately closed without
-reading the bot reply. Relay success and watch delivery are not independently
-confirmed. A previous visible gateway-auth failure is not proof of this new
-message's outcome. Do not repeatedly send notifications or request unattended SMS.
+Correction from the subsequent readback: the first Enter-and-close action left
+the SMS message as a Telegram draft; it did not prove sending. In the verified
+ShareItToo Chrome profile that draft was replaced with one combined owner
+request for `SMS bereit`, Meta developer terms/account confirmation and Apple
+Developer sign-in, with no membership purchase. The enabled Send button was
+then explicitly clicked and the tab immediately closed without reading the
+bot reply. Relay success and watch delivery remain unverified. Do not send
+duplicate notifications or request unattended SMS. See
+`WP02_PROVIDER_READINESS_2026-09-03.md` for the read-only provider findings.
 
 When the owner is available, verify this frozen archive/device again, use one
 fresh code window and retain typed rejection/unknown/known-confirmation

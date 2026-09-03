@@ -51,10 +51,23 @@ regression, exact Regression `33797592791` with clean checkout and CodeQL
 and Android surface pass. The update preserved the installed data identity;
 authenticated cold launch and five read-only main destinations pass.
 No-SMS preflight confirms the advertised Staging provider and revokes its
-diagnostic session. The real SMS completion matrix is still OPEN.
-Next: one fresh owner-assisted code window, requested through Maximus's send
-action without reading the reply. No relay/watch delivery claim and no resend
-loop. Host/toolchain debt is retained in `N29_BUILD_HOST_DEBT_2026-09-03.md`.
+diagnostic session. A subsequent owner-ready run now proves invalid-code
+rejection, exact Backend acceptance of the fresh code, verified phone status
+after cold restart and exact cleanup in both Backend and Pixel. Direct dialog
+completion remains OPEN: the prior rejection stayed visible and the diagnostic
+returned before obtaining an unambiguous current-attempt UI result. A local
+retry test reproduces stale error text while a new confirmation is pending.
+Next: bound and fix that stale outcome display, then validate the affected
+candidate separately; do not request another unattended SMS. Details:
+`docs/operations/N29_PIXEL_SMS_RETRY_CHECKPOINT_2026-09-03.md`.
+Readback showed the original
+Enter-and-close notification was only a draft. The explicit Send button was
+subsequently clicked for one combined SMS/Meta/Apple owner request; the tab was
+closed without reading the reply. No relay/watch delivery claim or resend loop.
+Independent provider inspection and a reproduced, still-unfixed shared-SDK
+cleanup defect are in `WP02_PROVIDER_READINESS_2026-09-03.md`; WP02 remains
+incomplete and has not been created as a separate Goal.
+Host/toolchain debt is retained in `N29_BUILD_HOST_DEBT_2026-09-03.md`.
 Active handover:
 `docs/operations/N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md`.
 

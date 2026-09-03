@@ -8,8 +8,9 @@ routine reconfirmation. The Staging requirements remain intact.
 
 Actual Goal state at this checkpoint: the unfinished encompassing Goal is
 still active. No separate WP Goal has been created. Available Goal tools cannot
-clear or replace an unfinished Goal; the owner must remove the old Goal through
-the supported progress-row control once. Never misreport it complete to enable
+clear or replace an unfinished Goal; the owner must use `/goal clear` once
+([official guidance](https://learn.chatgpt.com/use-cases/follow-goals)).
+Never misreport it complete to enable
 the transition. After that change is verified, create WP01 with its bounded
 outcome and completion criteria; complete it truthfully, then create WP02,
 and so on. No extra chats, parallel writers or duplicate scheduler are needed.
@@ -86,8 +87,11 @@ and continue independent packages without claiming WP01 DONE.
 
 Active handover: `N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md`.
 Candidate build, safe Pixel update, authenticated navigation and no-SMS
-preflight pass. A fresh owner-assisted SMS window is still required; WP01 is
-not complete. Newly observed host/toolchain debt stays explicit in
+preflight pass. The subsequent owner-ready run also proves invalid rejection,
+Backend acceptance, verified cold restart and cleanup; immediate dialog
+completion remains open and stale retry error text is reproduced locally.
+See `N29_PIXEL_SMS_RETRY_CHECKPOINT_2026-09-03.md`. WP01 is not complete.
+Newly observed host/toolchain debt stays explicit in
 `N29_BUILD_HOST_DEBT_2026-09-03.md`.
 Historical device evidence: `N29_CURRENT_CANDIDATE_SMS_DELIVERY_PARTIAL_2026-09-03.md`.
 
@@ -100,6 +104,10 @@ supported Staging paths using existing authorized access. Do not count a hidden
 button, mock provider or syntactically valid configuration as successful login.
 Record any unsupported platform case and exact owner-only action explicitly.
 Completion requires runtime evidence for each supported intended sign-in path.
+
+Read-only provider inspection and an independently reproduced shared-SDK
+cleanup defect are recorded in `WP02_PROVIDER_READINESS_2026-09-03.md`.
+That preparation is not WP02 closure or creation of a separate Goal.
 
 ### WP03 — image-assisted listing creation
 
