@@ -14,6 +14,7 @@ import 'backend_http.dart';
 import 'backend_realtime_service.dart';
 import 'blue_ocean_draft_recovery_service.dart';
 import 'firebase_runtime.dart';
+import 'remote_auth_attempt_transaction.dart';
 import 'shared_persistence_sync.dart';
 
 class _QueuedAuthSessionMutation {
@@ -437,20 +438,65 @@ class AuthService {
   static Future<AuthResult> signInWithEmailPassword({
     required String email,
     required String password,
+    int? expectedSessionEpoch,
+    bool Function()? isActionCurrent,
   }) async {
     if (BackendConfig.enabled) {
       try {
-        final response = await BackendHttp.requestJson(
-          method: 'POST',
-          path: '/auth/login',
-          body: {'email': email.trim(), 'password': password},
+        return await RemoteAuthAttemptTransaction<
+                ({String email, String password}),
+                Map<String, dynamic>,
+                AuthResult>()
+            .run(
+          preflightCurrent: () => _authAttemptPreflightCurrent(
+            expectedSessionEpoch,
+            isActionCurrent,
+          ),
+          actionCurrent: () => _authAttemptActionCurrent(isActionCurrent),
+          acquire: () async => (
+            email: email.trim(),
+            password: password,
+          ),
+          invokeRemote: (credentials) => BackendHttp.requestJson(
+            method: 'POST',
+            path: '/auth/login',
+            body: {
+              'email': credentials.email,
+              'password': credentials.password,
+            },
+          ),
+          persist: (response) async {
+            final session = await _saveRemoteSession(
+              response,
+              expectedGeneration: expectedSessionEpoch,
+            );
+            return AuthResult.success(
+              session: session,
+              verificationEmailSent: response['verificationEmailSent'] == true,
+            );
+          },
+          discardRemote: _discardIssuedRemoteSession,
+          persistedCurrent: _authResultSessionDefinitelyCurrent,
+          discardPersisted: _discardPersistedAuthResult,
         );
-        final session = await _saveRemoteSession(response);
-        return AuthResult.success(
-          session: session,
-          verificationEmailSent: response['verificationEmailSent'] == true,
+      } on RemoteAuthAttemptSuperseded {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      } on _DiscardedRefreshResult {
+        return AuthResult.failure(
+          _authAttemptPreflightCurrent(
+            expectedSessionEpoch,
+            isActionCurrent,
+          )
+              ? AuthFailure.network
+              : AuthFailure.principalChanged,
         );
       } on BackendException catch (error) {
+        if (!_authAttemptPreflightCurrent(
+          expectedSessionEpoch,
+          isActionCurrent,
+        )) {
+          return const AuthResult.failure(AuthFailure.principalChanged);
+        }
         if (error.statusCode == 401) {
           return const AuthResult.failure(AuthFailure.invalidCredentials);
         }
@@ -461,14 +507,38 @@ class AuthService {
         debugPrint('[AuthService] remote sign-in failed: $error');
         return const AuthResult.failure(AuthFailure.network);
       } catch (error) {
+        if (!_authAttemptPreflightCurrent(
+          expectedSessionEpoch,
+          isActionCurrent,
+        )) {
+          return const AuthResult.failure(AuthFailure.principalChanged);
+        }
         debugPrint('[AuthService] remote sign-in failed: $error');
         return const AuthResult.failure(AuthFailure.network);
       }
     }
 
+    if (!_authAttemptPreflightCurrent(
+      expectedSessionEpoch,
+      isActionCurrent,
+    )) {
+      return const AuthResult.failure(AuthFailure.principalChanged);
+    }
     await ensureSeeded();
     try {
+      if (!_authAttemptPreflightCurrent(
+        expectedSessionEpoch,
+        isActionCurrent,
+      )) {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
       final prefs = await SharedPreferences.getInstance();
+      if (!_authAttemptPreflightCurrent(
+        expectedSessionEpoch,
+        isActionCurrent,
+      )) {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
       final accounts = await _readAccounts(prefs);
       final normalizedEmail = email.trim().toLowerCase();
       final match = accounts.firstWhere(
@@ -488,14 +558,39 @@ class AuthService {
         'email': normalizedEmail,
         'createdAt': DateTime.now().toIso8601String(),
       };
-      await _persistSessionEncoded(jsonEncode(sessionData));
-      return AuthResult.success(
+      if (!_authAttemptPreflightCurrent(
+        expectedSessionEpoch,
+        isActionCurrent,
+      )) {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
+      final persisted = await _persistSessionEncoded(
+        jsonEncode(sessionData),
+        expectedGeneration: expectedSessionEpoch,
+      );
+      if (!persisted) {
+        return AuthResult.failure(
+          _authAttemptActionCurrent(isActionCurrent)
+              ? AuthFailure.network
+              : AuthFailure.principalChanged,
+        );
+      }
+      final result = AuthResult.success(
         session: AuthSession(
           email: normalizedEmail,
           createdAt: DateTime.parse(sessionData['createdAt']!),
         ),
       );
+      if (!_authAttemptActionCurrent(isActionCurrent) ||
+          !await _authResultSessionDefinitelyCurrent(result)) {
+        await _discardPersistedAuthResult(result);
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
+      return result;
     } catch (error) {
+      if (!_authAttemptActionCurrent(isActionCurrent)) {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
       debugPrint('[AuthService] signInWithEmailPassword failed: $error');
       return const AuthResult.failure(AuthFailure.network);
     }
@@ -1056,37 +1151,81 @@ class AuthService {
     bool privacyAccepted = false,
     bool minimumAgeConfirmed = false,
     bool privateUseConfirmed = false,
+    int? expectedSessionEpoch,
+    bool Function()? isActionCurrent,
   }) async {
     if (!BackendConfig.enabled) {
       return const AuthResult.failure(AuthFailure.providerUnavailable);
     }
     try {
-      final idToken = await _firebaseSocialIdToken(provider);
-      final response = await BackendHttp.requestJson(
-        method: 'POST',
-        path: '/auth/social',
-        body: {
-          'idToken': idToken,
-          'termsAccepted': termsAccepted,
-          'privacyAccepted': privacyAccepted,
-          'minimumAgeConfirmed': minimumAgeConfirmed,
-          'privateUseConfirmed': privateUseConfirmed,
+      return await RemoteAuthAttemptTransaction<String, Map<String, dynamic>,
+              AuthResult>()
+          .run(
+        preflightCurrent: () => _authAttemptPreflightCurrent(
+          expectedSessionEpoch,
+          isActionCurrent,
+        ),
+        actionCurrent: () => _authAttemptActionCurrent(isActionCurrent),
+        acquire: () => _firebaseSocialIdToken(provider),
+        invokeRemote: (idToken) => BackendHttp.requestJson(
+          method: 'POST',
+          path: '/auth/social',
+          body: {
+            'idToken': idToken,
+            'termsAccepted': termsAccepted,
+            'privacyAccepted': privacyAccepted,
+            'minimumAgeConfirmed': minimumAgeConfirmed,
+            'privateUseConfirmed': privateUseConfirmed,
+          },
+        ),
+        persist: (response) async {
+          if (response['accepted'] == true &&
+              response['verificationEmailSent'] == true) {
+            return AuthResult.success(
+              verificationEmailSent: true,
+              pendingEmail: response['email']?.toString().trim().toLowerCase(),
+            );
+          }
+          return AuthResult.success(
+            session: await _saveRemoteSession(
+              response,
+              expectedGeneration: expectedSessionEpoch,
+            ),
+          );
         },
+        discardRemote: _discardIssuedRemoteSession,
+        persistedCurrent: _authResultSessionDefinitelyCurrent,
+        discardPersisted: _discardPersistedAuthResult,
       );
-      if (response['accepted'] == true &&
-          response['verificationEmailSent'] == true) {
-        return AuthResult.success(
-          verificationEmailSent: true,
-          pendingEmail: response['email']?.toString().trim().toLowerCase(),
-        );
-      }
-      return AuthResult.success(session: await _saveRemoteSession(response));
+    } on RemoteAuthAttemptSuperseded {
+      return const AuthResult.failure(AuthFailure.principalChanged);
+    } on _DiscardedRefreshResult {
+      return AuthResult.failure(
+        _authAttemptPreflightCurrent(
+          expectedSessionEpoch,
+          isActionCurrent,
+        )
+            ? AuthFailure.network
+            : AuthFailure.principalChanged,
+      );
     } on _SocialSignInCancelled {
       return const AuthResult.failure(AuthFailure.socialCancelled);
     } on _SocialProviderUnavailable catch (error) {
+      if (!_authAttemptPreflightCurrent(
+        expectedSessionEpoch,
+        isActionCurrent,
+      )) {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
       debugPrint('[AuthService] ${provider.name} unavailable: ${error.cause}');
       return const AuthResult.failure(AuthFailure.providerUnavailable);
     } on BackendException catch (error) {
+      if (!_authAttemptPreflightCurrent(
+        expectedSessionEpoch,
+        isActionCurrent,
+      )) {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
       final failure = switch (error.code) {
         'social_registration_consents_required' => AuthFailure.consentRequired,
         'social_email_required' => AuthFailure.socialEmailRequired,
@@ -1105,6 +1244,12 @@ class AuthService {
       debugPrint('[AuthService] social exchange failed: ${error.code}');
       return AuthResult.failure(failure);
     } catch (error) {
+      if (!_authAttemptPreflightCurrent(
+        expectedSessionEpoch,
+        isActionCurrent,
+      )) {
+        return const AuthResult.failure(AuthFailure.principalChanged);
+      }
       debugPrint('[AuthService] social sign-in failed: $error');
       return const AuthResult.failure(AuthFailure.network);
     } finally {
@@ -1203,6 +1348,53 @@ class AuthService {
     }
   }
 
+  static bool _authAttemptActionCurrent(bool Function()? check) {
+    if (check == null) return true;
+    try {
+      return check();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool _authAttemptPreflightCurrent(
+    int? expectedSessionEpoch,
+    bool Function()? isActionCurrent,
+  ) {
+    return (expectedSessionEpoch == null ||
+            expectedSessionEpoch == _sessionGeneration) &&
+        _authAttemptActionCurrent(isActionCurrent);
+  }
+
+  static Future<void> _discardIssuedRemoteSession(
+    Map<String, dynamic> response,
+  ) async {
+    final refreshToken = response['refreshToken']?.toString() ?? '';
+    if (refreshToken.isEmpty || !BackendConfig.enabled) return;
+    await BackendHttp.requestJson(
+      method: 'POST',
+      path: '/auth/logout',
+      body: {'refreshToken': refreshToken},
+    );
+  }
+
+  static Future<bool> _authResultSessionDefinitelyCurrent(
+    AuthResult result,
+  ) async {
+    final session = result.session;
+    if (session == null) return true;
+    return isSessionOwnerDefinitelyCurrent(captureSessionOwner(session));
+  }
+
+  static Future<void> _discardPersistedAuthResult(AuthResult result) async {
+    final session = result.session;
+    if (session == null) return;
+    await clearSessionOwnerIfMatches(
+      captureSessionOwner(session),
+      runLogoutCleanup: true,
+    );
+  }
+
   static Future<AuthSession> _saveRemoteSession(
     Map<String, dynamic> response, {
     int? expectedGeneration,
@@ -1260,7 +1452,17 @@ class AuthService {
       _sessionGeneration += 1;
       _notifyLocalPrincipalChanged();
       if (connectAccessToken != null && connectAccessToken.isNotEmpty) {
-        await BackendRealtimeService.connect(connectAccessToken);
+        try {
+          await BackendRealtimeService.connect(connectAccessToken);
+        } catch (error) {
+          // The persisted authenticated session remains authoritative while
+          // realtime reconnects independently. A socket failure must never be
+          // reported as a failed login after durable session persistence.
+          debugPrint(
+            '[AuthService] realtime connect after session persistence failed: '
+            '${error.runtimeType}',
+          );
+        }
       }
       return true;
     });
@@ -1419,6 +1621,7 @@ class AuthSessionClearReceipt {
 }
 
 enum AuthFailure {
+  principalChanged,
   invalidCredentials,
   invalidEmail,
   emailVerificationRequired,

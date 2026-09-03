@@ -748,11 +748,11 @@
     },
     {
       "path": "lib/screens/login_screen.dart",
-      "sha256": "f36326a76ff636088bebd1f981b5ff2b9606329e810d802ac1122611428b3e73"
+      "sha256": "f033412b9dc16cc7bc92511011d37de51094d31a3377f7696883325b984ae70b"
     },
     {
       "path": "lib/screens/register_screen.dart",
-      "sha256": "5af1366c578d8416db5d5cb2e99c0c602b1994b59c2d23144d3d3e06b2113f43"
+      "sha256": "260857bf8105742d4825204e04220c34c7a356370f11eae5692d96f84ac234e9"
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
@@ -852,7 +852,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "fcccf36152ccf5c6fe92e297b93ec813cd2ceceb8b58b5a5d1dd121371a9b6b4"
+      "sha256": "2d4c0e2f1291c4d57d63f83088cbded707c775e96206ab9232a1da192d6a89df"
     },
     {
       "path": "lib/screens/notification_settings_screen.dart",

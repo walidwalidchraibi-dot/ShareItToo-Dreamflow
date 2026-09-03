@@ -231,11 +231,27 @@ class _LoginScreenState extends State<LoginScreen> {
         actionEpoch: _loginActionEpoch,
       );
 
+  bool _isLoginActionCurrent(int actionEpoch) =>
+      mounted && actionEpoch == _loginActionEpoch;
+
+  bool _isNoSessionLoginPreflightCurrent({
+    required int actionEpoch,
+    required int noSessionEpoch,
+  }) =>
+      _isLoginActionCurrent(actionEpoch) &&
+      _confirmedNoSessionEpoch == noSessionEpoch &&
+      AuthService.sessionEpoch == noSessionEpoch;
+
   Future<bool> _retainSuccessfulLoginOwner(
     LoginEmailVerificationOwner loginOwner,
     AuthSessionOwner successfulSessionOwner,
   ) async {
-    if (_isLoginEmailOwnerCurrent(loginOwner)) return true;
+    if (_isLoginEmailOwnerCurrent(loginOwner) &&
+        await AuthService.isSessionOwnerDefinitelyCurrent(
+          successfulSessionOwner,
+        )) {
+      return true;
+    }
     await AuthService.clearSessionOwnerIfMatches(
       successfulSessionOwner,
       runLogoutCleanup: false,
@@ -320,17 +336,32 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!ok) return;
     final loginOwner = _captureLoginEmailOwner();
     final loginPassword = _pwCtrl.text;
+    final noSessionEpoch = _confirmedNoSessionEpoch;
+    if (noSessionEpoch == null ||
+        !_isNoSessionLoginPreflightCurrent(
+          actionEpoch: loginOwner.actionEpoch,
+          noSessionEpoch: noSessionEpoch,
+        )) {
+      return;
+    }
     AuthSessionOwner? successfulSessionOwner;
 
     setState(() => _busy = true);
     try {
       // Simulate realistic latency.
       await Future<void>.delayed(const Duration(milliseconds: 520));
-      if (!_isLoginEmailOwnerCurrent(loginOwner)) return;
+      if (!_isNoSessionLoginPreflightCurrent(
+        actionEpoch: loginOwner.actionEpoch,
+        noSessionEpoch: noSessionEpoch,
+      )) {
+        return;
+      }
 
       final result = await AuthService.signInWithEmailPassword(
         email: loginOwner.normalizedEmail,
         password: loginPassword,
+        expectedSessionEpoch: noSessionEpoch,
+        isActionCurrent: () => _isLoginEmailOwnerCurrent(loginOwner),
       );
       if (!_isLoginEmailOwnerCurrent(loginOwner)) {
         final staleSession = result.session;
@@ -344,6 +375,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (!result.ok) {
+        if (result.failure == AuthFailure.principalChanged) return;
         if (result.failure == AuthFailure.emailVerificationRequired) {
           try {
             if (!_isLoginEmailOwnerCurrent(loginOwner)) return;
@@ -514,17 +546,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _socialSignIn(AuthSocialProvider provider) async {
     if (_busy || !mounted) return;
+    final actionEpoch = ++_loginActionEpoch;
+    final noSessionEpoch = _confirmedNoSessionEpoch;
+    if (noSessionEpoch == null ||
+        !_isNoSessionLoginPreflightCurrent(
+          actionEpoch: actionEpoch,
+          noSessionEpoch: noSessionEpoch,
+        )) {
+      return;
+    }
     final providerLabel = switch (provider) {
       AuthSocialProvider.google => 'Google',
       AuthSocialProvider.apple => 'Apple',
       AuthSocialProvider.facebook => 'Facebook',
     };
+    AuthSessionOwner? successfulSessionOwner;
     setState(() => _busy = true);
     try {
-      final result = await AuthService.signInWithSocialProvider(provider);
-      if (!mounted) return;
+      final result = await AuthService.signInWithSocialProvider(
+        provider,
+        expectedSessionEpoch: noSessionEpoch,
+        isActionCurrent: () => _isLoginActionCurrent(actionEpoch),
+      );
+      if (!_isLoginActionCurrent(actionEpoch)) {
+        final staleSession = result.session;
+        if (staleSession != null) {
+          await AuthService.clearSessionOwnerIfMatches(
+            AuthService.captureSessionOwner(staleSession),
+            runLogoutCleanup: false,
+          );
+        }
+        return;
+      }
       if (!result.ok) {
-        if (result.failure == AuthFailure.socialCancelled) return;
+        if (result.failure == AuthFailure.socialCancelled ||
+            result.failure == AuthFailure.principalChanged) {
+          return;
+        }
         final message = switch (result.failure) {
           AuthFailure.consentRequired =>
             'Für dein erstes SIT-Konto bestätigst du bitte noch Alter, AGB und Datenschutz.',
@@ -543,12 +601,15 @@ class _LoginScreenState extends State<LoginScreen> {
           _ =>
             'Die $providerLabel-Anmeldung ist gerade nicht erreichbar. Bitte versuche es erneut.',
         };
+        if (!mounted) return;
         await AppPopup.toast(
           context,
           icon: Icons.error_outline,
           title: message,
         );
-        if (result.failure == AuthFailure.consentRequired && mounted) {
+        if (!_isLoginActionCurrent(actionEpoch)) return;
+        if (result.failure == AuthFailure.consentRequired) {
+          if (!mounted) return;
           await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => RegisterScreen(
@@ -560,6 +621,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       if (result.session == null) {
+        if (!_isLoginActionCurrent(actionEpoch)) return;
+        if (!mounted) return;
         await AppPopup.toast(
           context,
           icon: Icons.mark_email_read_outlined,
@@ -569,19 +632,81 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         return;
       }
-      final email = result.session?.email ?? '';
+      final successfulSession = result.session!;
+      successfulSessionOwner =
+          AuthService.captureSessionOwner(successfulSession);
+      final email = successfulSession.email;
       await DataService.syncCurrentUserForSessionEmail(email);
+      if (!await _retainSuccessfulSocialLoginOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       await _syncRentalCartAfterAuthentication();
+      if (!await _retainSuccessfulSocialLoginOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       unawaited(FirebaseRuntime.syncPushRegistration());
+      if (!await _retainSuccessfulSocialLoginOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       if (!mounted) return;
       await context
           .read<DeveloperPreviewController>()
           .setState(DeveloperUserState.loggedIn);
-      if (!mounted) return;
+      if (!await _retainSuccessfulSocialLoginOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       _goHome(replace: true);
+    } catch (error) {
+      debugPrint('[LoginScreen] social sign-in failed: $error');
+      final completedOwner = successfulSessionOwner;
+      if (completedOwner != null) {
+        await AuthService.clearSessionOwnerIfMatches(
+          completedOwner,
+          runLogoutCleanup: false,
+        );
+      }
+      if (!_isLoginActionCurrent(actionEpoch)) return;
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.wifi_off_outlined,
+        title: 'Anmeldung nicht abgeschlossen.',
+        message: 'Bitte versuche es erneut.',
+      );
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (_isLoginActionCurrent(actionEpoch)) {
+        setState(() => _busy = false);
+      }
     }
+  }
+
+  Future<bool> _retainSuccessfulSocialLoginOwner(
+    int actionEpoch,
+    AuthSessionOwner successfulSessionOwner,
+  ) async {
+    if (_isLoginActionCurrent(actionEpoch) &&
+        await AuthService.isSessionOwnerDefinitelyCurrent(
+          successfulSessionOwner,
+        )) {
+      return true;
+    }
+    await AuthService.clearSessionOwnerIfMatches(
+      successfulSessionOwner,
+      runLogoutCleanup: false,
+    );
+    return false;
   }
 
   @override

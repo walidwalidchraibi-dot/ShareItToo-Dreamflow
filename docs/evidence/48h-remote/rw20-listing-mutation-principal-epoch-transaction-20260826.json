@@ -431,7 +431,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "fcccf36152ccf5c6fe92e297b93ec813cd2ceceb8b58b5a5d1dd121371a9b6b4"
+      "sha256": "2d4c0e2f1291c4d57d63f83088cbded707c775e96206ab9232a1da192d6a89df"
     },
     {
       "path": "lib/services/backend_repository.dart",
@@ -471,7 +471,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
-      "sha256": "3d356190d29c73cd6222f218cc706bb78dc315f8718a6faac4a3e30dde11918a"
+      "sha256": "0947e5136ba019d47f17bb486fcbcecbedc6099c768d89fad2b018077d425161"
     },
     {
       "path": "scripts/technical_regression_check.sh",

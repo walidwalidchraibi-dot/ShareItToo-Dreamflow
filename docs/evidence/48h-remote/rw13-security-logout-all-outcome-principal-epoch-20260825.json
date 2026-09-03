@@ -134,9 +134,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "1b18cb4a89914d4470f597f5ea7f2ebb3f6a515dc603d297dbeeb25f447391f2",
+    "privacyManifestSha256": "9c590c8c8834b430689f628ada6f129d6327f01b52fe571d5ac2a4b34793983f",
     "retentionManifestSha256": "dd2ea207260457ab3d06fcfbae9093856a348cb27bc198c323c856f6780498aa",
-    "activeProviderEvidenceSha256": "c317a201e6cb7f23b04f3044f5c054036c9f6336393d90f4b41feda73bf206f5",
+    "activeProviderEvidenceSha256": "9c4383dbf0679ec2449d5a94289ece81e31036b08e0a716baaa978544b5d1e22",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -191,7 +191,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "fcccf36152ccf5c6fe92e297b93ec813cd2ceceb8b58b5a5d1dd121371a9b6b4"
+      "sha256": "2d4c0e2f1291c4d57d63f83088cbded707c775e96206ab9232a1da192d6a89df"
     },
     {
       "path": "lib/services/backend_repository.dart",
@@ -203,7 +203,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "1b18cb4a89914d4470f597f5ea7f2ebb3f6a515dc603d297dbeeb25f447391f2"
+      "sha256": "9c590c8c8834b430689f628ada6f129d6327f01b52fe571d5ac2a4b34793983f"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -211,15 +211,15 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "c317a201e6cb7f23b04f3044f5c054036c9f6336393d90f4b41feda73bf206f5"
+      "sha256": "9c4383dbf0679ec2449d5a94289ece81e31036b08e0a716baaa978544b5d1e22"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "82170daeb8bb21c70da2d7490c25649a772d7772f423ed08e823dc469f5f83de"
+      "sha256": "f7741a13305dfbf0b318e72e7db491a500e81767a6d170e7e64c78bee97343ed"
     },
     {
       "path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
-      "sha256": "808bd2e3eb1b8decd2b0b02c5068798deba50ff58a30a2ccd8ec045bec9cf5b1"
+      "sha256": "80b98bef130c34921dbf99189409fbfb510cacfb354d007f5025b44200621393"
     },
     {
       "path": "scripts/technical_regression_check.sh",

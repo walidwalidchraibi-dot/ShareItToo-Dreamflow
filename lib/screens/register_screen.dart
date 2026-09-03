@@ -60,6 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _privacyAccepted = false;
 
   bool _didInteract = false;
+  int _socialActionEpoch = 0;
 
   @override
   void initState() {
@@ -87,6 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _socialActionEpoch += 1;
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _pwCtrl.dispose();
@@ -263,6 +265,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _socialRegister(AuthSocialProvider provider) async {
     if (_busy || !mounted) return;
+    final actionEpoch = ++_socialActionEpoch;
+    final noSessionEpoch = AuthService.sessionEpoch;
     final providerLabel = switch (provider) {
       AuthSocialProvider.google => 'Google',
       AuthSocialProvider.apple => 'Apple',
@@ -279,18 +283,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       return;
     }
+    AuthSessionOwner? successfulSessionOwner;
     setState(() => _busy = true);
     try {
+      final definitelySignedOut =
+          await AuthService.isStoredSessionDefinitelyAbsent();
+      if (!_isSocialActionCurrent(actionEpoch) ||
+          AuthService.sessionEpoch != noSessionEpoch ||
+          !definitelySignedOut) {
+        return;
+      }
       final result = await AuthService.signInWithSocialProvider(
         provider,
         termsAccepted: _termsAccepted,
         privacyAccepted: _privacyAccepted,
         minimumAgeConfirmed: _minimumAgeConfirmed,
         privateUseConfirmed: _privateUseConfirmed,
+        expectedSessionEpoch: noSessionEpoch,
+        isActionCurrent: () => _isSocialActionCurrent(actionEpoch),
       );
-      if (!mounted) return;
+      if (!_isSocialActionCurrent(actionEpoch)) {
+        final staleSession = result.session;
+        if (staleSession != null) {
+          await AuthService.clearSessionOwnerIfMatches(
+            AuthService.captureSessionOwner(staleSession),
+            runLogoutCleanup: false,
+          );
+        }
+        return;
+      }
       if (!result.ok) {
-        if (result.failure == AuthFailure.socialCancelled) return;
+        if (result.failure == AuthFailure.socialCancelled ||
+            result.failure == AuthFailure.principalChanged) {
+          return;
+        }
         final message = switch (result.failure) {
           AuthFailure.socialEmailRequired =>
             '$providerLabel hat keine E-Mail-Adresse übermittelt. Bitte gib sie dort frei oder nutze eine andere Anmeldung.',
@@ -307,6 +333,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _ =>
             'Die $providerLabel-Registrierung ist gerade nicht erreichbar. Bitte versuche es erneut.',
         };
+        if (!mounted) return;
         await AppPopup.toast(
           context,
           icon: Icons.error_outline,
@@ -316,6 +343,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
       if (result.session == null) {
         final pendingEmail = result.pendingEmail ?? '';
+        if (!_isSocialActionCurrent(actionEpoch)) return;
+        if (!mounted) return;
         await AppPopup.toast(
           context,
           icon: Icons.mark_email_read_outlined,
@@ -323,6 +352,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           message:
               'Bestätige einmal deine E-Mail und melde dich danach erneut mit $providerLabel an.',
         );
+        if (!_isSocialActionCurrent(actionEpoch)) return;
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -335,25 +365,91 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         return;
       }
-      final email = result.session?.email ?? '';
+      final successfulSession = result.session!;
+      successfulSessionOwner =
+          AuthService.captureSessionOwner(successfulSession);
+      final email = successfulSession.email;
       await DataService.syncCurrentUserForSessionEmail(email);
+      if (!await _retainSuccessfulSocialRegistrationOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       await _syncRentalCartAfterAuthentication();
+      if (!await _retainSuccessfulSocialRegistrationOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       await FirebaseRuntime.syncPushRegistration();
+      if (!await _retainSuccessfulSocialRegistrationOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       if (!mounted) return;
       await context
           .read<DeveloperPreviewController>()
           .setState(DeveloperUserState.loggedIn);
-      if (!mounted) return;
+      if (!await _retainSuccessfulSocialRegistrationOwner(
+        actionEpoch,
+        successfulSessionOwner,
+      )) {
+        return;
+      }
       final targetIndex = widget.returnTabIndex;
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => MainNavigation(initialIndex: targetIndex ?? 0),
         ),
         (route) => false,
       );
+    } catch (error) {
+      debugPrint('[RegisterScreen] social registration failed: $error');
+      final completedOwner = successfulSessionOwner;
+      if (completedOwner != null) {
+        await AuthService.clearSessionOwnerIfMatches(
+          completedOwner,
+          runLogoutCleanup: false,
+        );
+      }
+      if (!_isSocialActionCurrent(actionEpoch)) return;
+      if (!mounted) return;
+      await AppPopup.toast(
+        context,
+        icon: Icons.wifi_off_outlined,
+        title: 'Registrierung nicht abgeschlossen.',
+        message: 'Bitte versuche es erneut.',
+      );
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (_isSocialActionCurrent(actionEpoch)) {
+        setState(() => _busy = false);
+      }
     }
+  }
+
+  bool _isSocialActionCurrent(int actionEpoch) =>
+      mounted && actionEpoch == _socialActionEpoch;
+
+  Future<bool> _retainSuccessfulSocialRegistrationOwner(
+    int actionEpoch,
+    AuthSessionOwner successfulSessionOwner,
+  ) async {
+    if (_isSocialActionCurrent(actionEpoch) &&
+        await AuthService.isSessionOwnerDefinitelyCurrent(
+          successfulSessionOwner,
+        )) {
+      return true;
+    }
+    await AuthService.clearSessionOwnerIfMatches(
+      successfulSessionOwner,
+      runLogoutCleanup: false,
+    );
+    return false;
   }
 
   @override
@@ -735,10 +831,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                         label:
                                                             'Mit Google registrieren',
                                                         onTap: _busy ||
-                                                                !AuthService
-                                                                    .socialProviderEnabled(
-                                                                        AuthSocialProvider
-                                                                            .google)
+                                                                !AuthService.socialProviderEnabled(
+                                                                    AuthSocialProvider
+                                                                        .google)
                                                             ? null
                                                             : () => _socialRegister(
                                                                 AuthSocialProvider
@@ -765,10 +860,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                         label:
                                                             'Mit Facebook registrieren',
                                                         onTap: _busy ||
-                                                                !AuthService
-                                                                    .socialProviderEnabled(
-                                                                        AuthSocialProvider
-                                                                            .facebook)
+                                                                !AuthService.socialProviderEnabled(
+                                                                    AuthSocialProvider
+                                                                        .facebook)
                                                             ? null
                                                             : () => _socialRegister(
                                                                 AuthSocialProvider
