@@ -1,4 +1,38 @@
-# Current Work Package: N27 current-candidate Pixel product, push and offline
+# Current Work Package: N28 current-candidate Pixel surface matrix
+
+Status: **BROAD READ-ONLY PIXEL SURFACE MATRIX PASSED / LIVE GATES CLOSED** on
+03.09.2026.
+
+The exact signed Staging candidate `com.shareittoo.app`
+`1.0.0+2026090306` remains installed on the physical Pixel with matching APK
+and signing hashes; all post-candidate changes are non-mobile.
+
+Authenticated cold start, all five main destinations, seven legal documents,
+large-text navigation, 48 dp touch targets and five process restarts pass.
+Dark and Light modes and four background options are confirmed without
+changing the selected background; exact prior theme and font scale are
+restored. Private images stay outside Git. Nine account surfaces, Help Center
+and Support entry are reachable read-only, while payment and payout provider
+holds remain visible and closed.
+
+Implementation commit `ac301de50b1378e887dc19b6b9d8af5c5314e3bc`
+passes complete local regression plus GitHub Regression `33766321053`, clean
+checkout and CodeQL `33766320747` with zero alerts. PR #7 remains Draft and
+unmerged.
+
+No support submission, profile/account/background mutation, SMS, payment,
+real money, Production, Play, Firebase, Cloud/VPS/DNS, tester-list, OnePlus,
+professional legal approval or merge action occurred. Current-candidate SMS is
+the next bounded owner-assisted step. Manual TalkBack, Store/OnePlus, Stripe
+sandbox, external listing AI and V5.2 approval remain open or held.
+
+Machine evidence:
+`docs/evidence/release-readiness/n28-current-candidate-pixel-surface-matrix-2026090306.json`.
+
+Human handover:
+`docs/operations/N28_CURRENT_CANDIDATE_PIXEL_SURFACE_MATRIX_2026-09-03.md`.
+
+# Previous Work Package: N27 current-candidate Pixel product, push and offline
 
 Status: **TWO-ROLE PRODUCT JOURNEY, FCM AND OFFLINE/ONLINE PASSED / LIVE GATES
 CLOSED** on 03.09.2026.

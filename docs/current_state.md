@@ -4,7 +4,37 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N27 Pixel product, push and offline closure
+## Current N28 broad Pixel surface closure
+
+The exact signed Staging candidate `com.shareittoo.app`
+`1.0.0+2026090306` remains installed on the physical Pixel with matching APK
+and certificate hashes. No mobile source changed after the frozen candidate.
+
+Authenticated cold start, five main destinations, seven legal documents, five
+large-text destinations, 48 dp minimum navigation targets and five process
+restarts pass. Dark and Light modes are readable, the exact original theme and
+font scale are restored, and all four background choices are reachable without
+changing the selected background. Private captures were reviewed outside Git;
+only hashes are retained. The gray-blue Light overlay is a non-blocking visual
+polish risk.
+
+Nine account surfaces plus Help Center and Support entry pass read-only
+reachability. Payment and payout holds are visible; no provider or mutation
+action occurred. Complete local regression passes 2,129 tool tests, 797 Backend
+tests with two expected skips, PostgreSQL fresh/recovery, 652 Flutter tests,
+analyzer zero, Web/Wasm, loopback and Android. GitHub Regression `33766321053`,
+clean checkout and CodeQL `33766320747` pass with zero open alerts; PR #7 stays
+Draft and unmerged.
+
+Current-candidate real SMS remains the next owner-assisted step. Manual
+TalkBack, Store/OnePlus, Stripe sandbox, external listing AI and V5.2 approval
+remain separate. No Production, Play, payment, real money, Firebase, Cloud/VPS/
+DNS, tester-list, OnePlus or merge action occurred. Exact evidence is
+`docs/evidence/release-readiness/n28-current-candidate-pixel-surface-matrix-2026090306.json`;
+handover is
+`docs/operations/N28_CURRENT_CANDIDATE_PIXEL_SURFACE_MATRIX_2026-09-03.md`.
+
+## Previous N27 Pixel product, push and offline closure
 
 The exact signed Staging candidate `com.shareittoo.app`
 `1.0.0+2026090306`, built from
