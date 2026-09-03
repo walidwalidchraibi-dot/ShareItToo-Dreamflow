@@ -1,4 +1,49 @@
-# Current Work Package: N26 Pixel phone backend-gate preflight
+# Current Work Package: N27 current-candidate Pixel product, push and offline
+
+Status: **TWO-ROLE PRODUCT JOURNEY, FCM AND OFFLINE/ONLINE PASSED / LIVE GATES
+CLOSED** on 03.09.2026.
+
+The physical Pixel retains the exact signed Staging candidate
+`com.shareittoo.app` `1.0.0+2026090306` from source
+`9d7e2601dc477cf3ae3d469b65448ce2065375e0`; installed APK and certificate
+hashes still match its private frozen archive and no later mobile source path
+changed.
+
+Two distinct email-confirmed principals passed publication, server/public
+catalog truth, renter discovery, non-binding request/acceptance, both
+`Pilot-Simulation` presentations, chat, A-to-B isolation, cancellation,
+listing/public cleanup and protected-owner restoration. Foreground, background
+and terminated-process Staging FCM pass. The hardened offline probe requires a
+five-second continuously confirmed disconnected state, keeps the new message
+absent for 15 seconds, then proves same-process recovery after the original
+network is restored.
+
+Commit `5656ee6aaf2f4ab6ea9b0a47dacb8b1b3799cdcf` closes a harness cleanup
+defect found when the V5.2 legal hold rejected binding booking creation. The
+single exact unbooked orphan was safely paused and removed from the catalog.
+Commit `9a5f38dcbd5a3aa2471ba1bb314e2ffbef3a50bd` removes the network-transition
+race, and `b4741908b0e3b00bb9652de05ca63e87f159648f` rebinds the privacy and
+dependent evidence inventories without semantic or gate changes.
+
+Complete local regression passes 2,118 repository tool tests, 797 Backend
+tests with two expected no-database skips, PostgreSQL fresh/recovery, 652
+Flutter tests, analyzer zero, Web/Wasm, loopback and Android. GitHub Regression
+`33757624155`, clean checkout and CodeQL `33757624091` pass with zero alerts;
+PR #7 remains Draft and unmerged.
+
+No contract, reservation, payment call, real money, Production, Play, Firebase
+configuration, KYC, Cloud/VPS/DNS, tester-list, OnePlus or merge action
+occurred. Current-candidate real SMS remains one owner-assisted step;
+notification-icon visual review, Store FCM, hotspot, manual TalkBack, provider
+activation, external listing AI and V5.2 approval remain separate.
+
+Machine evidence:
+`docs/evidence/release-readiness/n27-current-candidate-pixel-two-role-push-offline-2026090306.json`.
+
+Human handover:
+`docs/operations/N27_CURRENT_CANDIDATE_PIXEL_TWO_ROLE_PUSH_OFFLINE_2026-09-03.md`.
+
+# Previous Work Package: N26 Pixel phone backend-gate preflight
 
 Status: **BACKEND-GATE PREFLIGHT PASSED / CURRENT-CANDIDATE REAL SMS OWNER STEP
 PENDING / LIVE GATES CLOSED** on 03.09.2026.

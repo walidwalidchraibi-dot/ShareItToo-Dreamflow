@@ -4,7 +4,55 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N26 Pixel phone backend-gate preflight
+## Current N27 Pixel product, push and offline closure
+
+The exact signed Staging candidate `com.shareittoo.app`
+`1.0.0+2026090306`, built from
+`9d7e2601dc477cf3ae3d469b65448ce2065375e0`, remains installed on the physical
+Pixel with matching APK and signing hashes. No mobile source changed after the
+frozen candidate.
+
+Two distinct email-confirmed principals pass owner publication through the app,
+exact server/public catalog truth, renter discovery, non-binding request and
+acceptance, chat, A-to-B isolation and complete N27 fixture cleanup. Both roles
+display `Pilot-Simulation`; no contract, reservation, payment call,
+availability change or monetary effect occurred. The protected owner session
+was restored.
+
+Controlled Staging FCM passes in foreground, background and with the app
+process absent. A private icon capture exists but still needs visual review, so
+no complete Store-installed FCM matrix is claimed. The final offline/online run
+requires ten consecutive disconnected samples over five seconds, observes the
+new message absent for 15 seconds, then proves it visible only after restoring
+the original network; the same process and foreground chat survive without a
+crash.
+
+The V5.2 legal hold correctly rejected a binding synthetic booking. The failed
+setup revealed one harness-created unbooked listing, which was verified,
+paused, read back and removed from the public catalog. Commit
+`5656ee6aaf2f4ab6ea9b0a47dacb8b1b3799cdcf` makes exact unbooked-listing
+cleanup fail closed; commit `9a5f38dcbd5a3aa2471ba1bb314e2ffbef3a50bd`
+stabilizes the offline boundary. Privacy and dependent evidence inventories are
+mechanically rebound by `b4741908b0e3b00bb9652de05ca63e87f159648f`
+without changing semantics, provider decisions or live gates.
+
+Complete local regression passes 2,118 repository tool tests, 797 Backend
+tests with two expected no-database skips, PostgreSQL fresh/recovery, 652
+Flutter tests, analyzer zero, Web/Wasm, loopback and Android. GitHub Regression
+`33757624155`, clean checkout and CodeQL `33757624091` pass; alerts remain zero
+and PR #7 stays Draft and unmerged.
+
+Current-candidate real SMS remains one owner-assisted request/code/cold-restart
+step. Notification-icon review, Store FCM, hotspot, manual TalkBack, OnePlus,
+Stripe-provider activation, external listing AI and V5.2 approval remain
+separate. No Production, Play, Firebase configuration, payment, real money,
+KYC, Cloud/VPS/DNS, tester-list, OnePlus or merge action occurred. Exact
+evidence is
+`docs/evidence/release-readiness/n27-current-candidate-pixel-two-role-push-offline-2026090306.json`;
+handover is
+`docs/operations/N27_CURRENT_CANDIDATE_PIXEL_TWO_ROLE_PUSH_OFFLINE_2026-09-03.md`.
+
+## Previous N26 Pixel phone backend-gate preflight
 
 The physical Pixel has the exact signed Staging candidate
 `com.shareittoo.app` `1.0.0+2026090306` from source
