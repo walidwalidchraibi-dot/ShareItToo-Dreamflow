@@ -4,6 +4,40 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
+## Current N19 real Staging email identity closure
+
+Two persistent Staging identities with synthetic owner-only mail aliases have
+now passed the real Google Workspace SMTP and single-use email-link path. Both
+matching verification messages were found through the official connected
+Gmail surface and both exact Staging confirmations succeeded. No cookie,
+address, credential, token, link or mailbox content was printed or committed.
+The private mode-`0600` vault remains outside Git in state
+`email-link-verified-ready-for-login`.
+
+On the exact signed Internal/Staging candidate `com.shareittoo.app`
+`1.0.0+2026090305`, the physical Pixel logged in through the app UI as owner,
+switched to renter and back to owner. Each profile showed only the correct
+synthetic role; the prior principal was absent. Both roles survived separate
+force-stop/cold-start probes with the correct identity. Private screenshot and
+UI-hierarchy evidence remains outside Git and is represented only by hashes.
+
+Staging remains healthy on Backend source
+`5d88295fa7fe313b83936783a0582a505b2ba486`; payment remains memory-only and
+listing AI remains mock. No deployment was needed. N18 evidence HEAD
+`e80b1096c77422554c382b671ecdd910af55b96f` passes GitHub Regression
+`33718146247`, CodeQL `33718146180`, clean checkout and zero alerts. PR #7 is
+still Draft and unmerged.
+
+The Pixel registration form itself was not submitted in this package; its UI
+contract is deterministic-test covered while endpoint, SMTP, confirmation and
+real app login passed separately. Google sign-in, password recovery,
+phone/KYC, Stripe sandbox, external listing AI and V5.2 approval remain open.
+OnePlus, Play, Production, public registration, real money and PR merge were
+unchanged. Exact evidence is
+`docs/evidence/release-readiness/n19-real-staging-email-identity-pixel-2026090305.json`;
+handover is
+`docs/operations/N19_REAL_STAGING_EMAIL_IDENTITY_PIXEL_2026-09-03.md`.
+
 ## Current N18 Pixel two-role non-binding truth closure
 
 The exact signed Internal/Staging candidate `com.shareittoo.app`

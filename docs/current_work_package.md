@@ -1,4 +1,40 @@
-# Current Work Package: N18 Pixel two-role non-binding truth closure
+# Current Work Package: N19 real Staging email identity closure
+
+Status: **CLOSED / TWO EMAIL LINKS AND TWO REAL STAGING LOGINS PASSED / LIVE
+GATES CLOSED** on 03.09.2026.
+
+Two persistent Staging identities with synthetic owner-only mail aliases pass
+the real Google Workspace SMTP and single-use verification-link path. The
+private mode-`0600` vault remains outside Git in state
+`email-link-verified-ready-for-login`; no address, credential, token, link,
+cookie or mailbox content was printed or committed.
+
+The exact signed Internal/Staging candidate `com.shareittoo.app`
+`1.0.0+2026090305` logged in through the physical Pixel UI in the sequence
+owner → renter → owner. The expected role profile was visible each time, the
+previous principal was absent, and both roles separately survived force-stop
+and cold start. Private screenshot/UI-hierarchy evidence is hash-bound only.
+
+Staging remains healthy without a deployment. Payment remains memory-only and
+listing AI remains mock. N18 evidence HEAD
+`e80b1096c77422554c382b671ecdd910af55b96f` passes exact GitHub Regression
+`33718146247`, CodeQL `33718146180`, clean checkout and zero open alerts. N19
+passes the full local gate with 2,063 repository tool tests, Flutter, analyzer
+zero, Web/Wasm, loopback smoke and Android build. PR #7 remains Draft and
+unmerged.
+
+The Pixel registration form itself was not submitted during this package; its
+UI contract is test-covered while the endpoint, SMTP, confirmation and app
+login passed separately. Google sign-in, password recovery, phone/KYC, Stripe
+sandbox, external listing AI and V5.2 approval remain open. OnePlus, Play,
+Production, public registration, real money and PR merge were unchanged.
+
+Machine evidence:
+`docs/evidence/release-readiness/n19-real-staging-email-identity-pixel-2026090305.json`.
+Human handover:
+`docs/operations/N19_REAL_STAGING_EMAIL_IDENTITY_PIXEL_2026-09-03.md`.
+
+# Previous Work Package: N18 Pixel two-role non-binding truth closure
 
 Status: **CLOSED / PIXEL CURRENT CANDIDATE PASSED / LIVE GATES CLOSED** on
 03.09.2026.
