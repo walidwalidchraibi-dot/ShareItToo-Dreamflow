@@ -118,9 +118,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "9c590c8c8834b430689f628ada6f129d6327f01b52fe571d5ac2a4b34793983f",
+    "privacyManifestSha256": "d37178324384b1ed4166e76b8681dfd5b2f6348aab3833ea45eab071b3a561f9",
     "retentionManifestSha256": "dd2ea207260457ab3d06fcfbae9093856a348cb27bc198c323c856f6780498aa",
-    "activeProviderEvidenceSha256": "9c4383dbf0679ec2449d5a94289ece81e31036b08e0a716baaa978544b5d1e22",
+    "activeProviderEvidenceSha256": "00b9ecf652aba1d032095b0c440beae06a72d0b95680b3d70a8a98e55d687a86",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
