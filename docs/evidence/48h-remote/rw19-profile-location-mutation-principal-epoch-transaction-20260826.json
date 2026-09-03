@@ -413,7 +413,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
-      "sha256": "03175351f37e0a6cc71d25bd5074f37081091c4cd1f48dfc397d06e4ef8d237d"
+      "sha256": "0b2790a94dc5e59b24bed919fa01a687d0ea156f366a91ab230db9827ca97376"
     },
     {
       "path": "scripts/technical_regression_check.sh",
