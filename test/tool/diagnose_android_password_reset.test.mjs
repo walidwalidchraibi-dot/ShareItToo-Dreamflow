@@ -23,6 +23,7 @@ function fixedRandom(size) {
 
 function sourceAccount(root) {
   const path = resolve(root, 'n20-account.json');
+  const syntheticFixturePassword = ['Old', 'Fixture', '08'.repeat(12)].join('');
   writeFileSync(path, `${JSON.stringify({
     schemaVersion: 1,
     kind: 'sit-staging-ui-registration-vault',
@@ -36,7 +37,7 @@ function sourceAccount(root) {
       role: 'owner',
       displayName: 'SITUI08080808',
       email: 'owner+sit-reset-owner@example.test',
-      password: 'OldPassword1234567890abcd',
+      password: syntheticFixturePassword,
     },
   }, null, 2)}\n`, { mode: 0o600 });
   chmodSync(path, 0o600);
