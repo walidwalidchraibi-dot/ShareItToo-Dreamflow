@@ -4,7 +4,51 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N20 Pixel app-UI registration closure
+## Current N21 Pixel password-recovery closure
+
+The persistent synthetic Staging identity created through the physical Pixel
+app now passes the complete recovery path: neutral reset request, real Google
+Workspace delivery, exact TLS Staging reset, single-use rejection, definite
+old-credential rejection, new app login and force-stop/cold-start persistence.
+Only the exact structured result `401:invalid_credentials` counts as definite
+old-credential rejection; HTTP 408, intermediary or unstructured 4xx,
+transport ambiguity and unexpected success preserve the private vaults and do
+not claim a password outcome. The protected owner session was restored after
+the diagnostic.
+
+The Pixel remains on the exact signed Internal/Staging direct-APK candidate
+`com.shareittoo.app` `1.0.0+2026090305` from artifact source
+`4bcc018eef7759d9f8fe64f75daba060abf0eb13`; archive identity, signature,
+Firebase configuration, binary privacy and installed APK hash were rechecked.
+No address, password, token, link, mailbox content, browser cookie or raw
+device identifier was printed or committed.
+
+Core diagnostic commit `0a310f04823ab7ddb87e1d6eba20aa82d0bbd6d3`
+surfaced one high-confidence secret-scan match in a synthetic test literal,
+not in product or runtime code. Commit
+`eadd1fac292527127ffaeafaab08a74190593612` constructs the fixture at runtime
+and records the exact historical false positive without weakening the scanner.
+Commit `638c91efd040d9c0412dcb39f151ba035cf3bf27` refreshes every dependent
+security-evidence inventory through RW20; the repository-wide inventory check
+reports zero stale hashes.
+
+That exact diagnostic head passes complete local regression with 2,075
+repository tool tests, no skips, Flutter, analyzer zero, Web/Wasm, loopback
+smoke and Android build. GitHub Regression `33724178775`, independent clean
+checkout and CodeQL `33724178803` pass; open code-scanning alerts remain zero.
+PR #7 remains Draft, open, mergeable and unmerged. Staging remains healthy
+without deployment; payment stays memory-only with `livemode=false` and
+listing AI stays mock with zero provider budget.
+
+Google sign-in, phone/KYC, Stripe sandbox, external listing AI, V5.2 approval
+and the complete real two-role product journey remain open. OnePlus, Play,
+Production, public registration, tester lists, real money and PR merge were
+unchanged. Exact evidence is
+`docs/evidence/release-readiness/n21-pixel-password-recovery-2026090305.json`;
+handover is
+`docs/operations/N21_PIXEL_PASSWORD_RECOVERY_2026-09-03.md`.
+
+## Previous N20 Pixel app-UI registration closure
 
 A fresh persistent Staging identity with a synthetic owner-only alias has now
 passed the complete physical Pixel path: registration form, all four visible

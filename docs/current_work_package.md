@@ -1,4 +1,43 @@
-# Current Work Package: N20 Pixel app-UI registration closure
+# Current Work Package: N21 Pixel password-recovery closure
+
+Status: **CLOSED / RESET, SINGLE-USE CONFIRMATION, OLD-CREDENTIAL REJECTION,
+NEW LOGIN AND COLD START PASSED / LIVE GATES CLOSED** on 03.09.2026.
+
+The persistent synthetic Staging identity created through the physical Pixel
+app now passes the full recovery path: neutral reset request, exact Google
+Workspace mail, TLS Staging reset, single-use rejection, definite old-password
+rejection, new app login and cold-start persistence. Only the exact structured
+result `401:invalid_credentials` counts as definite old-credential rejection;
+HTTP 408, intermediary or unstructured 4xx, transport ambiguity and unexpected
+success cannot claim a password outcome. The protected owner session was
+restored afterward.
+
+Candidate `com.shareittoo.app` `1.0.0+2026090305` remains exact to artifact
+source `4bcc018eef7759d9f8fe64f75daba060abf0eb13`; signing, Firebase binding,
+binary privacy and installed APK identity were revalidated. No address,
+credential, token, link, mailbox content, cookie or raw device identifier was
+printed or committed.
+
+Core diagnostic commit `0a310f04823ab7ddb87e1d6eba20aa82d0bbd6d3`
+exposed one synthetic test-literal secret-scan match. Commit
+`eadd1fac292527127ffaeafaab08a74190593612` fixes the fixture and records the
+exact historical false positive without weakening the scanner. Commit
+`638c91efd040d9c0412dcb39f151ba035cf3bf27` refreshes all dependent evidence
+inventories through RW20. The exact head passes complete local regression with
+2,075 repository tool tests, GitHub Regression `33724178775`, independent
+clean checkout, CodeQL `33724178803` and zero open alerts. PR #7 remains Draft
+and unmerged.
+
+Google sign-in, phone/KYC, Stripe sandbox, external listing AI, V5.2 approval
+and the complete real two-role product journey remain open. OnePlus, Play,
+Production, public registration, real money and PR merge were unchanged.
+
+Machine evidence:
+`docs/evidence/release-readiness/n21-pixel-password-recovery-2026090305.json`.
+Human handover:
+`docs/operations/N21_PIXEL_PASSWORD_RECOVERY_2026-09-03.md`.
+
+# Previous Work Package: N20 Pixel app-UI registration closure
 
 Status: **CLOSED / REGISTRATION, EMAIL CONFIRMATION, LOGIN AND COLD START
 PASSED / LIVE GATES CLOSED** on 03.09.2026.
