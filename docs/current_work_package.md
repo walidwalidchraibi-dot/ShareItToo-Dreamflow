@@ -4235,3 +4235,24 @@ and pilot activation is forbidden. The next external runway begins only after
 independent professional approval and explicit approved-snapshot provisioning;
 until then, no Play activation, pilot fixture, real booking or payment may be
 created.
+
+## Active package: N14 listing-AI Staging runtime readiness
+
+N14 closes the server-side implementation gap between the deterministic
+listing mock and a real owner-initiated image evaluation. The implementation is
+Staging/test-only, disabled by default, budget-reserved in Postgres and
+credential-free on the Android client. Metadata-free WebP derivatives are
+screened before generation; strict structured output remains editable and
+cannot publish or establish price authority.
+
+All focused Backend and repository contract tests are green. The complete
+local regression is green with Flutter, Web/Wasm, loopback smoke and Android
+debug reach. The immediate remaining sequence is one normal implementation
+commit and push, exact GitHub Regression/CodeQL, a clean commit-bound signed
+`1.0.0+2026090303` candidate, data-preserving Pixel installation and installed
+state verification.
+
+Actual provider execution remains off until the separate owner-only backend
+credential and exact external-execution flag are configured. No external AI
+call, provider charge, Production change, public release, Play mutation, PR
+merge or real-money action is part of this package.

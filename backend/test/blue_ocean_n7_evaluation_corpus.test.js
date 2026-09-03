@@ -18,6 +18,7 @@ import {
 } from '../src/listing_ai_gateway.js';
 import {
   listingAiMockModel,
+  listingAiOpenAiModel,
   readListingAiGatewayConfiguration,
 } from '../src/listing_ai_gateway_config.js';
 import {
@@ -398,7 +399,7 @@ for (const entry of corpus.listingCases) {
       let calls = 0;
       const configuration = readListingAiGatewayConfiguration({
         SIT_LISTING_AI_PROVIDER: 'openai',
-        SIT_LISTING_AI_MODEL: 'configured-image-model',
+        SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
         SIT_LISTING_AI_BUDGET_CENTS: '0',
       });
       const result = await createListingAiGateway({

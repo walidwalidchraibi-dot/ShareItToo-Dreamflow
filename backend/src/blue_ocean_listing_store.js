@@ -138,7 +138,10 @@ export async function persistBlueOceanGeneratedDraft(client, {
       JSON.stringify({
         imageReview: result.imageReview,
         disclosureVersion: result.disclosureVersion,
-        paidCallPerformed: false,
+        providerCallCount: result.providerCallCount,
+        paidCallPerformed: result.paidCallPerformed,
+        estimatedCostCents: result.estimatedCostCents,
+        billedCostCents: result.billedCostCents,
         autoPublishAllowed: false,
       }),
       revision.generatedAt,

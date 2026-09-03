@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   listingAiGatewayVersion,
   listingAiMockModel,
+  listingAiOpenAiModel,
   ListingAiGatewayConfigurationError,
   readListingAiGatewayConfiguration,
 } from '../src/listing_ai_gateway_config.js';
@@ -40,6 +41,30 @@ test('mock configuration is deterministic, bounded and never billed', () => {
   assert.equal(result.rateLimitMaxRequests, 3);
 });
 
+test('openai execution requires the pinned model, budget and explicit external gate', () => {
+  const held = readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'openai',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '5',
+  }, { deploymentEnvironment: 'staging' });
+  assert.equal(held.enabled, false);
+  assert.equal(held.providerExecutionAllowed, false);
+  assert.equal(held.externalProviderExecutionAllowed, false);
+
+  const enabled = readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'openai',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '5',
+    SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+  }, { deploymentEnvironment: 'staging' });
+  assert.equal(enabled.enabled, true);
+  assert.equal(enabled.providerExecutionAllowed, true);
+  assert.equal(enabled.externalProviderExecutionAllowed, true);
+  assert.equal(enabled.providerPublicationAllowed, false);
+  assert.equal(enabled.authoritativeProviderPriceAllowed, false);
+  assert.equal(enabled.secretConfiguredInClient, false);
+});
+
 test('production, version drift, invalid bounds and non-paid budgets fail closed', () => {
   for (const [env, options, code] of [
     [{ SIT_LISTING_AI_PROVIDER: 'mock' }, { deploymentEnvironment: 'production' }, /cannot be enabled in production/u],
@@ -49,6 +74,21 @@ test('production, version drift, invalid bounds and non-paid budgets fail closed
     [{ SIT_LISTING_AI_BUDGET_CENTS: '1' }, {}, /non-paid listing AI providers/u],
     [{ SIT_LISTING_AI_PROVIDER: 'mock', SIT_LISTING_AI_MODEL: 'other' }, {}, /mock listing AI/u],
     [{ SIT_LISTING_AI_PROVIDER: 'openai' }, {}, /MODEL is required/u],
+    [{ SIT_LISTING_AI_PROVIDER: 'openai', SIT_LISTING_AI_MODEL: 'floating-model' }, {}, /must use/u],
+    [{ SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: 'yes' }, {}, /must be 0 or 1/u],
+    [{ SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1' }, {}, /requires the openai provider/u],
+    [{
+      SIT_LISTING_AI_PROVIDER: 'openai',
+      SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+      SIT_LISTING_AI_BUDGET_CENTS: '1',
+      SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+    }, {}, /two-cent safety reservation/u],
+    [{
+      SIT_LISTING_AI_PROVIDER: 'openai',
+      SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+      SIT_LISTING_AI_BUDGET_CENTS: '2',
+      SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+    }, { deploymentEnvironment: 'development' }, /restricted to staging or test/u],
     [{ SIT_LISTING_AI_TIMEOUT_MS: '31' }, {}, /TIMEOUT_MS/u],
   ]) {
     assert.throws(

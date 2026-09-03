@@ -220,7 +220,9 @@ function imageReviewMetadata(preflight) {
   });
 }
 
-function manualFallback(reasonCode, preflight = null) {
+function manualFallback(reasonCode, preflight = null, generated = null, { paidProvider = false } = {}) {
+  const providerCallCount = (preflight?.screeningProviderCallCount ?? 0)
+    + (generated?.providerCallCount ?? 0);
   return deepFreeze({
     workflowVersion: blueOceanListingWorkflowVersion,
     status: 'manual_fallback',
@@ -230,7 +232,13 @@ function manualFallback(reasonCode, preflight = null) {
     manualInputsPreserved: true,
     imageReview: preflight ? imageReviewMetadata(preflight) : null,
     autoPublishAllowed: false,
-    paidCallPerformed: false,
+    providerCallCount,
+    paidCallPerformed: paidProvider && providerCallCount > 0,
+    estimatedCostCents: generated?.estimatedCostCents === null
+      ? null
+      : (preflight?.screeningEstimatedCostCents ?? 0)
+        + (generated?.estimatedCostCents ?? 0),
+    billedCostCents: paidProvider && providerCallCount > 0 ? null : 0,
   });
 }
 
@@ -247,6 +255,7 @@ export function createBlueOceanListingWorkflow({
     visualScanCompleted: false,
     visualSignals: [],
   }),
+  screenDerivative,
   audit = () => {},
 } = {}) {
   if (!configuration) fail(500, 'blue_ocean_configuration_required');
@@ -269,32 +278,74 @@ export function createBlueOceanListingWorkflow({
           })),
         });
       }
-      const preflight = await runListingAiImagePrivacyPipeline({
-        images: screenedImages,
-        consent,
-        auditSink: audit,
-        consumeDerivatives: async (derivatives) => gateway.generate({
-          draftId,
-          ownerId,
-          generationKey,
-          revision: 1,
-          imageReferences: derivatives.map((entry) => entry.imageReference),
-          untrustedOcr: [],
-          manualInputPresent: true,
-        }),
-      });
+      let preflight;
+      try {
+        preflight = await runListingAiImagePrivacyPipeline({
+          images: screenedImages,
+          consent,
+          auditSink: audit,
+          screenDerivative,
+          timeoutMs: configuration.timeoutMs,
+          consumeDerivatives: async (derivatives) => gateway.generate({
+            draftId,
+            ownerId,
+            generationKey,
+            revision: 1,
+            imageReferences: derivatives.map((entry) => entry.imageReference),
+            untrustedOcr: [],
+            manualInputPresent: true,
+            analysisImages: derivatives.map((entry) => ({
+              imageReference: entry.imageReference,
+              mimeType: entry.mimeType,
+              bytes: entry.bytes,
+              sha256: entry.sha256,
+            })),
+          }),
+        });
+      } catch (error) {
+        if (!String(error?.code ?? '').startsWith('listing_ai_image_visual_screen_')) {
+          throw error;
+        }
+        const providerCallCount = Number.isSafeInteger(error?.details?.providerCallCount)
+          ? Math.max(0, Math.min(screenedImages.length, error.details.providerCallCount))
+          : 1;
+        return deepFreeze({
+          ...manualFallback(
+            error.code,
+            null,
+            null,
+            { paidProvider: configuration.provider === 'openai' },
+          ),
+          providerCallCount,
+          paidCallPerformed: configuration.provider === 'openai'
+            && providerCallCount > 0,
+          estimatedCostCents: configuration.provider === 'openai'
+            && providerCallCount > 0 ? null : 0,
+          billedCostCents: configuration.provider === 'openai'
+            && providerCallCount > 0 ? null : 0,
+        });
+      }
       if (!preflight.providerEligible) {
         return manualFallback(
           preflight.status === 'blocked'
             ? 'blue_ocean_sensitive_image_blocked'
             : 'blue_ocean_image_review_required',
           preflight,
+          null,
+          { paidProvider: configuration.provider === 'openai' },
         );
       }
       const generated = preflight.consumerResult;
       if (generated?.status !== 'draft_ready') {
-        return manualFallback(generated?.reasonCode ?? 'blue_ocean_generation_failed', preflight);
+        return manualFallback(
+          generated?.reasonCode ?? 'blue_ocean_generation_failed',
+          preflight,
+          generated,
+          { paidProvider: configuration.provider === 'openai' },
+        );
       }
+      const providerCallCount = preflight.screeningProviderCallCount
+        + generated.providerCallCount;
       return deepFreeze({
         workflowVersion: blueOceanListingWorkflowVersion,
         status: 'draft_ready',
@@ -304,8 +355,11 @@ export function createBlueOceanListingWorkflow({
         disclosureAccepted: true,
         clarificationLimit: 3,
         ownerConfirmationIds: listingAiOwnerConfirmationIds,
-        paidCallPerformed: false,
-        billedCostCents: 0,
+        providerCallCount,
+        paidCallPerformed: configuration.provider === 'openai' && providerCallCount > 0,
+        estimatedCostCents: preflight.screeningEstimatedCostCents
+          + generated.estimatedCostCents,
+        billedCostCents: configuration.provider === 'openai' ? null : 0,
         autoPublishAllowed: false,
       });
     },

@@ -13,7 +13,15 @@ import {
   createBlueOceanListingWorkflow,
   reviewBlueOceanListingDraft,
 } from '../src/blue_ocean_listing_workflow.js';
-import { listingAiMockModel, readListingAiGatewayConfiguration } from '../src/listing_ai_gateway_config.js';
+import {
+  listingAiMockModel,
+  listingAiOpenAiModel,
+  readListingAiGatewayConfiguration,
+} from '../src/listing_ai_gateway_config.js';
+import {
+  createListingAiGateway,
+  deterministicListingAiMockOutput,
+} from '../src/listing_ai_gateway.js';
 
 const ownerId = 'owner_12345678';
 const draftId = 'listing_ai_draft_12345678-1234-4123-8123-123456789abc';
@@ -147,6 +155,162 @@ test('default incomplete local screening fails closed and preserves the manual e
   assert.equal(result.manualInputsPreserved, true);
   assert.equal(result.paidCallPerformed, false);
   assert.equal(result.autoPublishAllowed, false);
+});
+
+test('openai composition screens stripped derivatives and reports estimated not billed cost', async () => {
+  const configuration = readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'openai',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '5',
+    SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+  }, { deploymentEnvironment: 'staging' });
+  let generatedBytes = null;
+  const gateway = createListingAiGateway({
+    configuration,
+    providers: {
+      openai: {
+        async generate(request, { analysisImages }) {
+          generatedBytes = analysisImages[0].bytes;
+          const output = structuredClone(
+            deterministicListingAiMockOutput(request.analysisImageReferences),
+          );
+          for (const field of Object.values(output.fields)) field.source.type = 'provider_output';
+          return {
+            output,
+            usage: {
+              inputUnits: 100,
+              outputUnits: 100,
+              estimatedCostCents: 1,
+              billedCostCents: null,
+            },
+          };
+        },
+      },
+    },
+  });
+  let screenedBytes = null;
+  const workflow = createBlueOceanListingWorkflow({
+    configuration,
+    gateway,
+    screenDerivative: async (derivative) => {
+      screenedBytes = derivative.bytes;
+      return {
+        visualScanCompleted: true,
+        visualSignals: [],
+        usage: {
+          inputUnits: 25,
+          outputUnits: 10,
+          estimatedCostCents: 1,
+          billedCostCents: null,
+        },
+      };
+    },
+  });
+  const result = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('openai-compose'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+  assert.equal(result.status, 'draft_ready');
+  assert.equal(result.providerCallCount, 2);
+  assert.equal(result.paidCallPerformed, true);
+  assert.equal(result.estimatedCostCents, 2);
+  assert.equal(result.billedCostCents, null);
+  assert.strictEqual(screenedBytes, generatedBytes);
+  assert.ok(generatedBytes.every((byte) => byte === 0));
+});
+
+test('openai screening timeout returns a truthful paid manual fallback', async () => {
+  const configuration = readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'openai',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '5',
+    SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+    SIT_LISTING_AI_TIMEOUT_MS: '250',
+  }, { deploymentEnvironment: 'staging' });
+  let signal = null;
+  const workflow = createBlueOceanListingWorkflow({
+    configuration,
+    screenDerivative: async (_derivative, options) => {
+      signal = options.signal;
+      return new Promise(() => {});
+    },
+  });
+  const result = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('openai-screen-timeout'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+  assert.equal(signal.aborted, true);
+  assert.equal(result.status, 'manual_fallback');
+  assert.equal(result.reasonCode, 'listing_ai_image_visual_screen_timeout');
+  assert.equal(result.providerCallCount, 1);
+  assert.equal(result.paidCallPerformed, true);
+  assert.equal(result.estimatedCostCents, null);
+  assert.equal(result.billedCostCents, null);
+});
+
+test('openai multi-image screening failure reports all attempted paid calls', async () => {
+  const configuration = readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'openai',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '5',
+    SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+  }, { deploymentEnvironment: 'staging' });
+  let calls = 0;
+  const workflow = createBlueOceanListingWorkflow({
+    configuration,
+    screenDerivative: async () => {
+      calls += 1;
+      if (calls === 2) throw new Error('private provider detail');
+      return {
+        visualScanCompleted: true,
+        visualSignals: [],
+        usage: {
+          inputUnits: 25,
+          outputUnits: 10,
+          estimatedCostCents: 1,
+          billedCostCents: null,
+        },
+      };
+    },
+  });
+  const result = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('openai-multi-screen-failure'),
+    images: [
+      {
+        imageReference: 'listing_image_1_12345678',
+        mimeType: 'image/png',
+        bytes: await fixtureImage(),
+      },
+      {
+        imageReference: 'listing_image_2_12345678',
+        mimeType: 'image/png',
+        bytes: await fixtureImage(),
+      },
+    ],
+    consent: consent(),
+  });
+  assert.equal(result.status, 'manual_fallback');
+  assert.equal(result.reasonCode, 'listing_ai_image_visual_screen_failed');
+  assert.equal(result.providerCallCount, 2);
+  assert.equal(result.paidCallPerformed, true);
+  assert.equal(result.estimatedCostCents, null);
+  assert.equal(result.billedCostCents, null);
 });
 
 test('owner review composes deterministic N5 price, duration and V5.2 preview', async () => {

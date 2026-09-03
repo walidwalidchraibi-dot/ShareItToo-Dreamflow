@@ -349,6 +349,9 @@ import {
   createBlueOceanListingWorkflow,
   reviewBlueOceanListingDraft,
 } from './blue_ocean_listing_workflow.js';
+import { createOpenAiListingAiProvider } from './openai_listing_ai_provider.js';
+import { createListingAiGateway } from './listing_ai_gateway.js';
+import { createPostgresListingAiBudgetGuard } from './listing_ai_budget_guard.js';
 import {
   BlueOceanListingStoreError,
   loadBlueOceanDraft,
@@ -851,10 +854,15 @@ async function loadBlueOceanListingImages({ ownerId, photoUrls }) {
 }
 
 function assertBlueOceanListingTechnicalAccess() {
+  const mockAllowed = config.listingAi.provider === 'mock'
+    && config.listingAi.budgetCents === 0
+    && config.listingAi.externalProviderExecutionAllowed === false;
+  const openAiAllowed = config.listingAi.provider === 'openai'
+    && config.listingAi.budgetCents > 0
+    && config.listingAi.externalProviderExecutionAllowed === true;
   if (config.listingAi.enabled !== true
-      || config.listingAi.provider !== 'mock'
-      || config.listingAi.budgetCents !== 0
-      || config.listingAi.externalProviderExecutionAllowed !== false
+      || config.listingAi.providerExecutionAllowed !== true
+      || (!mockAllowed && !openAiAllowed)
       || config.listingAi.providerPublicationAllowed !== false) {
     throw new HttpError(503, 'blue_ocean_listing_assistant_not_enabled');
   }
@@ -1581,10 +1589,30 @@ export function createApp({
   },
   recordPlannerFunnelEvent = (event) => console.info(JSON.stringify(event)),
   screenBlueOceanListingImage,
+  openAiListingAiProvider,
 } = {}) {
   const app = express();
+  const listingAiProvider = config.listingAi.provider === 'openai'
+    ? (openAiListingAiProvider ?? createOpenAiListingAiProvider({
+      configuration: config.listingAi,
+      apiKey: process.env.OPENAI_API_KEY,
+      budgetGuard: createPostgresListingAiBudgetGuard({
+        client: pool,
+        budgetCents: config.listingAi.budgetCents,
+      }),
+    }))
+    : null;
   const blueOceanListing = createBlueOceanListingWorkflow({
     configuration: config.listingAi,
+    ...(listingAiProvider == null
+      ? {}
+      : {
+        gateway: createListingAiGateway({
+          configuration: config.listingAi,
+          providers: { openai: listingAiProvider },
+        }),
+        screenDerivative: listingAiProvider.screenDerivative,
+      }),
     ...(screenBlueOceanListingImage == null
       ? {}
       : { screenImage: screenBlueOceanListingImage }),
@@ -3138,7 +3166,9 @@ export function createApp({
         metadata: {
           revision: result.revision.revision,
           provider: config.listingAi.provider,
-          billedCostCents: 0,
+          paidCallPerformed: result.paidCallPerformed,
+          estimatedCostCents: result.estimatedCostCents,
+          billedCostCents: result.billedCostCents,
           autoPublishAllowed: false,
           replayed: record.replayed,
         },

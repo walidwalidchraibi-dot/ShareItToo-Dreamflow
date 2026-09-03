@@ -198,6 +198,211 @@ test('unsafe preflight never invokes the consumer and always cleans derivatives'
   assert.equal(auditEvents.at(-1).cleanupCompleted, true);
 });
 
+test('optional derivative screening sees only stripped WebP and can complete preflight', async () => {
+  const bytes = await sourceImage({ metadata: true });
+  let screenedBytes = null;
+  let screenedMetadata = null;
+  const result = await runListingAiImagePrivacyPipeline({
+    images: [input(bytes, {
+      localScreening: {
+        localOcrText: '',
+        visualScanCompleted: false,
+        visualSignals: [],
+      },
+    })],
+    consent: safeConsent,
+    randomId: randomIdSequence(),
+    screenDerivative: async (derivative) => {
+      screenedBytes = derivative.bytes;
+      screenedMetadata = await sharp(Buffer.from(derivative.bytes)).metadata();
+      return {
+        visualScanCompleted: true,
+        visualSignals: [],
+        usage: {
+          inputUnits: 50,
+          outputUnits: 10,
+          estimatedCostCents: 1,
+          billedCostCents: null,
+        },
+      };
+    },
+    consumeDerivatives: async () => ({ providerCallCount: 0 }),
+  });
+  assert.equal(result.status, 'consumed');
+  assert.equal(result.providerEligible, true);
+  assert.equal(result.providerCallPerformed, true);
+  assert.equal(result.screeningProviderCallCount, 1);
+  assert.equal(result.screeningEstimatedCostCents, 1);
+  assert.equal(screenedMetadata.format, 'webp');
+  assert.equal(screenedMetadata.exif, undefined);
+  assert.ok(screenedBytes.every((byte) => byte === 0));
+});
+
+test('external derivative screening cannot be bypassed by client-supplied passed state', async () => {
+  const bytes = await sourceImage();
+  let screeningCalls = 0;
+  let consumerCalls = 0;
+  const result = await runListingAiImagePrivacyPipeline({
+    images: [input(bytes)],
+    consent: safeConsent,
+    randomId: randomIdSequence(),
+    screenDerivative: async () => {
+      screeningCalls += 1;
+      return {
+        visualScanCompleted: true,
+        visualSignals: [{ type: 'document', confidence: 'HIGH' }],
+        usage: {
+          inputUnits: 50,
+          outputUnits: 10,
+          estimatedCostCents: 1,
+          billedCostCents: null,
+        },
+      };
+    },
+    consumeDerivatives: async () => { consumerCalls += 1; },
+  });
+  assert.equal(screeningCalls, 1);
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.images[0].screening.reasonCodes.includes('document_high'), true);
+  assert.equal(consumerCalls, 0);
+});
+
+test('external derivative screening has a hard aborting timeout', async () => {
+  const bytes = await sourceImage();
+  let signal = null;
+  await assert.rejects(
+    runListingAiImagePrivacyPipeline({
+      images: [input(bytes)],
+      consent: safeConsent,
+      timeoutMs: 20,
+      randomId: randomIdSequence(),
+      screenDerivative: async (_derivative, options) => {
+        signal = options.signal;
+        return new Promise(() => {});
+      },
+    }),
+    (error) => error instanceof ListingAiImagePipelineError
+      && error.code === 'listing_ai_image_visual_screen_timeout'
+      && error.details.providerCallCount === 1,
+  );
+  assert.equal(signal.aborted, true);
+});
+
+test('a later screening failure reports every attempted external call', async () => {
+  const bytes = await sourceImage();
+  let calls = 0;
+  await assert.rejects(
+    runListingAiImagePrivacyPipeline({
+      images: [
+        input(bytes, { imageReference: 'upload_reference_1_12345678' }),
+        input(bytes, { imageReference: 'upload_reference_2_12345678' }),
+      ],
+      consent: safeConsent,
+      randomId: randomIdSequence(),
+      screenDerivative: async () => {
+        calls += 1;
+        if (calls === 2) throw new Error('private provider detail');
+        return {
+          visualScanCompleted: true,
+          visualSignals: [],
+          usage: {
+            inputUnits: 50,
+            outputUnits: 10,
+            estimatedCostCents: 1,
+            billedCostCents: null,
+          },
+        };
+      },
+    }),
+    (error) => error instanceof ListingAiImagePipelineError
+      && error.code === 'listing_ai_image_visual_screen_failed'
+      && error.details.providerCallCount === 2,
+  );
+  assert.equal(calls, 2);
+});
+
+test('a local hard block prevents every external screening call', async () => {
+  const bytes = await sourceImage();
+  let calls = 0;
+  const result = await runListingAiImagePrivacyPipeline({
+    images: [
+      input(bytes, {
+        imageReference: 'upload_reference_1_12345678',
+        localScreening: {
+          localOcrText: 'IBAN DE00 0000 0000 0000 0000 00',
+          visualScanCompleted: true,
+          visualSignals: [],
+        },
+      }),
+      input(bytes, { imageReference: 'upload_reference_2_12345678' }),
+    ],
+    consent: safeConsent,
+    randomId: randomIdSequence(),
+    screenDerivative: async () => { calls += 1; },
+  });
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.providerCallPerformed, false);
+  assert.equal(result.screeningProviderCallCount, 0);
+  assert.equal(calls, 0);
+});
+
+test('derivative screening blocks sensitive signals before the consumer', async () => {
+  const bytes = await sourceImage();
+  let consumerCalls = 0;
+  const result = await runListingAiImagePrivacyPipeline({
+    images: [input(bytes, {
+      localScreening: {
+        localOcrText: '',
+        visualScanCompleted: false,
+        visualSignals: [],
+      },
+    })],
+    consent: safeConsent,
+    randomId: randomIdSequence(),
+    screenDerivative: async () => ({
+      visualScanCompleted: true,
+      visualSignals: [{ type: 'face', confidence: 'HIGH' }],
+      usage: {
+        inputUnits: 50,
+        outputUnits: 10,
+        estimatedCostCents: 1,
+        billedCostCents: null,
+      },
+    }),
+    consumeDerivatives: async () => { consumerCalls += 1; },
+  });
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.providerCallPerformed, true);
+  assert.equal(result.images[0].screening.reasonCodes.includes('face_high'), true);
+  assert.equal(consumerCalls, 0);
+});
+
+test('derivative screening failure is sanitized and purges its bytes', async () => {
+  const bytes = await sourceImage();
+  let screenedBytes = null;
+  await assert.rejects(
+    runListingAiImagePrivacyPipeline({
+      images: [input(bytes, {
+        localScreening: {
+          localOcrText: '',
+          visualScanCompleted: false,
+          visualSignals: [],
+        },
+      })],
+      consent: safeConsent,
+      randomId: randomIdSequence(),
+      screenDerivative: async (derivative) => {
+        screenedBytes = derivative.bytes;
+        throw new Error('private provider detail');
+      },
+    }),
+    (error) => error instanceof ListingAiImagePipelineError
+      && error.code === 'listing_ai_image_visual_screen_failed'
+      && !error.message.includes('private provider detail'),
+  );
+  assert.ok(screenedBytes.every((byte) => byte === 0));
+});
+
 test('one to four distinct images are accepted and a duplicate or fifth image is rejected', async () => {
   const bytes = await sourceImage();
   const images = ids.map((_, index) => input(bytes, {

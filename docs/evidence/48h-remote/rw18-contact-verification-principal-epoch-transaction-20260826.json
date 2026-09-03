@@ -417,7 +417,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "0965bf86a87caac1455bbab7cb4918d6869d46651e4314a1425ab6275410a606"
+      "sha256": "7d7de9b366917235a462e8fc2a513db94e553a0d69f686f8aac3f4c08d3eeaa5"
     },
     {
       "path": "backend/src/firebase_phone_verification.js",
@@ -437,11 +437,11 @@
     },
     {
       "path": "lib/screens/login_screen.dart",
-      "sha256": "a31ab2e8c8aa797a77458f596aa02372d528ce1e999f304016ced5ec3b0db391"
+      "sha256": "f36326a76ff636088bebd1f981b5ff2b9606329e810d802ac1122611428b3e73"
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"
+      "sha256": "fcccf36152ccf5c6fe92e297b93ec813cd2ceceb8b58b5a5d1dd121371a9b6b4"
     },
     {
       "path": "lib/services/backend_http.dart",
@@ -469,7 +469,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
-      "sha256": "b0b1798f21af462c7404c2797171923c0ccd7f0b55bb157cd1a25e7a922d0f7e"
+      "sha256": "f864385bbd13050e044722f1f3a818d6c150deeb83dbd7910533f437d0e7bfb9"
     },
     {
       "path": "scripts/technical_regression_check.sh",

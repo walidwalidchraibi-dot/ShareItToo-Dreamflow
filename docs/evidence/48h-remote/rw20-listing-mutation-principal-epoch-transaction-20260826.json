@@ -411,7 +411,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "0965bf86a87caac1455bbab7cb4918d6869d46651e4314a1425ab6275410a606"
+      "sha256": "7d7de9b366917235a462e8fc2a513db94e553a0d69f686f8aac3f4c08d3eeaa5"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
@@ -431,7 +431,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "5774e172664ea9eef5de9ae9b32575694e371433bcc69ac456fe6572cfb0a83c"
+      "sha256": "fcccf36152ccf5c6fe92e297b93ec813cd2ceceb8b58b5a5d1dd121371a9b6b4"
     },
     {
       "path": "lib/services/backend_repository.dart",
@@ -471,7 +471,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
-      "sha256": "2f765f1dae6d94cc5e3f9556ce03e8735ad92a9b9a130bbe5db2588549414980"
+      "sha256": "c551417af3056e50b014c67f6720922977ca76d219f48b6ca8949fbb52baf3ee"
     },
     {
       "path": "scripts/technical_regression_check.sh",

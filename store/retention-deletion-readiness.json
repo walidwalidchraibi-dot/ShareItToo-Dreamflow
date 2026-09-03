@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "0965bf86a87caac1455bbab7cb4918d6869d46651e4314a1425ab6275410a606"
+      "sha256": "7d7de9b366917235a462e8fc2a513db94e553a0d69f686f8aac3f4c08d3eeaa5"
     },
     {
       "path": "backend/src/rate_limit_policy.js",

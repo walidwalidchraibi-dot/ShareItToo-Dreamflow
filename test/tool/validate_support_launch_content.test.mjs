@@ -73,6 +73,34 @@ test('rejects reintroducing an external-AI switch or dormant client transport', 
   );
 });
 
+test('rejects weakening the server-only listing AI execution and storage gates', () => {
+  const configPath = 'backend/src/listing_ai_gateway_config.js';
+  const providerPath = 'backend/src/openai_listing_ai_provider.js';
+  assert.throws(
+    () => validateSupportLaunchContent({
+      root,
+      sourceOverrides: {
+        [configPath]: read(configPath).replace(
+          "SIT_LISTING_AI_PROVIDER ?? 'disabled'",
+          "SIT_LISTING_AI_PROVIDER ?? 'openai'",
+        ),
+      },
+      environment: {},
+    }),
+    /Server listing-AI fail-closed contract/u,
+  );
+  assert.throws(
+    () => validateSupportLaunchContent({
+      root,
+      sourceOverrides: {
+        [providerPath]: read(providerPath).replace('store: false', 'store: true'),
+      },
+      environment: {},
+    }),
+    /Server listing-AI fail-closed contract/u,
+  );
+});
+
 test('rejects every old EU ODR URL in app or support text', () => {
   const path = 'backend/src/support_message_templates_v1.json';
   assert.throws(

@@ -28,6 +28,7 @@ const unsupportedClaimPatterns = Object.freeze([
   /\b(?:marktpreis|marktwert|markt[uü]blicher\s+preis|marktgerechter\s+preis)\b/iu,
 ]);
 const promptLikePattern = /(?:ignore (?:all|previous)|system prompt|developer message|folge (?:diesen|meinen) anweisungen|ignoriere (?:alle|vorherigen))/iu;
+const maximumAnalysisImageBytes = 4 * 1024 * 1024;
 
 function fieldValueSchema(key) {
   if (key === 'replacementValueMinor') {
@@ -108,10 +109,11 @@ export const listingAiProviderResponseSchema = deepFreeze({
 });
 
 export class ListingAiGatewayError extends Error {
-  constructor(status, code) {
+  constructor(status, code, details = undefined) {
     super(code);
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -202,6 +204,54 @@ function normalizeGatewayInput(raw) {
     imageReferences,
     untrustedOcr,
     manualInputPresent: raw.manualInputPresent,
+  });
+}
+
+function splitGatewayInput(raw) {
+  const value = object(raw, 'invalid_listing_ai_gateway_input_shape');
+  const { analysisImages = null, ...domainInput } = value;
+  return { domainInput, analysisImages };
+}
+
+function normalizeAnalysisImages(raw, input, { required }) {
+  if (raw == null) {
+    if (required) fail(400, 'listing_ai_analysis_images_required');
+    return Object.freeze({ values: Object.freeze([]), digest: Object.freeze([]) });
+  }
+  if (!Array.isArray(raw) || raw.length !== input.imageReferences.length) {
+    fail(400, 'listing_ai_analysis_images_invalid');
+  }
+  const values = raw.map((entry, index) => {
+    exactKeys(
+      entry,
+      ['imageReference', 'mimeType', 'bytes', 'sha256'],
+      'listing_ai_analysis_image_invalid',
+    );
+    const imageReference = opaqueImageReference(entry.imageReference);
+    if (imageReference !== input.imageReferences[index]
+        || entry.mimeType !== 'image/webp'
+        || !Buffer.isBuffer(entry.bytes)
+        || entry.bytes.length < 1
+        || entry.bytes.length > maximumAnalysisImageBytes
+        || !/^[a-f0-9]{64}$/u.test(entry.sha256)
+        || crypto.createHash('sha256').update(entry.bytes).digest('hex') !== entry.sha256) {
+      fail(400, 'listing_ai_analysis_image_invalid');
+    }
+    return Object.freeze({
+      imageReference,
+      mimeType: 'image/webp',
+      bytes: entry.bytes,
+      sha256: entry.sha256,
+    });
+  });
+  return Object.freeze({
+    values: Object.freeze(values),
+    digest: Object.freeze(values.map((entry) => Object.freeze({
+      imageReference: entry.imageReference,
+      mimeType: entry.mimeType,
+      byteSize: entry.bytes.length,
+      sha256: entry.sha256,
+    }))),
   });
 }
 
@@ -452,7 +502,12 @@ export function createMemoryListingAiRateLimiter({
   });
 }
 
-function manualFallback(reasonCode, { providerCallCount = 0 } = {}) {
+function manualFallback(reasonCode, {
+  providerCallCount = 0,
+  paidCallPerformed = false,
+  estimatedCostCents = paidCallPerformed ? null : 0,
+  billedCostCents = 0,
+} = {}) {
   return deepFreeze({
     status: 'manual_fallback',
     reasonCode,
@@ -463,11 +518,13 @@ function manualFallback(reasonCode, { providerCallCount = 0 } = {}) {
     partialAiStateCreated: false,
     autoPublishAllowed: false,
     providerCallCount,
-    billedCostCents: 0,
+    paidCallPerformed,
+    estimatedCostCents,
+    billedCostCents,
   });
 }
 
-async function invokeOnceWithTimeout(provider, request, timeoutMs) {
+async function invokeOnceWithTimeout(provider, request, timeoutMs, analysisImages) {
   const controller = new AbortController();
   let timer;
   const timeout = new Promise((resolve, reject) => {
@@ -478,7 +535,7 @@ async function invokeOnceWithTimeout(provider, request, timeoutMs) {
   });
   try {
     return await Promise.race([
-      provider.generate(request, { signal: controller.signal }),
+      provider.generate(request, { signal: controller.signal, analysisImages }),
       timeout,
     ]);
   } finally {
@@ -496,8 +553,57 @@ function safeAudit(audit, event) {
     outcome: event.outcome,
     promptLikeTextDetected: event.promptLikeTextDetected,
     providerCallCount: event.providerCallCount,
-    billedCostCents: 0,
+    estimatedCostCents: event.estimatedCostCents === undefined
+      ? 0
+      : event.estimatedCostCents,
+    billedCostCents: event.billedCostCents === undefined
+      ? 0
+      : event.billedCostCents,
   }));
+}
+
+function normalizedUsage(raw, provider) {
+  const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  if (provider === 'openai') {
+    exactKeys(
+      value,
+      ['inputUnits', 'outputUnits', 'estimatedCostCents', 'billedCostCents'],
+      'listing_ai_provider_usage_invalid',
+    );
+    if (!Number.isSafeInteger(value.inputUnits) || value.inputUnits < 0
+        || !Number.isSafeInteger(value.outputUnits) || value.outputUnits < 0
+        || !Number.isSafeInteger(value.estimatedCostCents) || value.estimatedCostCents < 0
+        || value.billedCostCents !== null) {
+      fail(400, 'listing_ai_provider_usage_invalid');
+    }
+    return Object.freeze({
+      inputUnits: value.inputUnits,
+      outputUnits: value.outputUnits,
+      estimatedCostCents: value.estimatedCostCents,
+      billedCostCents: null,
+    });
+  }
+  const inputUnits = Number.isSafeInteger(value.inputUnits) && value.inputUnits >= 0
+    ? value.inputUnits
+    : 0;
+  const outputUnits = Number.isSafeInteger(value.outputUnits) && value.outputUnits >= 0
+    ? value.outputUnits
+    : 0;
+  const estimatedCostCents = Number.isSafeInteger(value.estimatedCostCents)
+    && value.estimatedCostCents >= 0
+    ? value.estimatedCostCents
+    : 0;
+  const billedCostCents = value.billedCostCents === null
+    ? null
+    : (Number.isSafeInteger(value.billedCostCents) && value.billedCostCents >= 0
+      ? value.billedCostCents
+      : 0);
+  if (provider === 'mock'
+      && (inputUnits !== 0 || outputUnits !== 0 || estimatedCostCents !== 0
+        || billedCostCents !== 0)) {
+    fail(400, 'listing_ai_mock_cost_violation');
+  }
+  return Object.freeze({ inputUnits, outputUnits, estimatedCostCents, billedCostCents });
 }
 
 export function createListingAiGateway({
@@ -520,8 +626,13 @@ export function createListingAiGateway({
 
   return Object.freeze({
     async generate(rawInput) {
-      const input = normalizeGatewayInput(rawInput);
-      const requestSha256 = digest(input);
+      const splitInput = splitGatewayInput(rawInput);
+      const input = normalizeGatewayInput(splitInput.domainInput);
+      const analysisImages = normalizeAnalysisImages(splitInput.analysisImages, input, {
+        required: configuration.provider === 'openai'
+          && configuration.providerExecutionAllowed === true,
+      });
+      const requestSha256 = digest({ input, analysisImages: analysisImages.digest });
       const promptLikeTextDetected = input.untrustedOcr.some((entry) => (
         promptLikePattern.test(entry.text)
       ));
@@ -569,25 +680,86 @@ export function createListingAiGateway({
             return result;
           }
 
-          const request = buildListingAiProviderRequest(rawInput, configuration);
+          const request = buildListingAiProviderRequest(splitInput.domainInput, configuration);
           let response;
           try {
-            response = await invokeOnceWithTimeout(provider, request, configuration.timeoutMs);
+            response = await invokeOnceWithTimeout(
+              provider,
+              request,
+              configuration.timeoutMs,
+              analysisImages.values,
+            );
           } catch (error) {
-            const reasonCode = error?.code === 'listing_ai_provider_timeout'
-              ? 'listing_ai_provider_timeout'
+            const safeProviderCodes = new Set([
+              'listing_ai_budget_exhausted',
+              'listing_ai_budget_exhausted_after_call',
+              'listing_ai_provider_credentials_rejected',
+              'listing_ai_provider_incomplete',
+              'listing_ai_provider_rate_limited',
+              'listing_ai_provider_refused',
+              'listing_ai_provider_timeout',
+            ]);
+            const reasonCode = safeProviderCodes.has(error?.code)
+              ? error.code
               : 'listing_ai_provider_failed';
-            const result = manualFallback(reasonCode, { providerCallCount: 1 });
-            safeAudit(audit, { ...baseAudit, event: 'fallback', outcome: reasonCode, providerCallCount: 1 });
+            const providerCallCount = Number.isSafeInteger(error?.details?.providerCallCount)
+              ? Math.max(0, Math.min(1, error.details.providerCallCount))
+              : 1;
+            const paidCallPerformed = configuration.provider === 'openai'
+              && providerCallCount > 0;
+            const result = manualFallback(reasonCode, {
+              providerCallCount,
+              paidCallPerformed,
+              estimatedCostCents: paidCallPerformed ? null : 0,
+              billedCostCents: paidCallPerformed ? null : 0,
+            });
+            safeAudit(audit, {
+              ...baseAudit,
+              event: 'fallback',
+              outcome: reasonCode,
+              providerCallCount,
+              estimatedCostCents: result.estimatedCostCents,
+              billedCostCents: result.billedCostCents,
+            });
             return result;
           }
 
-          if (configuration.provider === 'mock'
-              && (response?.usage?.billedCostCents !== 0
-                || response?.usage?.inputUnits !== 0
-                || response?.usage?.outputUnits !== 0)) {
-            const result = manualFallback('listing_ai_mock_cost_violation', { providerCallCount: 1 });
-            safeAudit(audit, { ...baseAudit, event: 'fallback', outcome: result.reasonCode, providerCallCount: 1 });
+          let usage;
+          try {
+            usage = normalizedUsage(response?.usage, configuration.provider);
+          } catch (error) {
+            const reasonCode = configuration.provider === 'mock'
+              ? 'listing_ai_mock_cost_violation'
+              : (error?.code ?? 'listing_ai_provider_usage_invalid');
+            const result = manualFallback(reasonCode, {
+              providerCallCount: 1,
+              paidCallPerformed: configuration.provider === 'openai',
+              billedCostCents: configuration.provider === 'openai' ? null : 0,
+            });
+            safeAudit(audit, {
+              ...baseAudit,
+              event: 'fallback',
+              outcome: result.reasonCode,
+              providerCallCount: 1,
+              billedCostCents: result.billedCostCents,
+            });
+            return result;
+          }
+          if (usage.estimatedCostCents > configuration.budgetCents) {
+            const result = manualFallback('listing_ai_budget_exhausted_after_call', {
+              providerCallCount: 1,
+              paidCallPerformed: configuration.provider === 'openai',
+              estimatedCostCents: usage.estimatedCostCents,
+              billedCostCents: usage.billedCostCents,
+            });
+            safeAudit(audit, {
+              ...baseAudit,
+              event: 'fallback',
+              outcome: result.reasonCode,
+              providerCallCount: 1,
+              estimatedCostCents: usage.estimatedCostCents,
+              billedCostCents: usage.billedCostCents,
+            });
             return result;
           }
           let revision;
@@ -601,8 +773,20 @@ export function createListingAiGateway({
               generatedAt: now(),
             });
           } catch {
-            const result = manualFallback('listing_ai_schema_rejected', { providerCallCount: 1 });
-            safeAudit(audit, { ...baseAudit, event: 'fallback', outcome: result.reasonCode, providerCallCount: 1 });
+            const result = manualFallback('listing_ai_schema_rejected', {
+              providerCallCount: 1,
+              paidCallPerformed: configuration.provider === 'openai',
+              estimatedCostCents: usage.estimatedCostCents,
+              billedCostCents: usage.billedCostCents,
+            });
+            safeAudit(audit, {
+              ...baseAudit,
+              event: 'fallback',
+              outcome: result.reasonCode,
+              providerCallCount: 1,
+              estimatedCostCents: usage.estimatedCostCents,
+              billedCostCents: usage.billedCostCents,
+            });
             return result;
           }
           const result = deepFreeze({
@@ -612,11 +796,20 @@ export function createListingAiGateway({
             revision,
             manualFallback: null,
             providerCallCount: 1,
-            billedCostCents: 0,
+            paidCallPerformed: configuration.provider === 'openai',
+            estimatedCostCents: usage.estimatedCostCents,
+            billedCostCents: usage.billedCostCents,
             authoritativePriceCreated: false,
             autoPublishAllowed: false,
           });
-          safeAudit(audit, { ...baseAudit, event: 'draft_ready', outcome: 'mocked', providerCallCount: 1 });
+          safeAudit(audit, {
+            ...baseAudit,
+            event: 'draft_ready',
+            outcome: configuration.provider === 'mock' ? 'mocked' : 'succeeded',
+            providerCallCount: 1,
+            estimatedCostCents: usage.estimatedCostCents,
+            billedCostCents: usage.billedCostCents,
+          });
           return result;
         },
       );

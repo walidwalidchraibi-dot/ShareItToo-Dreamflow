@@ -5,6 +5,7 @@ import {
 
 export const listingAiGatewayVersion = 'N3-2026-08-23.1';
 export const listingAiMockModel = 'listing-ai-mock-v1';
+export const listingAiOpenAiModel = 'gpt-4o-mini-2024-07-18';
 
 export class ListingAiGatewayConfigurationError extends Error {
   constructor(code) {
@@ -25,6 +26,12 @@ function integer(value, fallback, { minimum, maximum, code }) {
     fail(code);
   }
   return candidate;
+}
+
+function exactFlag(value, name) {
+  const candidate = String(value ?? '0').trim();
+  if (!['0', '1'].includes(candidate)) fail(`${name} must be 0 or 1`);
+  return candidate === '1';
 }
 
 export function readListingAiGatewayConfiguration(
@@ -55,9 +62,13 @@ export function readListingAiGatewayConfiguration(
 
   const budgetCents = integer(env.SIT_LISTING_AI_BUDGET_CENTS, 0, {
     minimum: 0,
-    maximum: 1_000_000,
+    maximum: 10_000,
     code: 'SIT_LISTING_AI_BUDGET_CENTS must be a bounded non-negative integer',
   });
+  const externalProviderExecutionApproved = exactFlag(
+    env.SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED,
+    'SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED',
+  );
   const timeoutMs = integer(env.SIT_LISTING_AI_TIMEOUT_MS, 10_000, {
     minimum: 250,
     maximum: 30_000,
@@ -84,9 +95,24 @@ export function readListingAiGatewayConfiguration(
   if (provider === 'openai' && (model.length < 1 || model.length > 120)) {
     fail('SIT_LISTING_AI_MODEL is required for the openai adapter boundary');
   }
+  if (provider === 'openai' && model !== listingAiOpenAiModel) {
+    fail(`openai listing AI must use ${listingAiOpenAiModel}`);
+  }
   if (provider !== 'openai' && budgetCents !== 0) {
     fail('non-paid listing AI providers must have a zero-cent budget');
   }
+  if (externalProviderExecutionApproved && provider !== 'openai') {
+    fail('external listing AI approval requires the openai provider');
+  }
+  if (externalProviderExecutionApproved && budgetCents < 2) {
+    fail('external listing AI approval requires at least a two-cent safety reservation');
+  }
+  if (externalProviderExecutionApproved && !['staging', 'test'].includes(normalizedEnvironment)) {
+    fail('external listing AI execution is restricted to staging or test');
+  }
+  const openAiExecutionAllowed = provider === 'openai'
+    && budgetCents > 0
+    && externalProviderExecutionApproved;
 
   return Object.freeze({
     gatewayVersion: listingAiGatewayVersion,
@@ -98,9 +124,9 @@ export function readListingAiGatewayConfiguration(
     timeoutMs,
     rateLimitWindowMs,
     rateLimitMaxRequests,
-    enabled: provider === 'mock',
-    providerExecutionAllowed: provider === 'mock',
-    externalProviderExecutionAllowed: false,
+    enabled: provider === 'mock' || openAiExecutionAllowed,
+    providerExecutionAllowed: provider === 'mock' || openAiExecutionAllowed,
+    externalProviderExecutionAllowed: openAiExecutionAllowed,
     providerToolsAllowed: false,
     providerDatabaseWriteAllowed: false,
     providerPublicationAllowed: false,

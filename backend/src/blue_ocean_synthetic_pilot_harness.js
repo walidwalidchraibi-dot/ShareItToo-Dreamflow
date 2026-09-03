@@ -4,6 +4,7 @@ import { platformFeeMinor, quoteRental } from './booking_domain.js';
 import { createListingAiGateway } from './listing_ai_gateway.js';
 import {
   listingAiMockModel,
+  listingAiOpenAiModel,
   readListingAiGatewayConfiguration,
 } from './listing_ai_gateway_config.js';
 import { recommendRegionalPriceV2 } from './regional_price_engine_v2.js';
@@ -100,7 +101,7 @@ function mockConfiguration() {
 function budgetExhaustedConfiguration() {
   return readListingAiGatewayConfiguration({
     SIT_LISTING_AI_PROVIDER: 'openai',
-    SIT_LISTING_AI_MODEL: 'configured-image-model',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
     SIT_LISTING_AI_BUDGET_CENTS: '0',
   });
 }

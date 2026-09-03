@@ -14,6 +14,7 @@ import {
 } from '../src/listing_ai_gateway.js';
 import {
   listingAiMockModel,
+  listingAiOpenAiModel,
   readListingAiGatewayConfiguration,
 } from '../src/listing_ai_gateway_config.js';
 
@@ -318,30 +319,150 @@ test('rate limits distinct generations while exact replay remains available', as
 test('zero budget and missing paid-provider authority block before any external call', async () => {
   let calls = 0;
   const provider = { async generate() { calls += 1; } };
+  const analysisImages = imageReferences.map((imageReference, index) => {
+    const bytes = Buffer.from(`analysis-${index}`);
+    return {
+      imageReference,
+      mimeType: 'image/webp',
+      bytes,
+      sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+    };
+  });
   const zeroBudget = readListingAiGatewayConfiguration({
     SIT_LISTING_AI_PROVIDER: 'openai',
-    SIT_LISTING_AI_MODEL: 'configured-image-model',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
     SIT_LISTING_AI_BUDGET_CENTS: '0',
   });
   const exhausted = await createListingAiGateway({
     configuration: zeroBudget,
     providers: { openai: provider },
-  }).generate(input({ generationKey: generationKey('budget-zero') }));
+  }).generate(input({ generationKey: generationKey('budget-zero'), analysisImages }));
   assert.equal(exhausted.reasonCode, 'listing_ai_budget_exhausted');
   assert.equal(exhausted.providerCallCount, 0);
 
   const budgetPresent = readListingAiGatewayConfiguration({
     SIT_LISTING_AI_PROVIDER: 'openai',
-    SIT_LISTING_AI_MODEL: 'configured-image-model',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
     SIT_LISTING_AI_BUDGET_CENTS: '5',
   });
   const unauthorized = await createListingAiGateway({
     configuration: budgetPresent,
     providers: { openai: provider },
-  }).generate(input({ generationKey: generationKey('budget-present') }));
+  }).generate(input({ generationKey: generationKey('budget-present'), analysisImages }));
   assert.equal(unauthorized.reasonCode, 'listing_ai_paid_provider_not_authorized');
   assert.equal(unauthorized.providerCallCount, 0);
   assert.equal(calls, 0);
+});
+
+test('openai requires exact stripped derivatives and binds only their digest to idempotency', async () => {
+  const bytes = Buffer.from('stripped-webp-fixture');
+  const analysisImages = imageReferences.map((imageReference, index) => {
+    const value = Buffer.concat([bytes, Buffer.from(String(index))]);
+    return {
+      imageReference,
+      mimeType: 'image/webp',
+      bytes: value,
+      sha256: crypto.createHash('sha256').update(value).digest('hex'),
+    };
+  });
+  const output = structuredClone(deterministicListingAiMockOutput(imageReferences));
+  for (const field of Object.values(output.fields)) field.source.type = 'provider_output';
+  let receivedImages;
+  const events = [];
+  const configuration = readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'openai',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '5',
+    SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+  }, { deploymentEnvironment: 'staging' });
+  const gateway = createListingAiGateway({
+    configuration,
+    providers: {
+      openai: {
+        async generate(_request, { analysisImages: received }) {
+          receivedImages = received;
+          return {
+            output,
+            usage: {
+              inputUnits: 100,
+              outputUnits: 200,
+              estimatedCostCents: 1,
+              billedCostCents: null,
+            },
+          };
+        },
+      },
+    },
+    audit: (event) => events.push(event),
+  });
+  const result = await gateway.generate(input({ analysisImages }));
+  assert.equal(result.status, 'draft_ready');
+  assert.equal(result.paidCallPerformed, true);
+  assert.equal(result.estimatedCostCents, 1);
+  assert.equal(result.billedCostCents, null);
+  assert.equal(receivedImages.length, 2);
+  assert.strictEqual(receivedImages[0].bytes, analysisImages[0].bytes);
+  assert.doesNotMatch(JSON.stringify(events), /stripped-webp-fixture|data:image/u);
+
+  for (const invalid of [
+    undefined,
+    analysisImages.slice(0, 1),
+    analysisImages.map((entry, index) => index === 0 ? { ...entry, sha256: '0'.repeat(64) } : entry),
+    analysisImages.map((entry, index) => index === 0 ? { ...entry, mimeType: 'image/jpeg' } : entry),
+  ]) {
+    await assert.rejects(
+      gateway.generate(input({
+        generationKey: generationKey(`invalid-analysis-${String(invalid?.length)}`),
+        ...(invalid === undefined ? {} : { analysisImages: invalid }),
+      })),
+      (error) => error instanceof ListingAiGatewayError
+        && /listing_ai_analysis_image/u.test(error.code),
+    );
+  }
+});
+
+test('openai usage must be complete and cannot silently become zero cost', async () => {
+  const bytes = Buffer.from('stripped-webp-fixture');
+  const analysisImages = imageReferences.map((imageReference, index) => {
+    const value = Buffer.concat([bytes, Buffer.from(String(index))]);
+    return {
+      imageReference,
+      mimeType: 'image/webp',
+      bytes: value,
+      sha256: crypto.createHash('sha256').update(value).digest('hex'),
+    };
+  });
+  const output = structuredClone(deterministicListingAiMockOutput(imageReferences));
+  for (const field of Object.values(output.fields)) field.source.type = 'provider_output';
+  const configuration = readListingAiGatewayConfiguration({
+    SIT_LISTING_AI_PROVIDER: 'openai',
+    SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+    SIT_LISTING_AI_BUDGET_CENTS: '5',
+    SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+  }, { deploymentEnvironment: 'staging' });
+  const gateway = createListingAiGateway({
+    configuration,
+    providers: {
+      openai: {
+        async generate() {
+          return {
+            output,
+            usage: { inputUnits: 100, outputUnits: 20 },
+          };
+        },
+      },
+    },
+  });
+  const result = await gateway.generate(input({
+    generationKey: generationKey('incomplete-openai-usage'),
+    analysisImages,
+  }));
+  assert.equal(result.status, 'manual_fallback');
+  assert.equal(result.reasonCode, 'listing_ai_provider_usage_invalid');
+  assert.equal(result.providerCallCount, 1);
+  assert.equal(result.paidCallPerformed, true);
+  assert.equal(result.estimatedCostCents, null);
+  assert.equal(result.billedCostCents, null);
 });
 
 test('mock transport rejects nonzero usage or cost truth', async () => {

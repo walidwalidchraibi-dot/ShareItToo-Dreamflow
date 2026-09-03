@@ -44,7 +44,7 @@ function filesBelow(root, relativePath) {
   });
 }
 
-function assertExternalAiRemoved(root, overrides) {
+function assertExternalAiFailClosed(root, overrides) {
   const ai = source(root, 'lib/openai/openai_config.dart', overrides);
   for (const marker of [
     'static const bool aiHelpersEnabled = false',
@@ -75,7 +75,7 @@ function assertExternalAiRemoved(root, overrides) {
     if (forbidden.test(ai)) fail(`Dormant external-AI client path is forbidden: ${forbidden}`);
   }
 
-  for (const path of [...filesBelow(root, 'lib'), ...filesBelow(root, 'backend/src')]) {
+  for (const path of filesBelow(root, 'lib')) {
     const content = source(root, path, overrides);
     if (containsExternalAiHost(content)) {
       fail(`External-AI transport or provider marker is forbidden: ${path}`);
@@ -90,6 +90,49 @@ function assertExternalAiRemoved(root, overrides) {
         fail(`External-AI transport or provider marker is forbidden: ${path}`);
       }
     }
+  }
+
+  const serverAiFiles = new Set([
+    'backend/src/app.js',
+    'backend/src/listing_ai_gateway.js',
+    'backend/src/listing_ai_gateway_config.js',
+    'backend/src/openai_listing_ai_provider.js',
+  ]);
+  for (const path of filesBelow(root, 'backend/src')) {
+    if (serverAiFiles.has(path)) continue;
+    const content = source(root, path, overrides);
+    if (containsExternalAiHost(content)
+        || /OPENAI_(?:PROXY|API|ENDPOINT|MODEL|KEY)|\bgpt-[a-z0-9.-]+|\bChatGPT\b/iu.test(content)) {
+      fail(`External-AI transport or provider marker is outside the server allowlist: ${path}`);
+    }
+  }
+
+  const config = source(root, 'backend/src/listing_ai_gateway_config.js', overrides);
+  const gateway = source(root, 'backend/src/listing_ai_gateway.js', overrides);
+  const provider = source(root, 'backend/src/openai_listing_ai_provider.js', overrides);
+  const app = source(root, 'backend/src/app.js', overrides);
+  for (const [content, marker] of [
+    [config, "SIT_LISTING_AI_PROVIDER ?? 'disabled'"],
+    [config, 'SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED'],
+    [config, 'listing AI cannot be enabled in production before the release gate'],
+    [config, 'secretConfiguredInClient: false'],
+    [gateway, 'tools: []'],
+    [gateway, 'publicationAllowed: false'],
+    [gateway, 'authoritativePriceAllowed: false'],
+    [provider, "responsesEndpoint = 'https://api.openai.com/v1/responses'"],
+    [provider, 'store: false'],
+    [provider, 'detail: \'low\''],
+    [app, 'apiKey: process.env.OPENAI_API_KEY'],
+  ]) {
+    if (!content.includes(marker)) {
+      fail(`Server listing-AI fail-closed contract is missing: ${marker}`);
+    }
+  }
+  if ((app.match(/process\.env\.OPENAI_API_KEY/gu) ?? []).length !== 1
+      || /process\.env|OPENAI_API_KEY/u.test(provider)
+      || /process\.env|OPENAI_API_KEY/u.test(gateway)
+      || /OPENAI_API_KEY/u.test(config)) {
+    fail('Server listing-AI credential boundary is invalid.');
   }
 
   const privacy = JSON.parse(source(root, 'store/privacy-disclosures.json', overrides));
@@ -171,7 +214,7 @@ export function validateSupportLaunchContent({
   scanDocuments,
 } = {}) {
   const repositoryRoot = root ?? resolve(fileURLToPath(new URL('..', import.meta.url)));
-  assertExternalAiRemoved(repositoryRoot, sourceOverrides);
+  assertExternalAiFailClosed(repositoryRoot, sourceOverrides);
   assertConsumerDisputeWiring(repositoryRoot, sourceOverrides);
   assertNoOldOdrLinks(repositoryRoot, sourceOverrides, scanDocuments);
 

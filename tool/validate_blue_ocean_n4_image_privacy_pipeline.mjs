@@ -159,7 +159,10 @@ export function validateBlueOceanN4ImagePrivacyPipeline({
     'derivative.bytes.fill(0)',
     "transition(derivative, 'purged', now)",
     'controller.abort()',
-    'providerCallPerformed: false',
+    'providerCallPerformed: derivatives.some((entry) => entry.screeningUsage)',
+    'completeDerivativeScreening(screenDerivative, derivative, timeoutMs)',
+    "derivative.screening.status === 'blocked'",
+    "'listing_ai_image_visual_screen_timeout'",
   ]);
   if (/\bfetch\s*\(|OPENAI_API_KEY|process\.env|originalFilename\s*:/iu.test(pipeline)) {
     fail('N4 pipeline contains a provider/config call or retains an original filename.');

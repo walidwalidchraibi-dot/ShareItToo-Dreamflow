@@ -73,7 +73,7 @@ void main() {
       );
     }
     semantics.dispose();
-  });
+  }, skip: !_googleOnlyProfileUnderTest);
 
   testWidgets(
     'Google-only profile disables unavailable registration providers',
@@ -99,5 +99,6 @@ void main() {
       }
       semantics.dispose();
     },
+    skip: !_googleOnlyProfileUnderTest,
   );
 }

@@ -49,10 +49,11 @@ const sensitiveTextPatterns = Object.freeze([
 ]);
 
 export class ListingAiImagePipelineError extends Error {
-  constructor(status, code) {
+  constructor(status, code, details = undefined) {
     super(code);
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -125,6 +126,29 @@ function normalizeVisualSignals(raw) {
       fail(400, 'listing_ai_image_visual_signal_invalid');
     }
     return Object.freeze({ type: entry.type, confidence: entry.confidence });
+  });
+}
+
+function normalizeScreeningUsage(raw) {
+  exactKeys(
+    raw,
+    ['inputUnits', 'outputUnits', 'estimatedCostCents', 'billedCostCents'],
+    'listing_ai_image_visual_screen_usage_invalid',
+  );
+  for (const key of ['inputUnits', 'outputUnits', 'estimatedCostCents']) {
+    if (!Number.isSafeInteger(raw[key]) || raw[key] < 0) {
+      fail(400, 'listing_ai_image_visual_screen_usage_invalid');
+    }
+  }
+  if (raw.billedCostCents !== null
+      && (!Number.isSafeInteger(raw.billedCostCents) || raw.billedCostCents < 0)) {
+    fail(400, 'listing_ai_image_visual_screen_usage_invalid');
+  }
+  return Object.freeze({
+    inputUnits: raw.inputUnits,
+    outputUnits: raw.outputUnits,
+    estimatedCostCents: raw.estimatedCostCents,
+    billedCostCents: raw.billedCostCents,
   });
 }
 
@@ -252,6 +276,8 @@ async function createAnalysisDerivative(image, { now, randomId }) {
       byteSize: encoded.data.length,
       sha256: crypto.createHash('sha256').update(encoded.data).digest('hex'),
       screening,
+      localScreening: image.localScreening,
+      screeningUsage: null,
       record,
       originalFilenameRetained: false,
       originalMetadataRetained: false,
@@ -261,6 +287,64 @@ async function createAnalysisDerivative(image, { now, randomId }) {
     if (error instanceof ListingAiImagePipelineError) throw error;
     fail(400, 'listing_ai_image_processing_failed');
   }
+}
+
+async function completeDerivativeScreening(screenDerivative, derivative, timeoutMs) {
+  if (typeof screenDerivative !== 'function'
+      || derivative.screening.status === 'blocked') {
+    return;
+  }
+  const controller = new AbortController();
+  let timer = null;
+  let result;
+  try {
+    result = await Promise.race([
+      screenDerivative(Object.freeze({
+        imageReference: derivative.imageReference,
+        storageReference: derivative.storageReference,
+        mimeType: derivative.mimeType,
+        width: derivative.width,
+        height: derivative.height,
+        byteSize: derivative.byteSize,
+        sha256: derivative.sha256,
+        bytes: derivative.bytes,
+      }), { signal: controller.signal }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new ListingAiImagePipelineError(
+            504,
+            'listing_ai_image_visual_screen_timeout',
+            { providerCallCount: 1 },
+          ));
+        }, timeoutMs);
+      }),
+    ]);
+  } catch (error) {
+    if (error instanceof ListingAiImagePipelineError) throw error;
+    throw new ListingAiImagePipelineError(
+      502,
+      'listing_ai_image_visual_screen_failed',
+      {
+        providerCallCount: Number.isSafeInteger(error?.details?.providerCallCount)
+          ? Math.max(0, Math.min(1, error.details.providerCallCount))
+          : 1,
+      },
+    );
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+  exactKeys(
+    result,
+    ['visualScanCompleted', 'visualSignals', 'usage'],
+    'listing_ai_image_visual_screen_invalid',
+  );
+  derivative.screening = evaluateListingAiSensitiveContent({
+    localOcrText: derivative.localScreening.localOcrText,
+    visualScanCompleted: result.visualScanCompleted,
+    visualSignals: result.visualSignals,
+  });
+  derivative.screeningUsage = normalizeScreeningUsage(result.usage);
 }
 
 function audit(auditSink, value) {
@@ -319,6 +403,7 @@ async function consumeWithTimeout(consumeDerivatives, derivatives, timeoutMs) {
 export async function runListingAiImagePrivacyPipeline({
   images,
   consent,
+  screenDerivative,
   consumeDerivatives,
   auditSink,
   timeoutMs = defaultCleanupTimeoutMs,
@@ -356,6 +441,29 @@ export async function runListingAiImagePrivacyPipeline({
     for (const image of images) {
       derivatives.push(await createAnalysisDerivative(image, { now, randomId }));
     }
+    const locallyBlocked = derivatives.some((entry) => entry.screening.status === 'blocked');
+    if (!locallyBlocked) {
+      let completedScreeningCalls = 0;
+      for (const derivative of derivatives) {
+        try {
+          await completeDerivativeScreening(screenDerivative, derivative, timeoutMs);
+        } catch (error) {
+          if (!(error instanceof ListingAiImagePipelineError)) throw error;
+          const failedCallCount = Number.isSafeInteger(error.details?.providerCallCount)
+            ? Math.max(0, Math.min(1, error.details.providerCallCount))
+            : 1;
+          throw new ListingAiImagePipelineError(
+            error.status,
+            error.code,
+            {
+              ...error.details,
+              providerCallCount: completedScreeningCalls + failedCallCount,
+            },
+          );
+        }
+        if (derivative.screeningUsage != null) completedScreeningCalls += 1;
+      }
+    }
     const unsafe = derivatives.filter((entry) => !entry.screening.providerEligible);
     if (unsafe.length > 0) {
       outcome = unsafe.some((entry) => entry.screening.status === 'blocked')
@@ -364,7 +472,12 @@ export async function runListingAiImagePrivacyPipeline({
       return Object.freeze({
         status: outcome,
         providerEligible: false,
-        providerCallPerformed: false,
+        providerCallPerformed: derivatives.some((entry) => entry.screeningUsage),
+        screeningProviderCallCount: derivatives.filter((entry) => entry.screeningUsage).length,
+        screeningEstimatedCostCents: derivatives.reduce(
+          (total, entry) => total + (entry.screeningUsage?.estimatedCostCents ?? 0),
+          0,
+        ),
         disclosureVersion: listingAiImageDisclosureVersion,
         images: Object.freeze(derivatives.map(safeDerivativeView)),
         consumerResult: null,
@@ -382,7 +495,13 @@ export async function runListingAiImagePrivacyPipeline({
     return Object.freeze({
       status: outcome,
       providerEligible: true,
-      providerCallPerformed: false,
+      providerCallPerformed: derivatives.some((entry) => entry.screeningUsage)
+        || (consumerResult?.providerCallCount ?? 0) > 0,
+      screeningProviderCallCount: derivatives.filter((entry) => entry.screeningUsage).length,
+      screeningEstimatedCostCents: derivatives.reduce(
+        (total, entry) => total + (entry.screeningUsage?.estimatedCostCents ?? 0),
+        0,
+      ),
       disclosureVersion: listingAiImageDisclosureVersion,
       images: Object.freeze(derivatives.map(safeDerivativeView)),
       consumerResult,

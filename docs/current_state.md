@@ -4264,3 +4264,33 @@ restored connectivity and an explicit retry, and survives a process restart. Wi-
 restored. No login, logout, account/booking mutation, screenshot, hierarchy,
 identifier or personal content was retained. Play split delivery remains
 unclaimed, and the authenticated matrix remains behind the V5.2 legal gate.
+
+## N14 server-only listing-AI Staging adapter (2026-09-03)
+
+N14 implements the previously missing real image-provider boundary without
+activating it. A Staging/test-only OpenAI Responses adapter now accepts only
+metadata-free 1280-pixel WebP derivatives, uses a strict closed schema, stores
+no provider response, exposes no tools and can create only an editable draft.
+It cannot publish, set an authoritative price or bypass owner confirmation.
+
+Configuration remains disabled by default. OpenAI execution requires the exact
+pinned model, a positive bounded monthly cent budget, a separate literal
+external-execution flag and an owner-only backend credential. Production is
+rejected. The Android client contains neither the provider endpoint nor its
+credential, and no external provider call or charge occurred during N14.
+
+Privacy screening cannot be bypassed by a client-supplied passed state. Local
+hard blocks prevent all external calls; every remaining derivative is screened
+with a hard aborting timeout. Provider-call counts include earlier successful
+screens before a later multi-image failure. Usage must be complete, estimated
+cost is recorded, billed cost remains truthfully unknown, and failures preserve
+the manual editor without claiming false zero spend.
+
+Focused N14 tests pass, the Backend suite passes 775 of 777 tests with two
+documented skips, all 2,029 repository tool checks pass, and the complete
+candidate-rollover regression passes Flutter, Web/Wasm, loopback smoke and the
+Android debug build. Candidate `1.0.0+2026090303` is reserved but not yet built
+or installed at this record. Exact implementation commit, signed artifacts,
+Pixel verification and GitHub Regression/CodeQL remain the next N14 closure
+steps. The active Play candidate and all Production/public/payment gates are
+unchanged.
