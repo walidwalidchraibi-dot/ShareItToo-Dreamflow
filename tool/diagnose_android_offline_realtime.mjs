@@ -169,6 +169,11 @@ export function telephonyDataDisconnected(registry) {
   return states.length > 0 && states.every((state) => state !== 2);
 }
 
+export function activeDefaultNetworkAbsent(connectivity) {
+  const value = /^Active default network:\s*(.*)$/m.exec(String(connectivity))?.[1]?.trim();
+  return value === 'none';
+}
+
 export function visibleMessageOccurrenceCount(hierarchy, message) {
   if (typeof hierarchy !== 'string' || typeof message !== 'string' || message === '') return 0;
   let count = 0;
@@ -184,6 +189,16 @@ export function visibleMessageOccurrenceCount(hierarchy, message) {
 function mobileDataDisconnected(commandRunner, adbPath, device) {
   const registry = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'telephony.registry']);
   return telephonyDataDisconnected(registry);
+}
+
+function defaultNetworkAbsent(commandRunner, adbPath, device) {
+  const connectivity = adb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'dumpsys', 'connectivity'],
+  );
+  return activeDefaultNetworkAbsent(connectivity);
 }
 
 function setNetwork(commandRunner, adbPath, device, { wifi, mobileData }) {
@@ -281,9 +296,15 @@ export async function diagnoseAndroidOfflineRealtime({
     phase = 'disable-device-network';
     setNetwork(commandRunner, adbPath, device, { wifi: false, mobileData: false });
     phase = 'confirm-device-network-off';
+    let consecutiveOfflineSamples = 0;
     const offlineState = await waitFor(
-      () => !wifiEnabled(commandRunner, adbPath, device)
-        && mobileDataDisconnected(commandRunner, adbPath, device),
+      () => {
+        const confirmed = !wifiEnabled(commandRunner, adbPath, device)
+          && mobileDataDisconnected(commandRunner, adbPath, device)
+          && defaultNetworkAbsent(commandRunner, adbPath, device);
+        consecutiveOfflineSamples = confirmed ? consecutiveOfflineSamples + 1 : 0;
+        return consecutiveOfflineSamples >= 3;
+      },
       { attempts: 20, intervalMs: 500, wait },
     );
     if (!offlineState) fail('The bounded device network-off state was not confirmed.');

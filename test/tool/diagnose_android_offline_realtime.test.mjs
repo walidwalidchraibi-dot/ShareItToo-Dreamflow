@@ -2,10 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  activeDefaultNetworkAbsent,
   isExpectedForegroundPushPopup,
   telephonyDataDisconnected,
   visibleMessageOccurrenceCount,
 } from '../../tool/diagnose_android_offline_realtime.mjs';
+
+test('requires Android to release the active default network before offline send', () => {
+  assert.equal(activeDefaultNetworkAbsent('Active default network: none\n'), true);
+  assert.equal(activeDefaultNetworkAbsent('Active default network: 124\n'), false);
+  assert.equal(activeDefaultNetworkAbsent('Current Networks:\n'), false);
+});
 
 test('recognizes only the privacy-preserving V5.2 foreground popup', () => {
   const hierarchy = [
