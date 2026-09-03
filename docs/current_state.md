@@ -8,6 +8,9 @@ The owner authorized sequential autonomous work packages on 2026-09-03.
 The compact queue and resume contract are in
 `docs/operations/SIT_AUTONOMOUS_WORK_PACKAGE_QUEUE_2026-09-03.md`.
 WP01/N29 is active; later packages are queued, not new completion claims.
+Walid clarified that packages must become actual separate Goals. The old
+encompassing Goal is still active pending the owner's one-time removal through
+the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
@@ -32,20 +35,30 @@ sheet exit and loss of known confirmation on a later profile-read failure.
 The narrow correction passes 29 focused Flutter tests (10 new), full local
 regression (2,144 tool tests, 662 Flutter passes with five expected skips,
 analyzer zero, Web/Wasm, loopback and Android), plus Backend 795 passes and two
-expected skips. Exact remote CI remains pending. These are proven
+expected skips. Exact correction Regression `33795801527` (including clean
+checkout) and CodeQL `33795801476` passed at
+`a2e31b4ae5d087174775ad40be5b573dc3c73e28`. These are proven
 code defects, not yet a proven explanation of the uncaptured Pixel result.
-The frozen installed APK is unchanged; this mobile correction requires a new
-candidate before device claims. No SMS was sent by these tests.
+The correction is now included in the separately built and installed candidate
+below. No SMS was sent by these tests; the real corrected SMS path remains open.
 See `docs/operations/N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
 
-Candidate `1.0.0+2026090307` is now in local preparation only. Existing archive
-and Git-version maxima were `2026090306`; the next version was unused in both.
-Android Firebase and canonical local signing preflight pass. Candidate-metadata
-full local regression passes: 2,144 tool tests, 662 Flutter passes with five
-expected skips, analyzer zero, profile suites, Web/Wasm, loopback and Android.
-No new APK is yet built or installed; exact final-source CI and binary
-verification remain.
-See `docs/operations/N29_PIXEL_SMS_CANDIDATE_2026090307_PREPARATION.md`.
+Candidate `1.0.0+2026090307` was built from clean source
+`77d5103cb3c89af3ca5187a6c2642e28fa0703dd`, privately archived, verified and
+installed as a data-preserving Pixel update. APK SHA-256:
+`821a60f7d45fdabaec81434eda39b61c3700e640761cdc53d180467218299ad4`.
+Both artifact signatures, bundle structure, privacy scan and Android surface
+pass; minSdk 24, targetSdk 36, 14 permissions and eight exported components.
+Exact candidate-source Regression `33797592791`, clean checkout and CodeQL
+`33797592920` pass, as does the already-recorded complete local candidate gate.
+The exact installed APK passed authenticated cold launch, all five main
+destinations and no-SMS phone preflight; its temporary backend session was
+revoked. No new SMS was requested. Maximus's send action requested a fresh
+owner-assisted SMS window; the tab was closed immediately, without reading
+the reply or claiming watch delivery. WP01 remains PARTIAL.
+New host-capacity and Kotlin-metadata debt remain OPEN, not hidden by build
+success. See `docs/operations/N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md`
+and `docs/operations/N29_BUILD_HOST_DEBT_2026-09-03.md`.
 
 The owner explicitly authorized the Staging Android key's application
 restriction removal for reCAPTCHA; 25 API restrictions remain. No Production,

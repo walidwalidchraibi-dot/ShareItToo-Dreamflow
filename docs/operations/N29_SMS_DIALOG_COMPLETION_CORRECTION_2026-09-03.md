@@ -73,7 +73,9 @@ provider or Backend traffic is sent.
   not Store or device evidence.
 - Backend suite: 797 tests, 795 passed and two expected no-database skips;
   Backend JavaScript/shell syntax checks passed.
-- Exact correction-HEAD GitHub Regression/clean checkout and CodeQL: pending.
+- Exact correction-HEAD GitHub Regression/clean checkout `33795801527` and
+  CodeQL `33795801476`: PASS on
+  `a2e31b4ae5d087174775ad40be5b573dc3c73e28`.
 
 Source inventories are rebound only for the changed contact-screen hash and
 its transitive inventory dependents. No approval, legal/privacy assertion,
@@ -85,13 +87,15 @@ unapproved; no validator is disabled. Historical APK hashes remain untouched.
 
 ## Remaining work and rollback
 
-Local regression is complete. Perform normal explicit-path commit/push and
-verify exact GitHub Regression, clean checkout and CodeQL before a new artifact.
-Archive a new signed Staging candidate separately before the physical SMS
-closure: invalid-code rejection, successful UI completion, verified-state cold
+Local and exact correction-source CI regression are complete. The correction
+was committed/pushed and is now in separately archived and installed candidate
+`2026090307`; see `N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md` for that
+candidate's own source, CI and device scope. Physical SMS closure is still
+pending: invalid-code rejection, successful UI completion, verified-state cold
 restart and cleanup remain OPEN. The automatic-verification path is not
 claimed by these manual-code widget tests. No automatic SMS resend is allowed.
 
-The installed APK is unchanged, so no device rollback is necessary. Source
-rollback, if required, is a normal reviewed revert of this bounded correction;
+At initial correction time the installed APK was unchanged; the later candidate
+handover owns update and rollback evidence. Source rollback, if required,
+is a normal reviewed revert of this bounded correction;
 no history rewrite or reset. N29 and the encompassing goal remain incomplete.

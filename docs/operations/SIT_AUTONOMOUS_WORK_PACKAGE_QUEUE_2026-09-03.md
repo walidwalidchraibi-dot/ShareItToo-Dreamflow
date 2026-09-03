@@ -1,8 +1,18 @@
 # SIT autonomous work-package queue
 
 Owner instruction: 2026-09-03 — create bounded work packages and continue
-automatically with the next one after verified completion. The encompassing
-Staging objective remains intact; this queue does not declare it complete.
+automatically with the next one after verified completion. Walid subsequently
+clarified that these must be actual separate Goals, not merely labels inside
+one encompassing Goal. The intended sequence below is authorized without
+routine reconfirmation. The Staging requirements remain intact.
+
+Actual Goal state at this checkpoint: the unfinished encompassing Goal is
+still active. No separate WP Goal has been created. Available Goal tools cannot
+clear or replace an unfinished Goal; the owner must remove the old Goal through
+the supported progress-row control once. Never misreport it complete to enable
+the transition. After that change is verified, create WP01 with its bounded
+outcome and completion criteria; complete it truthfully, then create WP02,
+and so on. No extra chats, parallel writers or duplicate scheduler are needed.
 
 ## Resume with minimal context
 
@@ -20,10 +30,13 @@ or parallel writers merely because the queue has several entries.
 
 ## Execution and completion contract
 
-- The active overall Goal drives continuity. Packages are bounded subgoals;
-  finishing one is not grounds to mark the entire Goal complete. A new product
-  Goal can be created only after the preceding actual Goal is genuinely
-  complete or the owner changes/clears it through the supported controls.
+- Pending the one-time Goal transition above, safe independent work may
+  continue under the existing Goal. Finishing a package is not grounds to
+  mark that encompassing Goal complete. After transition, each package has
+  its own actual Goal: record its verified closure, complete that Goal, then
+  create the next without routine reconfirmation. Owner-blocked requirements
+  remain incomplete; independent preparation is not a claim that another Goal
+  was created. Separate Goals in the same chat do not guarantee fresh context.
 - After closure, select the next executable package without asking for routine
   reconfirmation. First inspect its existing evidence and implement only the
   missing work. Reuse prior results only where their exact scope and candidate
@@ -71,7 +84,11 @@ distinctions and A-to-B isolation. No routine test sends real SMS; no resend
 loop. If a fresh owner-delivered code is needed, record that specific action
 and continue independent packages without claiming WP01 DONE.
 
-Active handover: `N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
+Active handover: `N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md`.
+Candidate build, safe Pixel update, authenticated navigation and no-SMS
+preflight pass. A fresh owner-assisted SMS window is still required; WP01 is
+not complete. Newly observed host/toolchain debt stays explicit in
+`N29_BUILD_HOST_DEBT_2026-09-03.md`.
 Historical device evidence: `N29_CURRENT_CANDIDATE_SMS_DELIVERY_PARTIAL_2026-09-03.md`.
 
 ### WP02 — registration and sign-in

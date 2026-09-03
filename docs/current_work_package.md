@@ -4,7 +4,10 @@ Autonomous sequence authorized 2026-09-03:
 `docs/operations/SIT_AUTONOMOUS_WORK_PACKAGE_QUEUE_2026-09-03.md`.
 Current subgoal: **WP01 / N29**. Close each bounded package with evidence and
 continue automatically to the next executable one. The overall Goal remains
-active and is not complete merely because WP01 closes. Read this current
+active and is not complete merely because WP01 closes. The owner now requires
+actual separate Goals; creation is pending the one-time removal of the old
+Goal via supported owner controls, not falsely reported as already done.
+Read this current
 section and the active handover before loading historical package sections.
 
 Status: **PARTIAL / BACKEND ACCEPTANCE AND CLEANUP PROVEN / UI COMPLETION OPEN**
@@ -31,21 +34,29 @@ widget cases plus the existing contact/phone cases pass 29/29; targeted
 analyzer is clean. Full local regression now passes: 2,144 tool tests, 662
 Flutter tests with five expected skips, analyzer zero, Web/Wasm, loopback and
 Android. Backend has 795 passes and two expected skips. Exact CI for the mobile
-correction remains pending. No new SMS or device installation occurred. This mobile change
-is NOT in frozen candidate `2026090306`; create and verify a separate signed
-candidate only after technical closure. The relation to the uncaptured Pixel
+correction now passes: Regression `33795801527` including clean checkout and
+CodeQL `33795801476`. No new SMS was requested. This mobile change
+is NOT in frozen candidate `2026090306`; it is in separately built candidate
+`2026090307` below. The relation to the uncaptured Pixel
 failure still needs that device rerun. Do not weaken principal/epoch checks or
 reclassify an unknown outcome as rejection.
 
 Follow-up evidence:
 `docs/operations/N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
 
-Next candidate preparation is `1.0.0+2026090307`, still **not built or
-installed**. Version/archive uniqueness and configured Android/signing preflight
-pass. Candidate metadata full local regression passes (2,144 tool tests, 662
-Flutter passes with five expected skips, analyzer zero, profile suites,
-Web/Wasm, loopback and Android). Exact final-source CI remains required.
-See `docs/operations/N29_PIXEL_SMS_CANDIDATE_2026090307_PREPARATION.md`.
+Candidate `1.0.0+2026090307` is **BUILT, VERIFIED AND INSTALLED ON PIXEL** from
+clean source `77d5103cb3c89af3ca5187a6c2642e28fa0703dd`. Full local candidate
+regression, exact Regression `33797592791` with clean checkout and CodeQL
+`33797592920` pass. Signed archive, APK/AAB hashes, bundle structure, privacy
+and Android surface pass. The update preserved the installed data identity;
+authenticated cold launch and five read-only main destinations pass.
+No-SMS preflight confirms the advertised Staging provider and revokes its
+diagnostic session. The real SMS completion matrix is still OPEN.
+Next: one fresh owner-assisted code window, requested through Maximus's send
+action without reading the reply. No relay/watch delivery claim and no resend
+loop. Host/toolchain debt is retained in `N29_BUILD_HOST_DEBT_2026-09-03.md`.
+Active handover:
+`docs/operations/N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md`.
 
 The separately owner-authorized Staging API-key application restriction was
 removed for direct-APK reCAPTCHA; all 25 API restrictions were preserved.

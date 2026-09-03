@@ -1,6 +1,12 @@
 # N29 Pixel SMS candidate 2026090307 — preparation
 
-Status: **PREPARATION / NOT BUILT / NOT INSTALLED**.
+Original preparation status: **PREPARATION / NOT BUILT / NOT INSTALLED**.
+This historical preparation record is superseded by
+`N29_PIXEL_CANDIDATE_2026090307_UPDATE_HANDOVER.md`: exact source
+`77d5103cb3c89af3ca5187a6c2642e28fa0703dd` passed GitHub Regression/clean
+checkout and CodeQL, and the verified signed candidate is now installed on
+Pixel. The original preparation observations below retain their original
+scope and timing. Real SMS completion still remains OPEN.
 
 ## Candidate contract
 
