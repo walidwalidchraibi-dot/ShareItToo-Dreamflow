@@ -154,6 +154,46 @@ function pointForNode(node, label) {
   };
 }
 
+function nodeBounds(node) {
+  const bounds = /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/u.exec(
+    currentHeadAndroidNodeAttribute(node, 'bounds') ?? '',
+  );
+  if (bounds === null) return null;
+  return {
+    left: Number(bounds[1]),
+    top: Number(bounds[2]),
+    right: Number(bounds[3]),
+    bottom: Number(bounds[4]),
+  };
+}
+
+export function currentHeadAndroidEditableNodeForLabel(hierarchy, label) {
+  const labels = currentHeadAndroidNamedNodes(hierarchy, label)
+    .map((node) => ({ node, bounds: nodeBounds(node) }))
+    .filter((entry) => entry.bounds !== null);
+  const editable = (String(hierarchy).match(/<node\b[^>]*>/gu) ?? [])
+    .filter((node) => currentHeadAndroidNodeAttribute(node, 'class') === 'android.widget.EditText')
+    .filter((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false')
+    .map((node) => ({ node, bounds: nodeBounds(node) }))
+    .filter((entry) => entry.bounds !== null);
+  const candidates = [];
+  for (const labelled of labels) {
+    for (const field of editable) {
+      const verticalGap = field.bounds.top - labelled.bounds.bottom;
+      const horizontalOverlap = Math.min(field.bounds.right, labelled.bounds.right)
+        - Math.max(field.bounds.left, labelled.bounds.left);
+      if (verticalGap >= 0 && verticalGap <= 500 && horizontalOverlap > 0) {
+        candidates.push({ ...field, verticalGap });
+      }
+    }
+  }
+  candidates.sort((left, right) => left.verticalGap - right.verticalGap);
+  if (candidates.length === 0) {
+    fail(`The sanitized ${label} input field is unavailable.`);
+  }
+  return candidates[0].node;
+}
+
 function tapNamedNode(commandRunner, adbPath, device, hierarchy, label, { chooseLast = false } = {}) {
   const nodes = currentHeadAndroidNamedNodes(hierarchy, label)
     .filter((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false');
@@ -196,7 +236,11 @@ async function findOrScroll({ commandRunner, adbPath, device, wait, label }) {
 function replaceInput(commandRunner, adbPath, device, hierarchy, label, value, deleteCount) {
   if (!/^[+0-9]{1,16}$/u.test(value)) fail(`The private ${label} input is invalid.`);
   const adbSafeValue = encodeAdbNumericInput(value);
-  tapNamedNode(commandRunner, adbPath, device, hierarchy, label);
+  const field = currentHeadAndroidEditableNodeForLabel(hierarchy, label);
+  const point = pointForNode(field, label);
+  currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell', 'input', 'tap', String(point.x), String(point.y),
+  ]);
   currentHeadAndroidAdb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '123']);
   for (let index = 0; index < deleteCount; index += 1) {
     currentHeadAndroidAdb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '67']);

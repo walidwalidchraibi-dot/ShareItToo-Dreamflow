@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import {
   clearVerifiedPhoneFromStagingTestAccount,
+  currentHeadAndroidEditableNodeForLabel,
   encodeAdbNumericInput,
   inspectStagingPhoneBackendGate,
   normalizePrivatePhoneInput,
@@ -39,6 +40,24 @@ test('encodes the international prefix as digits for Android text injection', ()
   assert.equal(encodeAdbNumericInput('+4915123456789'), '004915123456789');
   assert.equal(encodeAdbNumericInput('123456'), '123456');
   assert.throws(() => encodeAdbNumericInput('12 34'), /numeric Android input/u);
+});
+
+test('selects the enabled EditText below its semantic label instead of tapping the label', () => {
+  const hierarchy = [
+    '<hierarchy>',
+    '<node class="android.view.View" content-desc="Telefonnummer" enabled="true" bounds="[48,443][1392,494]" />',
+    '<node class="android.widget.EditText" text="" enabled="true" bounds="[92,568][1348,716]" />',
+    '<node class="android.widget.EditText" text="" enabled="true" bounds="[92,1200][1348,1348]" />',
+    '</hierarchy>',
+  ].join('');
+  assert.match(
+    currentHeadAndroidEditableNodeForLabel(hierarchy, 'Telefonnummer'),
+    /\[92,568\]\[1348,716\]/u,
+  );
+  assert.throws(
+    () => currentHeadAndroidEditableNodeForLabel(hierarchy, 'SMS-Code'),
+    /input field is unavailable/u,
+  );
 });
 
 test('diagnostic failures suppress phone numbers and SMS secrets', () => {
