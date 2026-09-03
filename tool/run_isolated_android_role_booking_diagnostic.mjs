@@ -14,6 +14,9 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { retireSyntheticBookingFixture } from './run_staging_synthetic_booking.mjs';
+import {
+  reusableNonBindingDiagnosticContext,
+} from './run_isolated_android_device_message_diagnostic.mjs';
 
 function fail(message) {
   throw new Error(message);
@@ -69,15 +72,16 @@ function readProtectedVault(vaultFile) {
   const fixture = vault.syntheticBooking;
   const readyWithoutBooking = fixture === undefined
     && vault.status === 'fixture-verified-ready-for-login';
+  const reusableNonBinding = reusableNonBindingDiagnosticContext(vault);
   const safeActiveBooking = fixture !== undefined
     && ['accepted', 'active'].includes(fixture.workflowStatus)
     && fixture.paymentMode === 'memory'
     && fixture.stripeLivemode === false
     && fixture.paymentEndpointCalled === false;
-  if (!readyWithoutBooking && !safeActiveBooking) {
-    fail('The protected review vault must be login-ready or hold an active payment-free fixture.');
+  if (!readyWithoutBooking && !safeActiveBooking && !reusableNonBinding) {
+    fail('The protected review vault must be login-ready or hold a reusable payment-free fixture.');
   }
-  return { raw, vault };
+  return { raw, vault, reusableNonBinding };
 }
 
 export async function runIsolatedAndroidRoleBookingDiagnostic({
@@ -86,14 +90,22 @@ export async function runIsolatedAndroidRoleBookingDiagnostic({
   retirementRunner = retireSyntheticBookingFixture,
 }) {
   const protectedVaultFile = resolve(nonEmptyString(vaultFile, 'vaultFile'));
-  const { raw: originalRaw, vault } = readProtectedVault(protectedVaultFile);
+  const {
+    raw: originalRaw,
+    vault,
+    reusableNonBinding,
+  } = readProtectedVault(protectedVaultFile);
   const originalSha256 = sha256(originalRaw);
   const temporaryDirectory = mkdtempSync(resolve(tmpdir(), 'sit-isolated-role-booking-'));
   chmodSync(temporaryDirectory, 0o700);
   const isolatedVaultFile = resolve(temporaryDirectory, 'accounts.json');
   const isolatedVault = structuredClone(vault);
   delete isolatedVault.syntheticBooking;
+  delete isolatedVault.nonBindingSimulation;
   isolatedVault.status = 'fixture-verified-ready-for-login';
+  if (reusableNonBinding) {
+    isolatedVault.verificationMethod = 'isolated-staging-fixture';
+  }
   nonEmptyString(vault.runId, 'runId');
   isolatedVault.runId = `role-booking-${randomBytes(8).toString('hex')}`;
   writeFileSync(isolatedVaultFile, `${JSON.stringify(isolatedVault, null, 2)}\n`, { mode: 0o600 });

@@ -1,7 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { sendOppositeRoleMessage } from '../../tool/diagnose_android_logout_lifecycle.mjs';
+import {
+  isV52ForegroundPushPopup,
+  sendOppositeRoleMessage,
+} from '../../tool/diagnose_android_logout_lifecycle.mjs';
+
+test('recognizes only the exact V5.2 in-app push surface', () => {
+  assert.equal(isV52ForegroundPushPopup(
+    '<node content-desc="Benachrichtigung: Neue ShareItToo-Aktualisierung. In der App ansehen." />'
+      + '<node content-desc="Öffnen" />',
+  ), true);
+  assert.equal(isV52ForegroundPushPopup(
+    '<node content-desc="Bestätigung erforderlich" /><node content-desc="Öffnen" />',
+  ), false);
+  assert.equal(isV52ForegroundPushPopup(
+    '<node content-desc="Neue ShareItToo-Aktualisierung" />'
+      + '<node content-desc="In der App ansehen." />',
+  ), false);
+});
 
 test('logout push suppression sends only from the opposite synthetic role', async () => {
   const calls = [];

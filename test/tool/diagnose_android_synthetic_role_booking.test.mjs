@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 
 import { diagnoseAndroidSyntheticRoleBooking } from
   '../../tool/diagnose_android_synthetic_role_booking.mjs';
+
+const runnerSource = readFileSync(
+  new URL('../../tool/diagnose_android_synthetic_role_booking.mjs', import.meta.url),
+  'utf8',
+);
 
 const apkBytes = Buffer.from('verified synthetic booking candidate');
 const apkSha256 = createHash('sha256').update(apkBytes).digest('hex');
@@ -109,4 +115,11 @@ test('refuses a locked phone without entering a passcode', async () => {
   const fake = fakeRunner({ locked: true });
   await assert.rejects(run(fake), /locked.*never enters a passcode/);
   assert.equal(fake.calls.some((args) => args.includes('input')), false);
+});
+
+test('the executable runner requires the explicit current-head archive', () => {
+  assert.match(runnerSource, /validateCurrentHeadAndroidReleaseArchive/u);
+  assert.match(runnerSource, /--candidate-dir is required/u);
+  assert.doesNotMatch(runnerSource, /store\/device-validation\.json/u);
+  assert.doesNotMatch(runnerSource, /validateCandidateArchive/u);
 });

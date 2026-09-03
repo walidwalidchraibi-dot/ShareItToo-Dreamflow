@@ -2,28 +2,23 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { homedir } from 'node:os';
 import { resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
   inspectPhysicalDevice,
   parseAdbDevices,
   selectSinglePhysicalDevice,
-  validateCandidateArchive,
 } from './prepare_android_device_test.mjs';
 import { runSyntheticRoleBookingLifecycle } from './run_staging_synthetic_booking.mjs';
+import {
+  validateCurrentHeadAndroidReleaseArchive,
+} from './validate_current_head_android_release_archive.mjs';
 
 const applicationId = 'com.shareittoo.app';
 
 function fail(message) {
   throw new Error(message);
-}
-
-function nonEmptyString(value, label) {
-  if (typeof value !== 'string' || value.trim() === '') fail(`${label} must be a non-empty string.`);
-  return value.trim();
 }
 
 function defaultCommandRunner(file, args, { binary = false } = {}) {
@@ -260,20 +255,19 @@ function parseArguments(values) {
 async function run() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const args = parseArguments(process.argv.slice(2));
-  const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
-  const candidate = manifest.candidate;
-  const candidateDirectory = resolve(
-    args.candidateDirectory ?? resolve(
-      homedir(),
-      'Library',
-      'Application Support',
-      'ShareItToo',
-      'release',
-      'android',
-      `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
-    ),
-  );
-  const archive = await validateCandidateArchive({ root, candidateDirectory });
+  if (args.candidateDirectory === null) {
+    fail('--candidate-dir is required for an exact current-head role-booking diagnostic.');
+  }
+  const candidateDirectory = resolve(args.candidateDirectory);
+  const archive = await validateCurrentHeadAndroidReleaseArchive({
+    root,
+    candidateDirectory,
+  });
+  const candidate = {
+    ...archive,
+    paymentMode: 'memory',
+    stripeLivemode: false,
+  };
   const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });

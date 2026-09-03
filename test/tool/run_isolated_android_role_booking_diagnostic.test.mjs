@@ -13,7 +13,7 @@ function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
-function fixture({ withoutBooking = false } = {}) {
+function fixture({ withoutBooking = false, reusableNonBinding = false } = {}) {
   const root = tempFixtures.makeSync('sit-protected-role-booking-');
   chmodSync(root, 0o700);
   const vaultFile = resolve(root, 'accounts.json');
@@ -21,14 +21,42 @@ function fixture({ withoutBooking = false } = {}) {
     schemaVersion: 1,
     kind: 'sit-staging-synthetic-account-vault',
     runId: 'protected-review-fixture',
-    status: withoutBooking ? 'fixture-verified-ready-for-login' : 'synthetic-booking-active',
+    status: reusableNonBinding
+      ? 'non-binding-simulation-active'
+      : withoutBooking
+        ? 'fixture-verified-ready-for-login'
+        : 'synthetic-booking-active',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
     accounts: [
-      { role: 'owner', email: 'owner@example.invalid', password: syntheticCredential('owner') },
-      { role: 'renter', email: 'renter@example.invalid', password: syntheticCredential('renter') },
+      {
+        role: 'owner', email: 'owner@example.invalid', password: syntheticCredential('owner'),
+        ...(reusableNonBinding
+          ? { registrationStatus: 'accepted', verificationStatus: 'fixture-verified' }
+          : {}),
+      },
+      {
+        role: 'renter', email: 'renter@example.invalid', password: syntheticCredential('renter'),
+        ...(reusableNonBinding
+          ? { registrationStatus: 'accepted', verificationStatus: 'fixture-verified' }
+          : {}),
+      },
     ],
-    ...(withoutBooking ? {} : {
+    ...(reusableNonBinding ? {
+      verificationMethod: 'isolated-staging-fixture',
+      nonBindingSimulation: {
+        schemaVersion: 1,
+        status: 'accepted-chat-ready',
+        listingId: 'listing-fixture',
+        bookingId: 'booking-fixture',
+        threadId: 'thread-fixture',
+        availabilityUnaffected: true,
+        paymentReadRejected: true,
+        inAppNotificationsVerified: true,
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      },
+    } : withoutBooking ? {} : {
       syntheticBooking: {
         workflowStatus: 'accepted',
         paymentMode: 'memory',
@@ -104,6 +132,32 @@ test('accepts a login-ready protected vault without an active booking', async ()
   assert.equal(readFileSync(vaultFile, 'utf8'), before);
 });
 
+test('reuses a verified non-binding Staging vault through an isolated clean projection', async () => {
+  const vaultFile = fixture({ reusableNonBinding: true });
+  const before = readFileSync(vaultFile, 'utf8');
+  let projected;
+  const result = await runIsolatedAndroidRoleBookingDiagnostic({
+    vaultFile,
+    runner: async (isolatedVaultFile) => {
+      projected = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      return { status: 'passed-bounded-synthetic-role-booking-diagnostic' };
+    },
+    retirementRunner: async () => ({
+      status: 'synthetic-booking-retired',
+      bookingCompleted: true,
+      listingPaused: true,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+  });
+
+  assert.equal(projected.status, 'fixture-verified-ready-for-login');
+  assert.equal(projected.nonBindingSimulation, undefined);
+  assert.equal(projected.syntheticBooking, undefined);
+  assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});
+
 test('fails closed when the temporary role-booking fixture is not retired', async () => {
   const vaultFile = fixture();
   await assert.rejects(
@@ -170,7 +224,7 @@ test('rejects an unsafe or terminal protected fixture before running', async () 
         called = true;
       },
     }),
-    /must be login-ready or hold an active payment-free fixture/,
+    /must be login-ready or hold a reusable payment-free fixture/,
   );
   assert.equal(called, false);
 });

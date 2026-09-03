@@ -21,6 +21,8 @@ import {
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-offline-realtime.xml';
 const offlineMessage = 'Kontrollierte SIT Staging-Pushprüfung (offline).';
+const v52ForegroundPushTitle = 'Neue ShareItToo-Aktualisierung';
+const v52ForegroundPushBody = 'In der App ansehen.';
 
 function fail(message) {
   throw new Error(message);
@@ -167,6 +169,18 @@ export function telephonyDataDisconnected(registry) {
   return states.length > 0 && states.every((state) => state !== 2);
 }
 
+export function visibleMessageOccurrenceCount(hierarchy, message) {
+  if (typeof hierarchy !== 'string' || typeof message !== 'string' || message === '') return 0;
+  let count = 0;
+  let cursor = 0;
+  while (true) {
+    const next = hierarchy.indexOf(message, cursor);
+    if (next < 0) return count;
+    count += 1;
+    cursor = next + message.length;
+  }
+}
+
 function mobileDataDisconnected(commandRunner, adbPath, device) {
   const registry = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'telephony.registry']);
   return telephonyDataDisconnected(registry);
@@ -182,11 +196,12 @@ function appForeground(commandRunner, adbPath, device) {
   return /topResumedActivity=.*com\.shareittoo\.app\/.MainActivity/.test(activities);
 }
 
-export function isExpectedForegroundPushPopup(hierarchy, fixtureTitle) {
+export function isExpectedForegroundPushPopup(hierarchy) {
   return typeof hierarchy === 'string'
     && hierarchy.includes('Benachrichtigung:')
     && hierarchy.includes('content-desc="Öffnen"')
-    && hierarchy.includes(fixtureTitle);
+    && hierarchy.includes(v52ForegroundPushTitle)
+    && hierarchy.includes(v52ForegroundPushBody);
 }
 
 function dismissExpectedForegroundPushPopup(
@@ -194,9 +209,8 @@ function dismissExpectedForegroundPushPopup(
   adbPath,
   device,
   hierarchy,
-  fixtureTitle,
 ) {
-  if (!isExpectedForegroundPushPopup(hierarchy, fixtureTitle)) return false;
+  if (!isExpectedForegroundPushPopup(hierarchy)) return false;
   if (!appForeground(commandRunner, adbPath, device)) return false;
   adb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '4']);
   return true;
@@ -238,13 +252,27 @@ export async function diagnoseAndroidOfflineRealtime({
   };
   let networkRestored = false;
   let phase = 'open-authenticated-chat';
+  let foregroundPushPopupAbsentBeforeSend = false;
+  let offlineMessageBaselineCount = 0;
+  let offlineMessageRecoveredCount = 0;
   try {
     startChatLink(commandRunner, adbPath, device, threadId);
     const chatPreloaded = await waitFor(() => {
       const hierarchy = dumpUi(commandRunner, adbPath, device);
-      return hierarchy.includes(nonEmptyString(fixture.title, 'syntheticBooking.title'))
+      const expectedChatVisible = hierarchy.includes(
+        nonEmptyString(fixture.title, 'syntheticBooking.title'),
+      )
         && hierarchy.includes('Nachricht…')
         && !hierarchy.includes('Bitte zuerst anmelden');
+      if (expectedChatVisible && !isExpectedForegroundPushPopup(hierarchy)) {
+        foregroundPushPopupAbsentBeforeSend = true;
+        offlineMessageBaselineCount = visibleMessageOccurrenceCount(
+          hierarchy,
+          offlineMessage,
+        );
+        return true;
+      }
+      return false;
     }, { attempts: 16, intervalMs: 700, wait });
     if (!chatPreloaded) fail('The authenticated chat did not preload before the offline window.');
 
@@ -268,7 +296,10 @@ export async function diagnoseAndroidOfflineRealtime({
     }
     phase = 'observe-offline-message-absence';
     await wait(15_000);
-    if (dumpUi(commandRunner, adbPath, device).includes(offlineMessage)) {
+    if (visibleMessageOccurrenceCount(
+      dumpUi(commandRunner, adbPath, device),
+      offlineMessage,
+    ) > offlineMessageBaselineCount) {
       fail('The new message appeared before network restoration.');
     }
 
@@ -288,13 +319,16 @@ export async function diagnoseAndroidOfflineRealtime({
     const recoveredInChat = await waitFor(
       () => {
         const hierarchy = dumpUi(commandRunner, adbPath, device);
-        if (hierarchy.includes(offlineMessage)) return true;
+        const currentCount = visibleMessageOccurrenceCount(hierarchy, offlineMessage);
+        if (currentCount > offlineMessageBaselineCount) {
+          offlineMessageRecoveredCount = currentCount;
+          return true;
+        }
         if (dismissExpectedForegroundPushPopup(
           commandRunner,
           adbPath,
           device,
           hierarchy,
-          nonEmptyString(fixture.title, 'syntheticBooking.title'),
         )) {
           foregroundPushPopupsDismissed += 1;
         }
@@ -358,6 +392,9 @@ export async function diagnoseAndroidOfflineRealtime({
         packageCrashBufferEntries: 0,
         networkRestored: true,
         foregroundPushPopupsDismissed,
+        foregroundPushPopupAbsentBeforeSend,
+        visibleOfflineMessageBaselineCount: offlineMessageBaselineCount,
+        visibleOfflineMessageRecoveredCount: offlineMessageRecoveredCount,
       },
       boundaries: {
         syntheticAccountsOnly: true,

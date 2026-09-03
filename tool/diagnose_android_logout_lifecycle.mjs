@@ -20,6 +20,8 @@ import {
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-logout-lifecycle.xml';
+const v52ForegroundPushTitle = 'Neue ShareItToo-Aktualisierung';
+const v52ForegroundPushBody = 'In der App ansehen.';
 
 function fail(message) {
   throw new Error(message);
@@ -149,6 +151,14 @@ function namedNodes(hierarchy, label) {
       || matchesLabel(attribute(tag, 'hint')));
 }
 
+export function isV52ForegroundPushPopup(hierarchy) {
+  return typeof hierarchy === 'string'
+    && hierarchy.includes('content-desc="Benachrichtigung:')
+    && hierarchy.includes('content-desc="Öffnen"')
+    && hierarchy.includes(v52ForegroundPushTitle)
+    && hierarchy.includes(v52ForegroundPushBody);
+}
+
 const discoverNavigationLabels = ['Entdecken', 'Erkunden'];
 const accountNavigationLabels = ['Mein SIT', 'Profil'];
 
@@ -195,7 +205,10 @@ async function waitForHierarchy({ commandRunner, adbPath, device, predicate, wai
       launchCandidate(commandRunner, adbPath, device);
       continue;
     }
-    if (hierarchy.includes('content-desc="Benachrichtigung:')) {
+    // Only close ShareItToo's exact privacy-preserving foreground-push
+    // surface. An unrelated or newer dialog must remain untouched and make
+    // the bounded diagnostic fail visibly instead of mutating global UI state.
+    if (isV52ForegroundPushPopup(hierarchy)) {
       adb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '4']);
       continue;
     }
