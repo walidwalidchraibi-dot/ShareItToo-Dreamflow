@@ -29,6 +29,11 @@ test('accepts only a German E.164 phone input', () => {
   );
 });
 
+test('all persisted phone-verification states use the current N29 evidence kind', () => {
+  assert.doesNotMatch(source, /n24-private-phone-verification-state/u);
+  assert.match(source, /n29-private-phone-verification-state/u);
+});
+
 test('accepts exactly one six-digit private SMS confirmation input', () => {
   assert.equal(normalizePrivateSmsCode(' 123456\n'), '123456');
   for (const invalid of ['12345', '1234567', '12 3456', 'abcdef', '']) {

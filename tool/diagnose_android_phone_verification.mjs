@@ -512,7 +512,7 @@ export async function diagnoseAndroidPhoneVerification({
       : 'staging-phone-backend-gate-disabled-current-candidate';
     const stateSha256 = writePrivateState(privateEvidenceDirectory, {
       schemaVersion: 1,
-      kind: 'n24-private-phone-verification-state',
+      kind: 'n29-private-phone-verification-state',
       status,
       capturedAt,
       candidateCommit: candidate.commit,
@@ -869,7 +869,7 @@ export async function diagnoseAndroidPhoneVerification({
 
   const stateSha256 = writePrivateState(privateEvidenceDirectory, {
     schemaVersion: 1,
-    kind: 'n24-private-phone-verification-state',
+    kind: 'n29-private-phone-verification-state',
     status,
     capturedAt,
     candidateCommit: candidate.commit,
