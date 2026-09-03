@@ -4,6 +4,39 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
+## Current N25 Stripe test-mode Accounts v2 technical foundation
+
+The backend now uses the exact locked official Stripe Node SDK `22.6.1` and
+API `2026-08-26.dahlia`. Accounts v2 recipient configuration, Express hosted
+onboarding, test/live fail-closed configuration, snapshot/thin webhook
+verification and separate-charge refund/transfer/reversal semantics are
+implemented. Checkout and payout require exact v2 recipient capability plus
+the intended application responsibility model; legacy v1 state cannot grant
+readiness.
+
+Implementation commit `4ece64d59bd0b682e860c6149bae9defdb66136f`
+passes 20 focused tests, 796 Backend tests with two expected database skips,
+real PostgreSQL fresh/recovery proofs, dependency and secret checks, 2,102
+implementation-head and 2,106 closure-head repository tool tests, 652 Flutter
+tests, analyzer zero, Web/Wasm, loopback and Android. Exact GitHub Regression
+`33746308734` and CodeQL `33746308700` pass,
+including independent clean checkout; alerts remain zero. PR #7 stays Draft
+and unmerged.
+
+No app-runtime Stripe request or Stripe object was created and no credential
+was configured or extracted. The correct test platform identity, server credential, webhook
+secret and deliberate disposition of old v1/memory Staging account rows remain
+required before provider activation. P0B therefore remains `0/8 HOLD`.
+
+The current-phone diagnostic foundation at `73715afa` remains technical
+preparation only; no phone/KYC closure is claimed. External listing AI and
+V5.2 owner approval also remain open. Production, live payments, real money,
+Play, Firebase, Cloud/VPS/DNS, OnePlus and PR merge were unchanged. Exact
+evidence is
+`docs/evidence/release-readiness/n25-stripe-test-mode-accounts-v2-20260903.json`;
+handover is
+`docs/operations/N25_STRIPE_TEST_MODE_ACCOUNTS_V2_2026-09-03.md`.
+
 ## Current N23 Pixel Google social-auth and principal/epoch closure
 
 The exact signed Internal/Staging candidate `com.shareittoo.app`

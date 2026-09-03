@@ -1,4 +1,37 @@
-# Current Work Package: N23 Pixel Google social-auth and principal/epoch
+# Current Work Package: N25 Stripe test-mode Accounts v2 foundation
+
+Status: **TECHNICAL FOUNDATION CLOSED / PROVIDER SANDBOX E2E 0/8 HOLD / LIVE
+GATES CLOSED** on 03.09.2026.
+
+Commit `4ece64d59bd0b682e860c6149bae9defdb66136f` introduces the exact locked
+official Stripe Node SDK, Accounts v2 recipient/Express onboarding, strict v2
+capability and platform-responsibility readiness, verified snapshot/thin
+webhooks, and separate charge/refund/transfer/reversal semantics. Migration
+`071` preserves old connected accounts as untrusted v1 state and blocks unsafe
+rollback after v2 data exists.
+
+Local focused, full Backend, real PostgreSQL, dependency, secret, complete
+repository, Flutter, analyzer, Web/Wasm, loopback and Android checks pass.
+GitHub Regression `33746308734`, clean-checkout reproducibility and CodeQL
+`33746308700` pass on the implementation head with zero alerts. PR #7 remains
+Draft and unmerged.
+
+No app-runtime Stripe request/object, credential configuration, deployment,
+test charge, refund, transfer or payout occurred. Provider identity, test server key,
+webhook secret and deliberate legacy-row disposition remain owner-bound
+activation work. P0B remains `0/8 HOLD`; memory results are not provider
+evidence. Phone/KYC, external listing AI and V5.2 approval remain open.
+
+Production, live payments, real money, Play, Firebase, Cloud/VPS/DNS, public
+registration, OnePlus and PR merge were unchanged.
+
+Machine evidence:
+`docs/evidence/release-readiness/n25-stripe-test-mode-accounts-v2-20260903.json`.
+
+Human handover:
+`docs/operations/N25_STRIPE_TEST_MODE_ACCOUNTS_V2_2026-09-03.md`.
+
+# Previous Work Package: N23 Pixel Google social-auth and principal/epoch
 
 Status: **CLOSED LOCALLY / GOOGLE LOGIN, COLD START, REPEAT LOGIN, PRINCIPAL
 CONTAINMENT AND OWNER RESTORE PASSED / GITHUB REGRESSION PASSED / LIVE GATES
