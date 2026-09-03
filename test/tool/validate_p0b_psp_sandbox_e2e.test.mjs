@@ -18,7 +18,7 @@ test('accepts the source-bound provider-sandbox hold without claiming an E2E run
     state: 'hold-provider-contract-credentials-and-sandbox-e2e',
     repositorySources: 9,
     driveSources: 5,
-    focusedLocalTestsPassed: 35,
+    focusedLocalTestsPassed: 37,
     requiredScenarios: 8,
     providerScenariosPassed: 0,
     contractAndProviderFactsReady: false,

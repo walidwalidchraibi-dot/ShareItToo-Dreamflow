@@ -103,25 +103,91 @@ test('request hashes are stable across object key order', () => {
   assert.equal(requestHash({ b: 2, a: { d: 4, c: 3 } }), requestHash({ a: { c: 3, d: 4 }, b: 2 }));
 });
 
-test('Stripe transport sends server-only form parameters and idempotency', async () => {
-  let captured;
+test('Stripe transport creates recipient-only Accounts v2 onboarding', async () => {
+  const captured = [];
+  const stripeClient = {
+    v2: { core: {
+      accounts: {
+        create: async (...args) => {
+          captured.push(['account', ...args]);
+          return { id: 'acct_test' };
+        },
+      },
+      accountLinks: {
+        create: async (...args) => {
+          captured.push(['accountLink', ...args]);
+          return { url: 'https://connect.stripe.test/onboard' };
+        },
+      },
+    } },
+  };
   const provider = new StripeProvider({
     mode: 'stripe',
     secretKey: 'sk_test_unit',
-    fetchImpl: async (url, options) => {
-      captured = { url, options };
-      return { ok: true, status: 200, json: async () => ({ id: 'cus_test' }) };
-    },
+    stripeClient,
   });
+  await provider.createConnectedAccount({
+    userId: 'owner-1', email: 'person@example.invalid', country: 'DE', currency: 'EUR',
+    idempotencyKey: 'connect:owner-1',
+  });
+  const [accountKind, accountParams, accountOptions] = captured[0];
+  assert.equal(accountKind, 'account');
+  assert.equal(accountParams.dashboard, 'express');
+  assert.deepEqual(accountParams.defaults.responsibilities, {
+    fees_collector: 'application', losses_collector: 'application',
+  });
+  assert.deepEqual(accountParams.configuration, {
+    recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } },
+  });
+  assert.equal(Object.hasOwn(accountParams.configuration, 'merchant'), false);
+  assert.equal(accountParams.identity.entity_type, 'individual');
+  assert.equal(accountOptions.idempotencyKey, 'connect:owner-1');
+
+  await provider.createAccountLink({
+    accountId: 'acct_test',
+    refreshUrl: 'https://staging.example.test/refresh',
+    returnUrl: 'https://staging.example.test/return',
+    idempotencyKey: 'connect:owner-1:link',
+  });
+  const [linkKind, linkParams, linkOptions] = captured[1];
+  assert.equal(linkKind, 'accountLink');
+  assert.deepEqual(linkParams.use_case.account_onboarding.configurations, ['recipient']);
+  assert.equal(linkParams.use_case.account_onboarding.collection_options.fields, 'eventually_due');
+  assert.equal(linkOptions.idempotencyKey, 'connect:owner-1:link');
+});
+
+test('Stripe SDK checkout, refund and transfer preserve separate-charges semantics', async () => {
+  const captured = [];
+  const stripeClient = {
+    customers: { create: async (...args) => {
+      captured.push(['customer', ...args]);
+      return { id: 'cus_test' };
+    } },
+    checkout: { sessions: { create: async (...args) => {
+      captured.push(['checkout', ...args]);
+      return { id: 'cs_test' };
+    } } },
+    refunds: { create: async (...args) => {
+      captured.push(['refund', ...args]);
+      return { id: 're_test' };
+    } },
+    transfers: {
+      create: async (...args) => {
+        captured.push(['transfer', ...args]);
+        return { id: 'tr_test' };
+      },
+      createReversal: async (...args) => {
+        captured.push(['reversal', ...args]);
+        return { id: 'trr_test' };
+      },
+    },
+  };
+  const provider = new StripeProvider({ mode: 'stripe', secretKey: 'rk_test_unit', stripeClient });
   await provider.createCustomer({
     userId: 'user-1', email: 'person@example.invalid', name: 'Person', idempotencyKey: 'customer:user-1',
   });
-  assert.equal(captured.url, 'https://api.stripe.com/v1/customers');
-  assert.equal(captured.options.headers.Authorization, 'Bearer sk_test_unit');
-  assert.equal(captured.options.headers['Idempotency-Key'], 'customer:user-1');
-  const form = captured.options.body.toString();
-  assert.match(form, /metadata%5Bsit_user_id%5D=user-1/);
-  assert.doesNotMatch(form, /sk_test_unit/);
+  assert.deepEqual(captured[0][1].metadata, { sit_user_id: 'user-1' });
+  assert.equal(captured[0][2].idempotencyKey, 'customer:user-1');
 
   await provider.createPaymentCheckout({
     paymentId: 'payment-1',
@@ -136,8 +202,81 @@ test('Stripe transport sends server-only form parameters and idempotency', async
     expiresAt: 1799539200,
     idempotencyKey: 'checkout:booking-1',
   });
-  const checkoutForm = captured.options.body.toString();
-  assert.doesNotMatch(checkoutForm, /payment_method_types/);
-  assert.match(checkoutForm, /payment_intent_data%5Btransfer_group%5D=booking_booking-1/);
-  assert.doesNotMatch(checkoutForm, /setup_future_usage/);
+  const checkoutParams = captured[1][1];
+  assert.equal(Object.hasOwn(checkoutParams, 'payment_method_types'), false);
+  assert.equal(checkoutParams.payment_intent_data.transfer_group, 'booking_booking-1');
+  assert.equal(Object.hasOwn(checkoutParams.payment_intent_data, 'setup_future_usage'), false);
+  assert.match(checkoutParams.integration_identifier, /^shareittoo_android_[a-z]{8}$/u);
+  assert.equal(captured[1][2].idempotencyKey, 'checkout:booking-1');
+
+  await provider.createRefund({
+    chargeId: 'ch_test', amountMinor: 595, idempotencyKey: 'refund:payment-1',
+    metadata: { currency: 'EUR', sit_payment_id: 'payment-1' },
+    reverseTransfer: true, refundPlatformFee: true,
+  });
+  const refundParams = captured[2][1];
+  assert.equal(Object.hasOwn(refundParams, 'reverse_transfer'), false);
+  assert.equal(Object.hasOwn(refundParams, 'refund_application_fee'), false);
+  assert.equal(captured[2][2].idempotencyKey, 'refund:payment-1');
+
+  await provider.createTransfer({
+    accountId: 'acct_test', chargeId: 'ch_test', amountMinor: 500,
+    currency: 'EUR', transferGroup: 'booking_booking-1',
+    idempotencyKey: 'transfer:payment-1', metadata: { sit_payment_id: 'payment-1' },
+  });
+  assert.equal(captured[3][1].amount, 500);
+  assert.equal(captured[3][1].destination, 'acct_test');
+
+  await provider.reverseTransfer({
+    transferId: 'tr_test', amountMinor: 100, idempotencyKey: 'reversal:payment-1',
+    metadata: { sit_payment_id: 'payment-1' },
+  });
+  assert.equal(captured[4][1], 'tr_test');
+  assert.equal(captured[4][2].amount, 100);
+  assert.equal(captured[4][3].idempotencyKey, 'reversal:payment-1');
+});
+
+test('Stripe SDK verifies both snapshot and thin webhook envelopes', () => {
+  const provider = new StripeProvider({
+    mode: 'stripe',
+    secretKey: 'sk_test_localunitfixture',
+  });
+  const webhookSecret = 'whsec_localunitfixture';
+  const snapshotPayload = JSON.stringify({
+    id: 'evt_snapshot_fixture',
+    object: 'event',
+    type: 'payment_intent.succeeded',
+    data: { object: { id: 'pi_fixture' } },
+    livemode: false,
+  });
+  const snapshot = provider.parseWebhookEvent({
+    rawBody: Buffer.from(snapshotPayload),
+    signatureHeader: stripeSignatureHeader({ payload: snapshotPayload, secret: webhookSecret }),
+    webhookSecret,
+  });
+  assert.equal(snapshot.id, 'evt_snapshot_fixture');
+
+  const thinPayload = JSON.stringify({
+    id: 'evt_thin_fixture',
+    object: 'v2.core.event',
+    type: 'v2.core.account[requirements].updated',
+    related_object: { id: 'acct_fixture', type: 'v2.core.account' },
+    livemode: false,
+  });
+  const thin = provider.parseWebhookEvent({
+    rawBody: Buffer.from(thinPayload),
+    signatureHeader: stripeSignatureHeader({ payload: thinPayload, secret: webhookSecret }),
+    webhookSecret,
+  });
+  assert.equal(thin.type, 'v2.core.account[requirements].updated');
+  assert.equal(thin.related_object.id, 'acct_fixture');
+
+  assert.throws(
+    () => provider.parseWebhookEvent({
+      rawBody: Buffer.from(thinPayload),
+      signatureHeader: stripeSignatureHeader({ payload: `${thinPayload}tampered`, secret: webhookSecret }),
+      webhookSecret,
+    }),
+    (error) => error.status === 400 && error.code === 'invalid_webhook_signature',
+  );
 });

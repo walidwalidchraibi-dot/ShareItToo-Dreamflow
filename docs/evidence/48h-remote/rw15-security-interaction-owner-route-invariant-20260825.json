@@ -305,9 +305,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "d37178324384b1ed4166e76b8681dfd5b2f6348aab3833ea45eab071b3a561f9",
-    "retentionManifestSha256": "dd2ea207260457ab3d06fcfbae9093856a348cb27bc198c323c856f6780498aa",
-    "activeProviderEvidenceSha256": "1b7f69675b74c458cc25919505395403257138c782282ffc70accfdd451d5765",
+    "privacyManifestSha256": "040d749f8a549b1209aaf496ba24374e1abc8398cab359110c5676738d45da5c",
+    "retentionManifestSha256": "c01146f3b1a3389e2088769adda0b68b10608383945eb80900e78b12d76a8369",
+    "activeProviderEvidenceSha256": "123c68c4f15a70ac1820a535f3f12b9f2b9bea4107873765883bdaec922f9958",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -419,27 +419,27 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "d37178324384b1ed4166e76b8681dfd5b2f6348aab3833ea45eab071b3a561f9"
+      "sha256": "040d749f8a549b1209aaf496ba24374e1abc8398cab359110c5676738d45da5c"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "dd2ea207260457ab3d06fcfbae9093856a348cb27bc198c323c856f6780498aa"
+      "sha256": "c01146f3b1a3389e2088769adda0b68b10608383945eb80900e78b12d76a8369"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "1b7f69675b74c458cc25919505395403257138c782282ffc70accfdd451d5765"
+      "sha256": "123c68c4f15a70ac1820a535f3f12b9f2b9bea4107873765883bdaec922f9958"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "c13ec60f53fb1c5e89d90f3d936db384582fa4f5cb028dd2a42a9999e49eed4a"
+      "sha256": "ef8b78e61cb4bab4445aedd6d3e5c49dcb042aa3da8c9301ae89ac5a02c7426b"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
-      "sha256": "6462fe30f84f208e97636518e95c0ca602e2a71c936d7cba5d525a6b1c050c36"
+      "sha256": "c2b0955de9ab158364d1f36a14a1e3f8f82a802ea6a0e1615b338e77b81ef394"
     },
     {
       "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
-      "sha256": "c16a0766f01b78e183762402e2a5d4af42ee192b9a49c6b11f85c2115da96f51"
+      "sha256": "bbb0c030967a4dce1a99b165de983ab5b13e82f8a86ad4ccb58b7f64ca5270ae"
     },
     {
       "path": "scripts/technical_regression_check.sh",

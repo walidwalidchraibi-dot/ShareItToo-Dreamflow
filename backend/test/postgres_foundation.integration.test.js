@@ -192,6 +192,7 @@ if (!databaseUrl) {
         '068_blue_ocean_listing_workflow.up.sql',
         '069_regional_price_engine_r6_hardening.up.sql',
         '070_stage_a_non_binding_simulation_guard.up.sql',
+        '071_stripe_connect_accounts_v2.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -2045,6 +2046,48 @@ if (!databaseUrl) {
       );
       await setupPool.query(
         `UPDATE bookings SET simulation_only = false WHERE id = 'booking-a'`,
+      );
+
+      await setupPool.query(
+        `INSERT INTO stripe_connect_accounts (
+           user_id, provider_account_id, country, default_currency,
+           account_api_version, dashboard_type, fees_collector,
+           losses_collector, recipient_transfers_status
+         ) VALUES (
+           'owner', 'acct_n25_v2_guard', 'DE', 'EUR',
+           'v2', 'express', 'application', 'application', 'active'
+         )`,
+      );
+      const connectV2 = await setupPool.query(
+        `SELECT account_api_version, dashboard_type, fees_collector,
+                losses_collector, recipient_transfers_status
+         FROM stripe_connect_accounts
+         WHERE user_id = 'owner'`,
+      );
+      assert.deepEqual(connectV2.rows[0], {
+        account_api_version: 'v2',
+        dashboard_type: 'express',
+        fees_collector: 'application',
+        losses_collector: 'application',
+        recipient_transfers_status: 'active',
+      });
+      const connectV2Rollback = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/071_stripe_connect_accounts_v2.down.sql'),
+        'utf8',
+      );
+      const connectRollbackClient = await setupPool.connect();
+      try {
+        await connectRollbackClient.query('BEGIN');
+        await assert.rejects(
+          connectRollbackClient.query(connectV2Rollback),
+          /Stripe Accounts v2 rollback blocked: v2 connected accounts exist/u,
+        );
+        await connectRollbackClient.query('ROLLBACK');
+      } finally {
+        connectRollbackClient.release();
+      }
+      await setupPool.query(
+        `DELETE FROM stripe_connect_accounts WHERE user_id = 'owner'`,
       );
 
       await setupPool.query(
@@ -5972,6 +6015,91 @@ if (!databaseUrl) {
       const connectStatus = await fetch(`${baseUrl}/v1/payments/connect/status`, { headers: ownerHeaders });
       assert.equal(connectStatus.status, 200);
       assert.equal((await connectStatus.json()).account.ready, true);
+
+      const connectedProviderAccountId = (await setupPool.query(
+        `SELECT provider_account_id FROM stripe_connect_accounts WHERE user_id = 'owner'`,
+      )).rows[0].provider_account_id;
+      const lateLegacyAccountEvent = {
+        id: 'evt_n25_late_legacy_account',
+        object: 'event',
+        type: 'account.updated',
+        created: 1799539000,
+        livemode: false,
+        data: { object: {
+          id: connectedProviderAccountId,
+          object: 'account',
+          details_submitted: true,
+          payouts_enabled: true,
+          capabilities: { transfers: 'active' },
+          requirements: {},
+        } },
+      };
+      assert.equal((await applyProviderEvent(
+        lateLegacyAccountEvent,
+        Buffer.from(JSON.stringify(lateLegacyAccountEvent)),
+      )).status, 'processed');
+      assert.equal((await setupPool.query(
+        `SELECT account_api_version FROM stripe_connect_accounts WHERE user_id = 'owner'`,
+      )).rows[0].account_api_version, 'v2');
+
+      const v2AccountEvent = (id, created, lossesCollector) => ({
+        id,
+        object: 'v2.core.event',
+        type: 'v2.core.account[defaults].updated',
+        created: new Date(created * 1000).toISOString(),
+        livemode: false,
+        data: { object: {
+          id: connectedProviderAccountId,
+          object: 'v2.core.account',
+          applied_configurations: ['recipient'],
+          dashboard: 'express',
+          configuration: { recipient: { applied: true, capabilities: { stripe_balance: {
+            stripe_transfers: { status: 'active', status_details: [] },
+          } } } },
+          defaults: {
+            currency: 'eur',
+            responsibilities: {
+              fees_collector: 'application',
+              losses_collector: lossesCollector,
+            },
+          },
+          identity: { country: 'DE', entity_type: 'individual' },
+          requirements: { entries: [] },
+          future_requirements: { entries: [] },
+          livemode: false,
+        } },
+      });
+      const responsibilityDrift = v2AccountEvent(
+        'evt_n25_responsibility_drift',
+        1799539100,
+        'stripe',
+      );
+      assert.equal((await applyProviderEvent(
+        responsibilityDrift,
+        Buffer.from(JSON.stringify(responsibilityDrift)),
+      )).status, 'processed');
+      const driftedConnectStatus = await fetch(
+        `${baseUrl}/v1/payments/connect/status`,
+        { headers: ownerHeaders },
+      );
+      assert.equal(driftedConnectStatus.status, 200);
+      assert.equal((await driftedConnectStatus.json()).account.ready, false);
+
+      const responsibilityRestored = v2AccountEvent(
+        'evt_n25_responsibility_restored',
+        1799539200,
+        'application',
+      );
+      assert.equal((await applyProviderEvent(
+        responsibilityRestored,
+        Buffer.from(JSON.stringify(responsibilityRestored)),
+      )).status, 'processed');
+      const restoredConnectStatus = await fetch(
+        `${baseUrl}/v1/payments/connect/status`,
+        { headers: ownerHeaders },
+      );
+      assert.equal(restoredConnectStatus.status, 200);
+      assert.equal((await restoredConnectStatus.json()).account.ready, true);
 
       const b8ListingRow = (await setupPool.query(
         `SELECT payload, catalog_revision FROM listings WHERE id = 'listing-1'`,

@@ -14,7 +14,6 @@ import {
   requestHash,
   splitRefund,
   transferLedger,
-  verifyStripeSignature,
 } from './payment_domain.js';
 import {
   enqueueBookingNotifications,
@@ -43,7 +42,11 @@ function text(value, max = 255) {
 
 function providerInstant(seconds) {
   if (seconds === null || seconds === undefined || seconds === '') return null;
-  return Number.isFinite(Number(seconds)) ? new Date(Number(seconds) * 1000) : null;
+  if (typeof seconds === 'number' || /^\d+(?:\.\d+)?$/u.test(String(seconds))) {
+    return Number.isFinite(Number(seconds)) ? new Date(Number(seconds) * 1000) : null;
+  }
+  const parsed = new Date(String(seconds));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function providerId(value) {
@@ -51,14 +54,82 @@ function providerId(value) {
   return text(value, 255) || null;
 }
 
-function accountCapability(account) {
-  const status = text(account?.capabilities?.transfers, 30).toLowerCase();
-  return ['active', 'pending', 'inactive'].includes(status) ? status : 'restricted';
+const connectedAccountEventTypes = new Set([
+  'account.updated',
+  'v2.core.account.created',
+  'v2.core.account.updated',
+  'v2.core.account.closed',
+  'v2.core.account[configuration.recipient].capability_status_updated',
+  'v2.core.account[configuration.recipient].updated',
+  'v2.core.account[defaults].updated',
+  'v2.core.account[future_requirements].updated',
+  'v2.core.account[identity].updated',
+  'v2.core.account[requirements].updated',
+]);
+
+export function isConnectedAccountProviderEvent(type) {
+  return connectedAccountEventTypes.has(type);
+}
+
+export function connectedAccountSnapshot(account) {
+  const v2 = account?.object === 'v2.core.account';
+  const recipientApplied = v2
+    && account?.closed !== true
+    && account?.configuration?.recipient?.applied === true
+    && Array.isArray(account?.applied_configurations)
+    && account.applied_configurations.includes('recipient');
+  const rawStatus = v2
+    ? account?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status
+    : account?.capabilities?.transfers;
+  const status = text(rawStatus, 30).toLowerCase();
+  const reportedTransfersStatus = ['active', 'pending', 'inactive', 'restricted', 'unsupported'].includes(status)
+    ? status
+    : 'restricted';
+  const transfersStatus = v2 && !recipientApplied ? 'restricted' : reportedTransfersStatus;
+  const statusDetails = v2
+    ? account?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status_details
+    : [];
+  const disabledReason = text(
+    v2 ? statusDetails?.[0]?.code : account?.requirements?.disabled_reason,
+    255,
+  ) || null;
+  const dashboard = v2 ? text(account?.dashboard, 30) || null : null;
+  const feesCollector = v2
+    ? text(account?.defaults?.responsibilities?.fees_collector, 30) || null
+    : null;
+  const lossesCollector = v2
+    ? text(account?.defaults?.responsibilities?.losses_collector, 30) || null
+    : null;
+  const ready = v2
+    && recipientApplied
+    && transfersStatus === 'active'
+    && dashboard === 'express'
+    && feesCollector === 'application'
+    && lossesCollector === 'application';
+  return {
+    apiVersion: v2 ? 'v2' : 'v1',
+    country: text(v2 ? account?.identity?.country : account?.country, 2).toUpperCase(),
+    currency: text(v2 ? account?.defaults?.currency : account?.default_currency, 3).toUpperCase(),
+    dashboard,
+    feesCollector,
+    lossesCollector,
+    transfersStatus,
+    detailsSubmitted: ready,
+    chargesEnabled: false,
+    payoutsEnabled: ready,
+    requirements: account?.requirements ?? {},
+    futureRequirements: v2 ? account?.future_requirements ?? {} : {},
+    disabledReason,
+  };
 }
 
 function shapeConnect(row) {
   if (!row) return { exists: false, ready: false, onboardingRequired: true };
-  const ready = row.details_submitted && row.payouts_enabled && row.transfers_capability === 'active';
+  const ready = row.account_api_version === 'v2'
+    && row.recipient_transfers_status === 'active'
+    && row.dashboard_type === 'express'
+    && row.fees_collector === 'application'
+    && row.losses_collector === 'application';
   return {
     exists: true,
     ready,
@@ -69,6 +140,11 @@ function shapeConnect(row) {
     chargesEnabled: row.charges_enabled,
     payoutsEnabled: row.payouts_enabled,
     transfersCapability: row.transfers_capability,
+    accountApiVersion: row.account_api_version,
+    recipientTransfersStatus: row.recipient_transfers_status,
+    dashboard: row.dashboard_type,
+    feeCollection: row.fees_collector,
+    negativeBalanceLiability: row.losses_collector,
     disabledReason: row.disabled_reason,
     requirements: row.requirements ?? {},
     livemode: row.livemode,
@@ -198,24 +274,45 @@ export async function createConnectOnboarding({ actor, raw, key: rawKey }) {
       currency,
       idempotencyKey: `${key}:account`,
     });
+    const snapshot = connectedAccountSnapshot(created);
+    if (snapshot.apiVersion !== 'v2'
+        || snapshot.dashboard !== 'express'
+        || snapshot.feesCollector !== 'application'
+        || snapshot.lossesCollector !== 'application'
+        || snapshot.country !== country
+        || snapshot.currency !== currency
+        || created.livemode === true !== config.payments.livemode) {
+      throw new PaymentDomainError(409, 'stripe_connected_account_configuration_mismatch');
+    }
     accountResult = await pool.query(
       `INSERT INTO stripe_connect_accounts (
          user_id, provider_account_id, country, default_currency,
          details_submitted, charges_enabled, payouts_enabled,
          transfers_capability, requirements, disabled_reason,
-         livemode, provider_created_at, last_provider_event_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, now())
+         livemode, provider_created_at, last_provider_event_at,
+         account_api_version, dashboard_type, fees_collector,
+         losses_collector, recipient_transfers_status, future_requirements
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, now(),
+         $13, $14, $15, $16, $17, $18::jsonb
+       )
        ON CONFLICT (user_id) DO UPDATE SET updated_at = now()
        RETURNING *`,
       [
-        actor.id, created.id, country, currency,
-        created.details_submitted === true, created.charges_enabled === true,
-        created.payouts_enabled === true, accountCapability(created),
-        JSON.stringify(created.requirements ?? {}), text(created.requirements?.disabled_reason, 255) || null,
+        actor.id, created.id, snapshot.country || country, snapshot.currency || currency,
+        snapshot.detailsSubmitted, snapshot.chargesEnabled,
+        snapshot.payoutsEnabled, snapshot.transfersStatus,
+        JSON.stringify(snapshot.requirements), snapshot.disabledReason,
         created.livemode === true, providerInstant(created.created),
+        snapshot.apiVersion, snapshot.dashboard, snapshot.feesCollector,
+        snapshot.lossesCollector, snapshot.transfersStatus,
+        JSON.stringify(snapshot.futureRequirements),
       ],
     );
     account = accountResult.rows[0];
+  }
+  if (account.account_api_version !== 'v2') {
+    throw new PaymentDomainError(409, 'stripe_connected_account_v2_migration_required');
   }
   const refreshUrl = `${config.publicBaseUrl}/payments/connect/return?state=refresh`;
   const returnUrl = `${config.publicBaseUrl}/payments/connect/return?state=complete`;
@@ -278,8 +375,9 @@ export async function createPaymentCheckout({ actor, bookingId, key: rawKey }) {
     if (command.completed_at) return { replay: command.response_payload };
     const result = await client.query(
       `SELECT booking.*, listing.payload AS listing_payload,
-              connected.provider_account_id, connected.details_submitted,
-              connected.payouts_enabled, connected.transfers_capability
+              connected.provider_account_id, connected.account_api_version,
+              connected.recipient_transfers_status, connected.dashboard_type,
+              connected.fees_collector, connected.losses_collector
        FROM bookings AS booking
        JOIN listings AS listing ON listing.id = booking.listing_id
        LEFT JOIN stripe_connect_accounts AS connected ON connected.user_id = booking.owner_id
@@ -295,8 +393,11 @@ export async function createPaymentCheckout({ actor, bookingId, key: rawKey }) {
     if (!['accepted', 'payment_pending'].includes(booking.workflow_status)) {
       throw new PaymentDomainError(409, 'booking_not_ready_for_payment', { status: booking.workflow_status });
     }
-    if (!booking.provider_account_id || !booking.details_submitted || !booking.payouts_enabled
-        || booking.transfers_capability !== 'active') {
+    if (!booking.provider_account_id || booking.account_api_version !== 'v2'
+        || booking.recipient_transfers_status !== 'active'
+        || booking.dashboard_type !== 'express'
+        || booking.fees_collector !== 'application'
+        || booking.losses_collector !== 'application') {
       throw new PaymentDomainError(409, 'owner_payout_account_not_ready');
     }
     const amounts = paymentAmounts(booking);
@@ -559,20 +660,36 @@ async function recordCapture(client, payment, event) {
 
 async function processProviderEvent(client, event) {
   const object = event?.data?.object ?? {};
-  if (event.type === 'account.updated') {
+  if (isConnectedAccountProviderEvent(event.type)) {
+    const snapshot = connectedAccountSnapshot(object);
     const eventAt = providerInstant(event.created) ?? new Date();
     await client.query(
       `UPDATE stripe_connect_accounts
        SET details_submitted = $2, charges_enabled = $3, payouts_enabled = $4,
            transfers_capability = $5, requirements = $6::jsonb,
-           disabled_reason = $7, last_provider_event_at = $8, livemode = $9
+           disabled_reason = $7, last_provider_event_at = $8, livemode = $9,
+           account_api_version = CASE WHEN $10 = 'v2' THEN 'v2' ELSE account_api_version END,
+           dashboard_type = CASE WHEN $10 = 'v2' THEN $11 ELSE dashboard_type END,
+           fees_collector = CASE WHEN $10 = 'v2' THEN $12 ELSE fees_collector END,
+           losses_collector = CASE WHEN $10 = 'v2' THEN $13 ELSE losses_collector END,
+           recipient_transfers_status = CASE
+             WHEN $10 = 'v2' THEN $5
+             ELSE recipient_transfers_status
+           END,
+           future_requirements = CASE
+             WHEN $10 = 'v2' THEN $14::jsonb
+             ELSE future_requirements
+           END
        WHERE provider_account_id = $1
-         AND (last_provider_event_at IS NULL OR last_provider_event_at <= $8)`,
+         AND (last_provider_event_at IS NULL OR last_provider_event_at <= $8)
+         AND (account_api_version <> 'v2' OR $10 = 'v2')`,
       [
-        object.id, object.details_submitted === true, object.charges_enabled === true,
-        object.payouts_enabled === true, accountCapability(object),
-        JSON.stringify(object.requirements ?? {}), text(object.requirements?.disabled_reason, 255) || null,
+        object.id, snapshot.detailsSubmitted, snapshot.chargesEnabled,
+        snapshot.payoutsEnabled, snapshot.transfersStatus,
+        JSON.stringify(snapshot.requirements), snapshot.disabledReason,
         eventAt, event.livemode === true,
+        snapshot.apiVersion, snapshot.dashboard, snapshot.feesCollector,
+        snapshot.lossesCollector, JSON.stringify(snapshot.futureRequirements),
       ],
     );
     return 'processed';
@@ -762,12 +879,18 @@ export async function applyProviderEvent(event, rawPayload = null) {
 
 export async function verifyAndApplyWebhook(rawBody, signatureHeader) {
   if (config.payments.transport !== 'stripe') throw new PaymentDomainError(404, 'webhook_not_enabled');
-  verifyStripeSignature({ rawBody, header: signatureHeader, secret: config.payments.webhookSecret });
-  let event;
-  try {
-    event = JSON.parse(rawBody.toString('utf8'));
-  } catch {
-    throw new PaymentDomainError(400, 'invalid_webhook_json');
+  let event = stripeProvider.parseWebhookEvent({
+    rawBody,
+    signatureHeader,
+    webhookSecret: config.payments.webhookSecret,
+  });
+  if (isConnectedAccountProviderEvent(event.type) && event.type !== 'account.updated') {
+    const accountId = providerId(event.related_object?.id)
+      || providerId(event.data?.object?.id)
+      || providerId(event.data?.object);
+    if (!accountId) throw new PaymentDomainError(400, 'invalid_connected_account_event');
+    const account = await stripeProvider.retrieveConnectedAccount(accountId);
+    event = { ...event, data: { object: account } };
   }
   return applyProviderEvent(event, rawBody);
 }
@@ -1036,7 +1159,9 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
       `SELECT payment.*, booking.owner_id, booking.workflow_status, booking.completed_at,
               booking.ends_at, booking.return_state, booking.payout_instruction_due_at,
               request.payload AS booking_payload,
-              connected.provider_account_id, connected.payouts_enabled, connected.transfers_capability,
+              connected.provider_account_id, connected.account_api_version,
+              connected.recipient_transfers_status, connected.dashboard_type,
+              connected.fees_collector, connected.losses_collector,
               COALESCE(refunded.owner_share_minor, 0) AS refunded_owner_minor
        FROM payments AS payment
        JOIN bookings AS booking ON booking.id = payment.booking_id
@@ -1086,7 +1211,11 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
       [payment.owner_id],
     );
     if (suspension.rowCount) throw new PaymentDomainError(409, 'payout_blocked_by_moderation');
-    if (!payment.provider_account_id || !payment.payouts_enabled || payment.transfers_capability !== 'active') {
+    if (!payment.provider_account_id || payment.account_api_version !== 'v2'
+        || payment.recipient_transfers_status !== 'active'
+        || payment.dashboard_type !== 'express'
+        || payment.fees_collector !== 'application'
+        || payment.losses_collector !== 'application') {
       throw new PaymentDomainError(409, 'owner_payout_account_not_ready');
     }
     const activePayout = await client.query(

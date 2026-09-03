@@ -63,29 +63,29 @@ export function validateR9DatabaseRecovery({
   })) fail('R9 CI red-first finding is invalid.');
 
   validateR9Observation(value.observation, {
-    requiredMigrationCount: 69,
-    requiredLastMigration: '069_regional_price_engine_r6_hardening.up.sql',
+    requiredMigrationCount: 71,
+    requiredLastMigration: '071_stripe_connect_accounts_v2.up.sql',
   });
   const observation = value.observation;
   if (observation.resultClassification !== r9ResultClassification
       || !exact(observation.migration, {
         emptyDatabaseTablesBeforeBootstrap: 0,
-        totalMigrations: 69,
+        totalMigrations: 71,
         firstMigration: '001_b3_foundation.up.sql',
-        lastMigration: '069_regional_price_engine_r6_hardening.up.sql',
+        lastMigration: '071_stripe_connect_accounts_v2.up.sql',
         secondRunAppliedMigrations: 0,
         checksumMismatches: 0,
         schemaFingerprintSha256:
-          'ba28af73746f6456a96583951c5212b8784063ba6fac569d3d91b53667e8b497',
+          '898c438f03f65f98f5e7a627edb3bb4b54f1aed8f3bcfb3c6c0eada577bc632c',
         tableCount: 136,
-        columnCount: 1918,
-        constraintCount: 1559,
-        indexCount: 517,
-        functionCount: 303,
-        triggerCount: 163,
+        columnCount: 1925,
+        constraintCount: 1564,
+        indexCount: 519,
+        functionCount: 304,
+        triggerCount: 174,
       })
       || observation.backupRestore.archiveSha256
-      !== 'c318ed2a0f797b1e765c8c949395894f41713fc0c5153954fa8eb255999590e0') {
+      !== '1859dabe000c02a75a7df86ab17525900d552930e8396e4bf4788da8eedcf3d7') {
     fail('R9 retained observation is not the exact implementation-head run.');
   }
 
@@ -159,7 +159,7 @@ export function validateR9DatabaseRecovery({
 
   const runnerPath = 'tool/run_r9_database_recovery.mjs';
   requireMarkers(source(repositoryRoot, runnerPath), runnerPath, [
-    "r9RequiredMigrationCount = 70",
+    "r9RequiredMigrationCount = 71",
     "r9SyntheticAccountCount = 12",
     "r9SyntheticListingCount = 6",
     "'pg_dump'",

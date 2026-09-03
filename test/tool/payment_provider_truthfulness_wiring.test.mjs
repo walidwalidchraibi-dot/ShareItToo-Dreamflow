@@ -8,6 +8,12 @@ const methods = fs.readFileSync('lib/screens/payment_methods_screen.dart', 'utf8
 const payout = fs.readFileSync('lib/screens/stripe_payout_account_screen.dart', 'utf8');
 const checkout = fs.readFileSync('lib/screens/payment_checkout_screen.dart', 'utf8');
 const notifications = fs.readFileSync('backend/src/notifications.js', 'utf8');
+const provider = fs.readFileSync('backend/src/stripe_provider.js', 'utf8');
+const workflow = fs.readFileSync('backend/src/payment_workflow.js', 'utf8');
+const migration = fs.readFileSync(
+  'backend/sql/migrations/071_stripe_connect_accounts_v2.up.sql',
+  'utf8',
+);
 
 test('server exposes one account-bound provider capability truth', () => {
   assert.match(app, /function paymentCapabilitiesFor\(userId\)/u);
@@ -64,6 +70,34 @@ test('direct checkout is server- and client-gated by the same capability', () =>
   );
   assert.match(checkout, /Zahlung noch nicht freigeschaltet/u);
   assert.match(checkout, /Test-Checkout öffnen/u);
+});
+
+test('connected accounts use Accounts v2 recipient capability truth', () => {
+  assert.match(provider, /client\.v2\.core\.accounts\.create/u);
+  assert.match(provider, /dashboard: 'express'/u);
+  assert.match(provider, /fees_collector: 'application'/u);
+  assert.match(provider, /losses_collector: 'application'/u);
+  assert.match(provider, /stripe_transfers: \{ requested: true \}/u);
+  assert.doesNotMatch(provider, /type: 'express'/u);
+  assert.match(provider, /client\.v2\.core\.accountLinks\.create/u);
+  assert.match(provider, /client\.parseEventNotification/u);
+  assert.match(provider, /client\.webhooks\.constructEvent/u);
+  assert.match(provider, /client\.v2\.core\.accounts\.retrieve/u);
+  assert.match(workflow, /account_api_version !== 'v2'/u);
+  assert.match(workflow, /recipient_transfers_status !== 'active'/u);
+  assert.match(workflow, /dashboard_type !== 'express'/u);
+  assert.match(workflow, /fees_collector !== 'application'/u);
+  assert.match(workflow, /losses_collector !== 'application'/u);
+  assert.match(workflow, /event\.related_object\?\.id/u);
+  assert.match(migration, /account_api_version TEXT NOT NULL DEFAULT 'v1'/u);
+});
+
+test('separate charges and transfers never use destination-refund flags', () => {
+  assert.match(provider, /client\.refunds\.create/u);
+  assert.doesNotMatch(provider, /reverse_transfer:/u);
+  assert.doesNotMatch(provider, /refund_application_fee:/u);
+  assert.match(provider, /client\.transfers\.create/u);
+  assert.match(provider, /client\.transfers\.createReversal/u);
 });
 
 test('financial notification does not invent a provider name', () => {

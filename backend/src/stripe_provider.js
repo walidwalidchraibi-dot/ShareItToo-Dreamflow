@@ -1,50 +1,84 @@
 import crypto from 'node:crypto';
 
-import { PaymentDomainError } from './payment_domain.js';
+import Stripe from 'stripe';
 
-function flattenForm(value, prefix = '', output = new URLSearchParams()) {
-  if (value === undefined || value === null) return output;
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) => flattenForm(entry, `${prefix}[${index}]`, output));
-    return output;
-  }
-  if (typeof value === 'object') {
-    Object.entries(value).forEach(([key, entry]) => {
-      flattenForm(entry, prefix ? `${prefix}[${key}]` : key, output);
-    });
-    return output;
-  }
-  output.append(prefix, String(value));
-  return output;
-}
+import { PaymentDomainError } from './payment_domain.js';
 
 function memoryId(prefix) {
   return `${prefix}_${crypto.randomBytes(12).toString('hex')}`;
 }
 
-function providerError(status, payload) {
-  const code = typeof payload?.error?.code === 'string' ? payload.error.code : 'stripe_request_failed';
-  return new PaymentDomainError(status >= 500 ? 503 : 409, code, {
-    providerStatus: status,
-    declineCode: typeof payload?.error?.decline_code === 'string' ? payload.error.decline_code : undefined,
+function providerError(error) {
+  if (error instanceof PaymentDomainError) return error;
+  const status = Number(error?.statusCode ?? error?.status ?? 0);
+  const code = typeof error?.code === 'string' && error.code
+    ? error.code
+    : 'stripe_request_failed';
+  return new PaymentDomainError(status >= 500 || status === 0 ? 503 : 409, code, {
+    providerStatus: status || undefined,
+    declineCode: typeof error?.decline_code === 'string' ? error.decline_code : undefined,
   });
+}
+
+function integrationIdentifier(paymentId) {
+  const digest = crypto.createHash('sha256').update(paymentId).digest();
+  const suffix = Array.from(digest.subarray(0, 8), (value) => String.fromCharCode(97 + (value % 26))).join('');
+  return `shareittoo_android_${suffix}`;
+}
+
+function memoryConnectedAccount({ userId, country, currency }) {
+  const now = new Date().toISOString();
+  return {
+    id: `acct_memory_${crypto.createHash('sha256').update(userId).digest('hex').slice(0, 20)}`,
+    object: 'v2.core.account',
+    applied_configurations: ['recipient'],
+    configuration: {
+      recipient: {
+        applied: true,
+        capabilities: {
+          stripe_balance: {
+            stripe_transfers: { status: 'active', status_details: [] },
+          },
+        },
+      },
+    },
+    dashboard: 'express',
+    defaults: {
+      currency: currency.toLowerCase(),
+      locales: ['de-DE'],
+      responsibilities: {
+        fees_collector: 'application',
+        losses_collector: 'application',
+      },
+    },
+    identity: { country, entity_type: 'individual' },
+    requirements: { entries: [], summary: {} },
+    future_requirements: { entries: [], summary: {} },
+    livemode: false,
+    created: now,
+  };
 }
 
 export class StripeProvider {
   constructor({
     mode,
     secretKey = '',
-    apiBase = 'https://api.stripe.com/v1',
-    apiVersion = '',
+    apiVersion = '2026-08-26.dahlia',
     livemode = false,
-    fetchImpl = globalThis.fetch,
+    stripeClient = null,
   }) {
     this.mode = mode;
     this.secretKey = secretKey;
-    this.apiBase = apiBase.replace(/\/$/, '');
     this.apiVersion = apiVersion;
     this.livemode = livemode;
-    this.fetchImpl = fetchImpl;
+    this.client = stripeClient ?? (mode === 'stripe'
+      ? new Stripe(secretKey, {
+        apiVersion,
+        appInfo: { name: 'ShareItToo', version: '1.0.0' },
+        maxNetworkRetries: 2,
+        timeout: 15_000,
+      })
+      : null);
     this.memory = new Map();
   }
 
@@ -52,61 +86,95 @@ export class StripeProvider {
     return this.mode !== 'disabled';
   }
 
-  async request(path, { method = 'POST', params = {}, idempotencyKey = null, accountId = null } = {}) {
-    if (this.mode !== 'stripe') throw new PaymentDomainError(503, 'stripe_transport_not_enabled');
-    let response;
-    try {
-      response = await this.fetchImpl(`${this.apiBase}${path}`, {
-        method,
-        headers: {
-          Authorization: `Bearer ${this.secretKey}`,
-          Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
-          ...(accountId ? { 'Stripe-Account': accountId } : {}),
-          ...(this.apiVersion ? { 'Stripe-Version': this.apiVersion } : {}),
-        },
-        body: method === 'GET' ? undefined : flattenForm(params),
-        signal: AbortSignal.timeout(15_000),
-      });
-    } catch {
-      throw new PaymentDomainError(503, 'stripe_unavailable');
+  async call(operation) {
+    if (this.mode !== 'stripe' || !this.client) {
+      throw new PaymentDomainError(503, 'stripe_transport_not_enabled');
     }
-    let payload;
     try {
-      payload = await response.json();
-    } catch {
-      throw new PaymentDomainError(503, 'stripe_invalid_response');
+      return await operation(this.client);
+    } catch (error) {
+      throw providerError(error);
     }
-    if (!response.ok) throw providerError(response.status, payload);
-    return payload;
+  }
+
+  parseWebhookEvent({ rawBody, signatureHeader, webhookSecret }) {
+    if (this.mode !== 'stripe' || !this.client) {
+      throw new PaymentDomainError(404, 'webhook_not_enabled');
+    }
+    if (!Buffer.isBuffer(rawBody) || rawBody.length === 0) {
+      throw new PaymentDomainError(400, 'empty_webhook_payload');
+    }
+    if (typeof signatureHeader !== 'string' || signatureHeader.length === 0) {
+      throw new PaymentDomainError(400, 'missing_webhook_signature');
+    }
+    let envelope;
+    try {
+      envelope = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      throw new PaymentDomainError(400, 'invalid_webhook_json');
+    }
+    try {
+      return String(envelope?.type ?? '').startsWith('v2.')
+        ? this.client.parseEventNotification(rawBody, signatureHeader, webhookSecret)
+        : this.client.webhooks.constructEvent(rawBody, signatureHeader, webhookSecret);
+    } catch {
+      throw new PaymentDomainError(400, 'invalid_webhook_signature');
+    }
   }
 
   async createConnectedAccount({ userId, email, country, currency, idempotencyKey }) {
     if (this.mode === 'memory') {
-      return {
-        id: `acct_memory_${crypto.createHash('sha256').update(userId).digest('hex').slice(0, 20)}`,
-        country,
-        default_currency: currency.toLowerCase(),
-        details_submitted: true,
-        charges_enabled: true,
-        payouts_enabled: true,
-        capabilities: { transfers: 'active' },
-        livemode: false,
-        created: Math.floor(Date.now() / 1000),
-      };
+      const account = memoryConnectedAccount({ userId, country, currency });
+      this.memory.set(account.id, account);
+      return account;
     }
-    return this.request('/accounts', {
-      idempotencyKey,
-      params: {
-        type: 'express',
-        country,
-        email,
-        default_currency: currency.toLowerCase(),
-        capabilities: { transfers: { requested: true } },
-        metadata: { sit_user_id: userId },
+    return this.call((client) => client.v2.core.accounts.create({
+      contact_email: email,
+      dashboard: 'express',
+      defaults: {
+        currency: currency.toLowerCase(),
+        locales: ['de-DE'],
+        responsibilities: {
+          fees_collector: 'application',
+          losses_collector: 'application',
+        },
       },
-    });
+      configuration: {
+        recipient: {
+          capabilities: {
+            stripe_balance: {
+              stripe_transfers: { requested: true },
+            },
+          },
+        },
+      },
+      identity: { country, entity_type: 'individual' },
+      include: [
+        'configuration.recipient',
+        'defaults',
+        'future_requirements',
+        'identity',
+        'requirements',
+      ],
+      metadata: { sit_user_id: userId },
+    }, { idempotencyKey }));
+  }
+
+  async retrieveConnectedAccount(accountId) {
+    if (this.mode === 'memory') {
+      const account = this.memory.get(accountId);
+      if (!account) throw new PaymentDomainError(404, 'stripe_account_not_found');
+      return account;
+    }
+    return this.call((client) => client.v2.core.accounts.retrieve(accountId, {
+      include: [
+        'configuration.recipient',
+        'defaults',
+        'future_requirements',
+        'identity',
+        'requirements',
+      ],
+    }));
   }
 
   async createAccountLink({ accountId, refreshUrl, returnUrl, idempotencyKey }) {
@@ -114,28 +182,41 @@ export class StripeProvider {
       const token = memoryId('onboard');
       const url = `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}memory_onboarding=${encodeURIComponent(token)}`;
       this.memory.set(token, { type: 'account_link', accountId });
-      return { object: 'account_link', url, expires_at: Math.floor(Date.now() / 1000) + 1800 };
-    }
-    return this.request('/account_links', {
-      idempotencyKey,
-      params: {
+      return {
+        object: 'v2.core.account_link',
         account: accountId,
-        refresh_url: refreshUrl,
-        return_url: returnUrl,
+        url,
+        created: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 1_800_000).toISOString(),
+        livemode: false,
+        use_case: { type: 'account_onboarding' },
+      };
+    }
+    return this.call((client) => client.v2.core.accountLinks.create({
+      account: accountId,
+      use_case: {
         type: 'account_onboarding',
-        collection_options: { fields: 'eventually_due' },
+        account_onboarding: {
+          configurations: ['recipient'],
+          collection_options: {
+            fields: 'eventually_due',
+            future_requirements: 'include',
+          },
+          refresh_url: refreshUrl,
+          return_url: returnUrl,
+        },
       },
-    });
+    }, { idempotencyKey }));
   }
 
   async createCustomer({ userId, email, name, idempotencyKey }) {
     if (this.mode === 'memory') {
       return { id: `cus_memory_${crypto.createHash('sha256').update(userId).digest('hex').slice(0, 20)}`, livemode: false };
     }
-    return this.request('/customers', {
-      idempotencyKey,
-      params: { email, name, metadata: { sit_user_id: userId } },
-    });
+    return this.call((client) => client.customers.create(
+      { email, name, metadata: { sit_user_id: userId } },
+      { idempotencyKey },
+    ));
   }
 
   async createPaymentCheckout({
@@ -167,33 +248,31 @@ export class StripeProvider {
       this.memory.set(id, { ...result, bookingId, paymentId, amountMinor, currency, transferGroup });
       return result;
     }
-    return this.request('/checkout/sessions', {
-      idempotencyKey,
-      params: {
-        mode: 'payment',
-        customer: customerId,
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        expires_at: expiresAt,
-        client_reference_id: bookingId,
-        line_items: [{
-          quantity: 1,
-          price_data: {
-            currency: currency.toLowerCase(),
-            unit_amount: amountMinor,
-            product_data: { name: itemTitle },
-          },
-        }],
-        payment_intent_data: {
-          transfer_group: transferGroup,
-          metadata: { sit_booking_id: bookingId, sit_payment_id: paymentId },
+    return this.call((client) => client.checkout.sessions.create({
+      mode: 'payment',
+      customer: customerId,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      expires_at: expiresAt,
+      client_reference_id: bookingId,
+      integration_identifier: integrationIdentifier(paymentId),
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: currency.toLowerCase(),
+          unit_amount: amountMinor,
+          product_data: { name: itemTitle },
         },
+      }],
+      payment_intent_data: {
+        transfer_group: transferGroup,
         metadata: { sit_booking_id: bookingId, sit_payment_id: paymentId },
       },
-    });
+      metadata: { sit_booking_id: bookingId, sit_payment_id: paymentId },
+    }, { idempotencyKey }));
   }
 
-  async createRefund({ chargeId, amountMinor, reverseTransfer, refundPlatformFee, idempotencyKey, metadata }) {
+  async createRefund({ chargeId, amountMinor, idempotencyKey, metadata }) {
     if (this.mode === 'memory') {
       return {
         id: memoryId('re_memory'),
@@ -204,16 +283,11 @@ export class StripeProvider {
         livemode: false,
       };
     }
-    return this.request('/refunds', {
-      idempotencyKey,
-      params: {
-        charge: chargeId,
-        amount: amountMinor,
-        reverse_transfer: reverseTransfer,
-        refund_application_fee: refundPlatformFee,
-        metadata,
-      },
-    });
+    return this.call((client) => client.refunds.create({
+      charge: chargeId,
+      amount: amountMinor,
+      metadata,
+    }, { idempotencyKey }));
   }
 
   async createTransfer({ accountId, chargeId, amountMinor, currency, transferGroup, idempotencyKey, metadata }) {
@@ -230,17 +304,14 @@ export class StripeProvider {
         created: Math.floor(Date.now() / 1000),
       };
     }
-    return this.request('/transfers', {
-      idempotencyKey,
-      params: {
-        destination: accountId,
-        source_transaction: chargeId,
-        amount: amountMinor,
-        currency: currency.toLowerCase(),
-        transfer_group: transferGroup,
-        metadata,
-      },
-    });
+    return this.call((client) => client.transfers.create({
+      destination: accountId,
+      source_transaction: chargeId,
+      amount: amountMinor,
+      currency: currency.toLowerCase(),
+      transfer_group: transferGroup,
+      metadata,
+    }, { idempotencyKey }));
   }
 
   async reverseTransfer({ transferId, amountMinor, idempotencyKey, metadata }) {
@@ -253,10 +324,10 @@ export class StripeProvider {
         created: Math.floor(Date.now() / 1000),
       };
     }
-    return this.request(`/transfers/${encodeURIComponent(transferId)}/reversals`, {
-      idempotencyKey,
-      params: { amount: amountMinor, metadata },
-    });
+    return this.call((client) => client.transfers.createReversal(
+      transferId,
+      { amount: amountMinor, metadata },
+      { idempotencyKey },
+    ));
   }
-
 }

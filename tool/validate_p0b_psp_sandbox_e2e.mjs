@@ -14,11 +14,11 @@ const defaultRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const manifestPath = 'docs/evidence/p0b-next/psp-sandbox-e2e-evidence.json';
 
 const expectedRepoSources = Object.freeze([
-  Object.freeze(['backend/src/stripe_provider.js', 'bd42d43d35478d44bad408f59131010d250e646aa86b59786bd0f374ae78fe46']),
+  Object.freeze(['backend/src/stripe_provider.js', 'f28c3881d828e7b43657b00cbf75746d3f87ecef83173812b04623a30950aa5f']),
   Object.freeze(['backend/src/payment_domain.js', 'f15bf2b3d688d53a1f97e17f304e2dea85a8327be143ff65863ef545a57add46']),
-  Object.freeze(['backend/src/payment_workflow.js', 'adc8f6a2f0da9b77791e9e708fdd8655dfcae7ed31e4f04f3b87d350719050c4']),
-  Object.freeze(['backend/test/payment_domain.test.js', 'e2004112e83d08a34c4a48e3e4bca71d97e8b3b50131569f793c42722ee5abb3']),
-  Object.freeze(['backend/test/postgres_foundation.integration.test.js', '9d9fad778b187250b81fca8c5c40b530b1d84da84ab8895161c2596406c9faa9']),
+  Object.freeze(['backend/src/payment_workflow.js', 'f67047651beeda1289adf9f6d20efe9bdf713a6105d84f74916e56b52c67ca31']),
+  Object.freeze(['backend/test/payment_domain.test.js', '098aae671194a853385455e2ba68ee0ff3349143a7b3ae548b4b459492b115f2']),
+  Object.freeze(['backend/test/postgres_foundation.integration.test.js', 'f472f6c7b51c5d845de35f994273dca971c2799cc0aa1c716dce041769e5d721']),
   Object.freeze(['backend/src/psp_sandbox_readiness_gate.js', '81e80a617e90b4184e32fa4b7d2f8f7cb6243735b1c85f73b2e880b8b42c6979']),
   Object.freeze(['backend/test/psp_sandbox_readiness_gate.test.js', '575384b897d0b93693c6014e8109bda714ac924c9530f96cc034456780f090ea']),
   Object.freeze(['docs/operations/P0B_PSP_SANDBOX_E2E_RUNBOOK.md', '55ec008f8ad9b790ba2af6f708a01c13362a155991dc7eb6255d01918dcb3dde']),
@@ -178,8 +178,8 @@ function assertEvaluation(value) {
 
 function assertTechnicalAndBoundaries(value) {
   if (!exact(value.technicalEvidence, {
-    focusedLocalTestsPassed: 35,
-    paymentDomainTestsPassed: 8,
+    focusedLocalTestsPassed: 37,
+    paymentDomainTestsPassed: 10,
     readinessGateTestsPassed: 4,
     syntheticProviderContractUnitTestPassed: true,
     actualProviderRequestsPerformed: false,

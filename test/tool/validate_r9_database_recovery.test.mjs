@@ -20,7 +20,7 @@ function validate(changed = evidence) {
 test('accepts the exact implementation-head R9 recovery evidence', () => {
   assert.deepEqual(validate(), {
     status: 'verified-r9-regression-and-codeql-passed',
-    migrations: 69,
+    migrations: 71,
     tables: 136,
     nextPackage: 'R10',
   });

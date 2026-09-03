@@ -28,7 +28,7 @@ const requireFromBackend = createRequire(
   new URL('../backend/package.json', import.meta.url),
 );
 
-export const r9RequiredMigrationCount = 70;
+export const r9RequiredMigrationCount = 71;
 export const r9SyntheticAccountCount = 12;
 export const r9SyntheticListingCount = 6;
 export const r9ResultClassification = 'LOCAL_ISOLATED_DATABASE_RECOVERY_PROOF';
@@ -54,6 +54,10 @@ const rollbackGuardExpectations = Object.freeze([
   Object.freeze({
     filename: '069_regional_price_engine_r6_hardening.down.sql',
     message: 'R6 rollback blocked: hardened price snapshot data exists',
+  }),
+  Object.freeze({
+    filename: '071_stripe_connect_accounts_v2.down.sql',
+    message: 'Stripe Accounts v2 rollback blocked: v2 connected accounts exist',
   }),
 ]);
 
@@ -134,7 +138,7 @@ async function readMigrationPlan(root) {
   }
   if (plan.length !== r9RequiredMigrationCount
       || plan[0]?.filename !== '001_b3_foundation.up.sql'
-      || plan.at(-1)?.filename !== '070_stage_a_non_binding_simulation_guard.up.sql') {
+      || plan.at(-1)?.filename !== '071_stripe_connect_accounts_v2.up.sql') {
     fail('r9_migration_inventory_unexpected');
   }
   return Object.freeze(plan);
@@ -387,6 +391,17 @@ async function insertSyntheticDataset(pool) {
      )`,
     [draftId, version.rows[0].id, '4'.repeat(64)],
   );
+  await pool.query(
+    `INSERT INTO stripe_connect_accounts (
+       user_id, provider_account_id, account_api_version, dashboard_type,
+       fees_collector, losses_collector, recipient_transfers_status,
+       requirements, future_requirements, livemode
+     ) VALUES (
+       'r9-user-001', 'acct_r9_synthetic_v2', 'v2', 'express',
+       'application', 'application', 'active',
+       '{"synthetic":true}'::jsonb, '{"synthetic":true}'::jsonb, false
+     )`,
+  );
   return datasetCounts(pool);
 }
 
@@ -637,7 +652,7 @@ async function closePools(pools) {
 
 export function validateR9Observation(value, {
   requiredMigrationCount = r9RequiredMigrationCount,
-  requiredLastMigration = '070_stage_a_non_binding_simulation_guard.up.sql',
+  requiredLastMigration = '071_stripe_connect_accounts_v2.up.sql',
 } = {}) {
   if (value?.schemaVersion !== 1
       || value.kind !== 'sit-r9-database-recovery-observation'
