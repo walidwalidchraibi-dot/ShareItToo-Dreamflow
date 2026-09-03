@@ -195,14 +195,22 @@ async function findOrScroll({ commandRunner, adbPath, device, wait, label }) {
 
 function replaceInput(commandRunner, adbPath, device, hierarchy, label, value, deleteCount) {
   if (!/^[+0-9]{1,16}$/u.test(value)) fail(`The private ${label} input is invalid.`);
+  const adbSafeValue = encodeAdbNumericInput(value);
   tapNamedNode(commandRunner, adbPath, device, hierarchy, label);
   currentHeadAndroidAdb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '123']);
   for (let index = 0; index < deleteCount; index += 1) {
     currentHeadAndroidAdb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '67']);
   }
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
-    'shell', 'input', 'text', value,
+    'shell', 'input', 'text', adbSafeValue,
   ]);
+}
+
+export function encodeAdbNumericInput(value) {
+  if (!/^[+0-9]{1,16}$/u.test(value)) {
+    fail('The private numeric Android input is invalid.');
+  }
+  return value.startsWith('+') ? `00${value.slice(1)}` : value;
 }
 
 export async function inspectStagingPhoneBackendGate(fetchImpl, account) {

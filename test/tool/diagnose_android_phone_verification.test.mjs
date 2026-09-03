@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import {
   clearVerifiedPhoneFromStagingTestAccount,
+  encodeAdbNumericInput,
   inspectStagingPhoneBackendGate,
   normalizePrivatePhoneInput,
   normalizePrivateSmsCode,
@@ -32,6 +33,12 @@ test('accepts exactly one six-digit private SMS confirmation input', () => {
   for (const invalid of ['12345', '1234567', '12 3456', 'abcdef', '']) {
     assert.throws(() => normalizePrivateSmsCode(invalid), /six-digit code/u);
   }
+});
+
+test('encodes the international prefix as digits for Android text injection', () => {
+  assert.equal(encodeAdbNumericInput('+4915123456789'), '004915123456789');
+  assert.equal(encodeAdbNumericInput('123456'), '123456');
+  assert.throws(() => encodeAdbNumericInput('12 34'), /numeric Android input/u);
 });
 
 test('diagnostic failures suppress phone numbers and SMS secrets', () => {
