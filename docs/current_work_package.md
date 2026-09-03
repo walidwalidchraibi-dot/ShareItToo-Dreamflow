@@ -1,4 +1,41 @@
-# Current Work Package: N21 Pixel password-recovery closure
+# Current Work Package: N22 Pixel email-verified two-role product journey
+
+Status: **CLOSED / LISTING, DISCOVERY, NON-BINDING REQUEST, ACCEPTANCE, CHAT,
+PRINCIPAL ISOLATION AND CLEANUP PASSED / LIVE GATES CLOSED** on 03.09.2026.
+
+Two distinct, email-confirmed persistent Staging identities completed the real
+physical-Pixel journey. The owner published a draft through the installed app;
+the exact active listing was server-confirmed in the public catalog. The renter
+then discovered it and saw the accepted non-binding request and its exact
+booking chat. The owner principal was absent under the renter session.
+
+Both roles displayed `Pilot-Simulation` and explicit no-contract,
+no-reservation and no-payment truth. The payment endpoint was not called,
+availability was unaffected and monetary effect was zero. The booking was
+cancelled, the listing ended and removed from the catalog, and the protected
+owner session restored.
+
+Three failed harness attempts were cleaned and converted into permanent
+deterministic coverage for durable publish truth, distinct owner/renter copy
+and the exact chat-title delimiter. No product failure or temporary timing
+workaround remains.
+
+Implementation commit `de6734810e920e17cd2016ab50642010c9055768`
+passes complete local regression with 2,086 repository tool tests, GitHub
+Regression `33730190048`, independent clean checkout, CodeQL `33730190012`
+and zero alerts. PR #7 remains Draft and unmerged. Staging remains healthy;
+payment stays memory-only and listing AI mock.
+
+Google sign-in, phone/KYC, Stripe sandbox, external listing AI and V5.2 owner
+approval remain open. OnePlus, Play, Production, public registration, real
+money and PR merge were unchanged.
+
+Machine evidence:
+`docs/evidence/release-readiness/n22-pixel-email-verified-two-role-product-journey-2026090305.json`.
+Human handover:
+`docs/operations/N22_PIXEL_EMAIL_VERIFIED_TWO_ROLE_PRODUCT_JOURNEY_2026-09-03.md`.
+
+# Previous Work Package: N21 Pixel password-recovery closure
 
 Status: **CLOSED / RESET, SINGLE-USE CONFIRMATION, OLD-CREDENTIAL REJECTION,
 NEW LOGIN AND COLD START PASSED / LIVE GATES CLOSED** on 03.09.2026.

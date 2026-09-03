@@ -4,7 +4,42 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N21 Pixel password-recovery closure
+## Current N22 Pixel email-verified two-role product-journey closure
+
+Two distinct persistent Staging identities with previously confirmed email
+links now pass the real physical-Pixel product journey: owner draft and UI
+publish, exact server/public-catalog confirmation, renter discovery, accepted
+non-binding request, exact role presentation, renter-visible booking chat,
+A-to-B principal isolation, fixture retirement and protected-owner session
+restoration.
+
+Both role surfaces state `Pilot-Simulation`. No contract, reservation or
+payment was created, the payment endpoint was not called, availability was
+unchanged and monetary effect remained zero. In-app notification creation was
+verified; the existing N18 physical FCM proof remains unchanged. The isolated
+booking is cancelled, the listing ended and removed from the public catalog.
+
+Three harness-only failures identified a transient-toast timing assumption,
+role-copy matcher reuse and the shipped chat-title delimiter. All fixtures
+were retired, the owner session restored and deterministic tests now hold the
+durable server truth and exact UI contracts. No product failure or permanent
+timing workaround remains.
+
+Implementation commit `de6734810e920e17cd2016ab50642010c9055768`
+passes complete local regression with 2,086 repository tool tests, no skips,
+Flutter, analyzer zero, Web/Wasm, loopback smoke and Android build. GitHub
+Regression `33730190048`, clean checkout and CodeQL `33730190012` pass; open
+alerts remain zero. PR #7 remains Draft and unmerged. Staging stays healthy,
+payment memory-only and listing AI mock with zero provider budget.
+
+Google sign-in, phone/KYC, Stripe sandbox, external listing AI and V5.2 owner
+approval remain open. OnePlus, Play, Production, public registration, tester
+lists, real money and PR merge were unchanged. Exact evidence is
+`docs/evidence/release-readiness/n22-pixel-email-verified-two-role-product-journey-2026090305.json`;
+handover is
+`docs/operations/N22_PIXEL_EMAIL_VERIFIED_TWO_ROLE_PRODUCT_JOURNEY_2026-09-03.md`.
+
+## Previous N21 Pixel password-recovery closure
 
 The persistent synthetic Staging identity created through the physical Pixel
 app now passes the complete recovery path: neutral reset request, real Google
