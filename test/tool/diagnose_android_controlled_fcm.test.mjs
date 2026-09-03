@@ -114,6 +114,15 @@ test('accepts the exact Google Play split candidate for controlled FCM', async (
   assert.equal(result.evidence.tests.foregroundPushDelivery.status, 'passed');
   assert.equal(result.evidence.tests.backgroundPushDelivery.status, 'passed');
   assert.equal(result.evidence.tests.terminatedProcessPushDelivery.status, 'passed');
+  assert.equal(result.evidence.tests.notificationIconVisual.privateDiagnosticScreenshotCommitted, false);
+  assert.equal(result.evidence.tests.notificationIconVisual.privateDiagnosticScreenshotAssumedSensitive, true);
+  assert.equal(
+    result.evidence.tests.notificationIconVisual.privateDiagnosticScreenshotMayContainUnrelatedNotifications,
+    true,
+  );
+  assert.equal(result.evidence.tests.notificationIconVisual.privateDiagnosticScreenshotDistributionAllowed, false);
+  assert.equal(result.evidence.boundaries.repositoryEvidenceContainsPersonalAccountData, false);
+  assert.equal('containsPersonalAccountData' in result.evidence.boundaries, false);
   assert.equal(JSON.stringify(result).includes('private-device-id'), false);
 });
 

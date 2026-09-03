@@ -60,8 +60,12 @@
     "foregroundDelivery": "passed-banner-visible",
     "backgroundDelivery": "passed-system-notification-visible",
     "terminatedProcessDelivery": "passed-process-absent-notification-visible",
-    "notificationIconVisualReview": "pending-private-capture",
+    "notificationIconVisualReview": "passed-private-capture-brand-icon-clear",
     "privateCaptureSha256": "cc32f966a49b3cea90ad9338268925c474531c1493fe9ae14a03a8597ea31f35",
+    "privateCaptureAssumedSensitive": true,
+    "privateCaptureContainsUnrelatedDeviceNotifications": true,
+    "privateCaptureCommitted": false,
+    "privateCaptureDistributionAllowed": false,
     "productionPushSent": false,
     "fullStoreFcmMatrixClaimed": false
   },
@@ -136,7 +140,7 @@
   },
   "remaining": {
     "currentCandidateRealSms": "owner-interaction-required",
-    "notificationIconVisualReview": "manual-review-pending",
+    "notificationIconVisualReview": "passed-private-capture",
     "storeInstalledFcmMatrix": "not-claimed-direct-apk-only",
     "hotspot": "not-run",
     "manualTalkBack": "not-run",

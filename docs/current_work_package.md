@@ -18,6 +18,13 @@ five-second continuously confirmed disconnected state, keeps the new message
 absent for 15 seconds, then proves same-process recovery after the original
 network is restored.
 
+Private visual review confirms the ShareItToo brand icon is clear in both
+captured test notifications. The full notification shade also contains
+unrelated personal device notifications, so the screenshot remains sensitive,
+outside Git and non-distributable. The diagnostic contract now states that
+such captures are always assumed sensitive and never claims their contents are
+free of personal data.
+
 Commit `5656ee6aaf2f4ab6ea9b0a47dacb8b1b3799cdcf` closes a harness cleanup
 defect found when the V5.2 legal hold rejected binding booking creation. The
 single exact unbooked orphan was safely paused and removed from the catalog.
@@ -34,7 +41,7 @@ PR #7 remains Draft and unmerged.
 No contract, reservation, payment call, real money, Production, Play, Firebase
 configuration, KYC, Cloud/VPS/DNS, tester-list, OnePlus or merge action
 occurred. Current-candidate real SMS remains one owner-assisted step;
-notification-icon visual review, Store FCM, hotspot, manual TalkBack, provider
+Store FCM, hotspot, manual TalkBack, provider
 activation, external listing AI and V5.2 approval remain separate.
 
 Machine evidence:

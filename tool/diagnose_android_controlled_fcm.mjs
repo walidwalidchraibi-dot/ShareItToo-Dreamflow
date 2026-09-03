@@ -284,6 +284,9 @@ export async function diagnoseAndroidControlledFcm({
           result: 'private-notification-shade-capture-created',
           privateDiagnosticScreenshotSha256: createHash('sha256').update(screenshot).digest('hex'),
           privateDiagnosticScreenshotCommitted: false,
+          privateDiagnosticScreenshotAssumedSensitive: true,
+          privateDiagnosticScreenshotMayContainUnrelatedNotifications: true,
+          privateDiagnosticScreenshotDistributionAllowed: false,
         },
       },
       boundaries: {
@@ -296,7 +299,7 @@ export async function diagnoseAndroidControlledFcm({
         syntheticAccountsOnly: true,
         lockCodeUsed: false,
         accountIdentityRecorded: false,
-        containsPersonalAccountData: false,
+        repositoryEvidenceContainsPersonalAccountData: false,
         containsSecrets: false,
         containsRawDeviceIdentifiers: false,
         containsReviewCredentials: false,

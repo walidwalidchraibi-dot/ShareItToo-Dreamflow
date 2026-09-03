@@ -38,6 +38,8 @@ test('rejects retry-only, push or CI overclaims', () => {
     (value) => { value.offlineRealtime.continuousOfflineStableWindowSeconds = 0; },
     (value) => { value.push.fullStoreFcmMatrixClaimed = true; },
     (value) => { value.push.productionPushSent = true; },
+    (value) => { value.push.privateCaptureAssumedSensitive = false; },
+    (value) => { value.push.privateCaptureDistributionAllowed = true; },
     (value) => { value.qa.githubRegression = 'pending'; },
     (value) => { value.qa.cleanCheckoutReproducibility = 'pending'; },
   ]) {

@@ -89,8 +89,12 @@ export function validateN27CurrentCandidatePixelClosure(evidence) {
   same(push?.foregroundDelivery, 'passed-banner-visible', 'foreground push');
   same(push?.backgroundDelivery, 'passed-system-notification-visible', 'background push');
   same(push?.terminatedProcessDelivery, 'passed-process-absent-notification-visible', 'terminated push');
-  same(push?.notificationIconVisualReview, 'pending-private-capture', 'icon review');
+  same(push?.notificationIconVisualReview, 'passed-private-capture-brand-icon-clear', 'icon review');
   same(push?.privateCaptureSha256, expected.privateCaptureSha256, 'private capture SHA-256');
+  same(push?.privateCaptureAssumedSensitive, true, 'private capture sensitivity');
+  same(push?.privateCaptureContainsUnrelatedDeviceNotifications, true, 'private capture unrelated notifications');
+  same(push?.privateCaptureCommitted, false, 'private capture repository boundary');
+  same(push?.privateCaptureDistributionAllowed, false, 'private capture distribution boundary');
   same(push?.productionPushSent, false, 'production push');
   same(push?.fullStoreFcmMatrixClaimed, false, 'Store FCM overclaim');
 
@@ -158,6 +162,8 @@ export function validateN27CurrentCandidatePixelClosure(evidence) {
   same(qa?.prNumber, 7, 'PR number');
   same(qa?.prDraft, true, 'PR Draft');
   same(qa?.prMerged, false, 'PR merged');
+
+  same(evidence?.remaining?.notificationIconVisualReview, 'passed-private-capture', 'remaining icon review');
 
   for (const [key, value] of Object.entries(evidence?.boundaries ?? {})) {
     same(value, false, `boundary ${key}`);

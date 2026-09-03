@@ -20,8 +20,11 @@ availability change or monetary effect occurred. The protected owner session
 was restored.
 
 Controlled Staging FCM passes in foreground, background and with the app
-process absent. A private icon capture exists but still needs visual review, so
-no complete Store-installed FCM matrix is claimed. The final offline/online run
+process absent. Private visual review confirms the ShareItToo brand icon is
+clear in both captured test notifications. Because the full notification shade
+also contains unrelated personal device notifications, that screenshot remains
+sensitive, outside Git and non-distributable. No complete Store-installed FCM
+matrix is claimed. The final offline/online run
 requires ten consecutive disconnected samples over five seconds, observes the
 new message absent for 15 seconds, then proves it visible only after restoring
 the original network; the same process and foreground chat survive without a
@@ -43,7 +46,7 @@ Flutter tests, analyzer zero, Web/Wasm, loopback and Android. GitHub Regression
 and PR #7 stays Draft and unmerged.
 
 Current-candidate real SMS remains one owner-assisted request/code/cold-restart
-step. Notification-icon review, Store FCM, hotspot, manual TalkBack, OnePlus,
+step. Store FCM, hotspot, manual TalkBack, OnePlus,
 Stripe-provider activation, external listing AI and V5.2 approval remain
 separate. No Production, Play, Firebase configuration, payment, real money,
 KYC, Cloud/VPS/DNS, tester-list, OnePlus or merge action occurred. Exact

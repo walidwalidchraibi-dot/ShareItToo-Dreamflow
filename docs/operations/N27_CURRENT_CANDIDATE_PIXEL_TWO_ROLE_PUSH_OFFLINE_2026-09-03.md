@@ -20,10 +20,13 @@ removal and protected-owner session restoration. Both roles displayed
 change occurred; monetary effect was zero.
 
 Controlled Staging FCM passed while the app was foregrounded, backgrounded and
-force-stopped. The notification-icon screenshot remains a private manual visual
-review, so N27 does not claim the complete Store-installed FCM matrix. The
-probe sent no Production notification and preserved the protected non-binding
-fixture outside Git.
+force-stopped. Private visual review confirms the ShareItToo brand icon is clear
+and fully visible in both captured test notifications. The full notification
+shade also contains unrelated personal device notifications, so the screenshot
+is treated as sensitive, remains outside Git and is not distributable. N27
+still does not claim the complete Store-installed FCM matrix. The probe sent no
+Production notification and preserved the protected non-binding fixture
+outside Git.
 
 The first offline attempt exposed a test-boundary race: Android reported no
 default network before an already-open realtime transport had fully settled.
@@ -58,9 +61,9 @@ tests, analyzer zero, Web/Wasm, loopback and Android debug. GitHub Regression
 open code-scanning alerts remain zero. PR #7 stays Draft and unmerged.
 
 Current-candidate real SMS still needs one owner-assisted request/code/cold
-restart step. Notification-icon visual review, Store-installed FCM, hotspot,
-manual TalkBack, OnePlus, Stripe-provider activation, external listing AI and
-V5.2 owner approval remain separate. No Google Play, Production, public
+restart step. Store-installed FCM, hotspot, manual TalkBack, OnePlus,
+Stripe-provider activation, external listing AI and V5.2 owner approval remain
+separate. No Google Play, Production, public
 registration, Firebase configuration, payment, KYC, real money, Cloud/VPS/DNS,
 tester-list, OnePlus or merge action occurred.
 
