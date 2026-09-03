@@ -1,5 +1,17 @@
 # Current Work Package: WP02 / WP01 Pixel candidate 2026090401
 
+Latest checkpoint: signed `1.0.0+2026090401` is privately archived and
+independently verified from clean pushed source
+`c0c4a0d13761d995e2aba8fed13edf0be481f90d`. Exact local full gate followed by
+signed archive lifecycle passes without manual cache purge. Both signatures,
+hashes, profile, bundle, privacy and release surface pass. Exact CodeQL passes;
+Regression `33814479652` has Backend/clean-checkout audit timeouts and remains
+uncleared. Pixel still has exact 2026090307; read-only update eligibility passes,
+but no install or device write occurred. Kotlin metadata debt remains OPEN.
+Active handover: `docs/operations/WP02_PIXEL_CANDIDATE_2026090401_HANDOVER.md`.
+
+Historical preparation checkpoint:
+
 On 2026-09-04, preparing `1.0.0+2026090401` from source base
 `c259027dde5f99d5838ea48bc17e2067f85a3f36`. Only version/client-build metadata
 and exact dependent SHA bindings change; 26-file semantic audit and 36 focused

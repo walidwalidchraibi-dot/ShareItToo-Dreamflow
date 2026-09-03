@@ -1,5 +1,12 @@
 # WP02 prerequisite — bounded Mac-mini build-cache capacity
 
+Subsequent candidate-bound checkpoint: clean full regression followed by the
+signed `2026090401` archive lifecycle passes without manual purge or retry on
+source `c0c4a0d1`; original global entries stayed absent. Exact CI remains
+blocked at npm's dependency audit and Kotlin metadata debt persists. See
+`WP02_PIXEL_CANDIDATE_2026090401_HANDOVER.md`; the original observations below
+retain their historical time and source binding.
+
 Status: **COLD AND ORIGINAL LOCAL GATES PASS / HOST-TOOL CI PENDING / SIGNED LIFECYCLE OPEN**.
 No new Goal, signed candidate, device install or live-provider action.
 

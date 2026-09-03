@@ -1,6 +1,10 @@
 # WP02 / WP01 — Pixel candidate 2026090401 preparation
 
 Status: **PREPARATION / NOT BUILT / NOT INSTALLED**, 2026-09-04.
+Historical preparation status; subsequently built and independently verified
+from `c0c4a0d13761d995e2aba8fed13edf0be481f90d`, but NOT installed because
+exact CI's dependency audit timed out. See
+`WP02_PIXEL_CANDIDATE_2026090401_HANDOVER.md` for the newer checkpoint.
 This is the bounded candidate for the already-tested SMS retry-display and
 shared provider-SDK ownership corrections. It does not close the full Staging
 Goal, WP01 physical SMS acceptance, or WP02 external-provider setup.

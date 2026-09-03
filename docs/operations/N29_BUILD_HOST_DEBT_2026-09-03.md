@@ -1,5 +1,13 @@
 # N29 build-host and toolchain debt
 
+Latest 2026-09-04: candidate `2026090401`, source `c0c4a0d1`, completed the
+clean full gate followed by signed archive verification using the dedicated
+cache without intervening manual purge or retry. Local capacity lifecycle is
+proven; final exact-CI verification is still blocked by npm audit timeouts.
+Both retired global engine caches remain absent with their recoverable copies
+retained. The Kotlin metadata 2.3.0/2.1.0 diagnostic recurred and remains OPEN.
+See `WP02_PIXEL_CANDIDATE_2026090401_HANDOVER.md` for exact measurements.
+
 2026-09-04 progress: a dedicated APFS build area on the existing SSD passes
 filesystem checks and an exact-source cold full regression on `d7575368`.
 Two old global engine-transform entries were migrated only after complete

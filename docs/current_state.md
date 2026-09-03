@@ -14,6 +14,15 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
+Latest 2026-09-04: signed candidate `1.0.0+2026090401` from clean source
+`c0c4a0d13761d995e2aba8fed13edf0be481f90d` passes full local regression,
+the uninterrupted dedicated-cache signed lifecycle and independent artifact
+verification. CodeQL passes; exact Regression has npm security-audit timeouts,
+so no device clearance is claimed. Pixel remains exactly on 2026090307;
+read-only update preflight passes without installation or device mutation.
+Kotlin metadata debt and real SMS UI completion remain open. See
+`docs/operations/WP02_PIXEL_CANDIDATE_2026090401_HANDOVER.md`.
+
 Current bounded step on 2026-09-04: preparing Pixel candidate
 `1.0.0+2026090401` from base `c259027d`, including the tested SMS retry-display
 and shared-provider ownership corrections. Only version metadata and dependent
