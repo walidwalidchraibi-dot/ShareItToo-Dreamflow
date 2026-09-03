@@ -7,6 +7,7 @@ const builder = read('scripts/build_android_release_candidate.sh');
 const archive = read('tool/archive_android_release_candidate.mjs');
 const deployment = read('backend/ops/deploy_release.sh');
 const pilotCompose = read('backend/compose.staging.pilot.yml');
+const smtpCompose = read('backend/compose.staging.smtp.yml');
 const workflow = read('.github/workflows/regression.yml');
 const regression = read('scripts/technical_regression_check.sh');
 
@@ -55,12 +56,33 @@ test('staging pilot compose enables only mock, zero-cost and memory transports',
   assert.doesNotMatch(pilotCompose, /production|openai|smtp|fcm|webhook/iu);
 });
 
+test('real Staging mail is isolated behind a TLS-only unauthenticated relay overlay', () => {
+  for (const marker of [
+    'MAIL_TRANSPORT: smtp',
+    'SMTP_HOST: ${SMTP_HOST:?',
+    'SMTP_PORT: ${SMTP_PORT:?',
+    'SMTP_SECURE: ${SMTP_SECURE:?',
+    'SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:?',
+    'SMTP_USER: ${SMTP_USER:-}',
+    'SMTP_PASSWORD: ${SMTP_PASSWORD:-}',
+    'MAIL_FROM: ${MAIL_FROM:?',
+    'MAIL_REPLY_TO: ${MAIL_REPLY_TO:?',
+  ]) assert.ok(smtpCompose.includes(marker), marker);
+  assert.doesNotMatch(smtpCompose, /production|OPENAI_API_KEY|STRIPE_SECRET_KEY/u);
+});
+
 test('deployment requires exact pilot id and forbids it in production', () => {
   assert.match(deployment, /SIT_STAGING_PILOT_ID/u);
   assert.match(deployment, /task_environment" == production && -n "\$task_staging_pilot_id/u);
   assert.match(deployment, /task_staging_pilot_id" != heilbronn_wave0/u);
   assert.match(deployment, /compose\.staging\.pilot\.yml/u);
   assert.match(deployment, /PULL_RELEASE_IMAGE requires an explicit GHCR/u);
+  assert.match(deployment, /ENABLE_STAGING_SMTP must be 0 or 1/u);
+  assert.match(deployment, /staging SMTP override is forbidden for production/u);
+  assert.match(deployment, /compose\.staging\.smtp\.yml/u);
+  assert.match(deployment, /SMTP_HOST=smtp-relay\.gmail\.com/u);
+  assert.match(deployment, /MAIL_FROM=ShareItToo Staging <contact@shareittoo\.com>/u);
+  assert.match(deployment, /"stagingSmtp":%s/u);
 });
 
 test('manual image publication still waits for all exact regression jobs', () => {

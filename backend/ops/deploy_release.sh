@@ -5,6 +5,7 @@ task_backend_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 task_environment="${1:-}"
 task_commit="${2:-}"
 task_enable_staging_fcm="${ENABLE_STAGING_FCM:-0}"
+task_enable_staging_smtp="${ENABLE_STAGING_SMTP:-0}"
 task_node_binary="${NODE_BINARY:-node}"
 task_deployment_started=false
 task_previous_image_id=''
@@ -16,6 +17,7 @@ task_deployment_override=''
 task_release_dir="${RELEASE_LOG_DIR:-/docker/shareittoo/releases}"
 task_staging_pilot_id="${SIT_STAGING_PILOT_ID:-}"
 task_pull_release_image="${PULL_RELEASE_IMAGE:-0}"
+task_staging_smtp_enabled=false
 
 cleanup() {
   if [[ -n "$task_rollback_override" ]]; then
@@ -94,8 +96,16 @@ if [[ "$task_enable_staging_fcm" != 0 && "$task_enable_staging_fcm" != 1 ]]; the
   echo "ENABLE_STAGING_FCM must be 0 or 1." >&2
   exit 1
 fi
+if [[ "$task_enable_staging_smtp" != 0 && "$task_enable_staging_smtp" != 1 ]]; then
+  echo "ENABLE_STAGING_SMTP must be 0 or 1." >&2
+  exit 1
+fi
 if [[ "$task_environment" == production && "$task_enable_staging_fcm" == 1 ]]; then
   echo "The staging FCM override is forbidden for production deployments." >&2
+  exit 1
+fi
+if [[ "$task_environment" == production && "$task_enable_staging_smtp" == 1 ]]; then
+  echo "The staging SMTP override is forbidden for production deployments." >&2
   exit 1
 fi
 if [[ "$task_pull_release_image" != 0 && "$task_pull_release_image" != 1 ]]; then
@@ -175,6 +185,27 @@ if [[ ! -f "$task_env_file" ]]; then
   exit 1
 fi
 
+if [[ "$task_environment" == staging && "$task_enable_staging_smtp" == 1 ]]; then
+  task_required_staging_smtp_lines=(
+    'SMTP_HOST=smtp-relay.gmail.com'
+    'SMTP_PORT=587'
+    'SMTP_SECURE=false'
+    'SMTP_REQUIRE_TLS=true'
+    'SMTP_USER='
+    'SMTP_PASSWORD='
+    'MAIL_FROM=ShareItToo Staging <contact@shareittoo.com>'
+    'MAIL_REPLY_TO=contact@shareittoo.com'
+  )
+  for task_required_staging_smtp_line in "${task_required_staging_smtp_lines[@]}"; do
+    if ! grep -Fqx -- "$task_required_staging_smtp_line" "$task_env_file"; then
+      echo "The staging SMTP environment is missing a required safe relay setting." >&2
+      exit 1
+    fi
+  done
+  task_compose_args+=(-f "$task_backend_root/compose.staging.smtp.yml")
+  task_staging_smtp_enabled=true
+fi
+
 DATABASE_CONTAINER="$task_database_container" \
 DATABASE_USER="$task_database_user" \
 DATABASE_NAME="$task_database_name" \
@@ -210,9 +241,9 @@ curl --fail --silent --show-error --max-time 20 "$task_health_url/health/ready" 
 install -d -m 700 "$task_release_dir"
 task_timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 task_report="$task_release_dir/${task_environment}-${task_timestamp}-${task_commit:0:12}.json"
-printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingPilotId":"%s"}\n' \
+printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingSmtp":%s,"stagingPilotId":"%s"}\n' \
   "$task_environment" "$task_commit" "$task_previous_commit" "$task_version" \
-  "$task_build_time" "$task_timestamp" "$task_fcm_enabled" \
+  "$task_build_time" "$task_timestamp" "$task_fcm_enabled" "$task_staging_smtp_enabled" \
   "$task_staging_pilot_id" > "$task_report"
 chmod 600 "$task_report"
 task_deployment_started=false

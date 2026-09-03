@@ -95,6 +95,12 @@ jobs:
           APP_COMMIT: ${{ github.sha }}
           FIREBASE_PROJECT_ID: shareittoo-staging
           FIREBASE_SERVICE_ACCOUNT_HOST_FILE: /run/shareittoo-ci/firebase-service-account.json
+          SMTP_HOST: smtp-relay.gmail.com
+          SMTP_PORT: "587"
+          SMTP_SECURE: "false"
+          SMTP_REQUIRE_TLS: "true"
+          MAIL_FROM: "ShareItToo Staging <contact@shareittoo.com>"
+          MAIL_REPLY_TO: contact@shareittoo.com
         run: |
           docker compose -f compose.prod.yml config --quiet
           docker compose -f compose.staging.yml config --quiet
@@ -105,6 +111,11 @@ jobs:
           docker compose \
             -f compose.staging.yml \
             -f compose.staging.pilot.yml \
+            config --quiet
+          docker compose \
+            -f compose.staging.yml \
+            -f compose.staging.pilot.yml \
+            -f compose.staging.smtp.yml \
             config --quiet
           docker run --rm \
             --volume "$PWD/ops/Caddyfile:/etc/caddy/Caddyfile:ro" \
