@@ -113,3 +113,8 @@ Any mobile fix requires a new separately bound signed candidate and affected
 Pixel tests. Do not silently replace frozen 2026090307 or reuse its evidence
 as proof of corrected SDK lifecycle behavior. This finding is currently OPEN;
 no fix, new build, installation, provider activation or Goal closure is claimed.
+
+Subsequent local correction work is tracked separately in
+`WP02_SHARED_PROVIDER_SDK_OWNERSHIP_2026-09-03.md`. This initial reproduction
+and the external owner-action status above remain historical observations;
+local test progress does not activate any provider or close WP02.

@@ -1,4 +1,33 @@
-# Current Work Package: N29 current-candidate SMS delivery and UI diagnostic
+# Current Work Package: WP02 shared provider SDK ownership correction
+
+Bounded independent work under the still-active encompassing Goal. WP01 stays
+PARTIAL pending a new candidate and physical SMS-dialog completion; the owner
+was asked for the precise Meta developer-app creation action. That external
+dependency is separate and no provider is activated by this correction.
+
+Base: `239c5aa1f74e55cb2991f97832a1d855a7ae7e94` on
+`codex/master-workflow-20260808` in
+`/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
+The preceding SMS source correction passes local full regression, exact GitHub
+Regression `33806616812` including clean checkout, and CodeQL `33806616843`.
+
+Current local correction serializes social/phone SDK acquisition through
+awaited cleanup, checks queued owners before invocation, and cleans only
+acquired resources. Backend-confirmed phone truth survives a late owner or SMS
+challenge change. Offline mocked-provider tests are now included in the
+permanent gate. Full local regression passes; exact new-HEAD CI and device
+evidence remain pending. No new Goal or Pixel build was created.
+Focused profiles now pass 17 shared-SDK/phone and 11 native-provider cases;
+2,151 tool tests and Backend 795 plus two expected skips pass. The full local
+gate passed after a documented recurrence of the unchanged host-capacity
+guard and exact generated-cache recovery: 665 default Flutter passes plus
+33 profile skips, analyzer zero issues, configured profiles, Web debug, Wasm
+dry run, loopback smoke, Android debug and binary audit. Full-history and
+working-tree secret scan has zero new unexpected findings. Host debt remains
+OPEN; this manual recovery is not a release-readiness prerequisite or closure.
+Active handover: `docs/operations/WP02_SHARED_PROVIDER_SDK_OWNERSHIP_2026-09-03.md`.
+
+## Previous N29 SMS checkpoint
 
 Autonomous sequence authorized 2026-09-03:
 `docs/operations/SIT_AUTONOMOUS_WORK_PACKAGE_QUEUE_2026-09-03.md`.
@@ -67,7 +96,8 @@ and Android debug/binary audit. Separate Backend checks pass 795 tests with
 two expected skips. Historical artifact/device validators used the documented
 metadata-only mode; this is not physical acceptance. See
 `N29_SMS_RETRY_DISPLAY_CORRECTION_2026-09-03.md`. The fix is NOT in the installed
-2026090307 candidate; exact correction-HEAD CI and WP01 closure remain pending.
+2026090307 candidate; exact source CI is now green as recorded above, but WP01
+physical closure remains pending.
 Readback showed the original
 Enter-and-close notification was only a draft. The explicit Send button was
 subsequently clicked for one combined SMS/Meta/Apple owner request; the tab was

@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "5fbc0acd34bdb0ea17667605df8921f83734e71a0d2cef4d01fd02c5e897a163"
+      "sha256": "1cd078deeb3e5c6cc14128d24e48e3414a97305e01f2ec1e49e38bf13f3b678c"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -852,7 +852,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "2d4c0e2f1291c4d57d63f83088cbded707c775e96206ab9232a1da192d6a89df"
+      "sha256": "1607dfd6d0b7907aa9040d7ec10f649fcaab12b6fef872accc66b4b4602b2687"
     },
     {
       "path": "lib/screens/notification_settings_screen.dart",

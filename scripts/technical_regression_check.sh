@@ -941,6 +941,24 @@ flutter test --reporter expanded \
   --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=false \
   test/social_auth_google_only_profile_test.dart
 
+# Offline SDK mocks exercise enabled providers without a release artifact,
+# real credentials, SMS, provider login or network access. Both profiles are
+# mandatory; the default Flutter suite cannot substitute for these opt-ins.
+flutter test --reporter expanded \
+  --dart-define=SIT_TEST_PROVIDER_SDK_OWNERSHIP=true \
+  --dart-define=SIT_BACKEND_ENABLED=true \
+  --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
+  --dart-define=SIT_SOCIAL_APPLE_ENABLED=true \
+  test/provider_sdk_session_ownership_test.dart
+flutter test --reporter expanded \
+  --dart-define=SIT_TEST_PROVIDER_NATIVE_OWNERSHIP=true \
+  --dart-define=SIT_BACKEND_ENABLED=true \
+  --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
+  --dart-define=SIT_SOCIAL_APPLE_ENABLED=true \
+  --dart-define=SIT_SOCIAL_GOOGLE_ENABLED=true \
+  --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=true \
+  test/provider_sdk_session_ownership_test.dart
+
 # Compile and execute the exact non-binding Stage-A checkout profile. This is
 # a separate profile test so the ordinary V5.2 binding contract path remains
 # covered by the default Flutter suite.

@@ -40,6 +40,12 @@ dependencies:
   flutter_facebook_auth: 7.2.0
 
 dev_dependencies:
+  # Explicit mock interfaces; these exact versions already belong to the
+  # locked runtime graph. No runtime package upgrade is introduced here.
+  firebase_auth_platform_interface: 9.0.6
+  firebase_core_platform_interface: 8.1.0
+  flutter_facebook_auth_platform_interface: 6.1.2
+  google_sign_in_platform_interface: 3.1.0
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0

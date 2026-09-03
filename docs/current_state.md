@@ -14,6 +14,13 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
+Independent WP02 provider-SDK ownership correction passes full local regression;
+exact new-source CI and physical acceptance remain pending. The preceding SMS
+source HEAD is separately verified below;
+neither change is inferred to be installed on Pixel. The active bounded scope,
+mock-only tests, recurring host-capacity debt and remaining external actions
+are in `docs/operations/WP02_SHARED_PROVIDER_SDK_OWNERSHIP_2026-09-03.md`.
+
 Latest owner-ready run on 2026090307: invalid code rejected, owner-provided
 fresh code accepted by Backend, verified phone visible after cold restart,
 then exact Backend/Pixel cleanup passed. Temporary phone/code files removed.
@@ -28,8 +35,9 @@ The narrow retry-display correction and attempt-aware diagnostic now pass
 full local regression: 2,148 tool tests, 665 Flutter passes plus five expected
 skips, analyzer baseline, Web/Wasm dry run, loopback and Android debug/binary
 audit; separate Backend 795 passes plus two expected skips. Historical
-artifact/device validation used documented metadata-only mode. Exact new-HEAD
-GitHub/clean-checkout verification is pending. This correction is NOT installed
+artifact/device validation used documented metadata-only mode. Exact source
+`239c5aa1f74e55cb2991f97832a1d855a7ae7e94` passed Regression `33806616812`
+including clean checkout and CodeQL `33806616843`. This correction is NOT installed
 on Pixel and does not alter the frozen 2026090307 evidence. See
 `docs/operations/N29_SMS_RETRY_DISPLAY_CORRECTION_2026-09-03.md`.
 

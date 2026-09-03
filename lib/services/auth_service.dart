@@ -17,6 +17,12 @@ import 'firebase_runtime.dart';
 import 'remote_auth_attempt_transaction.dart';
 import 'shared_persistence_sync.dart';
 
+class _SocialSdkAcquisition {
+  String? firebaseUid;
+  bool googleAcquired = false;
+  bool facebookAcquired = false;
+}
+
 class _QueuedAuthSessionMutation {
   final Future<Object?> Function() operation;
   final void Function(Object? value) complete;
@@ -103,6 +109,12 @@ class AuthService {
   static Future<String?>? _refreshInFlight;
   static final _AuthSessionMutationQueue _sessionMutationQueue =
       _AuthSessionMutationQueue();
+  // Independent from persisted SIT sessions: provider acquisition and its
+  // awaited cleanup must finish before another social/phone SDK operation.
+  // Never release this queue on an observation timeout while native work runs.
+  static final _AuthSessionMutationQueue _providerSdkMutationQueue =
+      _AuthSessionMutationQueue();
+  static int _providerSdkOperationGeneration = 0;
   static int _sessionGeneration = 0;
   static int _phoneVerificationAttemptGeneration = 0;
   static bool _sessionClearing = false;
@@ -917,12 +929,32 @@ class AuthService {
     required int attemptEpoch,
     required String phoneNumber,
     required PhoneAuthCredential credential,
+  }) =>
+      _providerSdkMutationQueue.run(() => _confirmPhoneCredentialOwned(
+            owner: owner,
+            attemptEpoch: attemptEpoch,
+            phoneNumber: phoneNumber,
+            credential: credential,
+          ));
+
+  static Future<void> _confirmPhoneCredentialOwned({
+    required AuthSessionOwner owner,
+    required int attemptEpoch,
+    required String phoneNumber,
+    required PhoneAuthCredential credential,
   }) async {
     String? signedInUid;
+    int? sdkOperationEpoch;
     var remoteConfirmed = false;
     var localIdentityCleanupFailed = false;
     try {
       await _requirePhoneVerificationOwner(owner);
+      if (attemptEpoch != _phoneVerificationAttemptGeneration) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.principalChanged,
+        );
+      }
+      sdkOperationEpoch = ++_providerSdkOperationGeneration;
       final signedIn = await FirebaseAuth.instance.signInWithCredential(
         credential,
       );
@@ -934,6 +966,11 @@ class AuthService {
         );
       }
       final firebaseIdToken = await signedIn.user?.getIdToken(true);
+      if (attemptEpoch != _phoneVerificationAttemptGeneration) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.principalChanged,
+        );
+      }
       if (firebaseIdToken == null || firebaseIdToken.length < 100) {
         throw const PhoneVerificationException(
           PhoneVerificationFailure.invalidToken,
@@ -948,6 +985,11 @@ class AuthService {
         );
       }
       await _requirePhoneVerificationOwner(owner);
+      if (attemptEpoch != _phoneVerificationAttemptGeneration) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.principalChanged,
+        );
+      }
       final response = await BackendHttp.requestJson(
         method: 'POST',
         path: '/auth/phone-verification/confirm',
@@ -963,7 +1005,8 @@ class AuthService {
         );
       }
       remoteConfirmed = true;
-      if (!await isSessionOwnerDefinitelyCurrent(owner)) {
+      if (!await isSessionOwnerDefinitelyCurrent(owner) ||
+          attemptEpoch != _phoneVerificationAttemptGeneration) {
         throw const PhoneVerificationException(
           PhoneVerificationFailure.principalChanged,
           remoteAcceptedOrConfirmed: true,
@@ -974,13 +1017,16 @@ class AuthService {
       throw PhoneVerificationException(failure);
     } finally {
       try {
-        final currentUid = FirebaseAuth.instance.currentUser?.uid;
-        if (shouldCleanUpPhoneIdentity(
-          attemptEpoch: attemptEpoch,
-          currentAttemptEpoch: _phoneVerificationAttemptGeneration,
-          signedInUid: signedInUid,
-          currentUid: currentUid,
-        )) {
+        if (sdkOperationEpoch != null &&
+            signedInUid != null &&
+            shouldCleanUpPhoneIdentity(
+              // UI/SMS expiry does not transfer ownership of acquired SDK state.
+              // The independent SDK epoch is protected through awaited sign-out.
+              attemptEpoch: sdkOperationEpoch,
+              currentAttemptEpoch: _providerSdkOperationGeneration,
+              signedInUid: signedInUid,
+              currentUid: FirebaseAuth.instance.currentUser?.uid,
+            )) {
           await FirebaseAuth.instance.signOut();
           localIdentityCleanupFailed =
               FirebaseAuth.instance.currentUser?.uid == signedInUid;
@@ -1153,10 +1199,48 @@ class AuthService {
     bool privateUseConfirmed = false,
     int? expectedSessionEpoch,
     bool Function()? isActionCurrent,
-  }) async {
+  }) {
+    final capturedEpoch = expectedSessionEpoch ?? _sessionGeneration;
     if (!BackendConfig.enabled) {
+      return Future.value(
+          const AuthResult.failure(AuthFailure.providerUnavailable));
+    }
+    if (!_authAttemptPreflightCurrent(capturedEpoch, isActionCurrent)) {
+      return Future.value(
+          const AuthResult.failure(AuthFailure.principalChanged));
+    }
+    if (!socialProviderEnabled(provider)) {
+      return Future.value(
+          const AuthResult.failure(AuthFailure.providerUnavailable));
+    }
+    return _providerSdkMutationQueue.run(() => _signInWithSocialProviderOwned(
+          provider,
+          termsAccepted: termsAccepted,
+          privacyAccepted: privacyAccepted,
+          minimumAgeConfirmed: minimumAgeConfirmed,
+          privateUseConfirmed: privateUseConfirmed,
+          expectedSessionEpoch: capturedEpoch,
+          isActionCurrent: isActionCurrent,
+        ));
+  }
+
+  static Future<AuthResult> _signInWithSocialProviderOwned(
+    AuthSocialProvider provider, {
+    required bool termsAccepted,
+    required bool privacyAccepted,
+    required bool minimumAgeConfirmed,
+    required bool privateUseConfirmed,
+    required int expectedSessionEpoch,
+    required bool Function()? isActionCurrent,
+  }) async {
+    if (!_authAttemptPreflightCurrent(expectedSessionEpoch, isActionCurrent)) {
+      return const AuthResult.failure(AuthFailure.principalChanged);
+    }
+    if (!socialProviderEnabled(provider)) {
       return const AuthResult.failure(AuthFailure.providerUnavailable);
     }
+    final sdkOperationEpoch = ++_providerSdkOperationGeneration;
+    final acquisition = _SocialSdkAcquisition();
     try {
       return await RemoteAuthAttemptTransaction<String, Map<String, dynamic>,
               AuthResult>()
@@ -1166,7 +1250,16 @@ class AuthService {
           isActionCurrent,
         ),
         actionCurrent: () => _authAttemptActionCurrent(isActionCurrent),
-        acquire: () => _firebaseSocialIdToken(provider),
+        acquire: () => _firebaseSocialIdToken(
+          provider,
+          acquisition: acquisition,
+          requireCurrent: () {
+            if (!_authAttemptPreflightCurrent(
+                expectedSessionEpoch, isActionCurrent)) {
+              throw const RemoteAuthAttemptSuperseded();
+            }
+          },
+        ),
         invokeRemote: (idToken) => BackendHttp.requestJson(
           method: 'POST',
           path: '/auth/social',
@@ -1254,14 +1347,26 @@ class AuthService {
       return const AuthResult.failure(AuthFailure.network);
     } finally {
       try {
-        if (Firebase.apps.isNotEmpty) await FirebaseAuth.instance.signOut();
+        if (acquisition.firebaseUid != null &&
+            shouldCleanUpPhoneIdentity(
+              attemptEpoch: sdkOperationEpoch,
+              currentAttemptEpoch: _providerSdkOperationGeneration,
+              signedInUid: acquisition.firebaseUid,
+              currentUid: FirebaseAuth.instance.currentUser?.uid,
+            )) {
+          await FirebaseAuth.instance.signOut();
+        }
       } catch (_) {}
       try {
         switch (provider) {
           case AuthSocialProvider.google:
-            await GoogleSignIn.instance.signOut();
+            if (acquisition.googleAcquired) {
+              await GoogleSignIn.instance.signOut();
+            }
           case AuthSocialProvider.facebook:
-            await FacebookAuth.instance.logOut();
+            if (acquisition.facebookAcquired) {
+              await FacebookAuth.instance.logOut();
+            }
           case AuthSocialProvider.apple:
             break;
         }
@@ -1273,14 +1378,18 @@ class AuthService {
   }
 
   static Future<String> _firebaseSocialIdToken(
-    AuthSocialProvider provider,
-  ) async {
+    AuthSocialProvider provider, {
+    required _SocialSdkAcquisition acquisition,
+    required void Function() requireCurrent,
+  }) async {
+    requireCurrent();
     if (!socialProviderEnabled(provider)) {
       throw const _SocialProviderUnavailable(
         'provider is disabled in this release candidate',
       );
     }
     await FirebaseRuntime.ensureFirebaseApp();
+    requireCurrent();
     if (Firebase.apps.isEmpty) throw const _SocialProviderUnavailable();
     try {
       UserCredential credential;
@@ -1288,7 +1397,10 @@ class AuthService {
         case AuthSocialProvider.google:
           _googleInitialization ??= GoogleSignIn.instance.initialize();
           await _googleInitialization;
+          requireCurrent();
           final account = await GoogleSignIn.instance.authenticate();
+          acquisition.googleAcquired = true;
+          requireCurrent();
           final providerCredential = GoogleAuthProvider.credential(
             idToken: account.authentication.idToken,
           );
@@ -1313,6 +1425,8 @@ class AuthService {
           if (login.status != LoginStatus.success || facebookToken == null) {
             throw _SocialProviderUnavailable(login.message);
           }
+          acquisition.facebookAcquired = true;
+          requireCurrent();
           final providerCredential = switch (facebookToken) {
             LimitedToken() => OAuthProvider('facebook.com').credential(
                 idToken: facebookToken.tokenString,
@@ -1325,6 +1439,8 @@ class AuthService {
             providerCredential,
           );
       }
+      acquisition.firebaseUid = credential.user?.uid;
+      requireCurrent();
       final token = await credential.user?.getIdToken(true);
       if (token == null || token.isEmpty) {
         throw const _SocialProviderUnavailable();

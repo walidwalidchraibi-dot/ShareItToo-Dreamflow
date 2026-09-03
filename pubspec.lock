@@ -242,7 +242,7 @@ packages:
     source: hosted
     version: "6.5.7"
   firebase_auth_platform_interface:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: firebase_auth_platform_interface
       sha256: "314b7bd0bf8545cbd3e779bad294a811d09de5d25d5c88a00e6e48a6bded6368"
@@ -266,7 +266,7 @@ packages:
     source: hosted
     version: "4.13.0"
   firebase_core_platform_interface:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: firebase_core_platform_interface
       sha256: e28f9afdcb5b0f0a8ea74ea3b322f5a7592c81cb45dd9d189913bdae08a2089a
@@ -343,7 +343,7 @@ packages:
     source: hosted
     version: "7.2.0"
   flutter_facebook_auth_platform_interface:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: flutter_facebook_auth_platform_interface
       sha256: e04b8dbfa77702bea45a79993163ad5d20b2c0084109bec591fdc2b9ee505779
@@ -529,7 +529,7 @@ packages:
     source: hosted
     version: "6.3.0"
   google_sign_in_platform_interface:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: google_sign_in_platform_interface
       sha256: "7f59208c42b415a3cca203571128d6f84f885fead2d5b53eb65a9e27f2965bb5"

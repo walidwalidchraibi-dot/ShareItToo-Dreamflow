@@ -30,6 +30,26 @@ the signed archive lifecycle without intervening manual cache removal,
 retry loops, reduced parallelism or relaxed bounds. Retain exact CI and
 before/after measurements. The original failed attempt remains failed evidence.
 
+### Recurrence during WP02 SDK ownership correction
+
+On base HEAD `239c5aa1f74e55cb2991f97832a1d855a7ae7e94` plus the local WP02
+correction, the full local gate again stopped before tests: 4,770,824 KiB
+effective capacity versus the unchanged 5,242,880-KiB floor. This is a recurring
+host constraint, not a failed test or closed debt. The original log is
+`/tmp/sit-wp02-sdk-full-regression.log`.
+
+The same two exact engine-transform entries above had been regenerated. Both
+retained source JARs passed ZIP verification. The only Gradle 8.12 daemon was
+IDLE and stopped normally; no Gradle build was active and neither target had
+an open file handle. Only those two generated entries were removed again.
+The resumed gate started with 2,067,244 KiB free and 3,643,156 KiB generated,
+5,710,400 KiB effective. Log:
+`/tmp/sit-wp02-sdk-full-regression-capacity-recovered.log`.
+
+This manual recovery is NOT a supported permanent build prerequisite. Normal
+host capacity and a complete uninterrupted gate-to-signed-archive lifecycle
+without manual cache purges are still required before release-readiness closure.
+
 ## TD-N29-KOTLIN-METADATA — OPEN
 
 The signed bundle build emitted an incompatible Kotlin metadata diagnostic

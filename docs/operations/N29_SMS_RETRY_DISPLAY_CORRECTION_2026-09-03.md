@@ -1,6 +1,6 @@
 # N29 — attempt-specific SMS retry display correction
 
-Status: **LOCAL CORRECTION / FULL LOCAL GATE PASS / EXACT CI PENDING**.
+Status: **SOURCE CORRECTION VERIFIED / PHYSICAL FOLLOW-UP OPEN**.
 Base HEAD: `a06150cc5733d2168c83bae34c3f01479d2a0309`, branch
 `codex/master-workflow-20260808`, checkout
 `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
@@ -44,7 +44,11 @@ does not. This follow-up has NOT been installed on Pixel. Frozen APK
   Web debug build and Wasm dry run PASS, loopback-only smoke PASS. Android debug
   build and binary audit PASS: minSdk 24, 14 permissions, eight exported
   components. This is not a separate executed Wasm release or signed candidate.
-  Exact correction-HEAD GitHub Regression/CodeQL/clean-checkout remain pending.
+  Exact correction source HEAD
+  `239c5aa1f74e55cb2991f97832a1d855a7ae7e94` subsequently passed GitHub
+  Regression `33806616812` with all four jobs, including clean checkout, and
+  CodeQL `33806616843`. API image publication was skipped. This later evidence
+  is specific to that source HEAD, not any subsequent provider-SDK correction.
 - Local full-gate log SHA-256:
   `a97aef9490d733bd5606534f694b03649ae8af62878e0de0d47a0db1d59d16fd`.
   Separate Backend test/check log SHA-256:
@@ -69,8 +73,7 @@ artifact provenance and historical verified HEADs are not promoted.
 
 ## Remaining work and risks
 
-Commit this audited correction, push normally,
-then verify exact CI. A new candidate and affected physical Pixel acceptance
+The audited source correction is committed and pushed. A new candidate and affected physical Pixel acceptance
 are required before calling the display behavior device-proven. The stale
 retry reproduction explains a concrete ambiguity in the old observation, not
 every possible cause of delayed or missing physical-dialog completion.
