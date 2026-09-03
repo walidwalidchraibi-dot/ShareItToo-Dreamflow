@@ -1,4 +1,39 @@
-# Current Work Package: N15 Staging transport and Pixel acceptance 2026090303
+# Current Work Package: N16 current-candidate Pixel acceptance 2026090304
+
+Status: **CANDIDATE TRANSPORT AND SESSION PASSED / OWNER AND LEGAL GATES
+PENDING / ONEPLUS UNTOUCHED** on 03.09.2026.
+
+The signed Internal/Staging candidate installed in place on the Pixel is
+`com.shareittoo.app` `1.0.0+2026090304`, artifact source
+`d555a2b3730b20d1c3f22c442fb3cacd0c1f0beb`. AAB SHA-256 is
+`a9552587afbece82fbf02351743ab3bd7970a79d0d32837d01d0212d23d828b3`;
+APK SHA-256 is
+`c8b9891bdda063a85718f8a1f26a760ded41c69511e00afbbaa48df91ca9139a`.
+Candidate signing, identity, Firebase and privacy validation pass, and the
+in-place Pixel update preserved app data.
+
+Exact Staging remains healthy on the matching runtime Backend source with
+PostgreSQL, SMTP relay and FCM. Candidate 0304 passes foreground/background/
+terminated FCM, deterministic offline/realtime recovery with network restore,
+and logout/cold-start privacy with post-logout push suppression. Diagnostic
+commit `72b9fdf106c3617d2867d2a750069032ec5a131c` passes the complete local
+regression, exact GitHub Regression `33706352927`, clean-checkout proof,
+CodeQL `33706352977` and zero open alerts.
+
+The remaining Pixel sequence is owner completion of both email-verification
+links, real account login and two-role isolation. An ordinary binding attempt
+correctly failed closed before fixture creation because V5.2 remains draft-
+blocked. Current-candidate icon review, external listing-AI runtime and Stripe
+sandbox remain open; the runtime still uses the zero-cost mock and memory
+payment. Google sign-in is configured but not owner-executed, and Facebook/
+Apple are disabled. OnePlus remains untouched until Pixel closure.
+
+Machine evidence:
+`docs/evidence/release-readiness/n16-current-candidate-pixel-acceptance-2026090304.json`.
+Human handover:
+`docs/operations/N16_CURRENT_CANDIDATE_PIXEL_ACCEPTANCE_2026-09-03.md`.
+
+# Previous Work Package: N15 Staging transport and Pixel acceptance 2026090303
 
 Status: **ACTIVE / TRANSPORT PASSED / EMAIL VERIFICATION PENDING / ONEPLUS
 UNTOUCHED** on 03.09.2026.

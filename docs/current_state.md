@@ -4,6 +4,47 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
+## Current N16 candidate-bound Pixel acceptance state
+
+The exact installed Internal/Staging candidate is `com.shareittoo.app`
+`1.0.0+2026090304`, artifact source
+`d555a2b3730b20d1c3f22c442fb3cacd0c1f0beb`, AAB SHA-256
+`a9552587afbece82fbf02351743ab3bd7970a79d0d32837d01d0212d23d828b3`
+and APK SHA-256
+`c8b9891bdda063a85718f8a1f26a760ded41c69511e00afbbaa48df91ca9139a`.
+Signing, package/version/SDK, Firebase and binary privacy checks pass. The
+Pixel in-place update preserved app data and first-install identity.
+
+Exact Staging is healthy on Backend source
+`5d88295fa7fe313b83936783a0582a505b2ba486`, whose runtime tree matches the
+candidate. PostgreSQL, Google Workspace SMTP relay, FCM and the support
+watchdog are healthy. The current candidate passes foreground, background and
+terminated-process FCM, repeatable same-process offline recovery with network
+restoration, plus logout/cold-start privacy and post-logout push suppression.
+Its diagnostic closes only the exact probe-owned V5.2 push surface.
+
+The ordinary binding role flow fails closed before fixture creation with
+`v52_contract_documents_unavailable`; no listing, reservation, contract or
+payment was created. Two real role registrations and SMTP messages were
+accepted, but neither owner verification link was followed. Real account
+login, current-candidate icon review and the two-role Pixel journey remain
+open. V5.2 remains draft-blocked.
+
+Google sign-in is configured but not owner-executed; Facebook and Apple remain
+disabled. Listing AI remains mock-backed at runtime with zero budget. The
+server OpenAI adapter is implemented but disabled, while `codex_local_dev`
+remains synthetic developer evidence only and cannot serve SIT users or
+publish. Payment remains memory-only with `livemode=false`.
+
+Diagnostic commit `72b9fdf106c3617d2867d2a750069032ec5a131c` passes the
+complete local regression, exact GitHub Regression `33706352927`, clean-
+checkout proof, CodeQL `33706352977` and zero open alerts. PR #7 remains Draft
+and unmerged. OnePlus, Play, Production, tester lists, public registration and
+real money are unchanged. Exact evidence is
+`docs/evidence/release-readiness/n16-current-candidate-pixel-acceptance-2026090304.json`;
+handover is
+`docs/operations/N16_CURRENT_CANDIDATE_PIXEL_ACCEPTANCE_2026-09-03.md`.
+
 ## Current N15 Staging transport and Pixel acceptance state
 
 The current signed Internal/Staging candidate is `com.shareittoo.app`
