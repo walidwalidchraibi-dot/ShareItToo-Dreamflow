@@ -21,6 +21,11 @@ import {
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-offline-realtime.xml';
 const offlineMessage = 'Kontrollierte SIT Staging-Pushprüfung (offline).';
+const offlineNetworkSampleIntervalMs = 500;
+const offlineNetworkStableWindowMs = 5_000;
+const offlineNetworkStableSamples = Math.ceil(
+  offlineNetworkStableWindowMs / offlineNetworkSampleIntervalMs,
+);
 const v52ForegroundPushTitle = 'Neue ShareItToo-Aktualisierung';
 const v52ForegroundPushBody = 'In der App ansehen.';
 
@@ -303,11 +308,17 @@ export async function diagnoseAndroidOfflineRealtime({
           && mobileDataDisconnected(commandRunner, adbPath, device)
           && defaultNetworkAbsent(commandRunner, adbPath, device);
         consecutiveOfflineSamples = confirmed ? consecutiveOfflineSamples + 1 : 0;
-        return consecutiveOfflineSamples >= 3;
+        return consecutiveOfflineSamples >= offlineNetworkStableSamples;
       },
-      { attempts: 20, intervalMs: 500, wait },
+      {
+        attempts: offlineNetworkStableSamples + 20,
+        intervalMs: offlineNetworkSampleIntervalMs,
+        wait,
+      },
     );
-    if (!offlineState) fail('The bounded device network-off state was not confirmed.');
+    if (!offlineState) {
+      fail('The bounded device network-off state did not remain continuously stable.');
+    }
 
     phase = 'send-controlled-offline-message';
     const sent = await sender({ vaultFile, senderRole, diagnosticKind: 'offline' });
@@ -407,6 +418,8 @@ export async function diagnoseAndroidOfflineRealtime({
       },
       diagnostic: {
         offlineWindowSeconds: 15,
+        offlineNetworkStableWindowSeconds: offlineNetworkStableWindowMs / 1_000,
+        offlineNetworkStableSamples,
         appProcessSurvived: true,
         processIdentityStable: true,
         appForegroundAfterRecovery: true,
