@@ -1,4 +1,48 @@
-# Current Work Package: N25 Stripe test-mode Accounts v2 foundation
+# Current Work Package: N26 Pixel phone backend-gate preflight
+
+Status: **BACKEND-GATE PREFLIGHT PASSED / CURRENT-CANDIDATE REAL SMS OWNER STEP
+PENDING / LIVE GATES CLOSED** on 03.09.2026.
+
+The physical Pixel retains the exact signed Staging candidate
+`com.shareittoo.app` `1.0.0+2026090306` from source
+`9d7e2601dc477cf3ae3d469b65448ce2065375e0`. Installed APK and signing hashes
+match its private frozen archive. The candidate is an ancestor of the current
+diagnostic source; all 71 later paths are non-mobile and explicitly allowed.
+
+An authenticated Staging read reports the phone backend gate enabled and
+advertises `firebase-phone`. The exact temporary diagnostic session was
+revoked. Historical 14.08.2026 evidence records a Germany-only Firebase Phone
+configuration and a real SMS pass on build `2026081403`, but N26 does not
+misstate that as direct Console or real-SMS proof for current build
+`2026090306`.
+
+Commits `c4b3ee29100474bc4da9bf057b9235d1b7dccbc5` and
+`1ad0b40ab3d4d703bca4099eec1e275fad5648a2` add the frozen-candidate guard,
+no-SMS preflight and exact evidence semantics. Complete local regression passes
+2,114 repository tool tests, 797 Backend tests with two expected no-database
+skips, PostgreSQL fresh/recovery, 652 Flutter tests, analyzer zero, Web/Wasm,
+loopback and Android. The synthetic-fixture secret-scan finding is removed from
+the current tree by `0dfcd7760ae87c554d7ff42c40ac86d6f02fb3ab`; its exact
+historical finding and all dependent inventories are ratcheted through
+`f23d9f90541ac63d50d52c25247831acee5e410b` without weakening the scanner.
+GitHub Regression `33751508842`, clean checkout and CodeQL `33751508867` pass
+with zero alerts; PR #7 remains Draft and unmerged.
+
+No SMS was requested and no number or code was read or stored. One interactive
+owner-assisted request/code/observe run remains required for current-candidate
+delivery, invalid-code rejection, valid-code acceptance and cold-start
+persistence. That narrow step is `OPEN`; independent work may continue.
+
+Production, Play, Firebase configuration, payment, KYC, real money,
+Cloud/VPS/DNS, OnePlus and PR merge were unchanged.
+
+Machine evidence:
+`docs/evidence/release-readiness/n26-pixel-phone-backend-gate-preflight-2026090306.json`.
+
+Human handover:
+`docs/operations/N26_PIXEL_PHONE_BACKEND_GATE_PREFLIGHT_2026-09-03.md`.
+
+# Previous Work Package: N25 Stripe test-mode Accounts v2 foundation
 
 Status: **TECHNICAL FOUNDATION CLOSED / PROVIDER SANDBOX E2E 0/8 HOLD / LIVE
 GATES CLOSED** on 03.09.2026.

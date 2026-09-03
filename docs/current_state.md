@@ -4,7 +4,46 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N25 Stripe test-mode Accounts v2 technical foundation
+## Current N26 Pixel phone backend-gate preflight
+
+The physical Pixel has the exact signed Staging candidate
+`com.shareittoo.app` `1.0.0+2026090306` from source
+`9d7e2601dc477cf3ae3d469b65448ce2065375e0`. Its installed APK SHA-256 and
+signing-certificate SHA-256 match the frozen private archive. No mobile source
+changed across the 71 repository paths added after that candidate.
+
+The authenticated Staging phone-status read returns the enabled backend gate
+advertising `firebase-phone`, and the exact diagnostic login session is revoked
+after the read. This proves Backend readiness only. Although dated evidence
+records the Germany-only Firebase Console configuration and a successful real
+SMS on historical build `2026081403`, N26 did not perform a current Console
+readback or send an SMS on build `2026090306`.
+
+Commits `c4b3ee29100474bc4da9bf057b9235d1b7dccbc5` and
+`1ad0b40ab3d4d703bca4099eec1e275fad5648a2` bind phone diagnostics to an
+explicit frozen artifact, reject later mobile-source drift, provide a no-SMS
+preflight and prevent the backend-advertised provider from becoming a Console
+or delivery claim. Complete local regression passes 2,114 repository tool
+tests, 797 Backend tests with two expected no-database skips, PostgreSQL
+fresh/recovery, 652 Flutter tests, analyzer zero, Web/Wasm, loopback and
+Android. The initial exact Regression exposed one synthetic test-fixture secret
+shape. Commit `0dfcd7760ae87c554d7ff42c40ac86d6f02fb3ab` removes it from
+the current tree without weakening the scanner; inventory commit
+`f23d9f90541ac63d50d52c25247831acee5e410b` rebinds the entire dependent
+evidence chain. Exact GitHub Regression `33751508842`, clean checkout and
+CodeQL `33751508867` pass; alerts remain zero and PR #7 stays Draft and
+unmerged.
+
+The current-candidate real SMS request, invalid-code rejection, owner-supplied
+valid code and cold-start persistence remain one bounded interactive owner
+step. No phone number or SMS code is printed, read from the device, or stored
+in Git. No SMS, Firebase mutation, Production, Play, payment, KYC, real money,
+Cloud/VPS/DNS, OnePlus or merge action occurred. Exact evidence is
+`docs/evidence/release-readiness/n26-pixel-phone-backend-gate-preflight-2026090306.json`;
+handover is
+`docs/operations/N26_PIXEL_PHONE_BACKEND_GATE_PREFLIGHT_2026-09-03.md`.
+
+## Previous N25 Stripe test-mode Accounts v2 technical foundation
 
 The backend now uses the exact locked official Stripe Node SDK `22.6.1` and
 API `2026-08-26.dahlia`. Accounts v2 recipient configuration, Express hosted
