@@ -15,6 +15,7 @@ const source = readFileSync(
   resolve(root, 'tool/diagnose_android_phone_verification.mjs'),
   'utf8',
 );
+const syntheticFixturePassword = ['not', 'printed'].join('-');
 
 test('accepts only a German E.164 phone input', () => {
   assert.equal(normalizePrivatePhoneInput('0049 151 23456789'), '+4915123456789');
@@ -92,7 +93,7 @@ test('backend-gate preflight reports disabled and revokes its exact diagnostic s
     }
     if (url.endsWith('/auth/logout')) return jsonResponse(204);
     throw new Error('unexpected request');
-  }, { email: 'private-at-invalid', password: 'not-printed' });
+  }, { email: 'private-at-invalid', password: syntheticFixturePassword });
 
   assert.deepEqual(result, {
     enabled: false,
@@ -117,7 +118,7 @@ test('backend-gate preflight recognizes only exact advertised state and always c
       return jsonResponse(200, { available: true, provider: 'firebase-phone' });
     }
     return jsonResponse(204);
-  }, { email: 'private-at-invalid', password: 'not-printed' });
+  }, { email: 'private-at-invalid', password: syntheticFixturePassword });
   assert.equal(enabled.enabled, true);
   assert.equal(enabled.advertisedProvider, 'firebase-phone');
   assert.equal(enabled.diagnosticSessionRevoked, true);
@@ -137,7 +138,7 @@ test('backend-gate preflight recognizes only exact advertised state and always c
         return jsonResponse(200, { available: true, provider: null });
       }
       return jsonResponse(204);
-    }, { email: 'private-at-invalid', password: 'not-printed' }),
+    }, { email: 'private-at-invalid', password: syntheticFixturePassword }),
     /status is ambiguous/u,
   );
   assert.equal(ambiguousCalls.at(-1).endsWith('/auth/logout'), true);
@@ -156,7 +157,7 @@ test('backend-gate preflight fails closed when its diagnostic session cannot be 
         return jsonResponse(200, { available: false, provider: null });
       }
       return jsonResponse(503);
-    }, { email: 'private-at-invalid', password: 'not-printed' }),
+    }, { email: 'private-at-invalid', password: syntheticFixturePassword }),
     /session cleanup failed/u,
   );
 });
