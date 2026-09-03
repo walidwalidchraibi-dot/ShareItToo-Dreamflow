@@ -14,6 +14,9 @@ import {
   validateCandidateArchive,
 } from './prepare_android_device_test.mjs';
 import { sendSyntheticBookingDiagnosticMessage } from './run_staging_synthetic_booking.mjs';
+import {
+  validatePrivateAndroidReleaseArchive,
+} from './validate_current_head_android_release_archive.mjs';
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-controlled-fcm.xml';
@@ -332,17 +335,27 @@ function parseArguments(values) {
 async function run() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const args = parseArguments(process.argv.slice(2));
-  const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
-  const candidate = manifest.candidate;
-  const candidateDirectory = resolve(args.candidateDirectory ?? resolve(
-    homedir(),
-    'Library',
-    'Application Support',
-    'ShareItToo',
-    'release',
-    'android',
-    `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
-  ));
+  let candidate;
+  let archive;
+  let candidateDirectory;
+  if (args.candidateDirectory !== null) {
+    candidateDirectory = resolve(args.candidateDirectory);
+    archive = await validatePrivateAndroidReleaseArchive({ root, candidateDirectory });
+    candidate = Object.freeze({ ...archive, paymentMode: 'memory', stripeLivemode: false });
+  } else {
+    const deviceManifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
+    candidate = deviceManifest.candidate;
+    candidateDirectory = resolve(
+      homedir(),
+      'Library',
+      'Application Support',
+      'ShareItToo',
+      'release',
+      'android',
+      `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
+    );
+    archive = await validateCandidateArchive({ root, candidateDirectory });
+  }
   const privateArtifactDirectory = resolve(args.privateArtifactDirectory ?? resolve(
     homedir(),
     'Library',
@@ -352,7 +365,6 @@ async function run() {
     'device-diagnostics',
     `android-${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}`,
   ));
-  const archive = await validateCandidateArchive({ root, candidateDirectory });
   const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });

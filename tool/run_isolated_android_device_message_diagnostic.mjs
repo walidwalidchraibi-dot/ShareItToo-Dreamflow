@@ -53,6 +53,11 @@ export function sanitizedChildFailure(error) {
   ];
   for (const detail of candidates) {
     if (detail === null || detail.length === 0 || detail.length > 240) continue;
+    const structuredStagingFailure = /^Staging (GET|POST|PUT|PATCH|DELETE) request failed with HTTP (\d{3})(?: \(([A-Za-z0-9_.:-]{1,120})\))?(?: \[request [^\]]+\])?\.$/u.exec(detail);
+    if (structuredStagingFailure !== null) {
+      const [, method, status, code] = structuredStagingFailure;
+      return `Staging ${method} request failed with HTTP ${status}${code ? ` (${code})` : ''}.`;
+    }
     if (unsafeFailureDetail.test(detail)) continue;
     if (!/^[A-Za-z0-9 .,()'/-]+$/u.test(detail)) continue;
     return detail;
@@ -78,6 +83,50 @@ function protectedVault(path) {
   return { raw, vault };
 }
 
+export function reusableNonBindingDiagnosticContext(vault) {
+  const simulation = vault?.nonBindingSimulation;
+  return vault?.status === 'non-binding-simulation-active'
+    && vault?.verificationMethod === 'isolated-staging-fixture'
+    && Array.isArray(vault.accounts)
+    && vault.accounts.length === 2
+    && vault.accounts.every((account) => (
+      account?.registrationStatus === 'accepted'
+      && account?.verificationStatus === 'fixture-verified'
+    ))
+    && simulation?.schemaVersion === 1
+    && simulation.status === 'accepted-chat-ready'
+    && typeof simulation.listingId === 'string'
+    && typeof simulation.bookingId === 'string'
+    && typeof simulation.threadId === 'string'
+    && simulation.availabilityUnaffected === true
+    && simulation.paymentReadRejected === true
+    && simulation.inAppNotificationsVerified === true
+    && simulation.paymentEndpointCalled === false
+    && simulation.stripeLivemode === false;
+}
+
+export function projectNonBindingDiagnosticVault(vault) {
+  if (!reusableNonBindingDiagnosticContext(vault)) {
+    fail('The protected non-binding simulation cannot be projected for diagnostics.');
+  }
+  const projected = structuredClone(vault);
+  const simulation = projected.nonBindingSimulation;
+  projected.syntheticBooking = {
+    schemaVersion: 1,
+    listingId: simulation.listingId,
+    bookingId: simulation.bookingId,
+    threadId: simulation.threadId,
+    title: `SIT Rollenprüfung ${projected.runId}`,
+    workflowStatus: 'accepted',
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+  };
+  delete projected.nonBindingSimulation;
+  projected.status = 'synthetic-booking-active';
+  return projected;
+}
+
 async function run() {
   const args = process.argv.slice(2);
   const kind = argumentValue(args, '--kind') ?? fail('--kind is required.');
@@ -88,13 +137,19 @@ async function run() {
   const privateArtifactDirectory = argumentValue(args, '--private-artifact-dir');
   const { raw, vault } = protectedVault(vaultFile);
   const originalSha256 = sha256(raw);
+  const reuseNonBinding = reusableNonBindingDiagnosticContext(vault);
   const temporaryDirectory = mkdtempSync(resolve(tmpdir(), `sit-isolated-${kind}-`));
   chmodSync(temporaryDirectory, 0o700);
   const isolatedVaultFile = resolve(temporaryDirectory, 'accounts.json');
-  const isolatedVault = structuredClone(vault);
-  delete isolatedVault.syntheticBooking;
-  isolatedVault.status = 'fixture-verified-ready-for-login';
-  isolatedVault.runId = `${kind}-${randomBytes(8).toString('hex')}`;
+  const isolatedVault = reuseNonBinding
+    ? projectNonBindingDiagnosticVault(vault)
+    : structuredClone(vault);
+  if (!reuseNonBinding) {
+    delete isolatedVault.syntheticBooking;
+    delete isolatedVault.nonBindingSimulation;
+    isolatedVault.status = 'fixture-verified-ready-for-login';
+    isolatedVault.runId = `${kind}-${randomBytes(8).toString('hex')}`;
+  }
   writeFileSync(isolatedVaultFile, `${JSON.stringify(isolatedVault, null, 2)}\n`, { mode: 0o600 });
   chmodSync(isolatedVaultFile, 0o600);
 
@@ -104,12 +159,14 @@ async function run() {
   let retirement = null;
   let failureStage = 'create-fixture';
   try {
-    await createSyntheticBookingFixture({ vaultFile: isolatedVaultFile });
-    fixtureCreated = true;
-    failureStage = 'accept-fixture';
-    await transitionSyntheticBookingFixture({ vaultFile: isolatedVaultFile, status: 'accepted' });
-    failureStage = 'prepare-thread';
-    await prepareSyntheticBookingThread({ vaultFile: isolatedVaultFile, actorRole: 'owner' });
+    if (!reuseNonBinding) {
+      await createSyntheticBookingFixture({ vaultFile: isolatedVaultFile });
+      fixtureCreated = true;
+      failureStage = 'accept-fixture';
+      await transitionSyntheticBookingFixture({ vaultFile: isolatedVaultFile, status: 'accepted' });
+      failureStage = 'prepare-thread';
+      await prepareSyntheticBookingThread({ vaultFile: isolatedVaultFile, actorRole: 'owner' });
+    }
     failureStage = 'bind-device-session';
     const sessionBindingPath = fileURLToPath(new URL(
       './restore_android_synthetic_session.mjs',
@@ -169,14 +226,25 @@ async function run() {
   const evidence = result?.evidence ?? result;
   console.log(JSON.stringify({
     ...evidence,
-    isolation: {
-      protectedReviewFixtureUnchanged: true,
-      temporaryVaultRemovedAfterProbe: true,
-      temporaryBookingCompleted: retirement?.bookingCompleted === true,
-      temporaryListingPaused: retirement?.listingPaused === true,
-      listingDeleted: false,
-      containsReviewCredentials: false,
-    },
+    isolation: reuseNonBinding
+      ? {
+          mode: 'existing-protected-non-binding-simulation',
+          protectedReviewFixturePreserved: true,
+          diagnosticMessagesOnly: true,
+          temporaryVaultRemovedAfterProbe: true,
+          listingCreatedDuringProbe: false,
+          reservationCreatedDuringProbe: false,
+          contractCreatedDuringProbe: false,
+          containsReviewCredentials: false,
+        }
+      : {
+          protectedReviewFixtureUnchanged: true,
+          temporaryVaultRemovedAfterProbe: true,
+          temporaryBookingCompleted: retirement?.bookingCompleted === true,
+          temporaryListingPaused: retirement?.listingPaused === true,
+          listingDeleted: false,
+          containsReviewCredentials: false,
+        },
   }, null, 2));
 }
 

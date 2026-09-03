@@ -211,6 +211,41 @@ export async function validateCurrentHeadAndroidReleaseArchive({
   });
 }
 
+export async function validatePrivateAndroidReleaseArchive({
+  root,
+  candidateDirectory,
+} = {}) {
+  if (typeof candidateDirectory !== 'string' || candidateDirectory.trim() === '') {
+    fail('An explicit private Android candidate archive is required.');
+  }
+  const directory = resolve(candidateDirectory);
+  assertOwnerOnlyDirectory(directory);
+  const manifestPath = resolve(directory, 'manifest.json');
+  assertOwnerOnlyRegularFile(manifestPath, 'candidate manifest');
+  const manifest = object(
+    JSON.parse(readFileSync(manifestPath, 'utf8')),
+    'candidate manifest',
+  );
+  const expectedIdentity = {
+    versionName: manifest.versionName,
+    buildNumber: manifest.versionCode,
+    commit: manifest.commit,
+  };
+  if (typeof expectedIdentity.versionName !== 'string'
+      || !/^\d+\.\d+\.\d+$/u.test(expectedIdentity.versionName)
+      || typeof expectedIdentity.buildNumber !== 'string'
+      || !/^\d{10}$/u.test(expectedIdentity.buildNumber)
+      || typeof expectedIdentity.commit !== 'string'
+      || !/^[a-f0-9]{40}$/u.test(expectedIdentity.commit)) {
+    fail('Private Android candidate archive identity is invalid.');
+  }
+  return validateCurrentHeadAndroidReleaseArchive({
+    root,
+    candidateDirectory: directory,
+    expectedIdentity,
+  });
+}
+
 function parseArguments(values) {
   let candidateDirectory;
   for (let index = 0; index < values.length; index += 1) {

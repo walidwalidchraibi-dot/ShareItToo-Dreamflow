@@ -14,6 +14,9 @@ import {
   validateCandidateArchive,
 } from './prepare_android_device_test.mjs';
 import { sendSyntheticBookingDiagnosticMessage } from './run_staging_synthetic_booking.mjs';
+import {
+  validatePrivateAndroidReleaseArchive,
+} from './validate_current_head_android_release_archive.mjs';
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-logout-lifecycle.xml';
@@ -535,21 +538,28 @@ async function run() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const args = parseArguments(process.argv.slice(2));
   const vaultFile = resolve(args.vaultFile ?? fail('--vault-file is required.'));
-  const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
-  const candidate = manifest.candidate;
-  const candidateDirectory = resolve(
-    args.candidateDirectory
-      ?? resolve(
-        homedir(),
-        'Library',
-        'Application Support',
-        'ShareItToo',
-        'release',
-        'android',
-        `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
-      ),
-  );
-  const archive = await validateCandidateArchive({ root, candidateDirectory });
+  let candidate;
+  let archive;
+  if (args.candidateDirectory !== null) {
+    archive = await validatePrivateAndroidReleaseArchive({
+      root,
+      candidateDirectory: resolve(args.candidateDirectory),
+    });
+    candidate = Object.freeze({ ...archive, paymentMode: 'memory', stripeLivemode: false });
+  } else {
+    const deviceManifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
+    candidate = deviceManifest.candidate;
+    const candidateDirectory = resolve(
+      homedir(),
+      'Library',
+      'Application Support',
+      'ShareItToo',
+      'release',
+      'android',
+      `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
+    );
+    archive = await validateCandidateArchive({ root, candidateDirectory });
+  }
   const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });

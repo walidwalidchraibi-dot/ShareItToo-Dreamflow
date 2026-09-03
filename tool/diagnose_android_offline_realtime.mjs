@@ -14,6 +14,9 @@ import {
   validateCandidateArchive,
 } from './prepare_android_device_test.mjs';
 import { sendSyntheticBookingDiagnosticMessage } from './run_staging_synthetic_booking.mjs';
+import {
+  validatePrivateAndroidReleaseArchive,
+} from './validate_current_head_android_release_archive.mjs';
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-offline-realtime.xml';
@@ -158,10 +161,15 @@ function mobileDataEnabled(commandRunner, adbPath, device) {
   return adb(commandRunner, adbPath, device, ['shell', 'settings', 'get', 'global', 'mobile_data']) === '1';
 }
 
+export function telephonyDataDisconnected(registry) {
+  const states = [...String(registry).matchAll(/mDataConnectionState=(-?\d+)/g)]
+    .map((match) => Number(match[1]));
+  return states.length > 0 && states.every((state) => state !== 2);
+}
+
 function mobileDataDisconnected(commandRunner, adbPath, device) {
   const registry = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'telephony.registry']);
-  const states = [...registry.matchAll(/mDataConnectionState=(\d+)/g)].map((match) => Number(match[1]));
-  return states.length > 0 && states.every((state) => state !== 2);
+  return telephonyDataDisconnected(registry);
 }
 
 function setNetwork(commandRunner, adbPath, device, { wifi, mobileData }) {
@@ -229,6 +237,7 @@ export async function diagnoseAndroidOfflineRealtime({
     mobileData: mobileDataEnabled(commandRunner, adbPath, device),
   };
   let networkRestored = false;
+  let phase = 'open-authenticated-chat';
   try {
     startChatLink(commandRunner, adbPath, device, threadId);
     const chatPreloaded = await waitFor(() => {
@@ -239,8 +248,11 @@ export async function diagnoseAndroidOfflineRealtime({
     }, { attempts: 16, intervalMs: 700, wait });
     if (!chatPreloaded) fail('The authenticated chat did not preload before the offline window.');
 
+    phase = 'capture-process-before-offline';
     const pidBefore = nonEmptyString(processId(commandRunner, adbPath, device), 'app process');
+    phase = 'disable-device-network';
     setNetwork(commandRunner, adbPath, device, { wifi: false, mobileData: false });
+    phase = 'confirm-device-network-off';
     const offlineState = await waitFor(
       () => !wifiEnabled(commandRunner, adbPath, device)
         && mobileDataDisconnected(commandRunner, adbPath, device),
@@ -248,17 +260,21 @@ export async function diagnoseAndroidOfflineRealtime({
     );
     if (!offlineState) fail('The bounded device network-off state was not confirmed.');
 
+    phase = 'send-controlled-offline-message';
     const sent = await sender({ vaultFile, senderRole, diagnosticKind: 'offline' });
     if (sent?.status !== 'synthetic-booking-diagnostic-message-sent'
         || sent?.paymentEndpointCalled !== false || sent?.stripeLivemode !== false) {
       fail('The controlled Staging offline message was not accepted safely.');
     }
+    phase = 'observe-offline-message-absence';
     await wait(15_000);
     if (dumpUi(commandRunner, adbPath, device).includes(offlineMessage)) {
       fail('The new message appeared before network restoration.');
     }
 
+    phase = 'restore-device-network';
     setNetwork(commandRunner, adbPath, device, originalNetwork);
+    phase = 'confirm-device-network-restored';
     const transportRestored = await waitFor(
       () => (!originalNetwork.wifi || wifiConnected(commandRunner, adbPath, device))
         && mobileDataEnabled(commandRunner, adbPath, device) === originalNetwork.mobileData,
@@ -267,6 +283,7 @@ export async function diagnoseAndroidOfflineRealtime({
     if (!transportRestored) fail('The original Android network state did not return.');
     networkRestored = true;
 
+    phase = 'observe-realtime-recovery';
     let foregroundPushPopupsDismissed = 0;
     const recoveredInChat = await waitFor(
       () => {
@@ -286,11 +303,13 @@ export async function diagnoseAndroidOfflineRealtime({
       { attempts: 45, intervalMs: 700, wait },
     );
     if (!recoveredInChat) fail('The controlled message did not appear after realtime recovery.');
+    phase = 'verify-process-survival';
     const pidAfter = nonEmptyString(processId(commandRunner, adbPath, device), 'recovered app process');
     const processIdentityStable = pidAfter === pidBefore;
     if (!processIdentityStable || !appForeground(commandRunner, adbPath, device)) {
       fail('The app process or foreground chat did not survive the offline/realtime recovery.');
     }
+    phase = 'verify-crash-buffer';
     const crashEntries = packageCrashEntries(commandRunner, adbPath, device, pidAfter);
     if (crashEntries !== 0) fail('A package fatal entry was observed during the offline/realtime recovery.');
 
@@ -360,6 +379,12 @@ export async function diagnoseAndroidOfflineRealtime({
         containsReviewCredentials: false
       }
     };
+  } catch (error) {
+    if (error instanceof Error
+        && error.message === 'ADB logout-lifecycle command failed without exposing the device identifier.') {
+      fail(`The offline/realtime device command failed safely during ${phase}.`);
+    }
+    throw error;
   } finally {
     if (!networkRestored) {
       try {
@@ -397,21 +422,28 @@ async function run() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const args = parseArguments(process.argv.slice(2));
   const vaultFile = resolve(args.vaultFile ?? fail('--vault-file is required.'));
-  const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
-  const candidate = manifest.candidate;
-  const candidateDirectory = resolve(
-    args.candidateDirectory
-      ?? resolve(
-        homedir(),
-        'Library',
-        'Application Support',
-        'ShareItToo',
-        'release',
-        'android',
-        `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
-      ),
-  );
-  const archive = await validateCandidateArchive({ root, candidateDirectory });
+  let candidate;
+  let archive;
+  if (args.candidateDirectory !== null) {
+    archive = await validatePrivateAndroidReleaseArchive({
+      root,
+      candidateDirectory: resolve(args.candidateDirectory),
+    });
+    candidate = Object.freeze({ ...archive, paymentMode: 'memory', stripeLivemode: false });
+  } else {
+    const deviceManifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
+    candidate = deviceManifest.candidate;
+    const candidateDirectory = resolve(
+      homedir(),
+      'Library',
+      'Application Support',
+      'ShareItToo',
+      'release',
+      'android',
+      `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
+    );
+    archive = await validateCandidateArchive({ root, candidateDirectory });
+  }
   const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });

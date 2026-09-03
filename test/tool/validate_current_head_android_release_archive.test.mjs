@@ -8,6 +8,7 @@ import test from 'node:test';
 import {
   canonicalAndroidSigningCertificateSha256,
   validateCurrentHeadAndroidReleaseArchive,
+  validatePrivateAndroidReleaseArchive,
 } from '../../tool/validate_current_head_android_release_archive.mjs';
 
 const identity = Object.freeze({
@@ -90,6 +91,33 @@ test('accepts the exact owner-only signed current-head archive', async (t) => {
   assert.equal(candidate.firebaseConfigured, true);
   assert.equal(candidate.privacyScan, 'passed');
   assert.equal(candidate.android.apkSha256, candidate.apkSha256);
+});
+
+test('accepts an explicit private archive by its internally cross-checked identity', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  const candidate = await validatePrivateAndroidReleaseArchive({
+    root: data.root,
+    candidateDirectory: data.directory,
+  });
+  assert.equal(candidate.versionName, identity.versionName);
+  assert.equal(candidate.buildNumber, identity.buildNumber);
+  assert.equal(candidate.commit, identity.commit);
+  assert.equal(candidate.apkSha256, digest(Buffer.from('signed-current-head-apk')));
+});
+
+test('rejects an explicit private archive with malformed self-declared identity', async (t) => {
+  const data = await fixture(({ manifest }) => {
+    if (manifest) manifest.versionCode = 'not-a-version-code';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  await assert.rejects(
+    validatePrivateAndroidReleaseArchive({
+      root: data.root,
+      candidateDirectory: data.directory,
+    }),
+    /identity is invalid/,
+  );
 });
 
 test('rejects a candidate from another commit', async (t) => {

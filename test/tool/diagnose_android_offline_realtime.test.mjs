@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   isExpectedForegroundPushPopup,
+  telephonyDataDisconnected,
 } from '../../tool/diagnose_android_offline_realtime.mjs';
 
 test('recognizes only an in-app foreground popup for the active fixture', () => {
@@ -25,4 +26,14 @@ test('recognizes only an in-app foreground popup for the active fixture', () => 
     ),
     false,
   );
+});
+
+test('treats Android 17 no-service state minus one as disconnected', () => {
+  assert.equal(telephonyDataDisconnected(
+    'mDataConnectionState=-1\nmDataConnectionState=-1',
+  ), true);
+  assert.equal(telephonyDataDisconnected(
+    'mDataConnectionState=-1\nmDataConnectionState=2',
+  ), false);
+  assert.equal(telephonyDataDisconnected('no telephony data state'), false);
 });
