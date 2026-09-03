@@ -4,8 +4,10 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
+  clearVerifiedPhoneFromStagingTestAccount,
   inspectStagingPhoneBackendGate,
   normalizePrivatePhoneInput,
+  normalizePrivateSmsCode,
   sanitizePhoneVerificationFailure,
   validateFrozenCandidateMobileCompatibility,
 } from '../../tool/diagnose_android_phone_verification.mjs';
@@ -23,6 +25,13 @@ test('accepts only a German E.164 phone input', () => {
     () => normalizePrivatePhoneInput('+33123456789'),
     /valid German E.164/u,
   );
+});
+
+test('accepts exactly one six-digit private SMS confirmation input', () => {
+  assert.equal(normalizePrivateSmsCode(' 123456\n'), '123456');
+  for (const invalid of ['12345', '1234567', '12 3456', 'abcdef', '']) {
+    assert.throws(() => normalizePrivateSmsCode(invalid), /six-digit code/u);
+  }
 });
 
 test('diagnostic failures suppress phone numbers and SMS secrets', () => {
@@ -162,11 +171,103 @@ test('backend-gate preflight fails closed when its diagnostic session cannot be 
   );
 });
 
-test('N24 is explicit-artifact bound and never reads or stores an SMS code', () => {
+test('verified-phone cleanup requires exact before, mutation, readback and session revocation', async () => {
+  const calls = [];
+  const expectedPhone = '+4915123456789';
+  const result = await clearVerifiedPhoneFromStagingTestAccount(async (url, options = {}) => {
+    calls.push({ url, options });
+    if (url.endsWith('/auth/login')) {
+      return jsonResponse(200, {
+        accessToken: 'a'.repeat(24),
+        refreshToken: 'r'.repeat(24),
+      });
+    }
+    if (url.endsWith('/auth/me')
+        && calls.filter((entry) => entry.url.endsWith('/auth/me')).length === 1) {
+      return jsonResponse(200, { user: { phone: expectedPhone, phoneVerified: true } });
+    }
+    if (url.endsWith('/profile')) {
+      return jsonResponse(200, { user: { phone: null, phoneVerified: false } });
+    }
+    if (url.endsWith('/auth/me')) {
+      return jsonResponse(200, { user: { phone: null, phoneVerified: false } });
+    }
+    if (url.endsWith('/auth/logout')) return jsonResponse(204);
+    throw new Error('unexpected request');
+  }, { email: 'private-at-invalid', password: syntheticFixturePassword }, expectedPhone);
+
+  assert.deepEqual(result, {
+    exactVerifiedStateObservedBeforeCleanup: true,
+    exactClearedStateConfirmedByMutation: true,
+    exactClearedStateConfirmedByReadback: true,
+    diagnosticSessionRevoked: true,
+  });
+  assert.equal(calls.length, 5);
+  assert.equal(calls[2].options.method, 'PATCH');
+  assert.deepEqual(JSON.parse(calls[2].options.body), { profile: { phone: null } });
+  assert.equal(calls.at(-1).url.endsWith('/auth/logout'), true);
+});
+
+test('verified-phone cleanup fails closed on mismatch and still revokes its exact session', async () => {
+  const calls = [];
+  await assert.rejects(
+    clearVerifiedPhoneFromStagingTestAccount(async (url) => {
+      calls.push(url);
+      if (url.endsWith('/auth/login')) {
+        return jsonResponse(200, {
+          accessToken: 'a'.repeat(24),
+          refreshToken: 'r'.repeat(24),
+        });
+      }
+      if (url.endsWith('/auth/me')) {
+        return jsonResponse(200, {
+          user: { phone: '+4915111111111', phoneVerified: true },
+        });
+      }
+      if (url.endsWith('/auth/logout')) return jsonResponse(204);
+      throw new Error('unexpected request');
+    }, { email: 'private-at-invalid', password: syntheticFixturePassword }, '+4915123456789'),
+    /no exact verified phone/u,
+  );
+  assert.equal(calls.at(-1).endsWith('/auth/logout'), true);
+});
+
+test('verified-phone cleanup fails closed if its exact session cannot be revoked', async () => {
+  let meCount = 0;
+  await assert.rejects(
+    clearVerifiedPhoneFromStagingTestAccount(async (url) => {
+      if (url.endsWith('/auth/login')) {
+        return jsonResponse(200, {
+          accessToken: 'a'.repeat(24),
+          refreshToken: 'r'.repeat(24),
+        });
+      }
+      if (url.endsWith('/auth/me')) {
+        meCount += 1;
+        return jsonResponse(200, {
+          user: meCount === 1
+            ? { phone: '+4915123456789', phoneVerified: true }
+            : { phone: null, phoneVerified: false },
+        });
+      }
+      if (url.endsWith('/profile')) {
+        return jsonResponse(200, { user: { phone: null, phoneVerified: false } });
+      }
+      return jsonResponse(503);
+    }, { email: 'private-at-invalid', password: syntheticFixturePassword }, '+4915123456789'),
+    /session could not be revoked/u,
+  );
+});
+
+test('phone diagnostic is artifact-bound and never emits or persists the SMS input', () => {
   for (const marker of [
     'validatePrivateAndroidReleaseArchive',
     'SIT_N24_CANDIDATE_DIRECTORY',
     "phase === 'preflight'",
+    "phase === 'confirm'",
+    "phase === 'cleanup'",
+    'SIT_N29_SMS_CODE_FILE',
+    'clearVerifiedPhoneFromStagingTestAccount',
     'diagnosticSessionRevoked',
     'verifyCurrentHeadAndroidInstalledCandidate',
     "advertisedProvider: 'firebase-phone'",
@@ -177,6 +278,9 @@ test('N24 is explicit-artifact bound and never reads or stores an SMS code', () 
     'protectedSyntheticOwnerRetained: true',
   ]) assert.match(source, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'u'));
   assert.doesNotMatch(source, /validateCurrentHeadAndroidReleaseArchive/gu);
+  assert.doesNotMatch(source, /phoneSha256/gu);
+  assert.doesNotMatch(source, /sms(?:Code|ConfirmationInput)Sha256/gu);
+  assert.doesNotMatch(source, /JSON\.stringify\([^\n]*(?:smsCode|smsConfirmationInput)/gu);
   assert.doesNotMatch(source, /content query --uri|sms inbox|READ_SMS|RECEIVE_SMS/giu);
   assert.doesNotMatch(source, /pm clear|uninstall|clear data/giu);
 });

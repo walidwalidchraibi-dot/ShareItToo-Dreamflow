@@ -90,9 +90,23 @@ export function normalizePrivatePhoneInput(value) {
   return normalized;
 }
 
+export function normalizePrivateSmsCode(value) {
+  const normalized = String(value).trim();
+  if (!/^[0-9]{6}$/u.test(normalized)) {
+    fail('The private SMS confirmation input is not one six-digit code.');
+  }
+  return normalized;
+}
+
 function readPrivatePhone(path) {
   return normalizePrivatePhoneInput(
     readFileSync(ownerOnlyFile(path, 'Private phone input'), 'utf8'),
+  );
+}
+
+function readPrivateSmsCode(path) {
+  return normalizePrivateSmsCode(
+    readFileSync(ownerOnlyFile(path, 'Private SMS confirmation input'), 'utf8'),
   );
 }
 
@@ -258,6 +272,103 @@ export async function inspectStagingPhoneBackendGate(fetchImpl, account) {
   return result;
 }
 
+function exactVerifiedPhone(user, expectedPhone) {
+  return user?.phone === expectedPhone && user?.phoneVerified === true;
+}
+
+function exactClearedPhone(user) {
+  return user?.phone === null && user?.phoneVerified === false;
+}
+
+async function readJsonResponse(response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function clearVerifiedPhoneFromStagingTestAccount(
+  fetchImpl,
+  account,
+  expectedPhone,
+) {
+  const login = await fetchImpl(`${apiBaseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: account.email, password: account.password }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const loginValue = await readJsonResponse(login);
+  if (login.status !== 200
+      || typeof loginValue?.accessToken !== 'string'
+      || loginValue.accessToken.length < 20
+      || typeof loginValue?.refreshToken !== 'string'
+      || loginValue.refreshToken.length < 20) {
+    fail('The protected Staging owner login is unavailable for phone cleanup.');
+  }
+
+  const authorized = { authorization: `Bearer ${loginValue.accessToken}` };
+  let cleanupError = null;
+  let result = null;
+  try {
+    const beforeResponse = await fetchImpl(`${apiBaseUrl}/auth/me`, {
+      headers: authorized,
+      signal: AbortSignal.timeout(20_000),
+    });
+    const before = await readJsonResponse(beforeResponse);
+    if (beforeResponse.status !== 200 || !exactVerifiedPhone(before?.user, expectedPhone)) {
+      fail('The protected Staging owner has no exact verified phone to clear.');
+    }
+
+    const clearResponse = await fetchImpl(`${apiBaseUrl}/profile`, {
+      method: 'PATCH',
+      headers: { ...authorized, 'content-type': 'application/json' },
+      body: JSON.stringify({ profile: { phone: null } }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    const cleared = await readJsonResponse(clearResponse);
+    if (clearResponse.status !== 200 || !exactClearedPhone(cleared?.user)) {
+      fail('The verified Staging phone cleanup was not confirmed by its response.');
+    }
+
+    const afterResponse = await fetchImpl(`${apiBaseUrl}/auth/me`, {
+      headers: authorized,
+      signal: AbortSignal.timeout(20_000),
+    });
+    const after = await readJsonResponse(afterResponse);
+    if (afterResponse.status !== 200 || !exactClearedPhone(after?.user)) {
+      fail('The verified Staging phone cleanup did not persist on readback.');
+    }
+    result = Object.freeze({
+      exactVerifiedStateObservedBeforeCleanup: true,
+      exactClearedStateConfirmedByMutation: true,
+      exactClearedStateConfirmedByReadback: true,
+      diagnosticSessionRevoked: true,
+    });
+  } catch (error) {
+    cleanupError = error;
+  }
+
+  let sessionRevoked = false;
+  try {
+    const logout = await fetchImpl(`${apiBaseUrl}/auth/logout`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ refreshToken: loginValue.refreshToken }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    sessionRevoked = logout.status === 204;
+  } catch {
+    sessionRevoked = false;
+  }
+  if (!sessionRevoked) {
+    fail('The protected Staging phone-cleanup session could not be revoked.');
+  }
+  if (cleanupError !== null) throw cleanupError;
+  return result;
+}
+
 async function openContactInformation({ commandRunner, adbPath, device, wait }) {
   launchCurrentHeadAndroidCandidate(commandRunner, adbPath, device);
   const main = await waitForCurrentHeadAndroidMainNavigation({
@@ -317,6 +428,7 @@ export async function diagnoseAndroidPhoneVerification({
   phase,
   protectedOwnerVaultFile,
   phoneFile,
+  smsCodeFile,
   privateEvidenceDirectory,
   commandRunner = defaultCurrentHeadAndroidCommandRunner,
   adbPath = 'adb',
@@ -327,8 +439,8 @@ export async function diagnoseAndroidPhoneVerification({
   capturedAt = new Date().toISOString(),
   wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
 }) {
-  if (!['preflight', 'request', 'observe'].includes(phase)) {
-    fail('N24 phase must be preflight, request or observe.');
+  if (!['preflight', 'request', 'confirm', 'observe', 'cleanup'].includes(phase)) {
+    fail('Phone diagnostic phase must be preflight, request, confirm, observe or cleanup.');
   }
   assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device);
   const installed = verifyCurrentHeadAndroidInstalledCandidate(
@@ -417,6 +529,188 @@ export async function diagnoseAndroidPhoneVerification({
     fail('The Staging phone-verification provider is unavailable.');
   }
   const phoneNumber = readPrivatePhone(phoneFile);
+
+  if (phase === 'confirm') {
+    const smsConfirmationInput = readPrivateSmsCode(smsCodeFile);
+    let hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    if (currentHeadAndroidNamedNodes(hierarchy, 'SMS-Code').length === 0) {
+      fail('The current candidate is not awaiting one SMS confirmation input.');
+    }
+    replaceInput(
+      commandRunner,
+      adbPath,
+      device,
+      hierarchy,
+      'SMS-Code',
+      smsConfirmationInput,
+      8,
+    );
+    hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Bestätigen');
+    hierarchy = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      attempts: 90,
+      label: 'SMS confirmation result',
+      predicate: (value) => value.includes('Telefonnummer verifiziert')
+        || value.includes('Telefonnummer bestätigt')
+        || value.includes('SMS-Code prüfen')
+        || value.includes('Telefonprüfung nicht abgeschlossen')
+        || value.includes('Ergebnisstatus unklar'),
+    });
+    if (!hierarchy.includes('Telefonnummer verifiziert')) {
+      fail('The private SMS confirmation input was not safely accepted.');
+    }
+    const status = 'valid-code-accepted-awaiting-cold-restart';
+    const stateSha256 = writePrivateState(privateEvidenceDirectory, {
+      schemaVersion: 1,
+      kind: 'n29-private-phone-verification-state',
+      status,
+      capturedAt,
+      candidateCommit: candidate.commit,
+      candidateBuildNumber: candidate.buildNumber,
+      containsPhoneNumber: false,
+      containsSmsCode: false,
+    });
+    return {
+      schemaVersion: 1,
+      kind: 'android-current-candidate-phone-verification-diagnostic',
+      status,
+      capturedAt,
+      candidate: {
+        applicationId: candidate.applicationId,
+        versionName: candidate.versionName,
+        buildNumber: candidate.buildNumber,
+        commit: candidate.commit,
+        apkSha256: candidate.apkSha256,
+        signingCertificateSha256: candidate.signingCertificateSha256,
+        apiBaseUrl: candidate.apiBaseUrl,
+      },
+      installed: {
+        physicalDevice: true,
+        exactCandidateHashMatched: true,
+        versionName: installed.versionName,
+        buildNumber: installed.buildNumber,
+        delivery: installed.delivery,
+      },
+      device: deviceSummary,
+      results: {
+        stagingBackendGateEnabled: true,
+        advertisedProvider: 'firebase-phone',
+        privateSmsInputAccepted: true,
+        validCodeAccepted: true,
+        verifiedStatePersistedAfterColdRestart: false,
+        ownerActionRequired: false,
+        diagnosticSessionRevoked: backendGate.diagnosticSessionRevoked,
+        privateStateSha256: stateSha256,
+        protectedSyntheticOwnerRetained: true,
+      },
+      boundaries: {
+        stagingOnly: true,
+        productionChanged: false,
+        googlePlayChanged: false,
+        firebaseConfigurationChanged: false,
+        paymentCalled: false,
+        realMoneyUsed: false,
+        kycCalled: false,
+        containsPhoneNumber: false,
+        containsSmsCode: false,
+        containsCredential: false,
+        containsToken: false,
+        containsRawDeviceIdentifiers: false,
+        containsPrivateFilesystemPaths: false,
+      },
+    };
+  }
+
+  if (phase === 'cleanup') {
+    const backendCleanup = await clearVerifiedPhoneFromStagingTestAccount(
+      fetchImpl,
+      owner,
+      phoneNumber,
+    );
+    await ensureAndroidGuestSession({ commandRunner, adbPath, device, wait });
+    const restoredAfterCleanup = await restoreSyntheticSession({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      account: owner,
+    });
+    if (!restoredAfterCleanup) {
+      fail('The protected synthetic owner session could not be restored after cleanup.');
+    }
+    const cleanupHierarchy = await openContactInformation({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+    });
+    if (currentHeadAndroidNamedNodes(
+      cleanupHierarchy,
+      'Telefonnummer verifizieren',
+    ).length === 0 || cleanupHierarchy.includes('Verifiziert')) {
+      fail('The current candidate did not read back the cleared phone state.');
+    }
+    const status = 'passed-verified-phone-cleanup-current-candidate';
+    const stateSha256 = writePrivateState(privateEvidenceDirectory, {
+      schemaVersion: 1,
+      kind: 'n29-private-phone-verification-state',
+      status,
+      capturedAt,
+      candidateCommit: candidate.commit,
+      candidateBuildNumber: candidate.buildNumber,
+      containsPhoneNumber: false,
+      containsSmsCode: false,
+    });
+    return {
+      schemaVersion: 1,
+      kind: 'android-current-candidate-phone-verification-diagnostic',
+      status,
+      capturedAt,
+      candidate: {
+        applicationId: candidate.applicationId,
+        versionName: candidate.versionName,
+        buildNumber: candidate.buildNumber,
+        commit: candidate.commit,
+        apkSha256: candidate.apkSha256,
+        signingCertificateSha256: candidate.signingCertificateSha256,
+        apiBaseUrl: candidate.apiBaseUrl,
+      },
+      installed: {
+        physicalDevice: true,
+        exactCandidateHashMatched: true,
+        versionName: installed.versionName,
+        buildNumber: installed.buildNumber,
+        delivery: installed.delivery,
+      },
+      device: deviceSummary,
+      results: {
+        ...backendCleanup,
+        currentCandidateClearedStateReadBack: true,
+        ownerActionRequired: false,
+        privateStateSha256: stateSha256,
+        protectedSyntheticOwnerRetained: true,
+      },
+      boundaries: {
+        stagingOnly: true,
+        productionChanged: false,
+        googlePlayChanged: false,
+        firebaseConfigurationChanged: false,
+        paymentCalled: false,
+        realMoneyUsed: false,
+        kycCalled: false,
+        containsPhoneNumber: false,
+        containsSmsCode: false,
+        containsCredential: false,
+        containsToken: false,
+        containsRawDeviceIdentifiers: false,
+        containsPrivateFilesystemPaths: false,
+      },
+    };
+  }
 
   await ensureAndroidGuestSession({ commandRunner, adbPath, device, wait });
   const restored = await restoreSyntheticSession({
@@ -528,7 +822,6 @@ export async function diagnoseAndroidPhoneVerification({
     capturedAt,
     candidateCommit: candidate.commit,
     candidateBuildNumber: candidate.buildNumber,
-    phoneSha256: sha256(phoneNumber),
     invalidCodeRejected,
     containsPhoneNumber: false,
     containsSmsCode: false,
@@ -602,6 +895,9 @@ async function run() {
   const phoneFile = phase === 'preflight'
     ? undefined
     : requiredEnvironment('SIT_N24_PHONE_FILE');
+  const smsCodeFile = phase === 'confirm'
+    ? requiredEnvironment('SIT_N29_SMS_CODE_FILE')
+    : undefined;
   const privateEvidenceDirectory = process.env.SIT_N24_PRIVATE_EVIDENCE_DIR?.trim()
     || resolve(homedir(), 'Library', 'Application Support', 'ShareItToo', 'qa', 'n24-phone-verification');
   const archive = await validatePrivateAndroidReleaseArchive({ candidateDirectory });
@@ -647,6 +943,7 @@ async function run() {
       phase,
       protectedOwnerVaultFile,
       phoneFile,
+      smsCodeFile,
       privateEvidenceDirectory,
       candidate,
       device,
