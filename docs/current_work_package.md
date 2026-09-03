@@ -1,4 +1,22 @@
-# Current Work Package: WP02 shared provider SDK ownership correction
+# Current Work Package: WP02 / WP01 Pixel candidate 2026090401
+
+On 2026-09-04, preparing `1.0.0+2026090401` from source base
+`c259027dde5f99d5838ea48bc17e2067f85a3f36`. Only version/client-build metadata
+and exact dependent SHA bindings change; 26-file semantic audit and 36 focused
+tests pass. Both private archive and all-local-ref version maxima are 2026090307.
+Configured release preflight, secret scan and full metadata regression pass
+(2,156 tools; 665 default Flutter/33 profile skips; all explicit profiles;
+analyzer, Web/Wasm dry run, loopback, Android). No manual cache purge needed.
+Host source c259027d's exact CodeQL passes, but Regression 33813284416 failed
+in Backend and clean-checkout dependency audits because npm's advisory service
+timed out; Flutter and PostgreSQL jobs passed. No audit waiver or retry loop.
+No new candidate is built or installed yet. The clean final preparation HEAD
+must pass exact CI and the guarded full-local-gate to signed-archive lifecycle,
+then binary verification and a data-preserving Pixel update. No Store,
+OnePlus, provider activation or unattended SMS. Preparation contract:
+`docs/operations/WP02_PIXEL_CANDIDATE_2026090401_PREPARATION.md`.
+
+## Preceding shared-provider and build-host checkpoints
 
 Current prerequisite on 2026-09-04: test-isolation source `d7575368` is pushed,
 exact CodeQL and Regression `33810785195`, including clean checkout, pass.

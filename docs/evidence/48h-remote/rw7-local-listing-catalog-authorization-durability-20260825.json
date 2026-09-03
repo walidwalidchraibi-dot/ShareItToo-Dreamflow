@@ -114,7 +114,7 @@
   },
   "ratchets": {
     "reason": "validated-local-listing-lifecycle-privacy-and-retention-source-change",
-    "privacyManifestSha256": "a7a6e1ed157e464b5463455a6004e89671d7ddfb32e4637fc60c66946758fe7f",
+    "privacyManifestSha256": "f09772a408e828e0e580a19b8c6be923d7e6155be2d405f27b875f3119ba4e8e",
     "retentionManifestSha256": "c01146f3b1a3389e2088769adda0b68b10608383945eb80900e78b12d76a8369",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
@@ -181,7 +181,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "a7a6e1ed157e464b5463455a6004e89671d7ddfb32e4637fc60c66946758fe7f"
+      "sha256": "f09772a408e828e0e580a19b8c6be923d7e6155be2d405f27b875f3119ba4e8e"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -201,11 +201,11 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "9f6caef4e634e52d7a538cb29b735a3f033433dba7cce17458a2807ddb7c7cc2"
+      "sha256": "a4d7410b1a83341d230f20ae0dea766b0c600311c042c5a9b50b5f1b1ffaf7c4"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "83a4a32d44705770c9d8d84a5b0ab2c82c0af014a03b02f30b38f728fd84cd9c"
+      "sha256": "96ee09f048c56801d4ab13ae03602751116b9d29c3455838031d1ebd17ca12f0"
     },
     {
       "path": "scripts/technical_regression_check.sh",

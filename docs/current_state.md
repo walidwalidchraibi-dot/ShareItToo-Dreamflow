@@ -14,6 +14,18 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
+Current bounded step on 2026-09-04: preparing Pixel candidate
+`1.0.0+2026090401` from base `c259027d`, including the tested SMS retry-display
+and shared-provider ownership corrections. Only version metadata and dependent
+hashes change; semantic audit, 36 focused tests, release preflight, secret scan
+and full local metadata regression pass (2,156 tools, 665 default Flutter,
+all explicit profiles, analyzer, Web/Wasm dry run, loopback, Android). c259027d's
+CodeQL passes; its Regression failed at npm advisory timeouts, not a passing
+security audit. New build, exact candidate CI, signed archive and physical
+acceptance remain pending. Pixel's
+frozen `2026090307` evidence stays separate. The preparation contract is
+`docs/operations/WP02_PIXEL_CANDIDATE_2026090401_PREPARATION.md`.
+
 On 2026-09-04, `d7575368` is pushed with exact CodeQL and Regression
 `33810785195` green, including clean checkout. A separate clean APFS build clone
 passed the unchanged local full gate with a cold, dedicated SSD Gradle cache.
