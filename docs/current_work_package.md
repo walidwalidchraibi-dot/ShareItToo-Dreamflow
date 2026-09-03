@@ -1,4 +1,34 @@
-# Current Work Package: N22 Pixel email-verified two-role product journey
+# Current Work Package: N23 Pixel Google social-auth and principal/epoch
+
+Status: **CLOSED LOCALLY / GOOGLE LOGIN, COLD START, REPEAT LOGIN, PRINCIPAL
+CONTAINMENT AND OWNER RESTORE PASSED / GITHUB REGRESSION PASSED / LIVE GATES
+CLOSED** on 03.09.2026.
+
+Candidate `com.shareittoo.app` `1.0.0+2026090306` from source
+`9d7e2601dc477cf3ae3d469b65448ce2065375e0` is installed in place on the
+physical Pixel. Google-only login resolves to the same Staging profile on first
+login, cold restart and repeat login. No duplicate was observed, no creation
+versus linkage claim is made, and the protected synthetic owner was restored.
+
+Commit `65bbbae1f1377ca39d9b6c4fd5d146ee3d312d6d` closes the email/social
+sign-in principal/epoch race with typed stale-result handling and exact-owned
+cleanup. Commit `cac20555ba580f56813bfc74e15350113241eeda` repairs the
+candidate-version evidence hash chain without changing privacy, provider or
+gate truth. Complete local regression passes 2,093 tool tests, 652 Flutter
+tests, analyzer zero, Web/Wasm, loopback and Android. GitHub Regression
+`33737790776` and clean-checkout reproducibility pass; CodeQL `33737790875` passes with zero alerts.
+
+Play, Production, public registration, Firebase-console, payment, external AI,
+tester lists, OnePlus and PR merge were unchanged. Phone/KYC, Stripe sandbox,
+external listing AI and V5.2 owner approval remain open.
+
+Machine evidence:
+`docs/evidence/release-readiness/n23-pixel-google-social-auth-principal-epoch-2026090306.json`.
+
+Human handover:
+`docs/operations/N23_PIXEL_GOOGLE_SOCIAL_AUTH_PRINCIPAL_EPOCH_2026-09-03.md`.
+
+# Previous Work Package: N22 Pixel email-verified two-role product journey
 
 Status: **CLOSED / LISTING, DISCOVERY, NON-BINDING REQUEST, ACCEPTANCE, CHAT,
 PRINCIPAL ISOLATION AND CLEANUP PASSED / LIVE GATES CLOSED** on 03.09.2026.

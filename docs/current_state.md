@@ -4,7 +4,38 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N22 Pixel email-verified two-role product-journey closure
+## Current N23 Pixel Google social-auth and principal/epoch closure
+
+The exact signed Internal/Staging candidate `com.shareittoo.app`
+`1.0.0+2026090306`, built from
+`9d7e2601dc477cf3ae3d469b65448ce2065375e0`, is installed in place on the
+Pixel. Google-only sign-in passes first login, force-stop/cold-start and repeat
+login against the same Staging profile fingerprint. No duplicate was observed,
+and account creation versus existing linkage is deliberately not asserted.
+The protected synthetic owner session was restored.
+
+Authentication entry now captures principal and action epoch before the first
+await and rechecks them around provider acquisition, remote exchange, exact
+session persistence, UI feedback and navigation. Stale remote and local
+sessions can be cleaned up only by exact owner, and the typed
+`principalChanged` result cannot become generic success or failure UI.
+
+Implementation commit `65bbbae1f1377ca39d9b6c4fd5d146ee3d312d6d`,
+diagnostic tool commit `008943bf018e0420432360ce3169f34954343774` and
+hash-chain repair commit `cac20555ba580f56813bfc74e15350113241eeda`
+are pushed. The repair HEAD passes complete local regression with 2,093 tool
+tests, 652 Flutter tests, analyzer zero, Web/Wasm, loopback smoke and Android.
+GitHub Regression `33737790776` and clean-checkout reproducibility pass; CodeQL `33737790875` passes and
+alerts remain zero. PR #7 remains Draft and unmerged.
+
+Phone/KYC, Stripe sandbox, external listing AI and V5.2 owner approval remain
+open. Play, Production, public registration, real money, Firebase-console,
+tester lists, OnePlus and PR merge were unchanged. Exact evidence is
+`docs/evidence/release-readiness/n23-pixel-google-social-auth-principal-epoch-2026090306.json`;
+handover is
+`docs/operations/N23_PIXEL_GOOGLE_SOCIAL_AUTH_PRINCIPAL_EPOCH_2026-09-03.md`.
+
+## Previous N22 Pixel email-verified two-role product-journey closure
 
 Two distinct persistent Staging identities with previously confirmed email
 links now pass the real physical-Pixel product journey: owner draft and UI
