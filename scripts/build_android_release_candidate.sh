@@ -360,6 +360,11 @@ printf '%s\n' \
   "  \"g4TechnicalUiEnabled\": $planner_technical_ui," \
   "  \"g5SupplyEnrichmentTechnicalUiEnabled\": $supply_enrichment_technical_ui," \
   "  \"g5ListingSetsTechnicalUiEnabled\": $listing_sets_technical_ui," \
+  "  \"socialAuth\": {" \
+  "    \"googleEnabled\": $social_google_enabled," \
+  "    \"appleEnabled\": $social_apple_enabled," \
+  "    \"facebookEnabled\": $social_facebook_enabled" \
+  "  }," \
   "  \"firebaseConfigured\": $firebase_configured," \
   "  \"signingCertificateSha256\": \"$signing_certificate_sha256\"," \
   "  \"createdAt\": \"$created_at\"," \

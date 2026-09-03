@@ -56,6 +56,11 @@ async function fixture(mutate = () => {}) {
     commit: identity.commit,
     channel: 'internal',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+    socialAuth: {
+      googleEnabled: true,
+      appleEnabled: false,
+      facebookEnabled: false,
+    },
     firebaseConfigured: true,
     signingCertificateSha256: canonicalAndroidSigningCertificateSha256,
     androidBinaryPrivacyScan: 'passed',
@@ -91,6 +96,11 @@ test('accepts the exact owner-only signed current-head archive', async (t) => {
   assert.equal(candidate.firebaseConfigured, true);
   assert.equal(candidate.privacyScan, 'passed');
   assert.equal(candidate.android.apkSha256, candidate.apkSha256);
+  assert.deepEqual(candidate.socialAuth, {
+    googleEnabled: true,
+    appleEnabled: false,
+    facebookEnabled: false,
+  });
 });
 
 test('accepts an explicit private archive by its internally cross-checked identity', async (t) => {
@@ -106,6 +116,18 @@ test('accepts an explicit private archive by its internally cross-checked identi
   assert.equal(candidate.apkSha256, digest(Buffer.from('signed-current-head-apk')));
 });
 
+test('keeps historical archives without a recorded social profile readable', async (t) => {
+  const data = await fixture(({ manifest }) => {
+    if (manifest) delete manifest.socialAuth;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  const candidate = await validatePrivateAndroidReleaseArchive({
+    root: data.root,
+    candidateDirectory: data.directory,
+  });
+  assert.equal(candidate.socialAuth, null);
+});
+
 test('rejects an explicit private archive with malformed self-declared identity', async (t) => {
   const data = await fixture(({ manifest }) => {
     if (manifest) manifest.versionCode = 'not-a-version-code';
@@ -117,6 +139,20 @@ test('rejects an explicit private archive with malformed self-declared identity'
       candidateDirectory: data.directory,
     }),
     /identity is invalid/,
+  );
+});
+
+test('rejects a malformed social-auth artifact profile', async (t) => {
+  const data = await fixture(({ manifest }) => {
+    if (manifest) manifest.socialAuth.googleEnabled = 'yes';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  await assert.rejects(
+    validatePrivateAndroidReleaseArchive({
+      root: data.root,
+      candidateDirectory: data.directory,
+    }),
+    /social-auth profile is invalid/,
   );
 });
 

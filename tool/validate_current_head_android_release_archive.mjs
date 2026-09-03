@@ -170,6 +170,24 @@ export async function validateCurrentHeadAndroidReleaseArchive({
     fail('Candidate Android binary privacy scan did not pass without findings.');
   }
 
+  let socialAuth = null;
+  if (manifest.socialAuth !== undefined) {
+    const profile = object(manifest.socialAuth, 'candidate socialAuth');
+    const keys = Object.keys(profile).sort();
+    if (JSON.stringify(keys) !== JSON.stringify([
+      'appleEnabled',
+      'facebookEnabled',
+      'googleEnabled',
+    ]) || keys.some((key) => typeof profile[key] !== 'boolean')) {
+      fail('Candidate social-auth profile is invalid.');
+    }
+    socialAuth = Object.freeze({
+      googleEnabled: profile.googleEnabled,
+      appleEnabled: profile.appleEnabled,
+      facebookEnabled: profile.facebookEnabled,
+    });
+  }
+
   const [apkSha256, aabSha256, privacyReportSha256] = await Promise.all([
     hashFile(apkPath),
     hashFile(aabPath),
@@ -201,6 +219,7 @@ export async function validateCurrentHeadAndroidReleaseArchive({
     signingCertificateSha256: canonicalAndroidSigningCertificateSha256,
     privacyReportSha256,
     privacyScan: 'passed',
+    socialAuth,
     apkPath,
     aabPath,
     android: Object.freeze({

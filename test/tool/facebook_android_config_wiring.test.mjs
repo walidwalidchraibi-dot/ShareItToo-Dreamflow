@@ -35,4 +35,10 @@ test('release builds bind explicit fail-closed social-provider flags', () => {
   );
   assert.doesNotMatch(buildScript, /SIT_SOCIAL_FACEBOOK_ENABLED:-1/);
   assert.doesNotMatch(buildScript, /SIT_SOCIAL_FACEBOOK_ENABLED:-true/);
+  for (const line of [
+    '"  \\"socialAuth\\": {" \\',
+    '"    \\"googleEnabled\\": $social_google_enabled," \\',
+    '"    \\"appleEnabled\\": $social_apple_enabled," \\',
+    '"    \\"facebookEnabled\\": $social_facebook_enabled" \\',
+  ]) assert.ok(buildScript.includes(line), line);
 });
