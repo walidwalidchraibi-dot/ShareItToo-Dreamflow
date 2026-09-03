@@ -942,15 +942,24 @@ flutter test --reporter expanded \
   test/social_auth_google_only_profile_test.dart
 
 # Offline SDK mocks exercise enabled providers without a release artifact,
-# real credentials, SMS, provider login or network access. Both profiles are
-# mandatory; the default Flutter suite cannot substitute for these opt-ins.
-flutter test --reporter expanded \
+# real credentials, SMS, provider login or network access. Cold Google init
+# owns a fresh process because the production SDK initialization is cached.
+# All three profiles are mandatory; default skips do not substitute for them.
+flutter test --reporter expanded --test-randomize-ordering-seed=7 \
   --dart-define=SIT_TEST_PROVIDER_SDK_OWNERSHIP=true \
   --dart-define=SIT_BACKEND_ENABLED=true \
   --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
   --dart-define=SIT_SOCIAL_APPLE_ENABLED=true \
   test/provider_sdk_session_ownership_test.dart
-flutter test --reporter expanded \
+flutter test --reporter expanded --test-randomize-ordering-seed=7 \
+  --dart-define=SIT_TEST_PROVIDER_INITIALIZATION_OWNERSHIP=true \
+  --dart-define=SIT_BACKEND_ENABLED=true \
+  --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
+  --dart-define=SIT_SOCIAL_APPLE_ENABLED=true \
+  --dart-define=SIT_SOCIAL_GOOGLE_ENABLED=true \
+  --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=true \
+  test/provider_sdk_session_ownership_test.dart
+flutter test --reporter expanded --test-randomize-ordering-seed=7 \
   --dart-define=SIT_TEST_PROVIDER_NATIVE_OWNERSHIP=true \
   --dart-define=SIT_BACKEND_ENABLED=true \
   --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \

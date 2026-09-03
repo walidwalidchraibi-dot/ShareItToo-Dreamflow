@@ -1,6 +1,6 @@
 # WP02 — shared provider SDK ownership correction
 
-Status: **LOCAL FULL REGRESSION PASS / EXACT SOURCE CI PENDING / DEVICE OPEN**.
+Status: **IMPLEMENTATION LOCAL FULL PASS / TEST-ISOLATION FOLLOW-UP / DEVICE OPEN**.
 Base HEAD: `239c5aa1f74e55cb2991f97832a1d855a7ae7e94`.
 Branch: `codex/master-workflow-20260808`.
 Worktree: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
@@ -51,8 +51,8 @@ pass on the base HEAD. Those checks do not certify this new correction.
 
 Maintained offline integration tests use real AuthService with mock Firebase,
 Google and Facebook interfaces and an in-memory HTTP client. A network-forbidding
-override prevents accidental real traffic. Two explicit profiles are now part
-of `technical_regression_check.sh`; default skipped-profile cases are not
+override prevents accidental real traffic. The implementation commit added two
+explicit profiles to `technical_regression_check.sh`; default skipped cases are not
 counted as executed tests. The profiles cover preflight, disabled providers,
 same-UID succession, queued stale owners, delayed cleanup, social/phone order,
 native provider cancellation/acquisition/backend failures, and confirmed versus
@@ -96,6 +96,46 @@ Finalized private logs, outside Git (SHA-256):
 Full-history and working-tree secret scan PASS: zero new unexpected findings;
 21 exact historical findings matched the reviewed baseline. `git diff --check`
 passes. Private logs do not contain or substitute for real-provider acceptance.
+
+## Test-order follow-up on implementation 70edafa2
+
+Implementation HEAD `70edafa2002951b02fd786bead136c8881651daa` was committed
+and normally pushed, with a clean worktree and 0/0 remote divergence. Exact
+CodeQL `33809975135` passed. Regression `33809975120` was still running when
+this follow-up was prepared; Backend and PostgreSQL jobs had passed. PR #7
+remains Draft, open and unmerged. No signed release job was requested.
+
+A further deterministic seed-7 run exposed a test-fixture order dependency:
+the cold Google-initialization test waited for initialization even if another
+Google case had already populated AuthService's process-wide initialization
+cache. It timed out (10 other cases passed). The network-forbidding test
+override rejected an unintended mock-path fallback; no real request occurred.
+This is test isolation, not a newly proven application/session defect.
+Reproduction log `/tmp/sit-wp02-sdk-native-seed7-before.log` SHA-256:
+`8a21019ad47076c1a75abebcb5a5ba9c50d0e369adb7c578e09e4169fce4b174`.
+
+The cold-initialization case now runs as a dedicated opt-in in a fresh test
+process. Three explicit full-gate profiles cover 17 shared/phone, one cold
+initialization and ten native-provider cases. Seed 7 is permanently required
+for every profile; all three also passed independently with seed 29 (56
+executions total). No timeout increase, retry, forced test-first ordering,
+global reduction in parallelism or production test-reset hook was introduced.
+AuthService is byte-identical to implementation 70edafa2, SHA-256
+`1607dfd6d0b7907aa9040d7ec10f649fcaab12b6fef872accc66b4b4602b2687`.
+Focused analyzer has zero issues and all 2,151 tool tests pass again.
+Tool log `/tmp/sit-wp02-sdk-test-isolation-tools.log` SHA-256:
+`541c0227bebe65cd0d770bd9cc805e3ab31ed825c0f537604c88f9cd93f8876c`.
+
+The repeated full local gate for this test-only follow-up stopped before tests
+at 4,729,044 KiB effective capacity, below the unchanged 5,242,880-KiB floor.
+No further cache purge, floor change or build attempt followed. Log
+`/tmp/sit-wp02-sdk-test-isolation-full-regression.log` SHA-256:
+`17c9bccc5e1a7d308ddaa4b03912fa74ed6b1b8f30f3102ac04e7d454c28964d`.
+Therefore full local follow-up acceptance is pending normal host capacity;
+the earlier full pass is not relabelled as a new run. The 21 refreshed JSONs
+change current-source hashes only; no source/approval/evidence claim changes.
+Exact follow-up CI and a new separately bound signed Pixel candidate remain
+pending. This package and the broader WP01/WP02 goals are not closed.
 
 ## Source-binding audit
 

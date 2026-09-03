@@ -382,11 +382,11 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
-      "sha256": "3f2d428dd5b726e84c48e961bd0fe5936f15a39f8d12b17bb4b974b44603f7f3"
+      "sha256": "a8983b3c340c6a4b52d9c1843bd1e33467b8e2d99c422b8240644c9ee36e0b87"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "00994ef77dea1996f303cf795ded1ea605656a203bddaf9c19b1855830d8f811"
+      "sha256": "4f6f9cc97e484112444d9b73ed4e83801d5f495ec4a1b44da70057b73d9fcb77"
     },
     {
       "path": "test/rw17_account_deletion_principal_epoch_transaction_test.dart",

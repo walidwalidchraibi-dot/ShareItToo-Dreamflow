@@ -50,6 +50,15 @@ This manual recovery is NOT a supported permanent build prerequisite. Normal
 host capacity and a complete uninterrupted gate-to-signed-archive lifecycle
 without manual cache purges are still required before release-readiness closure.
 
+The later WP02 test-order isolation full-gate attempt stopped again at
+4,729,044 KiB effective capacity; it did not run tests or produce an artifact.
+No further manual purge was made. Read-only inventory found roughly 3.6 GiB
+of replaceable SIT output and 6.6 GiB of shared Gradle caches. Protected release
+archives were preserved. The connected Crucial X9 has substantial free space,
+but is exFAT: its availability is not proof of suitable build-cache filesystem
+semantics, private-file permissions, or a validated multi-volume capacity
+plan. No files were moved, volume reformatted or host configuration changed.
+
 ## TD-N29-KOTLIN-METADATA — OPEN
 
 The signed bundle build emitted an incompatible Kotlin metadata diagnostic

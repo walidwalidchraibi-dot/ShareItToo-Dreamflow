@@ -14,9 +14,12 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
-Independent WP02 provider-SDK ownership correction passes full local regression;
-exact new-source CI and physical acceptance remain pending. The preceding SMS
-source HEAD is separately verified below;
+Independent WP02 provider-SDK ownership implementation `70edafa2` passes full
+local regression and exact CodeQL; Regression `33809975120` remains pending.
+A subsequent test-only order-isolation correction passes both deterministic
+seed runs and all tool tests; its full local gate stops at the unchanged host
+capacity floor before tests. No new signed candidate or physical acceptance
+is claimed. The preceding SMS source HEAD is separately verified below;
 neither change is inferred to be installed on Pixel. The active bounded scope,
 mock-only tests, recurring host-capacity debt and remaining external actions
 are in `docs/operations/WP02_SHARED_PROVIDER_SDK_OWNERSHIP_2026-09-03.md`.

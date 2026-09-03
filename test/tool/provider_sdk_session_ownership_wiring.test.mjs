@@ -47,14 +47,15 @@ test('social and phone acquire the same queue and retain it through awaited clea
   assert.match(phone, /sdkOperationEpoch != null &&\s*signedInUid != null/u);
 });
 
-test('both opt-in mock profiles are permanent full-regression requirements', () => {
-  for (const profile of ['SIT_TEST_PROVIDER_SDK_OWNERSHIP', 'SIT_TEST_PROVIDER_NATIVE_OWNERSHIP']) {
+test('three isolated mock profiles are permanent full-regression requirements', () => {
+  for (const profile of ['SIT_TEST_PROVIDER_SDK_OWNERSHIP', 'SIT_TEST_PROVIDER_INITIALIZATION_OWNERSHIP', 'SIT_TEST_PROVIDER_NATIVE_OWNERSHIP']) {
     const commands = regression.split(/\n(?=flutter test)/u);
     const command = commands.find((value) => value.includes(`--dart-define=${profile}=true`));
     assert.ok(command, profile);
     assert.match(command, /SIT_BACKEND_ENABLED=true/u);
     assert.match(command, /SIT_API_BASE_URL=http:\/\/127\.0\.0\.1:1\/api\/v1/u);
     assert.match(command, /test\/provider_sdk_session_ownership_test\.dart/u);
+    assert.match(command, /--test-randomize-ordering-seed=7/u);
   }
   const tests = read('test/provider_sdk_session_ownership_test.dart');
   assert.match(tests, /HttpOverrides\.global = _NoNetwork\(\)/u);
@@ -62,4 +63,6 @@ test('both opt-in mock profiles are permanent full-regression requirements', () 
   assert.match(tests, /same-UID B waits through A acquisition and awaited cleanup/u);
   assert.match(tests, /phone confirmation waits for social identity cleanup/u);
   assert.match(tests, /social waits through confirmed phone backend and delayed cleanup/u);
+  assert.match(tests, /mock-only cold Google initialization profile/u);
+  assert.match(tests, /skip: !_initializationProfile/u);
 });

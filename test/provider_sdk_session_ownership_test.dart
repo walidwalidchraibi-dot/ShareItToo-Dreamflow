@@ -19,6 +19,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _profile = bool.fromEnvironment('SIT_TEST_PROVIDER_SDK_OWNERSHIP');
 const _nativeProfile =
     bool.fromEnvironment('SIT_TEST_PROVIDER_NATIVE_OWNERSHIP');
+const _initializationProfile =
+    bool.fromEnvironment('SIT_TEST_PROVIDER_INITIALIZATION_OWNERSHIP');
 final _syntheticToken = List.filled(120, 'x').join();
 
 void main() {
@@ -30,7 +32,7 @@ void main() {
   late _Backend backend;
 
   setUpAll(() async {
-    if (!_profile && !_nativeProfile) return;
+    if (!_profile && !_nativeProfile && !_initializationProfile) return;
     HttpOverrides.global = _NoNetwork();
     await Firebase.initializeApp();
     FirebaseAuthPlatform.instance = sdk;
@@ -402,7 +404,10 @@ void main() {
             }));
   }, skip: !_profile);
 
-  group('mock-only native provider cleanup profile', () {
+  // AuthService intentionally caches Google initialization for the process.
+  // Exercise its first initialization in a fresh test process, not by requiring
+  // this case to run before all other Google cases or resetting production state.
+  group('mock-only cold Google initialization profile', () {
     test('stale Google initialization cannot launch authentication', () async {
       expect(BackendConfig.enabled, isTrue);
       expect(
@@ -427,7 +432,9 @@ void main() {
       expect(google.logoutCalls, 0);
       expect(sdk.signOutCalls, 0);
     });
+  }, skip: !_initializationProfile);
 
+  group('mock-only native provider cleanup profile', () {
     for (final provider in [
       AuthSocialProvider.google,
       AuthSocialProvider.facebook

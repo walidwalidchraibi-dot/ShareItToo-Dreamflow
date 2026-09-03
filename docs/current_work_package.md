@@ -1,5 +1,15 @@
 # Current Work Package: WP02 shared provider SDK ownership correction
 
+Latest: implementation `70edafa2002951b02fd786bead136c8881651daa` is pushed;
+CodeQL `33809975135` passes and Regression `33809975120` is pending. A test-only
+follow-up isolates cold Google initialization from its intentional process
+cache: 17/1/10 cases pass with seeds 7 and 29, analyzer zero, 2,151 tool passes.
+App source is unchanged. Full local follow-up regression stopped at the
+unchanged capacity floor (4,729,044 < 5,242,880 KiB), before tests. It is not
+claimed green and no further manual cache purge was made. Resolve normal host
+capacity before the next full local gate/signed candidate; preserve all frozen
+archives. Details and precise earlier-pass binding are in the active handover.
+
 Bounded independent work under the still-active encompassing Goal. WP01 stays
 PARTIAL pending a new candidate and physical SMS-dialog completion; the owner
 was asked for the precise Meta developer-app creation action. That external
@@ -17,7 +27,7 @@ acquired resources. Backend-confirmed phone truth survives a late owner or SMS
 challenge change. Offline mocked-provider tests are now included in the
 permanent gate. Full local regression passes; exact new-HEAD CI and device
 evidence remain pending. No new Goal or Pixel build was created.
-Focused profiles now pass 17 shared-SDK/phone and 11 native-provider cases;
+Implementation profiles passed 17 shared-SDK/phone and 11 native-provider cases;
 2,151 tool tests and Backend 795 plus two expected skips pass. The full local
 gate passed after a documented recurrence of the unchanged host-capacity
 guard and exact generated-cache recovery: 665 default Flutter passes plus
