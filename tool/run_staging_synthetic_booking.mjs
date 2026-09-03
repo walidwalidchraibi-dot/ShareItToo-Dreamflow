@@ -156,6 +156,39 @@ async function login(fetchImpl, account) {
   return session.accessToken;
 }
 
+async function retireUnbookedSyntheticListing({
+  fetchImpl,
+  ownerToken,
+  renterToken,
+  listingId,
+}) {
+  const renterRequests = await request(fetchImpl, '/rental-requests', {
+    token: renterToken,
+  });
+  if ((renterRequests?.requests ?? []).some((entry) => entry?.itemId === listingId)) {
+    fail('A failed synthetic booking request created server state that requires controlled reconciliation.');
+  }
+  const paused = await request(
+    fetchImpl,
+    `/listings/${encodeURIComponent(listingId)}/status`,
+    {
+      method: 'PATCH',
+      token: ownerToken,
+      body: { status: 'paused' },
+    },
+  );
+  if (paused?.listing?.status !== 'paused' || paused.listing.isActive !== false) {
+    fail('The unbooked synthetic listing was not paused after fixture preparation failed.');
+  }
+  const mine = await request(fetchImpl, '/listings/mine', { token: ownerToken });
+  if ((mine?.listings ?? []).some((entry) => (
+    entry?.id === listingId
+      && (entry.status === 'active' || entry.isActive !== false)
+  ))) {
+    fail('The unbooked synthetic listing remained active after fixture preparation failed.');
+  }
+}
+
 async function verifySyntheticBookingConfirmation({
   fetchImpl,
   accounts,
@@ -283,128 +316,146 @@ export async function createSyntheticBookingFixture({
   const title = expectedTitle;
   const startDate = dateOnly(now, 60);
   const endDate = dateOnly(now, 62);
-  if (!recoveredListing) {
-    const imageBytes = readFileSync(resolve(imagePath));
-    if (imageBytes.length < 100) fail('The synthetic listing image is invalid.');
-    const form = new FormData();
-    form.append('purpose', 'listing_image');
-    form.append('file', new Blob([imageBytes], { type: 'image/png' }), 'sit-role-fixture.png');
-    const upload = await request(fetchImpl, '/uploads', {
-      method: 'POST',
-      token: ownerToken,
-      body: form,
-      expected: [201],
-    });
-    if (typeof upload?.url !== 'string' || !upload.url.startsWith('https://')) {
-      fail('The synthetic listing upload did not return a safe URL.');
+  let listingCreatedThisRun = false;
+  try {
+    if (!recoveredListing) {
+      const imageBytes = readFileSync(resolve(imagePath));
+      if (imageBytes.length < 100) fail('The synthetic listing image is invalid.');
+      const form = new FormData();
+      form.append('purpose', 'listing_image');
+      form.append('file', new Blob([imageBytes], { type: 'image/png' }), 'sit-role-fixture.png');
+      const upload = await request(fetchImpl, '/uploads', {
+        method: 'POST',
+        token: ownerToken,
+        body: form,
+        expected: [201],
+      });
+      if (typeof upload?.url !== 'string' || !upload.url.startsWith('https://')) {
+        fail('The synthetic listing upload did not return a safe URL.');
+      }
+      await request(fetchImpl, '/listings', {
+        method: 'POST',
+        token: ownerToken,
+        expected: [201],
+        body: {
+          id: listingId,
+          title,
+          description: 'Isoliertes Staging-Inserat für die ShareItToo Rollen- und Buchungsprüfung ohne Echtgeld.',
+          categoryId: 'cat3',
+          subcategory: 'Kameras',
+          tags: ['sit', 'role-fixture'],
+          pricePerDay: 12,
+          priceRaw: 12,
+          priceUnit: 'day',
+          currency: 'EUR',
+          deposit: null,
+          photos: [upload.url],
+          locationText: 'Staging Testadresse',
+          city: 'Heilbronn',
+          country: 'Deutschland',
+          lat: 49.1427,
+          lng: 9.2109,
+          geohash: 'private',
+          condition: 'good',
+          minDays: 1,
+          maxDays: 14,
+          protectionModel: 'none',
+          privateStatusConfirmed: true,
+          status: 'active',
+          isActive: true,
+        },
+      });
+      listingCreatedThisRun = true;
+      await request(fetchImpl, `/listings/${encodeURIComponent(listingId)}/availability`, {
+        method: 'PUT',
+        token: ownerToken,
+        body: {
+          timezone: 'Europe/Berlin',
+          minimumDays: 1,
+          maximumDays: 14,
+          noticeHours: 0,
+          acceptanceWindowMinutes: 30,
+          rules: Array.from({ length: 7 }, (_, weekday) => ({
+            weekday,
+            localStart: '00:00',
+            localEnd: '23:59',
+            isAvailable: true,
+          })),
+          blocks: [],
+        },
+      });
     }
-    await request(fetchImpl, '/listings', {
+    const quote = await request(fetchImpl, '/bookings/quote', {
       method: 'POST',
-      token: ownerToken,
-      expected: [201],
+      token: renterToken,
       body: {
-        id: listingId,
-        title,
-        description: 'Isoliertes Staging-Inserat für die ShareItToo Rollen- und Buchungsprüfung ohne Echtgeld.',
-        categoryId: 'cat3',
-        subcategory: 'Kameras',
-        tags: ['sit', 'role-fixture'],
-        pricePerDay: 12,
-        priceRaw: 12,
-        priceUnit: 'day',
-        currency: 'EUR',
-        deposit: null,
-        photos: [upload.url],
-        locationText: 'Staging Testadresse',
-        city: 'Heilbronn',
-        country: 'Deutschland',
-        lat: 49.1427,
-        lng: 9.2109,
-        geohash: 'private',
-        condition: 'good',
-        minDays: 1,
-        maxDays: 14,
-        protectionModel: 'none',
+        itemId: listingId,
+        startDate,
+        endDate,
+        ownerDeliversAtDropoffChosen: false,
+        ownerPicksUpAtReturnChosen: false,
+        expressRequested: false,
+      },
+    });
+    if (typeof quote?.quoteId !== 'string'
+        || typeof quote?.quoteHash !== 'string'
+        || !/^[0-9a-f]{64}$/.test(quote.quoteHash)) {
+      fail('The synthetic booking quote is not immutably bound.');
+    }
+    // Acceptance must be recorded after the server issued the quote. Reusing
+    // the fixture start time can predate a real remote quote and is rejected by
+    // the V5.2 binding contract.
+    const acceptedAt = new Date().toISOString();
+    const clientBuild = 'synthetic-review-tool-v52';
+    const legalDeclarations = privatePilotRequiredCheckoutDeclarations.map(
+      ({ type, wording, documentReferences }) => ({
+        type,
+        exactWording: wording,
+        documentName: privatePilotCheckoutDocument.name,
+        documentVersion: privatePilotCheckoutDocument.version,
+        clientBuild,
+        quoteId: quote.quoteId,
+        quoteHash: quote.quoteHash,
+        documentReferences,
+        language: privatePilotCheckoutDocument.locale,
+        accepted: true,
+        acceptedAt,
+      }),
+    );
+    const created = await request(fetchImpl, '/bookings', {
+      method: 'POST',
+      token: renterToken,
+      headers: { 'Idempotency-Key': `${bookingId}-create` },
+      body: {
+        id: bookingId,
+        itemId: listingId,
+        startDate,
+        endDate,
         privateStatusConfirmed: true,
-        status: 'active',
-        isActive: true,
+        clientBuild,
+        quoteId: quote.quoteId,
+        quoteHash: quote.quoteHash,
+        legalDeclarations,
       },
+      expected: [201],
     });
-    await request(fetchImpl, `/listings/${encodeURIComponent(listingId)}/availability`, {
-      method: 'PUT',
-      token: ownerToken,
-      body: {
-        timezone: 'Europe/Berlin',
-        minimumDays: 1,
-        maximumDays: 14,
-        noticeHours: 0,
-        acceptanceWindowMinutes: 30,
-        rules: Array.from({ length: 7 }, (_, weekday) => ({
-          weekday,
-          localStart: '00:00',
-          localEnd: '23:59',
-          isAvailable: true,
-        })),
-        blocks: [],
-      },
-    });
-  }
-  const quote = await request(fetchImpl, '/bookings/quote', {
-    method: 'POST',
-    token: renterToken,
-    body: {
-      itemId: listingId,
-      startDate,
-      endDate,
-      ownerDeliversAtDropoffChosen: false,
-      ownerPicksUpAtReturnChosen: false,
-      expressRequested: false,
-    },
-  });
-  if (typeof quote?.quoteId !== 'string'
-      || typeof quote?.quoteHash !== 'string'
-      || !/^[0-9a-f]{64}$/.test(quote.quoteHash)) {
-    fail('The synthetic booking quote is not immutably bound.');
-  }
-  // Acceptance must be recorded after the server issued the quote. Reusing
-  // the fixture start time can predate a real remote quote and is rejected by
-  // the V5.2 binding contract.
-  const acceptedAt = new Date().toISOString();
-  const clientBuild = 'synthetic-review-tool-v52';
-  const legalDeclarations = privatePilotRequiredCheckoutDeclarations.map(
-    ({ type, wording, documentReferences }) => ({
-      type,
-      exactWording: wording,
-      documentName: privatePilotCheckoutDocument.name,
-      documentVersion: privatePilotCheckoutDocument.version,
-      clientBuild,
-      quoteId: quote.quoteId,
-      quoteHash: quote.quoteHash,
-      documentReferences,
-      language: privatePilotCheckoutDocument.locale,
-      accepted: true,
-      acceptedAt,
-    }),
-  );
-  const created = await request(fetchImpl, '/bookings', {
-    method: 'POST',
-    token: renterToken,
-    headers: { 'Idempotency-Key': `${bookingId}-create` },
-    body: {
-      id: bookingId,
-      itemId: listingId,
-      startDate,
-      endDate,
-      privateStatusConfirmed: true,
-      clientBuild,
-      quoteId: quote.quoteId,
-      quoteHash: quote.quoteHash,
-      legalDeclarations,
-    },
-    expected: [201],
-  });
-  if (created?.booking?.workflowStatus !== 'requested') {
-    fail('The synthetic booking was not created in the requested state.');
+    if (created?.booking?.workflowStatus !== 'requested') {
+      fail('The synthetic booking was not created in the requested state.');
+    }
+  } catch (error) {
+    if (listingCreatedThisRun) {
+      try {
+        await retireUnbookedSyntheticListing({
+          fetchImpl,
+          ownerToken,
+          renterToken,
+          listingId,
+        });
+      } catch {
+        fail('Synthetic booking preparation failed and the unbooked listing cleanup did not complete.');
+      }
+    }
+    throw error;
   }
 
   vault.syntheticBooking = {

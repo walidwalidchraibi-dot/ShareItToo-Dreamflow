@@ -411,9 +411,12 @@ test('reuses one prepared listing after a failed booking request', async () => {
   );
 });
 
-test('reports only a safe API error code and request id for a failed booking', async () => {
+test('retires the exact new listing after the V5.2 legal hold rejects booking creation', async () => {
   const fixture = vaultFixture();
   let login = 0;
+  let listingCreated = false;
+  let createdListingId = null;
+  let pauseCount = 0;
   await assert.rejects(
     () => createSyntheticBookingFixture({
       ...fixture,
@@ -424,11 +427,25 @@ test('reports only a safe API error code and request id for a failed booking', a
           login += 1;
           return response(200, { accessToken: `synthetic-token-${login}-${'x'.repeat(30)}` });
         }
-        if (path === '/listings/mine') return response(200, { listings: [] });
+        if (path === '/listings/mine') {
+          return response(200, {
+            listings: listingCreated && pauseCount === 0
+              ? [{ id: createdListingId, status: 'active', isActive: true }]
+              : [],
+          });
+        }
         if (path === '/rental-requests') return response(200, { requests: [] });
         if (path === '/uploads') return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/fixture.webp' });
-        if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
+        if (path === '/listings') {
+          listingCreated = true;
+          createdListingId = JSON.parse(options.body).id;
+          return response(201, { listing: { id: 'fixture' } });
+        }
         if (path.endsWith('/availability')) return response(200, { availability: {} });
+        if (path.endsWith('/status')) {
+          pauseCount += 1;
+          return response(200, { listing: { status: 'paused', isActive: false } });
+        }
         if (path === '/bookings/quote') {
           return response(200, {
             quoteId: 'quote-1',
@@ -436,8 +453,8 @@ test('reports only a safe API error code and request id for a failed booking', a
           });
         }
         if (path === '/bookings') {
-          return response(500, {
-            error: 'internal_error',
+          return response(409, {
+            error: 'v52_contract_documents_unavailable',
             requestId: 'safe-request-123',
             details: 'must never be surfaced',
           });
@@ -446,10 +463,16 @@ test('reports only a safe API error code and request id for a failed booking', a
       },
     }),
     (error) => {
-      assert.match(error.message, /HTTP 500 \(internal_error\) \[request safe-request-123\]/);
+      assert.match(error.message, /HTTP 409 \(v52_contract_documents_unavailable\) \[request safe-request-123\]/);
       assert.doesNotMatch(error.message, /must never be surfaced/);
       return true;
     },
+  );
+  assert.equal(listingCreated, true);
+  assert.equal(pauseCount, 1);
+  assert.equal(
+    JSON.parse(readFileSync(fixture.vaultFile, 'utf8')).syntheticBooking,
+    undefined,
   );
 });
 
