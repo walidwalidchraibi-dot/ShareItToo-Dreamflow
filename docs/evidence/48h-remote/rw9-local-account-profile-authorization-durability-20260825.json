@@ -140,7 +140,7 @@
     "reason": "validated-local-account-profile-lifecycle-privacy-retention-and-provider-source-change",
     "privacyManifestSha256": "d37178324384b1ed4166e76b8681dfd5b2f6348aab3833ea45eab071b3a561f9",
     "retentionManifestSha256": "dd2ea207260457ab3d06fcfbae9093856a348cb27bc198c323c856f6780498aa",
-    "activeProviderEvidenceSha256": "00b9ecf652aba1d032095b0c440beae06a72d0b95680b3d70a8a98e55d687a86",
+    "activeProviderEvidenceSha256": "1b7f69675b74c458cc25919505395403257138c782282ffc70accfdd451d5765",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -234,7 +234,7 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "00b9ecf652aba1d032095b0c440beae06a72d0b95680b3d70a8a98e55d687a86"
+      "sha256": "1b7f69675b74c458cc25919505395403257138c782282ffc70accfdd451d5765"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -250,7 +250,7 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "69d8667bcdf51018b8d9fcfa0599d655269cf155658fb8fb8c6b77f6cd7f6a5d"
+      "sha256": "c81bd27aadd1430c7c7a756e81b909f0ca197936b1dec7aca92056adcbf4bbf6"
     },
     {
       "path": "scripts/technical_regression_check.sh",
@@ -274,7 +274,7 @@
     },
     {
       "path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs",
-      "sha256": "863754227f17f654d3d8f40728a9731b6a3bb777f392ccc240e00aa857d78444"
+      "sha256": "30f22f62ad4fadbd89b39527429f4de250c30e35592c2aec14c940691de14d61"
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",
