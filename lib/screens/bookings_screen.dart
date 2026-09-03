@@ -303,6 +303,10 @@ class _BookingsScreenState extends State<BookingsScreen>
       'cancelledBy': r.cancelledBy,
       'cancellationOutcome': r.cancellationOutcome,
       'workflowStatus': r.workflowStatus,
+      // Preserve the server-authoritative non-binding marker all the way to
+      // the renter card and detail screen. Dropping it here makes an accepted
+      // Stage-A simulation look like a real upcoming booking.
+      'simulationOnly': r.simulationOnly,
       'platformWithdrawal': r.platformWithdrawal,
       'platformContract': r.platformContract,
       'needsReview': r.needsReview,

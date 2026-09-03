@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "9739cd1e616eb02b2bbc461f428588b10070ba2587bb72c1cdb7a16ed1aeb471"
+      "sha256": "8a7e3afb47cd1fab786a2378ffe3b0e435055e905fa5f22a6e5f59b765f09d1d"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -764,7 +764,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "39c8f5a1e1c4e593c766cbcac7a6cae28293ff36dd18695f4cd8ddd85b27ffa8"
+      "sha256": "7390b81d66f94272c982649906ea4ede6168f580b3d30d6d7be23d4f0e2ecaca"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
@@ -796,7 +796,7 @@
     },
     {
       "path": "lib/screens/bookings_screen.dart",
-      "sha256": "376cbe34c1852fa49b7793b809b1d2948cd10507731bdb84c7f6683741a2e524"
+      "sha256": "1eda9806562ef1c31d4c86c67990b6f91dd59ccb8360f69d5b8194331dcb754a"
     },
     {
       "path": "lib/screens/payment_methods_screen.dart",

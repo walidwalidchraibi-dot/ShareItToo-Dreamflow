@@ -882,6 +882,11 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
       String category, DateTime start, DateTime end, _OwnerEntry e) {
     String label;
     Color color;
+    if (e.r.simulationOnly) {
+      label = 'Pilot-Simulation';
+      color = const Color(0xFF0EA5E9);
+      return _buildStatusChip(label: label, color: color);
+    }
     switch (category) {
       case 'upcoming':
         // Do not show a return countdown for upcoming; keep a neutral label
@@ -923,6 +928,10 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
         label = '—';
         color = Colors.grey;
     }
+    return _buildStatusChip(label: label, color: color);
+  }
+
+  Widget _buildStatusChip({required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(

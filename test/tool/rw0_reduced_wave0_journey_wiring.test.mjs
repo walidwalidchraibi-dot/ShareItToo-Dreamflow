@@ -86,8 +86,11 @@ test('project-name controller is owned until its dialog route is disposed', () =
 
 test('binding stays closed while Stage-A exposes only the acknowledged simulation', () => {
   const checkout = read('lib/screens/private_pilot_checkout_screen.dart');
+  const renterBookings = read('lib/screens/bookings_screen.dart');
   const bookingDetail = read('lib/screens/booking_detail_screen.dart');
+  const ownerRequests = read('lib/screens/owner_requests_screen.dart');
   const ownerDetail = read('lib/screens/ongoing_owner_detail_screen.dart');
+  const bookingStatusCopy = read('lib/utils/booking_status_copy.dart');
   const workflow = read('backend/src/booking_workflow.js');
   assert.match(checkout, /Test-Mietanfrage senden/u);
   assert.match(checkout, /_simulationAcknowledged/u);
@@ -103,6 +106,15 @@ test('binding stays closed while Stage-A exposes only the acknowledged simulatio
   assert.match(
     bookingDetail,
     /Übergabe, Rückgabe, Vertrag, Reservierung und Zahlung bleiben in dieser Simulation gesperrt/u,
+  );
+  assert.match(renterBookings, /'simulationOnly': r\.simulationOnly/u);
+  assert.match(
+    bookingStatusCopy,
+    /booking\?\['simulationOnly'\] == true[\s\S]*return 'Pilot-Simulation'/u,
+  );
+  assert.match(
+    ownerRequests,
+    /if \(e\.r\.simulationOnly\)[\s\S]*label = 'Pilot-Simulation'/u,
   );
   assert.match(
     ownerDetail,
