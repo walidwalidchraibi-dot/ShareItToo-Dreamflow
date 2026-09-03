@@ -52,6 +52,17 @@ const frozenCandidateCompatiblePaths = Object.freeze([
   /^store\/(?:privacy-disclosures|retention-deletion-readiness)\.json$/u,
 ]);
 
+export function createPhoneVerificationCommandRunner(execute = execFileSync) {
+  return (file, args, { binary = false } = {}) => execute(file, args, {
+    encoding: binary ? null : 'utf8',
+    maxBuffer: 512 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 30_000,
+  });
+}
+
+const phoneVerificationCommandRunner = createPhoneVerificationCommandRunner();
+
 function fail(message) {
   throw new Error(message);
 }
@@ -167,7 +178,35 @@ function nodeBounds(node) {
   };
 }
 
+function normalizedInputLabel(value) {
+  return String(value ?? '').replaceAll('\u2011', '-');
+}
+
+function directlyLabelledEditableNodes(hierarchy, label) {
+  const expected = normalizedInputLabel(label);
+  return (String(hierarchy).match(/<node\b[^>]*>/gu) ?? []).filter((node) => (
+    currentHeadAndroidNodeAttribute(node, 'class') === 'android.widget.EditText'
+      && currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false'
+      && nodeBounds(node) !== null
+      && ['hint', 'text', 'content-desc'].some((attribute) => (
+        normalizedInputLabel(currentHeadAndroidNodeAttribute(node, attribute)) === expected
+      ))
+  ));
+}
+
+export function hasPhoneVerificationSmsInput(hierarchy) {
+  try {
+    currentHeadAndroidEditableNodeForLabel(hierarchy, 'SMS-Code');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function currentHeadAndroidEditableNodeForLabel(hierarchy, label) {
+  const direct = directlyLabelledEditableNodes(hierarchy, label);
+  if (direct.length === 1) return direct[0];
+  if (direct.length > 1) fail(`The sanitized ${label} input field is ambiguous.`);
   const labels = currentHeadAndroidNamedNodes(hierarchy, label)
     .map((node) => ({ node, bounds: nodeBounds(node) }))
     .filter((entry) => entry.bounds !== null);
@@ -194,6 +233,39 @@ export function currentHeadAndroidEditableNodeForLabel(hierarchy, label) {
   return candidates[0].node;
 }
 
+export function inspectPhoneVerificationSurface(hierarchy) {
+  const unknown = Object.freeze({ state: 'unknown', phoneInputEmpty: false });
+  if (hasPhoneVerificationSmsInput(hierarchy)) return unknown;
+  const buttons = currentHeadAndroidNamedNodes(hierarchy, 'Telefonnummer verifizieren')
+    .filter((node) => currentHeadAndroidNodeAttribute(node, 'class') === 'android.widget.Button');
+  if (buttons.length !== 1) return unknown;
+  let input;
+  try {
+    input = currentHeadAndroidEditableNodeForLabel(hierarchy, 'Telefonnummer');
+  } catch {
+    return unknown;
+  }
+  const field = nodeBounds(input);
+  const button = nodeBounds(buttons[0]);
+  if (field === null || button === null || button.top < field.bottom) return unknown;
+  const statusInPhoneSection = (label) => currentHeadAndroidNamedNodes(hierarchy, label)
+    .some((node) => {
+      const bounds = nodeBounds(node);
+      return bounds !== null && bounds.top >= field.bottom && bounds.bottom <= button.top
+        && Math.min(bounds.right, field.right) > Math.max(bounds.left, field.left);
+    });
+  const enabled = currentHeadAndroidNodeAttribute(buttons[0], 'enabled');
+  const verified = statusInPhoneSection('Verifiziert');
+  const unverified = statusInPhoneSection('Nicht verifiziert');
+  const state = verified && !unverified && enabled === 'false'
+    ? 'verified'
+    : unverified && !verified && enabled === 'true' ? 'unverified' : 'unknown';
+  return Object.freeze({
+    state,
+    phoneInputEmpty: (currentHeadAndroidNodeAttribute(input, 'text') ?? '').trim() === '',
+  });
+}
+
 function tapNamedNode(commandRunner, adbPath, device, hierarchy, label, { chooseLast = false } = {}) {
   const nodes = currentHeadAndroidNamedNodes(hierarchy, label)
     .filter((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false');
@@ -204,7 +276,7 @@ function tapNamedNode(commandRunner, adbPath, device, hierarchy, label, { choose
   ]);
 }
 
-async function waitForHierarchy({
+export async function waitForPhoneVerificationHierarchy({
   commandRunner,
   adbPath,
   device,
@@ -212,14 +284,22 @@ async function waitForHierarchy({
   predicate,
   attempts = 32,
   label,
+  timeoutMs = 120_000,
+  now = Date.now,
 }) {
+  const deadline = now() + timeoutMs;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (now() >= deadline) break;
     await wait(500);
+    if (now() >= deadline) break;
     const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    if (now() >= deadline) break;
     if (predicate(hierarchy)) return hierarchy;
   }
   fail(`The sanitized ${label} surface did not appear.`);
 }
+
+const waitForHierarchy = waitForPhoneVerificationHierarchy;
 
 async function findOrScroll({ commandRunner, adbPath, device, wait, label }) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -482,7 +562,7 @@ export async function diagnoseAndroidPhoneVerification({
   phoneFile,
   smsCodeFile,
   privateEvidenceDirectory,
-  commandRunner = defaultCurrentHeadAndroidCommandRunner,
+  commandRunner = phoneVerificationCommandRunner,
   adbPath = 'adb',
   device,
   deviceSummary,
@@ -585,7 +665,7 @@ export async function diagnoseAndroidPhoneVerification({
   if (phase === 'confirm') {
     const smsConfirmationInput = readPrivateSmsCode(smsCodeFile);
     let hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
-    if (currentHeadAndroidNamedNodes(hierarchy, 'SMS-Code').length === 0) {
+    if (!hasPhoneVerificationSmsInput(hierarchy)) {
       fail('The current candidate is not awaiting one SMS confirmation input.');
     }
     replaceInput(
@@ -607,12 +687,14 @@ export async function diagnoseAndroidPhoneVerification({
       attempts: 90,
       label: 'SMS confirmation result',
       predicate: (value) => value.includes('Telefonnummer verifiziert')
+        || inspectPhoneVerificationSurface(value).state === 'verified'
         || value.includes('Telefonnummer bestätigt')
         || value.includes('SMS-Code prüfen')
         || value.includes('Telefonprüfung nicht abgeschlossen')
         || value.includes('Ergebnisstatus unklar'),
     });
-    if (!hierarchy.includes('Telefonnummer verifiziert')) {
+    if (!hierarchy.includes('Telefonnummer verifiziert')
+        && inspectPhoneVerificationSurface(hierarchy).state !== 'verified') {
       fail('The private SMS confirmation input was not safely accepted.');
     }
     const status = 'valid-code-accepted-awaiting-cold-restart';
@@ -700,10 +782,8 @@ export async function diagnoseAndroidPhoneVerification({
       device,
       wait,
     });
-    if (currentHeadAndroidNamedNodes(
-      cleanupHierarchy,
-      'Telefonnummer verifizieren',
-    ).length === 0 || cleanupHierarchy.includes('Verifiziert')) {
+    const clearedSurface = inspectPhoneVerificationSurface(cleanupHierarchy);
+    if (clearedSurface.state !== 'unverified' || !clearedSurface.phoneInputEmpty) {
       fail('The current candidate did not read back the cleared phone state.');
     }
     const status = 'passed-verified-phone-cleanup-current-candidate';
@@ -778,8 +858,7 @@ export async function diagnoseAndroidPhoneVerification({
   let invalidCodeRejected = false;
 
   if (phase === 'request') {
-    if (hierarchy.includes('Verifiziert')
-        && currentHeadAndroidNamedNodes(hierarchy, 'Telefonnummer verifizieren').length === 0) {
+    if (inspectPhoneVerificationSurface(hierarchy).state === 'verified') {
       status = 'already-verified-current-candidate';
     } else {
       replaceInput(
@@ -817,13 +896,13 @@ export async function diagnoseAndroidPhoneVerification({
         attempts: 150,
         label: 'phone verification result',
         predicate: (value) => value.includes('Telefonnummer verifiziert')
-          || currentHeadAndroidNamedNodes(value, 'SMS-Code').length > 0
+          || hasPhoneVerificationSmsInput(value)
           || value.includes('Telefonprüfung nicht')
           || value.includes('Ergebnisstatus unklar'),
       });
       if (hierarchy.includes('Telefonnummer verifiziert')) {
         status = 'automatically-verified-current-candidate';
-      } else if (currentHeadAndroidNamedNodes(hierarchy, 'SMS-Code').length > 0) {
+      } else if (hasPhoneVerificationSmsInput(hierarchy)) {
         replaceInput(
           commandRunner,
           adbPath,
@@ -851,17 +930,13 @@ export async function diagnoseAndroidPhoneVerification({
       }
     }
   } else {
-    const successVisible = hierarchy.includes('Telefonnummer verifiziert')
-      || (hierarchy.includes('Telefonnummer')
-        && hierarchy.includes('Verifiziert')
-        && currentHeadAndroidNamedNodes(hierarchy, 'Telefonnummer verifizieren').length === 0);
+    const successVisible = inspectPhoneVerificationSurface(hierarchy).state === 'verified';
     if (!successVisible) fail('Current-candidate phone verification is not yet confirmed.');
     currentHeadAndroidAdb(commandRunner, adbPath, device, [
       'shell', 'am', 'force-stop', applicationId,
     ]);
     const coldHierarchy = await openContactInformation({ commandRunner, adbPath, device, wait });
-    if (!coldHierarchy.includes('Verifiziert')
-        || currentHeadAndroidNamedNodes(coldHierarchy, 'Telefonnummer verifizieren').length > 0) {
+    if (inspectPhoneVerificationSurface(coldHierarchy).state !== 'verified') {
       fail('Verified phone state did not persist across a cold restart.');
     }
     status = 'passed-valid-code-and-cold-restart';

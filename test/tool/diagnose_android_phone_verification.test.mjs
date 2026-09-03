@@ -5,13 +5,17 @@ import test from 'node:test';
 
 import {
   clearVerifiedPhoneFromStagingTestAccount,
+  createPhoneVerificationCommandRunner,
   currentHeadAndroidEditableNodeForLabel,
+  hasPhoneVerificationSmsInput,
   encodeAdbNumericInput,
   inspectStagingPhoneBackendGate,
+  inspectPhoneVerificationSurface,
   normalizePrivatePhoneInput,
   normalizePrivateSmsCode,
   sanitizePhoneVerificationFailure,
   validateFrozenCandidateMobileCompatibility,
+  waitForPhoneVerificationHierarchy,
 } from '../../tool/diagnose_android_phone_verification.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
@@ -63,6 +67,69 @@ test('selects the enabled EditText below its semantic label instead of tapping t
     () => currentHeadAndroidEditableNodeForLabel(hierarchy, 'SMS-Code'),
     /input field is unavailable/u,
   );
+});
+
+test('SMS input accepts an exact Android hint with the app non-breaking hyphen', () => {
+  const field = '<node class="android.widget.EditText" text="" content-desc="" hint="SMS&#x2011;Code" enabled="true" bounds="[51,2622][1389,2820]" />';
+  assert.equal(hasPhoneVerificationSmsInput(field), true);
+  assert.equal(currentHeadAndroidEditableNodeForLabel(field, 'SMS-Code'), field);
+  assert.equal(hasPhoneVerificationSmsInput(field.replace('enabled="true"', 'enabled="false"')), false);
+  assert.equal(hasPhoneVerificationSmsInput(field.replace('SMS&#x2011;Code', 'Unrelated code')), false);
+  assert.equal(hasPhoneVerificationSmsInput(field + field), false);
+  assert.throws(() => currentHeadAndroidEditableNodeForLabel(field + field, 'SMS-Code'), /ambiguous/u);
+});
+
+function phoneSurface({ verified = false, fieldText = '', status = true } = {}) {
+  return [
+    '<node class="android.view.View" content-desc="Telefonnummer" bounds="[40,100][400,150]" />',
+    `<node class="android.widget.EditText" text="${fieldText}" enabled="true" bounds="[40,180][400,250]" />`,
+    status ? `<node class="android.view.View" content-desc="${verified ? 'Verifiziert' : 'Nicht verifiziert'}" bounds="[40,270][400,310]" />` : '',
+    `<node class="android.widget.Button" content-desc="Telefonnummer verifizieren" enabled="${!verified}" bounds="[40,330][400,390]" />`,
+    '<node class="android.view.View" content-desc="E-Mail-Adresse" bounds="[40,420][400,450]" />',
+    '<node class="android.view.View" content-desc="Verifiziert" bounds="[40,520][400,550]" />',
+  ].join('');
+}
+
+test('phone truth is scoped to its own section and does not borrow verified email truth', () => {
+  assert.deepEqual(inspectPhoneVerificationSurface(phoneSurface()), { state: 'unverified', phoneInputEmpty: true });
+  assert.deepEqual(inspectPhoneVerificationSurface(phoneSurface({ verified: true, fieldText: 'synthetic-phone' })), { state: 'verified', phoneInputEmpty: false });
+  assert.equal(inspectPhoneVerificationSurface(phoneSurface({ status: false })).state, 'unknown');
+  assert.equal(inspectPhoneVerificationSurface(phoneSurface({ verified: true }).replace('enabled="false"', 'enabled="true"')).state, 'unknown');
+  assert.equal(inspectPhoneVerificationSurface(phoneSurface() + '<node class="android.widget.EditText" hint="SMS-Code" enabled="true" bounds="[40,580][400,630]" />').state, 'unknown');
+});
+
+test('phone command runner bounds every device command and keeps output captured', () => {
+  let observed;
+  const runner = createPhoneVerificationCommandRunner((file, args, options) => {
+    observed = { file, args, options };
+    return 'safe-fixture';
+  });
+  assert.equal(runner('adb', ['devices']), 'safe-fixture');
+  assert.equal(observed.options.timeout, 30000);
+  assert.deepEqual(observed.options.stdio, ['ignore', 'pipe', 'pipe']);
+  assert.equal(observed.options.encoding, 'utf8');
+  runner('adb', ['exec-out'], { binary: true });
+  assert.equal(observed.options.encoding, null);
+});
+
+test('phone surface polling has an elapsed-time deadline instead of a timing workaround', async () => {
+  let clock = 0;
+  let dumps = 0;
+  await assert.rejects(waitForPhoneVerificationHierarchy({
+    commandRunner: (_file, args) => {
+      if (args.includes('uiautomator')) dumps += 1;
+      return '<hierarchy />';
+    },
+    adbPath: 'adb',
+    device: { serial: 'synthetic-device' },
+    wait: async () => { clock += 600; },
+    now: () => clock,
+    timeoutMs: 1000,
+    predicate: () => false,
+    attempts: 150,
+    label: 'fixture result',
+  }), /surface did not appear/u);
+  assert.equal(dumps, 1);
 });
 
 test('diagnostic failures suppress phone numbers and SMS secrets', () => {

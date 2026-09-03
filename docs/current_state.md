@@ -4,7 +4,29 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N28 broad Pixel surface closure
+## Current N29 SMS checkpoint — PARTIAL
+
+One owner-authorized SMS reached the owner from the exact Pixel candidate
+`1.0.0+2026090306`. Exact Backend preconditions before cleanup prove the phone
+was verified, but the UI completion was not captured. Cleanup then removed the
+phone and verified its cleared state server-side; a separate read confirmed
+phone cleared/unverified and email still verified. The restored Pixel owner
+surface now reads phone unverified with an empty input. Temporary phone/code
+files were removed; no second SMS was requested.
+
+The SMS hint/Unicode mismatch, cross-section email/phone status confusion and
+attempt-only polling limit are corrected in the diagnostic, with 18 passing
+focused tests. Full regression and exact CI for this checkpoint remain pending.
+Invalid-code rejection, verified cold restart and reliable UI completion remain
+OPEN, not failed or implicitly passed. The exact post-confirmation UI cause is
+not yet proven; session/principal and layout hypotheses require reproduction.
+
+The owner explicitly authorized the Staging Android key's application
+restriction removal for reCAPTCHA; 25 API restrictions remain. No Production,
+Play, payment, KYC, OnePlus, public rollout or PR merge change occurred.
+See `docs/operations/N29_CURRENT_CANDIDATE_SMS_DELIVERY_PARTIAL_2026-09-03.md`.
+
+## Previous N28 broad Pixel surface closure
 
 The exact signed Staging candidate `com.shareittoo.app`
 `1.0.0+2026090306` remains installed on the physical Pixel with matching APK

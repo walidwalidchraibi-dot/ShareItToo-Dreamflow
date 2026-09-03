@@ -1,4 +1,30 @@
-# Current Work Package: N28 current-candidate Pixel surface matrix
+# Current Work Package: N29 current-candidate SMS delivery and UI diagnostic
+
+Status: **PARTIAL / BACKEND ACCEPTANCE AND CLEANUP PROVEN / UI COMPLETION OPEN**
+on 03.09.2026.
+
+The exact Pixel candidate `1.0.0+2026090306` received one owner-authorized
+Staging SMS. Subsequent exact Backend cleanup proved that the supplied code
+had resulted in the expected verified phone, then cleared it with mutation and
+readback confirmation. A separate read confirmed phone cleared/unverified and
+email still verified. The protected owner was restored and the temporary
+phone/code files removed. No second SMS was requested.
+
+UI completion and verified cold restart were not captured and are not claimed.
+The diagnostic now recognizes the Android SMS hint, distinguishes phone truth
+from email truth and bounds device commands and polling. Focused tests pass
+18/18; complete regression and exact remote CI for these changes are pending.
+Determine the uncaptured UI result with deterministic tests before another
+owner-assisted SMS run. Do not weaken principal/epoch checks or reclassify an
+unknown outcome as rejection.
+
+The separately owner-authorized Staging API-key application restriction was
+removed for direct-APK reCAPTCHA; all 25 API restrictions were preserved.
+Production, Play, payment, KYC, OnePlus and PR merge were not changed.
+Handover:
+`docs/operations/N29_CURRENT_CANDIDATE_SMS_DELIVERY_PARTIAL_2026-09-03.md`.
+
+# Previous Work Package: N28 current-candidate Pixel surface matrix
 
 Status: **BROAD READ-ONLY PIXEL SURFACE MATRIX PASSED / LIVE GATES CLOSED** on
 03.09.2026.
