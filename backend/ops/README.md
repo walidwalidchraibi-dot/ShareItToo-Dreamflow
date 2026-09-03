@@ -49,6 +49,38 @@ adds `compose.staging.fcm.yml`, mounts the file read-only without creating a
 missing host path, and records `stagingFcm=true` in the release evidence. The
 same flag is rejected for production.
 
+## Optional Staging listing-AI activation
+
+The external listing-AI path remains disabled by default and Production cannot
+enable it through `deploy_release.sh`. Before a separately approved Staging
+activation, place one owner-created API project key outside the repository as
+`root:65532` with mode `0640`. Do not put the key in an environment file,
+command argument, Git, Drive, Flutter, chat or deployment evidence.
+
+Activation requires the Heilbronn Wave-0 pilot, the reviewed pinned model, a
+budget from 2 to 500 cents, the external-execution flag and a second
+confirmation equal to the exact image commit:
+
+```sh
+ENABLE_STAGING_LISTING_AI=1 \
+SIT_STAGING_PILOT_ID=heilbronn_wave0 \
+CONFIRM_STAGING_LISTING_AI=FULL_40_CHARACTER_COMMIT \
+SIT_LISTING_AI_MODEL=gpt-4o-mini-2024-07-18 \
+SIT_LISTING_AI_BUDGET_CENTS=500 \
+SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED=1 \
+OPENAI_API_KEY_HOST_FILE=/absolute/private/path/openai-api-key \
+  ./ops/deploy_release.sh staging FULL_40_CHARACTER_COMMIT
+```
+
+The gate validates only the private file's type, location, permissions, size
+and credential shape, never prints its content, and mounts it read-only. The
+runtime must report the exact enabled OpenAI boundary through `/health/ready`
+before deployment is accepted. A failed activation rolls the prior image back
+with the deterministic mock, so the new secret path cannot become a rollback
+dependency. Release evidence records only `stagingListingAi=true` or `false`.
+Provider billing/project creation and the first real image evaluation remain
+separate owner actions; this procedure alone performs neither.
+
 ## B7 messaging and account-erasure acceptance
 
 `staging_b7_acceptance.mjs` creates three isolated staging accounts and proves

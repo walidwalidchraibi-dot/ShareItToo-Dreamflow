@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import { chmod, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -11,7 +14,10 @@ import {
   listingAiOpenAiModel,
   readListingAiGatewayConfiguration,
 } from '../src/listing_ai_gateway_config.js';
-import { createOpenAiListingAiProvider } from '../src/openai_listing_ai_provider.js';
+import {
+  createOpenAiListingAiProvider,
+  readOpenAiListingAiApiKey,
+} from '../src/openai_listing_ai_provider.js';
 
 const secretFixture = `sk-test-${'x'.repeat(32)}`;
 const imageReference = 'analysis_image_00000001';
@@ -67,6 +73,40 @@ function request() {
     manualInputPresent: true,
   }, configuration());
 }
+
+test('OpenAI listing-AI credential loader supports an exact private file without fallback leakage', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'sit-openai-provider-secret-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const secretPath = join(directory, 'openai-api-key');
+  const linkPath = join(directory, 'openai-api-key-link');
+  await writeFile(secretPath, `${secretFixture}\n`, { mode: 0o600 });
+  await chmod(secretPath, 0o600);
+
+  assert.equal(
+    readOpenAiListingAiApiKey({ OPENAI_API_KEY_FILE: secretPath }),
+    secretFixture,
+  );
+  assert.throws(
+    () => readOpenAiListingAiApiKey({
+      OPENAI_API_KEY: secretFixture,
+      OPENAI_API_KEY_FILE: secretPath,
+    }),
+    (error) => error instanceof ListingAiGatewayError
+      && error.code === 'listing_ai_provider_credentials_conflicting',
+  );
+
+  await symlink(secretPath, linkPath);
+  assert.throws(
+    () => readOpenAiListingAiApiKey({ OPENAI_API_KEY_FILE: linkPath }),
+    (error) => error instanceof ListingAiGatewayError
+      && error.code === 'listing_ai_provider_credentials_unavailable',
+  );
+  assert.throws(
+    () => readOpenAiListingAiApiKey({ OPENAI_API_KEY_FILE: 'relative-secret' }),
+    (error) => error instanceof ListingAiGatewayError
+      && error.code === 'listing_ai_provider_credentials_unavailable',
+  );
+});
 
 test('openai adapter sends stripped data URLs with strict schemas and no tools or storage', async () => {
   const calls = [];

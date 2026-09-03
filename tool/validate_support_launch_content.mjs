@@ -122,14 +122,19 @@ function assertExternalAiFailClosed(root, overrides) {
     [provider, "responsesEndpoint = 'https://api.openai.com/v1/responses'"],
     [provider, 'store: false'],
     [provider, 'detail: \'low\''],
-    [app, 'apiKey: process.env.OPENAI_API_KEY'],
+    [provider, 'listing_ai_provider_credentials_conflicting'],
+    [provider, 'constants.O_NOFOLLOW'],
+    [provider, 'bytes?.fill(0)'],
+    [app, 'apiKey: readOpenAiListingAiApiKey(process.env)'],
   ]) {
     if (!content.includes(marker)) {
       fail(`Server listing-AI fail-closed contract is missing: ${marker}`);
     }
   }
-  if ((app.match(/process\.env\.OPENAI_API_KEY/gu) ?? []).length !== 1
-      || /process\.env|OPENAI_API_KEY/u.test(provider)
+  if ((app.match(/readOpenAiListingAiApiKey\(process\.env\)/gu) ?? []).length !== 1
+      || /process\.env/u.test(provider)
+      || !/OPENAI_API_KEY_FILE/u.test(provider)
+      || !/OPENAI_API_KEY/u.test(provider)
       || /process\.env|OPENAI_API_KEY/u.test(gateway)
       || /OPENAI_API_KEY/u.test(config)) {
     fail('Server listing-AI credential boundary is invalid.');

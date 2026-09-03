@@ -101,6 +101,10 @@ jobs:
           SMTP_REQUIRE_TLS: "true"
           MAIL_FROM: "ShareItToo Staging <contact@shareittoo.com>"
           MAIL_REPLY_TO: contact@shareittoo.com
+          OPENAI_API_KEY_HOST_FILE: /run/shareittoo-ci/openai-api-key
+          SIT_LISTING_AI_MODEL: gpt-4o-mini-2024-07-18
+          SIT_LISTING_AI_BUDGET_CENTS: "5"
+          SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: "1"
         run: |
           docker compose -f compose.prod.yml config --quiet
           docker compose -f compose.staging.yml config --quiet
@@ -116,6 +120,11 @@ jobs:
             -f compose.staging.yml \
             -f compose.staging.pilot.yml \
             -f compose.staging.smtp.yml \
+            config --quiet
+          docker compose \
+            -f compose.staging.yml \
+            -f compose.staging.pilot.yml \
+            -f compose.staging.listing-ai.yml \
             config --quiet
           docker run --rm \
             --volume "$PWD/ops/Caddyfile:/etc/caddy/Caddyfile:ro" \

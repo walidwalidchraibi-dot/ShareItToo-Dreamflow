@@ -6,6 +6,7 @@ task_environment="${1:-}"
 task_commit="${2:-}"
 task_enable_staging_fcm="${ENABLE_STAGING_FCM:-0}"
 task_enable_staging_smtp="${ENABLE_STAGING_SMTP:-0}"
+task_enable_staging_listing_ai="${ENABLE_STAGING_LISTING_AI:-0}"
 task_node_binary="${NODE_BINARY:-node}"
 task_deployment_started=false
 task_previous_image_id=''
@@ -18,6 +19,8 @@ task_release_dir="${RELEASE_LOG_DIR:-/docker/shareittoo/releases}"
 task_staging_pilot_id="${SIT_STAGING_PILOT_ID:-}"
 task_pull_release_image="${PULL_RELEASE_IMAGE:-0}"
 task_staging_smtp_enabled=false
+task_staging_listing_ai_enabled=false
+task_rollback_compose_args=()
 
 cleanup() {
   if [[ -n "$task_rollback_override" ]]; then
@@ -35,15 +38,20 @@ rollback_failed_deployment() {
 
   if [[ "$task_deployment_started" == true && -n "$task_previous_image_id" ]]; then
     task_rollback_override="$(mktemp)"
-    printf 'services:\n  api:\n    image: "%s"\n' \
-      "$task_previous_image_id" > "$task_rollback_override"
+    if [[ "$task_staging_listing_ai_enabled" == true ]]; then
+      printf 'services:\n  api:\n    image: "%s"\n    environment:\n      SIT_LISTING_AI_PROVIDER: mock\n      SIT_LISTING_AI_MODEL: listing-ai-mock-v1\n      SIT_LISTING_AI_BUDGET_CENTS: "0"\n      SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: "0"\n      OPENAI_API_KEY: ""\n      OPENAI_API_KEY_FILE: ""\n' \
+        "$task_previous_image_id" > "$task_rollback_override"
+    else
+      printf 'services:\n  api:\n    image: "%s"\n' \
+        "$task_previous_image_id" > "$task_rollback_override"
+    fi
 
     task_rollback_commit="${task_previous_commit:-unknown}"
     APP_VERSION="$task_previous_version" \
     APP_COMMIT="$task_rollback_commit" \
     APP_BUILD_TIME="$task_previous_build_time" \
     docker compose --project-name "$task_project_name" \
-      --env-file "$task_env_file" "${task_compose_args[@]}" \
+      --env-file "$task_env_file" "${task_rollback_compose_args[@]}" \
       -f "$task_rollback_override" \
       up -d --no-build --wait --wait-timeout 180
     task_rollback_compose_status=$?
@@ -100,12 +108,20 @@ if [[ "$task_enable_staging_smtp" != 0 && "$task_enable_staging_smtp" != 1 ]]; t
   echo "ENABLE_STAGING_SMTP must be 0 or 1." >&2
   exit 1
 fi
+if [[ "$task_enable_staging_listing_ai" != 0 && "$task_enable_staging_listing_ai" != 1 ]]; then
+  echo "ENABLE_STAGING_LISTING_AI must be 0 or 1." >&2
+  exit 1
+fi
 if [[ "$task_environment" == production && "$task_enable_staging_fcm" == 1 ]]; then
   echo "The staging FCM override is forbidden for production deployments." >&2
   exit 1
 fi
 if [[ "$task_environment" == production && "$task_enable_staging_smtp" == 1 ]]; then
   echo "The staging SMTP override is forbidden for production deployments." >&2
+  exit 1
+fi
+if [[ "$task_environment" == production && "$task_enable_staging_listing_ai" == 1 ]]; then
+  echo "The staging listing-AI override is forbidden for production deployments." >&2
   exit 1
 fi
 if [[ "$task_pull_release_image" != 0 && "$task_pull_release_image" != 1 ]]; then
@@ -118,6 +134,14 @@ if [[ "$task_environment" == production && -n "$task_staging_pilot_id" ]]; then
 fi
 if [[ -n "$task_staging_pilot_id" && "$task_staging_pilot_id" != heilbronn_wave0 ]]; then
   echo "SIT_STAGING_PILOT_ID must be empty or heilbronn_wave0." >&2
+  exit 1
+fi
+if [[ "$task_enable_staging_listing_ai" == 1 && "$task_staging_pilot_id" != heilbronn_wave0 ]]; then
+  echo "The staging listing-AI override requires SIT_STAGING_PILOT_ID=heilbronn_wave0." >&2
+  exit 1
+fi
+if [[ "$task_enable_staging_listing_ai" == 1 && "${CONFIRM_STAGING_LISTING_AI:-}" != "$task_commit" ]]; then
+  echo "CONFIRM_STAGING_LISTING_AI must equal the exact deployment commit." >&2
   exit 1
 fi
 
@@ -178,6 +202,29 @@ else
     task_compose_args+=(-f "$task_backend_root/compose.staging.fcm.yml")
     task_fcm_enabled=true
   fi
+  if [[ "$task_enable_staging_listing_ai" == 1 ]]; then
+    if [[ "${SIT_LISTING_AI_MODEL:-}" != gpt-4o-mini-2024-07-18 ]]; then
+      echo "SIT_LISTING_AI_MODEL must equal the reviewed Staging listing-AI model." >&2
+      exit 1
+    fi
+    if [[ ! "${SIT_LISTING_AI_BUDGET_CENTS:-}" =~ ^[0-9]+$ ]]; then
+      echo "SIT_LISTING_AI_BUDGET_CENTS must be an integer from 2 to 500." >&2
+      exit 1
+    fi
+    task_listing_ai_budget_cents=$((10#${SIT_LISTING_AI_BUDGET_CENTS}))
+    if (( task_listing_ai_budget_cents < 2 || task_listing_ai_budget_cents > 500 )); then
+      echo "SIT_LISTING_AI_BUDGET_CENTS must be an integer from 2 to 500." >&2
+      exit 1
+    fi
+    if [[ "${SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED:-}" != 1 ]]; then
+      echo "SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED must equal 1." >&2
+      exit 1
+    fi
+    OPENAI_API_KEY_HOST_FILE="${OPENAI_API_KEY_HOST_FILE:-}" \
+      "$task_node_binary" "$task_backend_root/ops/validate_openai_staging_secret.mjs"
+    task_compose_args+=(-f "$task_backend_root/compose.staging.listing-ai.yml")
+    task_staging_listing_ai_enabled=true
+  fi
 fi
 
 if [[ ! -f "$task_env_file" ]]; then
@@ -205,6 +252,18 @@ if [[ "$task_environment" == staging && "$task_enable_staging_smtp" == 1 ]]; the
   task_compose_args+=(-f "$task_backend_root/compose.staging.smtp.yml")
   task_staging_smtp_enabled=true
 fi
+
+# Rollback must never inherit the optional listing-AI overlay because that
+# overlay contains the credential mount. Preserve all other active Staging
+# overlays while removing the listing-AI pair before deployment can begin.
+for ((task_compose_index = 0; task_compose_index < ${#task_compose_args[@]}; task_compose_index++)); do
+  if [[ "${task_compose_args[$task_compose_index]}" == -f &&
+        "${task_compose_args[$((task_compose_index + 1))]:-}" == "$task_backend_root/compose.staging.listing-ai.yml" ]]; then
+    task_compose_index=$((task_compose_index + 1))
+    continue
+  fi
+  task_rollback_compose_args+=("${task_compose_args[$task_compose_index]}")
+done
 
 DATABASE_CONTAINER="$task_database_container" \
 DATABASE_USER="$task_database_user" \
@@ -236,15 +295,20 @@ if ! grep -q "\"commit\":\"$task_commit\"" <<<"$task_version_payload"; then
   echo "Deployment health endpoint does not expose the requested commit." >&2
   exit 1
 fi
-curl --fail --silent --show-error --max-time 20 "$task_health_url/health/ready" >/dev/null
+task_ready_payload="$(curl --fail --silent --show-error --max-time 20 "$task_health_url/health/ready")"
+if [[ "$task_staging_listing_ai_enabled" == true ]] &&
+   ! grep -Fq '"listingAi":{"status":"enabled","provider":"openai","externalProviderExecutionAllowed":true,"automaticPublicationAllowed":false}' <<<"$task_ready_payload"; then
+  echo "Staging listing-AI health does not confirm the exact enabled provider boundary." >&2
+  exit 1
+fi
 
 install -d -m 700 "$task_release_dir"
 task_timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 task_report="$task_release_dir/${task_environment}-${task_timestamp}-${task_commit:0:12}.json"
-printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingSmtp":%s,"stagingPilotId":"%s"}\n' \
+printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingSmtp":%s,"stagingListingAi":%s,"stagingPilotId":"%s"}\n' \
   "$task_environment" "$task_commit" "$task_previous_commit" "$task_version" \
   "$task_build_time" "$task_timestamp" "$task_fcm_enabled" "$task_staging_smtp_enabled" \
-  "$task_staging_pilot_id" > "$task_report"
+  "$task_staging_listing_ai_enabled" "$task_staging_pilot_id" > "$task_report"
 chmod 600 "$task_report"
 task_deployment_started=false
 

@@ -349,7 +349,10 @@ import {
   createBlueOceanListingWorkflow,
   reviewBlueOceanListingDraft,
 } from './blue_ocean_listing_workflow.js';
-import { createOpenAiListingAiProvider } from './openai_listing_ai_provider.js';
+import {
+  createOpenAiListingAiProvider,
+  readOpenAiListingAiApiKey,
+} from './openai_listing_ai_provider.js';
 import { createListingAiGateway } from './listing_ai_gateway.js';
 import { createPostgresListingAiBudgetGuard } from './listing_ai_budget_guard.js';
 import {
@@ -1595,7 +1598,7 @@ export function createApp({
   const listingAiProvider = config.listingAi.provider === 'openai'
     ? (openAiListingAiProvider ?? createOpenAiListingAiProvider({
       configuration: config.listingAi,
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: readOpenAiListingAiApiKey(process.env),
       budgetGuard: createPostgresListingAiBudgetGuard({
         client: pool,
         budgetCents: config.listingAi.budgetCents,
@@ -1616,6 +1619,12 @@ export function createApp({
     ...(screenBlueOceanListingImage == null
       ? {}
       : { screenImage: screenBlueOceanListingImage }),
+  });
+  const listingAiHealth = Object.freeze({
+    status: config.listingAi.enabled ? 'enabled' : 'disabled',
+    provider: config.listingAi.provider,
+    externalProviderExecutionAllowed: config.listingAi.externalProviderExecutionAllowed,
+    automaticPublicationAllowed: false,
   });
   const attemptFirebaseIdentityDeletion = async (ids) => {
     try {
@@ -1761,7 +1770,14 @@ export function createApp({
         && payments.failedEvents === 0 && payments.unbalanced === 0
         && supportDeadlines.status === 'ok' ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail, notifications, payments, supportDeadlines },
+      checks: {
+        database: 'ok',
+        mail,
+        notifications,
+        payments,
+        supportDeadlines,
+        listingAi: listingAiHealth,
+      },
       release: releaseMetadata,
       time: new Date().toISOString(),
     });
@@ -1785,7 +1801,14 @@ export function createApp({
     res.status(ready ? 200 : 503).json({
       status: ready ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail, notifications, payments, supportDeadlines },
+      checks: {
+        database: 'ok',
+        mail,
+        notifications,
+        payments,
+        supportDeadlines,
+        listingAi: listingAiHealth,
+      },
       release: releaseMetadata,
     });
   }));

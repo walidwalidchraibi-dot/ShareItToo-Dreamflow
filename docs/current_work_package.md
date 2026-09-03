@@ -1,4 +1,35 @@
-# Current Work Package: N16 current-candidate Pixel acceptance 2026090304
+# Current Work Package: N17 Staging listing-AI activation readiness
+
+Status: **PREPARED / PROVIDER OWNER GATE PENDING / RUNTIME STILL MOCK** on
+03.09.2026.
+
+N17 closes the deployment-readiness gap around the existing server-only
+OpenAI listing adapter without activating it. The new path is Staging- and
+`heilbronn_wave0`-only, disabled by default, bound to an exact commit and the
+reviewed model snapshot, capped at 2 to 500 cents, and requires an explicit
+external-execution confirmation.
+
+A provider credential can enter the container only from a validated, private,
+read-only regular file outside Git. The overlay clears direct credential
+environment injection. Deployment health must expose the exact enabled
+provider boundary without secret data, and automatic rollback forces the
+previous image back to mock, zero budget and no external execution. AI output
+remains a structured editable draft and can never publish automatically.
+
+Current Staging remains unchanged on mock with zero budget. No provider call,
+credential access, account or billing mutation, deployment, device action,
+Play, Production, payment, legal, Firebase, Cloud/VPS/DNS or PR merge occurred.
+Provider credential/account activation and the first real Staging image
+evaluation remain an action-time owner gate. The complete local technical
+regression passes; exact-head clean-checkout GitHub Regression and CodeQL are
+the remaining N17 closure checks.
+
+Machine evidence:
+`docs/evidence/release-readiness/n17-staging-listing-ai-activation-readiness-20260903.json`.
+Human handover:
+`docs/operations/N17_STAGING_LISTING_AI_ACTIVATION_READINESS_2026-09-03.md`.
+
+# Previous Work Package: N16 current-candidate Pixel acceptance 2026090304
 
 Status: **CANDIDATE TRANSPORT AND SESSION PASSED / OWNER AND LEGAL GATES
 PENDING / ONEPLUS UNTOUCHED** on 03.09.2026.

@@ -4,7 +4,36 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N16 candidate-bound Pixel acceptance state
+## Current N17 Staging listing-AI activation-readiness state
+
+The existing server-side OpenAI adapter is now surrounded by a reproducible,
+fail-closed Staging activation path. It is disabled by default and restricted
+to the exact `heilbronn_wave0` pilot, a reviewed model snapshot, an exact
+deployment-commit confirmation, a deliberate external-execution flag and a
+2-to-500-cent hard provider budget.
+
+Credential handling is file-only for this activation overlay: the source must
+be a validated private regular non-symlink file outside the repository and is
+mounted read-only without auto-creation. Direct environment credential
+injection is cleared. Health readback proves the provider/external-execution/
+no-auto-publication boundary without exposing credential data, while failed
+rollout restoration forces listing AI back to mock with zero budget.
+
+Official model, image-input, Structured Outputs and deprecation documentation
+was reviewed on 03.09.2026. The current runtime remains unchanged on mock with
+zero budget. No external AI call, credential access, provider account or
+billing change, Staging deployment, listing publication, device action, Play,
+Production, payment, legal, Firebase, Cloud/VPS/DNS or PR merge occurred.
+Provider setup and the first real Staging image evaluation remain explicit
+action-time owner steps. The complete local technical regression passes,
+including Web/Wasm, loopback, Android build and the capacity guard; exact-head
+clean-checkout GitHub Regression and CodeQL are the remaining N17 closure
+checks. Exact evidence is
+`docs/evidence/release-readiness/n17-staging-listing-ai-activation-readiness-20260903.json`;
+handover is
+`docs/operations/N17_STAGING_LISTING_AI_ACTIVATION_READINESS_2026-09-03.md`.
+
+## Previous N16 candidate-bound Pixel acceptance state
 
 The exact installed Internal/Staging candidate is `com.shareittoo.app`
 `1.0.0+2026090304`, artifact source

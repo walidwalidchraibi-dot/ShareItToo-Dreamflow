@@ -1,4 +1,13 @@
 import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+} from 'node:fs';
+import { isAbsolute } from 'node:path';
+
+import {
   listingAiProviderResponseSchema,
   ListingAiGatewayError,
 } from './listing_ai_gateway.js';
@@ -139,6 +148,43 @@ function normalizedApiKey(apiKey) {
     throw new ListingAiGatewayError(503, 'listing_ai_provider_credentials_unavailable');
   }
   return value;
+}
+
+export function readOpenAiListingAiApiKey(env) {
+  const direct = typeof env.OPENAI_API_KEY === 'string'
+    ? env.OPENAI_API_KEY.trim()
+    : '';
+  const filePath = typeof env.OPENAI_API_KEY_FILE === 'string'
+    ? env.OPENAI_API_KEY_FILE.trim()
+    : '';
+  if (direct && filePath) {
+    throw new ListingAiGatewayError(503, 'listing_ai_provider_credentials_conflicting');
+  }
+  if (direct) return normalizedApiKey(direct);
+  if (!filePath || !isAbsolute(filePath)) {
+    throw new ListingAiGatewayError(503, 'listing_ai_provider_credentials_unavailable');
+  }
+
+  let bytes;
+  let descriptor;
+  try {
+    descriptor = openSync(
+      filePath,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_CLOEXEC,
+    );
+    const metadata = fstatSync(descriptor);
+    if (!metadata.isFile() || metadata.size < 20 || metadata.size > 512) {
+      throw new Error('invalid secret file');
+    }
+    bytes = readFileSync(descriptor);
+    return normalizedApiKey(bytes.toString('utf8'));
+  } catch (error) {
+    if (error instanceof ListingAiGatewayError) throw error;
+    throw new ListingAiGatewayError(503, 'listing_ai_provider_credentials_unavailable');
+  } finally {
+    bytes?.fill(0);
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
 }
 
 export function createOpenAiListingAiProvider({
