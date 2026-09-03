@@ -40,6 +40,13 @@ reclassify an unknown outcome as rejection.
 Follow-up evidence:
 `docs/operations/N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
 
+Next candidate preparation is `1.0.0+2026090307`, still **not built or
+installed**. Version/archive uniqueness and configured Android/signing preflight
+pass. Candidate metadata full local regression passes (2,144 tool tests, 662
+Flutter passes with five expected skips, analyzer zero, profile suites,
+Web/Wasm, loopback and Android). Exact final-source CI remains required.
+See `docs/operations/N29_PIXEL_SMS_CANDIDATE_2026090307_PREPARATION.md`.
+
 The separately owner-authorized Staging API-key application restriction was
 removed for direct-APK reCAPTCHA; all 25 API restrictions were preserved.
 Production, Play, payment, KYC, OnePlus and PR merge were not changed.

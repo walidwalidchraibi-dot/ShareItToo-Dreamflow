@@ -38,6 +38,15 @@ The frozen installed APK is unchanged; this mobile correction requires a new
 candidate before device claims. No SMS was sent by these tests.
 See `docs/operations/N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
 
+Candidate `1.0.0+2026090307` is now in local preparation only. Existing archive
+and Git-version maxima were `2026090306`; the next version was unused in both.
+Android Firebase and canonical local signing preflight pass. Candidate-metadata
+full local regression passes: 2,144 tool tests, 662 Flutter passes with five
+expected skips, analyzer zero, profile suites, Web/Wasm, loopback and Android.
+No new APK is yet built or installed; exact final-source CI and binary
+verification remain.
+See `docs/operations/N29_PIXEL_SMS_CANDIDATE_2026090307_PREPARATION.md`.
+
 The owner explicitly authorized the Staging Android key's application
 restriction removal for reCAPTCHA; 25 API restrictions remain. No Production,
 Play, payment, KYC, OnePlus, public rollout or PR merge change occurred.
