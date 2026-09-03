@@ -1,4 +1,47 @@
-# Current Work Package: N17 Staging listing-AI activation readiness closure
+# Current Work Package: N18 Pixel two-role non-binding truth closure
+
+Status: **CLOSED / PIXEL CURRENT CANDIDATE PASSED / LIVE GATES CLOSED** on
+03.09.2026.
+
+Candidate `com.shareittoo.app` `1.0.0+2026090305`, built from exact artifact
+source `4bcc018eef7759d9f8fe64f75daba060abf0eb13`, is installed in place on the
+Pixel. Its APK SHA-256 is
+`113c8067a7fcd8769952126e33c2496e1d38a06d6bcbff02658ab5336c38be41`;
+the AAB SHA-256 is
+`435cfcc9f3a493e86b2e2b9ed532bcd0f8fba0c68761c768e80eb9806fb5cd0f`.
+Signing, Firebase, identity and binary privacy checks pass, and app data was
+preserved.
+
+The server-authoritative `simulationOnly` marker is now preserved through the
+renter booking mapping and has precedence in both role cards. The real Pixel
+shows `Pilot-Simulation` on renter and owner cards plus explicit non-binding
+titles/notices on both details. No contract, reservation, payment, handover or
+return action is exposed for this simulation.
+
+The exact candidate also passes foreground/background/terminated FCM with
+current icon review, state-confirmed offline/realtime recovery, and logout/
+cold-start privacy with post-logout push suppression. The Pixel owner test
+session was restored. Offline diagnostic commit
+`9a85579c83b03a9fbf607f784b5d8b2e26c5a67f` replaces the Android Wi-Fi
+teardown timing assumption with three consecutive no-default-network samples.
+
+Complete local regression, exact-head GitHub Regression `33716964243`, CodeQL
+`33716964239` and zero open alerts pass. PR #7 remains Draft and unmerged.
+The first implementation run's Maven Central 429 and the local generated
+Gradle-transform corruption required no source workaround; unchanged exact
+reruns/builds pass.
+
+Real email verification/accounts, owner Google sign-in, Stripe sandbox,
+external listing AI and V5.2 approval remain open. OnePlus, Play, Production,
+tester lists, public registration, real money, Firebase configuration,
+Cloud/VPS/DNS and PR merge were unchanged.
+
+Machine evidence:
+`docs/evidence/release-readiness/n18-pixel-two-role-non-binding-truth-2026090305.json`.
+Human handover:
+`docs/operations/N18_PIXEL_TWO_ROLE_NON_BINDING_TRUTH_2026-09-03.md`.
+
+# Previous Work Package: N17 Staging listing-AI activation readiness closure
 
 Status: **CLOSED AS READINESS / PROVIDER OWNER GATE PENDING / RUNTIME STILL MOCK** on
 03.09.2026.

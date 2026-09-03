@@ -4,6 +4,54 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
+## Current N18 Pixel two-role non-binding truth closure
+
+The exact signed Internal/Staging candidate `com.shareittoo.app`
+`1.0.0+2026090305` from artifact source
+`4bcc018eef7759d9f8fe64f75daba060abf0eb13` is installed in place on the
+Pixel with exact APK SHA-256
+`113c8067a7fcd8769952126e33c2496e1d38a06d6bcbff02658ab5336c38be41`.
+The AAB SHA-256 is
+`435cfcc9f3a493e86b2e2b9ed532bcd0f8fba0c68761c768e80eb9806fb5cd0f`.
+Signing, identity, Firebase and binary privacy checks pass; app data and the
+original first-install identity were preserved.
+
+The real Pixel exposed and now verifies a P1 truthfulness correction: the
+Backend's `simulationOnly` marker must survive the renter booking map and take
+precedence in both role status chips. Renter and owner cards now show
+`Pilot-Simulation`; both detail titles and notices clearly state the
+non-binding, no-contract/no-reservation/no-payment state. Focused unit, widget
+and wiring tests hold this invariant.
+
+The same candidate passes foreground/background/terminated FCM and private
+icon review, state-confirmed offline/realtime recovery in the same process,
+plus logout/cold-start chat privacy and post-logout push suppression. The
+offline harness now requires three consecutive samples with no active default
+network, fixing the measured Android Wi-Fi teardown race without a fixed
+timing workaround. The protected owner session was restored after all probes.
+
+Exact Staging remains healthy on Backend source
+`5d88295fa7fe313b83936783a0582a505b2ba486`; database, mail, notification
+queues and support watchdog are healthy. Payment remains memory-only with
+`livemode=false`, and listing AI remains mock with zero provider budget.
+
+Implementation commit `4bcc018eef7759d9f8fe64f75daba060abf0eb13`
+passes complete local and exact-head GitHub Regression `33714842540` attempt
+2 plus CodeQL `33714842542`. Diagnostic-invariant commit
+`9a85579c83b03a9fbf607f784b5d8b2e26c5a67f` passes complete local
+regression with 2,055 repository tool tests, exact GitHub Regression
+`33716964243`, CodeQL `33716964239` and zero open alerts. PR #7 remains Draft
+and unmerged.
+
+The two roles remain synthetic Staging fixtures; real email-link completion,
+real-account login, owner Google sign-in, Stripe sandbox, external listing AI
+and V5.2 approval remain open. OnePlus, Play, Production, tester lists, public
+registration, real money, Cloud/VPS/DNS and PR merge were unchanged. Exact
+evidence is
+`docs/evidence/release-readiness/n18-pixel-two-role-non-binding-truth-2026090305.json`;
+handover is
+`docs/operations/N18_PIXEL_TWO_ROLE_NON_BINDING_TRUTH_2026-09-03.md`.
+
 ## Current N17 Staging listing-AI activation-readiness closure
 
 The existing server-side OpenAI adapter is now surrounded by a reproducible,
