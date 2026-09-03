@@ -1,6 +1,6 @@
-# Current Work Package: N17 Staging listing-AI activation readiness
+# Current Work Package: N17 Staging listing-AI activation readiness closure
 
-Status: **PREPARED / PROVIDER OWNER GATE PENDING / RUNTIME STILL MOCK** on
+Status: **CLOSED AS READINESS / PROVIDER OWNER GATE PENDING / RUNTIME STILL MOCK** on
 03.09.2026.
 
 N17 closes the deployment-readiness gap around the existing server-only
@@ -21,8 +21,11 @@ credential access, account or billing mutation, deployment, device action,
 Play, Production, payment, legal, Firebase, Cloud/VPS/DNS or PR merge occurred.
 Provider credential/account activation and the first real Staging image
 evaluation remain an action-time owner gate. The complete local technical
-regression passes; exact-head clean-checkout GitHub Regression and CodeQL are
-the remaining N17 closure checks.
+regression passes. Exact-head clean-checkout GitHub Regression `33710641470`
+attempt 2 and CodeQL `33710641236` pass for implementation commit
+`4c081a50d3d90e142a4c1bc427c12cefaaf370f4`, with zero open code-scanning
+alerts. Attempt 1 encountered only Maven Central HTTP 429 while resolving
+Android dependencies; no code changed before the successful attempt.
 
 Machine evidence:
 `docs/evidence/release-readiness/n17-staging-listing-ai-activation-readiness-20260903.json`.

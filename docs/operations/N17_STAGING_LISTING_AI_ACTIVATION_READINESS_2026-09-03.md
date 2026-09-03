@@ -1,6 +1,6 @@
 # N17 Staging listing-AI activation readiness
 
-Status: **PREPARED / PROVIDER OWNER GATE PENDING / RUNTIME STILL MOCK** on
+Status: **CLOSED AS READINESS / PROVIDER OWNER GATE PENDING / RUNTIME STILL MOCK** on
 03.09.2026.
 
 N17 prepares the safest bounded path for the existing server-side listing-AI
@@ -58,8 +58,13 @@ Machine evidence is
 The complete local technical regression passed, including the full Flutter
 suite, backend and evidence validators, Web/Wasm checks, loopback smoke,
 Android debug build, and generated-artifact capacity guard. Clean-checkout
-Compose validation plus exact-head GitHub Regression and CodeQL remain bound to
-the implementation commit before N17 closure.
+Compose validation plus exact-head GitHub Regression `33710641470` attempt 2
+and CodeQL `33710641236` passed for implementation commit
+`4c081a50d3d90e142a4c1bc427c12cefaaf370f4`; open code-scanning alerts were
+zero. Regression attempt 1 failed only while resolving the Android Gradle
+plugin because Maven Central returned HTTP 429. No code changed before attempt
+2 passed, and the failed attempt remains recorded rather than being treated as
+a product pass.
 
 N17 changes no Pixel or OnePlus installation, Play track, Production, public
 registration, payment, legal status, Firebase project, DNS, VPS or PR merge.

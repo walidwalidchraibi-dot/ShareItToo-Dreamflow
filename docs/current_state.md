@@ -4,7 +4,7 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
-## Current N17 Staging listing-AI activation-readiness state
+## Current N17 Staging listing-AI activation-readiness closure
 
 The existing server-side OpenAI adapter is now surrounded by a reproducible,
 fail-closed Staging activation path. It is disabled by default and restricted
@@ -26,9 +26,13 @@ billing change, Staging deployment, listing publication, device action, Play,
 Production, payment, legal, Firebase, Cloud/VPS/DNS or PR merge occurred.
 Provider setup and the first real Staging image evaluation remain explicit
 action-time owner steps. The complete local technical regression passes,
-including Web/Wasm, loopback, Android build and the capacity guard; exact-head
-clean-checkout GitHub Regression and CodeQL are the remaining N17 closure
-checks. Exact evidence is
+including Web/Wasm, loopback, Android build and the capacity guard. Exact-head
+clean-checkout GitHub Regression `33710641470` attempt 2 and CodeQL
+`33710641236` pass for implementation commit
+`4c081a50d3d90e142a4c1bc427c12cefaaf370f4`; open code-scanning alerts are
+zero. Attempt 1 encountered only Maven Central HTTP 429 during Android
+dependency resolution, and no code changed before the passing attempt. Exact
+evidence is
 `docs/evidence/release-readiness/n17-staging-listing-ai-activation-readiness-20260903.json`;
 handover is
 `docs/operations/N17_STAGING_LISTING_AI_ACTIVATION_READINESS_2026-09-03.md`.
