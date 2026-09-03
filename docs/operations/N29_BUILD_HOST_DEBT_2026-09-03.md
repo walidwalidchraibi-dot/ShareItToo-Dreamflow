@@ -1,5 +1,12 @@
 # N29 build-host and toolchain debt
 
+New bounded 2026-09-04 checkpoint: the Kotlin diagnostic is isolated to Firebase
+Auth release lint and disappears with coordinated AGP/Kotlin/Gradle pins.
+SDK XML mismatch remains; full original-host regression now stops before tests
+at 3,407,300 KiB effective capacity. No repeated purge. A clean signed release
+and exact CI are still required; earlier capacity passes do not prove current
+host readiness. See `WP02_ANDROID_TOOLCHAIN_ALIGNMENT_2026-09-04.md`.
+
 Latest 2026-09-04: candidate `2026090401`, source `c0c4a0d1`, completed the
 clean full gate followed by signed archive verification using the dedicated
 cache without intervening manual purge or retry. Local capacity lifecycle is

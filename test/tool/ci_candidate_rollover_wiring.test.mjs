@@ -140,8 +140,8 @@ test('Android packaging exposes a preflight-only path before either binary build
   assert.match(androidBuild, /SIT_BUILD_PREFLIGHT_ONLY/);
   const preflightOnly = androidBuild.indexOf('Android release build preflight passed without creating artifacts.');
   assert.ok(preflightOnly > androidBuild.indexOf('validate_firebase_release_config.mjs --require-configured'));
-  assert.ok(preflightOnly < androidBuild.indexOf('flutter build appbundle'));
-  assert.ok(preflightOnly < androidBuild.indexOf('flutter build apk'));
+  assert.ok(preflightOnly < androidBuild.indexOf('node tool/run_checked_android_build.mjs appbundle'));
+  assert.ok(preflightOnly < androidBuild.indexOf('node tool/run_checked_android_build.mjs apk'));
 });
 
 test('CI validates the cached checksum-bound Gradle wrapper once before Flutter builds', () => {
@@ -161,11 +161,11 @@ test('CI validates the cached checksum-bound Gradle wrapper once before Flutter 
   );
   assert.match(
     wrapperProperties,
-    /^distributionUrl=https\\:\/\/downloads\.gradle\.org\/distributions\/gradle-8\.12-bin\.zip$/m,
+    /^distributionUrl=https\\:\/\/downloads\.gradle\.org\/distributions\/gradle-8\.13-bin\.zip$/m,
   );
   assert.match(
     wrapperProperties,
-    /^distributionSha256Sum=7a00d51fb93147819aab76024feece20b6b84e420694101f276be952e08bef03$/m,
+    /^distributionSha256Sum=20f1b1176237254a6fc204d8434196fa11a4cfb387567519c61556e8710aed78$/m,
   );
   assert.match(wrapperProperties, /^networkTimeout=60000$/m);
   assert.match(wrapperProperties, /^validateDistributionUrl=true$/m);

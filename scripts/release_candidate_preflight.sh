@@ -13,6 +13,7 @@ fail() {
 
 command -v dart >/dev/null 2>&1 || fail "dart is required for store metadata validation."
 command -v node >/dev/null 2>&1 || fail "node is required for public store page validation."
+node tool/validate_android_toolchain.mjs
 node --check tool/verify_public_store_pages.mjs
 node --check tool/verify_brand_assets.mjs
 node --check tool/verify_android_binary_privacy.mjs

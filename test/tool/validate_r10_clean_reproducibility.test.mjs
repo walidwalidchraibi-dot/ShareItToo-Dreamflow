@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { androidToolchain } from '../../tool/validate_android_toolchain.mjs';
 
 import {
   validateR10CleanReproducibility,
@@ -48,6 +49,7 @@ test('accepts a structurally exact detached CI execution result', () => {
   ci.source.implementationHead = 'a'.repeat(40);
   ci.source.checkoutHead = 'a'.repeat(40);
   ci.toolchain.node = 'v22.99.1';
+  ci.toolchain.gradle = androidToolchain.gradle;
   ci.commands.fullTechnicalRegression.durationSeconds = 700;
   ci.observedOn = '2026-08-25';
   ci.android.identity.versionName = currentVersion.versionName;
@@ -55,6 +57,10 @@ test('accepts a structurally exact detached CI execution result', () => {
   ci.android.identity.compileSdk = 36;
   ci.android.identity.targetSdk = 36;
   assert.equal(validate(ci, { executionOnly: true }).implementationHead, 'a'.repeat(40));
+
+  ci.toolchain.gradle = '8.12';
+  assert.throws(() => validate(ci, { executionOnly: true }), /toolchain identity/u);
+  ci.toolchain.gradle = androidToolchain.gradle;
 
   ci.observedOn = '2026-02-31';
   assert.throws(

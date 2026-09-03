@@ -47,7 +47,7 @@ test('capacity acceptance cannot be changed by environment or timing workarounds
 test('signed candidate owns a cold generated lifecycle around the private archive', () => {
   assert.match(
     releaseBuilder,
-    /release_host_capacity_begin[\s\S]*?trap release_candidate_cleanup_on_exit EXIT[\s\S]*?release_candidate_clean_generated[\s\S]*?flutter build appbundle/u,
+    /release_host_capacity_begin[\s\S]*?trap release_candidate_cleanup_on_exit EXIT[\s\S]*?release_candidate_clean_generated[\s\S]*?node tool\/run_checked_android_build\.mjs appbundle/u,
   );
   assert.match(
     releaseBuilder,

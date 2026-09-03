@@ -14,6 +14,17 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
+WP02 Android-build prerequisite in progress: coordinated AGP 8.13.2 / Kotlin
+2.3.10 / Gradle 8.13 removes the reproduced Firebase Auth release-lint metadata
+diagnostic. All 2,165 tool tests and the complete byte-verified public-source
+SSD snapshot regression pass, including analyzer, configured Flutter profiles,
+Web/Wasm dry run, loopback and Android. The original main-host gate stopped at
+its unchanged capacity floor before tests. Normal local dependency audit has
+recovered and passed. SDK XML reader debt remains open. New
+release builds reject either diagnostic even with exit zero. No new archive,
+Pixel update, SMS or provider action. Active evidence:
+`docs/operations/WP02_ANDROID_TOOLCHAIN_ALIGNMENT_2026-09-04.md`.
+
 Latest 2026-09-04: signed candidate `1.0.0+2026090401` from clean source
 `c0c4a0d13761d995e2aba8fed13edf0be481f90d` passes full local regression,
 the uninterrupted dedicated-cache signed lifecycle and independent artifact

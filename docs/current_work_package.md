@@ -1,5 +1,19 @@
 # Current Work Package: WP02 / WP01 Pixel candidate 2026090401
 
+Active bounded prerequisite: Android toolchain alignment on base `2e5b1ed5`.
+AGP 8.13.2 / Kotlin 2.3.10 / Gradle 8.13 removes the reproduced Firebase Auth
+release-lint Kotlin diagnostic. A fail-closed release diagnostic guard and pin
+checks pass all 2,165 tool tests. SDK XML incompatibility remains open; the full
+main-host gate stopped at its unchanged capacity floor before tests. A separate
+byte-verified public-source SSD snapshot subsequently passed the complete gate:
+2,165 tools, 665 default Flutter plus explicit profiles, analyzer, Web/Wasm dry
+run, loopback and Android. This is not a signed main-host or device pass. The
+normal local dependency audit also recovered and passed. No cache
+purge, new signed archive or device write. Exact base CI has Backend/Flutter/
+PostgreSQL passing, clean-checkout npm-audit timeout, and CodeQL passing.
+See `docs/operations/WP02_ANDROID_TOOLCHAIN_ALIGNMENT_2026-09-04.md`.
+The candidate checkpoints below retain their original source/time binding.
+
 Latest checkpoint: signed `1.0.0+2026090401` is privately archived and
 independently verified from clean pushed source
 `c0c4a0d13761d995e2aba8fed13edf0be481f90d`. Exact local full gate followed by

@@ -274,8 +274,8 @@ release_candidate_cleanup_on_exit() {
 trap release_candidate_cleanup_on_exit EXIT
 release_candidate_clean_generated
 
-flutter build appbundle "${common_args[@]}"
-flutter build apk "${common_args[@]}"
+node tool/run_checked_android_build.mjs appbundle "${common_args[@]}"
+node tool/run_checked_android_build.mjs apk "${common_args[@]}"
 
 aab="build/app/outputs/bundle/release/app-release.aab"
 apk="build/app/outputs/flutter-apk/app-release.apk"

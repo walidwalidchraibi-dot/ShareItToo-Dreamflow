@@ -39,6 +39,8 @@ fi
 
 flutter --version
 
+node tool/validate_android_toolchain.mjs
+
 dart --version
 
 # The complete tool inventory includes package-floor checks that read Flutter's

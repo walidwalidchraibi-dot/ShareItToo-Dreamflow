@@ -17,6 +17,7 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { androidToolchain } from './validate_android_toolchain.mjs';
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const tempPrefix = 'sit-r10-clean-reproducibility-';
@@ -434,7 +435,7 @@ async function captureToolchain(checkout, env) {
       || !Number.isSafeInteger(nodeMajor) || nodeMajor < 22
       || pnpm !== '11.16.0'
       || javaMajor !== 17
-      || gradle !== '8.12') {
+      || gradle !== androidToolchain.gradle) {
     fail('r10_toolchain_identity_unexpected');
   }
   return Object.freeze({

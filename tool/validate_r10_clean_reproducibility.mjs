@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { androidToolchain } from './validate_android_toolchain.mjs';
 
 import {
   r10ExpectedPermissions,
@@ -311,7 +312,7 @@ export function validateR10CleanReproducibility(value, { executionOnly = false }
       || !/^v(?:2[2-9]|[3-9]\d)\.\d+\.\d+$/u.test(value.toolchain?.node ?? '')
       || value.toolchain?.pnpm !== '11.16.0'
       || value.toolchain?.javaMajor !== 17
-      || value.toolchain?.gradle !== '8.12') {
+      || value.toolchain?.gradle !== (executionOnly ? androidToolchain.gradle : '8.12')) {
     fail('R10 toolchain identity changed.');
   }
   validateSourceComparison(value.sourceComparison, { executionOnly });
