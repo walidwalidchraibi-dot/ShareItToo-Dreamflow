@@ -60,6 +60,14 @@ retry test reproduces stale error text while a new confirmation is pending.
 Next: bound and fix that stale outcome display, then validate the affected
 candidate separately; do not request another unattended SMS. Details:
 `docs/operations/N29_PIXEL_SMS_RETRY_CHECKPOINT_2026-09-03.md`.
+The narrow retry display/observation correction now passes the full local
+gate: 13 focused widget and 22 diagnostic tests, 2,148 tool tests, 665 Flutter
+tests with five expected skips, analyzer baseline, Web/Wasm dry run, loopback
+and Android debug/binary audit. Separate Backend checks pass 795 tests with
+two expected skips. Historical artifact/device validators used the documented
+metadata-only mode; this is not physical acceptance. See
+`N29_SMS_RETRY_DISPLAY_CORRECTION_2026-09-03.md`. The fix is NOT in the installed
+2026090307 candidate; exact correction-HEAD CI and WP01 closure remain pending.
 Readback showed the original
 Enter-and-close notification was only a draft. The explicit Send button was
 subsequently clicked for one combined SMS/Meta/Apple owner request; the tab was

@@ -56,6 +56,48 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final retryFailure in <ContactActionFailure?>[
+    null,
+    const ContactActionFailure.rejected('invalidCode'),
+    const ContactActionFailure.outcomeUnknown(),
+  ]) {
+    testWidgets(
+        'retry clears prior rejection before ${retryFailure?.kind.name ?? 'success'}',
+        (tester) async {
+      final service = _PhoneScreenService()
+        ..confirmFailure = const ContactActionFailure.rejected('invalidCode');
+      await _openCodeSheet(tester, service);
+      await _confirm(tester);
+      expect(find.textContaining('SMS-Code prüfen'), findsOneWidget);
+      final pending = Completer<void>();
+      service
+        ..confirmFailure = retryFailure
+        ..pendingConfirmation = pending;
+      await tester.enterText(_codeField, '654321');
+      await tester.tap(find.widgetWithText(FilledButton, 'Bestätigen'));
+      await tester.pump();
+      expect(service.confirmCalls, 2);
+      expect(find.textContaining('SMS-Code prüfen'), findsNothing);
+      expect(find.text('Telefonnummer verifiziert'), findsNothing);
+      pending.complete();
+      await tester.pumpAndSettle();
+      if (retryFailure == null) {
+        expect(_codeField, findsNothing);
+        expect(find.text('Telefonnummer verifiziert'), findsOneWidget);
+      } else {
+        expect(_codeField, findsOneWidget);
+        expect(find.text('Telefonnummer verifiziert'), findsNothing);
+        expect(
+            find.textContaining(
+                retryFailure.kind == ContactActionFailureKind.rejected
+                    ? 'SMS-Code prüfen'
+                    : 'Ergebnisstatus'),
+            findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('post-confirmation refresh error cannot erase accepted truth',
       (tester) async {
     final service = _PhoneScreenService()

@@ -24,6 +24,15 @@ a local widget test reproduces stale rejection during a pending retry. See
 paragraphs below describe their original candidate/checkpoint, not a rollback
 of these newly verified facts. WP01 is still not DONE.
 
+The narrow retry-display correction and attempt-aware diagnostic now pass
+full local regression: 2,148 tool tests, 665 Flutter passes plus five expected
+skips, analyzer baseline, Web/Wasm dry run, loopback and Android debug/binary
+audit; separate Backend 795 passes plus two expected skips. Historical
+artifact/device validation used documented metadata-only mode. Exact new-HEAD
+GitHub/clean-checkout verification is pending. This correction is NOT installed
+on Pixel and does not alter the frozen 2026090307 evidence. See
+`docs/operations/N29_SMS_RETRY_DISPLAY_CORRECTION_2026-09-03.md`.
+
 One owner-authorized SMS reached the owner from the exact Pixel candidate
 `1.0.0+2026090306`. Exact Backend preconditions before cleanup prove the phone
 was verified, but the UI completion was not captured. Cleanup then removed the

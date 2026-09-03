@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   clearVerifiedPhoneFromStagingTestAccount,
   createPhoneVerificationCommandRunner,
+  createPhoneConfirmationResultObserver,
   currentHeadAndroidEditableNodeForLabel,
   hasPhoneVerificationSmsInput,
   encodeAdbNumericInput,
@@ -77,6 +78,35 @@ test('SMS input accepts an exact Android hint with the app non-breaking hyphen',
   assert.equal(hasPhoneVerificationSmsInput(field.replace('SMS&#x2011;Code', 'Unrelated code')), false);
   assert.equal(hasPhoneVerificationSmsInput(field + field), false);
   assert.throws(() => currentHeadAndroidEditableNodeForLabel(field + field, 'SMS-Code'), /ambiguous/u);
+});
+
+const smsSheet = '<node class="android.widget.EditText" hint="SMS-Code" enabled="true" bounds="[40,100][400,180]" />';
+const rejectedSmsSheet = `${smsSheet}<node content-desc="SMS-Code prüfen" />`;
+
+test('unchanged previous SMS rejection cannot terminate current confirmation polling', () => {
+  const observed = createPhoneConfirmationResultObserver(rejectedSmsSheet);
+  assert.equal(observed(rejectedSmsSheet), false);
+  assert.equal(observed(rejectedSmsSheet), false);
+  assert.equal(observed('<node content-desc="Telefonnummer verifiziert" />'), true);
+});
+
+test('pending retry clears prior rejection before an identical new rejection', () => {
+  const observed = createPhoneConfirmationResultObserver(rejectedSmsSheet);
+  assert.equal(observed(smsSheet), false);
+  assert.equal(observed(rejectedSmsSheet), true);
+});
+
+test('missing or unrelated surface does not manufacture a fresh SMS result', () => {
+  const observed = createPhoneConfirmationResultObserver(rejectedSmsSheet);
+  assert.equal(observed('<hierarchy />'), false);
+  assert.equal(observed('<node content-desc="Other dialog" />'), false);
+  assert.equal(observed(rejectedSmsSheet), false);
+});
+
+test('first rejection, changed unknown result and known confirmation are observable', () => {
+  assert.equal(createPhoneConfirmationResultObserver(smsSheet)(rejectedSmsSheet), true);
+  assert.equal(createPhoneConfirmationResultObserver(rejectedSmsSheet)(`${smsSheet}Ergebnisstatus unklar`), true);
+  assert.equal(createPhoneConfirmationResultObserver(rejectedSmsSheet)(`${smsSheet}Telefonnummer bestätigt`), true);
 });
 
 function phoneSurface({ verified = false, fieldText = '', status = true } = {}) {

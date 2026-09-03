@@ -766,7 +766,13 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                           ? null
                           : () async {
                               final submittedCode = smsCode;
-                              setLocal(() => verifying = true);
+                              setLocal(() {
+                                verifying = true;
+                                // A prior rejection is not the result of this
+                                // new, still-pending confirmation attempt.
+                                inlineErrorTitle = null;
+                                inlineErrorMessage = null;
+                              });
                               try {
                                 if (!await _isInteractionOwnerCurrent(owner) ||
                                     !sheetOpen) {

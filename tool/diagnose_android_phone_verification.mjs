@@ -203,6 +203,30 @@ export function hasPhoneVerificationSmsInput(hierarchy) {
   }
 }
 
+export function createPhoneConfirmationResultObserver(previousHierarchy) {
+  const errorLabels = [
+    'SMS-Code prüfen',
+    'Telefonprüfung nicht abgeschlossen',
+    'Ergebnisstatus unklar',
+  ];
+  const errorLabel = (value) => errorLabels.find((label) => value.includes(label));
+  const previousError = errorLabel(previousHierarchy);
+  let previousErrorCleared = previousError === undefined;
+  return (hierarchy) => {
+    if (hierarchy.includes('Telefonnummer verifiziert')
+        || inspectPhoneVerificationSurface(hierarchy).state === 'verified'
+        || hierarchy.includes('Telefonnummer bestätigt')) return true;
+    const currentError = errorLabel(hierarchy);
+    if (currentError === undefined) {
+      // Only an actual code sheet can establish the pending transition.
+      // A missing/foreign surface must not manufacture a fresh outcome.
+      if (hasPhoneVerificationSmsInput(hierarchy)) previousErrorCleared = true;
+      return false;
+    }
+    return previousErrorCleared || currentError !== previousError;
+  };
+}
+
 export function currentHeadAndroidEditableNodeForLabel(hierarchy, label) {
   const direct = directlyLabelledEditableNodes(hierarchy, label);
   if (direct.length === 1) return direct[0];
@@ -678,6 +702,7 @@ export async function diagnoseAndroidPhoneVerification({
       8,
     );
     hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    const currentConfirmationResult = createPhoneConfirmationResultObserver(hierarchy);
     tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Bestätigen');
     hierarchy = await waitForHierarchy({
       commandRunner,
@@ -686,12 +711,7 @@ export async function diagnoseAndroidPhoneVerification({
       wait,
       attempts: 90,
       label: 'SMS confirmation result',
-      predicate: (value) => value.includes('Telefonnummer verifiziert')
-        || inspectPhoneVerificationSurface(value).state === 'verified'
-        || value.includes('Telefonnummer bestätigt')
-        || value.includes('SMS-Code prüfen')
-        || value.includes('Telefonprüfung nicht abgeschlossen')
-        || value.includes('Ergebnisstatus unklar'),
+      predicate: currentConfirmationResult,
     });
     if (!hierarchy.includes('Telefonnummer verifiziert')
         && inspectPhoneVerificationSurface(hierarchy).state !== 'verified') {
