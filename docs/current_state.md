@@ -14,6 +14,17 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
+On 2026-09-04, `d7575368` is pushed with exact CodeQL and Regression
+`33810785195` green, including clean checkout. A separate clean APFS build clone
+passed the unchanged local full gate with a cold, dedicated SSD Gradle cache.
+Two exact generated engine caches were migrated with recoverable verified
+copies. No credentials or signed artifacts moved. The original checkout stays
+the source authority. Its guarded full gate now passes, including 2,156 tools
+and the configured Android build, without another purge. The exact host-tool
+CI, new signed archive lifecycle, capacity/toolchain debt and physical acceptance
+remain OPEN. The new bounded
+host work is in `docs/operations/WP02_BUILD_WORKSPACE_2026-09-04.md`.
+
 Independent WP02 provider-SDK ownership implementation `70edafa2` passes full
 local regression and exact CodeQL; Regression `33809975120` remains pending.
 A subsequent test-only order-isolation correction passes both deterministic

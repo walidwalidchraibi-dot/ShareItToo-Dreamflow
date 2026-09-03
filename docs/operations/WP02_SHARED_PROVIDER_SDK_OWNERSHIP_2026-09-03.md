@@ -5,6 +5,17 @@ Base HEAD: `239c5aa1f74e55cb2991f97832a1d855a7ae7e94`.
 Branch: `codex/master-workflow-20260808`.
 Worktree: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
 
+Latest source checkpoint, 2026-09-04: test-isolation follow-up
+`d7575368b3ca1671ab2898d4f3cb02f603dd0fbd` passes exact Regression
+`33810785195` (including clean checkout) and CodeQL `33810785212`. A separate
+local clean APFS build clone also passes the complete unconfigured-Firebase CI
+profile, with 2,151 tools, 665 default Flutter passes/33 skips, three provider
+profiles, analyzer, Web/Wasm dry run, loopback and Android. The original
+configured checkout also passes its full gate with the new cache selector
+(2,156 tools). Exact host-tool CI and signed/device proof remain pending; see
+`WP02_BUILD_WORKSPACE_2026-09-04.md`. Earlier pending statuses
+below are historical checkpoints, not current CI failures or completion claims.
+
 ## Decision and scope
 
 The read-only preparation in `WP02_PROVIDER_READINESS_2026-09-03.md`

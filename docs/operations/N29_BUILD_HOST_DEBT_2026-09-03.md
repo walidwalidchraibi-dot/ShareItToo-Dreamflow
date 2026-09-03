@@ -1,5 +1,16 @@
 # N29 build-host and toolchain debt
 
+2026-09-04 progress: a dedicated APFS build area on the existing SSD passes
+filesystem checks and an exact-source cold full regression on `d7575368`.
+Two old global engine-transform entries were migrated only after complete
+verified copies, no-open-handle checks and source-JAR validation; all seven
+files remain recoverable. Future SIT commands use an explicitly guarded private
+Gradle cache, not repeated global cache purges. The original-checkout full
+gate also passes with that selector, and neither retired global entry was
+recreated. Exact new host-tool CI and the candidate-bound full-gate-to-signed-
+archive sequence are still pending, so debt remains OPEN. See
+`WP02_BUILD_WORKSPACE_2026-09-04.md` for exact paths and evidence.
+
 Status: **OPEN — not a release-readiness closure**. Observed 2026-09-03 on
 candidate source `77d5103cb3c89af3ca5187a6c2642e28fa0703dd`.
 Historical closed registers are not rewritten by this new observation.

@@ -1,5 +1,21 @@
 # Current Work Package: WP02 shared provider SDK ownership correction
 
+Current prerequisite on 2026-09-04: test-isolation source `d7575368` is pushed,
+exact CodeQL and Regression `33810785195`, including clean checkout, pass.
+A cold full local gate passed in a separate exact-source APFS build clone.
+The main checkout and private inputs stay in place. A guarded, process-local
+SIT cache selector passes five tests. Two exact regenerable engine caches
+were migrated with verified recoverable copies, freeing about 960 MB. The
+original checkout's full gate also passes with the dedicated cache: 2,156 tools,
+665 default Flutter passes/33 skips, all explicit profiles, analyzer, Web/Wasm
+dry run, loopback and Android. The retired global entries stayed absent, with
+no second purge or retry. Exact host-tool CI and the newly versioned signed
+archive lifecycle remain pending; capacity debt is not closed. See
+`docs/operations/WP02_BUILD_WORKSPACE_2026-09-04.md` for actual paths, current
+evidence and the required original-checkout gate-to-signed-archive proof.
+
+Previous checkpoint (superseded CI status retains its original time binding):
+
 Latest: implementation `70edafa2002951b02fd786bead136c8881651daa` is pushed;
 CodeQL `33809975135` passes and Regression `33809975120` is pending. A test-only
 follow-up isolates cold Google initialization from its intentional process

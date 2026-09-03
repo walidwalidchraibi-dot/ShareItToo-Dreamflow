@@ -72,6 +72,12 @@ money, contracts, privacy, security, release truth or user data.
 - Full gate: `SIT_ALLOW_CANDIDATE_ROLLOVER=1 bash scripts/technical_regression_check.sh`.
   The Mac-mini local metadata-only handoff check may additionally use `CI=true`;
   this must not be used to claim a Store upload or device pass.
+- When the current work package records a dedicated Mac-mini build-cache
+  profile, run full gates and release builds through
+  `node tool/run_with_local_build_cache.mjs --profile <private-profile.json> -- <command>`.
+  See `docs/operations/WP02_BUILD_WORKSPACE_2026-09-04.md`. Keep the private
+  profile outside Git; do not silently fall back to the global cache or repeat
+  cache purges. The normal source-capacity and release gates still apply.
 - Run `git diff --check` before staging. Preserve the analyzer baseline and do
   not suppress forbidden analyzer codes to make a check pass.
 
