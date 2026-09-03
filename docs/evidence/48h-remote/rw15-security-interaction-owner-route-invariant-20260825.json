@@ -355,7 +355,7 @@
     },
     {
       "path": "backend/ops/secret_scan_history_baseline.json",
-      "sha256": "a69c7a9ef06318bffdcf22c7263ffc5f13f3eb4c9ee9ea8100155b4e9aac3da0"
+      "sha256": "15ba72dccc4d4ac572923e09a68344df6802a5f9f9580bec7d4732a9a75ff4ee"
     },
     {
       "path": "lib/screens/security_screen.dart",
@@ -431,7 +431,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "ef8b78e61cb4bab4445aedd6d3e5c49dcb042aa3da8c9301ae89ac5a02c7426b"
+      "sha256": "b7889605ab98a9fed9eb156142a6787d2e2e72b362eac8984e87c53528ed0d8e"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
@@ -439,7 +439,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
-      "sha256": "bbb0c030967a4dce1a99b165de983ab5b13e82f8a86ad4ccb58b7f64ca5270ae"
+      "sha256": "e1845c5b8c17033176f564c76f9cd44807471488aaaa599d655094c59800eeaf"
     },
     {
       "path": "scripts/technical_regression_check.sh",

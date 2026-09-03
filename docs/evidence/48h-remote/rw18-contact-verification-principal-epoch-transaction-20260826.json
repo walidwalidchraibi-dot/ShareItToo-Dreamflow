@@ -469,7 +469,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
-      "sha256": "9b83896442dcf96e926955beeff9aa6bde9cb1e1d2cc32fed32e8bff9eebb2f3"
+      "sha256": "23d85bcd5401cf94c5170d2540f223bfb16e255a276658aae7b2bd66343f0b68"
     },
     {
       "path": "scripts/technical_regression_check.sh",

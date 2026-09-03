@@ -382,7 +382,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
-      "sha256": "f4b63c49e04b1063e6bf3737ff6571ce3dce95be0531a8c68564e86bd21b55e4"
+      "sha256": "2319aa5af3f76a4488216beb8ece5675a7ebb95f80658f1b1365bd53d0d2735c"
     },
     {
       "path": "scripts/technical_regression_check.sh",
