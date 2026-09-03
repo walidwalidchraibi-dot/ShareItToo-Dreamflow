@@ -1,0 +1,153 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  ownerNonBindingDetailVisible,
+  renterBookingChatVisible,
+  renterNonBindingDetailVisible,
+  runAndroidEmailVerifiedTwoRoleProductJourney,
+} from '../../tool/diagnose_android_email_verified_two_role_product_journey.mjs';
+
+const candidate = Object.freeze({
+  applicationId: 'com.shareittoo.app',
+  versionName: '1.0.0',
+  buildNumber: '2026090305',
+  commit: '4bcc018eef7759d9f8fe64f75daba060abf0eb13',
+  releaseChannel: 'internal',
+  apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+  firebaseConfigured: true,
+  apkSha256: '1'.repeat(64),
+});
+
+function passingOperations(calls) {
+  return {
+    prepare: async () => {
+      calls.push('prepare');
+      return { vaultFile: '/private/accounts.json' };
+    },
+    publishOwnerDraft: async () => {
+      calls.push('publish');
+      return { status: 'pixel-owner-draft-publish-submitted' };
+    },
+    verifyPublished: async () => {
+      calls.push('verify-published');
+      return { status: 'pixel-owner-publish-server-confirmed' };
+    },
+    simulate: async () => {
+      calls.push('simulate');
+      return { status: 'email-verified-two-role-simulation-ready-for-pixel-review' };
+    },
+    verifyOwner: async () => {
+      calls.push('owner');
+      return {
+        status: 'pixel-owner-accepted-non-binding-surface-passed',
+        cardTruth: 'Pilot-Simulation',
+      };
+    },
+    verifyRenter: async () => {
+      calls.push('renter');
+      return {
+        status: 'pixel-renter-product-surfaces-passed',
+        cardTruth: 'Pilot-Simulation',
+      };
+    },
+    retire: async () => {
+      calls.push('retire');
+      return { status: 'email-verified-two-role-product-journey-retired' };
+    },
+    restoreOwner: async () => {
+      calls.push('restore-owner');
+      return true;
+    },
+  };
+}
+
+function node(label) {
+  return `<node text="${label}" content-desc="" bounds="[0,0][100,100]"/>`;
+}
+
+test('binds owner and renter detail truth to their distinct shipped copy', () => {
+  const ownerHierarchy = `<hierarchy>${node('Pilot-Simulation · Kommende Vermietung')}${node('Unverbindliche Pilot-Simulation: kein Vertrag, keine Reservierung und keine Zahlung.')}</hierarchy>`;
+  const renterHierarchy = `<hierarchy>${node('Pilot-Simulation · Kommende Buchung')}${node('Unverbindliche Pilot-Simulation')}${node('Zahlung entfällt. Dieser Test erzeugt keinen Vertrag, keine Reservierung, keine Auszahlung und keine Erstattung.')}</hierarchy>`;
+  assert.equal(ownerNonBindingDetailVisible(ownerHierarchy), true);
+  assert.equal(renterNonBindingDetailVisible(renterHierarchy), true);
+  assert.equal(ownerNonBindingDetailVisible(renterHierarchy), false);
+  assert.equal(renterNonBindingDetailVisible(ownerHierarchy), false);
+});
+
+test('matches the exact booking chat through the shipped middle-dot title prefix', () => {
+  const title = 'SIT Rollenprüfung n22-fixture';
+  const hierarchy = `<hierarchy>${node('Nachrichten-Einstellungen')}${node(`· ${title}`)}${node('Bestätigt')}</hierarchy>`;
+  assert.equal(renterBookingChatVisible(hierarchy, title), true);
+  assert.equal(renterBookingChatVisible(hierarchy, 'SIT Rollenprüfung another'), false);
+});
+
+test('closes the Pixel email-verified two-role journey and records only sanitized truth', async () => {
+  const calls = [];
+  const result = await runAndroidEmailVerifiedTwoRoleProductJourney({
+    candidate,
+    deviceSummary: { model: 'Pixel 7 Pro', physical: true },
+    operations: passingOperations(calls),
+    capturedAt: '2026-09-03T09:00:00.000Z',
+  });
+  assert.equal(result.status, 'passed-pixel-email-verified-two-role-product-journey');
+  assert.deepEqual(calls, [
+    'prepare',
+    'publish',
+    'verify-published',
+    'simulate',
+    'owner',
+    'renter',
+    'retire',
+    'restore-owner',
+  ]);
+  assert.equal(result.tests.distinctEmailVerifiedPrincipals, 'passed');
+  assert.equal(result.tests.ownerDraftPublishThroughPixelUi, 'passed-server-confirmed-active');
+  assert.equal(result.tests.principalSwitchIsolation, 'passed-owner-absent-under-renter');
+  assert.equal(result.boundaries.monetaryEffectMinor, 0);
+  assert.equal(result.boundaries.listingLeftActive, false);
+  assert.equal(result.boundaries.testBookingLeftActive, false);
+  assert.equal(result.boundaries.containsAccountIdentity, false);
+  assert.equal(result.boundaries.containsSecrets, false);
+  assert.equal(JSON.stringify(result).includes('/private/'), false);
+});
+
+test('retires prepared state and restores the owner after a product-surface failure', async () => {
+  const calls = [];
+  const operations = passingOperations(calls);
+  operations.verifyRenter = async () => {
+    calls.push('renter');
+    throw new Error('The renter surface failed safely.');
+  };
+  await assert.rejects(
+    () => runAndroidEmailVerifiedTwoRoleProductJourney({
+      candidate,
+      deviceSummary: { model: 'Pixel 7 Pro', physical: true },
+      operations,
+    }),
+    /renter surface failed safely/u,
+  );
+  assert.deepEqual(calls.slice(-2), ['retire', 'restore-owner']);
+});
+
+test('reports a fail-closed cleanup error if both the journey and retirement fail', async () => {
+  const calls = [];
+  const operations = passingOperations(calls);
+  operations.verifyOwner = async () => {
+    calls.push('owner');
+    throw new Error('Owner presentation failed safely.');
+  };
+  operations.retire = async () => {
+    calls.push('retire');
+    throw new Error('Retirement failed safely.');
+  };
+  await assert.rejects(
+    () => runAndroidEmailVerifiedTwoRoleProductJourney({
+      candidate,
+      deviceSummary: { model: 'Pixel 7 Pro', physical: true },
+      operations,
+    }),
+    /Cleanup also failed safely/u,
+  );
+  assert.equal(calls.at(-1), 'restore-owner');
+});
