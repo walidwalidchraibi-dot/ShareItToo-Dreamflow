@@ -941,17 +941,17 @@ function requiredEnvironment(name) {
 }
 
 async function run() {
-  const phase = process.env.SIT_N24_PHASE?.trim() || 'request';
-  const protectedOwnerVaultFile = requiredEnvironment('SIT_N24_PROTECTED_OWNER_VAULT_FILE');
-  const candidateDirectory = requiredEnvironment('SIT_N24_CANDIDATE_DIRECTORY');
+  const phase = process.env.SIT_N29_PHASE?.trim() || 'request';
+  const protectedOwnerVaultFile = requiredEnvironment('SIT_N29_PROTECTED_OWNER_VAULT_FILE');
+  const candidateDirectory = requiredEnvironment('SIT_N29_CANDIDATE_DIRECTORY');
   const phoneFile = phase === 'preflight'
     ? undefined
-    : requiredEnvironment('SIT_N24_PHONE_FILE');
+    : requiredEnvironment('SIT_N29_PHONE_FILE');
   const smsCodeFile = phase === 'confirm'
     ? requiredEnvironment('SIT_N29_SMS_CODE_FILE')
     : undefined;
-  const privateEvidenceDirectory = process.env.SIT_N24_PRIVATE_EVIDENCE_DIR?.trim()
-    || resolve(homedir(), 'Library', 'Application Support', 'ShareItToo', 'qa', 'n24-phone-verification');
+  const privateEvidenceDirectory = process.env.SIT_N29_PRIVATE_EVIDENCE_DIR?.trim()
+    || resolve(homedir(), 'Library', 'Application Support', 'ShareItToo', 'qa', 'n29-phone-verification');
   const archive = await validatePrivateAndroidReleaseArchive({ candidateDirectory });
   const repositoryHeadAtObservation = String(execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: repositoryRoot,

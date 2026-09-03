@@ -293,7 +293,11 @@ test('verified-phone cleanup fails closed if its exact session cannot be revoked
 test('phone diagnostic is artifact-bound and never emits or persists the SMS input', () => {
   for (const marker of [
     'validatePrivateAndroidReleaseArchive',
-    'SIT_N24_CANDIDATE_DIRECTORY',
+    'SIT_N29_PHASE',
+    'SIT_N29_PROTECTED_OWNER_VAULT_FILE',
+    'SIT_N29_CANDIDATE_DIRECTORY',
+    'SIT_N29_PHONE_FILE',
+    'SIT_N29_PRIVATE_EVIDENCE_DIR',
     "phase === 'preflight'",
     "phase === 'confirm'",
     "phase === 'cleanup'",
@@ -314,4 +318,5 @@ test('phone diagnostic is artifact-bound and never emits or persists the SMS inp
   assert.doesNotMatch(source, /JSON\.stringify\([^\n]*(?:smsCode|smsConfirmationInput)/gu);
   assert.doesNotMatch(source, /content query --uri|sms inbox|READ_SMS|RECEIVE_SMS/giu);
   assert.doesNotMatch(source, /pm clear|uninstall|clear data/giu);
+  assert.doesNotMatch(source, /SIT_N24_|n24-phone-verification/gu);
 });
