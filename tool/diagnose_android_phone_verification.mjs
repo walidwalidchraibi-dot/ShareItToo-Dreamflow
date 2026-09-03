@@ -191,7 +191,7 @@ function replaceInput(commandRunner, adbPath, device, hierarchy, label, value, d
   ]);
 }
 
-export async function inspectStagingPhoneProvider(fetchImpl, account) {
+export async function inspectStagingPhoneBackendGate(fetchImpl, account) {
   const login = await fetchImpl(`${apiBaseUrl}/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -231,8 +231,8 @@ export async function inspectStagingPhoneProvider(fetchImpl, account) {
       fail('The Staging phone-verification provider status is ambiguous.');
     }
     result = Object.freeze({
-      available: enabled,
-      provider: enabled ? 'firebase-phone' : null,
+      enabled,
+      advertisedProvider: enabled ? 'firebase-phone' : null,
       diagnosticSessionRevoked: true,
     });
   } catch (error) {
@@ -340,12 +340,12 @@ export async function diagnoseAndroidPhoneVerification({
   const { vault } = readEmailVerifiedJourneyVault(protectedOwnerVaultFile);
   const owner = vault.accounts.find((entry) => entry.role === 'owner');
   if (!owner) fail('The protected synthetic owner role is unavailable.');
-  const providerStatus = await inspectStagingPhoneProvider(fetchImpl, owner);
+  const backendGate = await inspectStagingPhoneBackendGate(fetchImpl, owner);
 
   if (phase === 'preflight') {
-    const status = providerStatus.available
-      ? 'firebase-phone-provider-available-current-candidate'
-      : 'firebase-phone-provider-disabled-current-candidate';
+    const status = backendGate.enabled
+      ? 'staging-phone-backend-gate-enabled-current-candidate'
+      : 'staging-phone-backend-gate-disabled-current-candidate';
     const stateSha256 = writePrivateState(privateEvidenceDirectory, {
       schemaVersion: 1,
       kind: 'n24-private-phone-verification-state',
@@ -353,8 +353,8 @@ export async function diagnoseAndroidPhoneVerification({
       capturedAt,
       candidateCommit: candidate.commit,
       candidateBuildNumber: candidate.buildNumber,
-      providerAvailable: providerStatus.available,
-      diagnosticSessionRevoked: providerStatus.diagnosticSessionRevoked,
+      backendGateEnabled: backendGate.enabled,
+      diagnosticSessionRevoked: backendGate.diagnosticSessionRevoked,
       containsPhoneNumber: false,
       containsSmsCode: false,
     });
@@ -384,11 +384,13 @@ export async function diagnoseAndroidPhoneVerification({
       },
       device: deviceSummary,
       results: {
-        stagingProviderAvailable: providerStatus.available,
-        provider: providerStatus.provider,
-        diagnosticSessionRevoked: providerStatus.diagnosticSessionRevoked,
+        stagingBackendGateEnabled: backendGate.enabled,
+        advertisedProvider: backendGate.advertisedProvider,
+        firebaseConsolePhoneProviderVerified: false,
+        smsRegionPolicyVerified: false,
+        diagnosticSessionRevoked: backendGate.diagnosticSessionRevoked,
         smsRequested: false,
-        ownerActionRequired: !providerStatus.available,
+        ownerActionRequired: true,
         privateStateSha256: stateSha256,
         protectedSyntheticOwnerRetained: true,
       },
@@ -411,7 +413,7 @@ export async function diagnoseAndroidPhoneVerification({
     };
   }
 
-  if (!providerStatus.available) {
+  if (!backendGate.enabled) {
     fail('The Staging phone-verification provider is unavailable.');
   }
   const phoneNumber = readPrivatePhone(phoneFile);
@@ -555,8 +557,8 @@ export async function diagnoseAndroidPhoneVerification({
     },
     device: deviceSummary,
     results: {
-      stagingProviderAvailable: true,
-      provider: 'firebase-phone',
+      stagingBackendGateEnabled: true,
+      advertisedProvider: 'firebase-phone',
       germanyOnlyInput: true,
       smsConsentPresented: phase === 'request',
       invalidCodeRejected,
@@ -565,7 +567,7 @@ export async function diagnoseAndroidPhoneVerification({
         || status === 'already-verified-current-candidate',
       verifiedStatePersistedAfterColdRestart: status === 'passed-valid-code-and-cold-restart',
       ownerActionRequired: status === 'awaiting-owner-sms-code',
-      diagnosticSessionRevoked: providerStatus.diagnosticSessionRevoked,
+      diagnosticSessionRevoked: backendGate.diagnosticSessionRevoked,
       privateStateSha256: stateSha256,
       protectedSyntheticOwnerRetained: true,
     },

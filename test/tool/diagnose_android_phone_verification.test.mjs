@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
-  inspectStagingPhoneProvider,
+  inspectStagingPhoneBackendGate,
   normalizePrivatePhoneInput,
   sanitizePhoneVerificationFailure,
   validateFrozenCandidateMobileCompatibility,
@@ -77,9 +77,9 @@ function jsonResponse(status, value = null) {
   };
 }
 
-test('provider preflight reports disabled and revokes its exact diagnostic session', async () => {
+test('backend-gate preflight reports disabled and revokes its exact diagnostic session', async () => {
   const calls = [];
-  const result = await inspectStagingPhoneProvider(async (url, options = {}) => {
+  const result = await inspectStagingPhoneBackendGate(async (url, options = {}) => {
     calls.push({ url, options });
     if (url.endsWith('/auth/login')) {
       return jsonResponse(200, {
@@ -95,17 +95,17 @@ test('provider preflight reports disabled and revokes its exact diagnostic sessi
   }, { email: 'private-at-invalid', password: 'not-printed' });
 
   assert.deepEqual(result, {
-    available: false,
-    provider: null,
+    enabled: false,
+    advertisedProvider: null,
     diagnosticSessionRevoked: true,
   });
   assert.equal(calls.length, 3);
   assert.match(calls[2].options.body, /refreshToken/u);
 });
 
-test('provider preflight recognizes only exact enabled state and always cleans up', async () => {
+test('backend-gate preflight recognizes only exact advertised state and always cleans up', async () => {
   const calls = [];
-  const enabled = await inspectStagingPhoneProvider(async (url) => {
+  const enabled = await inspectStagingPhoneBackendGate(async (url) => {
     calls.push(url);
     if (url.endsWith('/auth/login')) {
       return jsonResponse(200, {
@@ -118,13 +118,14 @@ test('provider preflight recognizes only exact enabled state and always cleans u
     }
     return jsonResponse(204);
   }, { email: 'private-at-invalid', password: 'not-printed' });
-  assert.equal(enabled.available, true);
+  assert.equal(enabled.enabled, true);
+  assert.equal(enabled.advertisedProvider, 'firebase-phone');
   assert.equal(enabled.diagnosticSessionRevoked, true);
   assert.equal(calls.at(-1).endsWith('/auth/logout'), true);
 
   const ambiguousCalls = [];
   await assert.rejects(
-    inspectStagingPhoneProvider(async (url) => {
+    inspectStagingPhoneBackendGate(async (url) => {
       ambiguousCalls.push(url);
       if (url.endsWith('/auth/login')) {
         return jsonResponse(200, {
@@ -142,9 +143,9 @@ test('provider preflight recognizes only exact enabled state and always cleans u
   assert.equal(ambiguousCalls.at(-1).endsWith('/auth/logout'), true);
 });
 
-test('provider preflight fails closed when its diagnostic session cannot be revoked', async () => {
+test('backend-gate preflight fails closed when its diagnostic session cannot be revoked', async () => {
   await assert.rejects(
-    inspectStagingPhoneProvider(async (url) => {
+    inspectStagingPhoneBackendGate(async (url) => {
       if (url.endsWith('/auth/login')) {
         return jsonResponse(200, {
           accessToken: 'a'.repeat(24),
@@ -167,7 +168,7 @@ test('N24 is explicit-artifact bound and never reads or stores an SMS code', () 
     "phase === 'preflight'",
     'diagnosticSessionRevoked',
     'verifyCurrentHeadAndroidInstalledCandidate',
-    "provider: 'firebase-phone'",
+    "advertisedProvider: 'firebase-phone'",
     "status = 'awaiting-owner-sms-code'",
     "status = 'passed-valid-code-and-cold-restart'",
     'containsPhoneNumber: false',
