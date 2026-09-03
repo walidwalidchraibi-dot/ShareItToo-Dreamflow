@@ -860,7 +860,7 @@
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
-      "sha256": "a1aaa56200dfd40e6f8a42acd821a7ffd4074e4a2d59fd6995e92091a8977056"
+      "sha256": "bacc272fd5faf7d86cb5aa6aa966e23039e86299088d0b3da9f6c2fd6f286dbf"
     },
     {
       "path": "lib/openai/openai_config.dart",

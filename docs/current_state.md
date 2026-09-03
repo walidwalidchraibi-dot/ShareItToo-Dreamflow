@@ -4,6 +4,11 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
+The owner authorized sequential autonomous work packages on 2026-09-03.
+The compact queue and resume contract are in
+`docs/operations/SIT_AUTONOMOUS_WORK_PACKAGE_QUEUE_2026-09-03.md`.
+WP01/N29 is active; later packages are queued, not new completion claims.
+
 ## Current N29 SMS checkpoint — PARTIAL
 
 One owner-authorized SMS reached the owner from the exact Pixel candidate
@@ -15,11 +20,23 @@ surface now reads phone unverified with an empty input. Temporary phone/code
 files were removed; no second SMS was requested.
 
 The SMS hint/Unicode mismatch, cross-section email/phone status confusion and
-attempt-only polling limit are corrected in the diagnostic, with 18 passing
-focused tests. Full regression and exact CI for this checkpoint remain pending.
+attempt-only polling limit are corrected in diagnostic commit
+`8c0a20e76b99e6347c89f8d2b837f96589feebd0`: 18 focused tests, full local
+regression, GitHub Regression `33792614070` including clean checkout and
+CodeQL `33792613769` pass.
 Invalid-code rejection, verified cold restart and reliable UI completion remain
-OPEN, not failed or implicitly passed. The exact post-confirmation UI cause is
-not yet proven; session/principal and layout hypotheses require reproduction.
+OPEN on the physical device, not failed or implicitly passed.
+
+A local manual-SMS follow-up now reproduces premature controller disposal on
+sheet exit and loss of known confirmation on a later profile-read failure.
+The narrow correction passes 29 focused Flutter tests (10 new), full local
+regression (2,144 tool tests, 662 Flutter passes with five expected skips,
+analyzer zero, Web/Wasm, loopback and Android), plus Backend 795 passes and two
+expected skips. Exact remote CI remains pending. These are proven
+code defects, not yet a proven explanation of the uncaptured Pixel result.
+The frozen installed APK is unchanged; this mobile correction requires a new
+candidate before device claims. No SMS was sent by these tests.
+See `docs/operations/N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
 
 The owner explicitly authorized the Staging Android key's application
 restriction removal for reCAPTCHA; 25 API restrictions remain. No Production,

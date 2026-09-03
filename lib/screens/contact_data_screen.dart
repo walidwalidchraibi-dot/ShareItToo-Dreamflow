@@ -722,7 +722,11 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       return;
     }
 
-    final codeCtrl = TextEditingController();
+    // Let the TextField own its controller through the route's exit animation.
+    // A modal result completes before its input widgets are disposed.
+    var smsCode = '';
+    var sheetOpen = true;
+    var confirmationAccepted = false;
     bool verifying = false;
     String? inlineErrorTitle;
     String? inlineErrorMessage;
@@ -748,7 +752,8 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                       const SizedBox(height: 12),
                     ],
                     TextField(
-                      controller: codeCtrl,
+                      onChanged: (value) => smsCode = value,
+                      readOnly: confirmationAccepted,
                       keyboardType: TextInputType.number,
                       maxLength: 6,
                       decoration: const InputDecoration(
@@ -757,21 +762,25 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                     ),
                     const SizedBox(height: 12),
                     FilledButton(
-                      onPressed: verifying
+                      onPressed: verifying || confirmationAccepted
                           ? null
                           : () async {
+                              final submittedCode = smsCode;
                               setLocal(() => verifying = true);
                               try {
-                                if (!await _isInteractionOwnerCurrent(owner)) {
+                                if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetOpen) {
                                   return;
                                 }
                                 await _contactVerificationService
                                     .confirmPhoneVerification(
                                   context: owner.context,
                                   challenge: challenge,
-                                  smsCode: codeCtrl.text,
+                                  smsCode: submittedCode,
                                 );
+                                confirmationAccepted = true;
                                 if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetOpen ||
                                     !sheetContext.mounted) {
                                   return;
                                 }
@@ -779,6 +788,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                     await _contactVerificationService
                                         .refreshVerifiedProfile(owner.context);
                                 if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetOpen ||
                                     !sheetContext.mounted) {
                                   return;
                                 }
@@ -791,10 +801,15 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                         ContactActionFailureKind
                                             .principalChanged ||
                                     !await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetOpen ||
                                     !sheetContext.mounted) {
                                   return;
                                 }
-                                final copy = _phoneContactFailureCopy(failure);
+                                final copy = confirmationAccepted
+                                    ? _confirmedPhoneRefreshFailureCopy
+                                    : _phoneContactFailureCopy(failure);
+                                confirmationAccepted = confirmationAccepted ||
+                                    failure.remoteAcceptedOrConfirmed;
                                 setLocal(() {
                                   inlineErrorTitle = copy.$1;
                                   inlineErrorMessage = copy.$2;
@@ -805,17 +820,21 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                   '${error.runtimeType}',
                                 );
                                 if (!await _isInteractionOwnerCurrent(owner) ||
+                                    !sheetOpen ||
                                     !sheetContext.mounted) {
                                   return;
                                 }
                                 setLocal(() {
-                                  inlineErrorTitle =
-                                      'Telefonprüfung nicht abgeschlossen';
-                                  inlineErrorMessage =
-                                      'Der Ergebnisstatus ist unbekannt. Lade dein Profil neu, bevor du den Vorgang wiederholst.';
+                                  inlineErrorTitle = confirmationAccepted
+                                      ? _confirmedPhoneRefreshFailureCopy.$1
+                                      : 'Telefonprüfung nicht abgeschlossen';
+                                  inlineErrorMessage = confirmationAccepted
+                                      ? _confirmedPhoneRefreshFailureCopy.$2
+                                      : 'Der Ergebnisstatus ist unbekannt. Lade dein Profil neu, bevor du den Vorgang wiederholst.';
                                 });
                               } finally {
-                                if (sheetContext.mounted &&
+                                if (sheetOpen &&
+                                    sheetContext.mounted &&
                                     _isInteractionOwnerSynchronouslyCurrent(
                                       owner,
                                     )) {
@@ -833,7 +852,8 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
         );
       },
     );
-    codeCtrl.dispose();
+    sheetOpen = false;
+    smsCode = '';
     if (refreshKind == null || !await _isInteractionOwnerCurrent(owner)) {
       return;
     }
@@ -846,6 +866,11 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
           : 'Die Nummer wurde bestätigt. Der Profilstatus wird beim nächsten Laden aktualisiert.',
     );
   }
+
+  static const _confirmedPhoneRefreshFailureCopy = (
+    'Telefonnummer bestätigt',
+    'Die Nummer wurde serverseitig bestätigt. Der Profilstatus konnte noch nicht aktualisiert werden. Lade dein Profil neu; bestätige denselben Code nicht erneut.'
+  );
 
   (String, String?) _phoneContactFailureCopy(ContactActionFailure failure) =>
       failure.remoteAcceptedOrConfirmed

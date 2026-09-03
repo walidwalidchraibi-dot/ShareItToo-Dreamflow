@@ -1,5 +1,12 @@
 # Current Work Package: N29 current-candidate SMS delivery and UI diagnostic
 
+Autonomous sequence authorized 2026-09-03:
+`docs/operations/SIT_AUTONOMOUS_WORK_PACKAGE_QUEUE_2026-09-03.md`.
+Current subgoal: **WP01 / N29**. Close each bounded package with evidence and
+continue automatically to the next executable one. The overall Goal remains
+active and is not complete merely because WP01 closes. Read this current
+section and the active handover before loading historical package sections.
+
 Status: **PARTIAL / BACKEND ACCEPTANCE AND CLEANUP PROVEN / UI COMPLETION OPEN**
 on 03.09.2026.
 
@@ -11,12 +18,27 @@ email still verified. The protected owner was restored and the temporary
 phone/code files removed. No second SMS was requested.
 
 UI completion and verified cold restart were not captured and are not claimed.
-The diagnostic now recognizes the Android SMS hint, distinguishes phone truth
-from email truth and bounds device commands and polling. Focused tests pass
-18/18; complete regression and exact remote CI for these changes are pending.
-Determine the uncaptured UI result with deterministic tests before another
-owner-assisted SMS run. Do not weaken principal/epoch checks or reclassify an
-unknown outcome as rejection.
+The diagnostic recognizes the Android SMS hint, distinguishes phone truth
+from email truth and bounds device commands and polling. Diagnostic commit
+`8c0a20e76b99e6347c89f8d2b837f96589feebd0` passed full local regression,
+GitHub Regression `33792614070` (including clean checkout) and CodeQL
+`33792613769`.
+
+The current bounded follow-up reproduces and fixes two manual-SMS UI defects:
+premature input-controller disposal during sheet exit, and loss of known
+confirmation when a subsequent profile read fails. Ten new deterministic
+widget cases plus the existing contact/phone cases pass 29/29; targeted
+analyzer is clean. Full local regression now passes: 2,144 tool tests, 662
+Flutter tests with five expected skips, analyzer zero, Web/Wasm, loopback and
+Android. Backend has 795 passes and two expected skips. Exact CI for the mobile
+correction remains pending. No new SMS or device installation occurred. This mobile change
+is NOT in frozen candidate `2026090306`; create and verify a separate signed
+candidate only after technical closure. The relation to the uncaptured Pixel
+failure still needs that device rerun. Do not weaken principal/epoch checks or
+reclassify an unknown outcome as rejection.
+
+Follow-up evidence:
+`docs/operations/N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
 
 The separately owner-authorized Staging API-key application restriction was
 removed for direct-APK reCAPTCHA; all 25 API restrictions were preserved.

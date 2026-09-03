@@ -13,8 +13,10 @@ end-to-end UI completion and verified cold restart remain OPEN.**
 - APK SHA-256: `37d98f999562150e77fea335fcb0bde32aee20d2183509f5484a5e67cd1e3194`.
 - Certificate SHA-256: `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4`.
 - API: `https://staging.shareittoo.com/api/v1`; physical Pixel 7 Pro only.
-- All changes in this checkpoint are diagnostic tests and documentation, not
-  mobile source changes or a new artifact.
+- All changes in the original diagnostic checkpoint through
+  `8c0a20e76b99e6347c89f8d2b837f96589feebd0` are diagnostic tests and
+  documentation, not mobile source changes or a new artifact. A subsequent
+  local mobile correction is recorded separately below.
 
 ## Observed facts
 
@@ -98,3 +100,15 @@ accepted/unknown/rejected distinctions. Only after that correction is proven
 should a new owner-assisted SMS run establish invalid-code rejection, UI
 completion, cold restart and cleanup. N29 must remain PARTIAL until those
 facts exist; N28 and earlier evidence remain separate.
+
+## Subsequent technical checkpoint
+
+The original diagnostic commit `8c0a20e76b99e6347c89f8d2b837f96589feebd0`
+passed full local technical regression (2,144 repository tool tests, 652
+Flutter tests, five expected skips, analyzer zero, Web/Wasm, loopback and
+Android debug build). GitHub Regression `33792614070`, including Backend and
+clean-checkout jobs, and CodeQL `33792613769` passed on that exact commit.
+
+The next local mobile correction has separate evidence at
+`docs/operations/N29_SMS_DIALOG_COMPLETION_CORRECTION_2026-09-03.md`.
+It does not retroactively validate UI completion on frozen APK `2026090306`.
