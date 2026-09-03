@@ -4,6 +4,39 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
+## Current N20 Pixel app-UI registration closure
+
+A fresh persistent Staging identity with a synthetic owner-only alias has now
+passed the complete physical Pixel path: registration form, all four visible
+consents, real Backend acceptance, pending-email handoff, Google Workspace
+SMTP delivery, single-use confirmation, app login and force-stop/cold-start
+session persistence. The exact registered synthetic principal was visible and
+the guest principal absent. The established protected owner session was
+restored afterward.
+
+The Pixel remains on the exact signed Internal/Staging direct-APK candidate
+`com.shareittoo.app` `1.0.0+2026090305` from artifact source
+`4bcc018eef7759d9f8fe64f75daba060abf0eb13`; archive identity, privacy scan,
+signature and installed APK hash were verified before submission. No personal
+address, credential, token, link, mailbox content or raw device identifier was
+printed or committed. Private Pixel artifacts remain outside Git and are
+represented only by hashes.
+
+Diagnostic commit `0c1b62042719763fff5f420be524f8a244440c3a` passes complete
+local regression with 2,067 repository tool tests and exact-head GitHub
+Regression `33720856359`, CodeQL `33720856387` and zero alerts. The evidence
+layer passes the same local gate with 2,071 tests. PR #7 remains Draft and
+unmerged. Staging remains healthy without deployment; payment stays
+memory-only and listing AI stays mock.
+
+Google sign-in, password recovery, phone/KYC, Stripe sandbox, external listing
+AI, V5.2 approval and the complete real two-role product journey remain open.
+OnePlus, Play, Production, public registration, tester lists, real money and
+PR merge were unchanged. Exact evidence is
+`docs/evidence/release-readiness/n20-pixel-app-ui-registration-2026090305.json`;
+handover is
+`docs/operations/N20_PIXEL_APP_UI_REGISTRATION_2026-09-03.md`.
+
 ## Current N19 real Staging email identity closure
 
 Two persistent Staging identities with synthetic owner-only mail aliases have

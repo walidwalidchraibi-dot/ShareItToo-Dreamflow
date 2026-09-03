@@ -1,4 +1,37 @@
-# Current Work Package: N19 real Staging email identity closure
+# Current Work Package: N20 Pixel app-UI registration closure
+
+Status: **CLOSED / REGISTRATION, EMAIL CONFIRMATION, LOGIN AND COLD START
+PASSED / LIVE GATES CLOSED** on 03.09.2026.
+
+A fresh persistent Staging account was submitted through the installed
+physical Pixel app after all four visible consent controls were checked. The
+real Backend accepted the registration, Google Workspace SMTP delivered the
+message, its single-use Staging link confirmed successfully, and the same
+account logged in through the app UI. The exact synthetic principal was
+visible, the guest principal absent, and the session survived force-stop and
+cold launch. The established protected owner test session was restored.
+
+Candidate `com.shareittoo.app` `1.0.0+2026090305` remains exact to artifact
+source `4bcc018eef7759d9f8fe64f75daba060abf0eb13`; signing, privacy report and
+installed APK hash were revalidated. No personal address, credential, token,
+link, mailbox content or raw device identifier was printed or committed.
+
+Diagnostic commit `0c1b62042719763fff5f420be524f8a244440c3a` passes complete
+local regression with 2,067 repository tool tests, exact GitHub Regression
+`33720856359`, CodeQL `33720856387` and zero alerts. Evidence validation adds
+four tests for a 2,071-test closure. PR #7 remains Draft and unmerged.
+
+Google sign-in, password recovery, phone/KYC, Stripe sandbox, external listing
+AI, V5.2 approval and the complete real two-role product journey remain open.
+OnePlus, Play, Production, public registration, real money and PR merge were
+unchanged.
+
+Machine evidence:
+`docs/evidence/release-readiness/n20-pixel-app-ui-registration-2026090305.json`.
+Human handover:
+`docs/operations/N20_PIXEL_APP_UI_REGISTRATION_2026-09-03.md`.
+
+# Previous Work Package: N19 real Staging email identity closure
 
 Status: **CLOSED / TWO EMAIL LINKS AND TWO REAL STAGING LOGINS PASSED / LIVE
 GATES CLOSED** on 03.09.2026.
