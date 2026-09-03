@@ -4,6 +4,33 @@ Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.
 
+## Current N15 Staging transport and Pixel acceptance state
+
+The current signed Internal/Staging candidate is `com.shareittoo.app`
+`1.0.0+2026090303` from artifact source
+`5d88295fa7fe313b83936783a0582a505b2ba486`. Exact Staging is healthy on that
+Backend source with PostgreSQL, Google Workspace SMTP relay and FCM active.
+Payment remains memory-only with `livemode=false`; listing AI remains mock with
+zero external budget.
+
+Two distinct role registrations and their verification mails were accepted by
+Staging SMTP, and one fresh inbox arrival was visually observed. No verification
+link has been followed, so real account login is still pending and not claimed.
+The current candidate passed Pixel foreground/background/terminated-process
+FCM, icon review, same-process offline recovery with network restoration, and
+logout/cold-start privacy with post-logout push suppression.
+
+The probes reused only an accepted payment-free non-binding simulation through
+an owner-only temporary projection. No listing, reservation, contract or payment
+was created. V5.2 correctly rejected an ordinary binding fixture before
+creation. The complete local regression passes at diagnostic commit
+`24a8fa3509df428b6a1aef2f7d0cd91c3d41d5f3`. OnePlus, Play, Production,
+public registration, real money, external AI and PR merge remain unchanged.
+Exact evidence is
+`docs/evidence/release-readiness/n15-staging-transport-pixel-acceptance-2026090303.json`;
+progress handover is
+`docs/operations/N15_STAGING_TRANSPORT_PIXEL_PROGRESS_2026-09-03.md`.
+
 ## Current RW24 Pixel controlled-FCM state
 
 The signed Internal/Staging candidate `com.shareittoo.app`,

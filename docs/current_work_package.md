@@ -1,4 +1,38 @@
-# Current Work Package: RW24 Pixel controlled-FCM closure 2026090210
+# Current Work Package: N15 Staging transport and Pixel acceptance 2026090303
+
+Status: **ACTIVE / TRANSPORT PASSED / EMAIL VERIFICATION PENDING / ONEPLUS
+UNTOUCHED** on 03.09.2026.
+
+The exact signed Internal/Staging candidate is `com.shareittoo.app`
+`1.0.0+2026090303` from artifact source
+`5d88295fa7fe313b83936783a0582a505b2ba486`. Exact Staging is healthy on that
+Backend source with PostgreSQL, Google Workspace SMTP relay and FCM. Payment is
+memory-only, `livemode=false`, and listing AI remains mock with zero budget.
+
+Two distinct real role registrations were accepted and both verification mails
+were accepted by SMTP; one fresh arrival was visually observed. Neither owner
+link has been followed, so registration/login closure is not claimed. The Pixel
+passed foreground, background and terminated-process FCM, notification-icon
+review, offline/realtime recovery with network restoration, and logout/cold-
+start privacy with post-logout push suppression.
+
+The diagnostic tools at `24a8fa3509df428b6a1aef2f7d0cd91c3d41d5f3`
+validate the explicit candidate archive and project only the existing accepted
+non-binding simulation into a temporary owner-only diagnostic vault. No listing,
+reservation, contract or payment was created. The complete local regression
+passes with 2,035 tool tests, Flutter, Web/Wasm, loopback and Android build.
+
+The remaining N15 sequence is owner completion of both email links, two-role
+Pixel login and non-binding listing/chat isolation, followed by exact final-head
+GitHub Regression and CodeQL. OnePlus, Play, Production, public registration,
+real money, external AI and PR merge remain untouched.
+
+Machine evidence:
+`docs/evidence/release-readiness/n15-staging-transport-pixel-acceptance-2026090303.json`.
+Human progress handover:
+`docs/operations/N15_STAGING_TRANSPORT_PIXEL_PROGRESS_2026-09-03.md`.
+
+# Previous Work Package: RW24 Pixel controlled-FCM closure 2026090210
 
 Status: **CLOSED / PIXEL VERIFIED / ONEPLUS UNTOUCHED** on 03.09.2026.
 
