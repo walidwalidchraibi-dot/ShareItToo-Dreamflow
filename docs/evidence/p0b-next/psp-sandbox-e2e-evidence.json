@@ -9,7 +9,7 @@
     "repository": [
       {
         "path": "backend/src/stripe_provider.js",
-        "sha256": "f28c3881d828e7b43657b00cbf75746d3f87ecef83173812b04623a30950aa5f"
+        "sha256": "b3395c4961ab2f31eddbc4a19da638c60b0f3b31480e77daec31d8354a6c7307"
       },
       {
         "path": "backend/src/payment_domain.js",
@@ -17,11 +17,11 @@
       },
       {
         "path": "backend/src/payment_workflow.js",
-        "sha256": "f67047651beeda1289adf9f6d20efe9bdf713a6105d84f74916e56b52c67ca31"
+        "sha256": "140ac28016784cd9f8b576306dd7030449ae574b16e95dfc929dfc879c837fed"
       },
       {
         "path": "backend/test/payment_domain.test.js",
-        "sha256": "098aae671194a853385455e2ba68ee0ff3349143a7b3ae548b4b459492b115f2"
+        "sha256": "08f9794af774a5bfe1d4728dad1f2d8b37815b945fc9b7e47c840b7a3a1ee850"
       },
       {
         "path": "backend/test/postgres_foundation.integration.test.js",

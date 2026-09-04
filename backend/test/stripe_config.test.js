@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-function loadStripeConfiguration({ key, livemode = 'false', environment = 'staging' }) {
+function loadStripeConfiguration({
+  key, livemode = 'false', environment = 'staging',
+  connectWebhookSecret = 'whsec_connectunitfixture',
+}) {
   return spawnSync(
     process.execPath,
     [
@@ -17,6 +20,7 @@ function loadStripeConfiguration({ key, livemode = 'false', environment = 'stagi
         '  apiVersion: config.payments.apiVersion,',
         '  hasServerCredential: config.payments.secretKey.length > 0,',
         '  hasWebhookCredential: config.payments.webhookSecret.length > 0,',
+        '  hasConnectWebhookCredential: config.payments.connectWebhookSecret.length > 0,',
         '}));',
       ].join('\n'),
     ],
@@ -32,6 +36,7 @@ function loadStripeConfiguration({ key, livemode = 'false', environment = 'stagi
         PAYMENT_TRANSPORT: 'stripe',
         STRIPE_SECRET_KEY: key,
         STRIPE_WEBHOOK_SECRET: 'whsec_localunitfixture',
+        STRIPE_CONNECT_WEBHOOK_SECRET: connectWebhookSecret,
         STRIPE_LIVEMODE: livemode,
       },
     },
@@ -49,6 +54,7 @@ for (const key of ['sk_test_localunitfixture', 'rk_test_localunitfixture']) {
       apiVersion: '2026-08-26.dahlia',
       hasServerCredential: true,
       hasWebhookCredential: true,
+      hasConnectWebhookCredential: true,
     });
     assert.doesNotMatch(result.stdout, /localunitfixture/u);
   });
@@ -62,6 +68,17 @@ test('staging rejects live Stripe credentials even when the live flag matches', 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Stripe live mode is forbidden outside production/u);
   assert.doesNotMatch(result.stderr, /rk_live_localunitfixture/u);
+});
+
+test('Stripe transport requires a distinct Accounts v2 signing secret', () => {
+  for (const connectWebhookSecret of ['', 'invalid', 'whsec_localunitfixture']) {
+    const result = loadStripeConfiguration({
+      key: 'rk_test_localunitfixture', connectWebhookSecret,
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /STRIPE_CONNECT_WEBHOOK_SECRET/u);
+    assert.doesNotMatch(result.stderr, /whsec_localunitfixture|rk_test_localunitfixture/u);
+  }
 });
 
 test('Stripe mode rejects publishable and mode-mismatched credentials', () => {

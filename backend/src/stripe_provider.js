@@ -97,7 +97,7 @@ export class StripeProvider {
     }
   }
 
-  parseWebhookEvent({ rawBody, signatureHeader, webhookSecret }) {
+  parseWebhookEvent({ rawBody, signatureHeader, webhookSecret, connectWebhookSecret }) {
     if (this.mode !== 'stripe' || !this.client) {
       throw new PaymentDomainError(404, 'webhook_not_enabled');
     }
@@ -113,10 +113,18 @@ export class StripeProvider {
     } catch {
       throw new PaymentDomainError(400, 'invalid_webhook_json');
     }
+    // The unsigned type only selects a destination. Trust still requires the
+    // original bytes to verify with that destination's own secret; never try
+    // the other destination's key as a fallback.
+    const thin = String(envelope?.type ?? '').startsWith('v2.');
+    const destinationSecret = thin ? connectWebhookSecret : webhookSecret;
+    if (typeof destinationSecret !== 'string' || !destinationSecret) {
+      throw new PaymentDomainError(503, 'webhook_destination_not_configured');
+    }
     try {
-      return String(envelope?.type ?? '').startsWith('v2.')
-        ? this.client.parseEventNotification(rawBody, signatureHeader, webhookSecret)
-        : this.client.webhooks.constructEvent(rawBody, signatureHeader, webhookSecret);
+      return thin
+        ? this.client.parseEventNotification(rawBody, signatureHeader, destinationSecret)
+        : this.client.webhooks.constructEvent(rawBody, signatureHeader, destinationSecret);
     } catch {
       throw new PaymentDomainError(400, 'invalid_webhook_signature');
     }

@@ -1,4 +1,21 @@
-# Current Work Package: WP03 provider response acceptance (independent local work)
+# Current Work Package: WP04 Stripe webhook destination separation
+
+2026-09-04: independently reproduced the missing separate Accounts v2
+webhook signing-secret path. Real-SDK and workflow tests now verify distinct
+snapshot/thin secrets, no cross-key fallback, early mode rejection and raw
+payload deduplication. Focused 26, full Backend 814/2 explicit database skips,
+syntax, secret scan and 203 affected evidence-validator tests pass. Full
+normal regression also passes: 2,166 tools, Flutter profiles, analyzer zero,
+Web/Wasm dry run, loopback and Android/R11. No new CI, clean-checkout or
+provider E2E pass claimed.
+Staging wiring is prepared only; no credentials, account, webhook, payment,
+deployment or Pixel state changed. Provider identity still needs owner
+confirmation. The official GitHub device flow expired while waiting for the
+owner's email step; a fresh flow is needed after owner verification.
+WP01/WP02/WP03 remain incomplete. Frozen 2026090402 is unchanged/uninstalled.
+See `docs/operations/WP04_STRIPE_WEBHOOK_DESTINATIONS_2026-09-04.md`.
+
+## Previous independent package: WP03 provider response acceptance
 
 2026-09-04: the real OpenAI listing adapter's response acceptance is being
 corrected on base `7b1e19331035b1b32f0ae6f7ef76b542705eb235`. Deterministic

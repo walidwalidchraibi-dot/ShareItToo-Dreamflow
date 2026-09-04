@@ -14,10 +14,10 @@ const defaultRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const manifestPath = 'docs/evidence/p0b-next/psp-sandbox-e2e-evidence.json';
 
 const expectedRepoSources = Object.freeze([
-  Object.freeze(['backend/src/stripe_provider.js', 'f28c3881d828e7b43657b00cbf75746d3f87ecef83173812b04623a30950aa5f']),
+  Object.freeze(['backend/src/stripe_provider.js', 'b3395c4961ab2f31eddbc4a19da638c60b0f3b31480e77daec31d8354a6c7307']),
   Object.freeze(['backend/src/payment_domain.js', 'f15bf2b3d688d53a1f97e17f304e2dea85a8327be143ff65863ef545a57add46']),
-  Object.freeze(['backend/src/payment_workflow.js', 'f67047651beeda1289adf9f6d20efe9bdf713a6105d84f74916e56b52c67ca31']),
-  Object.freeze(['backend/test/payment_domain.test.js', '098aae671194a853385455e2ba68ee0ff3349143a7b3ae548b4b459492b115f2']),
+  Object.freeze(['backend/src/payment_workflow.js', '140ac28016784cd9f8b576306dd7030449ae574b16e95dfc929dfc879c837fed']),
+  Object.freeze(['backend/test/payment_domain.test.js', '08f9794af774a5bfe1d4728dad1f2d8b37815b945fc9b7e47c840b7a3a1ee850']),
   Object.freeze(['backend/test/postgres_foundation.integration.test.js', 'f472f6c7b51c5d845de35f994273dca971c2799cc0aa1c716dce041769e5d721']),
   Object.freeze(['backend/src/psp_sandbox_readiness_gate.js', '81e80a617e90b4184e32fa4b7d2f8f7cb6243735b1c85f73b2e880b8b42c6979']),
   Object.freeze(['backend/test/psp_sandbox_readiness_gate.test.js', '575384b897d0b93693c6014e8109bda714ac924c9530f96cc034456780f090ea']),

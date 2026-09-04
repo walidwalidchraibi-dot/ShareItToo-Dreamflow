@@ -175,6 +175,7 @@ if (!['disabled', 'memory', 'stripe'].includes(paymentTransport)) {
 }
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim() ?? '';
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim() ?? '';
+const stripeConnectWebhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET?.trim() ?? '';
 const stripeLivemode = (process.env.STRIPE_LIVEMODE ?? 'false').trim().toLowerCase() === 'true';
 if (paymentTransport === 'stripe') {
   if (!/^(?:sk|rk)_(?:test|live)_[A-Za-z0-9]+$/.test(stripeSecretKey)) {
@@ -182,6 +183,10 @@ if (paymentTransport === 'stripe') {
   }
   if (!/^whsec_[A-Za-z0-9]+$/.test(stripeWebhookSecret)) {
     throw new Error('STRIPE_WEBHOOK_SECRET must be configured for Stripe transport');
+  }
+  if (!/^whsec_[A-Za-z0-9]+$/.test(stripeConnectWebhookSecret)
+      || stripeConnectWebhookSecret === stripeWebhookSecret) {
+    throw new Error('STRIPE_CONNECT_WEBHOOK_SECRET must be a distinct Accounts v2 destination secret');
   }
   if (stripeLivemode !== /^(?:sk|rk)_live_/u.test(stripeSecretKey)) {
     throw new Error('STRIPE_LIVEMODE must match STRIPE_SECRET_KEY');
@@ -464,6 +469,7 @@ export const config = Object.freeze({
     livemode: stripeLivemode,
     secretKey: stripeSecretKey,
     webhookSecret: stripeWebhookSecret,
+    connectWebhookSecret: stripeConnectWebhookSecret,
     apiVersion: process.env.STRIPE_API_VERSION?.trim() || '2026-08-26.dahlia',
     currency: paymentCurrency,
     connectCountry,

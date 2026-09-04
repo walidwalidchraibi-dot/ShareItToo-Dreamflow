@@ -1,5 +1,10 @@
 # N25 Stripe test-mode Accounts v2 handover
 
+Follow-up 2026-09-04: WP04 reproduced that N25's one-secret fixture did not
+verify separate real snapshot/thin destinations. The correction and remaining
+activation requirements are in `WP04_STRIPE_WEBHOOK_DESTINATIONS_2026-09-04.md`.
+The N25 results below remain historical, not a WP04 or provider E2E pass.
+
 Status: **TECHNICAL FOUNDATION CLOSED / PROVIDER E2E HELD / LIVE GATES CLOSED**
 on 03.09.2026.
 

@@ -883,7 +883,13 @@ export async function verifyAndApplyWebhook(rawBody, signatureHeader) {
     rawBody,
     signatureHeader,
     webhookSecret: config.payments.webhookSecret,
+    connectWebhookSecret: config.payments.connectWebhookSecret,
   });
+  // Reject a wrong or absent mode before thin-event account retrieval, not
+  // just later at the database boundary in applyProviderEvent.
+  if (event.livemode !== config.payments.livemode) {
+    throw new PaymentDomainError(409, 'provider_livemode_mismatch');
+  }
   if (isConnectedAccountProviderEvent(event.type) && event.type !== 'account.updated') {
     const accountId = providerId(event.related_object?.id)
       || providerId(event.data?.object?.id)

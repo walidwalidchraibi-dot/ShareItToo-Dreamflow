@@ -242,6 +242,7 @@ test('Stripe SDK verifies both snapshot and thin webhook envelopes', () => {
     secretKey: 'sk_test_localunitfixture',
   });
   const webhookSecret = 'whsec_localunitfixture';
+  const connectWebhookSecret = 'whsec_connectunitfixture';
   const snapshotPayload = JSON.stringify({
     id: 'evt_snapshot_fixture',
     object: 'event',
@@ -265,8 +266,9 @@ test('Stripe SDK verifies both snapshot and thin webhook envelopes', () => {
   });
   const thin = provider.parseWebhookEvent({
     rawBody: Buffer.from(thinPayload),
-    signatureHeader: stripeSignatureHeader({ payload: thinPayload, secret: webhookSecret }),
+    signatureHeader: stripeSignatureHeader({ payload: thinPayload, secret: connectWebhookSecret }),
     webhookSecret,
+    connectWebhookSecret,
   });
   assert.equal(thin.type, 'v2.core.account[requirements].updated');
   assert.equal(thin.related_object.id, 'acct_fixture');
@@ -276,6 +278,7 @@ test('Stripe SDK verifies both snapshot and thin webhook envelopes', () => {
       rawBody: Buffer.from(thinPayload),
       signatureHeader: stripeSignatureHeader({ payload: `${thinPayload}tampered`, secret: webhookSecret }),
       webhookSecret,
+      connectWebhookSecret,
     }),
     (error) => error.status === 400 && error.code === 'invalid_webhook_signature',
   );

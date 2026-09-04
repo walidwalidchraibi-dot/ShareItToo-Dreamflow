@@ -1,5 +1,21 @@
 # ShareItToo Current State
 
+2026-09-04 WP04 independent progress: distinct Stripe snapshot and Accounts
+v2 webhook destination secrets are now wired and verified locally; wrong or
+missing mode is rejected before provider/database work. Focused 26 tests,
+Backend 814/2 environment skips, syntax, secret scan and 203 affected
+source-binding checks pass. Full normal regression passes (2,166 tools,
+Flutter profiles, analyzer zero, Web/Wasm dry run, loopback and Android/R11).
+Exact new-head CI, clean checkout and provider acceptance remain pending. The source-binding
+changes are hash-only; earlier CI and approval claims were not promoted.
+No external payment objects, credentials, deployment or device changes.
+The connected test account's SIT identity and GitHub's email confirmation
+are explicit owner dependencies; the waiting CLI device flow is now expired,
+not a live wait. This does not close the encompassing Goal.
+Handover: `docs/operations/WP04_STRIPE_WEBHOOK_DESTINATIONS_2026-09-04.md`.
+
+Previous independent WP03 checkpoint:
+
 Latest independent work, 2026-09-04: bounded WP03 correction to the real
 listing-AI adapter. Only completed provider responses may create draft data;
 explicit refusals cannot be hidden by convenience text. Local red-to-green
