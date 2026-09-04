@@ -1,4 +1,21 @@
-# Current Work Package: WP05 current0405 saved/cart acceptance
+# Current Work Package: WP05 search-corrected Pixel successor0406
+
+Installed0405 preflight reproduced a concrete search blocker without the planned
+cart write: short free text `SIT` was misclassified through substring `Sitze`.
+Public API and block/availability checks prove the fixture itself is valid.
+The bounded correction is committed at d48ec694 and passes focused, full normal
+and exact clean R10 with byte-identical debug APKs. Pixel owner role is restored;
+no project/listing creation is replayed and no request/reservation/payment exists.
+
+Current work is exclusively the strictly newer local candidate
+1.0.0+2026090406: freeze version/hash bindings, exact clean R10, matched normal
+and signed lifecycle, independent artifact verification, then a data-preserving
+0405→0406 Pixel update and corrected search/cart assignment acceptance. Preserve
+Staging, memory/live=false payment hold, Google-only/Analytics-off envelope and
+all Store/provider/legal/production gates. GitHub is owner-deferred and OnePlus
+untouched. See `docs/operations/WP05_PIXEL_CANDIDATE_2026090406_HANDOVER.md`.
+
+Historical0405 acceptance checkpoint:
 
 0405/source4a77baeb is signed, independently verified and installed on Pixel.
 Exact cold671s/second44s byte-identical; normal2235tools/852Flutter+profiles,

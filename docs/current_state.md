@@ -1,5 +1,19 @@
 # ShareItToo Current State
 
+Installed0405 remains immutable and is safely restored to the synthetic owner,
+but guarded listing/cart preflight reproduced a real client search defect before
+any write: `SIT` matched subcategory `Sitze`, adding the wrong coarse category
+and producing an empty Pixel result despite positive public API reads. The
+narrow correction is committed at d48ec694 and passes focused5+6/analyzer0,
+full normal2235tools/856Flutter+33skips/all34lanes/WebWasm/loopback/Android and
+exact clean R10 full689s/second45s with byte-identical APKs/all794 entries.
+Local successor1.0.0+2026090406 is now being prepared with hash-only binding
+refresh; exact0406 freeze/cold/normal/signed/device proof is still OPEN. GitHub
+stays owner-deferred, OnePlus untouched, and no cart/request/payment was made.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090406_HANDOVER.md`.
+
+Historical installed0405 checkpoint:
+
 Installed Pixel candidate1.0.0+2026090405/source4a77baeb passes exact cold R10
 (671s/secondAndroid44s, byte-identical), matched full normal2235tools/852Flutter+
 profiles/analyzer0/WebWasm dryrun/loopback/Android24s and signed APK/AAB lifecycle.
