@@ -9,6 +9,12 @@ unpushed. No next broad hardening Goal begins. The complete remaining scope is
 in `docs/operations/SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-04.md`.
 Fresh read-only Staging health/version is green at deployed `5d88295f`, with
 memory-only payments; it does not establish AI/Stripe or device acceptance.
+Additional read-only runtime evidence at 03:28 UTC confirms FCM/SMTP selected,
+Firebase Auth/phone enabled, AI explicitly `mock` with budget `0` and its documented
+key mount absent, and no separate Connect webhook variable in the old
+deployment. Existing Hostinger access works; no remote configuration, provider
+request or device action occurred. GitHub CLI remains unavailable. See the
+acceptance checkpoint and its linked sanitized runtime-configuration JSON.
 
 Previous verification checkpoint: exact R10 on `2408ada3` passed its complete
 technical regression and both Android builds but failed while extracting the

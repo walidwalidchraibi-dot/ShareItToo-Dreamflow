@@ -37,6 +37,41 @@ machine readback is retained in the private WP04 evidence directory as
 Readback SHA-256:
 `ee8a3fba4f3065e6295844700a9ddcadf82ebdea22f6b04267e4da39df3ae8cb`.
 
+## Additional direct Staging configuration observation
+
+At **2026-09-04T03:28:11.668Z**, the existing authenticated Work-Chrome
+Hostinger session provided the existing server Web Terminal. A read-only
+`docker exec` against exact `shareittoo-staging-api` confirmed environment
+`staging` and the same deployed source `5d88295fa7fe313b83936783a0582a505b2ba486`.
+Only an allowlist of non-secret configuration fields and file metadata was
+returned. No credential contents or complete environment dump were read.
+
+- SMTP and FCM are selected; Firebase Auth and phone verification are enabled.
+  The Firebase project matches Staging. Its documented mounted credential is
+  a nonempty regular, non-symlink file, mode `0640`. This does not prove delivery
+  or credential validity through a fresh provider request.
+- Listing AI is explicitly `mock`, model `listing-ai-mock-v1`, budget `0`, with
+  no external-execution flag. `/run/secrets/openai-api-key` is absent in this
+  container. This resolves the AI-selection gap of the preceding health-only
+  observation, but does not establish whether another owner-held provider
+  credential exists elsewhere. No credential search or extraction followed.
+- Payment is `memory` and Stripe live mode is false. Snapshot/Stripe secret
+  variable names are declared, but their values were deliberately not read;
+  declaration does not prove usable credentials. The separate
+  `STRIPE_CONNECT_WEBHOOK_SECRET` name is absent in this old deployment.
+  The current local WP04 wiring therefore still needs exact CI and an
+  authorized Staging rollout, plus separately approved provider setup.
+
+Machine readback:
+`docs/evidence/release-readiness/staging-runtime-configuration-readonly-20260904.json`.
+This was no deployment, account change, provider request, authentication
+attempt, payment or device action. GitHub CLI auth remains unavailable, with
+eight preserved local commits at the time of inspection. The GitHub connector's
+commit-creation interface cannot preserve the existing author/committer/date
+metadata, so it was not used to fabricate substitute SHAs or rewrite history.
+The temporary Hostinger overview/terminal tabs were closed after the check.
+Meta and the owner's current GitHub verification page remain available.
+
 ## Scoped Drive/owner-input refresh
 
 Read-only discovery checked the supplied SIT root, its

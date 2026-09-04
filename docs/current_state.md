@@ -6,7 +6,13 @@ source inventories, binary checks, footprint bounds and automatic cleanup pass.
 No signed candidate, device, provider or external CI pass is inferred. GitHub
 CLI remains unavailable and local commits are preserved pending normal push.
 Fresh Staging GETs confirm healthy deployed `5d88295f`, memory payment/live=false;
-the endpoint does not expose current AI-provider selection. A scoped Drive
+the endpoint does not expose current AI-provider selection. A subsequent
+read-only check in the existing authenticated Hostinger Web Terminal confirms
+FCM/SMTP selected and Firebase Auth/phone enabled, but listing AI still mock,
+budget `0`, with its documented mounted key absent. Stripe remains memory-only;
+the old deployment lacks the separate Connect webhook variable. No credential
+contents or provider requests were used. The full sanitized readback is linked
+from the acceptance checkpoint. A scoped Drive
 refresh and the local V5.2 manifest still leave independent legal approval open.
 Full requirement matrix and next steps:
 `docs/operations/SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-04.md`.
