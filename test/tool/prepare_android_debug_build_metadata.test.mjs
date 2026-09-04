@@ -55,3 +55,28 @@ test('replaces stale generated version metadata from checked-in pubspec', async 
     '',
   ].join('\n'));
 });
+
+test('SDK selection has explicit process-local precedence over stale local metadata', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'sit-debug-build-metadata-test-'));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'android'), { recursive: true });
+  await writeFile(path.join(root, 'pubspec.yaml'), 'version: 1.0.0+2026082302\n');
+  const propertiesPath = path.join(root, 'android/local.properties');
+  const cases = [
+    { androidSdkRoot: '/explicit/sdk', env: { ANDROID_HOME: '/home/sdk', ANDROID_SDK_ROOT: '/env/sdk' }, expected: '/explicit/sdk' },
+    { env: { ANDROID_HOME: '/home/sdk', ANDROID_SDK_ROOT: '/env/sdk' }, expected: '/home/sdk' },
+    { env: { ANDROID_SDK_ROOT: '/env/sdk' }, expected: '/env/sdk' },
+    { env: {}, expected: '/old/sdk' },
+    { env: { ANDROID_HOME: '/selected/sdk', ANDROID_SDK_ROOT: '/selected/sdk' }, expected: '/selected/sdk' },
+  ];
+  for (const { expected, ...selection } of cases) {
+    await writeFile(propertiesPath, 'sdk.dir=/old/sdk\nflutter.sdk=/old/flutter\n');
+    const result = await prepareAndroidDebugBuildMetadata({
+      root, flutterRoot: '/verified/flutter', ...selection,
+    });
+    const output = await readFile(propertiesPath, 'utf8');
+    assert.equal(output.split('\n').find((line) => line.startsWith('sdk.dir=')), `sdk.dir=${expected}`);
+    assert.equal(result.toolPathsPrinted, false);
+    assert.equal(result.versionCode, '2026082302');
+  }
+});

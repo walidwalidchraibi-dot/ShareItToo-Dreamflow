@@ -14,6 +14,18 @@ the supported Goal control; no separate WP Goal has yet been created.
 
 ## Current N29 SMS checkpoint — PARTIAL
 
+Latest 2026-09-04: exact toolchain source `8e0d9f99` passes GitHub Regression
+including clean checkout and CodeQL. Fresh official SDK provisioning removes
+the SDK XML mismatch in an isolated clean-source debug build; its permission
+surface passes. With owner-authorized disk cleanup complete, the main-host
+full preparation gate passes for new `1.0.0+2026090402`: 2,166 tools, 665 default
+Flutter plus profiles, analyzer, Web/Wasm dry run, loopback and Android/R11;
+neither build diagnostic recurred. Its own signed
+archive, exact CI and Pixel update remain OPEN. No new SMS/provider action.
+Current contracts: `docs/operations/WP02_PIXEL_CANDIDATE_2026090402_PREPARATION.md`
+and `docs/operations/WP02_ANDROID_SDK_COMPATIBILITY_2026-09-04.md`.
+Earlier checkpoints below retain their historical source/time scope.
+
 WP02 Android-build prerequisite in progress: coordinated AGP 8.13.2 / Kotlin
 2.3.10 / Gradle 8.13 removes the reproduced Firebase Auth release-lint metadata
 diagnostic. All 2,165 tool tests and the complete byte-verified public-source

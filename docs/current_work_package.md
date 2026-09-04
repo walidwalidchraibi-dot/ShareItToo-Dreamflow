@@ -1,4 +1,19 @@
-# Current Work Package: WP02 / WP01 Pixel candidate 2026090401
+# Current Work Package: WP02 / WP01 Pixel candidate 2026090402
+
+Current 2026-09-04 step: prepare fresh `1.0.0+2026090402` on base
+`8e0d9f99b49d65e9bd4e5ff4d1d1cd19304a5fc4`, whose exact Regression and CodeQL
+now pass, including clean checkout. An isolated SDK freshly installed by
+official command-line tools 19.0 removes the SDK XML diagnostic in an exact
+clean-source debug build; its binary surface passes. Main-checkout full
+preparation regression passes (2,166 tools, 665 default Flutter plus profiles,
+analyzer, Web/Wasm dry run, loopback, Android/R11) after owner-authorized storage
+recovery. Neither build diagnostic recurred. One SDK-selection regression is added;
+version and dependent hashes advance without changing other claims.
+New candidate CI, clean-head signed proof and Pixel update are NOT yet done.
+See `docs/operations/WP02_PIXEL_CANDIDATE_2026090402_PREPARATION.md` and
+`docs/operations/WP02_ANDROID_SDK_COMPATIBILITY_2026-09-04.md`.
+
+The checkpoints below are historical, source-bound observations.
 
 Active bounded prerequisite: Android toolchain alignment on base `2e5b1ed5`.
 AGP 8.13.2 / Kotlin 2.3.10 / Gradle 8.13 removes the reproduced Firebase Auth

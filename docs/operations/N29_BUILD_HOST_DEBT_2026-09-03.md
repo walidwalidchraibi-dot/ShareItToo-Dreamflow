@@ -1,5 +1,14 @@
 # N29 build-host and toolchain debt
 
+Current follow-up: 8e0 exact Regression/clean checkout/CodeQL pass. Official
+CLI-19 fresh SDK metadata resolves the XML reader mismatch in isolated debug
+execution without XML edits or suppressions. Owner-authorized host cleanup
+restored approximately 12 GB free; normal candidate 2026090402 preparation
+regression passes without either diagnostic. Debt remains OPEN until the new exact clean-head gate and signed
+archive sequence pass without another purge, with full diagnostic and binary
+verification. See `WP02_ANDROID_SDK_COMPATIBILITY_2026-09-04.md`. Earlier
+failures and manual-recovery observations below remain historical evidence.
+
 New bounded 2026-09-04 checkpoint: the Kotlin diagnostic is isolated to Firebase
 Auth release lint and disappears with coordinated AGP/Kotlin/Gradle pins.
 SDK XML mismatch remains; full original-host regression now stops before tests
