@@ -138,9 +138,9 @@
   },
   "ratchets": {
     "reason": "validated-local-account-profile-lifecycle-privacy-retention-and-provider-source-change",
-    "privacyManifestSha256": "16095e0c1511ae24a8d3d7371105b3f973c658e10a9ebc725d69ea27c403fdb9",
-    "retentionManifestSha256": "31caac0b3a90b37c7d6cc078d20b09689eed66b019935ea62fd7f40bc1c58999",
-    "activeProviderEvidenceSha256": "199cdf8611d68000da3b81c83cd4ca091fffe0a5aa6feda67e9f9eb8f2201746",
+    "privacyManifestSha256": "1dba76a2e5aea521746845ebfd0002f2d5fe3876eea0f563260b81c6f40dbd4a",
+    "retentionManifestSha256": "f12dd31f4900ec25cf24abb155dd67e94bf42a56dccb6d7b2fda187a15321549",
+    "activeProviderEvidenceSha256": "8bb20694f49bdb58cf95fccba8f772fa2fe9f7c317eabea163bdb86ac9f1364b",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -182,7 +182,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "c0ae62245c8537fceeef126f394a28a361c13b26f4c47a399a49573db9bded8b"
+      "sha256": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50"
     },
     {
       "path": "lib/screens/change_address_screen.dart",
@@ -226,15 +226,15 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "16095e0c1511ae24a8d3d7371105b3f973c658e10a9ebc725d69ea27c403fdb9"
+      "sha256": "1dba76a2e5aea521746845ebfd0002f2d5fe3876eea0f563260b81c6f40dbd4a"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "31caac0b3a90b37c7d6cc078d20b09689eed66b019935ea62fd7f40bc1c58999"
+      "sha256": "f12dd31f4900ec25cf24abb155dd67e94bf42a56dccb6d7b2fda187a15321549"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "199cdf8611d68000da3b81c83cd4ca091fffe0a5aa6feda67e9f9eb8f2201746"
+      "sha256": "8bb20694f49bdb58cf95fccba8f772fa2fe9f7c317eabea163bdb86ac9f1364b"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -250,7 +250,7 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "f7b460c36b17fa1862c8c49c8e6635b74380f4986ab64dd0607f5cc7f7311ca0"
+      "sha256": "22d0c6384c738dbf023f0d998691161e32723ee8bd5f01d1ab2496cece1476c3"
     },
     {
       "path": "scripts/technical_regression_check.sh",
@@ -274,7 +274,7 @@
     },
     {
       "path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs",
-      "sha256": "24ddeb993a1d06b0004f649b846c5b505b1b66f8ce19e014b9d0e39f17d45b4e"
+      "sha256": "be5f4db31b81640e4d26f77b1db49b67996fd1c8beeda44ec8ad0e257d2effb0"
     },
     {
       "path": "docs/compliance/g2l-g2-data-lifecycle-2026-08-20.md",

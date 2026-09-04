@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:lendify/widgets/saved_cart_action_scope.dart';
 
 /// Immersive image gallery overlay with blurred/dimmed background.
 /// Opens above current content (no hard screen change) and supports
@@ -14,6 +15,8 @@ class ImageGalleryOverlay extends StatefulWidget {
   final bool Function() isWishlisted;
   final Future<void> Function() onWishlistPressed;
   final Future<void> Function()? onShare;
+  final SavedCartActionScope? savedCartScope;
+  final VoidCallback? onClose;
 
   const ImageGalleryOverlay({
     super.key,
@@ -22,6 +25,8 @@ class ImageGalleryOverlay extends StatefulWidget {
     required this.isWishlisted,
     required this.onWishlistPressed,
     this.onShare,
+    this.savedCartScope,
+    this.onClose,
   });
 
   static Future<void> show(
@@ -31,26 +36,45 @@ class ImageGalleryOverlay extends StatefulWidget {
     required bool Function() isWishlisted,
     required Future<void> Function() onWishlistPressed,
     Future<void> Function()? onShare,
+    SavedCartActionScope? savedCartScope,
   }) async {
-    await showGeneralDialog(
+    RoutePageBuilder pageBuilder(ValueChanged<void> complete) =>
+        (ctx, anim, secAnim) {
+          return ImageGalleryOverlay(
+            images: images,
+            initialIndex: initialIndex,
+            isWishlisted: isWishlisted,
+            onWishlistPressed: onWishlistPressed,
+            onShare: onShare,
+            savedCartScope: savedCartScope,
+            onClose: () => complete(null),
+          );
+        };
+    Widget transitionBuilder(BuildContext ctx, Animation<double> anim,
+        Animation<double> secAnim, Widget child) {
+      final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+      return FadeTransition(opacity: curved, child: child);
+    }
+
+    if (savedCartScope != null) {
+      await savedCartScope.generalDialog<void>(
+        context,
+        pageBuilder: pageBuilder,
+        barrierLabel: 'close',
+        barrierColor: Colors.transparent,
+        transitionDuration: const Duration(milliseconds: 200),
+        transitionBuilder: transitionBuilder,
+      );
+      return;
+    }
+    await showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'close',
-      barrierColor: Colors.transparent, // We handle dimming inside
-      pageBuilder: (ctx, anim, secAnim) {
-        return ImageGalleryOverlay(
-          images: images,
-          initialIndex: initialIndex,
-          isWishlisted: isWishlisted,
-          onWishlistPressed: onWishlistPressed,
-          onShare: onShare,
-        );
-      },
-      transitionBuilder: (ctx, anim, secAnim, child) {
-        final curved =
-            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
-        return FadeTransition(opacity: curved, child: child);
-      },
+      barrierColor: Colors.transparent,
+      pageBuilder: pageBuilder(
+          (_) => Navigator.of(context, rootNavigator: true).maybePop()),
+      transitionBuilder: transitionBuilder,
       transitionDuration: const Duration(milliseconds: 200),
     );
   }
@@ -66,6 +90,36 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
   int _page = 0;
   // Tracks the bounds of the currently visible image card for outside-to-dismiss.
   final GlobalKey _imageKey = GlobalKey();
+
+  void _close() {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  Future<bool> _stillCurrent() async =>
+      mounted &&
+      (widget.savedCartScope == null ||
+          await widget.savedCartScope!.isCurrent()) &&
+      mounted;
+
+  Future<void> _failure(String title) async {
+    if (!await _stillCurrent() || !mounted) return;
+    final scope = widget.savedCartScope;
+    if (scope != null) {
+      await scope.notice(context, icon: Icons.error_outline, title: title);
+    } else {
+      await AppPopup.toast(context, icon: Icons.error_outline, title: title);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pc.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -89,7 +143,7 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).maybePop(),
+            onTap: _close,
             child: BackdropFilter(
               filter:
                   ImageFilter.blur(sigmaX: 30, sigmaY: 30), // stärkerer Blur
@@ -118,7 +172,7 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                     final rect = Rect.fromLTWH(
                         topLeft.dx, topLeft.dy, size.width, size.height);
                     if (!rect.contains(evt.position)) {
-                      Navigator.of(context).maybePop();
+                      _close();
                     }
                   }
                 },
@@ -179,7 +233,7 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                     icon: Icons.arrow_back_rounded,
                     semanticLabel:
                         MaterialLocalizations.of(context).backButtonTooltip,
-                    onTap: () => Navigator.of(context).maybePop(),
+                    onTap: _close,
                   ),
                   const Spacer(),
                   _TopIcon(
@@ -192,15 +246,14 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                     iconSize: 20, // Herz bewusst etwas kleiner als Teilen-Icon
                     onTap: () async {
                       try {
+                        if (!await _stillCurrent()) return;
                         await widget.onWishlistPressed();
-                        if (!mounted) return;
+                        if (!await _stillCurrent()) return;
                         setState(() {}); // reflect updated status
                       } catch (e) {
-                        f.debugPrint('[gallery] wishlist failed: $e');
-                        if (!context.mounted) return;
-                        await AppPopup.toast(context,
-                            icon: Icons.error_outline,
-                            title: 'Fehler beim Aktualisieren');
+                        f.debugPrint(
+                            '[gallery] wishlist failed (${e.runtimeType})');
+                        await _failure('Fehler beim Aktualisieren');
                       }
                     },
                   ),
@@ -213,6 +266,7 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                     semanticLabel: 'Teilen',
                     onTap: () async {
                       try {
+                        if (!await _stillCurrent()) return;
                         if (widget.onShare != null) {
                           await widget.onShare!();
                         } else {
@@ -228,11 +282,9 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                               .share(ShareParams(text: text));
                         }
                       } catch (e) {
-                        f.debugPrint('[share] failed in gallery: $e');
-                        if (!context.mounted) return;
-                        await AppPopup.toast(context,
-                            icon: Icons.error_outline,
-                            title: 'Teilen fehlgeschlagen');
+                        f.debugPrint(
+                            '[share] failed in gallery (${e.runtimeType})');
+                        await _failure('Teilen fehlgeschlagen');
                       }
                     },
                   ),

@@ -92,6 +92,7 @@ class ItemDetailsOverlay {
         fresh: fresh,
         isOwnerPreview: isOwnerPreview,
         overrideAppBarTitle: overrideAppBarTitle,
+        savedCartScope: savedCartScope,
       ),
     );
     if (savedCartScope != null) {
@@ -676,6 +677,7 @@ class _ItemDetailsPage extends StatefulWidget {
   final bool fresh;
   final bool isOwnerPreview;
   final String? overrideAppBarTitle;
+  final SavedCartActionScope? savedCartScope;
   const _ItemDetailsPage({
     required this.item,
     required this.ownerFuture,
@@ -683,6 +685,7 @@ class _ItemDetailsPage extends StatefulWidget {
     this.fresh = false,
     this.isOwnerPreview = false,
     this.overrideAppBarTitle,
+    this.savedCartScope,
   });
   @override
   State<_ItemDetailsPage> createState() => _ItemDetailsPageState();
@@ -701,13 +704,36 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       SharedPersistenceRefreshCoordinator();
   StreamSubscription<String>? _savedStateSubscription;
 
+  Future<bool> _stillCurrent(SavedCartActionScope? scope) async =>
+      mounted &&
+      identical(scope, widget.savedCartScope) &&
+      (scope == null || await scope.isCurrent()) &&
+      mounted &&
+      identical(scope, widget.savedCartScope);
+
+  Future<void> _savedNotice(
+    SavedCartActionScope? scope, {
+    required IconData icon,
+    required String title,
+    String? message,
+  }) async {
+    if (!await _stillCurrent(scope) || !mounted) return;
+    if (scope != null) {
+      await scope.notice(context, icon: icon, title: title, message: message);
+    } else {
+      await AppPopup.toast(context, icon: icon, title: title, message: message);
+    }
+  }
+
   Future<void> _toggleWishlistFromMenu() async {
+    final scope = widget.savedCartScope;
+    if (!await _stillCurrent(scope)) return;
     if (_wishlistStateLoading) return;
     if (!_wishlistStateKnown) {
       await _wishlistRefreshCoordinator.schedule(_reloadWishlistState);
-      if (!_wishlistStateKnown && mounted) {
-        await AppPopup.toast(
-          context,
+      if (!_wishlistStateKnown && await _stillCurrent(scope)) {
+        await _savedNotice(
+          scope,
           icon: Icons.error_outline,
           title: 'Gemerkt-Status konnte nicht geladen werden',
           message: 'Es wurde nichts verändert.',
@@ -716,42 +742,48 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       return;
     }
     try {
+      if (!mounted) return;
       if (_wishlistId == null) {
-        final sel = await WishlistSelectionSheet.showAdd(context);
-        if (!mounted) return;
+        final sel = await WishlistSelectionSheet.showAdd(context, scope: scope);
+        if (!await _stillCurrent(scope)) return;
         if (sel != null && sel.isNotEmpty) {
-          await DataService.setItemWishlist(widget.item.id, sel);
-          if (!mounted) return;
+          await DataService.setItemWishlist(widget.item.id, sel,
+              expectedOwner: scope?.owner);
+          if (!await _stillCurrent(scope)) return;
           setState(() => _wishlistId = sel);
-          await AppPopup.toast(context,
+          await _savedNotice(scope,
               icon: Icons.favorite, title: 'Unter Gemerkt gespeichert');
         }
         return;
       }
       final sel = await WishlistSelectionSheet.showMove(context,
-          currentListId: _wishlistId!);
-      if (!mounted) return;
+          currentListId: _wishlistId!, scope: scope);
+      if (!await _stillCurrent(scope)) return;
       if (sel != null && sel.isNotEmpty) {
-        await DataService.setItemWishlist(widget.item.id, sel);
-        if (mounted) setState(() => _wishlistId = sel);
+        await DataService.setItemWishlist(widget.item.id, sel,
+            expectedOwner: scope?.owner);
+        if (await _stillCurrent(scope)) setState(() => _wishlistId = sel);
       }
     } catch (error) {
-      if (!mounted) return;
+      if (!await _stillCurrent(scope)) return;
       setState(() => _wishlistStateKnown = false);
-      await AppPopup.toast(
-        context,
+      await _savedNotice(
+        scope,
         icon: Icons.error_outline,
-        title: 'Gemerkt wurde nicht aktualisiert',
+        title: 'Gemerkt konnte nicht bestätigt werden',
         message: 'Es wurde nichts als gespeichert bestätigt.',
       );
     }
   }
 
   Future<void> _reloadWishlistState() async {
+    final scope = widget.savedCartScope;
     if (mounted) setState(() => _wishlistStateLoading = true);
     try {
-      final id = await DataService.getWishlistForItem(widget.item.id);
-      if (!mounted) return;
+      if (!await _stillCurrent(scope)) return;
+      final id = await DataService.getWishlistForItem(widget.item.id,
+          expectedOwner: scope?.owner);
+      if (!await _stillCurrent(scope)) return;
       setState(() {
         _wishlistId = id;
         _wishlistStateKnown = true;
@@ -761,7 +793,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       debugPrint(
         '[ItemDetails] wishlist state unavailable (${error.runtimeType})',
       );
-      if (!mounted) return;
+      if (!await _stillCurrent(scope)) return;
       setState(() {
         _wishlistStateKnown = false;
         _wishlistStateLoading = false;
@@ -770,14 +802,16 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   }
 
   Future<void> _share() async {
+    final scope = widget.savedCartScope;
     try {
-      f.debugPrint('[share] listing ${widget.item.id}');
-      await AppPopup.toast(context,
+      if (!await _stillCurrent(scope)) return;
+      await Clipboard.setData(ClipboardData(
+          text: AppLinkBuilder.listing(widget.item.id).toString()));
+      await _savedNotice(scope,
           icon: Icons.check_circle_outline, title: 'Link kopiert');
     } catch (e) {
-      f.debugPrint('[share] failed: $e');
-      if (!mounted) return;
-      await AppPopup.toast(context,
+      f.debugPrint('[share] failed (${e.runtimeType})');
+      await _savedNotice(scope,
           icon: Icons.error_outline, title: 'Teilen fehlgeschlagen');
     }
   }
@@ -822,8 +856,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     if (widget.fresh == true) {
       // Clear any previously saved selection so page opens as if brand new
       // Do not await; fire-and-forget to avoid delaying initial build
-      DataService.clearSavedDateRange(widget.item.id);
-      DataService.clearSavedDeliverySelection(widget.item.id);
+      _clearSavedSelection();
       // Keep _selectedRange as null to show pristine state
     } else {
       _loadSavedRange();
@@ -831,19 +864,42 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   }
 
   Future<void> _loadSavedRange() async {
-    final saved = await DataService.getSavedDateRange(widget.item.id);
-    if (!mounted) return;
-    if (saved.$1 != null && saved.$2 != null) {
-      setState(() =>
-          _selectedRange = DateTimeRange(start: saved.$1!, end: saved.$2!));
+    final scope = widget.savedCartScope;
+    try {
+      if (!await _stillCurrent(scope)) return;
+      final saved = await DataService.getSavedDateRange(widget.item.id,
+          expectedOwner: scope?.owner);
+      if (!await _stillCurrent(scope)) return;
+      if (saved.$1 != null && saved.$2 != null) {
+        setState(() =>
+            _selectedRange = DateTimeRange(start: saved.$1!, end: saved.$2!));
+      }
+    } catch (error) {
+      f.debugPrint(
+          '[ItemDetails] saved range unavailable (${error.runtimeType})');
+    }
+  }
+
+  // Disposal may happen after A has already become B. The immutable owner
+  // must reach the persistence boundary; a mounted check cannot protect it.
+  Future<void> _clearSavedSelection() async {
+    final owner = widget.savedCartScope?.owner;
+    final itemId = widget.item.id;
+    try {
+      if (owner != null && !await owner.isCurrent()) return;
+      await DataService.clearSavedDateRange(itemId, expectedOwner: owner);
+      await DataService.clearSavedDeliverySelection(itemId,
+          expectedOwner: owner);
+    } catch (error) {
+      f.debugPrint(
+          '[ItemDetails] selection cleanup not confirmed (${error.runtimeType})');
     }
   }
 
   @override
   void dispose() {
     // Clear any saved state so the next open is pristine wherever it comes from
-    DataService.clearSavedDateRange(widget.item.id);
-    DataService.clearSavedDeliverySelection(widget.item.id);
+    unawaited(_clearSavedSelection());
     _wishlistRefreshCoordinator.dispose();
     _savedStateSubscription?.cancel();
     _pc.dispose();
@@ -990,37 +1046,32 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () async {
-              final choice =
-                  await showSITOverflowMenu<String>(context, options: const [
-                SitMenuOption(
-                    icon: Icons.ios_share,
-                    label: 'Anzeige teilen',
-                    value: 'share'),
-                SitMenuOption(
-                    icon: Icons.favorite_border,
-                    label: 'Unter Gemerkt speichern',
-                    value: 'wishlist'),
-                SitMenuOption(
-                    icon: Icons.flag_outlined,
-                    label: 'Anzeige melden',
-                    value: 'report'),
-              ]);
-              if (!context.mounted || choice == null) return;
+              final scope = widget.savedCartScope;
+              if (!await _stillCurrent(scope) || !context.mounted) return;
+              final choice = await showSITOverflowMenu<String>(context,
+                  scope: scope,
+                  options: const [
+                    SitMenuOption(
+                        icon: Icons.ios_share,
+                        label: 'Anzeige teilen',
+                        value: 'share'),
+                    SitMenuOption(
+                        icon: Icons.favorite_border,
+                        label: 'Unter Gemerkt speichern',
+                        value: 'wishlist'),
+                    SitMenuOption(
+                        icon: Icons.flag_outlined,
+                        label: 'Anzeige melden',
+                        value: 'report'),
+                  ]);
+              if (!await _stillCurrent(scope) ||
+                  !context.mounted ||
+                  choice == null) {
+                return;
+              }
               switch (choice) {
                 case 'share':
-                  try {
-                    final url = AppLinkBuilder.listing(item.id).toString();
-                    await Clipboard.setData(ClipboardData(text: url));
-                    if (!context.mounted) break;
-                    await AppPopup.toast(context,
-                        icon: Icons.ios_share, title: 'Link kopiert');
-                  } catch (e) {
-                    f.debugPrint('[share] failed: $e');
-                    if (!context.mounted) break;
-                    await AppPopup.toast(context,
-                        icon: Icons.error_outline,
-                        title: 'Teilen fehlgeschlagen');
-                  }
+                  await _share();
                   break;
                 case 'wishlist':
                   await _toggleWishlistFromMenu();
@@ -1111,6 +1162,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                               _wishlistStateKnown && _wishlistId != null,
                           onWishlistPressed: _toggleWishlistFromMenu,
                           onShare: _share,
+                          savedCartScope: widget.savedCartScope,
                         );
                       },
                     ),

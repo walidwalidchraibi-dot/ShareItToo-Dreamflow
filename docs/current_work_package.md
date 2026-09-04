@@ -1,5 +1,19 @@
 # Current Work Package: WP05 consolidated saved-cart principal correction
 
+Current bounded follow-up on source59a8: exact clean R10 PASS (full675s,
+secondAndroid44s, byte/entry identical, inventories/cleanup PASS). Subsequent
+controlled tests confirm a residual detail-descendant P1: unowned selector,
+create, overflow and gallery survive A→B; an A draft may save under B. A separate
+intermediate probe confirms disposal can clear B's saved dates. This chain is
+now locally corrected with owner propagation, exact general-dialog handles and
+owner-bound cleanup. Focused97/wiring18/analyzer0 PASS. Full normal PASS:
+2235tools/852defaultFlutter+profiles/WebWasm dryrun/loopback/Android22s/R11.
+Next freeze and exact current-source clean R10; signing/device proof OPEN. Preserve59a8 proof and
+installed0404 separately. No GitHub or live/device/provider action. See
+`docs/operations/WP05_CART_DETAILS_DESCENDANT_OWNERSHIP_2026-09-04.md`.
+
+Historical source59a8 checkpoint (clean proof now closed above):
+
 Consolidated implementation on evidence base `af20cb4d` now also covers nested
 ItemCard heart/context-menu/selection/create/details routes, guest login/sync,
 and actual cart/group/planner/set navigation origins. Local focused78 and

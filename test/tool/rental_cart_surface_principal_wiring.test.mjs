@@ -139,3 +139,35 @@ test('real navigation profile remains mandatory alongside guest and nested tests
   const tests = read('test/saved_cart_navigation_principal_test.dart');
   for (const marker of ['silent-before-click', 'bindingCheckoutEnabled', 'late-error', 'missing', 'owned.isActive', 'foreign.isCurrent']) assert.ok(tests.includes(marker));
 });
+
+test('owned details retain the cart owner through their descendant UI and cleanup', () => {
+  const full = read('lib/widgets/item_details_overlay.dart');
+  const entry = section(full, 'static Future<void> showFullPage', 'static Future<model.User?> _loadOwner');
+  assert.match(entry, /_ItemDetailsPage\([\s\S]*?savedCartScope: savedCartScope/u);
+  const page = section(full, 'class _ItemDetailsPageState', 'String _priceWithUnit');
+  const wishlist = section(page, 'Future<void> _toggleWishlistFromMenu', 'Future<void> _share');
+  assert.match(wishlist, /showAdd\(context, scope: scope\)/u);
+  assert.match(wishlist, /showMove\(context,[\s\S]*?scope: scope/u);
+  assert.equal(wishlist.match(/expectedOwner: scope\?\.owner/gu)?.length, 3);
+  assert.doesNotMatch(wishlist, /AppPopup\.toast|Navigator\./u);
+  const cleanup = section(page, 'Future<void> _clearSavedSelection', '@override');
+  assert.match(cleanup, /final owner = widget.savedCartScope\?\.owner/u);
+  assert.match(cleanup, /clearSavedDateRange\(itemId, expectedOwner: owner\)/u);
+  assert.match(cleanup, /clearSavedDeliverySelection\(itemId,[\s\S]*?expectedOwner: owner\)/u);
+  const body = full.slice(full.indexOf('class _ItemDetailsPageState'));
+  assert.match(body, /showSITOverflowMenu<String>\(context,\s*scope: scope/u);
+  assert.match(body, /ImageGalleryOverlay.show\([\s\S]*?savedCartScope: widget.savedCartScope/u);
+});
+
+test('nested general dialogs return through exact handles, not current-stack pop', () => {
+  const scope = section(read('lib/widgets/saved_cart_action_scope.dart'), 'Future<T?> generalDialog', 'Future<void> notice');
+  for (const marker of ['showTrackedGeneralDialog', 'pageBuilder(handle.dismiss)', '_dismissals.add(dismiss)', '_dismissals.remove(dismiss)', 'return await isCurrent() ? result : null']) assert.ok(scope.includes(marker));
+  const menu = read('lib/widgets/sit_overflow_menu.dart');
+  assert.match(menu, /scope.generalDialog<T>/u);
+  assert.match(menu, /onTap: \(\) => complete\(opt.value\)/u);
+  const gallery = read('lib/widgets/image_gallery_overlay.dart');
+  assert.match(gallery, /savedCartScope.generalDialog<void>/u);
+  assert.match(gallery, /onClose: \(\) => complete\(null\)/u);
+  const tests = read('test/saved_cart_details_principal_test.dart');
+  for (const marker of ['gallery-create', 'late-success', 'late-failure', 'silent-B', 'old overflow completion', 'disposal preserves B', 'unscoped details']) assert.ok(tests.includes(marker));
+});

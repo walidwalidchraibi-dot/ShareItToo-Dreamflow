@@ -453,7 +453,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "c0ae62245c8537fceeef126f394a28a361c13b26f4c47a399a49573db9bded8b"
+      "sha256": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50"
     },
     {
       "path": "lib/services/session_transition_service.dart",
@@ -469,7 +469,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
-      "sha256": "0da72c1918fc99bae064cb66f3f43f9317f3209a852843c0b236534372cd335b"
+      "sha256": "fffd9732eb26667aa3434838da06243b39029e7efa91a71501eea8af8fad8264"
     },
     {
       "path": "scripts/technical_regression_check.sh",

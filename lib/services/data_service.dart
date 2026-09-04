@@ -1404,15 +1404,21 @@ class DataService {
       _LocalBookingSelectionRegistry registry,
       LocalPrincipalIdentity principal,
       Map<String, dynamic> bucket,
-    ) operation,
-  ) async {
-    final principal = await _currentLocalPrincipal();
+    ) operation, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    final principal =
+        expectedOwner?.principal ?? await _currentLocalPrincipal();
+    await expectedOwner?.assertCurrent();
     return _bookingSelectionMutationQueue.run(() async {
+      await expectedOwner?.assertCurrent();
       await LocalPrincipalScope.assertCurrent(principal);
       final prefs = await SharedPreferences.getInstance();
       final registry = _readBookingSelectionRegistry(prefs);
       final bucket = _bookingSelectionBucketForPrincipal(registry, principal);
+      await expectedOwner?.assertCurrent();
       final result = await operation(prefs, registry, principal, bucket);
+      await expectedOwner?.assertCurrent();
       await LocalPrincipalScope.assertCurrent(principal);
       return result;
     });
@@ -1420,8 +1426,9 @@ class DataService {
 
   // Persisted availability selection, isolated by the current local principal.
   static Future<(DateTime? start, DateTime? end)> getSavedDateRange(
-    String itemId,
-  ) async {
+    String itemId, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     final id = itemId.trim();
     if (id.isEmpty) return (null, null);
     return _withCurrentBookingSelectionBucket((_, __, ___, bucket) async {
@@ -1433,7 +1440,7 @@ class DataService {
         start == null ? null : DateTime.parse(start),
         end == null ? null : DateTime.parse(end),
       );
-    });
+    }, expectedOwner: expectedOwner);
   }
 
   static Future<void> setSavedDateRange(
@@ -1463,7 +1470,10 @@ class DataService {
     );
   }
 
-  static Future<void> clearSavedDateRange(String itemId) async {
+  static Future<void> clearSavedDateRange(
+    String itemId, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     final id = itemId.trim();
     if (id.isEmpty) return;
     await _withCurrentBookingSelectionBucket(
@@ -1485,12 +1495,16 @@ class DataService {
           bucket,
         );
       },
+      expectedOwner: expectedOwner,
     );
   }
 
   /// Clears only the saved delivery selection for a given item without
   /// touching another item or local principal.
-  static Future<void> clearSavedDeliverySelection(String itemId) async {
+  static Future<void> clearSavedDeliverySelection(
+    String itemId, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     final id = itemId.trim();
     if (id.isEmpty) return;
     await _withCurrentBookingSelectionBucket(
@@ -1510,6 +1524,7 @@ class DataService {
           bucket,
         );
       },
+      expectedOwner: expectedOwner,
     );
   }
 

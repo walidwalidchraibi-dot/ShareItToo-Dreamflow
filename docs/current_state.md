@@ -1,5 +1,17 @@
 # ShareItToo Current State
 
+Exact saved-cart59a8 clean R10 passes full675s, secondAndroid44s, byte-identical
+APKs/entries, unchanged inventories and cleanup. Its proof remains separate.
+Saved-detail descendant ownership still had confirmed P1s (surviving popups,
+A draft saved under B, disposal clearing B selection); the bounded correction
+passes focused97/wiring18/analyzer0 and full normal2235tools/852defaultFlutter+
+profiles/WebWasmdryrun/loopback/Android22s/R11. Next freeze and exact clean R10.
+No new signed
+candidate or device proof. Installed0404 is unchanged; GitHub stays deferred.
+See `docs/operations/WP05_CART_DETAILS_DESCENDANT_OWNERSHIP_2026-09-04.md`.
+
+Historical consolidated59a8 checkpoint:
+
 Consolidated saved-cart source now includes nested saved-widget and actual
 navigation-origin ownership on evidence base `af20cb4d`. Focused78/navigation14,
 wiring20, analyzer0 and secret scan pass. Exact hash propagation converges with

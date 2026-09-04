@@ -29,7 +29,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await useScopeRole('a');
   });
-  for (final kind in ['page', 'draft', 'notice']) {
+  for (final kind in ['page', 'draft', 'general', 'notice']) {
     for (final mode in ['stable', 'switch', 'silent-switch', 'dispose']) {
       testWidgets('saved cart exact $kind ownership on $mode', (tester) async {
         final nav = GlobalKey<NavigatorState>();
@@ -55,6 +55,15 @@ void main() {
                 onPressed: () => complete('A result'),
                 child: const Text('Confirm A'));
           });
+        } else if (kind == 'general') {
+          pending = scope.generalDialog<String>(context,
+              barrierLabel: 'A general',
+              barrierColor: Colors.transparent,
+              transitionDuration: Duration.zero, pageBuilder: (complete) {
+            oldComplete = complete;
+            return (_, __, ___) =>
+                const AlertDialog(title: Text('A private general'));
+          });
         } else {
           pending = scope
               .notice(context, icon: Icons.info, title: 'A private notice')
@@ -64,10 +73,10 @@ void main() {
         expect(find.text('A private $kind'), findsOneWidget);
         if (mode == 'stable') {
           if (kind == 'page') scope.closeRoute(page);
-          if (kind == 'draft') oldComplete!('A result');
+          if (kind == 'draft' || kind == 'general') oldComplete!('A result');
           await tester.pump(const Duration(seconds: 2));
           await tester.pumpAndSettle();
-          expect(await pending, kind == 'draft' ? 'A result' : isNull);
+          expect(await pending, oldComplete != null ? 'A result' : isNull);
         } else {
           await useScopeRole('b', notify: mode == 'switch');
           final foreignPage = MaterialPageRoute<void>(

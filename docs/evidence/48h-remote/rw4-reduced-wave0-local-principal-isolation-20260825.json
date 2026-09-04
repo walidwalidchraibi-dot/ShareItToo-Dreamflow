@@ -107,7 +107,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "c0ae62245c8537fceeef126f394a28a361c13b26f4c47a399a49573db9bded8b"
+      "sha256": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -131,11 +131,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "16095e0c1511ae24a8d3d7371105b3f973c658e10a9ebc725d69ea27c403fdb9"
+      "sha256": "1dba76a2e5aea521746845ebfd0002f2d5fe3876eea0f563260b81c6f40dbd4a"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "31caac0b3a90b37c7d6cc078d20b09689eed66b019935ea62fd7f40bc1c58999"
+      "sha256": "f12dd31f4900ec25cf24abb155dd67e94bf42a56dccb6d7b2fda187a15321549"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",

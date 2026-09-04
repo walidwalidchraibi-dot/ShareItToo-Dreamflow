@@ -127,6 +127,37 @@ class SavedCartActionScope {
     }
   }
 
+  /// An owned general dialog, including nested menus and image galleries.
+  /// Its completion callback removes only this dialog, never a newer B route.
+  Future<T?> generalDialog<T>(
+    BuildContext context, {
+    required RoutePageBuilder Function(ValueChanged<T?> complete) pageBuilder,
+    required String barrierLabel,
+    required Color barrierColor,
+    required Duration transitionDuration,
+    RouteTransitionsBuilder? transitionBuilder,
+  }) async {
+    if (!await isCurrent() || !context.mounted) return null;
+    final handle = TrackedDialogRouteHandle<T>();
+    void dismiss() => handle.dismiss();
+    _dismissals.add(dismiss);
+    try {
+      final result = await showTrackedGeneralDialog<T>(
+        context: context,
+        handle: handle,
+        pageBuilder: pageBuilder(handle.dismiss),
+        barrierDismissible: true,
+        barrierLabel: barrierLabel,
+        barrierColor: barrierColor,
+        transitionDuration: transitionDuration,
+        transitionBuilder: transitionBuilder,
+      );
+      return await isCurrent() ? result : null;
+    } finally {
+      _dismissals.remove(dismiss);
+    }
+  }
+
   Future<void> notice(
     BuildContext context, {
     required IconData icon,
