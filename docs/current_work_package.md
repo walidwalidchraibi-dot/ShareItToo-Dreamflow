@@ -12,6 +12,12 @@ pass. Full normal local regression also passes: 2,166 tools, Flutter profiles,
 analyzer, Web/Wasm dry run, loopback and Android/R11. Exact new-HEAD CI and
 full R10 clean-checkout proof remain pending.
 
+Implementation is committed as `f3b1d7edd052cede6d25105c8d07da050b8c1c13`.
+A fresh exact-commit, public-source-only clone independently passes normal
+frozen-lockfile install, full Backend 808/2 skips and syntax, with a clean tree.
+This is Backend proof, not full R10. Normal push was attempted and rejected
+for missing HTTPS authentication; no remote completion or deployment claimed.
+
 No provider activation, credential read, paid request, deployment or device
 action. Frozen signed 2026090402 and its source bfd3e9e4 are unchanged; exact
 Regression is still failed and CodeQL green. GitHub CLI authentication remains

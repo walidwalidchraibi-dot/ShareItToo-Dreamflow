@@ -1,6 +1,10 @@
 # WP03 — Listing-AI response acceptance
 
-Status: **LOCAL CORRECTION AND FULL REGRESSION PASS / NOT DEPLOYED**.
+Status: **LOCAL CORRECTION, FULL LOCAL REGRESSION AND CLEAN BACKEND PASS /
+PUSH AUTHENTICATION BLOCKED / NOT DEPLOYED**.
+
+Implementation commit: `f3b1d7edd052cede6d25105c8d07da050b8c1c13`.
+The subsequent documentation-only commit records the clean-checkout results.
 
 Bounded independent work while WP01/WP02's frozen candidate CI and owner
 authentication dependencies remain incomplete. This does not complete WP03
@@ -62,6 +66,14 @@ quality, billing or device evidence.
   No cache purge, timeout change, suppressed check or provider call was needed.
 - Exact new-HEAD GitHub/CodeQL and full R10 clean-checkout proof: pending.
   No prior result is transferred to the new implementation.
+- Fresh `git clone --no-local` at exact implementation commit f3b1d7ed,
+  canonical origin restored, clean before/after. Path:
+  `/Volumes/SIT-Build-20260904/wp03-provider-proof.1W2oHQ`.
+  Normal frozen-lockfile install, full Backend **808 passed / 2 explicit
+  environment skips**, and syntax check pass. No protected signing/Firebase
+  inputs copied. This is Backend clean-checkout evidence, not full R10 proof.
+- Normal push of f3b1d7ed was attempted and rejected with missing HTTPS
+  authentication, exit 128. No forced push or connector credential reuse.
 - N17's maintained provider hash is updated in its manifest and validator.
   N17's historical verification fields remain bound only to its recorded
   implementation commit; the added maintenance note links this follow-up.
@@ -76,6 +88,9 @@ Private logs are retained in
 | Final full Backend suite | `b0330b94b77b5cd8a8e31866d16ec3de6a9b367116776ac82f39536fba0a6ea1` |
 | Backend syntax check | `db204e539675ce352bc23179c6db37ce97e9fa4e76de47fc693b5b575fb19e42` |
 | Full local technical regression | `f0075f186b3def71a92361ed7fd4fa2bb5c2e8fc61f7330585ca5a1974556016` |
+| Clean-checkout dependency install | `7ba7de5d00bd32b4e81029defb9458841ffb13b023c2def7863f4b1bdd64b986` |
+| Clean-checkout full Backend | `57bd20abdb14b84aa6a978eb7b489eb130c3a2ed1c9bc3fc110c0990a52411bf` |
+| Clean-checkout syntax | `db204e539675ce352bc23179c6db37ce97e9fa4e76de47fc693b5b575fb19e42` |
 
 ## Official documentation and runtime limits
 
@@ -106,7 +121,9 @@ account mutation, PR merge, OnePlus or Pixel action occurred.
 
 ## Next step and rollback
 
-Commit this backend-only correction separately after the completed regression.
+The backend-only correction is committed. Owner action remains the official
+`gh auth login -h github.com --web` on the Mac mini (locally or through the
+existing private remote connection). No credentials should be pasted into chat.
 Once normal GitHub authentication is restored, push normally and require exact
 new-HEAD CI/CodeQL and clean-checkout evidence before staging deployment.
 Keep the frozen 2026090402 candidate and its outstanding CI separate. No
