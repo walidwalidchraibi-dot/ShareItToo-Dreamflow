@@ -1,15 +1,22 @@
-# Current Work Package: WP05 saved-cart-corrected Pixel candidate 2026090405
+# Current Work Package: WP05 current0405 saved/cart acceptance
 
-Implementation952a now has exact clean R10 PASS: full690s, secondAndroid44s,
-byte/entry identical, inventories/capacity/cleanup PASS. Prepare distinct local
-candidate1.0.0+2026090405 on952a: only pubspec/client-build fallback plus exact
-hash bindings change;234 focused tests pass. Existing canonical signing and
-Firebase Staging input consistency pass without exposing values. Read-only
-Staging5d88295f/memory/live=false and Pixel0404/API37 remain as expected.
-Next freeze actual0405 source, then its own cold/normal/signed/independent
-artifact and data-preserving Pixel acceptance. No new signed/device/CI claim.
-GitHub remains deferred; old0404 archive untouched; OnePlus and all full-Goal
-requirements remain open. See `docs/operations/WP05_PIXEL_CANDIDATE_2026090405_HANDOVER.md`.
+0405/source4a77baeb is signed, independently verified and installed on Pixel.
+Exact cold671s/second44s byte-identical; normal2235tools/852Flutter+profiles,
+analyzer0/WebWasm dryrun/loopback/Android24s; matched signed lifecycle all PASS.
+Installed-byte/cert/data preservation, cold starts/main navigation/restart PASS.
+One synthetic project is server-confirmed, survives restart and remains isolated
+across actual same-process owner→renter→owner. All temporary API sessions revoked;
+original QA role restored. Initial private revision0→1 assumption failed; actual
+schema materializes1 then touches2.21 tests now cover that exact contract; the
+failure is retained and no project creation was repeated or runtime changed.
+
+Next bounded work: saved folders/listings, date preparation/cart assignment,
+offline/error/retry and scoped ownership acceptance on unchanged0405. Reuse only
+the recorded QA project; do not replay creator/update, reset data or touch
+unknown records. Check planner/sets/group prerequisites separately. Broader
+Pixel functionality, providers and exact CI remain OPEN. GitHub is explicitly
+deferred; no OnePlus/Store/production. No broad hardening absent a reproduced
+acceptance blocker. See `docs/operations/WP05_PIXEL_CANDIDATE_2026090405_HANDOVER.md`.
 
 Historical correction checkpoint (exact closure above):
 

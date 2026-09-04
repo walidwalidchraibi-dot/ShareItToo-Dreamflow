@@ -1,6 +1,107 @@
 # WP05 — saved-cart-corrected Pixel candidate 2026090405
 
-Status: PREPARED; exact candidate clean/normal/signed/device proof OPEN.
+Status: LOCAL COLD / NORMAL / SIGNED / PROVISIONAL PIXEL / BOUNDED PROJECT PASS.
+Exact candidate source: `4a77baeb8fad9d893180466f3bfac55eb369e009`.
+GitHub remains owner-deferred, not passed or waived. Full Goal remains OPEN.
+
+## Current candidate-bound results
+
+Exact cold R10 passes on4a77 with independent locked restores, backend suite/
+syntax, audit, secret scan, PostgreSQL and full technical regression671s. A
+second Android build44s produces byte-identical debug APKs and all794 entries.
+Inventories, capacity and cleanup pass. Debug SHA256:
+`7fc60b25031319f5801914948631b7ec60ebabc5548811f348a4f18786a94e35`.
+This is not a signed-byte or standalone Wasm-runtime reproduction claim.
+
+The same frozen canonical source and maintained v2 profile then pass the full
+normal gate:2235 tool tests,852 default Flutter passes/33 explicit-profile skips,
+all34 Flutter lanes, analyzer0, Web build/Wasm dry run, loopback and Android24s.
+The following signed APK/AAB lifecycle passes without source edits, SDK/XDG
+overrides, cache purges or scanner waivers. Normal ends at6835336KiB free;
+signed cleanup ends at9873544KiB free/84456KiB generated. Temporary Kotlin
+output is removed by the normal lifecycle; no manual cleanup was necessary.
+
+An independent exact clean checkout, with no protected signing/Firebase/SDK
+inputs copied, verifies both signatures, archive hashes, ZIP/bundle structure,
+native symbol metadata and the full compiled application/backup/file-provider
+surface against0404:40 components/8 exported/14 permissions, minSdk24 and
+target/compile36. Both logs pass the SDK/Kotlin diagnostic scanner. The initial
+cross-volume clone hardlink failure was resolved using the standard local
+no-hardlinks copy already used by R10, followed by exact HEAD/tree/clean checks;
+no new global prerequisite or bypass was introduced.
+
+| Artifact | Bytes | SHA256 |
+| --- | ---: | --- |
+| Signed APK | 136319317 | `80318ee07d3d247daef8fecdc81351dffd5b68b31217590718013679b847cef0` |
+| Signed AAB | 109421605 | `3fa360e665c8012b44216006060986e873e823c5cad60e4d95b4378a0b3838c8` |
+
+Archive:
+`/Users/walidchraibi/Library/Application Support/ShareItToo/release/android/2026090405-4a77baeb8fad9d893180466f3bfac55eb369e009`.
+The canonical certificate, Firebase Staging consistency and Google-only closed
+heilbronn nonbinding envelope below are verified, not newly approved providers.
+
+## Actual Pixel and project acceptance
+
+Fresh runtime reads confirm Staging5d88295f, payment transport memory/live=false.
+The Pixel7Pro/API37 update0404→0405 passes exact installed APK/signature checks,
+preserving initial install time and encrypted app-data-container identity.
+No uninstall/reset/downgrade. Two authenticated-profile cold starts, five main
+destinations and process stop/relaunch pass within their explicitly bounded scope.
+
+The actual QA owner contact is independently matched privately on the Pixel.
+Normal temporary API logins establish two distinct fixture principals. Both
+cart reads initially return HTTP200, private/no-store, revision0 and empty lists;
+the Pixel shows explicit empty state without load error or pending sync.
+
+Exactly one synthetic project `WP05-0405-PROJECT-20260904-A` is created through
+the Pixel UI. The original combined driver fails at the independent receipt
+because its private assertion incorrectly expects revision0→1. A read-only
+reconciliation confirms one exact project/revision2/no items for the owner and
+unchanged revision0/empty renter cart. Migration027 creates a new cart at1 and
+putRentalCartProject then increments once; both files match deployed5d88. Only
+the private assertion changes to max(1,beforeRevision)+1.21 deterministic tests
+cover fresh/existing carts and reject wrong revisions, duplicates and unrelated
+changes. The original failure, old helper and18-test log remain retained.
+No app/backend fix or repeated project submission was made.
+
+A separate no-create driver proves the same server project and UI survive an
+actual process restart, with both complete server snapshots unchanged. Then
+normal UI logout/login verifies owner→renter→owner within the same process:
+each contact is privately matched, renter sees no owner project, and the owner
+sees the same project again without recreation. Independent server snapshots
+remain unchanged. All temporary API probe sessions are individually revoked
+and rejected afterward; the Pixel's original QA owner role is restored through
+normal login and navigation returns to Entdecken. The synthetic project is
+retained for subsequent controlled assignment tests, not silently deleted.
+
+This is not physical in-flight race/foreign-dialog proof, offline acceptance,
+item/date assignment, planner/set/group booking, payment or complete Pixel proof.
+In particular memory payment is NOT Stripe Sandbox/Testgeld acceptance.
+
+## Evidence, debt and next work
+
+- `docs/evidence/release-readiness/wp05-pixel-0405-clean-reproducibility-20260904.json`
+  is the immutable exact execution proof, SHA256
+  `7fb5de36559c712afd516f465f99f78562368f011958e3b5cf1209826d44bf9a`.
+- `docs/evidence/release-readiness/wp05-pixel-0405-provisional-acceptance-20260904.json`
+  binds artifacts, local checks, failures/corrections and private Pixel proofs.
+- Private evidence remains in `SIT_WP05_0405_EVIDENCE.8Lg9Vw` under the existing
+  private task workspace. No credentials or raw account/device IDs enter Git.
+
+Exact CI and broader SDK/Kotlin compatibility debt remain open. No Store,
+OnePlus, deployment, provider configuration, real money, new SMS, paid order or
+personal-account action occurred. No additional full regression is inferred
+from this evidence-only documentation; exact runtime source stays4a77.
+
+Next: bounded current-candidate saved-folder/listing/date/cart assignment and
+offline/error/retry acceptance, then legitimate planner/sets/group prerequisites.
+Reuse only the recorded synthetic project, never replay its create attempt or
+0405's strict-newer updater. Keep all remaining full-Goal requirements open.
+No unrelated broad hardening without a reproduced acceptance blocker.
+
+## Original preparation checkpoint (historical; superseded above)
+
+Status at preparation: PREPARED; exact candidate clean/normal/signed/device proof OPEN.
 Preparation base: `952a388eab9fa6f61a85d5537af04f55df94c3d6`.
 The build source is the subsequent frozen preparation commit, NOT this base.
 Full Goal remains ACTIVE. GitHub is owner-deferred, not passed or waived.

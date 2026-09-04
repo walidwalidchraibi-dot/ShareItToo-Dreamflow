@@ -1,12 +1,16 @@
 # ShareItToo Current State
 
-Saved-detail952a exact clean R10 PASS: full690s, secondAndroid44s,
-byte-identical APKs/entries and unchanged inventories/cleanup. New local
-Pixel successor1.0.0+2026090405 is prepared, not built or installed: only two
-version strings and derived hashes change,234 focused tests pass. Canonical
-signing/Firebase config ready; read-only Staging and Pixel0404 match expected
-identities. Next exact candidate freeze/cold/normal/signed/artifact/device chain.
-GitHub stays deferred and full Goal remains OPEN. No OnePlus/live/provider action.
+Installed Pixel candidate1.0.0+2026090405/source4a77baeb passes exact cold R10
+(671s/secondAndroid44s, byte-identical), matched full normal2235tools/852Flutter+
+profiles/analyzer0/WebWasm dryrun/loopback/Android24s and signed APK/AAB lifecycle.
+Independent signature/bundle/compiled privacy/surface checks and data-preserving
+Pixel update pass. Cold starts/five main destinations/restart pass. One synthetic
+project is server-confirmed and survives restart; same-process owner→renter→owner
+isolation passes with unchanged server carts. Original private revision assertion
+failure is retained; source/schema-grounded21 tests correct it, no write replay
+or app/backend change. Owner role restored; QA project retained for assignment.
+Next saved-folder/listing/date/cart assignment and offline acceptance. GitHub
+stays deferred, full Pixel/Goal remain OPEN; no OnePlus/Store/provider activation.
 See `docs/operations/WP05_PIXEL_CANDIDATE_2026090405_HANDOVER.md`.
 
 Historical implementation checkpoint:
