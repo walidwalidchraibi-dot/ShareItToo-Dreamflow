@@ -4,6 +4,7 @@ Status: **LOCAL CORRECTION AND FULL LOCAL REGRESSION PASS /
 PROVIDER E2E NOT PERFORMED**.
 
 Independent work under the encompassing Staging Goal, not WP04 completion.
+Implementation commit: `bd1199211476dbc093dd00ba2865762592cee97f`.
 Base: `9b99e958244ec3b3dd0448933b654832afd555c1`, branch
 `codex/master-workflow-20260808`, worktree
 `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
@@ -50,6 +51,10 @@ version, timeout, retry policy, mobile source or Production Compose changed.
   Android passed in 19 seconds (12 of 471 tasks executed); minSdk 24 and
   R11's 14 permissions / 8 exports pass. This is not standalone Wasm runtime
   acceptance or a newly signed release build. No cache purge or waiver.
+- The first exact clean-head R10 attempt stopped at its package-manager
+  identity check; it is not a clean-checkout pass. A reproduced context
+  selection defect and bounded correction are documented in
+  `WP04_R10_PACKAGE_CONTEXT_2026-09-04.md`.
 - Exact-head CI and clean-checkout proof are pending at this checkpoint;
   no historical green result applies to WP04.
 

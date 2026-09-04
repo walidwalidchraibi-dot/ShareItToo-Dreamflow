@@ -410,21 +410,24 @@ async function resolveAndroidSdkRoot(sourceRoot) {
   fail('r10_android_sdk_unavailable');
 }
 
-async function captureToolchain(checkout, env) {
-  const flutter = JSON.parse((await runCommand(
+export async function captureR10Toolchain(checkout, env, { run = runCommand } = {}) {
+  const flutter = JSON.parse((await run(
     'flutter', ['--version', '--machine'], { cwd: checkout, env, label: 'Flutter toolchain identity' },
   )).stdout);
-  const node = (await runCommand(
+  const node = (await run(
     'node', ['--version'], { cwd: checkout, env, label: 'Node toolchain identity' },
   )).stdout.trim();
-  const pnpm = (await runCommand(
-    'pnpm', ['--version'], { cwd: checkout, env, label: 'pnpm toolchain identity' },
+  const pnpm = (await run(
+    // Corepack resolves packageManager from cwd. Measure the same backend
+    // package context used below for restore, tests and audit, not a global
+    // fallback selected from the Flutter repository root.
+    'pnpm', ['--version'], { cwd: path.join(checkout, 'backend'), env, label: 'pnpm toolchain identity' },
   )).stdout.trim();
-  const javaOutput = await runCommand(
+  const javaOutput = await run(
     'java', ['-version'], { cwd: checkout, env, label: 'Java toolchain identity' },
   );
   const java = `${javaOutput.stderr}\n${javaOutput.stdout}`.trim();
-  const gradleOutput = (await runCommand(
+  const gradleOutput = (await run(
     './android/gradlew', ['--version'], { cwd: checkout, env, label: 'Gradle wrapper identity' },
   )).stdout;
   const gradle = /^Gradle (\S+)$/mu.exec(gradleOutput)?.[1];
@@ -700,7 +703,7 @@ export async function executeR10CleanReproducibility({
       fail('r10_clean_checkout_generated_footprint_not_zero');
     }
     const beforeInventories = await sourceInventories(checkout);
-    const toolchain = await captureToolchain(checkout, env);
+    const toolchain = await captureR10Toolchain(checkout, env);
     const commands = {};
     commands.backendLockedRestore = await commandProof(
       'pnpm', ['install', '--frozen-lockfile', '--store-dir', path.join(cacheRoot, 'pnpm-store')],

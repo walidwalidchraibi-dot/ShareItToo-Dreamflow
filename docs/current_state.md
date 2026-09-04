@@ -14,6 +14,14 @@ are explicit owner dependencies; the waiting CLI device flow is now expired,
 not a live wait. This does not close the encompassing Goal.
 Handover: `docs/operations/WP04_STRIPE_WEBHOOK_DESTINATIONS_2026-09-04.md`.
 
+WP04 implementation `bd1199211476dbc093dd00ba2865762592cee97f` is locally
+committed but its normal push failed. The first exact R10 stopped before
+tests because pnpm was measured outside the Backend's package-manager pin.
+A deterministic context correction and actual-host capture now pass. Full
+follow-up regression passes (2,168 tools, Flutter profiles, analyzer,
+Web/Wasm dry run, loopback, Android/R11); full clean-head R10 remains pending.
+Details: `docs/operations/WP04_R10_PACKAGE_CONTEXT_2026-09-04.md`.
+
 Previous independent WP03 checkpoint:
 
 Latest independent work, 2026-09-04: bounded WP03 correction to the real

@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import path from 'node:path';
+import { androidToolchain } from '../../tool/validate_android_toolchain.mjs';
 
 import {
   assertSafeR10TempRoot,
+  captureR10Toolchain,
   compareApkInventories,
   containsConservativeRawByteMarker,
   knownD8MetadataNormalizedSha256,
@@ -18,6 +21,41 @@ const technicalRegression = readFileSync(
   new URL('../../scripts/technical_regression_check.sh', import.meta.url),
   'utf8',
 );
+
+function toolchainRunner(checkout, backendPnpm, calls) {
+  return async (command, args, options) => {
+    calls.push({ command, args, ...options });
+    const stdout = command === 'flutter'
+      ? JSON.stringify({ frameworkVersion: '3.41.7', dartSdkVersion: '3.11.5' })
+      : command === 'node' ? 'v22.23.2'
+        : command === 'pnpm'
+          ? (options.cwd === path.join(checkout, 'backend') ? backendPnpm : '11.25.0')
+          : command === 'java' ? '' : `Gradle ${androidToolchain.gradle}\n`;
+    return { stdout, stderr: command === 'java' ? 'openjdk version "17.0.20"' : '' };
+  };
+}
+
+test('R10 measures pnpm where the backend package-manager pin is defined', async () => {
+  const checkout = path.resolve('/isolated/checkout');
+  const calls = [];
+  const env = Object.freeze({ CI: 'true' });
+  const result = await captureR10Toolchain(checkout, env, {
+    run: toolchainRunner(checkout, '11.16.0', calls),
+  });
+  assert.equal(result.pnpm, '11.16.0');
+  assert.equal(calls.find(call => call.command === 'pnpm').cwd, path.join(checkout, 'backend'));
+  for (const call of calls) {
+    assert.equal(call.env, env);
+    if (call.command !== 'pnpm') assert.equal(call.cwd, checkout);
+  }
+});
+
+test('R10 still rejects a wrong backend pnpm version without relaxing the pin', async () => {
+  const checkout = path.resolve('/isolated/checkout');
+  await assert.rejects(captureR10Toolchain(checkout, {}, {
+    run: toolchainRunner(checkout, '11.25.0', []),
+  }), /r10_toolchain_identity_unexpected/u);
+});
 
 test('accepts only one bounded R10 directory directly under the temp root', () => {
   assert.equal(

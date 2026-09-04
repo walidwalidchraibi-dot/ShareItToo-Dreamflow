@@ -15,6 +15,15 @@ owner's email step; a fresh flow is needed after owner verification.
 WP01/WP02/WP03 remain incomplete. Frozen 2026090402 is unchanged/uninstalled.
 See `docs/operations/WP04_STRIPE_WEBHOOK_DESTINATIONS_2026-09-04.md`.
 
+Implementation `bd1199211476dbc093dd00ba2865762592cee97f` is committed;
+normal push failed for unavailable HTTPS authentication. Its first local
+R10 stopped on an actual package-manager-context defect. The runner now
+measures pnpm in the pinned Backend directory; 12 deterministic helper tests
+and real-host toolchain capture pass without changing any version requirement.
+Full follow-up regression passes: 2,168 tools, Flutter profiles, analyzer,
+Web/Wasm dry run, loopback and Android/R11; no clean-head R10 pass yet. See
+`docs/operations/WP04_R10_PACKAGE_CONTEXT_2026-09-04.md`.
+
 ## Previous independent package: WP03 provider response acceptance
 
 2026-09-04: the real OpenAI listing adapter's response acceptance is being
