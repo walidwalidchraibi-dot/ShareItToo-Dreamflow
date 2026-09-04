@@ -5,6 +5,7 @@ import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 
 typedef HelpCenterSessionCheck = Future<bool> Function();
 
@@ -31,6 +32,7 @@ class HelpCenterScreen extends StatefulWidget {
 }
 
 class _HelpCenterScreenState extends State<HelpCenterScreen> {
+  final _supportPrincipal = SupportPrincipalController();
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   final TextEditingController _supportCtrl = TextEditingController();
@@ -41,7 +43,21 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   final Set<String> _expandedCategories = <String>{'Konto & Profil'};
 
   @override
+  void initState() {
+    super.initState();
+    _supportPrincipal.addListener(_supportPrincipalChanged);
+  }
+
+  void _supportPrincipalChanged() {
+    if (!mounted) return;
+    if (_supportPrincipal.invalidated) _supportCtrl.clear();
+    setState(() {});
+  }
+
+  @override
   void dispose() {
+    _supportPrincipal.removeListener(_supportPrincipalChanged);
+    _supportPrincipal.dispose();
     _searchCtrl.dispose();
     _searchFocus.dispose();
     _supportCtrl.dispose();
@@ -130,11 +146,18 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               style: t.textTheme.titleMedium
                   ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
+          if (_supportPrincipal.invalidated)
+            const Text(
+                'Die Sitzung hat sich geändert. Bitte öffne das Hilfe-Center erneut.'),
           _SupportCard(
             controller: _supportCtrl,
             sending: _sendingSupport,
             onChanged: (_) => setState(() {}),
-            onSend: _sendingSupport ? null : _sendSupportMessage,
+            onSend: _sendingSupport ||
+                    _supportPrincipal.loading ||
+                    _supportPrincipal.invalidated
+                ? null
+                : _sendSupportMessage,
             onOpenCases: _openSupportCases,
           ),
         ]),
@@ -792,6 +815,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   Future<void> _sendSupportMessage() async {
+    final owner = _supportPrincipal.capture();
+    if (_sendingSupport ||
+        _supportPrincipal.loading ||
+        _supportPrincipal.invalidated) {
+      return;
+    }
     final msg = _supportCtrl.text.trim();
     if (msg.runes.length < 20) {
       AppPopup.toast(context,
@@ -802,32 +831,37 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       return;
     }
 
-    final hasSession = await (widget.sessionCheck?.call() ??
-        AuthService.readSession().then((session) => session != null));
-    if (!mounted) return;
-    if (!hasSession) {
-      await showGuestRestrictionSheet(
-        context,
-        overrideContent: const GuestGateContent(
-          icon: Icons.support_agent_outlined,
-          title: 'Support-Fall melden',
-          description:
-              'Melde dich an oder registriere dich kostenlos, damit dein Fall sicher deinem Konto zugeordnet und später wieder angezeigt werden kann.',
-          benefits: [
-            'Serverbestätigte Case-ID erhalten',
-            'Sichere Rückfragen und Updates bekommen',
-            'Deinen Fall eindeutig deinem Konto zuordnen',
-          ],
-        ),
-      );
-      return;
-    }
-
     setState(() => _sendingSupport = true);
     try {
-      final result = await Navigator.of(context).push<SupportFlowResult?>(
-        MaterialPageRoute(
+      final hasSession = await (widget.sessionCheck?.call() ??
+          AuthService.readSession().then((session) => session != null));
+      if (!mounted || _supportPrincipal.invalidated) return;
+      if (!hasSession || owner == null) {
+        // Awaiting the guest sheet is not an in-flight support submission.
+        setState(() => _sendingSupport = false);
+        await showGuestRestrictionSheet(
+          context,
+          overrideContent: const GuestGateContent(
+            icon: Icons.support_agent_outlined,
+            title: 'Support-Fall melden',
+            description:
+                'Melde dich an oder registriere dich kostenlos, damit dein Fall sicher deinem Konto zugeordnet und später wieder angezeigt werden kann.',
+            benefits: [
+              'Serverbestätigte Case-ID erhalten',
+              'Sichere Rückfragen und Updates bekommen',
+              'Deinen Fall eindeutig deinem Konto zuordnen',
+            ],
+          ),
+        );
+        return;
+      }
+      if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+      final result = await _supportPrincipal.pushOwnedRoute<SupportFlowResult?>(
+        context: context,
+        owner: owner,
+        route: MaterialPageRoute(
           builder: (_) => SupportFlowScreen(
+            owner: owner,
             context: const SupportFlowContext(
               itemTitle: '',
               itemId: '',
@@ -841,16 +875,27 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           ),
         ),
       );
-      if (result == null || !mounted) return;
+      if (result == null ||
+          !await _supportPrincipal.isCurrent(owner) ||
+          !mounted) {
+        return;
+      }
       _supportCtrl.clear();
-    } catch (e, st) {
-      debugPrint('[HelpCenter] sendSupportMessage failed: $e');
-      debugPrint(st.toString());
-      if (!mounted) return;
-      AppPopup.toast(context,
-          icon: Icons.error_outline,
-          title: 'Support konnte nicht geöffnet werden',
-          message: 'Bitte versuche es erneut.');
+    } catch (_) {
+      if (owner == null ||
+          !await _supportPrincipal.isCurrent(owner) ||
+          !mounted) {
+        return;
+      }
+      await _supportPrincipal.showOwnedDialog(
+        context: context,
+        owner: owner,
+        builder: (_, dismiss) => AlertDialog(
+          title: const Text('Support konnte nicht geöffnet werden'),
+          content: const Text('Bitte versuche es erneut.'),
+          actions: [TextButton(onPressed: dismiss, child: const Text('OK'))],
+        ),
+      );
     } finally {
       if (mounted) setState(() => _sendingSupport = false);
     }

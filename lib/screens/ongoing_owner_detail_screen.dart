@@ -21,6 +21,7 @@ import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'dart:ui' show ImageFilter;
 import 'package:lendify/widgets/sit_overflow_menu.dart';
@@ -46,6 +47,7 @@ class OngoingOwnerDetailScreen extends StatefulWidget {
 }
 
 class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
+  final _supportPrincipal = SupportPrincipalController();
   RentalRequest? _req;
   Item? _item;
   User? _renter;
@@ -106,6 +108,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
   @override
   void dispose() {
+    _supportPrincipal.dispose();
     _acceptanceDeadlineTimer?.cancel();
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
@@ -172,8 +175,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     required RentalRequest req,
     required Item item,
   }) async {
+    final owner = _supportPrincipal.capture();
+    if (owner == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final current = await DataService.getCurrentUser();
-    if (!mounted || current == null) return;
+    if (current == null ||
+        current.id != owner.userId ||
+        !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final flowContext = SupportFlowContext.fromOwnerRequestDetail(
       itemTitle: item.title,
       itemId: item.id,
@@ -183,21 +194,25 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       itemImageUrl: _photos.isNotEmpty ? _photos.first : null,
       otherUserImageUrl: _renter?.photoURL,
     );
-    final result = await Navigator.of(context).push<SupportFlowResult?>(
-      MaterialPageRoute(
-        builder: (_) => SupportFlowScreen(context: flowContext),
+    final result = await _supportPrincipal.pushOwnedRoute<SupportFlowResult?>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
+        builder: (_) => SupportFlowScreen(context: flowContext, owner: owner),
       ),
     );
-    if (result == null || !mounted) return;
+    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final supportThread = await DataService.createSupportThread(
       userId: current.id,
       canonicalCaseNumber: result.canonicalCaseNumber,
     );
-    if (!mounted) return;
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
     if (supportThread == null) {
-      AppPopup.toast(
-        context,
-        icon: Icons.check_circle_outline,
+      await _supportPrincipal.showNotice(
+        context: context,
+        owner: owner,
         title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
       );
       return;
@@ -210,9 +225,11 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       text:
           "${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu: ${item.title}\nBuchung: ${req.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
     );
-    if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+    _supportPrincipal.pushOwnedRoute<void>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
         builder: (_) => MessageThreadScreen(
           threadId: supportThread.id,
           participantName: 'SIT Support',

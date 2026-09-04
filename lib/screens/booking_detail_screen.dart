@@ -35,6 +35,7 @@ import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 import 'package:lendify/screens/payment_checkout_screen.dart';
 import 'package:lendify/screens/platform_withdrawal_screen.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
@@ -81,6 +82,7 @@ class _SimulationPaymentNotice extends StatelessWidget {
 }
 
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
+  final _supportPrincipal = SupportPrincipalController();
   late final PageController _pageController;
   int _page = 0;
   // Owner laufend (Rückgabe bestätigen): manueller Code-Eingabe-Toggle + Controller
@@ -494,6 +496,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
   @override
   void dispose() {
+    _supportPrincipal.dispose();
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
     _pageController.dispose();
@@ -505,8 +508,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     required String requestId,
     required String itemTitle,
   }) async {
+    final owner = _supportPrincipal.capture();
+    if (owner == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final current = await DataService.getCurrentUser();
-    if (!mounted || current == null) return;
+    if (current == null ||
+        current.id != owner.userId ||
+        !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final flowContext = SupportFlowContext.fromBookingDetail(
       itemTitle: itemTitle,
       itemId: (widget.booking['itemId'] as String?) ?? '',
@@ -521,21 +532,25 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ? (widget.booking['renterAvatar'] as String?)
           : _listerAvatar,
     );
-    final result = await Navigator.of(context).push<SupportFlowResult?>(
-      MaterialPageRoute(
-        builder: (_) => SupportFlowScreen(context: flowContext),
+    final result = await _supportPrincipal.pushOwnedRoute<SupportFlowResult?>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
+        builder: (_) => SupportFlowScreen(context: flowContext, owner: owner),
       ),
     );
-    if (result == null || !mounted) return;
+    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final supportThread = await DataService.createSupportThread(
       userId: current.id,
       canonicalCaseNumber: result.canonicalCaseNumber,
     );
-    if (!mounted) return;
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
     if (supportThread == null) {
-      AppPopup.toast(
-        context,
-        icon: Icons.check_circle_outline,
+      await _supportPrincipal.showNotice(
+        context: context,
+        owner: owner,
         title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
       );
       return;
@@ -548,9 +563,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       text:
           "${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu: ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\nBuchung: $requestId\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
     );
-    if (!mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+    _supportPrincipal.pushOwnedRoute<void>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
         builder: (_) => MessageThreadScreen(
           threadId: supportThread.id,
           participantName: 'SIT Support',

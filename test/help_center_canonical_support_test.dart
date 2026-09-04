@@ -1,8 +1,13 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/help_center_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 
 Map<String, dynamic> _canonicalCase() => {
       'id': 'case-help-center',
@@ -17,6 +22,14 @@ Map<String, dynamic> _canonicalCase() => {
     };
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({
+        'auth_session_v1': jsonEncode({
+          'userId': 'support-fixture-a',
+          'sessionId': 'support-session-a',
+          'email': 'support-a@example.invalid',
+          'createdAt': '2026-09-04T00:00:00Z',
+        }),
+      }));
   testWidgets('help center creates a canonical case instead of local feedback',
       (tester) async {
     tester.view.physicalSize = const Size(900, 1600);
@@ -90,6 +103,7 @@ void main() {
 
   testWidgets('help center keeps guest text and requires an account',
       (tester) async {
+    SharedPreferences.setMockInitialValues({});
     tester.view.physicalSize = const Size(900, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -147,6 +161,64 @@ void main() {
     expect(find.text('Moderationsentscheidungen'), findsOneWidget);
     expect(find.text('Keine Moderationsentscheidungen'), findsOneWidget);
   });
+
+  for (final switchWhileLoading in [true, false]) {
+    testWidgets(
+        'help intake preserves B route during ${switchWhileLoading ? 'session check' : 'A flow'}',
+        (tester) async {
+      final checking = Completer<bool>();
+      final navigator = GlobalKey<NavigatorState>();
+      tester.view.physicalSize = const Size(900, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(
+          navigatorKey: navigator,
+          home: HelpCenterScreen(sessionCheck: () => checking.future)));
+      final button = find.text('Support-Fall sicher melden');
+      await tester.scrollUntilVisible(button, 600,
+          scrollable: find.byType(Scrollable).first);
+      await tester.enterText(
+          find.byType(TextField).last, 'Synthetic private A support draft.');
+      await tester.pump();
+      await tester.tap(button);
+      await tester.pump();
+      if (!switchWhileLoading) {
+        checking.complete(true);
+        await tester.pumpAndSettle();
+        expect(find.byType(SupportFlowScreen), findsOneWidget);
+      }
+      unawaited(navigator.currentState!.push<void>(DialogRoute<void>(
+        context: navigator.currentContext!,
+        builder: (_) => const AlertDialog(title: Text('Unrelated B dialog')),
+      )));
+      await tester.pump(const Duration(milliseconds: 400));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          'auth_session_v1',
+          jsonEncode({
+            'userId': 'support-fixture-b',
+            'sessionId': 'support-session-b',
+            'email': 'support-b@example.invalid',
+            'createdAt': '2026-09-04T00:00:00Z',
+          }));
+      SharedPersistenceSync.notify(
+          SharedPersistenceSync.accountSecurityStateKey);
+      if (switchWhileLoading) checking.complete(true);
+      await tester.pumpAndSettle();
+      expect(find.byType(SupportFlowScreen, skipOffstage: false), findsNothing);
+      expect(find.text('Unrelated B dialog'), findsOneWidget);
+      navigator.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<TextField>(find.byType(TextField).last)
+              .controller!
+              .text,
+          isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
 
   test('profile help tile opens the real help center', () {
     final source = File('lib/screens/profile_screen.dart').readAsStringSync();

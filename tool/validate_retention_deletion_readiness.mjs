@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const sourcePaths = [
+  'lib/widgets/support_principal_controller.dart',
   'backend/src/app.js',
   'backend/src/rate_limit_policy.js',
   'backend/src/server.js',

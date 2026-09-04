@@ -4,6 +4,10 @@
   "approvalAllowed": false,
   "sourceInventory": [
     {
+      "path": "lib/widgets/support_principal_controller.dart",
+      "sha256": "d7b8be389b09ec64656bafe1fc9e54ddc5bdf58b8602b3e76db266a665544d33"
+    },
+    {
       "path": "backend/src/app.js",
       "sha256": "4487cab585cadd41af950252741088c8470104c6ec91d990e93bc264a25da9f6"
     },
@@ -669,11 +673,11 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "84f246249d5854f2f3e86e2ed9f50e8860a5f705d56f318c08dca5ad5b67d8a5"
+      "sha256": "4f0ea2d7e245ae60acb5ea7d412ba3b683900f4b447b4dbd52f3b0e93a04d645"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
-      "sha256": "7d56e2f4a17992b6cedc158071ced25f04f91f54cd41fbd0c928dbfa14284435"
+      "sha256": "798572d92c3aa0fdf62447dfb550ea4d000b5e4262fc629193fb9b7b6dba2aff"
     },
     {
       "path": "lib/screens/moderation_admin_screen.dart",
@@ -689,7 +693,7 @@
     },
     {
       "path": "lib/screens/support_flow_screen.dart",
-      "sha256": "1d4584a28d691b3300852eb802ea924dc1d134ee79e6d4e5cc33703728669df3"
+      "sha256": "382e9043672a6d1c29b34d6b9a1bbc8216cec733e960421cab54e11ac09f2f88"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",

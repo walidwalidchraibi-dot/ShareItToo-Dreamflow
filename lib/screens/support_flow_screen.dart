@@ -2,10 +2,11 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_image.dart';
-import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 
 /// Quelle, aus der der Support-Flow gestartet wurde
 enum SupportFlowSource {
@@ -913,6 +914,7 @@ typedef HandoverExceptionSubmitter = Future<Map<String, dynamic>> Function(
 /// Wiederverwendbar aus Chat-Menü und Buchungsdetails
 class SupportFlowScreen extends StatefulWidget {
   final SupportFlowContext context;
+  final AuthSessionOwner? owner;
   final SupportCaseSubmitter? submitter;
   final HandoverExceptionSubmitter? handoverExceptionSubmitter;
   final String initialDescription;
@@ -920,6 +922,7 @@ class SupportFlowScreen extends StatefulWidget {
   const SupportFlowScreen({
     super.key,
     required this.context,
+    this.owner,
     this.submitter,
     this.handoverExceptionSubmitter,
     this.initialDescription = '',
@@ -949,6 +952,9 @@ class SupportFlowScreen extends StatefulWidget {
 }
 
 class _SupportFlowScreenState extends State<SupportFlowScreen> {
+  late final SupportPrincipalController _principal;
+  Route<dynamic>? _screenRoute;
+  VoidCallback? _releaseScreenRoute;
   late final String _submissionIdempotencyKey;
   bool? _immediateDanger;
   bool _safetyGuidanceAcknowledged = false;
@@ -1043,6 +1049,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   @override
   void initState() {
     super.initState();
+    _principal = SupportPrincipalController(expectedOwner: widget.owner)
+      ..addListener(_principalChanged);
     _descriptionController.text = widget.initialDescription.trim();
     _productIdentificationController.text = widget.context.itemTitle.trim();
     final nonce = Random.secure().nextInt(0x7fffffff).toRadixString(16);
@@ -1050,8 +1058,34 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         'support_intake_${DateTime.now().microsecondsSinceEpoch}_$nonce';
   }
 
+  void _principalChanged() {
+    if (!mounted) return;
+    if (_principal.invalidated) {
+      _descriptionController.clear();
+      _dsaContentLocatorController.clear();
+      _dsaLegalBasisController.clear();
+      _productIdentificationController.clear();
+    }
+    setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (!identical(route, _screenRoute)) {
+      _releaseScreenRoute?.call();
+      _screenRoute = route;
+      _releaseScreenRoute =
+          route == null ? null : _principal.trackScreenRoute(route);
+    }
+  }
+
   @override
   void dispose() {
+    _principal.removeListener(_principalChanged);
+    _releaseScreenRoute?.call();
+    _principal.dispose();
     _descriptionController.dispose();
     _dsaContentLocatorController.dispose();
     _dsaLegalBasisController.dispose();
@@ -1390,6 +1424,14 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_principal.invalidated) {
+      return const Scaffold(
+          body: Center(
+              child: Text(
+        'Die Sitzung hat sich geändert. Bitte öffne den Support erneut.',
+        key: ValueKey('support_principal_changed'),
+      )));
+    }
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
     final dark = theme.colorScheme.secondary;
@@ -2279,7 +2321,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
             width: double.infinity,
             height: 52,
             child: _SupportPressScale(
-              onTap: _sendingSupport || !_submissionReady
+              onTap: _sendingSupport ||
+                      !_submissionReady ||
+                      _principal.capture() == null
                   ? null
                   : _submitSupportCase,
               child: ClipRRect(
@@ -2335,10 +2379,14 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   }
 
   Future<void> _submitSupportCase() async {
-    if (_sendingSupport || _singleIssueConfirmed != true) return;
+    final owner = _principal.capture();
+    if (owner == null || _sendingSupport || _singleIssueConfirmed != true) {
+      return;
+    }
     setState(() => _sendingSupport = true);
 
     try {
+      if (!await _principal.isCurrent(owner) || !mounted) return;
       final draft = SupportFlowResult(
         mainCategory:
             (_needsProfileReasonStep || _selectedDetailSubCategory != null)
@@ -2388,6 +2436,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         final submitter = widget.handoverExceptionSubmitter ??
             (bookingId, intake, idempotencyKey) =>
                 BackendRepository.reportHandoverException(
+                  owner: owner,
                   bookingId: bookingId,
                   intake: intake,
                   idempotencyKey: idempotencyKey,
@@ -2400,6 +2449,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       } else {
         final submitter = widget.submitter ??
             (intake, idempotencyKey) => BackendRepository.createSupportCase(
+                  owner: owner,
                   intake: intake,
                   idempotencyKey: idempotencyKey,
                 );
@@ -2409,36 +2459,43 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         );
       }
       final result = draft.withCanonicalCase(supportCase);
-      if (!mounted) return;
-      await showDialog<void>(
+      if (!await _principal.isCurrent(owner) || !mounted) return;
+      await _principal.showOwnedDialog(
         context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
+        owner: owner,
+        builder: (_, dismiss) => AlertDialog(
           key: const ValueKey('support_case_receipt'),
           title: Text('Fall ${supportCase['caseNumber']} eingegangen'),
           content: Text(result.canonicalReceiptMessage),
           actions: [
             TextButton(
               key: const ValueKey('support_case_receipt_continue'),
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: dismiss,
               child: const Text('Zum Support'),
             ),
           ],
         ),
       );
-      if (!mounted) return;
-      Navigator.of(context).pop(result);
+      if (!await _principal.isCurrent(owner) || !mounted) return;
+      _principal.completeOwnedRoute(_screenRoute, owner, result);
     } catch (_) {
-      if (!mounted) return;
-      await AppPopup.toast(
-        context,
-        icon: Icons.error_outline_rounded,
-        title: 'Support-Fall wurde nicht bestätigt',
-        message:
+      if (!await _principal.isCurrent(owner) || !mounted) return;
+      await _principal.showOwnedDialog(
+        context: context,
+        owner: owner,
+        builder: (_, dismiss) => AlertDialog(
+          icon: const Icon(Icons.error_outline_rounded),
+          title: const Text('Support-Fall wurde nicht bestätigt'),
+          content: const Text(
             'Bitte versuche es erneut; es wird kein lokaler Ersatzfall vorgetäuscht.',
+          ),
+          actions: [TextButton(onPressed: dismiss, child: const Text('OK'))],
+        ),
       );
     } finally {
-      if (mounted) setState(() => _sendingSupport = false);
+      if (mounted && _principal.isCurrentNow(owner)) {
+        setState(() => _sendingSupport = false);
+      }
     }
   }
 }

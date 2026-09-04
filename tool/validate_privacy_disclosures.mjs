@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const sourcePaths = [
+  'lib/widgets/support_principal_controller.dart',
   'pubspec.yaml',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',

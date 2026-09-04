@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+WP05 support-intake ownership is locally corrected and full normal regression
+passes: 2,180 tools, 700 default Flutter tests plus profiles, analyzer zero,
+Web/Wasm dry run, loopback and Android/R11. Both writes retain the initiating
+account, late success/failure is suppressed after switching, and only A-owned
+routes/dialogs close. All five callers are bound. This is NOT yet an exact
+clean-checkout, signed successor, device or GitHub pass. Installed0403 remains
+unchanged; no real support case or backend action occurred. Details:
+`docs/operations/WP05_SUPPORT_INTAKE_PRINCIPAL_2026-09-04.md`.
+
+Previous Pixel/finding checkpoint:
+
 WP05 now proves actual password-confirmed export preparation on Pixel 0403 and
 truthful native-share cancellation without selecting an external target. Raw
 payload ownership/content and physical in-flight account switching remain open.

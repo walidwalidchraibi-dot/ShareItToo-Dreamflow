@@ -91,6 +91,15 @@ test('rejects active-provider classification drift behind retention readiness', 
   );
 });
 
+test('rejects drift in support draft invalidation and owned route cleanup', () => {
+  const path = 'lib/widgets/support_principal_controller.dart';
+  const changed = `${readFileSync(resolve(root, path), 'utf8')}\n// drift\n`;
+  assert.throws(
+    () => validate({ sourceTexts: { [path]: changed } }),
+    /sourceInventory hash is stale: lib\/widgets\/support_principal_controller.dart/,
+  );
+});
+
 test('rejects drift in the retained user support case display', () => {
   const path = 'lib/screens/support_cases_screen.dart';
   const changed = `${readFileSync(resolve(root, path), 'utf8')}\n// drift\n`;

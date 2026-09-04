@@ -196,7 +196,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "a9fdddef214337ee05b09ae42db778947f91da10aa3e17a35956860476f219a8"
+      "sha256": "658ad4569eb2a9ea9753c7fb729f285518771a02daea75db2a002e2722b4daf3"
     },
     {
       "path": "lib/widgets/messages_settings_sheet.dart",
@@ -216,11 +216,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "e00f5ff2f7d163fd74c76a79d42d253d321cbf7f89d340049d01beba54851f3d"
+      "sha256": "f19167255e9147c463f25eb121f56530c73d2a390e9bf7950529a52269451da4"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "7f22eca4145231d82b71cd43df8ba9f656e95b39faec3f81f705a63d33df20d6"
+      "sha256": "d517f466ca9c7e11dbf4a0c9a64f5af9568a1a7446283dd5f2aa7c86ba0fcaac"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -228,15 +228,15 @@
     },
     {
       "path": "tool/validate_privacy_disclosures.mjs",
-      "sha256": "c5693a8f5ad369a37492856e8da066a8d97698152367a4c45b3c1ac19b38171a"
+      "sha256": "0ca6574fdd2bf9789e68e05ee3b97a61a2bb32861de6b6816fdb5e201b1804bd"
     },
     {
       "path": "tool/validate_retention_deletion_readiness.mjs",
-      "sha256": "6f813c1eae502d8a1188560dafa81e9c76872468e513b00fc15b6b1810d10cbf"
+      "sha256": "348166407ce4ec5f11300a63c3f44fadd189554dfd1bff2d502e25605d4a0a6b"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "54e31f8f404d9e5d343f2bed470008aac43ae4f018db0b70b2760bc39abdfac7"
+      "sha256": "c0a251761d1ab3aa2c699b392d6d0096f07c167db9e3ef05ca5e314b93214a81"
     },
     {
       "path": "test/rw5_local_safety_privacy_principal_isolation_test.dart",
@@ -256,11 +256,11 @@
     },
     {
       "path": "test/tool/validate_privacy_disclosures.test.mjs",
-      "sha256": "541e03a83ffcdb165f1f3648521249d08fa136d2736deb4f681e7c114e72be27"
+      "sha256": "7f46226141f7ebc456c80ee9fdecf05815f0bf3cca2e0e5d37d3820c5502f6b1"
     },
     {
       "path": "test/tool/validate_retention_deletion_readiness.test.mjs",
-      "sha256": "d915fb96021b328f85eae36b978ad210797ca3d04e2cc3b4525af9d60c2f8393"
+      "sha256": "1db8f20c0da4c956aae8580b00e8048cc708833b0b7009e9691ef796cfb0b466"
     },
     {
       "path": "test/tool/rw4_reduced_wave0_local_principal_isolation_wiring.test.mjs",

@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const _context = SupportFlowContext(
   itemTitle: 'Testartikel',
@@ -73,6 +76,14 @@ Future<void> _selectTechnicalSubmission(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({
+        'auth_session_v1': jsonEncode({
+          'userId': 'support-fixture-a',
+          'sessionId': 'support-session-a',
+          'email': 'support-a@example.invalid',
+          'createdAt': '2026-09-04T00:00:00Z',
+        }),
+      }));
   testWidgets('immediate danger shows emergency guidance before categories',
       (tester) async {
     await _pumpFlow(tester);
@@ -874,7 +885,8 @@ void main() {
     expect(find.textContaining('wurde nicht bestätigt'), findsOneWidget);
     expect(find.byKey(const ValueKey('support_case_receipt')), findsNothing);
 
-    await tester.pump(const Duration(seconds: 2));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('An Support schicken'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const ValueKey('support_case_receipt')), findsOneWidget);

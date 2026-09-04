@@ -87,6 +87,15 @@ test('rejects source drift after the inventory was reviewed', () => {
   );
 });
 
+test('rejects drift in immutable support principal and draft ownership', () => {
+  const path = 'lib/widgets/support_principal_controller.dart';
+  const changed = `${readFileSync(resolve(repositoryRoot, path), 'utf8')}\n// drift\n`;
+  assert.throws(
+    () => validate({ sourceTexts: { [path]: changed } }),
+    /sourceInventory hash is stale: lib\/widgets\/support_principal_controller.dart/,
+  );
+});
+
 test('rejects drift in the user support case display', () => {
   const path = 'lib/screens/support_cases_screen.dart';
   const changed = `${readFileSync(resolve(repositoryRoot, path), 'utf8')}\n// drift\n`;

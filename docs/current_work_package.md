@@ -1,5 +1,16 @@
 # Current Work Package: WP05 support-intake principal correction
 
+The correction is now implemented locally: immutable interaction owner/epoch,
+both owner-bound HTTP writes, all five entrypoints and exact route/dialog
+ownership. Focused UI 56, HTTP 10 and binding validators 202 pass; analyzer is
+clean. Full normal local regression passes: 2,180 tool tests, 700 default Flutter
+tests plus mandatory profiles, analyzer, Web/Wasm dry run, loopback and Android.
+Next: exact implementation commit and clean-checkout proof. Frozen installed0403 does not contain this
+fix. GitHub stays deferred; no device/backend mutation or full acceptance claim.
+See `docs/operations/WP05_SUPPORT_INTAKE_PRINCIPAL_2026-09-04.md`.
+
+Previous finding checkpoint:
+
 Actual Pixel 0403 export preparation and truthful native-share cancellation now
 pass within their bounded scope; payload inspection and full two-role acceptance
 remain open. The next priority is a reproduced P1: a pending A support submission

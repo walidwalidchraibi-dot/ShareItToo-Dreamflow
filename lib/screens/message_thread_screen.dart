@@ -36,6 +36,7 @@ import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 import 'package:lendify/utils/booking_flow_policy.dart';
 
 const String _translationDemoThreadId = 'demo_translation_thread';
@@ -198,6 +199,7 @@ bool isPrivatePilotBookingChatOpen({
 }
 
 class _MessageThreadScreenState extends State<MessageThreadScreen> {
+  final _supportPrincipal = SupportPrincipalController();
   final TextEditingController _controller = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _listController = ScrollController();
@@ -273,6 +275,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   @override
   void dispose() {
+    _supportPrincipal.dispose();
     _fallbackRefreshTimer?.cancel();
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
@@ -3894,6 +3897,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _contactSupport() async {
+    final owner = _supportPrincipal.capture();
+    if (owner == null || _currentUser?.id != owner.userId) return;
     final flowContext = SupportFlowContext.fromChat(
       itemTitle: _itemTitle(),
       itemId: _item?.id ?? '',
@@ -3907,20 +3912,25 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       otherUserImageUrl: _otherUser?.photoURL,
     );
 
-    final result = await Navigator.of(context).push<SupportFlowResult?>(
-      MaterialPageRoute(
-        builder: (_) => SupportFlowScreen(context: flowContext),
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+    final result = await _supportPrincipal.pushOwnedRoute<SupportFlowResult?>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
+        builder: (_) => SupportFlowScreen(context: flowContext, owner: owner),
       ),
     );
 
-    if (result == null || !mounted) return;
+    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
 
     final subCategory = result.subCategory;
     final userDescription = result.userDescription;
 
     try {
       final me = _currentUser;
-      if (me == null) {
+      if (me == null || me.id != owner.userId) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
@@ -3930,6 +3940,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       }
 
       final threads = await DataService.getMessageThreadsForUser(me.id);
+      if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
       MessageThread? supportThread = threads.cast<MessageThread?>().firstWhere(
             (t) =>
                 t != null &&
@@ -3944,10 +3955,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         canonicalCaseNumber: result.canonicalCaseNumber,
       );
 
+      if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+
       if (supportThread == null) {
         if (mounted) {
-          AppPopup.info(
-            context,
+          await _supportPrincipal.showNotice(
+            context: context,
+            owner: owner,
             title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
             message: 'Der lokale Support-Chat konnte nicht geöffnet werden.',
           );
@@ -3969,9 +3983,11 @@ Unterkategorie: $subCategory$descText''';
         text: contextMessage,
       );
 
-      if (mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
+      if (await _supportPrincipal.isCurrent(owner) && mounted) {
+        _supportPrincipal.pushOwnedRoute<void>(
+          context: context,
+          owner: owner,
+          route: MaterialPageRoute(
             builder: (_) => MessageThreadScreen(
               threadId: supportThread!.id,
               participantName: 'SIT Support',
@@ -3981,11 +3997,12 @@ Unterkategorie: $subCategory$descText''';
         );
       }
     } catch (e) {
-      debugPrint('[MessageThreadScreen] _contactSupport failed: $e');
-      if (mounted) {
-        AppPopup.toast(
-          context,
-          icon: Icons.check_circle_outline,
+      debugPrint(
+          '[MessageThreadScreen] _contactSupport failed: ${e.runtimeType}');
+      if (await _supportPrincipal.isCurrent(owner) && mounted) {
+        await _supportPrincipal.showNotice(
+          context: context,
+          owner: owner,
           title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
         );
       }

@@ -12,6 +12,7 @@ import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/profile_ecosystem_service.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
@@ -438,6 +439,7 @@ class PublicProfileScreen extends StatefulWidget {
 }
 
 class _PublicProfileScreenState extends State<PublicProfileScreen> {
+  final _supportPrincipal = SupportPrincipalController();
   User? _user;
   List<Item> _items = [];
   bool _redirectingBlockedProfile = false;
@@ -450,6 +452,12 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   String? get _profileUserId =>
       _user?.id ?? widget.previewUser?.id ?? widget.userId;
+
+  @override
+  void dispose() {
+    _supportPrincipal.dispose();
+    super.dispose();
+  }
 
   bool get _isOwnProfile =>
       _viewerId != null &&
@@ -508,9 +516,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   }
 
   Future<void> _openProfileSupportFlow(String issueType) async {
+    final owner = _supportPrincipal.capture();
+    if (owner == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final u = _user;
     final current = await DataService.getCurrentUser();
-    if (u == null || current == null || !mounted) return;
+    if (u == null ||
+        current == null ||
+        current.id != owner.userId ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
+      return;
+    }
     final flowContext = SupportFlowContext(
       itemTitle: u.displayName,
       itemId: 'profile:${u.id}',
@@ -521,20 +539,25 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       otherUserName: u.displayName,
       otherUserImageUrl: u.photoURL,
     );
-    final result = await Navigator.of(context).push<SupportFlowResult?>(
-      MaterialPageRoute(
-          builder: (_) => SupportFlowScreen(context: flowContext)),
+    final result = await _supportPrincipal.pushOwnedRoute<SupportFlowResult?>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
+          builder: (_) =>
+              SupportFlowScreen(context: flowContext, owner: owner)),
     );
-    if (result == null || !mounted) return;
+    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
     final supportThread = await DataService.createSupportThread(
       userId: current.id,
       canonicalCaseNumber: result.canonicalCaseNumber,
     );
-    if (!mounted) return;
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
     if (supportThread == null) {
-      AppPopup.toast(
-        context,
-        icon: Icons.check_circle_outline,
+      await _supportPrincipal.showNotice(
+        context: context,
+        owner: owner,
         title: 'Fall ${result.canonicalCaseNumber} ist eingegangen',
       );
       return;
@@ -547,12 +570,15 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       text:
           '${result.canonicalReceiptMessage}\n\n📋 Support-Anfrage zu Profil: ${u.displayName}\nReferenz: profile:${u.id}\nTyp: $issueType\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText',
     );
-    if (!mounted) return;
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => MessageThreadScreen(
-            threadId: supportThread.id,
-            participantName: 'SIT Support',
-            itemTitle: 'Support')));
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+    _supportPrincipal.pushOwnedRoute<void>(
+        context: context,
+        owner: owner,
+        route: MaterialPageRoute(
+            builder: (_) => MessageThreadScreen(
+                threadId: supportThread.id,
+                participantName: 'SIT Support',
+                itemTitle: 'Support')));
   }
 
   @override

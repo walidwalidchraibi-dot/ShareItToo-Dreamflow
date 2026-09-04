@@ -59,6 +59,7 @@ class BackendRepository {
     required String method,
     required String path,
     Object? body,
+    Map<String, String> additionalHeaders = const <String, String>{},
     Duration timeout = const Duration(seconds: 20),
   }) async {
     final token = await AuthService.accessTokenForOwner(owner);
@@ -73,6 +74,7 @@ class BackendRepository {
       path: path,
       accessToken: token,
       body: body,
+      additionalHeaders: additionalHeaders,
       timeout: timeout,
     );
   }
@@ -1465,10 +1467,12 @@ class BackendRepository {
   }
 
   static Future<Map<String, dynamic>> createSupportCase({
+    required AuthSessionOwner owner,
     required Map<String, dynamic> intake,
     required String idempotencyKey,
   }) async {
-    final response = await _authorized(
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/support/cases',
       body: intake,
@@ -1482,11 +1486,13 @@ class BackendRepository {
   }
 
   static Future<Map<String, dynamic>> reportHandoverException({
+    required AuthSessionOwner owner,
     required String bookingId,
     required Map<String, dynamic> intake,
     required String idempotencyKey,
   }) async {
-    final response = await _authorized(
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/bookings/${Uri.encodeComponent(bookingId)}/handover-exceptions',
       body: intake,
