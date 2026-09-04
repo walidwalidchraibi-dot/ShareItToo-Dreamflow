@@ -252,9 +252,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "7583a44d2711bb81017e139037c654548a51d64891cbe9b8a9a74204f24ef671",
+    "privacyManifestSha256": "923523a77f94eb5906e2bf7067cc69370bf9f0b075dd5059b31dbf995d8e733c",
     "retentionManifestSha256": "f12dd31f4900ec25cf24abb155dd67e94bf42a56dccb6d7b2fda187a15321549",
-    "activeProviderEvidenceSha256": "1b0252497743b0f8d6decfca731aa5542dcd5696b27ffb84286e697608404b58",
+    "activeProviderEvidenceSha256": "7e17381e0ec16179f25b3c979f4a3de806aac2f69d57a7e4e61c33b6f2f5cd78",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -341,7 +341,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "7583a44d2711bb81017e139037c654548a51d64891cbe9b8a9a74204f24ef671"
+      "sha256": "923523a77f94eb5906e2bf7067cc69370bf9f0b075dd5059b31dbf995d8e733c"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -349,11 +349,11 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "1b0252497743b0f8d6decfca731aa5542dcd5696b27ffb84286e697608404b58"
+      "sha256": "7e17381e0ec16179f25b3c979f4a3de806aac2f69d57a7e4e61c33b6f2f5cd78"
     },
     {
       "path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json",
-      "sha256": "71bc62389778c63868a15bb02b1b3753a814dcc6b00deb5ddc56ed1a3d22a44f"
+      "sha256": "93122b644ca53162a0cffb83d912fc567e2fe087c3428f90211bb068580ec99d"
     },
     {
       "path": "scripts/technical_regression_check.sh",
@@ -373,7 +373,7 @@
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
-      "sha256": "6226568c60f1580e0041a2d7f64861c5b3a4dcc8604260af50ac4ba4cd064340"
+      "sha256": "f7fff00bade1b41097f1e9ab4ca641197c8219fd79ca1f11eea87d12bd13236c"
     },
     {
       "path": "docs/architecture/rw16-session-transition-principal-epoch-invariant-2026-08-26.md",

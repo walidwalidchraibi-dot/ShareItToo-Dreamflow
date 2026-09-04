@@ -193,7 +193,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "7583a44d2711bb81017e139037c654548a51d64891cbe9b8a9a74204f24ef671"
+      "sha256": "923523a77f94eb5906e2bf7067cc69370bf9f0b075dd5059b31dbf995d8e733c"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -213,11 +213,11 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "ae74b1a9f1774b0c7bcae0833b2b4cf582233fd809d71a78cbb9e7c880fde104"
+      "sha256": "03ede06ec4226ada2db6978b824e9e70b229abc7417cf686925c50f00f70cbdb"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "1b0252497743b0f8d6decfca731aa5542dcd5696b27ffb84286e697608404b58"
+      "sha256": "7e17381e0ec16179f25b3c979f4a3de806aac2f69d57a7e4e61c33b6f2f5cd78"
     },
     {
       "path": "scripts/technical_regression_check.sh",
