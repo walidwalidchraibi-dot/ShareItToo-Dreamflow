@@ -7,7 +7,16 @@ another candidate. PARTIAL means narrower evidence exists;
 OPEN means the required end-to-end result remains unproved. No requirement is
 removed because an owner dependency or provider hold is outstanding.
 
-Source inspected: `c4c576d3e26166591130ca1e4744048069afbbc3`, branch
+Latest local candidate: `2026090403` / source
+`f6a9a41471058c9f80ffd01283c42b9d74a8845c`, now signed, independently verified
+and provisionally installed on the Pixel. Existing authenticated cold starts,
+five main destinations and process restart pass. Exact clean R10 and the final
+matched scoped full-regression/signed lifecycle pass; the rejected first signed
+attempt and effective-SDK-selection debt remain explicit in
+`WP05_PIXEL_CANDIDATE_2026090403_HANDOVER.md`. No fresh privacy export, support
+mutation, full two-role acceptance or GitHub closure is inferred.
+
+Original runtime/source inspection: `c4c576d3e26166591130ca1e4744048069afbbc3`, branch
 `codex/master-workflow-20260808`, worktree
 `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
 
@@ -94,8 +103,8 @@ older Drive candidate-completion wording does not close it.
 | Required outcome | State | Existing evidence and exact remaining gap |
 | --- | --- | --- |
 | Staging version/readiness | PASS | The timestamped read-only observation above, on deployed `5d88295f`; not an application-wide acceptance pass. |
-| Final source, signed candidate and exact CI | PARTIAL | Frozen `2026090402`/`bfd3e9e4` is archived, hash-verified and now provisionally installed on the Pixel after the owner's explicit GitHub deferral; its Regression remains failed, CodeQL passed. Current local `c4c576d3` has normal regression and complete cold R10 green; push/CI are deferred, not waived. |
-| Email registration, verification, login/logout and persistence | PARTIAL | N20/N22 prove historical `2026090305` UI flows. Installed `2026090402` now passes existing authenticated-profile recovery through cold starts; this is not fresh registration, login/logout or principal-identity proof. Repeat remaining flows. |
+| Final source, signed candidate and exact CI | PARTIAL | `2026090403`/`f6a9a414` has complete local normal/clean checks, a verified signed archive and a data-preserving provisional Pixel update. Current exact GitHub Regression/CodeQL is deferred, not waived. Older0402 CI and evidence remain historical and do not certify0403. |
+| Email registration, verification, login/logout and persistence | PARTIAL | N20/N22 prove historical `2026090305` UI flows. Installed `2026090403` passes existing authenticated-profile recovery through cold starts; this is not fresh registration, login/logout or backend principal-identity proof. Repeat remaining flows. |
 | Password recovery/change and Account-A→B isolation | PARTIAL | N21 proves historical recovery, single-use link and old-credential rejection; local typed-outcome/epoch regressions pass. Complete the final-candidate device matrix, including direct password change and uncertain/partial outcomes. |
 | Google sign-in | PARTIAL | N23 proves Google login, repeat login and cold start on `2026090306`; later shared-SDK changes require affected final-candidate revalidation. |
 | Facebook and Apple sign-in where supported | OPEN | WP02 provider-readiness records missing setup/owner dependencies. Do not substitute a hidden button or invent provider/account/membership facts. |
@@ -108,32 +117,33 @@ older Drive candidate-completion wording does not close it.
 | Pickup, return, cancellation/withdrawal, damages, reviews and invoices | OPEN | Complete real intended two-role lifecycle evidence is missing; maintain legal/provider boundaries and audit/availability consistency. |
 | Stripe sandbox payment, rejection/interruption, duplicate delivery, refund and simulated payout | OPEN | Fresh runtime is memory-only. WP04 two-secret wiring is locally tested, but platform identity/approved secret setup and all eight P0B real-sandbox scenarios remain open. Never call memory results Stripe test funds. |
 | Cart, projects and booking groups | OPEN | The full connected two-role device workflows are not established by the cited device journeys. |
-| Support submission/follow-up, reports, blocking, privacy export and deletion | PARTIAL | N28 proves reachability, not these mutations. WP05 reproduced and locally corrected a missing principal/epoch boundary in privacy export. Service/widget/HTTP tests, full normal regression and exact clean R10 on `7dddc6c8` pass; both debug builds are byte-identical. A separately versioned signed successor is still needed before real export acceptance. Exercise scoped disposable Staging identities, not the owner's account. |
+| Support submission/follow-up, reports, blocking, privacy export and deletion | PARTIAL | N28 proves reachability, not these mutations. WP05 corrects the principal/epoch export boundary with service/widget/HTTP and full normal/clean proof. Corrected successor0403 is now signed, independently verified and installed; its smoke does not establish real export/support acceptance. Exercise scoped disposable Staging identities, not the owner's account. |
 | Light/Dark and available background variants | PARTIAL | On installed `2026090402`, all four actual background selections persist after cold restart and were visually reviewed. Final preference is explicit Dark 1; initial unset choice could not be restored through the UI. Light-preview/text contrast is visibly weak; system-theme, TalkBack/selection semantics and affected-surface acceptance remain open. N28 system-theme observations retain their older binding. |
-| Offline/online, process restart, permission changes and accessibility | PARTIAL | N27/N28 provide older network/large-text evidence. Installed `2026090402` now proves process termination/relaunch and preserved install/data identity, plus five authenticated destinations. Network, permissions and full accessibility remain incomplete. |
+| Offline/online, process restart, permission changes and accessibility | PARTIAL | N27/N28 provide older network/large-text evidence. Installed `2026090403` proves process termination/relaunch and preserved install/data identity, plus five authenticated destinations. Network, permissions and full accessibility remain incomplete. |
 | Full Pixel acceptance and evidence cleanup | OPEN | All applicable rows must be completed on the correct accepted candidate/provider pair; retain explicit owner-dependent gaps. |
 | Same-candidate private OnePlus handoff and cross-device acceptance | OPEN | No OnePlus access until full Pixel closure. Then verify package/hash/signature, separate accounts and actual two-device flows; no installation is inferred from preparing an APK. |
 
 ## Next execution order
 
 **Latest owner override (2026-09-04): postpone GitHub and continue independent
-local/Staging work.** Provisional Pixel-only installation and testing of the
-already locally verified `2026090402` is now underway; no GitHub pass or final
+local/Staging work.** Provisional Pixel-only installation and bounded smoke of
+the locally verified `2026090403` are complete; no GitHub pass or final
 release acceptance is inferred. Do not repeat login requests while GitHub is
 deferred. Preserve the eventual exact-CI requirement and all remaining
 provider/legal/owner boundaries. Current execution/results are in
-`PIXEL_2026090402_PROVISIONAL_ACCEPTANCE_2026-09-04.md`.
+`WP05_PIXEL_CANDIDATE_2026090403_HANDOVER.md`.
 The sequence below describes the still-required final closure, not a reason
 to stop the explicitly authorized provisional functional work.
 
-1. Exact cold R10 is complete and its execution-only evidence validates. Preserve
-   its `c4c576d3` binding, failed predecessors and successful cleanup. Do not
+1. Exact cold R10 is complete for the current `f6a9a414` candidate and its
+   execution-only evidence validates. Preserve failed predecessors, the
+   rejected unscoped signed invocation and successful scoped lifecycle. Do not
    start another broad hardening Goal from the runner's legacy next-package label.
 2. Once the existing owner GitHub verification is completed, renew through the
    official flow, normally push the preserved local commits, and obtain
    exact Regression/CodeQL. A newer CI result does not certify frozen `bfd3e9e4`.
-3. Resolve the candidate-specific CI/installation prerequisite before Pixel
-   acceptance. Keep old artifacts immutable; any required successor gets its
+3. Keep provisional installed0403 results distinct from final CI acceptance.
+   Keep old artifacts immutable; any required successor gets its
    own source/version/configuration/signature and complete evidence.
 4. Perform the final-candidate email/Google/SMS, two-role listing/chat/push and
    support/privacy/presentation tests. Owner-only dependencies wait separately;
@@ -146,6 +156,8 @@ to stop the explicitly authorized provisional functional work.
 
 ## Evidence references
 
+- `WP05_PIXEL_CANDIDATE_2026090403_HANDOVER.md` and its exact clean/provisional
+  machine evidence; `WP05_PRIVACY_EXPORT_PRINCIPAL_2026-09-04.md`.
 - `WP04_R10_COLD_STORAGE_2026-09-04.md` and the frozen
   `WP02_PIXEL_CANDIDATE_2026090402_HANDOVER.md`.
 - `N20_PIXEL_APP_UI_REGISTRATION_2026-09-03.md`,

@@ -1,6 +1,12 @@
 # WP05 — separate Pixel successor 2026090403
 
-Status: **FULL PREPARATION REGRESSION PASS / SIGNED BUILD AND DEVICE PENDING / GITHUB DEFERRED**.
+Status: **PREPARATION RECORD — SUPERSEDED BY VERIFIED SIGNED/PIXEL HANDOVER**.
+
+The exactf6a9a414 candidate is now signed, independently verified and installed
+on the Pixel with data-preserving update and provisional smoke passing. Read
+`WP05_PIXEL_CANDIDATE_2026090403_HANDOVER.md` for the rejected unscoped first
+attempt, corrected full scoped recipe, retained debt and remaining acceptance.
+The preparation sequence/results below remain historical, not current blockers.
 
 This bounded continuation delivers the already locally verified privacy-export
 correction to a separately identified Pixel candidate. It does not open a

@@ -1,13 +1,17 @@
-# Current Work Package: WP05 Pixel successor 2026090403
+# Current Work Package: WP05 privacy/support acceptance on Pixel 2026090403
 
-Prepare a separately versioned signed Pixel successor for the verified export
-correction, starting at clean `bcb4fc52b5c8c672b96310ed487851791688f205`.
-The current step changes only version/fallback and exact source bindings.
-Candidate-preparation full normal regression and secret scan pass; exact
-committed clean regression, signed build and device proof remain pending.
-Keep the same Internal/Staging, canonical signing and Google-only closed-pilot
-configuration. GitHub auth/push/CI is explicitly deferred; no OnePlus or Store.
-See `docs/operations/WP05_PIXEL_CANDIDATE_2026090403_PREPARATION.md`.
+The separately versioned successor is now verified and installed: source
+`f6a9a41471058c9f80ffd01283c42b9d74a8845c`, build2026090403. Complete local
+normal/clean regression, signed archive, independent artifact verification,
+data-preserving Pixel update and bounded authenticated/navigation/restart smoke
+pass. The first signed invocation failed honestly on omitted Flutter isolation;
+the corrected matched lifecycle passes and its maintained-entrypoint debt is
+recorded, not waived. Continue real export/support with disposable Staging roles
+and the remaining current-candidate matrix; do not delete the owner's account.
+Do not reinstall0403 or use old0402 wrappers. Keep Internal/Staging, canonical
+signing and the Google-only closed pilot. GitHub auth/push/CI remains explicitly
+deferred, not passed; no OnePlus, Store, production or provider activation.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090403_HANDOVER.md`.
 
 ## Completed local correction: WP05 privacy-export session ownership
 
