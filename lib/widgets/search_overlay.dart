@@ -6,6 +6,7 @@ import 'package:lendify/models/category.dart' as app_category;
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as app_user;
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/search_category_inference.dart';
 import 'package:lendify/widgets/modern_range_picker_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/search_results_screen.dart';
@@ -265,83 +266,17 @@ class _SearchSheetState extends State<_SearchSheet> {
   List<String> get _coarseCategoryOrder => DataService.coarseCategoryOrder;
 
   String? _normalizeCoarseCategory(String raw) {
-    final q = raw.trim().toLowerCase();
-    if (q.isEmpty) return null;
-
-    // 0) Exact coarse label match
-    for (final c in _coarseCategoryOrder) {
-      if (c.toLowerCase() == q) return c;
-    }
-
-    // Simple synonyms for common natural-language inputs.
-    final synonymHints = <String, String>{
-      'auto': 'Auto & Mobilität',
-      'wagen': 'Auto & Mobilität',
-      'pkw': 'Auto & Mobilität',
-      'mercedes': 'Auto & Mobilität',
-      'bmw': 'Auto & Mobilität',
-      'audi': 'Auto & Mobilität',
-      'transporter': 'Auto & Mobilität',
-      'wohnmobil': 'Auto & Mobilität',
-      'fahrrad': 'Auto & Mobilität',
-      'ebike': 'Auto & Mobilität',
-      'e-bike': 'Auto & Mobilität',
-      'e scooter': 'Auto & Mobilität',
-      'e-scooter': 'Auto & Mobilität',
-      'camping': 'Reisen & Camping',
-      'zelt': 'Reisen & Camping',
-      'reise': 'Reisen & Camping',
-      'urlaub': 'Reisen & Camping',
-      'party': 'Events & Feiern',
-      'feier': 'Events & Feiern',
-      'hochzeit': 'Events & Feiern',
-      'geburtstag': 'Events & Feiern',
-      'werkzeug': 'Werkzeuge & Kleingeräte',
-      'bohrer': 'Werkzeuge & Kleingeräte',
-      'säge': 'Werkzeuge & Kleingeräte',
-      'saege': 'Werkzeuge & Kleingeräte',
-      'kleidung': 'Kleidung & Anlässe',
-      'anzug': 'Kleidung & Anlässe',
-      'kleid': 'Kleidung & Anlässe',
-      'kostüm': 'Kleidung & Anlässe',
-      'kostuem': 'Kleidung & Anlässe',
-      'baby': 'Baby & Familie',
-      'familie': 'Baby & Familie',
-      'kinderwagen': 'Baby & Familie',
-      'garten': 'Garten & Outdoor',
-      'grill': 'Garten & Outdoor',
-      'büro': 'Büro & Lernen',
-      'buero': 'Büro & Lernen',
-      'office': 'Büro & Lernen',
-      'schule': 'Büro & Lernen',
-    };
-    for (final e in synonymHints.entries) {
-      if (q.contains(e.key)) return e.value;
-    }
-
-    // 1) Map fine category/subcategory back to coarse.
-    for (final c in _categories) {
-      final name = c.name.toLowerCase();
-      if (name == q || name.contains(q) || q.contains(name)) {
-        final coarse = DataService.coarseCategoryFor(c.name);
-        if (_coarseCategoryOrder.contains(coarse)) return coarse;
-      }
-      for (final s in c.subcategories) {
-        final ss = s.toLowerCase();
-        if (ss == q || ss.contains(q) || q.contains(ss)) {
-          final coarse = DataService.coarseCategoryFor(c.name);
-          if (_coarseCategoryOrder.contains(coarse)) return coarse;
-        }
-      }
-    }
-
-    // 2) Loose contains match against coarse labels.
-    for (final c in _coarseCategoryOrder) {
-      final lc = c.toLowerCase();
-      if (lc.contains(q) || q.contains(lc)) return c;
-    }
-
-    return null;
+    return inferSearchCoarseCategory(
+      raw: raw,
+      coarseCategories: _coarseCategoryOrder,
+      vocabularies: _categories.map(
+        (category) => SearchCategoryVocabulary(
+          coarseCategory: DataService.coarseCategoryFor(category.name),
+          name: category.name,
+          subcategories: category.subcategories,
+        ),
+      ),
+    );
   }
 
   IconData _iconForCoarseGroup(String group) {
