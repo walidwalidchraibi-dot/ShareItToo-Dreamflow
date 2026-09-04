@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+Saved-detail952a exact clean R10 PASS: full690s, secondAndroid44s,
+byte-identical APKs/entries and unchanged inventories/cleanup. New local
+Pixel successor1.0.0+2026090405 is prepared, not built or installed: only two
+version strings and derived hashes change,234 focused tests pass. Canonical
+signing/Firebase config ready; read-only Staging and Pixel0404 match expected
+identities. Next exact candidate freeze/cold/normal/signed/artifact/device chain.
+GitHub stays deferred and full Goal remains OPEN. No OnePlus/live/provider action.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090405_HANDOVER.md`.
+
+Historical implementation checkpoint:
+
 Exact saved-cart59a8 clean R10 passes full675s, secondAndroid44s, byte-identical
 APKs/entries, unchanged inventories and cleanup. Its proof remains separate.
 Saved-detail descendant ownership still had confirmed P1s (surviving popups,

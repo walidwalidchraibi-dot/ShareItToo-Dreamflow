@@ -1,4 +1,17 @@
-# Current Work Package: WP05 consolidated saved-cart principal correction
+# Current Work Package: WP05 saved-cart-corrected Pixel candidate 2026090405
+
+Implementation952a now has exact clean R10 PASS: full690s, secondAndroid44s,
+byte/entry identical, inventories/capacity/cleanup PASS. Prepare distinct local
+candidate1.0.0+2026090405 on952a: only pubspec/client-build fallback plus exact
+hash bindings change;234 focused tests pass. Existing canonical signing and
+Firebase Staging input consistency pass without exposing values. Read-only
+Staging5d88295f/memory/live=false and Pixel0404/API37 remain as expected.
+Next freeze actual0405 source, then its own cold/normal/signed/independent
+artifact and data-preserving Pixel acceptance. No new signed/device/CI claim.
+GitHub remains deferred; old0404 archive untouched; OnePlus and all full-Goal
+requirements remain open. See `docs/operations/WP05_PIXEL_CANDIDATE_2026090405_HANDOVER.md`.
+
+Historical correction checkpoint (exact closure above):
 
 Current bounded follow-up on source59a8: exact clean R10 PASS (full675s,
 secondAndroid44s, byte/entry identical, inventories/cleanup PASS). Subsequent

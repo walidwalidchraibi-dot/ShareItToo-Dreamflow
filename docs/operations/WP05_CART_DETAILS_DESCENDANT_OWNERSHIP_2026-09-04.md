@@ -1,5 +1,13 @@
 # WP05 — saved-detail descendant ownership
 
+Exact implementation clean closure now PASS on
+`952a388eab9fa6f61a85d5537af04f55df94c3d6`: full690s, secondAndroid44s,
+byte-identical APKs/entries, unchanged inventories, capacity and cleanup PASS.
+All backend/audit/secret/Postgres commands pass. Proof:
+`../evidence/release-readiness/wp05-cart-details-descendant-clean-20260904.json`.
+Next is a distinct0405 Pixel candidate. Signed/device/CI and encompassing Goal
+acceptance remain open; this closure does not certify unrelated business flows.
+
 ## Provenance and decision
 
 Base `59a8eb6ab1118b3fd17cdbb43d5142a94bceabd5`, canonical worktree
