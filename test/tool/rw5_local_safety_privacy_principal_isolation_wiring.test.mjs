@@ -80,7 +80,7 @@ test('session transitions and open surfaces cannot retain old account state', ()
 });
 
 test('privacy export and confirmed deletion are current-principal operations', () => {
-  const privacy = read('lib/screens/privacy_info_screen.dart');
+  const privacy = read('lib/services/privacy_export_service.dart');
   assert.match(privacy, /LocalSafetyPrivacyService\.exportCurrentPrincipal\(\)/u);
   const deletion = read('lib/services/account_deletion_service.dart');
   assert.equal(

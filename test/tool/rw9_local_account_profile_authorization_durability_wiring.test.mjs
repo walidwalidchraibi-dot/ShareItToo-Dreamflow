@@ -104,7 +104,7 @@ test('privacy export and deletion stay exact-current-account scoped', () => {
     'anonymizeAndDeactivateUser({',
     '_requireCurrentOperationalUser(requestedUserId: userId)',
   ]) assert.match(service, new RegExp(escaped(marker), 'u'));
-  const privacy = read('lib/screens/privacy_info_screen.dart');
+  const privacy = read('lib/services/privacy_export_service.dart');
   assert.match(privacy, /exportCurrentAccountProfileForPrivacy\(\)/u);
 
   const deletion = read('lib/services/account_deletion_service.dart');

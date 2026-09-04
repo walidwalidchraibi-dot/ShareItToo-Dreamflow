@@ -669,7 +669,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"
+      "sha256": "84f246249d5854f2f3e86e2ed9f50e8860a5f705d56f318c08dca5ad5b67d8a5"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
@@ -741,7 +741,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "8df3edaf407df822ce1ccd0479262e4b986c90c15a79abfcc87ea6ad320b2171"
+      "sha256": "a338263a74a2875bac02b42e0a58c21a107f489f23417ae66adaa9f14819458c"
     },
     {
       "path": "store/g2-data-lifecycle.json",

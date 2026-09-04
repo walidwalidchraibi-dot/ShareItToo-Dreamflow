@@ -119,7 +119,7 @@
   },
   "ratchets": {
     "privacyManifestSha256": "c47601c5de8545007985660bd6419ba77bf0c394079f90b34fade86e8aceaf85",
-    "retentionManifestSha256": "2a435ac0164f1f6bf2e3d9476d713ab8c06f0f9361213ffee35fd43b7e03d7f7",
+    "retentionManifestSha256": "7f22eca4145231d82b71cd43df8ba9f656e95b39faec3f81f705a63d33df20d6",
     "activeProviderEvidenceSha256": "0fff70837c848f1db1202d15bed704ebe300c340342a16be609a712b058d3217",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
@@ -173,7 +173,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "beedd32e42c4b36be533021b97c126aee06d0a816626673fa8e2e8d2a540aa34"
+      "sha256": "84f246249d5854f2f3e86e2ed9f50e8860a5f705d56f318c08dca5ad5b67d8a5"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -201,7 +201,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "77ecbd283c1567035910f4f395c74187dda3b6da53e9f31ebc319427c0447626"
+      "sha256": "54e31f8f404d9e5d343f2bed470008aac43ae4f018db0b70b2760bc39abdfac7"
     },
     {
       "path": "test/tool/harassment_block_report_wiring.test.mjs",

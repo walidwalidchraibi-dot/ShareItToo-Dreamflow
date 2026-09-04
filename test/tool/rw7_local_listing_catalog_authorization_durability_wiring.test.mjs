@@ -47,7 +47,7 @@ test('privacy export and deletion use current-owner listing truth', () => {
     'deactivateAllListingsForUser(',
   ]) assert.match(service, new RegExp(escaped(marker), 'u'));
   assert.match(
-    read('lib/screens/privacy_info_screen.dart'),
+    read('lib/services/privacy_export_service.dart'),
     /exportOwnedListingsForPrivacy\(\)/u,
   );
   assert.match(

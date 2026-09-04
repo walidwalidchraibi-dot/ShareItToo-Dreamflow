@@ -18,6 +18,7 @@ import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:lendify/widgets/category_icon_row.dart';
 import 'package:lendify/widgets/search_header.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('guest profile does not claim an identity verification state',
@@ -508,6 +509,14 @@ void main() {
   testWidgets(
       'privacy export remains usable with large text and keyboard focus',
       (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'auth_session_v1': jsonEncode(<String, Object>{
+        'userId': 'privacy-accessibility-fixture',
+        'sessionId': 'privacy-accessibility-session',
+        'email': 'privacy-accessibility@example.invalid',
+        'createdAt': DateTime.utc(2026, 9, 4).toIso8601String(),
+      }),
+    });
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(

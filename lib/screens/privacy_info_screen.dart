@@ -1,16 +1,24 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import 'package:lendify/services/backend_repository.dart';
-import 'package:lendify/services/data_service.dart';
-import 'package:lendify/services/local_safety_privacy_service.dart';
+import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/privacy_export_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/theme.dart';
-import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/tracked_dialog_route.dart';
 import 'package:share_plus/share_plus.dart';
 
 class PrivacyInfoScreen extends StatefulWidget {
-  const PrivacyInfoScreen({super.key});
+  final PrivacyExportService exportService;
+  final Future<ShareResult> Function(Uint8List bytes)? shareExport;
+
+  const PrivacyInfoScreen({
+    super.key,
+    this.exportService = const PrivacyExportService(),
+    this.shareExport,
+  });
 
   @override
   State<PrivacyInfoScreen> createState() => _PrivacyInfoScreenState();
@@ -18,12 +26,88 @@ class PrivacyInfoScreen extends StatefulWidget {
 
 class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
   bool _exporting = false;
+  bool _preparing = false;
+  bool _loadingOwner = true;
+  int _revision = 0;
+  AuthSessionOwner? _owner;
+  StreamSubscription<String>? _subscription;
+  TrackedDialogRouteHandle<String>? _passwordDialog;
+  TrackedDialogRouteHandle<void>? _outcomeDialog;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscription = SharedPersistenceSync.changes.listen((key) {
+      if (key != SharedPersistenceSync.accountSecurityStateKey) return;
+      _revision += 1;
+      _owner = null;
+      _passwordDialog?.dismiss();
+      _outcomeDialog?.dismiss();
+      if (!mounted) return;
+      setState(() {
+        _exporting = false;
+        _preparing = false;
+        _loadingOwner = true;
+      });
+      unawaited(_loadOwner());
+    });
+    unawaited(_loadOwner());
+  }
+
+  @override
+  void dispose() {
+    _revision += 1;
+    _owner = null;
+    _subscription?.cancel();
+    // Remove only this screen's routes after Navigator's current update.
+    final passwordDialog = _passwordDialog;
+    final outcomeDialog = _outcomeDialog;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      passwordDialog?.dismiss();
+      outcomeDialog?.dismiss();
+    });
+    super.dispose();
+  }
+
+  Future<void> _loadOwner() async {
+    final revision = _revision;
+    AuthSessionOwner? owner;
+    try {
+      owner = await widget.exportService.loadOwner();
+    } catch (_) {
+      // Unknown storage/auth state cannot authorize an export.
+    }
+    if (!mounted || revision != _revision) return;
+    setState(() {
+      _owner = owner;
+      _loadingOwner = false;
+    });
+  }
+
+  bool _currentNow(AuthSessionOwner owner, int revision) =>
+      mounted &&
+      revision == _revision &&
+      identical(owner, _owner) &&
+      owner.epoch == widget.exportService.sessionEpoch;
+
+  Future<bool> _current(AuthSessionOwner owner, int revision) async {
+    if (!_currentNow(owner, revision)) return false;
+    try {
+      final current = await widget.exportService.isOwnerCurrent(owner);
+      return current && _currentNow(owner, revision);
+    } catch (_) {
+      return false;
+    }
+  }
 
   Future<String?> _requestCurrentPassword() async {
     final passwordController = TextEditingController();
+    final handle = TrackedDialogRouteHandle<String>();
+    _passwordDialog = handle;
     try {
-      return await showDialog<String>(
+      return await showTrackedDialog<String>(
         context: context,
+        handle: handle,
         builder: (dialogContext) => AlertDialog(
           title: const Text('Datenexport bestätigen'),
           content: Column(
@@ -47,7 +131,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
                 ),
                 onSubmitted: (value) {
                   if (value.isNotEmpty) {
-                    Navigator.of(dialogContext).pop(value);
+                    handle.dismiss(value);
                   }
                 },
               ),
@@ -55,7 +139,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: handle.dismiss,
               child: const Text('Abbrechen'),
             ),
             FilledButton(
@@ -63,7 +147,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
               onPressed: () {
                 final password = passwordController.text;
                 if (password.isNotEmpty) {
-                  Navigator.of(dialogContext).pop(password);
+                  handle.dismiss(password);
                 }
               },
               child: const Text('Export erstellen'),
@@ -72,62 +156,96 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         ),
       );
     } finally {
+      if (identical(_passwordDialog, handle)) _passwordDialog = null;
       passwordController.dispose();
     }
   }
 
   Future<void> _exportData() async {
-    if (_exporting) return;
-    final currentPassword = await _requestCurrentPassword();
-    if (!mounted || currentPassword == null) return;
+    final owner = _owner;
+    final revision = _revision;
+    if (_exporting || _loadingOwner || owner == null) return;
     setState(() => _exporting = true);
     try {
-      final export = Map<String, dynamic>.from(
-        await BackendRepository.exportAccountData(
-          currentPassword: currentPassword,
-        ),
+      if (!await _current(owner, revision)) return;
+      final currentPassword = await _requestCurrentPassword();
+      if (currentPassword == null || !await _current(owner, revision)) return;
+      setState(() => _preparing = true);
+      final export = await widget.exportService.prepare(
+        owner: owner,
+        currentPassword: currentPassword,
       );
-      export['localDevice'] = <String, dynamic>{
-        'accountProfile':
-            await DataService.exportCurrentAccountProfileForPrivacy(),
-        'savedItems': await DataService.exportSavedItemsForPrivacy(),
-        'ownedListings': await DataService.exportOwnedListingsForPrivacy(),
-        'reviews': await DataService.exportReviewRecordsForPrivacy(),
-        'operationalRecords':
-            await DataService.exportOperationalRecordsForPrivacy(),
-        'safetyPrivacy':
-            await LocalSafetyPrivacyService.exportCurrentPrincipal(),
-      };
       final bytes = Uint8List.fromList(
         utf8.encode(const JsonEncoder.withIndent('  ').convert(export)),
       );
-      const filename = 'shareittoo-data-export.json';
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [
-            XFile.fromData(bytes, name: filename, mimeType: 'application/json'),
-          ],
-          fileNameOverrides: const [filename],
-          subject: 'Dein ShareItToo-Datenexport',
-          downloadFallbackEnabled: true,
-        ),
+      if (!await _current(owner, revision)) return;
+      // Once handed to the OS, an existing share cannot be revoked by popping
+      // a Flutter route. Never hand off stale bytes or show its result under B.
+      final result = await (widget.shareExport ?? _shareExport)(bytes);
+      if (!await _current(owner, revision)) return;
+      setState(() => _preparing = false);
+      await _showOutcome(
+        success: true,
+        title: result.status == ShareResultStatus.dismissed
+            ? 'Teilen abgebrochen'
+            : 'Datenexport erstellt',
+        message: result.status == ShareResultStatus.success
+            ? 'Dein Datenexport wurde an die ausgewählte App übergeben.'
+            : 'Der Export wurde vorbereitet. Eine Weitergabe wurde nicht bestätigt.',
       );
-      if (!mounted) return;
-      AppPopup.success(
-        context,
-        title: 'Datenexport erstellt',
-        message: 'Dein Datenexport wurde sicher erstellt.',
-      );
+    } on PrivacyExportPrincipalChanged {
+      // A's interrupted export has no outcome dialog in a successor session.
     } catch (_) {
-      if (!mounted) return;
-      AppPopup.error(
-        context,
+      if (!await _current(owner, revision)) return;
+      setState(() => _preparing = false);
+      await _showOutcome(
+        success: false,
         title: 'Datenexport fehlgeschlagen',
         message:
-            'Der Datenexport konnte gerade nicht erstellt werden. Bitte versuche es erneut.',
+            'Der Datenexport konnte nicht sicher abgeschlossen werden. Bitte versuche es erneut.',
       );
     } finally {
-      if (mounted) setState(() => _exporting = false);
+      if (_currentNow(owner, revision)) {
+        setState(() {
+          _exporting = false;
+          _preparing = false;
+        });
+      }
+    }
+  }
+
+  Future<ShareResult> _shareExport(Uint8List bytes) {
+    const filename = 'shareittoo-data-export.json';
+    return SharePlus.instance.share(ShareParams(
+      files: [
+        XFile.fromData(bytes, name: filename, mimeType: 'application/json')
+      ],
+      fileNameOverrides: const [filename],
+      subject: 'Dein ShareItToo-Datenexport',
+      downloadFallbackEnabled: true,
+    ));
+  }
+
+  Future<void> _showOutcome(
+      {required bool success,
+      required String title,
+      required String message}) async {
+    final handle = TrackedDialogRouteHandle<void>();
+    _outcomeDialog = handle;
+    try {
+      await showTrackedDialog<void>(
+          context: context,
+          handle: handle,
+          builder: (_) => AlertDialog(
+                icon: Icon(success ? Icons.task_alt : Icons.error_outline),
+                title: Text(title),
+                content: Text(message),
+                actions: [
+                  TextButton(onPressed: handle.dismiss, child: const Text('OK'))
+                ],
+              ));
+    } finally {
+      if (identical(_outcomeDialog, handle)) _outcomeDialog = null;
     }
   }
 
@@ -342,9 +460,13 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
                       bottom: i == sections.length - 1 ? 0 : 12),
                   child: _PrivacyInfoCard(
                     data: sections[i],
-                    onAction:
-                        sections[i].actionLabel == null ? null : _exportData,
-                    actionBusy: sections[i].actionLabel != null && _exporting,
+                    onAction: sections[i].actionLabel == null ||
+                            _loadingOwner ||
+                            _owner == null ||
+                            _exporting
+                        ? null
+                        : _exportData,
+                    actionBusy: sections[i].actionLabel != null && _preparing,
                   ),
                 ),
               ),
@@ -428,25 +550,22 @@ class _AnimatedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final delay = Duration(milliseconds: 45 * index);
+    final delayMilliseconds = 45 * index;
+    final totalMilliseconds = 380 + delayMilliseconds;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 380),
-      curve: Curves.easeOutCubic,
+      duration: Duration(milliseconds: totalMilliseconds),
       child: child,
       builder: (context, v, c) {
-        final eased = Curves.easeOut.transform(v);
-        return FutureBuilder<void>(
-          future: Future<void>.delayed(delay),
-          builder: (context, snap) {
-            final visible = snap.connectionState == ConnectionState.done;
-            final a = visible ? eased : 0.0;
-            return Opacity(
-              opacity: a,
-              child: Transform.translate(
-                  offset: Offset(0, (1 - a) * 10), child: c),
-            );
-          },
+        // A single widget-owned ticker includes the stagger. Do not schedule
+        // uncancellable delayed futures on each animation frame/rebuild.
+        final progress =
+            ((v * totalMilliseconds - delayMilliseconds) / 380).clamp(0.0, 1.0);
+        final eased = Curves.easeOutCubic.transform(progress);
+        return Opacity(
+          opacity: eased,
+          child: Transform.translate(
+              offset: Offset(0, (1 - eased) * 10), child: c),
         );
       },
     );

@@ -68,7 +68,7 @@ test('privacy export and both account deletion paths use scoped operational trut
     )].length,
     1,
   );
-  const privacy = read('lib/screens/privacy_info_screen.dart');
+  const privacy = read('lib/services/privacy_export_service.dart');
   assert.match(privacy, /exportOperationalRecordsForPrivacy\(\)/u);
 });
 

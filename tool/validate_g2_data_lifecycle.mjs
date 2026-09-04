@@ -9,6 +9,7 @@ const sourcePaths = {
   localSafetyPrivacy: 'lib/services/local_safety_privacy_service.dart',
   accountDeletion: 'lib/services/account_deletion_service.dart',
   privacyInfo: 'lib/screens/privacy_info_screen.dart',
+  privacyExport: 'lib/services/privacy_export_service.dart',
   legalPrivacy: 'lib/screens/legal_privacy_screen.dart',
   mainNavigation: 'lib/navigation/main_navigation.dart',
   itemDetails: 'lib/widgets/item_details_overlay.dart',
@@ -669,12 +670,14 @@ export function validateG2DataLifecycle({
   }
 
   const privacyInfo = source(root, sourceTexts, sourcePaths.privacyInfo);
-  includesEvery(privacyInfo, [
+  includesEvery(privacyInfo, ['widget.exportService.prepare(', 'Mietkorb'],
+    'Privacy export and disclosure');
+  const privacyExport = source(root, sourceTexts, sourcePaths.privacyExport);
+  includesEvery(privacyExport, [
     'DataService.exportSavedItemsForPrivacy()',
     'DataService.exportReviewRecordsForPrivacy()',
     'LocalSafetyPrivacyService.exportCurrentPrincipal()',
-    "export['localDevice']",
-    'Mietkorb',
+    "'localDevice': local",
   ], 'Privacy export and disclosure');
   const legalPrivacy = source(root, sourceTexts, sourcePaths.legalPrivacy);
   includesEvery(legalPrivacy, [

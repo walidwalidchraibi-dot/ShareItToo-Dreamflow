@@ -14,6 +14,7 @@ const sourcePaths = [
   'assets/legal/de/privacy_v5.html',
   'assets/legal/de/legal_manifest_v5.json',
   'lib/screens/privacy_info_screen.dart',
+  'lib/services/privacy_export_service.dart',
   'backend/src/account_actions.js',
   'backend/src/auth_session_actions.js',
   'backend/src/privacy_export.js',
@@ -1771,24 +1772,24 @@ export function validatePrivacyDisclosures({
       fail(`Local operational-record privacy coverage is missing ${marker}.`);
     }
   }
-  const privacyInfoSource = sourceText(
+  const privacyExportSource = sourceText(
     root,
     sourceTexts,
-    'lib/screens/privacy_info_screen.dart',
+    'lib/services/privacy_export_service.dart',
   );
-  if (!privacyInfoSource.includes(
-    "'ownedListings': await DataService.exportOwnedListingsForPrivacy()",
+  if (!privacyExportSource.includes(
+    'await DataService.exportOwnedListingsForPrivacy()',
   )) {
     fail('Privacy UI is missing the current-owner local listing export.');
   }
-  if (!privacyInfoSource.includes(
-    "'reviews': await DataService.exportReviewRecordsForPrivacy()",
+  if (!privacyExportSource.includes(
+    'await DataService.exportReviewRecordsForPrivacy()',
   )) {
     fail('Privacy UI is missing the current-account local review export.');
   }
-  if (!privacyInfoSource.includes(
-    "'accountProfile':",
-  ) || !privacyInfoSource.includes(
+  if (!privacyExportSource.includes(
+    'PrivacyExportSection.accountProfile',
+  ) || !privacyExportSource.includes(
     'await DataService.exportCurrentAccountProfileForPrivacy()',
   )) {
     fail('Privacy UI is missing the exact-current local account/profile export.');

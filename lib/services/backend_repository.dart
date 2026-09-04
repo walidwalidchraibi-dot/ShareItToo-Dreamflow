@@ -156,9 +156,11 @@ class BackendRepository {
   }
 
   static Future<Map<String, dynamic>> exportAccountData({
+    required AuthSessionOwner owner,
     required String currentPassword,
   }) async {
-    return _authorized(
+    return _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/account/export',
       body: {'currentPassword': currentPassword},

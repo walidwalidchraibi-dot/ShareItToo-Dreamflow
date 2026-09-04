@@ -1,4 +1,19 @@
-# Current Work Package: provisional Pixel 2026090402 acceptance
+# Current Work Package: WP05 privacy-export session ownership
+
+During actual support/privacy acceptance preparation, two red-first widget
+tests reproduced an export dialog surviving an account switch. The export now
+binds its prompt, HTTP credentials, server account, six local sections and share
+handoff to one immutable principal/epoch; exact owned dialogs preserve B routes.
+43 default focused/B10 tests, four real-HTTP-helper mock tests, 190 wiring and
+privacy validations and changed-file analysis pass. Complete normal regression
+also passes: 2,174 tools, 687 default Flutter tests plus mandatory profiles,
+analyzer zero, Web/Wasm, loopback and Android/R11. Exact clean-head proof and
+a separately versioned successor's device acceptance remain pending.
+See `docs/operations/WP05_PRIVACY_EXPORT_PRINCIPAL_2026-09-04.md`.
+No actual export/account mutation was performed. Frozen installed0402 is
+unchanged and does NOT contain this fix. GitHub remains deferred, not waived.
+
+## Previous provisional Pixel 2026090402 acceptance
 
 Latest owner direction on 2026-09-04: continue and postpone GitHub until later.
 GitHub authentication/push/CI are therefore deferred, not a reason to stop

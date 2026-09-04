@@ -1,5 +1,15 @@
 # ShareItToo Current State
 
+WP05 privacy-export correction is locally implemented after red-first proof of
+an A dialog surviving session change. Owner-bound transport, all six local
+sections, pre-share validation and exact-route dismissal have focused evidence.
+Full normal regression is green (2,174 tools, 687 default Flutter tests plus
+profiles, analyzer, Web/Wasm, loopback and Android/R11); exact clean-checkout
+and a successor signed/device result remain pending. The
+installed0402 archive is unchanged and predates this fix. No real export,
+support submission or account mutation in this package. GitHub stays deferred.
+Current package: `docs/operations/WP05_PRIVACY_EXPORT_PRINCIPAL_2026-09-04.md`.
+
 2026-09-04 owner explicitly postponed GitHub and requested continued work.
 The frozen signed Staging APK 2026090402/sourcebfd3e9e4 is now installed on
 the Pixel with exact signature/hash and Android data identity preserved.

@@ -56,7 +56,7 @@ test('review privacy export and shared-record retention truth are explicit', () 
     "'sharedPublicReviewsRetainedAfterDeletion': true",
   ]) assert.match(service, new RegExp(escaped(marker), 'u'));
   assert.match(
-    read('lib/screens/privacy_info_screen.dart'),
+    read('lib/services/privacy_export_service.dart'),
     /exportReviewRecordsForPrivacy\(\)/u,
   );
 });
