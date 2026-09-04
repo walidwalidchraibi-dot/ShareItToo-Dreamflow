@@ -1,5 +1,10 @@
 # WP05 — maintained scoped Android build entrypoint
 
+Implementation committed locally as `c4923cf1db58dcaccc33597a8c4d534f7f7cbd3a`.
+Final complete tool-inventory rerun passes2210 with the strengthened zero-call
+assertions. Machine-readable proof:
+`docs/evidence/release-readiness/wp05-scoped-android-entrypoint-local-20260904.json`.
+
 Base: clean `87f4c1b2e15e6b15bc64de7753114aaf75a82932`, canonical worktree
 `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`, branch
 `codex/master-workflow-20260808`. Local tracking refs show 19 ahead / 0 behind;

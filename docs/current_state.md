@@ -1,5 +1,11 @@
 # ShareItToo Current State
 
+Scoped-entrypoint implementation commit:
+`c4923cf1db58dcaccc33597a8c4d534f7f7cbd3a` (local, clean at commit).
+The final complete tool inventory rerun also passes all2210 after explicit
+zero-probe assertions were strengthened. Exact retained logs and implementation
+hashes are in `docs/evidence/release-readiness/wp05-scoped-android-entrypoint-local-20260904.json`.
+
 WP05 scoped Android entrypoint is locally verified. A private version-2 profile
 now supplies the complete SDK/Flutter-config environment and checks actual SDK
 selection before/after child work. Focused30, combined R10-helper45, actual-host
