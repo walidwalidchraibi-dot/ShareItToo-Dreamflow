@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -25,8 +24,9 @@ import {
   validatePrivateAndroidReleaseArchive,
 } from './validate_current_head_android_release_archive.mjs';
 import {
-  assertN28NoPostCandidateMobileSourceDrift,
-  validateN28FrozenCandidate,
+  assertCurrentCandidateNoPostCandidateMobileSourceDrift,
+  collectCurrentCandidateDriftPaths,
+  validateCurrentPrivateAndroidCandidate,
 } from './run_n28_current_candidate_pixel_surface_matrix.mjs';
 
 const accountChecks = Object.freeze([
@@ -293,13 +293,12 @@ export async function diagnoseN28CurrentCandidateAndroidAccountSupportSurfaces({
   wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
 }) {
   const archive = await validatePrivateAndroidReleaseArchive({ root, candidateDirectory });
-  const candidate = validateN28FrozenCandidate(archive);
-  const paths = String(execFileSync('git', ['diff', '--name-only', `${candidate.commit}..HEAD`], {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })).split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);
-  const sourceDrift = assertN28NoPostCandidateMobileSourceDrift(paths);
+  const candidate = validateCurrentPrivateAndroidCandidate(archive);
+  const paths = collectCurrentCandidateDriftPaths({
+    root,
+    candidateCommit: candidate.commit,
+  });
+  const sourceDrift = assertCurrentCandidateNoPostCandidateMobileSourceDrift(paths);
   const device = selectSinglePhysicalDevice(parseAdbDevices(
     commandRunner(adbPath, ['devices', '-l']),
   ));

@@ -1,5 +1,17 @@
 # ShareItToo Current State
 
+The maintained candidate-generic Pixel surface runner now passes focused15 and
+the complete read-only physical matrix on immutable0407/source8f66c9a8. It
+validates the private archive and all source-drift surfaces without exposing
+private captures. Private visual review confirms a P1: an explicit dark
+background can coexist with system light foreground colors, making home,
+navigation and background settings partly unreadable; light preview labels are
+also low contrast. No device or backend mutation occurred. Next is the bounded
+background-family/theme-mode correction, accessible system reset and adaptive
+preview semantics, followed by a distinct successor candidate. Preserve all
+0407 evidence separately. See
+`docs/operations/WP05_CURRENT_CANDIDATE_SURFACE_RUNNER_2026-09-05.md`.
+
 Exact retry-safe Pixel candidate1.0.0+2026090407/source8f66c9a8 now has full
 local, physical and GitHub closure. Clean R10 is byte-identical; normal/signed
 gates, independent archive verification and data-preserving Pixel update pass.

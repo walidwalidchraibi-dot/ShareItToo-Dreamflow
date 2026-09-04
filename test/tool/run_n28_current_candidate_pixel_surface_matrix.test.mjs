@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  assertN28NoPostCandidateMobileSourceDrift,
-  summarizeN28SurfaceMatrix,
-  validateN28FrozenCandidate,
+  assertCurrentCandidateNoPostCandidateMobileSourceDrift,
+  collectCurrentCandidateDriftPaths,
+  summarizeCurrentCandidateSurfaceMatrix,
+  validateCurrentPrivateAndroidCandidate,
 } from '../../tool/run_n28_current_candidate_pixel_surface_matrix.mjs';
 
 const candidate = {
@@ -16,7 +17,9 @@ const candidate = {
   releaseChannel: 'internal',
   apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
   firebaseConfigured: true,
+  privacyScan: 'passed',
   apkSha256: '37d98f999562150e77fea335fcb0bde32aee20d2183509f5484a5e67cd1e3194',
+  aabSha256: 'a'.repeat(64),
   signingCertificateSha256: '098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4',
   android: {
     apkSha256: '37d98f999562150e77fea335fcb0bde32aee20d2183509f5484a5e67cd1e3194',
@@ -24,7 +27,7 @@ const candidate = {
     signingCertificateSha256: '098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4',
   },
 };
-const normalizedCandidate = validateN28FrozenCandidate(candidate);
+const normalizedCandidate = validateCurrentPrivateAndroidCandidate(candidate);
 const device = {
   platform: 'android',
   physical: true,
@@ -132,32 +135,76 @@ function validInput() {
   };
 }
 
-test('accepts only the exact frozen 2026090306 candidate', () => {
+test('accepts canonical private candidates without a historical build or artifact pin', () => {
   assert.equal(normalizedCandidate.buildNumber, '2026090306');
+  const successor = structuredClone(candidate);
+  successor.buildNumber = '2026090407';
+  successor.commit = '8f66c9a823abbd01119c729d747a43ad4018a542';
+  successor.apkSha256 = 'b'.repeat(64);
+  successor.aabSha256 = 'c'.repeat(64);
+  successor.android.apkSha256 = successor.apkSha256;
+  successor.android.aabSha256 = successor.aabSha256;
+  assert.equal(
+    validateCurrentPrivateAndroidCandidate(successor).buildNumber,
+    '2026090407',
+  );
   for (const mutate of [
-    (value) => { value.buildNumber = '2026090307'; },
-    (value) => { value.commit = '0'.repeat(40); },
-    (value) => { value.apkSha256 = '0'.repeat(64); },
-    (value) => { value.signingCertificateSha256 = '0'.repeat(64); },
+    (value) => { value.buildNumber = '407'; },
+    (value) => { value.commit = 'not-a-commit'; },
+    (value) => { value.apiBaseUrl = 'https://example.invalid/api'; },
+    (value) => { value.releaseChannel = 'production'; },
+    (value) => { value.firebaseConfigured = false; },
+    (value) => { value.privacyScan = 'failed'; },
+    (value) => { value.android.apkSha256 = '0'.repeat(64); },
+    (value) => { value.android.signingCertificateSha256 = '0'.repeat(64); },
   ]) {
     const changed = structuredClone(candidate);
     mutate(changed);
-    assert.throws(() => validateN28FrozenCandidate(changed));
+    assert.throws(() => validateCurrentPrivateAndroidCandidate(changed));
   }
 });
 
 test('rejects any post-candidate Android application-source drift', () => {
   assert.deepEqual(
-    assertN28NoPostCandidateMobileSourceDrift(['docs/current_state.md', 'tool/check.mjs']),
+    assertCurrentCandidateNoPostCandidateMobileSourceDrift(['docs/current_state.md', 'tool/check.mjs']),
     { changedPathCount: 2, mobileSourceChanged: false },
   );
   for (const path of ['lib/main.dart', 'android/app/build.gradle.kts', 'assets/icon.png', 'pubspec.yaml']) {
-    assert.throws(() => assertN28NoPostCandidateMobileSourceDrift([path]));
+    assert.throws(() => assertCurrentCandidateNoPostCandidateMobileSourceDrift([path]));
   }
 });
 
+test('collects committed, unstaged, staged and untracked drift after proving ancestry', () => {
+  const calls = [];
+  const outputs = new Map([
+    ['diff --name-only aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..HEAD', 'docs/a.md\ntool/a.mjs\n'],
+    ['diff --name-only', 'tool/a.mjs\ntest/tool/a.test.mjs\n'],
+    ['diff --cached --name-only', 'docs/staged.md\n'],
+    ['ls-files --others --exclude-standard', 'tool/new.mjs\n'],
+  ]);
+  const paths = collectCurrentCandidateDriftPaths({
+    root: '/tmp/repo',
+    candidateCommit: 'a'.repeat(40),
+    gitRunner(command, args) {
+      calls.push([command, ...args]);
+      if (args[0] === 'merge-base') return '';
+      return outputs.get(args.join(' ')) ?? '';
+    },
+  });
+  assert.deepEqual(paths, [
+    'docs/a.md',
+    'docs/staged.md',
+    'test/tool/a.test.mjs',
+    'tool/a.mjs',
+    'tool/new.mjs',
+  ]);
+  assert.deepEqual(calls[0], [
+    'git', 'merge-base', '--is-ancestor', 'a'.repeat(40), 'HEAD',
+  ]);
+});
+
 test('summarizes only a complete sanitized read-only surface matrix', () => {
-  const result = summarizeN28SurfaceMatrix(validInput());
+  const result = summarizeCurrentCandidateSurfaceMatrix(validInput());
   assert.equal(result.status, 'passed-session-navigation-legal-accessibility-restart-core');
   assert.equal(result.tests.mainNavigationDestinationCount, 5);
   assert.equal(result.tests.largeTextDestinationCount, 5);
@@ -181,6 +228,6 @@ test('rejects incomplete lanes, failed restoration and private evidence', () => 
   ]) {
     const changed = validInput();
     mutate(changed);
-    assert.throws(() => summarizeN28SurfaceMatrix(changed));
+    assert.throws(() => summarizeCurrentCandidateSurfaceMatrix(changed));
   }
 });

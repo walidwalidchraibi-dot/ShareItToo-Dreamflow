@@ -1,4 +1,4 @@
-# Current Work Package: WP05 candidate-generic Pixel surface runner
+# Current Work Package: WP05 background-family contrast correction
 
 Candidate0407/source8f66c9a8 is now immutable and closed for exact local R10,
 normal/signed lifecycle, independent archive verification, data-preserving Pixel
@@ -7,21 +7,27 @@ states, email-verified two-role nonbinding product journey, and exact GitHub
 Regression/CodeQL. Preserve that evidence separately from every later docs or
 tooling commit. PR#7 remains Draft and unmerged.
 
-The next bounded package is tooling-only: replace the historical0406-hard-bound
-N28 surface runner and ad-hoc private0407 helpers with a maintained
-`--candidate-dir` entrypoint that validates any exact private successor archive,
-the installed APK and the allowed Staging/provider envelope before running the
-provider-independent Pixel surface matrix. Add deterministic positive and
-fail-closed tests, keep raw device/account data outside Git, and ensure temporary
-timing or capacity workarounds are not release prerequisites. Do not change app
-runtime behavior or build another APK unless a reproduced candidate blocker
-requires a separate successor.
+The candidate-generic surface runner is locally complete and its read-only
+physical0407 execution confirms one P1 visual blocker: a persisted dark
+background remains independent from `ThemeMode.system`, so system light colors
+can be rendered over a dark image. The bounded runtime package is to make an
+explicit background family select its matching Material theme, make a cleared
+choice return to the system theme, and add an accessible system-default reset,
+adaptive preview labels and exact selected semantics. Add focused controller,
+widget and fail-closed wiring coverage. Do not broaden into a global theme
+redesign or change the four supplied assets.
+
+After focused and full local regression, freeze a strictly newer candidate,
+perform exact clean R10 and matched signed lifecycle, then repeat the complete
+private Pixel visual matrix. Candidate0407/source8f66c9a8 and its evidence remain
+immutable and separate. GitHub evidence must be exact to the successor source.
 
 Binding V5.2 remains intentionally blocked by draft legal snapshots. Stripe test
 mode, external listing AI, Store-installed FCM, OnePlus, production, public
 registration, live money and PR merge stay outside this package. Continue to
-the provider packages only after this generic diagnostic debt is closed. See
-`docs/operations/WP05_PIXEL_CANDIDATE_2026090407_HANDOVER.md`.
+provider packages only after this contrast correction and successor acceptance
+are closed. See
+`docs/operations/WP05_CURRENT_CANDIDATE_SURFACE_RUNNER_2026-09-05.md`.
 
 Historical0406 package:
 

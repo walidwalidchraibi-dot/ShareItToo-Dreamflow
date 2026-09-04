@@ -29,18 +29,11 @@ import {
   selectSinglePhysicalDevice,
 } from './prepare_android_device_test.mjs';
 import {
+  canonicalAndroidSigningCertificateSha256,
+  currentHeadAndroidApplicationId,
+  currentHeadAndroidStagingApiBaseUrl,
   validatePrivateAndroidReleaseArchive,
 } from './validate_current_head_android_release_archive.mjs';
-
-const expected = Object.freeze({
-  applicationId: 'com.shareittoo.app',
-  versionName: '1.0.0',
-  buildNumber: '2026090306',
-  commit: '9d7e2601dc477cf3ae3d469b65448ce2065375e0',
-  apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
-  apkSha256: '37d98f999562150e77fea335fcb0bde32aee20d2183509f5484a5e67cd1e3194',
-  signingCertificateSha256: '098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4',
-});
 
 const mobileSourcePattern = /^(?:lib\/|android\/|assets\/|pubspec\.yaml$|pubspec\.lock$)/u;
 
@@ -49,21 +42,52 @@ function fail(message) {
 }
 
 function same(actual, wanted, label) {
-  if (actual !== wanted) fail(`${label} does not match the frozen N28 candidate.`);
+  if (actual !== wanted) fail(`${label} does not match the verified private candidate.`);
 }
 
-export function validateN28FrozenCandidate(archive) {
-  for (const key of ['applicationId', 'versionName', 'buildNumber', 'commit', 'apiBaseUrl']) {
-    same(archive?.[key], expected[key], key);
+function digest(value, label) {
+  if (typeof value !== 'string' || !/^[a-f0-9]{64}$/u.test(value)) {
+    fail(`${label} is not a lowercase SHA-256 digest.`);
   }
+  return value;
+}
+
+export function validateCurrentPrivateAndroidCandidate(archive) {
+  same(archive?.applicationId, currentHeadAndroidApplicationId, 'application ID');
+  same(archive?.bundleId, currentHeadAndroidApplicationId, 'bundle ID');
+  if (typeof archive?.versionName !== 'string'
+      || !/^\d+\.\d+\.\d+$/u.test(archive.versionName)) {
+    fail('Version name is not a canonical semantic version.');
+  }
+  if (typeof archive?.buildNumber !== 'string'
+      || !/^\d{10}$/u.test(archive.buildNumber)) {
+    fail('Build number is not a ten-digit Android version code.');
+  }
+  if (typeof archive?.commit !== 'string'
+      || !/^[a-f0-9]{40}$/u.test(archive.commit)) {
+    fail('Candidate commit is not a full lowercase Git digest.');
+  }
+  same(archive?.apiBaseUrl, currentHeadAndroidStagingApiBaseUrl, 'API base URL');
   same(archive?.firebaseConfigured, true, 'Firebase configuration');
   same(archive?.releaseChannel, 'internal', 'release channel');
-  same(archive?.apkSha256, expected.apkSha256, 'APK SHA-256');
-  same(archive?.android?.apkSha256, expected.apkSha256, 'Android APK SHA-256');
-  same(
+  same(archive?.privacyScan, 'passed', 'binary privacy scan');
+  const apkSha256 = digest(archive?.apkSha256, 'APK SHA-256');
+  const aabSha256 = digest(archive?.aabSha256, 'AAB SHA-256');
+  const certificateSha256 = digest(
     archive?.signingCertificateSha256,
-    expected.signingCertificateSha256,
     'signing certificate SHA-256',
+  );
+  same(archive?.android?.apkSha256, apkSha256, 'Android APK SHA-256');
+  same(archive?.android?.aabSha256, aabSha256, 'Android AAB SHA-256');
+  same(
+    archive?.android?.signingCertificateSha256,
+    certificateSha256,
+    'Android signing certificate SHA-256',
+  );
+  same(
+    certificateSha256,
+    canonicalAndroidSigningCertificateSha256,
+    'canonical signing certificate SHA-256',
   );
   return Object.freeze({
     applicationId: archive.applicationId,
@@ -77,22 +101,61 @@ export function validateN28FrozenCandidate(archive) {
     paymentMode: 'memory',
     stripeLivemode: false,
     android: Object.freeze({
-      apkSha256: archive.android.apkSha256,
-      aabSha256: archive.android.aabSha256,
-      signingCertificateSha256: archive.android.signingCertificateSha256,
+      apkSha256,
+      aabSha256,
+      signingCertificateSha256: certificateSha256,
     }),
   });
 }
 
-export function assertN28NoPostCandidateMobileSourceDrift(paths) {
+// Retained as a compatibility export for the immutable historical N28 evidence
+// validator. Runtime acceptance is no longer bound to the old N28 build.
+export const validateN28FrozenCandidate = validateCurrentPrivateAndroidCandidate;
+
+export function assertCurrentCandidateNoPostCandidateMobileSourceDrift(paths) {
   if (!Array.isArray(paths) || paths.some((path) => typeof path !== 'string')) {
     fail('Post-candidate paths must be a string array.');
   }
   const changed = paths.filter((path) => mobileSourcePattern.test(path));
   if (changed.length > 0) {
-    fail('Android application source changed after the frozen N28 candidate.');
+    fail('Android application source changed after the verified private candidate.');
   }
   return Object.freeze({ changedPathCount: paths.length, mobileSourceChanged: false });
+}
+
+export const assertN28NoPostCandidateMobileSourceDrift =
+  assertCurrentCandidateNoPostCandidateMobileSourceDrift;
+
+function gitPaths(gitRunner, root, args) {
+  return String(gitRunner('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }))
+    .split(/\r?\n/u)
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+export function collectCurrentCandidateDriftPaths({
+  root,
+  candidateCommit,
+  gitRunner = execFileSync,
+}) {
+  if (typeof candidateCommit !== 'string' || !/^[a-f0-9]{40}$/u.test(candidateCommit)) {
+    fail('Candidate commit is invalid for source-drift collection.');
+  }
+  gitRunner('git', ['merge-base', '--is-ancestor', candidateCommit, 'HEAD'], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  return [...new Set([
+    ...gitPaths(gitRunner, root, ['diff', '--name-only', `${candidateCommit}..HEAD`]),
+    ...gitPaths(gitRunner, root, ['diff', '--name-only']),
+    ...gitPaths(gitRunner, root, ['diff', '--cached', '--name-only']),
+    ...gitPaths(gitRunner, root, ['ls-files', '--others', '--exclude-standard']),
+  ])].toSorted();
 }
 
 function assertLane(evidence, kind, status, label, candidate) {
@@ -103,10 +166,14 @@ function assertLane(evidence, kind, status, label, candidate) {
   same(evidence?.candidate?.commit, candidate.commit, `${label} candidate commit`);
   same(evidence?.installed?.buildNumber, candidate.buildNumber, `${label} installed build number`);
   same(evidence?.installed?.delivery, 'direct-apk', `${label} delivery`);
-  same(evidence?.installed?.apkSha256, expected.apkSha256, `${label} installed APK SHA-256`);
+  same(
+    evidence?.installed?.apkSha256,
+    candidate.android.apkSha256,
+    `${label} installed APK SHA-256`,
+  );
 }
 
-export function summarizeN28SurfaceMatrix({
+export function summarizeCurrentCandidateSurfaceMatrix({
   candidate,
   deviceSummary,
   sourceDrift,
@@ -257,7 +324,9 @@ export function summarizeN28SurfaceMatrix({
   return result;
 }
 
-export async function runN28CurrentCandidatePixelSurfaceMatrix({
+export const summarizeN28SurfaceMatrix = summarizeCurrentCandidateSurfaceMatrix;
+
+export async function runCurrentCandidatePixelSurfaceMatrix({
   root,
   candidateDirectory,
   adbPath = 'adb',
@@ -274,22 +343,13 @@ export async function runN28CurrentCandidatePixelSurfaceMatrix({
   capturedAt = new Date().toISOString(),
 }) {
   const archive = await archiveValidator({ root, candidateDirectory });
-  const candidate = validateN28FrozenCandidate(archive);
-  const ancestor = String(gitRunner('git', ['merge-base', '--is-ancestor', candidate.commit, 'HEAD'], {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }) ?? '');
-  void ancestor;
-  const paths = String(gitRunner('git', ['diff', '--name-only', `${candidate.commit}..HEAD`], {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }))
-    .split(/\r?\n/u)
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const sourceDrift = assertN28NoPostCandidateMobileSourceDrift(paths);
+  const candidate = validateCurrentPrivateAndroidCandidate(archive);
+  const paths = collectCurrentCandidateDriftPaths({
+    root,
+    candidateCommit: candidate.commit,
+    gitRunner,
+  });
+  const sourceDrift = assertCurrentCandidateNoPostCandidateMobileSourceDrift(paths);
   const devices = parseAdbDevices(commandRunner(adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = deviceInspector({ adbPath, device });
@@ -300,7 +360,7 @@ export async function runN28CurrentCandidatePixelSurfaceMatrix({
   const largeText = await largeTextDiagnostic(common);
   const touchTargets = await touchTargetDiagnostic(common);
   const restart = restartDiagnostic(common);
-  return summarizeN28SurfaceMatrix({
+  return summarizeCurrentCandidateSurfaceMatrix({
     candidate,
     deviceSummary,
     sourceDrift,
@@ -313,6 +373,9 @@ export async function runN28CurrentCandidatePixelSurfaceMatrix({
     capturedAt,
   });
 }
+
+export const runN28CurrentCandidatePixelSurfaceMatrix =
+  runCurrentCandidatePixelSurfaceMatrix;
 
 function parseArguments(values) {
   let candidateDirectory = null;
@@ -335,7 +398,7 @@ function parseArguments(values) {
 async function run() {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const args = parseArguments(process.argv.slice(2));
-  const result = await runN28CurrentCandidatePixelSurfaceMatrix({ root, ...args });
+  const result = await runCurrentCandidatePixelSurfaceMatrix({ root, ...args });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
