@@ -7,12 +7,20 @@ control passes. The bounded correction is now implemented locally. Focused40,
 enabled HTTP mocks8, wiring6 and analyzer0 pass. Full normal regression passes:
 2216tools/735defaultFlutter+mandatoryprofiles/analyzer0/WebWasm dryrun/loopback/
 Android41s/R11. Earlier binding and fixture failures are retained, not promoted.
-Installed0404 does NOT contain this change. Exact clean/source/successor-device/
+Installed0404 does NOT contain this change. Exact clean proof now passes on
+b748e3befcef7b0af0efe93135a510a98b56ba16: full668s, second Android45s,
+byte-identical APKs/entries and unchanged source inventories. Successor-device/
 GitHub proof remains open. No new cart/booking/provider/device mutation.
 See `docs/operations/WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
 
-Next: close this bounded correction's exact committed-source clean proof,
-then a separately bound successor before resuming physical cart/projects.
+Next: correct the now-reproduced residual project-assignment P1 before freezing
+a successor. Separate synthetic widget/HTTP probes each pass their stable-A
+control and fail the A-to-B invariant: A's sheet survives, and an A cart read is
+followed by a PUT authenticated as B. No actual account or Pixel write occurred.
+Bind the assignment sheet, prerequisite cart read and item upsert to one owner;
+preserve B routes and reject stale results. Keep direct recheck/delete/add and
+navigation paths explicitly outside this narrow proof until independently tested.
+See `docs/operations/WP05_CART_ASSIGNMENT_PRINCIPAL_2026-09-04.md`.
 No additional broad hardening, GitHub auth/remote/push/CI, OnePlus or live action.
 
 Previous support closure and cart acceptance decision:

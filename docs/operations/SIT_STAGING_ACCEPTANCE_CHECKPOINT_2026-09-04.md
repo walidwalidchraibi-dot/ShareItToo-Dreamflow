@@ -2,7 +2,10 @@
 
 Current execution: a read-only0404 cart baseline passed, then an isolated
 red-first project-dialog principal defect was reproduced and corrected locally.
-Focused and full normal regression pass; exact clean/successor proof is open. Installed0404 is
+Focused/full normal and exact b748 clean regression pass, including identical
+debug APKs. Successor proof remains open. Two targeted synthetic probes now
+confirm the residual assignment sheet/read-to-upsert ownership P1; stable A
+passes both controls. Correct that chain before a new freeze. Installed0404 is
 unchanged and predates this fix. See `WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
 
 Latest functional result: Pixel0404 proves one simulation support intake with

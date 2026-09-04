@@ -1,7 +1,7 @@
 # WP05 cart project — initiating-account correction
 
-Status: locally implemented; focused and full normal regression PASS.
-Exact clean-checkout, successor-candidate/device and GitHub proof remain OPEN.
+Status: locally implemented; focused, full normal and exact clean regression PASS.
+Successor-candidate/device and GitHub proof remain OPEN.
 GitHub is explicitly deferred by the owner. This is a bounded P1 interruption
 of cart/projects acceptance, not another broad hardening Goal.
 
@@ -101,7 +101,33 @@ replacement for clean-source proof. The signed0404 private archive is outside
 that tree and remains intact. The normal debug APK digest is retained in the
 machine evidence, but the regenerated debug output itself was cleaned.
 
-Next complete exact committed-source clean proof.
+Exact clean proof now passes on committed source
+`b748e3befcef7b0af0efe93135a510a98b56ba16`, through the maintained v2 profile
+with a new isolated checkout and separate package caches. Locked restores,
+backend suite/syntax, dependency audit, secret scan, PostgreSQL and complete
+technical regression pass (668s); the second Android build passes (45s).
+Both debug APKs and all extracted entries are byte-identical:
+`9c930d7546cca3d5c0d51b4f1552734e344efe4c6881e55ae6f4113ef350389b`.
+Inventories and the fresh checkout remain clean; generated output stays within
+the unchanged limits. The runner removes its checkout, isolated caches and APK
+copies, and the enclosing v2 wrapper exits zero. Independent source, status,
+command, artifact, inventory and cleanup assertions also pass. New evidence:
+`docs/evidence/release-readiness/wp05-cart-project-principal-clean-20260904.json`
+(SHA256 `3f0da093aafb6c6b149a988b896f2d33337031a6d4af96f8d787e5ca2259e83d`).
+This debug proof still uses source version0404 and is NOT a new signed0404
+archive, device update, or replacement of the immutable source55a1 evidence.
+
+Read-only next-test planning identified a separate remaining risk in
+`_assignCartItem`: an untracked sheet precedes capture, and DataService reads
+a cart before using an unbound item upsert. Recheck/delete handlers also use
+mounted-only result installation. The targeted synthetic assignment probes now
+pass both stable-A controls and reproduce two failures: A's sheet remains after
+A-to-B, and the A-read/B-authenticated-upsert chain actually dispatches in the
+HTTP mock. Direct recheck/delete risks remain unproved by those probes.
+Correct assignment before freezing the successor; see
+`WP05_CART_ASSIGNMENT_PRINCIPAL_2026-09-04.md`. It is within the same cart
+acceptance surface, not authorization for broad unrelated hardening.
+
 Before further project mutations on Pixel, prepare a separately versioned,
 signed and verified candidate; do not reuse/relabel0404. Continue cart/projects
 and the remaining Growth/core matrix afterward. Full support, real AI, Stripe

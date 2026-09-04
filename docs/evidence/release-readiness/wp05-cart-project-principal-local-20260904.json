@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "LOCAL_FOCUSED_AND_FULL_NORMAL_PASS",
+  "status": "LOCAL_FOCUSED_FULL_NORMAL_AND_EXACT_CLEAN_PASS",
   "executionBase": "ebd0520dfbc1dd9526c721334db5ed99b223dabc",
   "observedOn": "2026-09-04",
   "installedCandidate": {
@@ -56,7 +56,14 @@
     "androidDebugBuildSeconds": 41,
     "androidDebugApkSha256": "11fd8c47cf105b011364f2d582558bc75f158945da89fbcd9a0e8c7bcbb6d264",
     "androidSurface": {"minSdk": 24, "permissions": 14, "exportedComponents": 8},
-    "exactCleanSource": "OPEN",
+    "exactCleanSource": "PASS_b748e3befcef7b0af0efe93135a510a98b56ba16",
+    "exactCleanEvidence": "docs/evidence/release-readiness/wp05-cart-project-principal-clean-20260904.json",
+    "exactCleanEvidenceSha256": "3f0da093aafb6c6b149a988b896f2d33337031a6d4af96f8d787e5ca2259e83d",
+    "exactCleanLogSha256": "513995842797bfee5c94d43b7e53207eb81ce989ba218e023919d69a49960630",
+    "exactCleanFullRegressionSeconds": 668,
+    "exactCleanSecondAndroidSeconds": 45,
+    "exactCleanDebugSha256": "9c930d7546cca3d5c0d51b4f1552734e344efe4c6881e55ae6f4113ef350389b",
+    "exactCleanByteAndExtractedEntryIdentity": true,
     "successorDevice": "OPEN",
     "github": "OWNER_DEFERRED"
   },

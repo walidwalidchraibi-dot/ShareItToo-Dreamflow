@@ -5,9 +5,16 @@ red-first probe separately proves a P1 project-dialog account-switch defect
 (stable A control pass, two B-isolation failures). Its correction is locally
 implemented with focused40/HTTP8/wiring6/analyzer0. Full normal regression passes
 (2216tools/735defaultFlutter+profiles/WebWasm dryrun/loopback/Android41s/R11);
-exact clean, successor-device and GitHub results are not yet claimed. Installed
+exact clean proof on b748e3be also passes (full668s, second Android45s, byte-identical
+APKs/entries). Successor-device and GitHub results remain open. Installed
 0404 remains unchanged and predates the fix. No deployment/provider/Store/
 OnePlus action. See `docs/operations/WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
+
+Two isolated probes now confirm the residual project-assignment P1: stable A
+passes both controls; after A-to-B, A's sheet remains and an A cart read can be
+followed by a PUT authenticated as B. These are synthetic local observations,
+not real account/device mutations. Next fix that exact sheet/read/upsert chain
+before a successor freeze; see `WP05_CART_ASSIGNMENT_PRINCIPAL_2026-09-04.md`.
 
 Previous bounded support checkpoint:
 
