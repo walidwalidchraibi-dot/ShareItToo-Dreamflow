@@ -58,7 +58,7 @@ test('runner owns only child environment and validates again after completion', 
   const source = readFileSync(new URL('../../tool/run_with_local_build_cache.mjs', import.meta.url), 'utf8');
   assert.match(source, /GRADLE_USER_HOME: profile.cacheDirectory/u);
   assert.match(source, /shell: false/u);
-  assert.equal([...source.matchAll(/validateBuildCacheObservation\(profile, observeBuildCache\(profile\)\)/gu)].length, 2);
+  assert.equal([...source.matchAll(/validateBuildCacheObservation\(profile, observeCache\(profile\)\)/gu)].length, 2);
   assert.doesNotMatch(source, /rmSync|unlinkSync|writeFileSync|chmodSync|createKey|process\.env\.GRADLE_USER_HOME\s*=/u);
   assert.match(source, /result\.signal \|\| result\.code === null \? 1 : result\.code/u);
 });

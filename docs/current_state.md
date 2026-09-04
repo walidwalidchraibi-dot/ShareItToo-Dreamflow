@@ -1,5 +1,19 @@
 # ShareItToo Current State
 
+WP05 scoped Android entrypoint is locally verified. A private version-2 profile
+now supplies the complete SDK/Flutter-config environment and checks actual SDK
+selection before/after child work. Focused30, combined R10-helper45, actual-host
+positive/negative/exit17 controls and full normal regression pass (2210tools,
+724defaultFlutter+profiles,analyzer0,WebWasm dryrun,loopback,Android13s/R11).
+No global settings, SDK packages, protected inputs or source bindings changed.
+Next freeze a distinct support-corrected successor and run unchanged exact cold
+proof there before signing. Final CI remains owner-deferred; installed0403,
+OnePlus and all external services are untouched. SDK invocation debt remains
+PARTIAL until final exact cold/CI/matched signed-lifecycle evidence. See
+`docs/operations/WP05_SCOPED_ANDROID_ENTRYPOINT_2026-09-04.md`.
+
+Previous support-read checkpoint:
+
 Support read/follow-up implementation is locally committed as
 `e8d53d776401fd3b880f8d505dd0cacd7f4c11d1`; full normal local regression passes.
 Next is the existing scoped-SDK-entrypoint debt, then exact cold proof on one

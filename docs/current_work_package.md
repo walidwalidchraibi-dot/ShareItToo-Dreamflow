@@ -1,4 +1,22 @@
-# Current Work Package: WP05 maintained scoped Android build entrypoint
+# Current Work Package: WP05 freeze support-corrected Pixel successor
+
+Scoped Android entrypoint is locally verified: 30 focused guards, 45 combined
+guard/R10 helper tests, actual-host positive/wrong-SDK/exit17 controls, and full
+normal regression PASS (2210 tools,724 default Flutter+profiles,analyzer0,
+Web/Wasm dryrun,loopback,Android13s/R11). Global settings remain unchanged;
+no new signed candidate or device action. Next freeze one distinct successor
+containing the support intake/read corrections and maintained host entrypoint,
+then unchanged exact cold R10 before signing/distribution. Preserve0403/sourcef6.
+GitHub stays owner-deferred and uncleared. Do not introduce unrelated hardening.
+
+Use the owner-only version-2 profile
+`/Users/walidchraibi/Documents/Codex/2026-08-19/new-chat/SIT_ANDROID_BUILD_20260904.json`
+with the existing maintained cache wrapper; no manually supplied SDK/XDG
+variables are needed. The debt remains
+PARTIAL until final exact cold/CI/signed-lifecycle proof; no candidate or device
+result is promoted. Details: `docs/operations/WP05_SCOPED_ANDROID_ENTRYPOINT_2026-09-04.md`.
+
+Previous prerequisite decision:
 
 Support intake and read/follow-up corrections are locally complete with full
 normal regression green; exact final cold/CI/device acceptance is not claimed.

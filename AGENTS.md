@@ -78,6 +78,11 @@ money, contracts, privacy, security, release truth or user data.
   See `docs/operations/WP02_BUILD_WORKSPACE_2026-09-04.md`. Keep the private
   profile outside Git; do not silently fall back to the global cache or repeat
   cache purges. The normal source-capacity and release gates still apply.
+  Current Mac-mini Android gates/releases use the version-2 profile documented
+  in `docs/operations/WP05_SCOPED_ANDROID_ENTRYPOINT_2026-09-04.md`; it supplies
+  both SDK variables and isolated Flutter configuration, verifies effective SDK
+  selection, and refuses global overrides. The historical version-1 cache-only
+  profile does not provide this Android prerequisite.
 - Run `git diff --check` before staging. Preserve the analyzer baseline and do
   not suppress forbidden analyzer codes to make a check pass.
 
