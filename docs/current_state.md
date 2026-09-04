@@ -1,5 +1,13 @@
 # ShareItToo Current State
 
+0404 support read baseline now passes: the known synthetic owner's actual
+Pixel support list is empty, and independent authenticated backend reads for
+both distinct synthetic roles return HTTP 200/empty arrays/private no-store.
+Only the two new probe sessions were revoked; Pixel auth was untouched.
+No case was submitted. Intake, detail/follow-up, physical offline/error/retry
+and A-to-B isolation remain open. Diagnostic classification: 12 tests pass.
+See `docs/operations/WP05_PIXEL_SUPPORT_READ_BASELINE_2026-09-04.md`.
+
 Pixel now runs signed1.0.0+2026090404/source55a1aa5a. Exact full cold R10 passes
 with byte-identical debug APKs; configured full normal2210tools/724Flutter+
 profiles/analyzer0/WebWasm dryrun/loopback/Android23s and matched signed lifecycle

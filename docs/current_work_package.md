@@ -1,13 +1,22 @@
 # Current Work Package: WP05 actual support acceptance on Pixel0404
 
+Read baseline COMPLETE: the existing known synthetic owner's Pixel list shows
+the resolved empty surface, consistent with independent HTTP 200 empty-array
+reads for both distinct fixture roles. Two temporary API sessions were revoked
+and rejected afterward; no Pixel session token was read or used. No case was
+submitted. Next is controlled simulation-only technical-support intake,
+receipt/list/detail and offline/error/retry plus ownership/follow-up acceptance.
+The initial loading/error/A-to-B physical cases are NOT passed by the baseline.
+See `docs/operations/WP05_PIXEL_SUPPORT_READ_BASELINE_2026-09-04.md`.
+
 0404/source55a1aa5a is signed, independently verified and installed. Exact cold
 R10, matchedv2profile full normal/signed lifecycle, signature/privacy/bundle/
 compiled release-surface checks and actual data-preserving Pixel update pass.
 Existing authenticated cold starts, five main surfaces and process restart pass
 within their narrow scope. GitHub remains explicitly deferred, not waived.
 
-Next bounded work: verify current-candidate support reads on the Pixel, then
-controlled support intake/follow-up with existing disposable Staging roles.
+Current bounded work: controlled support intake/follow-up and error recovery
+with existing disposable Staging roles, after rechecking the current identity.
 Preserve initiating-account isolation, truthful error/empty/pending states,
 server receipt/version/idempotency and exact owned navigation. Never treat
 basic navigation as backend account identity or full support acceptance. Do
