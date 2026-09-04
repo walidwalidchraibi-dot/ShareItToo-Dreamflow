@@ -1,5 +1,25 @@
 # ShareItToo Current State
 
+Latest checkpoint, 2026-09-04: signed `1.0.0+2026090402` from clean source
+`bfd3e9e4422a6a6e6bf3c09bd825c6a089909d04` is privately archived and locally
+verified. Full regression and the immediately following normal signed build
+pass with the complete isolated SDK/Flutter configuration and dedicated cache,
+without manual purge or Kotlin/XML compatibility diagnostics. Both signatures,
+bundle, release security/resources and privacy checks pass. Exact CodeQL is
+green. The unchanged full local dependency audit has now recovered and passed;
+the one failed-jobs-only rerun has Backend FAILED again at an advisory timeout,
+after 797 passing tests/syntax. Clean checkout is still RUNNING. Both failed
+backend attempts remain recorded, not relabelled by the local audit pass.
+GitHub CLI now reports invalid authentication. The separate GitHub connector
+still confirms PR #7 Draft/unmerged at bfd3e9e4 and the exact job outcomes;
+the authenticated browser additionally confirms zero open Code-Scanning alerts
+for this work branch (the default branch is not scanned). The Maximus notice was not sent
+because Telegram inspection was safety-blocked. No device was updated; the
+previously verified Pixel candidate remains 2026090307. Candidate hashes,
+precise failed/passed attempts and owner actions are in
+`docs/operations/WP02_PIXEL_CANDIDATE_2026090402_HANDOVER.md`.
+This is not WP01/WP02 or overall Staging closure. Older checkpoints follow.
+
 Verified: 2026-09-03 from the Mac mini repository, exact Staging and the
 owner-authorized Pixel 7 Pro connected directly by USB. OnePlus was not used
 by the current package.

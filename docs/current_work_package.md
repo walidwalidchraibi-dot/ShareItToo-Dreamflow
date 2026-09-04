@@ -1,5 +1,28 @@
 # Current Work Package: WP02 / WP01 Pixel candidate 2026090402
 
+Latest checkpoint: **LOCAL RELEASE VERIFIED / EXACT CI UNCLEARED / NOT INSTALLED**.
+Clean source `bfd3e9e4422a6a6e6bf3c09bd825c6a089909d04` completed the full
+normal local gate and signed archive lifecycle with the same complete isolated
+SDK, process-local Flutter configuration and guarded cache; no intervening
+manual purge. Independent signatures, bundle/privacy, optimized release XML
+and security surface pass. Debug-only R11 was not relaxed for release use.
+Exact CodeQL passes; Regression `33820054882` failed at advisory-service
+timeouts in Backend/clean checkout. The unchanged local audit subsequently
+passed; the one exact failed-jobs-only retry has Backend FAILED again at the
+advisory timeout (797 tests/syntax passed), with clean checkout still RUNNING.
+No further retry or Pixel installation is authorized by the local audit pass.
+A new GitHub CLI HTTP-401/invalid-token
+condition requires official owner reauthentication for the CLI. The separate
+GitHub connector confirms PR #7 Draft/unmerged at bfd3e9e4 and exact job states;
+the authenticated browser confirms zero open work-branch Code-Scanning alerts.
+No default-branch scan is inferred. Maximus notification was
+NOT sent because Telegram UI inspection was safety-blocked; no bypass/retry.
+Pixel remains at the previously verified 2026090307; no new device action.
+See `docs/operations/WP02_PIXEL_CANDIDATE_2026090402_HANDOVER.md` for frozen
+hashes, complete SDK recipe, failed attempts, evidence retention and next step.
+This documentation checkpoint does not replace candidate source bfd3e9e4 or
+close WP01/WP02. All following preparation checkpoints are historical.
+
 Current 2026-09-04 step: prepare fresh `1.0.0+2026090402` on base
 `8e0d9f99b49d65e9bd4e5ff4d1d1cd19304a5fc4`, whose exact Regression and CodeQL
 now pass, including clean checkout. An isolated SDK freshly installed by

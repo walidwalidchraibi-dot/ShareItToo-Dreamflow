@@ -1,5 +1,15 @@
 # WP02 — isolated Android SDK compatibility and process-local selection
 
+Superseding release checkpoint: the exact bfd3e9e4 full-gate-to-signed-archive
+lifecycle now passes with no XML/Kotlin diagnostic. Two additional requirements
+were proven: process-local `XDG_CONFIG_HOME` to avoid Flutter's higher-priority
+global SDK setting, and official CLI19 inside `sdk/cmdline-tools/19.0` so Flutter
+can inspect symbols. Existing public license receipts now match the original
+SDK. No global setting, XML, JAR, credential or signing/Firebase input was edited.
+The complete recipe and failed attempts are in
+`WP02_PIXEL_CANDIDATE_2026090402_HANDOVER.md`; use that recipe, not the earlier
+two-environment-variable-only recipe below. Exact candidate CI remains uncleared.
+
 Status: **EXACT 8e0 CI PASS / ISOLATED DEBUG PASS / NEW SIGNED PROOF OPEN**.
 This supersedes only the unresolved SDK hypothesis in
 `WP02_ANDROID_TOOLCHAIN_ALIGNMENT_2026-09-04.md`; its earlier observations and

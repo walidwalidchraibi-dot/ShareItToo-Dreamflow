@@ -1,5 +1,20 @@
 # N29 build-host and toolchain debt
 
+Latest: **LOCAL LIFECYCLE VERIFIED / EXACT CI PENDING — overall debt PARTIAL**.
+Candidate 2026090402 from clean bfd3e9e4 passes the complete normal local gate
+followed by signing/archive verification, without an intervening manual purge.
+Neither Kotlin metadata nor SDK XML diagnostics occur in the final logs.
+Flutter required a process-local XDG configuration because its global SDK
+setting overrides Android environment variables, plus SDK-local official CLI19
+and pre-existing public license receipts. Global settings were not changed.
+Exact candidate Regression/clean checkout attempt 1 failed at advisory timeouts;
+the unchanged full local audit has since passed. The one exact CI retry has
+Backend FAILED again at its advisory timeout; clean checkout remains live.
+GitHub CLI requires owner reauthentication; the separate connector still works.
+No release-readiness debt
+closure is claimed. Full measurements, failed attempts and reproduction recipe:
+`WP02_PIXEL_CANDIDATE_2026090402_HANDOVER.md`. Below are historical checkpoints.
+
 Current follow-up: 8e0 exact Regression/clean checkout/CodeQL pass. Official
 CLI-19 fresh SDK metadata resolves the XML reader mismatch in isolated debug
 execution without XML edits or suppressions. Owner-authorized host cleanup
