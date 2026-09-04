@@ -1,4 +1,29 @@
-# Current Work Package: WP05 search-corrected Pixel successor0406
+# Current Work Package: WP05 candidate-generic Pixel surface runner
+
+Candidate0407/source8f66c9a8 is now immutable and closed for exact local R10,
+normal/signed lifecycle, independent archive verification, data-preserving Pixel
+update, cart offline/retry/recovery/restart/isolation, FCM in all three process
+states, email-verified two-role nonbinding product journey, and exact GitHub
+Regression/CodeQL. Preserve that evidence separately from every later docs or
+tooling commit. PR#7 remains Draft and unmerged.
+
+The next bounded package is tooling-only: replace the historical0406-hard-bound
+N28 surface runner and ad-hoc private0407 helpers with a maintained
+`--candidate-dir` entrypoint that validates any exact private successor archive,
+the installed APK and the allowed Staging/provider envelope before running the
+provider-independent Pixel surface matrix. Add deterministic positive and
+fail-closed tests, keep raw device/account data outside Git, and ensure temporary
+timing or capacity workarounds are not release prerequisites. Do not change app
+runtime behavior or build another APK unless a reproduced candidate blocker
+requires a separate successor.
+
+Binding V5.2 remains intentionally blocked by draft legal snapshots. Stripe test
+mode, external listing AI, Store-installed FCM, OnePlus, production, public
+registration, live money and PR merge stay outside this package. Continue to
+the provider packages only after this generic diagnostic debt is closed. See
+`docs/operations/WP05_PIXEL_CANDIDATE_2026090407_HANDOVER.md`.
+
+Historical0406 package:
 
 Installed0405 preflight reproduced a concrete search blocker without the planned
 cart write: short free text `SIT` was misclassified through substring `Sitze`.

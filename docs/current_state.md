@@ -1,5 +1,21 @@
 # ShareItToo Current State
 
+Exact retry-safe Pixel candidate1.0.0+2026090407/source8f66c9a8 now has full
+local, physical and GitHub closure. Clean R10 is byte-identical; normal/signed
+gates, independent archive verification and data-preserving Pixel update pass.
+Cart offline/error/separate-retry/online recovery, restart and owner→renter→owner
+isolation pass. FCM passes foreground/background/terminated process with private
+brand-icon review, and a fresh email-verified two-role listing/discovery/
+nonbinding request/chat/isolation journey passes with complete cleanup and owner
+restoration. GitHub Regression33926131167 and CodeQL33926131194 are green at the
+exact candidate HEAD; alerts0, PR#7 still Draft/open/unmerged. Staging is healthy
+on5d88295f, memory/live=false. Binding V5.2 remains correctly blocked on missing
+approved legal snapshots; no contract/reservation/payment was created. Next:
+replace historical-candidate-only N28/private helper dependence with one
+maintained candidate-generic Pixel surface runner, then resume the remaining
+provider-gated matrix. OnePlus/Store/production/public/live gates stay closed.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090407_HANDOVER.md`.
+
 Installed0405 remains immutable and is safely restored to the synthetic owner,
 but guarded listing/cart preflight reproduced a real client search defect before
 any write: `SIT` matched subcategory `Sitze`, adding the wrong coarse category
