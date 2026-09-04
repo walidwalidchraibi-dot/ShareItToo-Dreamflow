@@ -1,4 +1,27 @@
-# Current Work Package: WP05 freeze support-corrected Pixel successor
+# Current Work Package: WP05 actual support acceptance on Pixel0404
+
+0404/source55a1aa5a is signed, independently verified and installed. Exact cold
+R10, matchedv2profile full normal/signed lifecycle, signature/privacy/bundle/
+compiled release-surface checks and actual data-preserving Pixel update pass.
+Existing authenticated cold starts, five main surfaces and process restart pass
+within their narrow scope. GitHub remains explicitly deferred, not waived.
+
+Next bounded work: verify current-candidate support reads on the Pixel, then
+controlled support intake/follow-up with existing disposable Staging roles.
+Preserve initiating-account isolation, truthful error/empty/pending states,
+server receipt/version/idempotency and exact owned navigation. Never treat
+basic navigation as backend account identity or full support acceptance. Do
+not submit a real owner complaint, delete an owner account, trigger new SMS
+without a fresh receive window, or touch OnePlus. Respect all real provider/
+legal prerequisites; stop only the affected action if missing or contradictory.
+No broad new hardening package; fix only concrete blocking acceptance findings.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090404_HANDOVER.md`.
+
+Do NOT rerun0404's strictly-newer updater or rebuild its existing archive.
+Its original55a1source and proofs are immutable. Any functional correction must
+have a separate candidate/regression binding before new device acceptance.
+
+Previous candidate preparation:
 
 Candidate1.0.0+2026090404 is prepared on base4ed587fe: only pubspec and the
 existing client-build fallback change functionally; exact dependent hashes are

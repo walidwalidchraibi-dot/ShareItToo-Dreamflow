@@ -1,5 +1,19 @@
 # ShareItToo Current State
 
+Pixel now runs signed1.0.0+2026090404/source55a1aa5a. Exact full cold R10 passes
+with byte-identical debug APKs; configured full normal2210tools/724Flutter+
+profiles/analyzer0/WebWasm dryrun/loopback/Android23s and matched signed lifecycle
+pass via the maintainedv2profile. Independent signatures/bundle/privacy/release
+surface pass. Actual replace-only Pixel update preserves app data and exact APK
+identity; existing authenticated cold starts, five destinations and restart pass.
+This is provisional bounded acceptance, not fresh login/full functionality or
+final CI. GitHub remains owner-deferred. No OnePlus/backend/provider/Store/
+production/account changes. Next: actual0404 support reads/workflow acceptance
+with disposable Staging roles; preserve the encompassing Goal's open matrix.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090404_HANDOVER.md`.
+
+Previous preparation checkpoint:
+
 Next local Pixel candidate1.0.0+2026090404 is prepared, not built or installed.
 Base4ed587fe remains source authority until the preparation commit is frozen.
 159 affected binding tests, canonical signing and Android Firebase file/env

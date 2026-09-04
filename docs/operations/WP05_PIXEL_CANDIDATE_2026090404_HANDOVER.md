@@ -1,7 +1,84 @@
 # WP05 — support-corrected Pixel candidate 2026090404
 
-Status: PREPARED / EXACT COLD AND SIGNED LIFECYCLE PENDING.
-No new artifact, installation, provider traffic or external service change.
+Status: LOCAL COLD / MATCHED NORMAL AND SIGNED LIFECYCLE / PROVISIONAL PIXEL PASS.
+Exact candidate source: `55a1aa5a11a53151ee6740785eb1e25b79f6b06e`.
+GitHub remains owner-deferred, not passed or waived. Full Goal remains OPEN.
+
+## Final candidate-bound results
+
+The new0404 candidate contains both support-principal corrections and the
+maintained version-2 scoped SDK entrypoint. Exact R10 uses a fresh detached
+checkout with separate package caches and no protected inputs. Locked restores,
+Backend suite/syntax, dependency audit, secret scan, PostgreSQL and complete
+technical regression pass; the full gate takes678s and second Android build45s.
+Both debug APKs and every extracted entry are byte-identical. Debug SHA256:
+`8e78af351928865f7f0f4c9d89c8af5d7e0abd261abfa70224b3c38fa692ef20`.
+Source inventories remain unchanged and the temporary checkout/package caches/
+APK copies are removed normally. Prior813f npm503 failure remains retained; the
+new exact audit genuinely passed, with no workaround or skipped audit.
+
+The configured canonical checkout then passes the complete normal gate with
+the same v2 profile:2210 tool tests,724 default Flutter passes/33 explicit-profile
+skips, all mandatory profiles, analyzer zero, Web build/Wasm dry run, loopback
+smoke and Android23s. Immediately afterward the same frozen source/profile
+passes the signed AAB/APK lifecycle. No manual cache purge, global setting or
+SDK package edit, source change or scanner waiver occurred between those runs.
+Normal capacity ends at10316216KiB free; signed lifecycle ends at13217168KiB
+free with81040KiB generated output. Only regenerable build output was cleaned;
+the verified private archives remain. No standalone Wasm-runtime or signed-byte
+reproduction claim is made.
+
+Independent inspection from a second exact clean public-input-only checkout
+validates both signatures, hashes, ZIP/bundle structure, native symbol metadata,
+compiled identity/privacy/backup/file-provider resources and the complete
+release application tree against0403. minSdk24/target36/compile36,
+40 components/8 exported/14 permissions remain unchanged. Both build logs pass
+the existing SDK/Kotlin diagnostic scan. The bounded scoped-invocation debt has
+local cold/normal/signed proof; exact-CI closure remains pending. Broader SDK/
+Kotlin compatibility debt is not declared closed by this candidate.
+
+| Artifact | Bytes | SHA256 |
+| --- | ---: | --- |
+| Signed APK | 136122709 | `e3e39f963dc724e4f7a2c4eda6664f1c055a771097d341dd25aaf1415c51b436` |
+| Signed AAB | 109339133 | `90fbb5f4b7a3d1c130b17c9dbeb87a9a701e49eccbe6b1c403e552ba493566eb` |
+
+Archive:
+`/Users/walidchraibi/Library/Application Support/ShareItToo/release/android/2026090404-55a1aa5a11a53151ee6740785eb1e25b79f6b06e`.
+Canonical certificate and the Google-only, closed heilbronn non-binding
+Internal/Staging envelope below are independently verified, not newly approved.
+
+## Actual Pixel results and limits
+
+Fresh read-only Staging health confirms deployed5d88295f, memory payment and
+live=false. The unlocked physical Pixel7Pro/API37 has0403 and the same signing
+certificate; the strictly-newer replace-only0404 update succeeds. Installed
+APK bytes match exactly, first-install time and encrypted data-container
+identity are retained, and the app becomes foreground. No uninstall, downgrade,
+data reset, fresh login, SMS or account mutation occurred.
+
+Current0404 smoke passes two authenticated-profile cold starts, all five main
+navigation surfaces, force-stop/launcher restart and preserved data identity.
+This is NOT fresh registration/login, independently established backend account
+identity, case submission, complete functionality, real push or full two-role
+acceptance. Force-stop/relaunch is not a push-delivery claim. No OnePlus, Store,
+backend deployment, provider/account change, real money or production action.
+
+New exact evidence:
+
+- `docs/evidence/release-readiness/wp05-pixel-0404-clean-reproducibility-20260904.json`,
+  SHA256 `f81af537d097b4e05cd1b2b026438c66cc934d58903a78663cec5e20185765eb`.
+- `docs/evidence/release-readiness/wp05-pixel-0404-provisional-acceptance-20260904.json`,
+  with exact artifact, log, independent-inspection and Pixel proof hashes.
+- Private proof directory:
+  `/Users/walidchraibi/Documents/Codex/2026-08-19/new-chat/SIT_WP05_0404_EVIDENCE.ZJuzfC`.
+
+Next: current-candidate support reads, then controlled disposable-role support
+workflow acceptance. Do not create a real owner complaint or delete an owner
+account. Retain all remaining provider/legal/owner and full Pixel requirements;
+OnePlus stays untouched until full Pixel closure. Never rerun the strictly-newer
+0404 installer now that0404 is installed. Preserve0403 archives/evidence.
+
+## Original preparation checkpoint (historical; superseded above)
 
 ## Decision and preparation provenance
 

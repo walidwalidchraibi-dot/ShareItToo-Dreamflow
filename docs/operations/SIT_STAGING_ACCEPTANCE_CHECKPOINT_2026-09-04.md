@@ -1,5 +1,13 @@
 # SIT Staging acceptance checkpoint — 2026-09-04
 
+Latest bounded update: signed/installed0404/source55a1aa5a has exact full cold
+proof, matched configured-normal/signed lifecycle, independent artifact checks
+and data-preserving Pixel update. Existing-session cold starts, five navigation
+surfaces and restart pass. This does not close the broader requirements below;
+provider/legal/two-role/full support acceptance and exact GitHub remain open.
+Current execution: `WP05_PIXEL_CANDIDATE_2026090404_HANDOVER.md`. Earlier0403
+observations below retain their historical binding and are not re-labelled0404.
+
 This is an interim requirement inventory for the encompassing Android-Staging
 Goal, not a closure report or a new implementation package. PASS is restricted
 to the exact observation named below. Historical device passes never certify
