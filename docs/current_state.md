@@ -1,5 +1,22 @@
 # ShareItToo Current State
 
+Latest independent work, 2026-09-04: bounded WP03 correction to the real
+listing-AI adapter. Only completed provider responses may create draft data;
+explicit refusals cannot be hidden by convenience text. Local red-to-green
+tests reproduce and close these cases, including the actual image workflow's
+manual fallback without a draft. Provider schema constants are explicitly
+typed. Focused suite 25/25, final Backend 808 passed / 2 environment skips,
+syntax and working-tree secret scan pass. Full normal local regression also
+passes: 2,166 tools, Flutter profiles, analyzer, Web/Wasm dry run, loopback,
+Android/R11. Exact new-HEAD GitHub/CodeQL and full R10 proof remain pending.
+No real AI call, credential read, deployment, billing, mobile or device change.
+Frozen 2026090402 remains separate and NOT INSTALLED; its Regression is still
+failed on exact connector readback, CodeQL passed. GitHub CLI auth remains
+invalid. This is not real-AI acceptance, WP01/WP02 closure or overall Goal
+completion. Handover: `docs/operations/WP03_LISTING_AI_PROVIDER_RESPONSE_2026-09-04.md`.
+
+Prior candidate checkpoint (still applicable to frozen 2026090402):
+
 Latest checkpoint, 2026-09-04: signed `1.0.0+2026090402` from clean source
 `bfd3e9e4422a6a6e6bf3c09bd825c6a089909d04` is privately archived and locally
 verified. Full regression and the immediately following normal signed build

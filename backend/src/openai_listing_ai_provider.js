@@ -14,7 +14,7 @@ import {
 import { createMemoryListingAiBudgetGuard } from './listing_ai_budget_guard.js';
 import { privatePilotAllowedCatalogKeys } from './private_pilot_domain.js';
 
-export const openAiListingAiProviderVersion = 'N14-2026-09-03.1';
+export const openAiListingAiProviderVersion = 'WP03-2026-09-04.1';
 
 const responsesEndpoint = 'https://api.openai.com/v1/responses';
 const maximumDerivativeBytes = 4 * 1024 * 1024;
@@ -37,7 +37,7 @@ const screeningSchema = Object.freeze({
     additionalProperties: false,
     required: ['visualScanCompleted', 'visualSignals'],
     properties: {
-      visualScanCompleted: { const: true },
+      visualScanCompleted: { type: 'boolean', const: true },
       visualSignals: {
         type: 'array',
         maxItems: 12,
@@ -72,8 +72,11 @@ function providerError(error, { providerCallCount }) {
 
 function providerResponseSchema() {
   const format = structuredClone(listingAiProviderResponseSchema);
+  format.schema.properties.promptVersion.type = 'string';
+  format.schema.properties.schemaVersion.type = 'string';
   for (const field of Object.values(format.schema.properties.fields.properties)) {
-    field.properties.source.properties.type = { const: 'provider_output' };
+    field.properties.source.properties.type = { type: 'string', const: 'provider_output' };
+    field.properties.ownerConfirmed.type = 'boolean';
   }
   return format;
 }
@@ -95,9 +98,6 @@ function dataUrl(derivative) {
 }
 
 function outputText(response) {
-  if (typeof response?.output_text === 'string' && response.output_text.trim()) {
-    return response.output_text;
-  }
   const values = [];
   for (const item of Array.isArray(response?.output) ? response.output : []) {
     if (item?.type !== 'message') continue;
@@ -108,12 +108,17 @@ function outputText(response) {
       }
     }
   }
+  // A convenience text value must never hide a refusal in the canonical output.
+  if (typeof response?.output_text === 'string' && response.output_text.trim()) {
+    return response.output_text;
+  }
   if (values.length !== 1 || !values[0].trim()) fail('listing_ai_provider_output_missing');
   return values[0];
 }
 
 function parseStructuredOutput(response) {
   if (!response || response.status === 'incomplete') fail('listing_ai_provider_incomplete');
+  if (response.status !== 'completed') fail('listing_ai_provider_not_completed');
   try {
     return JSON.parse(outputText(response));
   } catch (error) {

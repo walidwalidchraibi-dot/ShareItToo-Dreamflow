@@ -1,4 +1,24 @@
-# Current Work Package: WP02 / WP01 Pixel candidate 2026090402
+# Current Work Package: WP03 provider response acceptance (independent local work)
+
+2026-09-04: the real OpenAI listing adapter's response acceptance is being
+corrected on base `7b1e19331035b1b32f0ae6f7ef76b542705eb235`. Deterministic
+tests reproduce acceptance of failed/non-terminal envelopes and convenience
+text bypassing refusal. The correction requires completed status and gives
+explicit refusals priority; provider constants are explicitly typed without
+weakening the domain schema. Actual adapter/workflow tests preserve manual
+fallback, photos and publication prohibition. Focused tests pass (25), final
+Backend passes (808 / 2 PostgreSQL-environment skips), syntax and secret scan
+pass. Full normal local regression also passes: 2,166 tools, Flutter profiles,
+analyzer, Web/Wasm dry run, loopback and Android/R11. Exact new-HEAD CI and
+full R10 clean-checkout proof remain pending.
+
+No provider activation, credential read, paid request, deployment or device
+action. Frozen signed 2026090402 and its source bfd3e9e4 are unchanged; exact
+Regression is still failed and CodeQL green. GitHub CLI authentication remains
+invalid. WP01/WP02 and real-runtime WP03 remain incomplete. See
+`docs/operations/WP03_LISTING_AI_PROVIDER_RESPONSE_2026-09-04.md`.
+
+## Previous package checkpoint: WP02 / WP01 Pixel candidate 2026090402
 
 Latest checkpoint: **LOCAL RELEASE VERIFIED / EXACT CI UNCLEARED / NOT INSTALLED**.
 Clean source `bfd3e9e4422a6a6e6bf3c09bd825c6a089909d04` completed the full

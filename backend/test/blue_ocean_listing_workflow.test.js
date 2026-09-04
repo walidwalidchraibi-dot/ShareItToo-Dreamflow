@@ -22,6 +22,7 @@ import {
   createListingAiGateway,
   deterministicListingAiMockOutput,
 } from '../src/listing_ai_gateway.js';
+import { createOpenAiListingAiProvider } from '../src/openai_listing_ai_provider.js';
 
 const ownerId = 'owner_12345678';
 const draftId = 'listing_ai_draft_12345678-1234-4123-8123-123456789abc';
@@ -224,6 +225,77 @@ test('openai composition screens stripped derivatives and reports estimated not 
   assert.equal(result.billedCostCents, null);
   assert.strictEqual(screenedBytes, generatedBytes);
   assert.ok(generatedBytes.every((byte) => byte === 0));
+});
+
+test('actual adapter rejects non-completed screening and generation without creating an AI draft', async (t) => {
+  for (const failedPhase of ['screening', 'generation']) {
+    await t.test(failedPhase, async () => {
+      const configuration = readListingAiGatewayConfiguration({
+        SIT_LISTING_AI_PROVIDER: 'openai',
+        SIT_LISTING_AI_MODEL: listingAiOpenAiModel,
+        SIT_LISTING_AI_BUDGET_CENTS: '5',
+        SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: '1',
+      }, { deploymentEnvironment: 'staging' });
+      let calls = 0;
+      let generatedRequest;
+      const provider = createOpenAiListingAiProvider({
+        configuration,
+        apiKey: `sk-test-${'x'.repeat(32)}`,
+        fetchImpl: async () => {
+          calls += 1;
+          const phase = calls === 1 ? 'screening' : 'generation';
+          const output = phase === 'screening'
+            ? { visualScanCompleted: true, visualSignals: [] }
+            : structuredClone(deterministicListingAiMockOutput(generatedRequest.analysisImageReferences));
+          if (output.fields) {
+            for (const field of Object.values(output.fields)) field.source.type = 'provider_output';
+          }
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              status: phase === failedPhase ? 'failed' : 'completed',
+              output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(output) }] }],
+              usage: { input_tokens: 100, output_tokens: 50 },
+            }),
+          };
+        },
+      });
+      const gateway = createListingAiGateway({
+        configuration,
+        providers: {
+          openai: {
+            generate(request, options) {
+              generatedRequest = request;
+              return provider.generate(request, options);
+            },
+          },
+        },
+      });
+      const workflow = createBlueOceanListingWorkflow({
+        configuration, gateway, screenDerivative: provider.screenDerivative,
+      });
+      const bytes = await fixtureImage();
+      const original = Buffer.from(bytes);
+      const result = await workflow.analyze({
+        draftId,
+        ownerId,
+        generationKey: key(`non-completed-${failedPhase}`),
+        images: [{ imageReference: 'listing_image_12345678', mimeType: 'image/png', bytes }],
+        consent: consent(),
+      });
+      assert.equal(calls, failedPhase === 'screening' ? 1 : 2);
+      assert.equal(result.providerCallCount, calls);
+      assert.equal(result.status, 'manual_fallback');
+      assert.equal(result.openManualEditor, true);
+      assert.equal(result.photosPreserved, true);
+      assert.equal(result.manualInputsPreserved, true);
+      assert.equal(result.autoPublishAllowed, false);
+      assert.equal('revision' in result, false);
+      assert.equal(result.billedCostCents, null);
+      assert.deepEqual(bytes, original);
+    });
+  }
 });
 
 test('openai screening timeout returns a truthful paid manual fallback', async () => {

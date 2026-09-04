@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const expectedSources = Object.freeze({
-  'backend/src/openai_listing_ai_provider.js': '30189562f911f01082fccf2dddd03925b2081cf095cba64e06c0b45d51b1a3b0',
+  'backend/src/openai_listing_ai_provider.js': '0d496771e3aa20ac6e4f3d0d554e9b404f68aca25050d2d8485578ceb9651133',
   'backend/src/app.js': '4487cab585cadd41af950252741088c8470104c6ec91d990e93bc264a25da9f6',
   'backend/compose.staging.listing-ai.yml': '65a3f228a2e7e66fe518470369f554439dae8d078b11b0649a83acabb53c1be1',
   'backend/ops/validate_openai_staging_secret.mjs': 'c71dc3986145dee854fa87274afb28c3b154e8bec85662536196161e0705409a',

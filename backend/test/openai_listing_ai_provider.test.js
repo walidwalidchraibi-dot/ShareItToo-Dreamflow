@@ -9,6 +9,7 @@ import {
   buildListingAiProviderRequest,
   deterministicListingAiMockOutput,
   ListingAiGatewayError,
+  listingAiProviderResponseSchema,
 } from '../src/listing_ai_gateway.js';
 import {
   listingAiOpenAiModel,
@@ -207,4 +208,92 @@ test('openai adapter reduces refusal and malformed responses to typed safe error
       && error.code === 'listing_ai_provider_refused'
       && !error.message.includes('private detail'),
   );
+});
+
+test('openai adapter accepts only completed response envelopes, even with valid draft text', async (t) => {
+  for (const status of ['failed', 'cancelled', 'queued', 'in_progress', 'incomplete', undefined, 'unknown']) {
+    await t.test(String(status), async () => {
+      const provider = createOpenAiListingAiProvider({
+        configuration: configuration(),
+        apiKey: secretFixture,
+        fetchImpl: async () => {
+          const response = apiResponse(providerOutput());
+          const body = await response.json();
+          body.status = status;
+          return { ...response, json: async () => body };
+        },
+      });
+      await assert.rejects(
+        provider.generate(request(), { analysisImages: [derivative()] }),
+        (error) => error instanceof ListingAiGatewayError
+          && error.code === (status === 'incomplete'
+            ? 'listing_ai_provider_incomplete'
+            : 'listing_ai_provider_not_completed')
+          && error.details.providerCallCount === 1,
+      );
+    });
+  }
+});
+
+test('openai adapter never lets convenience output text override an explicit refusal', async () => {
+  const provider = createOpenAiListingAiProvider({
+    configuration: configuration(),
+    apiKey: secretFixture,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        status: 'completed',
+        output_text: JSON.stringify({ visualScanCompleted: true, visualSignals: [] }),
+        output: [{
+          type: 'message',
+          content: [{ type: 'refusal', refusal: 'private refusal detail' }],
+        }],
+        usage: { input_tokens: 10, output_tokens: 1 },
+      }),
+    }),
+  });
+  await assert.rejects(
+    provider.screenDerivative(derivative()),
+    (error) => error instanceof ListingAiGatewayError
+      && error.code === 'listing_ai_provider_refused'
+      && error.details.providerCallCount === 1
+      && !error.message.includes('private refusal detail'),
+  );
+});
+
+test('openai adapter explicitly types every schema constant without changing domain constraints', async () => {
+  const sentFormats = [];
+  const domainBefore = JSON.stringify(listingAiProviderResponseSchema);
+  const provider = createOpenAiListingAiProvider({
+    configuration: configuration(),
+    apiKey: secretFixture,
+    fetchImpl: async (_url, options) => {
+      sentFormats.push(JSON.parse(options.body).text.format);
+      return apiResponse(sentFormats.length === 1
+        ? { visualScanCompleted: true, visualSignals: [] }
+        : providerOutput());
+    },
+  });
+  await provider.screenDerivative(derivative());
+  await provider.generate(request(), { analysisImages: [derivative()] });
+
+  const assertTypedConstants = (value) => {
+    if (!value || typeof value !== 'object') return;
+    if (Object.hasOwn(value, 'const')) assert.equal(value.type, typeof value.const);
+    for (const child of Object.values(value)) assertTypedConstants(child);
+  };
+  for (const format of sentFormats) assertTypedConstants(format.schema);
+  assert.equal(JSON.stringify(listingAiProviderResponseSchema), domainBefore);
+  const draftSchema = sentFormats[1].schema;
+  assert.equal(draftSchema.properties.promptVersion.const,
+    listingAiProviderResponseSchema.schema.properties.promptVersion.const);
+  assert.equal(draftSchema.properties.schemaVersion.const,
+    listingAiProviderResponseSchema.schema.properties.schemaVersion.const);
+  for (const field of Object.values(draftSchema.properties.fields.properties)) {
+    assert.deepEqual(field.properties.source.properties.type, {
+      type: 'string', const: 'provider_output',
+    });
+    assert.deepEqual(field.properties.ownerConfirmed, { type: 'boolean', const: false });
+  }
 });
