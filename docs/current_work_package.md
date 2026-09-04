@@ -1,5 +1,22 @@
 # Current Work Package: WP05 background-family contrast correction
 
+The bounded runtime correction is locally complete at
+`833dfc1361cef532b1fe7394b79de581776377bb`: explicit background families
+drive the matching Material theme, the persisted selection can be cleared back
+to system mode, and selector/scrim/preview semantics retain readable contrast.
+Focused verification and the complete maintained technical regression pass.
+The previous `1.0.0+2026090407` candidate remains immutable and intentionally
+does not inherit this result.
+
+Current work is now exclusively the corrected successor: reserve a strictly
+higher build number, bind it to exact corrected source and Staging/internal
+holds, run exact clean R10 and matched signed lifecycle, update the Pixel without
+clearing data, and repeat the candidate-generic private visual matrix. Exact
+GitHub Regression/CodeQL must close on the successor source. Do not touch
+OnePlus, Google Play, production, public registration, live money, provider
+configuration, Binding V5.2 activation or PR merge. See
+`docs/operations/WP05_BACKGROUND_FAMILY_CONTRAST_2026-09-05.md`.
+
 Candidate0407/source8f66c9a8 is now immutable and closed for exact local R10,
 normal/signed lifecycle, independent archive verification, data-preserving Pixel
 update, cart offline/retry/recovery/restart/isolation, FCM in all three process

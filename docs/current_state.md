@@ -1,5 +1,18 @@
 # ShareItToo Current State
 
+The background-family contrast P1 is locally corrected at implementation
+commit `833dfc1361cef532b1fe7394b79de581776377bb`. Explicit dark/light
+backgrounds now select the matching Material theme; clearing the choice restores
+system mode. The selector adds a persisted 48 dp system reset, exact selection
+semantics, adaptive borders/scrims and high-contrast preview labels. Focused
+controller/widget/resilience/wiring tests, analyzer0, diff/secret checks and the
+complete technical regression pass, including Web/Wasm, loopback and Android
+minSdk24. Candidate0407 remains immutable and does not contain the correction.
+Next is a strictly newer signed Staging/internal successor, exact clean R10,
+data-preserving Pixel update, repeated private visual matrix and exact GitHub
+Regression/CodeQL. See
+`docs/operations/WP05_BACKGROUND_FAMILY_CONTRAST_2026-09-05.md`.
+
 The maintained candidate-generic Pixel surface runner now passes focused15 and
 the complete read-only physical matrix on immutable0407/source8f66c9a8. It
 validates the private archive and all source-drift surfaces without exposing
