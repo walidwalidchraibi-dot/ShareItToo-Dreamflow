@@ -1,5 +1,15 @@
 # ShareItToo Current State
 
+WP05 now proves actual password-confirmed export preparation on Pixel 0403 and
+truthful native-share cancellation without selecting an external target. Raw
+payload ownership/content and physical in-flight account switching remain open.
+A new local support regression reproduces a late A-owned receipt displayed after
+switching to B; its same-session control passes. This is a P1 follow-up, not a
+full acceptance pass or a finding already fixed on the Pixel. GitHub remains
+deferred. See `docs/operations/WP05_PRIVACY_PIXEL_AND_SUPPORT_PRINCIPAL_FINDING_2026-09-04.md`.
+
+Previous signed-candidate/smoke checkpoint:
+
 Current Pixel candidate2026090403/sourcef6a9a414 is signed, independently
 verified and installed with exact hash/signature and retained app-data identity.
 Existing authenticated cold starts, five main destinations and process restart

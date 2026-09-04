@@ -1,4 +1,16 @@
-# Current Work Package: WP05 privacy/support acceptance on Pixel 2026090403
+# Current Work Package: WP05 support-intake principal correction
+
+Actual Pixel 0403 export preparation and truthful native-share cancellation now
+pass within their bounded scope; payload inspection and full two-role acceptance
+remain open. The next priority is a reproduced P1: a pending A support submission
+can display its receipt after a switch to B. Stable A control passes. Correct
+immutable ownership/epoch, owner-specific transport and exact route ownership;
+prove success/failure, pre-submit switches and preservation of B-owned dialogs.
+No actual support case has been submitted. Keep the frozen 0403 evidence intact;
+any behavioral fix needs separate regression and candidate binding. GitHub stays
+deferred. See `docs/operations/WP05_PRIVACY_PIXEL_AND_SUPPORT_PRINCIPAL_FINDING_2026-09-04.md`.
+
+Previous installed-candidate checkpoint:
 
 The separately versioned successor is now verified and installed: source
 `f6a9a41471058c9f80ffd01283c42b9d74a8845c`, build2026090403. Complete local
