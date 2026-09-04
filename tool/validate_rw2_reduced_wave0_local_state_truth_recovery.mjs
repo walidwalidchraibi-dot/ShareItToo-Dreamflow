@@ -21,6 +21,7 @@ const sourcePaths = [
   'lib/widgets/wishlist_selection_sheet.dart',
   'scripts/technical_regression_check.sh',
   'test/g2a_rental_cart_screen_test.dart',
+  'test/local_state_error_panel_semantics_test.dart',
   'test/reduced_wave0_local_state_truth_recovery_test.dart',
   'test/tool/listing_options_async_context_wiring.test.mjs',
   'test/tool/rw2_reduced_wave0_local_state_truth_recovery_wiring.test.mjs',

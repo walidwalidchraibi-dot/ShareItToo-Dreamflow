@@ -122,7 +122,7 @@
     },
     {
       "path": "lib/widgets/local_state_error_panel.dart",
-      "sha256": "54ff08935abe690e83020189c1520ad17974bcd2f2d69701a19d11519eb06156"
+      "sha256": "3917daa1066b6cfe123bcd3d369358f2f65cad7bddc7d277b7e33e26145eb1b9"
     },
     {
       "path": "lib/widgets/wishlist_selection_sheet.dart",
@@ -135,6 +135,10 @@
     {
       "path": "test/g2a_rental_cart_screen_test.dart",
       "sha256": "7075e0a0fa60d4aaa829ee2d94cf2ecd6203781cf760fdbe7643927dc80ad20a"
+    },
+    {
+      "path": "test/local_state_error_panel_semantics_test.dart",
+      "sha256": "a56f44904cb2393f887c8465da838944c04d3c672936851e5dd2cb3b9291b1cc"
     },
     {
       "path": "test/reduced_wave0_local_state_truth_recovery_test.dart",
