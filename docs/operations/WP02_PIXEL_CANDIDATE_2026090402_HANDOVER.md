@@ -2,8 +2,8 @@
 
 Status: **LOCAL RELEASE VERIFIED / EXACT CI UNCLEARED / NOT INSTALLED**.
 Latest execution: unchanged full local dependency audit recovered and passed.
-The one bounded exact-CI retry has Backend FAILED again at the advisory timeout;
-the independent clean-checkout job is still RUNNING. No further retry started.
+The one bounded exact-CI retry is now terminal: Backend FAILED again at the
+advisory timeout; clean checkout PASSED. No further retry started.
 Observed 2026-09-04. This is a candidate checkpoint, not closure of WP01,
 WP02 or the encompassing Android-Staging Goal. It supersedes the preparation
 status without changing any older candidate's source-bound evidence.
@@ -150,10 +150,18 @@ accepted one failed-jobs-only rerun of exact run `33820054882`. Latest live jobs
 Backend `100871852289`, clean checkout `100871852527`. Successful prior
 Flutter/PostgreSQL jobs were retained. Backend subsequently FAILED: all 797
 tests and syntax passed; advisory POST timed out at 01:05:55 UTC after the
-existing 01:02:45 and 01:03:55 retry warnings. Clean checkout remains LIVE
-(independently verified via connector and GitHub UI). Do not start a second
-retry or push a new branch commit while that job is active. No dependency
-vulnerability was reported, but no remote audit success may be inferred.
+existing 01:02:45 and 01:03:55 retry warnings. Clean checkout subsequently PASSED
+at 01:14:05 UTC: exact bfd3e9e4, byte-identical debug APK, 116 migrations and
+84 assets. Its full dependency audit passed at 00:58:55 UTC, before the later
+Backend audit timeout. This narrows the evidence to an intermittent external
+request failure; it does not justify declaring the complete workflow green.
+All jobs are now terminal; publication was skipped. The Backend timeout did
+not report a vulnerability, but cannot establish its audit result. R10's
+separate successful audit is preserved without relabelling Backend. No third retry was
+started. R10 completion lines are retained as `github-r10-attempt2-excerpt.json`,
+SHA-256 `dd78333a736d93384d735572b1dd17fed39d69de07dc01f1140a960f2ccadad0`.
+The byte-identical claim is R10's debug reproduction pair, not a reproducible
+signed-release-byte claim or a physical-device acceptance result.
 
 Selected exact backend log lines are retained as
 `github-backend-attempt2-excerpt.json`, SHA-256
@@ -233,9 +241,10 @@ builder's normal clean; two files failed to load missing package metadata.
 That invocation remains FAILED (2,158 passes / two failed files), not a flaky
 test or a new permanent workaround. No test or lockfile changed.
 
-The full local audit passed; the one exact-CI retry has Backend FAILED and R10
-pending as recorded above. Read back that same R10 job; do not restart because an observation times
-out. Require actual success, including clean checkout, before Pixel replacement.
+The full local audit and exact R10 clean checkout passed. The one exact-CI retry
+has Backend FAILED and is now terminal. Preserve that failure; do not introduce
+an automatic retry loop or declare the workflow green from overlapping local
+or R10 coverage. Require the remaining exact Backend job to pass before Pixel replacement.
 Do not rebuild or reversion the already verified APK merely
 because an external check is unavailable. Any later docs HEAD must use the
 existing frozen-candidate ancestry/mobile-diff checks, not weaken current-head
@@ -248,7 +257,7 @@ Pixel 7 Pro, Android 17/API 37, already unlocked. Installed build remains
 2026090307. The new archive matches the installed signing certificate and is
 strictly newer; no uninstall/reset is needed. No device write, launch, account
 mutation or SMS occurred. This eligibility result does not grant installation
-clearance while exact CI is pending.
+clearance while the exact Backend CI remains uncleared.
 Preflight JSON SHA-256:
 `ecd50ccc3de76f0048d3134e87a67e1153ea0298c0da4dda5322a4490ce2a332`.
 It is retained as `sit-wp02-0402-pixel-read-only-preflight.json` beside the

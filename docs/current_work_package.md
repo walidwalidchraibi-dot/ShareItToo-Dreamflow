@@ -9,7 +9,9 @@ and security surface pass. Debug-only R11 was not relaxed for release use.
 Exact CodeQL passes; Regression `33820054882` failed at advisory-service
 timeouts in Backend/clean checkout. The unchanged local audit subsequently
 passed; the one exact failed-jobs-only retry has Backend FAILED again at the
-advisory timeout (797 tests/syntax passed), with clean checkout still RUNNING.
+advisory timeout (797 tests/syntax passed). Exact clean checkout has now PASSED,
+including its separate audit and byte-identical debug reproduction. All jobs
+are terminal; the complete workflow is not green. Publication was skipped.
 No further retry or Pixel installation is authorized by the local audit pass.
 A new GitHub CLI HTTP-401/invalid-token
 condition requires official owner reauthentication for the CLI. The separate

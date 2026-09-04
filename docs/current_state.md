@@ -8,7 +8,8 @@ without manual purge or Kotlin/XML compatibility diagnostics. Both signatures,
 bundle, release security/resources and privacy checks pass. Exact CodeQL is
 green. The unchanged full local dependency audit has now recovered and passed;
 the one failed-jobs-only rerun has Backend FAILED again at an advisory timeout,
-after 797 passing tests/syntax. Clean checkout is still RUNNING. Both failed
+after 797 passing tests/syntax. Exact clean checkout has now PASSED, including
+its separate audit and byte-identical debug reproduction. Both failed
 backend attempts remain recorded, not relabelled by the local audit pass.
 GitHub CLI now reports invalid authentication. The separate GitHub connector
 still confirms PR #7 Draft/unmerged at bfd3e9e4 and the exact job outcomes;

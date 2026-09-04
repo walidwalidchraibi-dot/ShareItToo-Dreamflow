@@ -9,7 +9,9 @@ setting overrides Android environment variables, plus SDK-local official CLI19
 and pre-existing public license receipts. Global settings were not changed.
 Exact candidate Regression/clean checkout attempt 1 failed at advisory timeouts;
 the unchanged full local audit has since passed. The one exact CI retry has
-Backend FAILED again at its advisory timeout; clean checkout remains live.
+Backend FAILED again at its advisory timeout; exact clean checkout has now
+PASSED, including its separate audit and byte-identical debug reproduction.
+All jobs are terminal; the missing Backend job still prevents full CI closure.
 GitHub CLI requires owner reauthentication; the separate connector still works.
 No release-readiness debt
 closure is claimed. Full measurements, failed attempts and reproduction recipe:
