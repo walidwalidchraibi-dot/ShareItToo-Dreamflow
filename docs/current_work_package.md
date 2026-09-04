@@ -1,4 +1,20 @@
-# Current Work Package: WP05 support-intake principal correction
+# Current Work Package: WP05 support case read/follow-up ownership
+
+Next bounded implementation follows four red-first P1 read results on
+`813f0580268c8474d022d38c8d38d53ba974cb63`: list, server-confirmed empty list,
+detail and notification destination can display A output after switching to B.
+Their four stable-A controls pass. Bind these reads plus appeal/DSA follow-up
+actions to the immutable initiating principal; first prove the write-side
+concerns with focused tests. Preserve exact A-route cleanup without closing B.
+
+The intake correction is locally committed with full normal regression green.
+Its exact cold run stopped at npm advisory HTTP503/transport timeouts; later
+cold checks were not run. No audit waiver, failed-check promotion or immediate
+retry loop. Continue independent local corrections; cold proof stays required.
+No GitHub/auth/push/CI, Pixel/OnePlus, live support case, provider or Store action.
+See `docs/operations/WP05_SUPPORT_INTAKE_PRINCIPAL_2026-09-04.md`.
+
+Previous intake implementation checkpoint:
 
 The correction is now implemented locally: immutable interaction owner/epoch,
 both owner-bound HTTP writes, all five entrypoints and exact route/dialog

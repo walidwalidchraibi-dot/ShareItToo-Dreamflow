@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+Support-intake correction is committed at `813f0580268c8474d022d38c8d38d53ba974cb63`
+with full normal regression PASS. Exact cold proof is OPEN: fresh restore and
+Backend suite/syntax passed, but npm advisory HTTP503/timeouts prevented the
+mandatory security audit and later checks. Nothing was waived. A separate
+four-control/four-red synthetic probe confirms list/detail/notification results
+still cross A-to-B, including false empty-list truth. Those read/follow-up
+paths are the next bounded correction. No new signed artifact, device, real
+support, backend or GitHub action. Frozen installed0403 remains unchanged.
+
+Previous local full-regression checkpoint:
+
 WP05 support-intake ownership is locally corrected and full normal regression
 passes: 2,180 tools, 700 default Flutter tests plus profiles, analyzer zero,
 Web/Wasm dry run, loopback and Android/R11. Both writes retain the initiating

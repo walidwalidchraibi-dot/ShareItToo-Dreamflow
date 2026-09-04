@@ -1,6 +1,6 @@
 # WP05 — support intake bound to its initiating account
 
-Status: LOCAL CORRECTION / FULL NORMAL PASS / CLEAN-CHECKOUT PROOF NEXT.
+Status: LOCAL CORRECTION / FULL NORMAL PASS / CLEAN-CHECKOUT AUDIT UNAVAILABLE.
 
 ## Evidence and scope
 
@@ -79,6 +79,47 @@ Focused proof SHA-256 values:
 
 ## Separation, rollback and next work
 
+Implementation commit: `813f0580268c8474d022d38c8d38d53ba974cb63`.
+The exact detached clean run passed provenance, empty/fresh cache admission,
+locked Backend/Flutter restores, full Backend suite and syntax. It stopped
+at the required package security audit: npm's advisory endpoint returned HTTP
+503, followed by transport timeouts through its existing automatic retries.
+No successful execution JSON, cold full technical gate, second APK build or
+reproduction proof was produced. The isolated checkout/package cache were
+removed by the normal runner. The private proof directory retains the failure
+log and Node's outer compile cache; no complete-directory cleanup is claimed.
+Failure log SHA-256:
+`2f6a036b375adf103653036d5863f5fe9e66401abf541e8adfc2fc5ab8bde718`.
+No manual purge,
+security-audit skip or altered timeout/retry policy was used.
+
+The cold audit is an OPEN external verification dependency, not an application
+test failure and not a passed security check. A future exact-HEAD cold run must
+complete the unchanged audit and every subsequent check before release
+readiness. The existing scoped-SDK-entrypoint technical debt remains PARTIAL;
+this failed run does not close it. GitHub remains explicitly deferred.
+
+### Next directly related acceptance finding
+
+After the intake commit, a private synthetic probe independently reproduced
+four read-side failures on that same source: populated list, server-confirmed
+empty list, direct detail and notification destination each display an A
+result after A-to-B. All four matching stable-A controls pass; every newer
+B-owned dialog remains present. These are concrete follow-up P1s, not fixed
+by the intake correction. No real user data or support requests were involved.
+
+The first probe omitted a required DSA boolean in its synthetic case, so its
+populated/detail controls were invalid and are not evidence. After completing
+the fixture, explicit test-by-test inspection verified four green controls and
+four genuine red account-switch cases. Authoritative corrected probe log:
+`de6fdc60bc01f4e282241956f67d6a7b914d72280ec6baffeb208c1ccd826cf0`.
+
+Next bounded scope: bind support list/detail/notification reads and their
+appeal/DSA follow-up actions to the initiating owner, with a frozen context,
+late-result suppression and owned navigation. The appeal/DSA concern is source
+inspection only so far and needs its own red-first tests. No broader functional
+hardening, candidate installation or external mutation is implied.
+
 Frozen installed Pixel build `2026090403` remains bound to
 `f6a9a41471058c9f80ffd01283c42b9d74a8845c` and DOES NOT contain this correction.
 Its immutable APK/AAB and earlier evidence are unchanged. No device action,
@@ -86,8 +127,8 @@ backend deployment, real support write, SMS, OnePlus, Store, production,
 provider activation or account mutation occurred in this correction package.
 
 GitHub authentication, push and exact Regression/CodeQL remain deferred by the
-owner, not waived or passed. Full normal regression passes; commit this bounded
-correction, then prove the exact implementation from a clean checkout.
+owner, not waived or passed. Full normal regression and the local implementation
+commit are complete; full exact clean-checkout proof is still required.
 A distinct future signed candidate and actual two-role support acceptance are
 required before claiming device closure. The encompassing Goal remains open.
 
