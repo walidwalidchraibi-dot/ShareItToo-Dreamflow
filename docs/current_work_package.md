@@ -1,4 +1,16 @@
-# Current Work Package: WP05 cart-project initiating-account correction
+# Current Work Package: WP05 cart-assignment initiating-account correction
+
+The residual assignment P1 is now implemented locally with red-first proof:
+exact A sheet/notice ownership, owner-bound cart read/guest sync/item upsert and
+stale-result rejection. Focused35/HTTP15/wiring11/analyzer0 pass. Full normal
+regression passes2221tools/747defaultFlutter+mandatoryprofiles/WebWasm dryrun/
+loopback/Android43s/R11. Exact clean proof for THIS assignment source is next;
+the b748 clean proof below certifies only the earlier project-creation fix.
+Then classify remaining direct cart mutations/navigation before freezing a
+distinct signed Pixel successor. Installed0404 is unchanged. No GitHub or live
+action. See `docs/operations/WP05_CART_ASSIGNMENT_PRINCIPAL_2026-09-04.md`.
+
+Previous project-creation closure and assignment decision:
 
 The actual0404 cart read baseline passes with both synthetic backend carts
 empty and no cart mutations. A separate controlled local probe reproduced P1:
@@ -13,7 +25,7 @@ byte-identical APKs/entries and unchanged source inventories. Successor-device/
 GitHub proof remains open. No new cart/booking/provider/device mutation.
 See `docs/operations/WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
 
-Next: correct the now-reproduced residual project-assignment P1 before freezing
+Original next-step decision (now locally implemented above): correct the project-assignment P1 before freezing
 a successor. Separate synthetic widget/HTTP probes each pass their stable-A
 control and fail the A-to-B invariant: A's sheet survives, and an A cart read is
 followed by a PUT authenticated as B. No actual account or Pixel write occurred.

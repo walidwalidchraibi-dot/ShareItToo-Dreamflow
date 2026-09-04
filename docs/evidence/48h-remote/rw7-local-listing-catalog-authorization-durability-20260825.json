@@ -114,8 +114,8 @@
   },
   "ratchets": {
     "reason": "validated-local-listing-lifecycle-privacy-and-retention-source-change",
-    "privacyManifestSha256": "eec7de8bb47c3e3c166eb88fbaf937c552724f3f0c2fa81dd8fe97cf82e71795",
-    "retentionManifestSha256": "9d3e6761f6af438b2748eb25278820a5bb19a5aec205cb21a89f20c2e2078406",
+    "privacyManifestSha256": "2abb4bb9d1d50e0f95cdbc40356bf622affaf4a618c18e15d8335e53924064a8",
+    "retentionManifestSha256": "a4192e51e02238358c935e563cff14f053088def6f20c26bb799f264a41b1b36",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -169,7 +169,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "9d642e9856a72dd83cd6fdfd7c6570adf1c30ba2c014d6a0a5cb383663997bd8"
+      "sha256": "4b80991b104e96686d8ada3dc140bd3058a8ed993482c527f7da31f22efd01fa"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -181,11 +181,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "eec7de8bb47c3e3c166eb88fbaf937c552724f3f0c2fa81dd8fe97cf82e71795"
+      "sha256": "2abb4bb9d1d50e0f95cdbc40356bf622affaf4a618c18e15d8335e53924064a8"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "9d3e6761f6af438b2748eb25278820a5bb19a5aec205cb21a89f20c2e2078406"
+      "sha256": "a4192e51e02238358c935e563cff14f053088def6f20c26bb799f264a41b1b36"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -201,15 +201,15 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "e04c90a2d727db6df8f68acab50a8adb690b97f3f70b13d42a7bd01b01a4f6f3"
+      "sha256": "75588b09c58c08b77f16532188dfb2af22f5bea03976cd18475d8957a3b3417e"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "4f7dbc1ed1503b497d3152528c6da11240d0cd207375a25a25747b4e62e3281b"
+      "sha256": "b079ec722a1bfd4cc17f19d5592b3c1fa2e9a02132c3034ea0da0cebe37788ee"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "c74a7ab80c2ebd162034b3ecf7b0e9b06b4995ae201e0d81c29051d10c9494ea"
+      "sha256": "8c7becd467509ecebe565461c44d2c60284276619d3c1d2ff8fd003c30c405bf"
     },
     {
       "path": "test/rw7_local_listing_catalog_authorization_durability_test.dart",

@@ -5412,10 +5412,17 @@ class DataService {
     return true;
   }
 
-  static Future<RentalCart> getRentalCart() async {
-    final principal = await _currentLocalPrincipal();
-    if (!await _hasBackendSession()) {
+  static Future<RentalCart> getRentalCart({
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
+    final principal = owner.principal;
+    final hasBackendSession = await _hasBackendSession();
+    await owner.assertCurrent();
+    if (!hasBackendSession) {
       final bucket = await _readLocalRentalCartBucketUnlocked(principal);
+      await owner.assertCurrent();
       if (bucket.syncOwnerToken != null &&
           bucket.syncOwnerToken != principal.token) {
         return const RentalCart(
@@ -5434,13 +5441,16 @@ class DataService {
     );
     final pending =
         registry.principals[LocalPrincipalIdentity.guest.token]?.syncOwnerToken;
+    await owner.assertCurrent();
     if (pending != null && pending != principal.token) {
-      return RentalCart.fromJson(await BackendRepository.getRentalCart());
+      return _getBackendRentalCartForOwner(owner);
     }
     if (guestBucket.projects.isNotEmpty || guestBucket.items.isNotEmpty) {
       try {
-        await syncGuestRentalCartAfterAuthentication();
+        await syncGuestRentalCartAfterAuthentication(expectedOwner: owner);
       } catch (error) {
+        // A stale action cannot expose the old guest copy in a new session.
+        await owner.assertCurrent();
         debugPrint('[DataService] guest rental cart sync pending: $error');
         return RentalCart(
           schemaVersion: guestBucket.schemaVersion,
@@ -5453,7 +5463,22 @@ class DataService {
         );
       }
     }
-    return RentalCart.fromJson(await BackendRepository.getRentalCart());
+    return _getBackendRentalCartForOwner(owner);
+  }
+
+  static Future<RentalCart> _getBackendRentalCartForOwner(
+    LocalPrincipalActionOwner owner,
+  ) async {
+    await owner.assertCurrent();
+    final session = owner.sessionOwner;
+    if (session == null) {
+      throw StateError('Für diesen Mietkorb ist eine Anmeldung erforderlich.');
+    }
+    final cart = RentalCart.fromJson(
+      await BackendRepository.getRentalCartForOwner(session),
+    );
+    await owner.assertCurrent();
+    return cart;
   }
 
   static Future<RentalCart> addRentalCartItem({
@@ -5526,10 +5551,15 @@ class DataService {
   static Future<RentalCart> assignRentalCartItemToProject({
     required String itemId,
     String? projectId,
+    LocalPrincipalActionOwner? expectedOwner,
   }) async {
-    final principal = await _currentLocalPrincipal();
-    if (await _hasBackendSession()) {
-      final cart = await getRentalCart();
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
+    final principal = owner.principal;
+    final hasBackendSession = await _hasBackendSession();
+    await owner.assertCurrent();
+    if (hasBackendSession) {
+      final cart = await getRentalCart(expectedOwner: owner);
       final item = cart.items.firstWhere(
         (entry) => entry.id == itemId,
         orElse: () => throw StateError('Mietkorb-Artikel nicht gefunden.'),
@@ -5538,7 +5568,10 @@ class DataService {
           !cart.projects.any((project) => project.id == projectId)) {
         throw StateError('Mietkorb-Projekt nicht gefunden.');
       }
-      return RentalCart.fromJson(await BackendRepository.putRentalCartItem(
+      await owner.assertCurrent();
+      final next =
+          RentalCart.fromJson(await BackendRepository.putRentalCartItemForOwner(
+        owner: owner.sessionOwner!,
         id: item.id,
         listingId: item.listingId,
         startDate: _rentalDate(item.startDate),
@@ -5546,9 +5579,13 @@ class DataService {
         projectId: projectId,
         sortOrder: item.sortOrder,
       ));
+      await owner.assertCurrent();
+      return next;
     }
     return _rentalCartMutationQueue.run(() async {
+      await owner.assertCurrent();
       final cart = (await _assertReadableLocalRentalCart(principal)).cart;
+      await owner.assertCurrent();
       cart.items.firstWhere(
         (entry) => entry.id == itemId,
         orElse: () => throw StateError('Mietkorb-Artikel nicht gefunden.'),
@@ -5580,7 +5617,9 @@ class DataService {
                 : entry)
             .toList(),
       );
+      await owner.assertCurrent();
       await _writeLocalRentalCart(principal, next);
+      await owner.assertCurrent();
       return next;
     });
   }

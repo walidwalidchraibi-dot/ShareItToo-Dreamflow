@@ -29,12 +29,19 @@ import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/theme.dart';
 
 class RentalCartScreen extends StatefulWidget {
-  const RentalCartScreen({super.key, this.projectCreator});
+  const RentalCartScreen(
+      {super.key, this.projectCreator, this.projectAssigner});
 
   final Future<RentalCartProject> Function(
     String title,
     LocalPrincipalActionOwner owner,
   )? projectCreator;
+
+  final Future<RentalCart> Function(
+    String itemId,
+    String? projectId,
+    LocalPrincipalActionOwner owner,
+  )? projectAssigner;
 
   @override
   State<RentalCartScreen> createState() => _RentalCartScreenState();
@@ -65,6 +72,8 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   bool _projectBusy = false;
   TrackedDialogRouteHandle<String>? _projectDraft;
   TrackedDialogRouteHandle<void>? _projectNotice;
+  TrackedDialogRouteHandle<String>? _assignmentSheet;
+  final Set<TrackedDialogRouteHandle<void>> _assignmentNotices = {};
 
   @override
   void initState() {
@@ -75,6 +84,12 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
         _snapshotOwner = null;
         _projectDraft?.dismiss();
         _projectNotice?.dismiss();
+        final assignment = _assignmentSheet;
+        _assignmentSheet = null;
+        assignment?.dismiss();
+        for (final notice in _assignmentNotices.toList()) {
+          notice.dismiss();
+        }
         if (mounted) {
           setState(() {
             _hasLoadedSnapshot = false;
@@ -100,9 +115,15 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
     _savedStateSubscription?.cancel();
     final draft = _projectDraft;
     final notice = _projectNotice;
+    final assignment = _assignmentSheet;
+    final assignmentNotices = _assignmentNotices.toList();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       draft?.dismiss();
       notice?.dismiss();
+      assignment?.dismiss();
+      for (final notice in assignmentNotices) {
+        notice.dismiss();
+      }
     });
     super.dispose();
   }
@@ -118,7 +139,7 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
       final results = await Future.wait<Object>(<Future<Object>>[
         DataService.getWishlists(),
         DataService.getItemsByWishlist(),
-        DataService.getRentalCart(),
+        DataService.getRentalCart(expectedOwner: owner),
       ]);
       if (!mounted ||
           generation != _principalGeneration ||
@@ -253,50 +274,77 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   }
 
   Future<void> _assignCartItem(RentalCartItem item) async {
+    final owner = _snapshotOwner;
+    final generation = _principalGeneration;
+    if (owner == null || !owner.isCurrentEpoch || _assignmentSheet != null) {
+      return;
+    }
+    final projects = _rentalCart.projects.toList(growable: false);
+    final sheet = TrackedDialogRouteHandle<String>();
+    _assignmentSheet = sheet;
+    TrackedDialogRouteHandle<void>? notice;
+    bool stillOwned() => mounted && generation == _principalGeneration;
     const unassigned = '__unassigned__';
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(
-              title: Text('Projekt zuordnen'),
-              subtitle: Text('Die Zuordnung ändert keine Reservierung.'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.folder_off_outlined),
-              title: const Text('Ohne Projekt'),
-              trailing: item.projectId == null ? const Icon(Icons.check) : null,
-              onTap: () => Navigator.of(context).pop(unassigned),
-            ),
-            for (final project in _rentalCart.projects)
-              ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(project.title),
-                trailing: item.projectId == project.id
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () => Navigator.of(context).pop(project.id),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (selected == null) return;
     try {
-      final cart = await DataService.assignRentalCartItemToProject(
-        itemId: item.id,
-        projectId: selected == unassigned ? null : selected,
-      );
-      if (mounted) setState(() => _rentalCart = cart);
-    } catch (error) {
+      if (!await owner.isCurrent() || !stillOwned()) return;
       if (!mounted) return;
+      final selected = await showTrackedModalBottomSheet<String>(
+        context: context,
+        handle: sheet,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(
+                title: Text('Projekt zuordnen'),
+                subtitle: Text('Die Zuordnung ändert keine Reservierung.'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_off_outlined),
+                title: const Text('Ohne Projekt'),
+                trailing:
+                    item.projectId == null ? const Icon(Icons.check) : null,
+                onTap: () => sheet.dismiss(unassigned),
+              ),
+              for (final project in projects)
+                ListTile(
+                  leading: const Icon(Icons.folder_outlined),
+                  title: Text(project.title),
+                  trailing: item.projectId == project.id
+                      ? const Icon(Icons.check)
+                      : null,
+                  onTap: () => sheet.dismiss(project.id),
+                ),
+            ],
+          ),
+        ),
+      );
+      if (selected == null || !stillOwned()) return;
+      if (!await owner.isCurrent() || !stillOwned()) return;
+      final projectId = selected == unassigned ? null : selected;
+      final assigner = widget.projectAssigner;
+      final cart = assigner == null
+          ? await DataService.assignRentalCartItemToProject(
+              itemId: item.id, projectId: projectId, expectedOwner: owner)
+          : await assigner(item.id, projectId, owner);
+      if (!await owner.isCurrent() || !stillOwned()) return;
+      setState(() => _rentalCart = cart);
+    } catch (error) {
+      if (!stillOwned() || !await owner.isCurrent() || !stillOwned()) return;
+      if (!mounted) return;
+      notice = TrackedDialogRouteHandle<void>();
+      _assignmentNotices.add(notice);
       await AppPopup.toast(
         context,
         icon: Icons.error_outline,
-        title: 'Projektzuordnung konnte nicht gespeichert werden',
+        title: 'Projektzuordnung konnte nicht bestätigt werden',
+        message:
+            'Bitte lade den Mietkorb erneut, bevor du die Zuordnung wiederholst.',
+        routeHandle: notice,
       );
+    } finally {
+      if (identical(_assignmentSheet, sheet)) _assignmentSheet = null;
+      if (notice != null) _assignmentNotices.remove(notice);
     }
   }
 

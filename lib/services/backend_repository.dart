@@ -885,6 +885,17 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['cart'] as Map);
   }
 
+  static Future<Map<String, dynamic>> getRentalCartForOwner(
+    AuthSessionOwner owner,
+  ) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'GET',
+      path: '/rental-cart',
+    );
+    return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
   static Future<Map<String, dynamic>> putRentalCartProject({
     required String id,
     required String title,

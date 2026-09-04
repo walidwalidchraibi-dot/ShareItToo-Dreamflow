@@ -1,6 +1,7 @@
 # WP05 cart assignment — initiating-account correction
 
-Status: P1 reproduced locally; correction and closure still OPEN.
+Status: correction implemented; focused and full normal regression PASS.
+Exact committed-source clean proof, successor/device and GitHub remain OPEN.
 Source under test: `b748e3befcef7b0af0efe93135a510a98b56ba16`, canonical
 `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`, branch
 `codex/master-workflow-20260808`. Only evidence documents changed during probes.
@@ -28,7 +29,64 @@ network, account, provider, payment, cart or device mutation occurs. The private
 probe uses only fabricated example.invalid identities and HTTP interception.
 No concurrency, timeout, cache purge, or failed-result waiver is used.
 
-## Bounded sequence and exit
+## Implemented correction and verification
+
+The assignment captures the verified snapshot owner/epoch and reserves its own
+sheet before the first await. The sheet contains the captured project list;
+its callbacks complete only its exact tracked route. Account invalidation closes
+that route and its owned notices; a late A finally cannot erase B's newer sheet
+handle. Busy ownership is released on principal change, not inherited by B.
+
+The optional owner on `getRentalCart` and `assignRentalCartItemToProject` is kept
+through guest sync, local queues and HTTP. A dedicated owner-bound GET and the
+existing owner-bound item PUT replace global credential selection in this chain.
+The cart reload supplies its own captured owner. Stale reads/results are rejected;
+guest fallback is not exposed after a principal change. A failed or lost reply
+is shown only to the initiating account as unconfirmed, not definitely unsaved;
+the UI asks for a reload before retrying. No server acceptance is undone or
+silently claimed when A's result is rejected after switching to B.
+
+The new maintained test file has12 default controls and7 enabled HTTP controls,
+including both original red cases, stable guest/A, silent replacement, actual
+logout/relogin epoch, stale explicit owner, late success/401/error, exact A
+completion beneath B, preservation of B's later assignment handle, uncertain
+notice ownership, and malformed auth rejection. The enabled profile is mandatory
+in the complete regression. Five structural guards protect the owner chain,
+route identity and profile inventory; the previous six project guards stay green.
+Focused totals:35 default Flutter PASS,15 enabled HTTP PASS,11 wiring PASS.
+
+The expanded first widget run had34 passes/one failure: the existing toast's
+two-second callback was still pending at test teardown. The test now crosses
+that exact existing deadline using Flutter's virtual clock and asserts B's
+dialog survives the callback. This is a deterministic delayed-callback check,
+not wall-clock waiting, a timeout/concurrency change, or a production timer fix.
+TD-WP05-ASSIGNMENT-FIXTURE-DEADLINE is closed for this fixture only. The original
+failure is retained. Two initial analyzer brace-style notices were corrected,
+not suppressed. Final focused analyzer: zero issues.
+
+The full normal gate passes through the unchanged v2 scoped profile:2221 tool
+tests,747 default Flutter tests/33 declared-profile skips plus ALL required
+profiles, analyzer0, Web build/Wasm dry run, local-loopback smoke and Android
+debug43s. R11 retains minSdk24/14permissions/8exported components. This is not a
+standalone Wasm-runtime test or full offline-device acceptance. Full log SHA256:
+`ac90a9a6b688c2b68b170f7df186200552ce922b4875879516743b31b9f43afe`.
+Debug APK SHA256:
+`76d50ab9cf886bf6eb8344599afd948f398269b1734332180887d26bb67eb478`.
+This normal debug output is not an archived or signed successor.
+
+After successful regression, standard scoped Flutter cleanup removed about3GB
+of regenerable intermediates;11286818816bytes (about10.5GiB) remained free.
+The signed0404 APK/AAB hashes were independently rechecked unchanged. No
+account, signing input, user file, other project or signed archive was deleted.
+The debug digest is retained, but the generated debug APK itself is not archived.
+
+Exact hash propagation updated24 JSON bindings and5 validator hash constants in
+two rounds. All non-hash claims, memberships and validator assertions were
+compared unchanged; a repeat was independently verified as a no-op. Full tool
+tests pass on the final bindings. No old device/candidate/CI evidence is promoted.
+Machine proof: `docs/evidence/release-readiness/wp05-cart-assignment-principal-local-20260904.json`.
+
+## Bounded sequence and exit (steps1–3 now locally verified)
 
 1. Bind the exact assignment sheet and its completion to the captured snapshot
    owner/epoch; dismiss only A's route and preserve newer B routes.

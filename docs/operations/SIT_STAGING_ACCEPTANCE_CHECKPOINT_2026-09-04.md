@@ -1,12 +1,14 @@
 # SIT Staging acceptance checkpoint — 2026-09-04
 
-Current execution: a read-only0404 cart baseline passed, then an isolated
-red-first project-dialog principal defect was reproduced and corrected locally.
-Focused/full normal and exact b748 clean regression pass, including identical
-debug APKs. Successor proof remains open. Two targeted synthetic probes now
-confirm the residual assignment sheet/read-to-upsert ownership P1; stable A
-passes both controls. Correct that chain before a new freeze. Installed0404 is
-unchanged and predates this fix. See `WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
+Current execution: both project creation and assignment have targeted local
+principal corrections. The earlier creation fix has exact b748 clean proof;
+the newer assignment fix now passes focused35/HTTP15/wiring11/analyzer0 and full
+normal2221tools/747defaultFlutter+profiles/WebWasm dryrun/loopback/Android43s/R11.
+Assignment exact clean proof remains OPEN. Its two original red controls are
+retained; no real account/device leak is claimed. Classify remaining direct cart
+mutations/navigation before a distinct successor freeze. Installed0404 is
+unchanged and predates both corrections. See
+`WP05_CART_ASSIGNMENT_PRINCIPAL_2026-09-04.md` and the earlier project handover.
 
 Latest functional result: Pixel0404 proves one simulation support intake with
 exact server receipt, list/detail, physical offline error/retry/online recovery,

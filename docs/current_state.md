@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+Assignment correction now passes focused35/HTTP15/wiring11/analyzer0 and the
+full normal gate:2221tools/747defaultFlutter+all mandatory profiles/WebWasm
+dryrun/loopback/Android43s/R11. It pins the exact owner through sheet, cart read,
+guest sync, queue and item upsert; delayed A cleanup preserves B routes. Exact
+clean proof for this implementation remains OPEN, as do signed successor and
+physical acceptance. Installed0404 and all providers remain unchanged. Earlier
+b748 clean proof below is separate. GitHub is deferred, not waived. See
+`docs/operations/WP05_CART_ASSIGNMENT_PRINCIPAL_2026-09-04.md`.
+
+Previous project-creation closure and red-first assignment observation:
+
 Cart/projects: actual0404 read baseline passes with no mutations. A local
 red-first probe separately proves a P1 project-dialog account-switch defect
 (stable A control pass, two B-isolation failures). Its correction is locally
@@ -13,8 +24,8 @@ OnePlus action. See `docs/operations/WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
 Two isolated probes now confirm the residual project-assignment P1: stable A
 passes both controls; after A-to-B, A's sheet remains and an A cart read can be
 followed by a PUT authenticated as B. These are synthetic local observations,
-not real account/device mutations. Next fix that exact sheet/read/upsert chain
-before a successor freeze; see `WP05_CART_ASSIGNMENT_PRINCIPAL_2026-09-04.md`.
+not real account/device mutations. That exact sheet/read/upsert chain is now
+locally fixed as reported above; the red-first evidence is preserved.
 
 Previous bounded support checkpoint:
 

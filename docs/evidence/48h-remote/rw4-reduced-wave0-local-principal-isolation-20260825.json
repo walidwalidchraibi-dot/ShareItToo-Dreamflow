@@ -107,7 +107,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "9d642e9856a72dd83cd6fdfd7c6570adf1c30ba2c014d6a0a5cb383663997bd8"
+      "sha256": "4b80991b104e96686d8ada3dc140bd3058a8ed993482c527f7da31f22efd01fa"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -123,7 +123,7 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "fec9e0fe09f0cd7a62de9dd6decc9485dd73f14b0540252612ca4aeb016282dc"
+      "sha256": "951df4934d593a540d73a9fad5fcb6167650300ff01325fd9c092c871c06d27d"
     },
     {
       "path": "store/g2-data-lifecycle.json",
@@ -131,11 +131,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "eec7de8bb47c3e3c166eb88fbaf937c552724f3f0c2fa81dd8fe97cf82e71795"
+      "sha256": "2abb4bb9d1d50e0f95cdbc40356bf622affaf4a618c18e15d8335e53924064a8"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "9d3e6761f6af438b2748eb25278820a5bb19a5aec205cb21a89f20c2e2078406"
+      "sha256": "a4192e51e02238358c935e563cff14f053088def6f20c26bb799f264a41b1b36"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -147,7 +147,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "c74a7ab80c2ebd162034b3ecf7b0e9b06b4995ae201e0d81c29051d10c9494ea"
+      "sha256": "8c7becd467509ecebe565461c44d2c60284276619d3c1d2ff8fd003c30c405bf"
     },
     {
       "path": "test/reduced_wave0_local_principal_isolation_test.dart",
