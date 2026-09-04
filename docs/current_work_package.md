@@ -1,4 +1,22 @@
-# Current Work Package: WP04 Stripe webhook destination separation
+# Current Work Package: provisional Pixel 2026090402 acceptance
+
+Latest owner direction on 2026-09-04: continue and postpone GitHub until later.
+GitHub authentication/push/CI are therefore deferred, not a reason to stop
+independent provisional Pixel work and not marked passed. Final exact CI and
+the full acceptance matrix remain required; no Store, production or OnePlus.
+
+Exact frozen locally verified source bfd3e9e4/build2026090402 is now installed
+on the Pixel using the normal data-preserving updater. Signature, installed
+APK bytes, first-install/data-directory identity and foreground launch pass.
+Current-candidate authenticated cold start, five main destinations and process
+restart also pass, with explicit narrow evidence. All four background choices
+remain selected after cold restart; final explicit preference is Dark 1.
+Light-preview/text contrast and missing reset/selection semantics remain open;
+no full accessibility claim. Continue current-candidate functional scenarios,
+maintaining all actual provider/legal prerequisites. GitHub stays deferred.
+See `docs/operations/PIXEL_2026090402_PROVISIONAL_ACCEPTANCE_2026-09-04.md`.
+
+## Previous local package: WP04 Stripe webhook destination separation
 
 Latest completion: full normal regression and full cold R10 now pass at exact
 implementation `c4c576d3e26166591130ca1e4744048069afbbc3`. Both debug APKs are

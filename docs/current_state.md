@@ -1,5 +1,15 @@
 # ShareItToo Current State
 
+2026-09-04 owner explicitly postponed GitHub and requested continued work.
+The frozen signed Staging APK 2026090402/sourcebfd3e9e4 is now installed on
+the Pixel with exact signature/hash and Android data identity preserved.
+Authenticated cold-start, five-destination navigation and process-restart
+checks pass. All four background choices also persist through cold restart;
+light-label contrast and reset/selection semantics remain concrete UI gaps.
+These are PROVISIONAL Pixel results, not final CI/Goal closure.
+GitHub remains deferred and uncleared; OnePlus/Store/production untouched.
+Current handover: `docs/operations/PIXEL_2026090402_PROVISIONAL_ACCEPTANCE_2026-09-04.md`.
+
 Latest WP04 local verification: full normal regression and exact clean R10 at
 `c4c576d3e26166591130ca1e4744048069afbbc3` pass. Both debug APKs are byte-identical;
 source inventories, binary checks, footprint bounds and automatic cleanup pass.

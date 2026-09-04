@@ -3,7 +3,7 @@
 This is an interim requirement inventory for the encompassing Android-Staging
 Goal, not a closure report or a new implementation package. PASS is restricted
 to the exact observation named below. Historical device passes never certify
-the latest uninstalled candidate. PARTIAL means narrower evidence exists;
+another candidate. PARTIAL means narrower evidence exists;
 OPEN means the required end-to-end result remains unproved. No requirement is
 removed because an owner dependency or provider hold is outstanding.
 
@@ -94,8 +94,8 @@ older Drive candidate-completion wording does not close it.
 | Required outcome | State | Existing evidence and exact remaining gap |
 | --- | --- | --- |
 | Staging version/readiness | PASS | The timestamped read-only observation above, on deployed `5d88295f`; not an application-wide acceptance pass. |
-| Final source, signed candidate and exact CI | PARTIAL | Frozen `2026090402`/`bfd3e9e4` is locally archived and hash-verified but uninstalled; its Regression failed, CodeQL passed. Current local `c4c576d3` has normal regression and complete cold R10 green, with byte-identical debug APKs; its push/CI are pending. |
-| Email registration, verification, login/logout and persistence | PARTIAL | N20/N22 prove historical `2026090305` UI flows; repeat affected flows on the accepted final Pixel candidate. |
+| Final source, signed candidate and exact CI | PARTIAL | Frozen `2026090402`/`bfd3e9e4` is archived, hash-verified and now provisionally installed on the Pixel after the owner's explicit GitHub deferral; its Regression remains failed, CodeQL passed. Current local `c4c576d3` has normal regression and complete cold R10 green; push/CI are deferred, not waived. |
+| Email registration, verification, login/logout and persistence | PARTIAL | N20/N22 prove historical `2026090305` UI flows. Installed `2026090402` now passes existing authenticated-profile recovery through cold starts; this is not fresh registration, login/logout or principal-identity proof. Repeat remaining flows. |
 | Password recovery/change and Account-A→B isolation | PARTIAL | N21 proves historical recovery, single-use link and old-credential rejection; local typed-outcome/epoch regressions pass. Complete the final-candidate device matrix, including direct password change and uncertain/partial outcomes. |
 | Google sign-in | PARTIAL | N23 proves Google login, repeat login and cold start on `2026090306`; later shared-SDK changes require affected final-candidate revalidation. |
 | Facebook and Apple sign-in where supported | OPEN | WP02 provider-readiness records missing setup/owner dependencies. Do not substitute a hidden button or invent provider/account/membership facts. |
@@ -109,12 +109,22 @@ older Drive candidate-completion wording does not close it.
 | Stripe sandbox payment, rejection/interruption, duplicate delivery, refund and simulated payout | OPEN | Fresh runtime is memory-only. WP04 two-secret wiring is locally tested, but platform identity/approved secret setup and all eight P0B real-sandbox scenarios remain open. Never call memory results Stripe test funds. |
 | Cart, projects and booking groups | OPEN | The full connected two-role device workflows are not established by the cited device journeys. |
 | Support submission/follow-up, reports, blocking, privacy export and deletion | PARTIAL | N28 proves reachability, not these mutations. Exercise scoped disposable Staging identities with exact cleanup/retention rules, not the owner's account. |
-| Light/Dark and available background variants | PARTIAL | N28 shows readable older-candidate Light/Dark and four reachable background choices; it did not select the background variants. Final selections/persistence and affected surfaces remain to test. |
-| Offline/online, process restart, permission changes and accessibility | PARTIAL | N27/N28 provide older network/cold-start/large-text evidence; the final-candidate permission and complete accessibility matrices are still missing. |
+| Light/Dark and available background variants | PARTIAL | On installed `2026090402`, all four actual background selections persist after cold restart and were visually reviewed. Final preference is explicit Dark 1; initial unset choice could not be restored through the UI. Light-preview/text contrast is visibly weak; system-theme, TalkBack/selection semantics and affected-surface acceptance remain open. N28 system-theme observations retain their older binding. |
+| Offline/online, process restart, permission changes and accessibility | PARTIAL | N27/N28 provide older network/large-text evidence. Installed `2026090402` now proves process termination/relaunch and preserved install/data identity, plus five authenticated destinations. Network, permissions and full accessibility remain incomplete. |
 | Full Pixel acceptance and evidence cleanup | OPEN | All applicable rows must be completed on the correct accepted candidate/provider pair; retain explicit owner-dependent gaps. |
 | Same-candidate private OnePlus handoff and cross-device acceptance | OPEN | No OnePlus access until full Pixel closure. Then verify package/hash/signature, separate accounts and actual two-device flows; no installation is inferred from preparing an APK. |
 
 ## Next execution order
+
+**Latest owner override (2026-09-04): postpone GitHub and continue independent
+local/Staging work.** Provisional Pixel-only installation and testing of the
+already locally verified `2026090402` is now underway; no GitHub pass or final
+release acceptance is inferred. Do not repeat login requests while GitHub is
+deferred. Preserve the eventual exact-CI requirement and all remaining
+provider/legal/owner boundaries. Current execution/results are in
+`PIXEL_2026090402_PROVISIONAL_ACCEPTANCE_2026-09-04.md`.
+The sequence below describes the still-required final closure, not a reason
+to stop the explicitly authorized provisional functional work.
 
 1. Exact cold R10 is complete and its execution-only evidence validates. Preserve
    its `c4c576d3` binding, failed predecessors and successful cleanup. Do not
