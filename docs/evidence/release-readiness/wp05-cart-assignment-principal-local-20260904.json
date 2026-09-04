@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "LOCAL_FOCUSED_AND_FULL_NORMAL_PASS",
+  "status": "LOCAL_FOCUSED_FULL_NORMAL_AND_EXACT_CLEAN_PASS",
   "observedOn": "2026-09-04",
   "executionBase": "ee6ca8e68b7d4645e922b98509cf1aeeb5a05d82",
   "redSource": "b748e3befcef7b0af0efe93135a510a98b56ba16",
@@ -49,7 +49,14 @@
     "minSdk": 24,
     "permissions": 14,
     "exportedComponents": 8,
-    "exactCleanAssignmentSource": "OPEN",
+    "exactCleanAssignmentSource": "PASS_b28da2aa06816fd47eefe3a6657e7674e92cce03",
+    "exactCleanEvidence": "docs/evidence/release-readiness/wp05-cart-assignment-principal-clean-20260904.json",
+    "exactCleanEvidenceSha256": "c5bba254e1a63e3a4e66003f55884a87d7db0d8fc60662d9a82c50585905bc5a",
+    "exactCleanLogSha256": "c09d224f2206fe4c650413098d848277ff21707b34cf5a683447d803219877d2",
+    "exactCleanFullRegressionSeconds": 657,
+    "exactCleanSecondAndroidSeconds": 45,
+    "exactCleanDebugApkSha256": "829f512e133867c76f161ecfce55d60968f2db3fde7b7e8ed9d0afbd60244a97",
+    "exactCleanApksAndEntriesByteIdentical": true,
     "signedSuccessor": "OPEN",
     "physicalAcceptance": "OPEN",
     "github": "OWNER_DEFERRED_NOT_WAIVED"
@@ -116,5 +123,5 @@
     "fullCartAcceptance": false,
     "fullGoalComplete": false
   },
-  "next": "Exact committed-source clean proof; bounded classification of remaining direct cart mutations/navigation before a distinct signed Pixel successor."
+  "next": "Bounded classification of remaining direct cart mutations/navigation before a distinct signed Pixel successor."
 }

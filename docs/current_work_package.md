@@ -1,4 +1,23 @@
-# Current Work Package: WP05 cart-assignment initiating-account correction
+# Current Work Package: WP05 consolidated saved-cart principal correction
+
+The assignment correction has exact clean-source proof on
+`b28da2aa06816fd47eefe3a6657e7674e92cce03`: full regression657s, second Android45s,
+byte-identical APKs and entries, unchanged inventories, runner cleanup PASS.
+Its proof is separate from the residual findings below.
+
+Next bounded implementation: remaining saved-cart actions, navigation, wishlist
+dialogs/folder lifetime and the listing-overlay cart helper. Local synthetic
+red-first probes pass8 stable controls and fail13 ownership invariants: late A
+responses overwrite B snapshots, A401 attempts B refresh, and A wishlist drafts
+survive/change B state. No real account/backend/device mutation. Navigation and
+folder/overlay risks are still static hypotheses requiring focused tests.
+Consolidate this one surface before another signed successor; preserve exact
+A-route removal, B routes, truthful uncertain results and guest intent. No
+global auth rewrite or unrelated business-flow hardening. Implementation and
+closure OPEN. GitHub remains explicitly deferred. Installed0404 is unchanged.
+See `docs/operations/WP05_CART_SURFACE_PRINCIPAL_2026-09-04.md`.
+
+Previous assignment implementation checkpoint (clean proof now closed above):
 
 The residual assignment P1 is now implemented locally with red-first proof:
 exact A sheet/notice ownership, owner-bound cart read/guest sync/item upsert and

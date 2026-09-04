@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+Exact clean proof now PASS for assignment commit
+`b28da2aa06816fd47eefe3a6657e7674e92cce03`: full657s, second Android45s,
+identical APKs/entries, unchanged inventories and completed cleanup. This does
+not certify the residual saved-cart surface: synthetic probes independently
+pass8 stable controls/fail13 principal invariants. Consolidated local correction
+is next; implementation OPEN. No real account/device/provider changes or new
+signed successor. Installed0404 remains unchanged; GitHub stays deferred, not
+passed. See `docs/operations/WP05_CART_SURFACE_PRINCIPAL_2026-09-04.md`.
+
+Previous assignment checkpoint (its clean proof is now closed above):
+
 Assignment correction now passes focused35/HTTP15/wiring11/analyzer0 and the
 full normal gate:2221tools/747defaultFlutter+all mandatory profiles/WebWasm
 dryrun/loopback/Android43s/R11. It pins the exact owner through sheet, cart read,

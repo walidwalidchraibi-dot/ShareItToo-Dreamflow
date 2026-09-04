@@ -1,7 +1,7 @@
 # WP05 cart assignment — initiating-account correction
 
-Status: correction implemented; focused and full normal regression PASS.
-Exact committed-source clean proof, successor/device and GitHub remain OPEN.
+Status: correction implemented; focused, full normal and exact clean proof PASS.
+Successor/device and GitHub remain OPEN.
 Source under test: `b748e3befcef7b0af0efe93135a510a98b56ba16`, canonical
 `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`, branch
 `codex/master-workflow-20260808`. Only evidence documents changed during probes.
@@ -85,6 +85,23 @@ two rounds. All non-hash claims, memberships and validator assertions were
 compared unchanged; a repeat was independently verified as a no-op. Full tool
 tests pass on the final bindings. No old device/candidate/CI evidence is promoted.
 Machine proof: `docs/evidence/release-readiness/wp05-cart-assignment-principal-local-20260904.json`.
+
+Exact clean-source R10 now passes on
+`b28da2aa06816fd47eefe3a6657e7674e92cce03`, through the same maintained v2
+profile. The fresh detached clone has no protected inputs or reused dependency
+caches. Locked restores, backend tests/syntax/audit/secrets, PostgreSQL and full
+technical regression657s pass; a second Android build45s produces byte-identical
+APK files and extracted entries. Debug SHA256:
+`829f512e133867c76f161ecfce55d60968f2db3fde7b7e8ed9d0afbd60244a97`.
+Source inventories and the checkout remain unchanged, capacity limits hold,
+and the runner removes its checkout, caches and APK copies. The enclosing
+wrapper exits zero. Independent source, command, identity, inventory, hash and
+cleanup assertions pass. New evidence:
+`docs/evidence/release-readiness/wp05-cart-assignment-principal-clean-20260904.json`
+(SHA256 `c5bba254e1a63e3a4e66003f55884a87d7db0d8fc60662d9a82c50585905bc5a`).
+No signed artifact, Pixel update, GitHub result, provider change or full-cart
+acceptance is inferred from this debug proof. The next remaining-action probes
+are independent of this established assignment closure.
 
 ## Bounded sequence and exit (steps1–3 now locally verified)
 
