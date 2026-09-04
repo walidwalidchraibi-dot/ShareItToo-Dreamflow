@@ -1,4 +1,22 @@
-# Current Work Package: WP05 actual support acceptance on Pixel0404
+# Current Work Package: WP05 Pixel0404 cart/projects acceptance
+
+Bounded support intake/offline/sequential-isolation acceptance is now complete:
+one simulation case, exact receipt/API identity, offline error/retry/recovery,
+and same-process owner→renter→owner isolation. The original intake driver's
+post-receipt navigation failure is retained; separate follow-up drivers passed.
+Original QA owner role/network are restored. Focused backend56/diagnostic25
+tests pass. No runtime source change, rebuild, provider action or GitHub work.
+See `docs/operations/WP05_PIXEL_SUPPORT_INTAKE_OFFLINE_ISOLATION_2026-09-04.md`.
+
+Next bounded work is actual cart/projects persistence and two-role isolation
+on unchanged0404, after inspecting feature/contract holds and existing data.
+Do not invoke booking-group/contract/payment actions without legitimate
+prerequisites. Prioritize this open Growth/core matrix over non-blocking support
+hardening. In-flight support races, duplicate delivery, staff/DSA/appeal follow-up
+and full privacy acceptance remain open, not waived. Never rerun the existing
+single support submission. Keep GitHub deferred and Pixel-only boundaries.
+
+Previous support baseline and plan (superseded by the result above):
 
 Read baseline COMPLETE: the existing known synthetic owner's Pixel list shows
 the resolved empty surface, consistent with independent HTTP 200 empty-array

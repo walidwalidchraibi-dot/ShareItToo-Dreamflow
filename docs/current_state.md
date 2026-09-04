@@ -1,5 +1,18 @@
 # ShareItToo Current State
 
+0404 now passes bounded actual support intake/receipt/list/detail, real offline
+failure/retry/online recovery, and same-process owner→renter→owner isolation.
+One synthetic simulation case remains received/version1; no staff decision or
+external delivery. Original QA owner role and network are restored. Original
+intake driver's later keyboard/navigation failure remains recorded; independent
+follow-ups passed. Backend56 and diagnostic25 tests pass. Installed55a1aa5a,
+runtime5d88295f and existing signed proof are unchanged; GitHub stays deferred.
+Next: cart/projects current-candidate core acceptance. Full support, provider/
+legal/Pixel/Goal closure remain open. See
+`docs/operations/WP05_PIXEL_SUPPORT_INTAKE_OFFLINE_ISOLATION_2026-09-04.md`.
+
+Previous read baseline (before the single controlled case was created):
+
 0404 support read baseline now passes: the known synthetic owner's actual
 Pixel support list is empty, and independent authenticated backend reads for
 both distinct synthetic roles return HTTP 200/empty arrays/private no-store.
