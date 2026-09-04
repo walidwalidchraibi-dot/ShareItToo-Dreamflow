@@ -1,6 +1,6 @@
 # WP05 — account-bound privacy export
 
-Status: **FULL LOCAL REGRESSION PASS / CLEAN-CHECKOUT AND SUCCESSOR DEVICE PROOF PENDING**.
+Status: **FULL NORMAL AND CLEAN-CHECKOUT REGRESSION PASS / SUCCESSOR DEVICE AND GITHUB PROOF PENDING**.
 
 ## Why this interrupts the next functional export
 
@@ -83,8 +83,35 @@ The secret scan initially flagged literal synthetic test-password arguments.
 Fixtures now use the established named synthetic-proof pattern; no real secret
 was involved, and scanner rules/baseline were not loosened. The subsequent
 Git-history/working-tree secret scan passes with only the existing reviewed
-historical baseline. Full regression above is complete; exact clean-checkout,
-eventual GitHub and successor-device acceptance are not yet claimed.
+historical baseline. Eventual GitHub and successor-device acceptance are not
+yet claimed.
+
+## Exact implementation clean-checkout closure
+
+Implementation is committed at `7dddc6c86161a99d72d9163aa5af08a510e9d91f`.
+The exact detached, public-input-only checkout passed locked dependency
+restores, backend tests and syntax, dependency audit, secret scan, isolated
+PostgreSQL and the complete technical gate (673 seconds). A second forced
+Android debug build passed in 48 seconds. Both APKs are byte-identical:
+231,273,111 bytes, SHA-256
+`d4af92b4ab56a3df0de4f5c4db074fc2949caf977645e71b2b0cce966036bfaa`.
+All 794 extracted entries match; no metadata-normalization exception was needed.
+
+All 116 migrations, 84 assets, dependency/font inventories and the clean
+checkout remained unchanged. Generated project output was 3,266,391 KiB and
+isolated caches 6,133,864 KiB, within unchanged limits. The runner removed its
+temporary checkout, isolated caches and APK copies; no source, protected input
+or retained signed archive was deleted. No purge or retry was needed.
+
+Machine evidence is
+`docs/evidence/release-readiness/wp05-privacy-export-clean-reproducibility-20260904.json`,
+SHA-256 `280a291808e4edafc230ea4fc352eb11b132078a3e2c6852d056745eb7c3eccc`.
+The execution-only validator passes on the exact implementation source.
+Private runner log SHA-256:
+`4ecf2828122512d14c6e18592abf9ef7856d10ba95ad85158a6ab5e645be811c`.
+The runner's legacy `nextPackage: R11` label does not authorize a new Goal.
+These are disposable debug artifacts using the pre-successor version, not a
+new signed 0402 release or a change to its frozen evidence. GitHub is deferred.
 
 ## Source bindings and candidate separation
 
@@ -104,7 +131,7 @@ Frozen installed Pixel candidate remains `2026090402` / source
 `bfd3e9e4422a6a6e6bf3c09bd825c6a089909d04`. Its archive and earlier provisional
 results remain immutable. **It does not contain this correction.** The current
 mobile-source drift means the old private no-drift wrapper must reject further
-claims that 0402 equals the corrected source. Complete full regression and exact
-clean-checkout proof, then build a separately versioned successor and test its
+claims that 0402 equals the corrected source. Full regression and exact
+clean-checkout proof are complete. Build a separately versioned successor and test its
 real export/support flows using disposable Staging accounts. GitHub remains
 explicitly deferred, not waived. No OnePlus, Store, production or provider change.

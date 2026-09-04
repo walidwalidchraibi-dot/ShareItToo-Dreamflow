@@ -4,8 +4,10 @@ WP05 privacy-export correction is locally implemented after red-first proof of
 an A dialog surviving session change. Owner-bound transport, all six local
 sections, pre-share validation and exact-route dismissal have focused evidence.
 Full normal regression is green (2,174 tools, 687 default Flutter tests plus
-profiles, analyzer, Web/Wasm, loopback and Android/R11); exact clean-checkout
-and a successor signed/device result remain pending. The
+profiles, analyzer, Web/Wasm, loopback and Android/R11). Exact clean R10 at
+`7dddc6c86161a99d72d9163aa5af08a510e9d91f` also passes, including byte-identical
+debug builds, unchanged inventories and automatic cleanup. A separately
+versioned signed successor and its device result remain pending. The
 installed0402 archive is unchanged and predates this fix. No real export,
 support submission or account mutation in this package. GitHub stays deferred.
 Current package: `docs/operations/WP05_PRIVACY_EXPORT_PRINCIPAL_2026-09-04.md`.

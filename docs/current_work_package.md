@@ -7,8 +7,10 @@ handoff to one immutable principal/epoch; exact owned dialogs preserve B routes.
 43 default focused/B10 tests, four real-HTTP-helper mock tests, 190 wiring and
 privacy validations and changed-file analysis pass. Complete normal regression
 also passes: 2,174 tools, 687 default Flutter tests plus mandatory profiles,
-analyzer zero, Web/Wasm, loopback and Android/R11. Exact clean-head proof and
-a separately versioned successor's device acceptance remain pending.
+analyzer zero, Web/Wasm, loopback and Android/R11. Exact clean R10 at
+`7dddc6c86161a99d72d9163aa5af08a510e9d91f` passes with byte-identical debug
+APKs, unchanged source inventories and successful bounded cleanup.
+A separately versioned signed successor and its device acceptance remain pending.
 See `docs/operations/WP05_PRIVACY_EXPORT_PRINCIPAL_2026-09-04.md`.
 No actual export/account mutation was performed. Frozen installed0402 is
 unchanged and does NOT contain this fix. GitHub remains deferred, not waived.
