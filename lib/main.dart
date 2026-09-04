@@ -94,7 +94,7 @@ class MyApp extends StatelessWidget {
             scaffoldMessengerKey: rootScaffoldMessengerKey,
             theme: buildLightTheme(context),
             darkTheme: buildDarkTheme(context),
-            themeMode: ThemeMode.system,
+            themeMode: backgroundTheme.themeMode,
             builder: (context, child) => ForegroundPushHost(
               navigatorKey: rootNavigatorKey,
               messengerKey: rootScaffoldMessengerKey,

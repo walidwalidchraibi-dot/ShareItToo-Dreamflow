@@ -153,7 +153,8 @@ ThemeData buildLightTheme(BuildContext context) {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: const Color(0xF5FFFFFF),
-      hintStyle: text.bodyMedium?.copyWith(color: AppTheme.textSecondary(context)),
+      hintStyle:
+          text.bodyMedium?.copyWith(color: AppTheme.textSecondary(context)),
       labelStyle: text.bodyMedium?.copyWith(color: AppTheme.textBody(context)),
       prefixIconColor: BrandColors.primary,
       suffixIconColor: AppTheme.textSecondary(context),
@@ -234,7 +235,10 @@ class AppGradientBackground extends StatelessWidget {
         Positioned.fill(
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: choice.overlayOpacity),
+              color: (choice.family == Brightness.dark
+                      ? Colors.black
+                      : Colors.white)
+                  .withValues(alpha: choice.overlayOpacity),
             ),
           ),
         ),
