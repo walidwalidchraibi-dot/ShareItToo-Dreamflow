@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+WP05 support reads/follow-ups are locally corrected: old-account results and
+errors are suppressed, invalid lists never imply empty success, public messages
+are retained, and appeal/DSA writes keep their initiating owner. Focused UI58,
+HTTP25, combined binding/wiring207 and analyzer/secret checks pass. Full normal
+regression passes:2185tools/724defaultFlutter+profiles/analyzer0/WebWasm dryrun/
+loopback/Android20s/R11. Cold and signed-device proof are not yet claimed. GitHub
+is still explicitly deferred. See
+`docs/operations/WP05_SUPPORT_CASE_READ_OWNERSHIP_2026-09-04.md`.
+
+Previous intake checkpoint:
+
 Support-intake correction is committed at `813f0580268c8474d022d38c8d38d53ba974cb63`
 with full normal regression PASS. Exact cold proof is OPEN: fresh restore and
 Backend suite/syntax passed, but npm advisory HTTP503/timeouts prevented the

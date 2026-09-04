@@ -9,7 +9,7 @@ const workflow = readFileSync('backend/src/support_appeal_workflow.js', 'utf8');
 
 test('authenticated client retains appeal receipts and submits exact case versions', () => {
   const detailStart = repository.indexOf(
-    'static Future<Map<String, dynamic>> getSupportCase(String caseId)',
+    'static Future<Map<String, dynamic>> getSupportCase(',
   );
   const submitStart = repository.indexOf(
     'static Future<Map<String, dynamic>> submitSupportAppeal',
@@ -21,6 +21,8 @@ test('authenticated client retains appeal receipts and submits exact case versio
   );
   assert.ok(detailStart >= 0 && submitStart > detailStart && end > submitStart);
   const methods = repository.slice(detailStart, end);
+  assert.match(methods, /getSupportCase\(\s*String caseId,\s*\{\s*required AuthSessionOwner owner/u);
+  assert.match(methods, /_authorizedForOwner\(\s*owner: owner/u);
   assert.match(methods, /final appeal = response\['appeal'\]/u);
   assert.match(methods, /'appeal': appeal == null/u);
   assert.match(methods, /\/support\/cases\/\$\{Uri\.encodeComponent\(caseId\)\}\/appeals/u);

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/help_center_screen.dart';
 import 'package:lendify/screens/support_cases_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'support_intake_backend_owner_test.dart' show useSession;
 
 Map<String, dynamic> _supportCase({
   String status = 'waiting_for_user',
@@ -89,6 +91,10 @@ Map<String, dynamic> _publishedDecision() => {
     };
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    await useSession('a');
+  });
   testWidgets('case list and detail show only simple user-facing status text',
       (tester) async {
     await tester.pumpWidget(MaterialApp(

@@ -1,4 +1,34 @@
-# Current Work Package: WP05 support case read/follow-up ownership
+# Current Work Package: WP05 maintained scoped Android build entrypoint
+
+Support intake and read/follow-up corrections are locally complete with full
+normal regression green; exact final cold/CI/device acceptance is not claimed.
+Next bounded prerequisite: close TD-WP05-SCOPED-SDK-INVOCATION with a maintained
+entrypoint and deterministic checks of effective Flutter SDK selection. Preserve
+global settings, original SDK packages, cache/capacity guards and all signing/
+provider boundaries. Missing/mismatching config must fail before any build;
+the documented private profile must supply the complete scoped environment
+without relying on an operator remembering extra variables.
+
+After that prerequisite, freeze one distinct successor containing both support
+corrections, and run the unchanged full exact-source cold proof there before
+signing/distribution. The previous npm advisory HTTP503/timeouts remain an OPEN
+verification dependency, never waived. No new broad app-hardening package,
+GitHub/auth/push, device, live support case, provider, Store or production change.
+See `docs/operations/WP05_SUPPORT_CASE_READ_OWNERSHIP_2026-09-04.md` and the
+SDK-debt section of `docs/operations/WP05_PIXEL_CANDIDATE_2026090403_HANDOVER.md`.
+
+Previous support correction checkpoint:
+
+The read/follow-up correction is now implemented locally. Shared immutable
+owner/epoch, strict pending/error/empty truth, all four owner-bound HTTP methods,
+preserved public messages and owned Help Center/notification navigation have
+focused proof: UI58, HTTP25, binding/wiring207, analyzer0 and secret scan PASS.
+Full normal regression passes:2185tools/724defaultFlutter+profiles/analyzer0/
+WebWasm dryrun/loopback/Android20s/R11. Exact cold proof and successor-device
+acceptance remain open. No GitHub or external/device change.
+See `docs/operations/WP05_SUPPORT_CASE_READ_OWNERSHIP_2026-09-04.md`.
+
+Previous findings checkpoint:
 
 Next bounded implementation follows four red-first P1 read results on
 `813f0580268c8474d022d38c8d38d53ba974cb63`: list, server-confirmed empty list,

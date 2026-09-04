@@ -673,11 +673,11 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "4f0ea2d7e245ae60acb5ea7d412ba3b683900f4b447b4dbd52f3b0e93a04d645"
+      "sha256": "3e9aaddf8673b76945740acc247d99e39411f2c6eed26a7b66997f7d39f91bae"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
-      "sha256": "798572d92c3aa0fdf62447dfb550ea4d000b5e4262fc629193fb9b7b6dba2aff"
+      "sha256": "1aa5ad137ab9877f239fc0bd9e494e05d3d3c5babf64f803e4af0bb44ca69169"
     },
     {
       "path": "lib/screens/moderation_admin_screen.dart",
@@ -689,7 +689,7 @@
     },
     {
       "path": "lib/screens/support_cases_screen.dart",
-      "sha256": "14d33e48b3c64fe202cf8ed2ce74cb0b112dd751229a52fb810d9075deb1ef7d"
+      "sha256": "bdd8c5f1e2823330747ab29f33849e92cdc95e77e7d2ac70e3fd7374792468fe"
     },
     {
       "path": "lib/screens/support_flow_screen.dart",

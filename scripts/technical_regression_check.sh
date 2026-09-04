@@ -958,6 +958,10 @@ flutter test --reporter expanded --test-randomize-ordering-seed=7 \
   --dart-define=SIT_BACKEND_ENABLED=true \
   --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
   test/support_intake_backend_owner_test.dart
+flutter test --reporter expanded --test-randomize-ordering-seed=7 \
+  --dart-define=SIT_BACKEND_ENABLED=true \
+  --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
+  test/support_case_backend_owner_test.dart
 # All three provider profiles are mandatory; default skips do not substitute for them.
 flutter test --reporter expanded --test-randomize-ordering-seed=7 \
   --dart-define=SIT_TEST_PROVIDER_SDK_OWNERSHIP=true \

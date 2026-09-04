@@ -41,8 +41,9 @@ test('support CTA re-fetches the case and fails closed without leaking the ident
   );
   assert.match(
     supportCases,
-    /loader\(widget\.caseId\)[\s\S]*detail\.supportCase\.id != widget\.caseId/u,
+    /BackendRepository\.getSupportCase\(widget\.caseId, owner: owner\)[\s\S]*detail\.supportCase\.id != widget\.caseId/u,
   );
+  assert.match(supportCases, /_detail = _readOwned\(\(owner\) async/u);
   assert.match(supportCases, /Support-Fall nicht verfügbar/u);
   assert.match(supportCases, /Es werden keine Falldaten angezeigt/u);
 });

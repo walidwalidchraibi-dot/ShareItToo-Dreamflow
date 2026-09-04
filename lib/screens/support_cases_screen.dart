@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 
 typedef SupportCaseListLoader = Future<List<Map<String, dynamic>>> Function();
 typedef SupportCaseDetailLoader = Future<Map<String, dynamic>> Function(
@@ -544,7 +546,103 @@ class SupportCaseDetailViewData {
   }
 }
 
+/// Every view and its follow-up forms share one immutable interaction owner.
+/// Initial loading is not an empty server result; invalidation reveals no data.
+abstract class _SupportOwnedState<W extends StatefulWidget> extends State<W> {
+  AuthSessionOwner? get expectedSupportOwner;
+  late final SupportPrincipalController _principal;
+  Route<dynamic>? _ownedRoute;
+  VoidCallback? _releaseRoute;
+
+  @override
+  void initState() {
+    super.initState();
+    _principal = SupportPrincipalController(expectedOwner: expectedSupportOwner)
+      ..addListener(_principalChanged);
+  }
+
+  void _principalChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (!identical(route, _ownedRoute)) {
+      _releaseRoute?.call();
+      _ownedRoute = route;
+      _releaseRoute = route == null ? null : _principal.trackScreenRoute(route);
+    }
+  }
+
+  Future<R> _readOwned<R>(Future<R> Function(AuthSessionOwner) load) {
+    final pending = _performOwnedRead(load);
+    // A session can disappear before the view's FutureBuilder is attached.
+    // Observe abandonment without replacing the original future or its error;
+    // an attached FutureBuilder still receives the exact failure, never [].
+    pending.ignore();
+    return pending;
+  }
+
+  Future<R> _performOwnedRead<R>(
+      Future<R> Function(AuthSessionOwner) load) async {
+    final captured = _principal.capture();
+    final epoch = AuthService.sessionEpoch;
+    // Only initial bootstrap awaits readiness. The controller itself captured
+    // the epoch before reading auth and can never adopt a successor account.
+    if (_principal.loading) await _principal.ready;
+    final owner = captured ?? _principal.capture();
+    if (owner == null ||
+        epoch != AuthService.sessionEpoch ||
+        !await _principal.isCurrent(owner)) {
+      throw StateError('support_session_not_current');
+    }
+    try {
+      final result = await load(owner);
+      if (!await _principal.isCurrent(owner)) {
+        throw StateError('support_session_not_current');
+      }
+      return result;
+    } catch (_) {
+      // Even a failed request must invalidate stale UI if its change event
+      // was missed. Rethrow preserves the original load error for current A.
+      await _principal.isCurrent(owner);
+      rethrow;
+    }
+  }
+
+  @override
+  void dispose() {
+    _principal.removeListener(_principalChanged);
+    _releaseRoute?.call();
+    _principal.dispose();
+    super.dispose();
+  }
+
+  Widget buildOwned(BuildContext context);
+
+  @override
+  Widget build(BuildContext context) {
+    if (_principal.loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_principal.capture() == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Support')),
+        body: const Center(
+            child: Text(
+          'Die Sitzung ist nicht verfügbar oder hat sich geändert. Bitte melde dich an und öffne den Support erneut.',
+          key: ValueKey('support_session_unavailable'),
+        )),
+      );
+    }
+    return buildOwned(context);
+  }
+}
+
 class SupportCasesScreen extends StatefulWidget {
+  final AuthSessionOwner? owner;
   final SupportCaseListLoader? listLoader;
   final SupportCaseDetailLoader? detailLoader;
   final SupportAppealSubmitter? appealSubmitter;
@@ -552,6 +650,7 @@ class SupportCasesScreen extends StatefulWidget {
 
   const SupportCasesScreen({
     super.key,
+    this.owner,
     this.listLoader,
     this.detailLoader,
     this.appealSubmitter,
@@ -562,7 +661,9 @@ class SupportCasesScreen extends StatefulWidget {
   State<SupportCasesScreen> createState() => _SupportCasesScreenState();
 }
 
-class _SupportCasesScreenState extends State<SupportCasesScreen> {
+class _SupportCasesScreenState extends _SupportOwnedState<SupportCasesScreen> {
+  @override
+  AuthSessionOwner? get expectedSupportOwner => widget.owner;
   late Future<List<SupportCaseViewData>> _cases;
 
   @override
@@ -572,30 +673,43 @@ class _SupportCasesScreenState extends State<SupportCasesScreen> {
   }
 
   void _reload() {
-    final loader = widget.listLoader ?? BackendRepository.getMySupportCases;
-    _cases = loader().then(
-      (items) => items.map(SupportCaseViewData.fromMap).toList(growable: false),
-    );
+    _cases = _readOwned((owner) async {
+      final items = await (widget.listLoader?.call() ??
+          BackendRepository.getMySupportCases(owner: owner));
+      return items.map(SupportCaseViewData.fromMap).toList(growable: false);
+    });
   }
 
   Future<void> _refresh() async {
     setState(_reload);
-    await _cases;
+    try {
+      await _cases;
+    } catch (_) {
+      // FutureBuilder retains the explicit load error; refresh completion
+      // does not invent a successful or empty response.
+      return;
+    }
   }
 
-  void _open(SupportCaseViewData supportCase) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => SupportCaseDetailScreen(
-        initialCase: supportCase,
-        detailLoader: widget.detailLoader,
-        appealSubmitter: widget.appealSubmitter,
-        dsaLocatorSubmitter: widget.dsaLocatorSubmitter,
-      ),
-    ));
+  Future<void> _open(SupportCaseViewData supportCase) async {
+    final owner = _principal.capture();
+    if (owner == null) return;
+    await _principal.pushOwnedRoute<void>(
+        context: context,
+        owner: owner,
+        route: MaterialPageRoute(
+          builder: (_) => SupportCaseDetailScreen(
+            owner: owner,
+            initialCase: supportCase,
+            detailLoader: widget.detailLoader,
+            appealSubmitter: widget.appealSubmitter,
+            dsaLocatorSubmitter: widget.dsaLocatorSubmitter,
+          ),
+        ));
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildOwned(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF101820),
       appBar: AppBar(
@@ -612,7 +726,10 @@ class _SupportCasesScreenState extends State<SupportCasesScreen> {
           if (snapshot.hasError) {
             return _SupportLoadError(onRetry: () => setState(_reload));
           }
-          final cases = snapshot.data ?? const <SupportCaseViewData>[];
+          final cases = snapshot.data;
+          if (cases == null) {
+            return _SupportLoadError(onRetry: () => setState(_reload));
+          }
           if (cases.isEmpty) {
             return RefreshIndicator(
               onRefresh: _refresh,
@@ -665,6 +782,7 @@ class _SupportCasesScreenState extends State<SupportCasesScreen> {
 }
 
 class SupportCaseDetailScreen extends StatefulWidget {
+  final AuthSessionOwner? owner;
   final SupportCaseViewData initialCase;
   final SupportCaseDetailLoader? detailLoader;
   final SupportAppealSubmitter? appealSubmitter;
@@ -672,6 +790,7 @@ class SupportCaseDetailScreen extends StatefulWidget {
 
   const SupportCaseDetailScreen({
     super.key,
+    this.owner,
     required this.initialCase,
     this.detailLoader,
     this.appealSubmitter,
@@ -684,11 +803,13 @@ class SupportCaseDetailScreen extends StatefulWidget {
 }
 
 class SupportCaseNotificationDestinationScreen extends StatefulWidget {
+  final AuthSessionOwner? owner;
   final String caseId;
   final SupportCaseDetailLoader? detailLoader;
 
   const SupportCaseNotificationDestinationScreen({
     super.key,
+    this.owner,
     required this.caseId,
     this.detailLoader,
   });
@@ -699,7 +820,9 @@ class SupportCaseNotificationDestinationScreen extends StatefulWidget {
 }
 
 class _SupportCaseNotificationDestinationScreenState
-    extends State<SupportCaseNotificationDestinationScreen> {
+    extends _SupportOwnedState<SupportCaseNotificationDestinationScreen> {
+  @override
+  AuthSessionOwner? get expectedSupportOwner => widget.owner;
   late Future<SupportCaseDetailViewData> _detail;
 
   @override
@@ -709,8 +832,9 @@ class _SupportCaseNotificationDestinationScreenState
   }
 
   void _reload() {
-    final loader = widget.detailLoader ?? BackendRepository.getSupportCase;
-    _detail = loader(widget.caseId).then((value) {
+    _detail = _readOwned((owner) async {
+      final value = await (widget.detailLoader?.call(widget.caseId) ??
+          BackendRepository.getSupportCase(widget.caseId, owner: owner));
       final detail = SupportCaseDetailViewData.fromMap(value);
       if (detail.supportCase.id != widget.caseId) {
         throw const FormatException('support_case_identity_mismatch');
@@ -720,7 +844,7 @@ class _SupportCaseNotificationDestinationScreenState
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildOwned(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF101820),
       appBar: AppBar(
@@ -737,12 +861,11 @@ class _SupportCaseNotificationDestinationScreenState
           if (snapshot.hasError || snapshot.data == null) {
             return _SupportNotificationUnavailable(
               onRetry: () => setState(_reload),
-              onOpenCases: () => Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const SupportCasesScreen()),
-              ),
+              onOpenCases: _openCases,
             );
           }
           return _SupportCaseDetailBody(
+            principal: _principal,
             detail: snapshot.data!,
             appealSubmitter: null,
             dsaLocatorSubmitter: null,
@@ -752,6 +875,16 @@ class _SupportCaseNotificationDestinationScreenState
         },
       ),
     );
+  }
+
+  Future<void> _openCases() async {
+    final owner = _principal.capture();
+    if (owner == null) return;
+    await _principal.pushOwnedRoute<void>(
+        context: context,
+        owner: owner,
+        route: MaterialPageRoute(
+            builder: (_) => SupportCasesScreen(owner: owner)));
   }
 }
 
@@ -810,7 +943,10 @@ class _SupportNotificationUnavailable extends StatelessWidget {
   }
 }
 
-class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
+class _SupportCaseDetailScreenState
+    extends _SupportOwnedState<SupportCaseDetailScreen> {
+  @override
+  AuthSessionOwner? get expectedSupportOwner => widget.owner;
   late Future<SupportCaseDetailViewData> _detail;
 
   @override
@@ -820,8 +956,10 @@ class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
   }
 
   void _reload() {
-    final loader = widget.detailLoader ?? BackendRepository.getSupportCase;
-    _detail = loader(widget.initialCase.id).then((value) {
+    _detail = _readOwned((owner) async {
+      final value = await (widget.detailLoader?.call(widget.initialCase.id) ??
+          BackendRepository.getSupportCase(widget.initialCase.id,
+              owner: owner));
       final detail = SupportCaseDetailViewData.fromMap(value);
       if (detail.supportCase.id != widget.initialCase.id ||
           detail.supportCase.caseNumber != widget.initialCase.caseNumber) {
@@ -832,7 +970,7 @@ class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildOwned(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF101820),
       appBar: AppBar(
@@ -850,6 +988,7 @@ class _SupportCaseDetailScreenState extends State<SupportCaseDetailScreen> {
             return _SupportLoadError(onRetry: () => setState(_reload));
           }
           return _SupportCaseDetailBody(
+            principal: _principal,
             detail: snapshot.data!,
             appealSubmitter: widget.appealSubmitter,
             dsaLocatorSubmitter: widget.dsaLocatorSubmitter,
@@ -965,6 +1104,7 @@ class _SupportCaseListCard extends StatelessWidget {
 }
 
 class _SupportCaseDetailBody extends StatelessWidget {
+  final SupportPrincipalController principal;
   final SupportCaseDetailViewData detail;
   final SupportAppealSubmitter? appealSubmitter;
   final SupportDsaLocatorSubmitter? dsaLocatorSubmitter;
@@ -972,6 +1112,7 @@ class _SupportCaseDetailBody extends StatelessWidget {
   final VoidCallback onDsaLocatorSubmitted;
 
   const _SupportCaseDetailBody({
+    required this.principal,
     required this.detail,
     required this.appealSubmitter,
     required this.dsaLocatorSubmitter,
@@ -1023,6 +1164,7 @@ class _SupportCaseDetailBody extends StatelessWidget {
         if (supportCase.needsDsaLocator) ...[
           const SizedBox(height: 12),
           _SupportDsaLocatorCard(
+            principal: principal,
             supportCase: supportCase,
             submitter: dsaLocatorSubmitter,
             onSubmitted: onDsaLocatorSubmitted,
@@ -1116,6 +1258,7 @@ class _SupportCaseDetailBody extends StatelessWidget {
         if (supportCase.appealState != 'not_applicable') ...[
           const SizedBox(height: 12),
           _SupportAppealCard(
+            principal: principal,
             supportCase: supportCase,
             appeal: detail.appeal,
             submitter: appealSubmitter,
@@ -1185,11 +1328,13 @@ class _SupportCaseDetailBody extends StatelessWidget {
 }
 
 class _SupportDsaLocatorCard extends StatefulWidget {
+  final SupportPrincipalController principal;
   final SupportCaseViewData supportCase;
   final SupportDsaLocatorSubmitter? submitter;
   final VoidCallback onSubmitted;
 
   const _SupportDsaLocatorCard({
+    required this.principal,
     required this.supportCase,
     required this.submitter,
     required this.onSubmitted,
@@ -1219,8 +1364,14 @@ class _SupportDsaLocatorCardState extends State<_SupportDsaLocatorCard> {
   }
 
   Future<void> _submit() async {
+    final owner = widget.principal.capture();
     final locator = _locator.text.trim();
-    if (_submitting || locator.length < 3 || locator.length > 2000) return;
+    if (owner == null ||
+        _submitting ||
+        locator.length < 3 ||
+        locator.length > 2000) {
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -1228,22 +1379,24 @@ class _SupportDsaLocatorCardState extends State<_SupportDsaLocatorCard> {
     final submitter = widget.submitter ??
         (caseId, value, version, key) =>
             BackendRepository.completeSupportDsaNoticeLocator(
+              owner: owner,
               caseId: caseId,
               contentLocator: value,
               expectedVersion: version,
               idempotencyKey: key,
             );
     try {
+      if (!await widget.principal.isCurrent(owner) || !mounted) return;
       await submitter(
         widget.supportCase.id,
         locator,
         widget.supportCase.version,
         _idempotencyKey,
       );
-      if (!mounted) return;
+      if (!await widget.principal.isCurrent(owner) || !mounted) return;
       widget.onSubmitted();
     } catch (_) {
-      if (!mounted) return;
+      if (!await widget.principal.isCurrent(owner) || !mounted) return;
       setState(() {
         _error = 'Der Fundort konnte nicht sicher bestätigt werden. Nutze '
             'eine vollständige http(s)-URL oder eine passende Referenz.';
@@ -1312,12 +1465,14 @@ class _SupportDsaLocatorCardState extends State<_SupportDsaLocatorCard> {
 }
 
 class _SupportAppealCard extends StatefulWidget {
+  final SupportPrincipalController principal;
   final SupportCaseViewData supportCase;
   final SupportAppealViewData? appeal;
   final SupportAppealSubmitter? submitter;
   final VoidCallback onSubmitted;
 
   const _SupportAppealCard({
+    required this.principal,
     required this.supportCase,
     required this.appeal,
     required this.submitter,
@@ -1348,30 +1503,38 @@ class _SupportAppealCardState extends State<_SupportAppealCard> {
   }
 
   Future<void> _submit() async {
+    final owner = widget.principal.capture();
     final grounds = _grounds.text.trim();
-    if (_submitting || grounds.length < 3 || grounds.length > 8000) return;
+    if (owner == null ||
+        _submitting ||
+        grounds.length < 3 ||
+        grounds.length > 8000) {
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
     });
     final submitter = widget.submitter ??
         (caseId, reason, version, key) => BackendRepository.submitSupportAppeal(
+              owner: owner,
               caseId: caseId,
               grounds: reason,
               expectedVersion: version,
               idempotencyKey: key,
             );
     try {
+      if (!await widget.principal.isCurrent(owner) || !mounted) return;
       await submitter(
         widget.supportCase.id,
         grounds,
         widget.supportCase.version,
         _idempotencyKey,
       );
-      if (!mounted) return;
+      if (!await widget.principal.isCurrent(owner) || !mounted) return;
       widget.onSubmitted();
     } catch (_) {
-      if (!mounted) return;
+      if (!await widget.principal.isCurrent(owner) || !mounted) return;
       setState(() {
         _error =
             'Der Antrag konnte nicht sicher bestätigt werden. Bitte erneut versuchen.';

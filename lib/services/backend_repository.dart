@@ -1556,13 +1556,20 @@ class BackendRepository {
     return Map<String, dynamic>.from(history);
   }
 
-  static Future<List<Map<String, dynamic>>> getMySupportCases() async {
-    final response = await _authorized(method: 'GET', path: '/support/cases');
-    return _maps(response['supportCases']);
+  static Future<List<Map<String, dynamic>>> getMySupportCases({
+    required AuthSessionOwner owner,
+  }) async {
+    final response = await _authorizedForOwner(
+        owner: owner, method: 'GET', path: '/support/cases');
+    return _strictMaps(response['supportCases']);
   }
 
-  static Future<Map<String, dynamic>> getSupportCase(String caseId) async {
-    final response = await _authorized(
+  static Future<Map<String, dynamic>> getSupportCase(
+    String caseId, {
+    required AuthSessionOwner owner,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'GET',
       path: '/support/cases/${Uri.encodeComponent(caseId)}',
     );
@@ -1570,6 +1577,7 @@ class BackendRepository {
     final finalDecision = response['finalDecision'];
     final appeal = response['appeal'];
     final events = response['events'];
+    final messages = response['messages'];
     if (supportCase is! Map ||
         (finalDecision != null && finalDecision is! Map) ||
         (appeal != null && appeal is! Map) ||
@@ -1583,17 +1591,20 @@ class BackendRepository {
           ? null
           : Map<String, dynamic>.from(finalDecision),
       'appeal': appeal == null ? null : Map<String, dynamic>.from(appeal),
-      'events': _maps(events),
+      'events': _strictMaps(events),
+      'messages': _strictMaps(messages),
     };
   }
 
   static Future<Map<String, dynamic>> completeSupportDsaNoticeLocator({
+    required AuthSessionOwner owner,
     required String caseId,
     required String contentLocator,
     required int expectedVersion,
     required String idempotencyKey,
   }) async {
-    final response = await _authorized(
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/support/cases/${Uri.encodeComponent(caseId)}/dsa-locator',
       body: {
@@ -1610,12 +1621,14 @@ class BackendRepository {
   }
 
   static Future<Map<String, dynamic>> submitSupportAppeal({
+    required AuthSessionOwner owner,
     required String caseId,
     required String grounds,
     required int expectedVersion,
     required String idempotencyKey,
   }) async {
-    final response = await _authorized(
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/support/cases/${Uri.encodeComponent(caseId)}/appeals',
       body: {

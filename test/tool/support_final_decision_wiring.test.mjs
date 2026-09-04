@@ -7,7 +7,7 @@ const regression = readFileSync('scripts/technical_regression_check.sh', 'utf8')
 
 test('authenticated support detail preserves the final-decision contract', () => {
   const start = repository.indexOf(
-    'static Future<Map<String, dynamic>> getSupportCase(String caseId)',
+    'static Future<Map<String, dynamic>> getSupportCase(',
   );
   const end = repository.indexOf(
     'static Future<Map<String, dynamic>> createBookingReview',
@@ -15,6 +15,8 @@ test('authenticated support detail preserves the final-decision contract', () =>
   );
   assert.ok(start >= 0 && end > start, 'support detail repository method');
   const method = repository.slice(start, end);
+  assert.match(method, /getSupportCase\(\s*String caseId,\s*\{\s*required AuthSessionOwner owner/u);
+  assert.match(method, /_authorizedForOwner\(\s*owner: owner/u);
   assert.match(method, /final finalDecision = response\['finalDecision'\]/u);
   assert.match(method, /finalDecision != null && finalDecision is! Map/u);
   assert.match(method, /'finalDecision': finalDecision == null/u);

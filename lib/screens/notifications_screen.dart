@@ -23,6 +23,7 @@ import 'package:lendify/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/identity_verification_unavailable.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/support_principal_controller.dart';
 
 class NotificationsScreen extends StatefulWidget {
   /// Optional: open the notifications screen already filtered to one category.
@@ -130,6 +131,7 @@ String _deriveSitCategory(Map<String, dynamic> notification) {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  final _supportPrincipal = SupportPrincipalController();
   _NotifFilter _filter = _NotifFilter.all;
   bool _loading = true;
   bool _loadFailed = false;
@@ -144,6 +146,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   void dispose() {
+    _supportPrincipal.dispose();
     _persistenceSubscription?.cancel();
     _refreshCoordinator.dispose();
     _scrollController.dispose();
@@ -352,6 +355,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _handleNotificationCta(Map<String, dynamic> n) async {
+    final supportOwner = _supportPrincipal.capture();
     final uid = _currentUserId;
     if (uid == null || !mounted) return;
 
@@ -474,13 +478,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
 
       if (sitCategory == 'support') {
-        if (!mounted) return;
+        if (supportOwner == null ||
+            uid != supportOwner.userId ||
+            !await _supportPrincipal.isCurrent(supportOwner) ||
+            !mounted) {
+          return;
+        }
         if (entityType == 'support' &&
             entityId.isNotEmpty &&
             !entityId.startsWith('mock')) {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
+          await _supportPrincipal.pushOwnedRoute<void>(
+            context: context,
+            owner: supportOwner,
+            route: MaterialPageRoute(
               builder: (_) => SupportCaseNotificationDestinationScreen(
+                owner: supportOwner,
                 caseId: entityId,
               ),
             ),
@@ -488,8 +500,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           return;
         }
         if (!mounted) return;
-        await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const SupportCasesScreen()));
+        await _supportPrincipal.pushOwnedRoute<void>(
+            context: context,
+            owner: supportOwner,
+            route: MaterialPageRoute(
+                builder: (_) => SupportCasesScreen(owner: supportOwner)));
         return;
       }
 

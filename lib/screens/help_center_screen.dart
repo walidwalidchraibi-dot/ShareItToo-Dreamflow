@@ -902,9 +902,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   Future<void> _openSupportCases() async {
+    final owner = _supportPrincipal.capture();
+    if (_supportPrincipal.loading || _supportPrincipal.invalidated) return;
     final hasSession = await (widget.sessionCheck?.call() ??
         AuthService.readSession().then((session) => session != null));
-    if (!mounted) return;
+    if (!mounted || _supportPrincipal.invalidated) return;
     if (!hasSession) {
       await showGuestRestrictionSheet(
         context,
@@ -922,12 +924,19 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
       );
       return;
     }
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => SupportCasesScreen(
-        listLoader: widget.caseListLoader,
-        detailLoader: widget.caseDetailLoader,
-      ),
-    ));
+    if (owner == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+      return;
+    }
+    await _supportPrincipal.pushOwnedRoute<void>(
+        context: context,
+        owner: owner,
+        route: MaterialPageRoute(
+          builder: (_) => SupportCasesScreen(
+            owner: owner,
+            listLoader: widget.caseListLoader,
+            detailLoader: widget.caseDetailLoader,
+          ),
+        ));
   }
 
   Future<void> _openModerationDecisions() async {
