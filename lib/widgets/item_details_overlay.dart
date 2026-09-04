@@ -21,6 +21,8 @@ import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/saved_cart_intent.dart';
+import 'package:lendify/widgets/saved_cart_action_scope.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
@@ -76,21 +78,27 @@ class ItemDetailsOverlay {
     bool fresh = false,
     bool isOwnerPreview = false,
     String? overrideAppBarTitle,
+    SavedCartActionScope? savedCartScope,
   }) async {
+    if (savedCartScope != null && !await savedCartScope.isCurrent()) return;
+    if (!context.mounted) return;
     final userFuture =
         owner != null ? Future.value(owner) : _loadOwner(item.ownerId);
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => _ItemDetailsPage(
-          item: item,
-          ownerFuture: userFuture,
-          editRequestId: editRequestId,
-          fresh: fresh,
-          isOwnerPreview: isOwnerPreview,
-          overrideAppBarTitle: overrideAppBarTitle,
-        ),
+    final route = MaterialPageRoute<void>(
+      builder: (_) => _ItemDetailsPage(
+        item: item,
+        ownerFuture: userFuture,
+        editRequestId: editRequestId,
+        fresh: fresh,
+        isOwnerPreview: isOwnerPreview,
+        overrideAppBarTitle: overrideAppBarTitle,
       ),
     );
+    if (savedCartScope != null) {
+      await savedCartScope.push<void>(context, route);
+    } else {
+      await Navigator.of(context).push<void>(route);
+    }
   }
 
   static Future<model.User?> _loadOwner(String id) async {
@@ -3047,29 +3055,7 @@ Future<void> _storeRentalCartIntent(
     await _showOwnerPreviewBlockPopup(context);
     return;
   }
-  try {
-    final cart = await DataService.addRentalCartItem(item: item, range: range);
-    if (!context.mounted) return;
-    final saved = cart.items.isNotEmpty;
-    await AppPopup.toast(
-      context,
-      icon: saved ? Icons.shopping_bag_outlined : Icons.error_outline,
-      title: saved
-          ? 'Im Mietkorb – noch nicht reserviert'
-          : 'Mietkorb konnte nicht aktualisiert werden',
-      message: saved
-          ? 'Preis und Verfügbarkeit werden vor der Anfrage erneut geprüft.'
-          : null,
-    );
-  } catch (error) {
-    if (!context.mounted) return;
-    await AppPopup.toast(
-      context,
-      icon: Icons.error_outline,
-      title: 'Mietkorb konnte nicht aktualisiert werden',
-      message: 'Es wurde keine Reservierung erstellt.',
-    );
-  }
+  await saveListingToRentalCart(context, item: item, range: range);
 }
 
 Future<void> _showUnavailablePopup(BuildContext context) async {

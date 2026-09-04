@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import 'backend_config.dart';
 import 'backend_http.dart';
+import 'local_principal_scope.dart';
 
 class BackendRepository {
   static String? _staffStepUpToken;
@@ -288,6 +289,39 @@ class BackendRepository {
         if (id.isNotEmpty) byId[id] = listing;
       }
     }
+    return byId.values.toList();
+  }
+
+  /// Saved-cart prerequisite read: never adopt B's private listings or refresh
+  /// B after an A request. This does not change the general catalog API.
+  static Future<List<Map<String, dynamic>>> getListingsForSavedCart(
+    LocalPrincipalActionOwner owner,
+  ) async {
+    await owner.assertCurrent();
+    final response = await BackendHttp.requestJson(
+      method: 'GET',
+      path: '/listings?sort=newest&limit=100',
+    );
+    await owner.assertCurrent();
+    final byId = <String, Map<String, dynamic>>{
+      for (final listing in _strictMaps(response['listings']))
+        if ((listing['id']?.toString() ?? '').isNotEmpty)
+          listing['id'].toString(): listing,
+    };
+    final session = owner.sessionOwner;
+    if (session != null) {
+      final mine = await _authorizedForOwner(
+        owner: session,
+        method: 'GET',
+        path: '/listings/mine',
+      );
+      await owner.assertCurrent();
+      for (final listing in _strictMaps(mine['listings'])) {
+        final id = listing['id']?.toString() ?? '';
+        if (id.isNotEmpty) byId[id] = listing;
+      }
+    }
+    await owner.assertCurrent();
     return byId.values.toList();
   }
 
@@ -885,6 +919,29 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['cart'] as Map);
   }
 
+  static Map<String, dynamic> _savedCartResponse(
+      Map<String, dynamic> response) {
+    final raw = response['cart'];
+    if (raw is! Map) throw const FormatException('Expected a confirmed cart.');
+    final cart = Map<String, dynamic>.from(raw);
+    for (final key in ['projects', 'items']) {
+      final entries = _strictMaps(cart[key]);
+      final ids = <String>{};
+      for (final entry in entries) {
+        final id = entry['id'];
+        final label = entry[key == 'projects' ? 'title' : 'listingId'];
+        if (id is! String ||
+            id.trim().isEmpty ||
+            !ids.add(id) ||
+            label is! String ||
+            label.trim().isEmpty) {
+          throw const FormatException('Invalid confirmed cart entry.');
+        }
+      }
+    }
+    return cart;
+  }
+
   static Future<Map<String, dynamic>> getRentalCartForOwner(
     AuthSessionOwner owner,
   ) async {
@@ -893,7 +950,7 @@ class BackendRepository {
       method: 'GET',
       path: '/rental-cart',
     );
-    return Map<String, dynamic>.from(response['cart'] as Map);
+    return _savedCartResponse(response);
   }
 
   static Future<Map<String, dynamic>> putRentalCartProject({
@@ -922,6 +979,18 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['cart'] as Map);
   }
 
+  static Future<Map<String, dynamic>> deleteRentalCartProjectForOwner({
+    required AuthSessionOwner owner,
+    required String id,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'DELETE',
+      path: '/rental-cart/projects/${Uri.encodeComponent(id)}',
+    );
+    return _savedCartResponse(response);
+  }
+
   static Future<Map<String, dynamic>> putRentalCartProjectForOwner({
     required AuthSessionOwner owner,
     required String id,
@@ -939,7 +1008,7 @@ class BackendRepository {
         'sortOrder': sortOrder,
       },
     );
-    return Map<String, dynamic>.from(response['cart'] as Map);
+    return _savedCartResponse(response);
   }
 
   static Future<Map<String, dynamic>> putRentalCartItemForOwner({
@@ -963,7 +1032,7 @@ class BackendRepository {
         'sortOrder': sortOrder,
       },
     );
-    return Map<String, dynamic>.from(response['cart'] as Map);
+    return _savedCartResponse(response);
   }
 
   static Future<Map<String, dynamic>> putRentalCartItem({
@@ -1002,6 +1071,29 @@ class BackendRepository {
       path: '/rental-cart/recheck',
     );
     return Map<String, dynamic>.from(response['cart'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> deleteRentalCartItemForOwner({
+    required AuthSessionOwner owner,
+    required String id,
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'DELETE',
+      path: '/rental-cart/items/${Uri.encodeComponent(id)}',
+    );
+    return _savedCartResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> recheckRentalCartForOwner(
+    AuthSessionOwner owner,
+  ) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path: '/rental-cart/recheck',
+    );
+    return _savedCartResponse(response);
   }
 
   static Future<Map<String, dynamic>> createBooking(

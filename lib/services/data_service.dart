@@ -431,8 +431,18 @@ class DataService {
   static int get maxLocalUsersForTesting => _maxLocalUsers;
 
   static Future<T> _runWishlistForCurrentPrincipal<T>(
-    Future<T> Function(LocalPrincipalIdentity principal) operation,
-  ) async {
+    Future<T> Function(LocalPrincipalIdentity principal) operation, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    if (expectedOwner != null) {
+      await expectedOwner.assertCurrent();
+      return _wishlistMutationQueue.run(() async {
+        await expectedOwner.assertCurrent();
+        final result = await operation(expectedOwner.principal);
+        await expectedOwner.assertCurrent();
+        return result;
+      });
+    }
     final principal = await _currentLocalPrincipal();
     return _wishlistMutationQueue.run(() => operation(principal));
   }
@@ -5297,12 +5307,6 @@ class DataService {
     return pending.isEmpty || (current.isNotEmpty && pending == current);
   }
 
-  static Future<void> _syncCompatibleGuestCartForCurrentSession() async {
-    final session = await AuthService.readSession();
-    if (session == null) return;
-    await syncGuestRentalCartAfterAuthentication();
-  }
-
   static Future<_LocalRentalCartBucket> _assertReadableLocalRentalCart(
     LocalPrincipalIdentity principal,
   ) async {
@@ -5485,20 +5489,40 @@ class DataService {
     required Item item,
     required DateTimeRange range,
     String? projectId,
+    LocalPrincipalActionOwner? expectedOwner,
   }) async {
-    final principal = await _currentLocalPrincipal();
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
+    final principal = owner.principal;
     final id = _rentalCartClientId('cartitem');
-    if (await _hasBackendSession()) {
-      await _syncCompatibleGuestCartForCurrentSession();
-      return RentalCart.fromJson(await BackendRepository.putRentalCartItem(
+    if (BackendConfig.enabled &&
+        !QaRuntimeService.isEnabled &&
+        owner.sessionOwner != null) {
+      await syncGuestRentalCartAfterAuthentication(expectedOwner: owner);
+      await owner.assertCurrent();
+      final next =
+          RentalCart.fromJson(await BackendRepository.putRentalCartItemForOwner(
+        owner: owner.sessionOwner!,
         id: id,
         listingId: item.id,
         startDate: _rentalDate(range.start),
         endDate: _rentalDate(range.end),
         projectId: projectId,
       ));
+      await owner.assertCurrent();
+      if (!next.items.any((entry) =>
+          entry.id == id &&
+          entry.listingId == item.id &&
+          _rentalDate(entry.startDate) == _rentalDate(range.start) &&
+          _rentalDate(entry.endDate) == _rentalDate(range.end) &&
+          entry.projectId == projectId)) {
+        throw StateError(
+            'Speichern des Mietkorb-Artikels konnte nicht bestätigt werden.');
+      }
+      return next;
     }
     return _rentalCartMutationQueue.run(() async {
+      await owner.assertCurrent();
       final cart = (await _assertReadableLocalRentalCart(principal)).cart;
       if (cart.items.length >= 100) {
         throw StateError('Der Mietkorb kann höchstens 100 Artikel enthalten.');
@@ -5522,19 +5546,32 @@ class DataService {
           ),
         ],
       );
+      await owner.assertCurrent();
       await _writeLocalRentalCart(principal, next);
+      await owner.assertCurrent();
       return next;
     });
   }
 
-  static Future<RentalCart> removeRentalCartItem(String id) async {
-    final principal = await _currentLocalPrincipal();
-    if (await _hasBackendSession()) {
-      return RentalCart.fromJson(
-        await BackendRepository.deleteRentalCartItem(id),
+  static Future<RentalCart> removeRentalCartItem(
+    String id, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
+    final principal = owner.principal;
+    if (BackendConfig.enabled &&
+        !QaRuntimeService.isEnabled &&
+        owner.sessionOwner != null) {
+      final next = RentalCart.fromJson(
+        await BackendRepository.deleteRentalCartItemForOwner(
+            owner: owner.sessionOwner!, id: id),
       );
+      await owner.assertCurrent();
+      return next;
     }
     return _rentalCartMutationQueue.run(() async {
+      await owner.assertCurrent();
       final cart = (await _assertReadableLocalRentalCart(principal)).cart;
       final next = RentalCart(
         revision: cart.revision + 1,
@@ -5543,7 +5580,9 @@ class DataService {
         projects: cart.projects,
         items: cart.items.where((item) => item.id != id).toList(),
       );
+      await owner.assertCurrent();
       await _writeLocalRentalCart(principal, next);
+      await owner.assertCurrent();
       return next;
     });
   }
@@ -5684,14 +5723,25 @@ class DataService {
     });
   }
 
-  static Future<RentalCart> removeRentalCartProject(String id) async {
-    final principal = await _currentLocalPrincipal();
-    if (await _hasBackendSession()) {
-      return RentalCart.fromJson(
-        await BackendRepository.deleteRentalCartProject(id),
+  static Future<RentalCart> removeRentalCartProject(
+    String id, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
+    final principal = owner.principal;
+    if (BackendConfig.enabled &&
+        !QaRuntimeService.isEnabled &&
+        owner.sessionOwner != null) {
+      final next = RentalCart.fromJson(
+        await BackendRepository.deleteRentalCartProjectForOwner(
+            owner: owner.sessionOwner!, id: id),
       );
+      await owner.assertCurrent();
+      return next;
     }
     return _rentalCartMutationQueue.run(() async {
+      await owner.assertCurrent();
       final cart = (await _assertReadableLocalRentalCart(principal)).cart;
       final next = RentalCart(
         revision: cart.revision + 1,
@@ -5715,26 +5765,42 @@ class DataService {
                 : item)
             .toList(),
       );
+      await owner.assertCurrent();
       await _writeLocalRentalCart(principal, next);
+      await owner.assertCurrent();
       return next;
     });
   }
 
-  static Future<RentalCart> recheckRentalCart() async {
-    final principal = await _currentLocalPrincipal();
-    if (await _hasBackendSession()) {
-      await _syncCompatibleGuestCartForCurrentSession();
-      return RentalCart.fromJson(await BackendRepository.recheckRentalCart());
+  static Future<RentalCart> recheckRentalCart({
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
+    final principal = owner.principal;
+    if (BackendConfig.enabled &&
+        !QaRuntimeService.isEnabled &&
+        owner.sessionOwner != null) {
+      await syncGuestRentalCartAfterAuthentication(expectedOwner: owner);
+      await owner.assertCurrent();
+      final next = RentalCart.fromJson(
+          await BackendRepository.recheckRentalCartForOwner(
+              owner.sessionOwner!));
+      await owner.assertCurrent();
+      return next;
     }
     return _rentalCartMutationQueue.run(() async {
+      await owner.assertCurrent();
       final cart = (await _assertReadableLocalRentalCart(principal)).cart;
       final checked = <RentalCartItem>[];
       for (final item in cart.items) {
+        await owner.assertCurrent();
         final available = await checkAvailability(
           itemId: item.listingId,
           start: item.startDate,
           end: item.endDate,
         );
+        await owner.assertCurrent();
         checked.add(RentalCartItem(
           id: item.id,
           listingId: item.listingId,
@@ -5755,7 +5821,9 @@ class DataService {
         projects: cart.projects,
         items: checked,
       );
+      await owner.assertCurrent();
       await _writeLocalRentalCart(principal, next);
+      await owner.assertCurrent();
       return next;
     });
   }
@@ -6489,8 +6557,10 @@ class DataService {
   static Future<_LocalWishlistState> _writeWishlistState(
     SharedPreferences prefs,
     LocalPrincipalIdentity principal,
-    _LocalWishlistState state,
-  ) async {
+    _LocalWishlistState state, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    if (expectedOwner != null) await expectedOwner.assertCurrent();
     _validateWishlistAssignmentTargets(state.assignments, state.lists);
     final revision = max(1, state.revision);
     final registry = _readWishlistRegistry(prefs);
@@ -6586,8 +6656,10 @@ class DataService {
 
   static Future<_LocalWishlistState> _readWishlistStateWithDefaults(
     SharedPreferences prefs,
-    LocalPrincipalIdentity principal,
-  ) async {
+    LocalPrincipalIdentity principal, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    if (expectedOwner != null) await expectedOwner.assertCurrent();
     var state = _readWishlistState(prefs, principal);
     final addedDefaults = _addDefaultWishlists(state.lists);
     _validateWishlistAssignmentTargets(state.assignments, state.lists);
@@ -6601,20 +6673,24 @@ class DataService {
           assignments: state.assignments,
           savedItemIds: state.savedItemIds,
         ),
+        expectedOwner: expectedOwner,
       );
     }
     return state;
   }
 
   /// Returns all wishlists, with system lists first in the canonical order.
-  static Future<List<Map<String, dynamic>>> getWishlists() async {
+  static Future<List<Map<String, dynamic>>> getWishlists({
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     final out = await _runWishlistForCurrentPrincipal((principal) async {
       final prefs = await SharedPreferences.getInstance();
-      final state = await _readWishlistStateWithDefaults(prefs, principal);
+      final state = await _readWishlistStateWithDefaults(prefs, principal,
+          expectedOwner: expectedOwner);
       return state.lists
           .map((entry) => Map<String, dynamic>.from(entry))
           .toList();
-    });
+    }, expectedOwner: expectedOwner);
     // Sort: system first in order soon, later, again; then custom by name
     out.sort((a, b) {
       final as = a['system'] == true;
@@ -6637,7 +6713,10 @@ class DataService {
   }
 
   /// Adds a new custom wishlist with the provided [name]. Returns the new id.
-  static Future<String> addCustomWishlist(String name) async {
+  static Future<String> addCustomWishlist(
+    String name, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     final normalized = name.trim();
     if (normalized.isEmpty || normalized.length > 120) {
       throw ArgumentError.value(name, 'name', 'Ungültiger Merklistenname');
@@ -6658,13 +6737,17 @@ class DataService {
           assignments: state.assignments,
           savedItemIds: state.savedItemIds,
         ),
+        expectedOwner: expectedOwner,
       );
       return id;
-    });
+    }, expectedOwner: expectedOwner);
   }
 
   /// Deletes a custom wishlist by id (no-op for system lists). Also clears its assignments.
-  static Future<void> deleteCustomWishlist(String id) async {
+  static Future<void> deleteCustomWishlist(
+    String id, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     if (id == wlSoonId || id == wlLaterId || id == wlAgainId) {
       return; // cannot delete system
     }
@@ -6686,14 +6769,16 @@ class DataService {
           assignments: state.assignments,
           savedItemIds: state.savedItemIds,
         ),
+        expectedOwner: expectedOwner,
       );
-    });
+    }, expectedOwner: expectedOwner);
   }
 
   /// Renames a custom wishlist. No-op for system lists.
   static Future<void> renameCustomWishlist({
     required String id,
     required String newName,
+    LocalPrincipalActionOwner? expectedOwner,
   }) async {
     if (id == wlSoonId || id == wlLaterId || id == wlAgainId) {
       return; // cannot rename system
@@ -6731,22 +6816,31 @@ class DataService {
             assignments: state.assignments,
             savedItemIds: state.savedItemIds,
           ),
+          expectedOwner: expectedOwner,
         );
       }
-    });
+    }, expectedOwner: expectedOwner);
   }
 
   /// Returns the wishlist id the item currently belongs to, or null.
-  static Future<String?> getWishlistForItem(String itemId) async {
+  static Future<String?> getWishlistForItem(
+    String itemId, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     return _runWishlistForCurrentPrincipal((principal) async {
       final prefs = await SharedPreferences.getInstance();
-      final state = await _readWishlistStateWithDefaults(prefs, principal);
+      final state = await _readWishlistStateWithDefaults(prefs, principal,
+          expectedOwner: expectedOwner);
       return state.assignments[itemId];
-    });
+    }, expectedOwner: expectedOwner);
   }
 
   /// Assigns an item to a wishlist (one list at a time).
-  static Future<void> setItemWishlist(String itemId, String listId) async {
+  static Future<void> setItemWishlist(
+    String itemId,
+    String listId, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     if (itemId.trim().isEmpty || listId.trim().isEmpty) {
       throw ArgumentError('Item and saved-list IDs must not be empty.');
     }
@@ -6768,12 +6862,16 @@ class DataService {
           assignments: state.assignments,
           savedItemIds: state.savedItemIds,
         ),
+        expectedOwner: expectedOwner,
       );
-    });
+    }, expectedOwner: expectedOwner);
   }
 
   /// Removes an item from any wishlist.
-  static Future<void> removeItemFromWishlist(String itemId) async {
+  static Future<void> removeItemFromWishlist(
+    String itemId, {
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     await _runWishlistForCurrentPrincipal((principal) async {
       final prefs = await SharedPreferences.getInstance();
       final state = _readWishlistState(prefs, principal);
@@ -6789,20 +6887,26 @@ class DataService {
             assignments: state.assignments,
             savedItemIds: state.savedItemIds,
           ),
+          expectedOwner: expectedOwner,
         );
       }
-    });
+    }, expectedOwner: expectedOwner);
   }
 
   /// Returns items grouped by wishlist id.
-  static Future<Map<String, List<Item>>> getItemsByWishlist() async {
+  static Future<Map<String, List<Item>>> getItemsByWishlist({
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
     final Map<String, List<Item>> out = {};
-    final items = await getItems();
+    final items = expectedOwner == null
+        ? await getItems()
+        : await _getSavedCartItemsForOwner(expectedOwner);
     final map = await _runWishlistForCurrentPrincipal((principal) async {
       final prefs = await SharedPreferences.getInstance();
-      final state = await _readWishlistStateWithDefaults(prefs, principal);
+      final state = await _readWishlistStateWithDefaults(prefs, principal,
+          expectedOwner: expectedOwner);
       return Map<String, String>.from(state.assignments);
-    });
+    }, expectedOwner: expectedOwner);
     for (final it in items) {
       final id = map[it.id] ?? '';
       if (id.isEmpty) continue;
@@ -9103,6 +9207,30 @@ class DataService {
   }
 
   // Quick helpers
+  /// The saved-cart flow must not write an A-specific catalog read to the
+  /// device-global catalog cache or continue its prerequisite read as B.
+  static Future<List<Item>> _getSavedCartItemsForOwner(
+    LocalPrincipalActionOwner owner,
+  ) async {
+    await owner.assertCurrent();
+    final items = BackendConfig.enabled && !QaRuntimeService.isEnabled
+        ? _decodeListingsStrict(
+            jsonEncode(await BackendRepository.getListingsForSavedCart(owner)))
+        : await getItems();
+    await owner.assertCurrent();
+    return items;
+  }
+
+  static Future<Item?> getItemByIdForSavedCart(String id,
+      {required LocalPrincipalActionOwner expectedOwner}) async {
+    final items = await _getSavedCartItemsForOwner(expectedOwner);
+    await expectedOwner.assertCurrent();
+    for (final item in items) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
   static Future<Item?> getItemById(String id) async {
     final items = await getItems();
     try {

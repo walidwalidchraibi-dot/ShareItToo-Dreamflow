@@ -13,7 +13,6 @@ import 'package:lendify/screens/closed_pilot_planner_screen.dart';
 import 'package:lendify/screens/closed_pilot_listing_set_discovery_screen.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/private_pilot_checkout_screen.dart';
-import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/local_principal_scope.dart';
@@ -25,6 +24,7 @@ import 'package:lendify/widgets/local_state_error_panel.dart';
 import 'package:lendify/widgets/wishlist_mosaic_card.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/tracked_dialog_route.dart';
+import 'package:lendify/widgets/saved_cart_action_scope.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/theme.dart';
 
@@ -74,6 +74,21 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   TrackedDialogRouteHandle<void>? _projectNotice;
   TrackedDialogRouteHandle<String>? _assignmentSheet;
   final Set<TrackedDialogRouteHandle<void>> _assignmentNotices = {};
+  final Set<SavedCartActionScope> _cartActions = {};
+  SavedCartActionScope? _openingCartItem;
+
+  SavedCartActionScope? _beginCartAction() {
+    final owner = _snapshotOwner;
+    if (owner == null || !owner.isCurrentEpoch || !mounted) return null;
+    final action = SavedCartActionScope(owner, isMounted: () => mounted);
+    _cartActions.add(action);
+    return action;
+  }
+
+  void _endCartAction(SavedCartActionScope action) {
+    _cartActions.remove(action);
+    action.dispose();
+  }
 
   @override
   void initState() {
@@ -82,6 +97,10 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
       if (key == SharedPersistenceSync.accountSecurityStateKey) {
         _principalGeneration++;
         _snapshotOwner = null;
+        for (final action in _cartActions.toList()) {
+          action.invalidate();
+        }
+        _openingCartItem = null;
         _projectDraft?.dismiss();
         _projectNotice?.dismiss();
         final assignment = _assignmentSheet;
@@ -96,6 +115,9 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
             _lists = [];
             _itemsByList = {};
             _rentalCart = const RentalCart(localDeviceOnly: true);
+            _busyCartItemId = null;
+            _loadErrorTitle = null;
+            _loadErrorMessage = null;
           });
         }
       }
@@ -111,6 +133,10 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
 
   @override
   void dispose() {
+    for (final action in _cartActions.toList()) {
+      action.dispose();
+    }
+    _cartActions.clear();
     _refreshCoordinator.dispose();
     _savedStateSubscription?.cancel();
     final draft = _projectDraft;
@@ -137,8 +163,8 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
     try {
       owner = await LocalPrincipalActionOwner.capture();
       final results = await Future.wait<Object>(<Future<Object>>[
-        DataService.getWishlists(),
-        DataService.getItemsByWishlist(),
+        DataService.getWishlists(expectedOwner: owner),
+        DataService.getItemsByWishlist(expectedOwner: owner),
         DataService.getRentalCart(expectedOwner: owner),
       ]);
       if (!mounted ||
@@ -231,45 +257,48 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   }
 
   Future<void> _recheckCart() async {
-    try {
-      final cart = await DataService.recheckRentalCart();
-      if (mounted) setState(() => _rentalCart = cart);
-    } catch (error) {
-      if (!mounted) return;
-      await AppPopup.toast(
-        context,
-        icon: Icons.cloud_off_outlined,
-        title: 'Prüfung gerade nicht möglich',
-        message: 'Dein Mietkorb bleibt gespeichert.',
-      );
-    }
+    await _changeCart(
+      (owner) => DataService.recheckRentalCart(expectedOwner: owner),
+      'Prüfung gerade nicht möglich',
+    );
   }
 
   Future<void> _removeCartItem(String id) async {
-    try {
-      final cart = await DataService.removeRentalCartItem(id);
-      if (mounted) setState(() => _rentalCart = cart);
-    } catch (error) {
-      if (!mounted) return;
-      await AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title: 'Artikel konnte nicht entfernt werden',
-      );
-    }
+    await _changeCart(
+      (owner) => DataService.removeRentalCartItem(id, expectedOwner: owner),
+      'Entfernen des Artikels konnte nicht bestätigt werden',
+    );
   }
 
   Future<void> _removeProject(String id) async {
+    await _changeCart(
+      (owner) => DataService.removeRentalCartProject(id, expectedOwner: owner),
+      'Entfernen des Projekts konnte nicht bestätigt werden',
+    );
+  }
+
+  Future<void> _changeCart(
+    Future<RentalCart> Function(LocalPrincipalActionOwner owner) change,
+    String errorTitle,
+  ) async {
+    final action = _beginCartAction();
+    if (action == null) return;
     try {
-      final cart = await DataService.removeRentalCartProject(id);
-      if (mounted) setState(() => _rentalCart = cart);
+      if (!await action.isCurrent()) return;
+      final cart = await change(action.owner);
+      if (!await action.isCurrent()) return;
+      setState(() => _rentalCart = cart);
     } catch (error) {
       if (!mounted) return;
-      await AppPopup.toast(
+      await action.notice(
         context,
         icon: Icons.error_outline,
-        title: 'Projekt konnte nicht entfernt werden',
+        title: errorTitle,
+        message:
+            'Bitte lade den Mietkorb erneut, bevor du die Aktion wiederholst.',
       );
+    } finally {
+      _endCartAction(action);
     }
   }
 
@@ -349,141 +378,161 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   }
 
   Future<void> _openCartItem(RentalCartItem cartItem) async {
-    if (_busyCartItemId != null) return;
-    final session = await AuthService.readSession();
-    if (!mounted) return;
-    if (session == null) {
-      Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => const LoginScreen(returnTabIndex: 1),
-      ));
-      return;
-    }
+    if (_openingCartItem != null) return;
+    final action = _beginCartAction();
+    if (action == null) return;
+    _openingCartItem = action;
     setState(() => _busyCartItemId = cartItem.id);
     try {
-      final checked = await DataService.recheckRentalCart();
-      final current = checked.items.firstWhere(
-        (item) => item.id == cartItem.id,
-        orElse: () => cartItem,
-      );
-      if (current.quoteStatus == 'unavailable') {
-        if (!mounted) return;
-        setState(() => _rentalCart = checked);
-        await AppPopup.toast(
-          context,
-          icon: Icons.event_busy_outlined,
-          title: 'Zeitraum derzeit nicht verfügbar',
-          message: 'Der Artikel bleibt in deinem Mietkorb.',
-        );
+      if (!await action.isCurrent()) return;
+      if (!mounted) return;
+      if (action.owner.sessionOwner == null) {
+        await action.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => const LoginScreen(returnTabIndex: 1),
+            ));
         return;
       }
-      final item = await DataService.getItemById(current.listingId);
-      if (!mounted) return;
-      if (item == null) {
-        await AppPopup.toast(
-          context,
-          icon: Icons.inventory_2_outlined,
-          title: 'Artikel derzeit nicht verfügbar',
-        );
-        return;
+      final checked =
+          await DataService.recheckRentalCart(expectedOwner: action.owner);
+      if (!await action.isCurrent()) return;
+      RentalCartItem? current;
+      for (final entry in checked.items) {
+        if (entry.id == cartItem.id) current = entry;
       }
       setState(() => _rentalCart = checked);
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => PrivatePilotCheckoutScreen(
-          item: item,
-          range: DateTimeRange(
-            start: current.startDate,
-            end: current.endDate,
-          ),
-        ),
-      ));
-      if (mounted) await _reload();
+      if (!mounted) return;
+      if (current == null || current.quoteStatus == 'unavailable') {
+        await action.notice(context,
+            icon: Icons.event_busy_outlined,
+            title: current == null
+                ? 'Artikel nicht mehr im Mietkorb'
+                : 'Zeitraum derzeit nicht verfügbar',
+            message: 'Bitte prüfe den aktuellen Mietkorb erneut.');
+        return;
+      }
+      final item = await DataService.getItemByIdForSavedCart(current.listingId,
+          expectedOwner: action.owner);
+      if (!await action.isCurrent()) return;
+      if (!mounted) return;
+      if (item == null) {
+        await action.notice(context,
+            icon: Icons.inventory_2_outlined,
+            title: 'Artikel derzeit nicht verfügbar');
+        return;
+      }
+      await action.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => PrivatePilotCheckoutScreen(
+              item: item,
+              range: DateTimeRange(
+                  start: current!.startDate, end: current.endDate),
+            ),
+          ));
+      if (await action.isCurrent()) await _reload();
     } catch (error) {
       if (!mounted) return;
-      await AppPopup.toast(
-        context,
-        icon: Icons.cloud_off_outlined,
-        title: 'Serverprüfung fehlgeschlagen',
-        message: 'Es wurde keine Reservierung erstellt.',
-      );
+      await action.notice(context,
+          icon: Icons.cloud_off_outlined,
+          title: 'Serverprüfung konnte nicht bestätigt werden',
+          message: 'Bitte lade den Mietkorb erneut.');
     } finally {
-      if (mounted) setState(() => _busyCartItemId = null);
+      // A late finally must not clear a newer B action's loading indicator.
+      if (mounted && identical(_openingCartItem, action)) {
+        setState(() {
+          _openingCartItem = null;
+          _busyCartItemId = null;
+        });
+      }
+      _endCartAction(action);
     }
   }
 
-  Future<void> _openBookingGroupCandidate(
-    RentalCartGroupCandidate candidate,
-  ) async {
-    final session = await AuthService.readSession();
-    if (!mounted) return;
-    if (session == null) {
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => const LoginScreen(returnTabIndex: 1),
-      ));
-      return;
+  Future<void> _openBookingGroupCandidate(RentalCartGroupCandidate candidate) =>
+      _openSavedDestination(
+          () => BookingGroupTechnicalScreen(candidate: candidate));
+
+  Future<void> _openPlanner() =>
+      _openSavedDestination(() => const ClosedPilotPlannerScreen(),
+          reload: true);
+
+  Future<void> _openListingSetDiscovery(RentalCartItem item) =>
+      _openSavedDestination(() => ClosedPilotListingSetDiscoveryScreen(
+            listingId: item.listingId,
+            listingTitle: (item.listing['title'] ?? 'Mietartikel').toString(),
+            startDate: item.startDate,
+            endDate: item.endDate,
+          ));
+
+  Future<void> _openSavedDestination(Widget Function() page,
+      {bool reload = false}) async {
+    final action = _beginCartAction();
+    if (action == null) return;
+    try {
+      if (!await action.isCurrent()) return;
+      if (!mounted) return;
+      await action.push(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => action.owner.sessionOwner == null
+                ? const LoginScreen(returnTabIndex: 1)
+                : page(),
+          ));
+      if (reload && await action.isCurrent()) await _reload();
+    } finally {
+      _endCartAction(action);
     }
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => BookingGroupTechnicalScreen(candidate: candidate),
-    ));
   }
 
-  Future<void> _openPlanner() async {
-    final session = await AuthService.readSession();
-    if (!mounted) return;
-    if (session == null) {
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => const LoginScreen(returnTabIndex: 1),
-      ));
-      return;
+  Future<void> _openWishlistFolder(String id, String title, bool system) async {
+    final action = _beginCartAction();
+    if (action == null) return;
+    try {
+      if (!await action.isCurrent()) return;
+      if (!mounted) return;
+      await action.push(
+          context,
+          _mosaicRoute(_WishlistFolderDetail(
+            listId: id,
+            title: title,
+            system: system,
+            owner: action.owner,
+          )));
+      if (await action.isCurrent()) await _reload();
+    } finally {
+      _endCartAction(action);
     }
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => const ClosedPilotPlannerScreen(),
-    ));
-    if (mounted) await _reload();
-  }
-
-  Future<void> _openListingSetDiscovery(RentalCartItem item) async {
-    final session = await AuthService.readSession();
-    if (!mounted) return;
-    if (session == null) {
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => const LoginScreen(returnTabIndex: 1),
-      ));
-      return;
-    }
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => ClosedPilotListingSetDiscoveryScreen(
-        listingId: item.listingId,
-        listingTitle: (item.listing['title'] ?? 'Mietartikel').toString(),
-        startDate: item.startDate,
-        endDate: item.endDate,
-      ),
-    ));
   }
 
   Future<void> _addCustomList() async {
+    final action = _beginCartAction();
+    if (action == null) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final name = await AppPopup.showCustom<String>(
-      context,
-      icon: Icons.bookmark_add_outlined,
-      title: 'Neue Merkliste',
-      showCloseIcon: false,
-      showLeading: false,
-      showAccentLine: false,
-      cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
-      body: const _CreateWishlistPopupBody(),
-    );
-    if (name != null && name.isNotEmpty) {
-      try {
-        await DataService.addCustomWishlist(name);
+    try {
+      final name = await action.dialog<String>(
+        context,
+        icon: Icons.bookmark_add_outlined,
+        title: 'Neue Merkliste',
+        cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
+        body: (complete) => _CreateWishlistPopupBody(onComplete: complete),
+      );
+      if (name != null && name.isNotEmpty && await action.isCurrent()) {
+        await DataService.addCustomWishlist(name, expectedOwner: action.owner);
+        if (!await action.isCurrent()) return;
         await _reload();
-      } catch (error) {
-        if (!mounted) return;
-        setState(() {
-          _loadErrorTitle = 'Merkliste wurde nicht gespeichert';
-          _loadErrorMessage =
-              'Deine vorhandenen lokalen Daten bleiben unverändert.';
-        });
       }
+    } catch (error) {
+      if (!await action.isCurrent()) return;
+      setState(() {
+        _loadErrorTitle =
+            'Speichern der Merkliste konnte nicht bestätigt werden';
+        _loadErrorMessage =
+            'Bitte lade deine Merklisten erneut, bevor du sie noch einmal anlegst.';
+      });
+    } finally {
+      _endCartAction(action);
     }
   }
 
@@ -846,12 +895,8 @@ extension on _RentalCartScreenState {
                     : null;
                 final syncAction = cart.localDeviceOnly && cart.items.isNotEmpty
                     ? TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) =>
-                                const LoginScreen(returnTabIndex: 1),
-                          ),
-                        ),
+                        onPressed: () => _openSavedDestination(
+                            () => const LoginScreen(returnTabIndex: 1)),
                         child: const Text('Anmelden & synchronisieren'),
                       )
                     : null;
@@ -951,14 +996,7 @@ extension on _RentalCartScreenState {
           subtitle: c.subtitle,
           count: c.count,
           photoUrls: c.photos,
-          onTap: () async {
-            await Navigator.of(context).push(_mosaicRoute(_WishlistFolderDetail(
-              listId: c.id,
-              title: c.title,
-              system: c.system,
-            )));
-            if (mounted) _reload();
-          },
+          onTap: () => _openWishlistFolder(c.id, c.title, c.system),
         );
       },
     );
@@ -974,8 +1012,8 @@ extension on _RentalCartScreenState {
   }
 }
 
-Route _mosaicRoute(Widget page) {
-  return PageRouteBuilder(
+Route<void> _mosaicRoute(Widget page) {
+  return PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 210),
     reverseTransitionDuration: const Duration(milliseconds: 180),
     pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
@@ -993,14 +1031,21 @@ class _WishlistFolderDetail extends StatefulWidget {
   final String listId;
   final String title;
   final bool system;
+  final LocalPrincipalActionOwner owner;
   const _WishlistFolderDetail(
-      {required this.listId, required this.title, required this.system});
+      {required this.listId,
+      required this.title,
+      required this.system,
+      required this.owner});
 
   @override
   State<_WishlistFolderDetail> createState() => _WishlistFolderDetailState();
 }
 
 class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
+  late final SavedCartActionScope _scope;
+  Route<dynamic>? _folderRoute;
+  VoidCallback? _releaseFolderRoute;
   final SharedPersistenceRefreshCoordinator _refreshCoordinator =
       SharedPersistenceRefreshCoordinator();
   StreamSubscription<String>? _savedStateSubscription;
@@ -1015,8 +1060,21 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
   @override
   void initState() {
     super.initState();
+    _scope = SavedCartActionScope(widget.owner, isMounted: () => mounted);
     _title = widget.title;
     _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _scope.invalidate();
+        if (mounted) {
+          setState(() {
+            _items = const [];
+            _title = '';
+            _hasLoadedSnapshot = false;
+          });
+          _scope.closeRoute(ModalRoute.of(context));
+        }
+        return;
+      }
       if (key == SharedPersistenceSync.wishlistStateKey ||
           key == SharedPersistenceSync.savedItemsKey) {
         unawaited(_refreshCoordinator.schedule(_load));
@@ -1026,7 +1084,20 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null && !identical(route, _folderRoute)) {
+      _releaseFolderRoute?.call();
+      _folderRoute = route;
+      _releaseFolderRoute = _scope.trackRoute(route);
+    }
+  }
+
+  @override
   void dispose() {
+    _releaseFolderRoute?.call();
+    _scope.dispose();
     _refreshCoordinator.dispose();
     _savedStateSubscription?.cancel();
     super.dispose();
@@ -1037,8 +1108,10 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
     _loadInFlight = true;
     setState(() => _loading = true);
     try {
-      final by = await DataService.getItemsByWishlist();
-      if (!mounted) return;
+      if (!await _scope.isCurrent()) return;
+      final by =
+          await DataService.getItemsByWishlist(expectedOwner: _scope.owner);
+      if (!await _scope.isCurrent()) return;
       setState(() {
         _items = by[widget.listId] ?? const <Item>[];
         _hasLoadedSnapshot = true;
@@ -1047,12 +1120,14 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
         _loading = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!await _scope.isCurrent()) return;
       setState(() {
         _loadError = 'Merkliste konnte nicht geladen werden';
         _loadInFlight = false;
         _loading = false;
       });
+    } finally {
+      _loadInFlight = false;
     }
   }
 
@@ -1092,7 +1167,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
       appBar: AppBar(
         leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: _closeFolder,
             icon: const Icon(Icons.arrow_back)),
         title: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(_title ?? widget.title),
@@ -1146,8 +1221,21 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                     ),
                   ]);
                 }
-                final choice =
-                    await AppPopup.showMenuActions(context, items: items);
+                final choice = await _scope.dialog<String>(
+                  context,
+                  icon: Icons.folder_outlined,
+                  title: 'Merkliste',
+                  body: (complete) =>
+                      Column(mainAxisSize: MainAxisSize.min, children: [
+                    for (final item in items)
+                      ListTile(
+                        leading: Icon(item.icon, color: item.color),
+                        title: Text(item.label),
+                        onTap: () => complete(item.value),
+                      )
+                  ]),
+                );
+                if (!await _scope.isCurrent()) return;
                 switch (choice) {
                   case 'rename':
                     await _renameWishlist();
@@ -1256,15 +1344,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                                           ),
                                           const SizedBox(height: 24),
                                           TextButton.icon(
-                                            onPressed: () {
-                                              if (mounted) {
-                                                context
-                                                    .read<MainNavController>()
-                                                    .setIndex(0);
-                                              }
-                                              Navigator.of(context)
-                                                  .popUntil((r) => r.isFirst);
-                                            },
+                                            onPressed: _discoverItems,
                                             icon: const Icon(
                                                 Icons.explore_outlined,
                                                 size: 18),
@@ -1354,6 +1434,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                                       Positioned.fill(
                                           child: ItemCard(
                                               item: item,
+                                              savedCartScope: _scope,
                                               longPressContext:
                                                   ListingOptionsContext
                                                       .wishlist,
@@ -1363,26 +1444,8 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                                           top: 8,
                                           right: 8,
                                           child: InkWell(
-                                            onTap: () async {
-                                              try {
-                                                await DataService
-                                                    .removeItemFromWishlist(
-                                                        item.id);
-                                                if (mounted) {
-                                                  setState(() {
-                                                    _items =
-                                                        List<Item>.from(_items)
-                                                          ..removeAt(i);
-                                                  });
-                                                }
-                                              } catch (error) {
-                                                if (!mounted) return;
-                                                setState(() {
-                                                  _loadError =
-                                                      'Artikel wurde nicht entfernt';
-                                                });
-                                              }
-                                            },
+                                            onTap: () =>
+                                                _removeSavedItem(item.id),
                                             borderRadius:
                                                 BorderRadius.circular(16),
                                             child: Container(
@@ -1410,52 +1473,86 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
     );
   }
 
+  Future<void> _discoverItems() async {
+    final route = ModalRoute.of(context);
+    if (!await _scope.isCurrent()) return;
+    if (!mounted) return;
+    context.read<MainNavController>().setIndex(0);
+    _scope.closeRoute(route);
+  }
+
+  Future<void> _closeFolder() async {
+    final route = _folderRoute;
+    if (await _scope.isCurrent()) _scope.closeRoute(route);
+  }
+
+  Future<void> _removeSavedItem(String id) async {
+    try {
+      if (!await _scope.isCurrent()) return;
+      await DataService.removeItemFromWishlist(id, expectedOwner: _scope.owner);
+      if (!await _scope.isCurrent()) return;
+      await _load();
+    } catch (error) {
+      if (!await _scope.isCurrent()) return;
+      setState(() => _loadError =
+          'Entfernen konnte nicht bestätigt werden. Bitte erneut laden.');
+    }
+  }
+
   Future<void> _renameWishlist() async {
-    final controller = TextEditingController(text: _title ?? widget.title);
+    if (!await _scope.isCurrent()) return;
+    if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final newName = await AppPopup.showCustom<String>(
-      context,
-      icon: Icons.drive_file_rename_outline,
-      title: 'Merkliste umbenennen',
-      showCloseIcon: false,
-      showLeading: false,
-      showAccentLine: false,
-      cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
-      body: _RenameWishlistPopupBody(controller: controller),
-    );
-    if (newName != null && newName.trim().isNotEmpty) {
-      try {
-        await DataService.renameCustomWishlist(
-            id: widget.listId, newName: newName.trim());
-        if (mounted) setState(() => _title = newName.trim());
-      } catch (error) {
-        if (!mounted) return;
-        setState(() => _loadError = 'Name wurde nicht gespeichert');
+    try {
+      final newName = await _scope.dialog<String>(
+        context,
+        icon: Icons.drive_file_rename_outline,
+        title: 'Merkliste umbenennen',
+        cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
+        body: (complete) => _RenameWishlistPopupBody(
+            initialName: _title ?? widget.title, onComplete: complete),
+      );
+      if (newName == null ||
+          newName.trim().isEmpty ||
+          !await _scope.isCurrent()) {
+        return;
       }
+      await DataService.renameCustomWishlist(
+          id: widget.listId,
+          newName: newName.trim(),
+          expectedOwner: _scope.owner);
+      if (!await _scope.isCurrent()) return;
+      setState(() => _title = newName.trim());
+    } catch (error) {
+      if (!await _scope.isCurrent()) return;
+      setState(() => _loadError =
+          'Umbenennen konnte nicht bestätigt werden. Bitte erneut laden.');
     }
   }
 
   Future<void> _deleteWishlist() async {
-    // Simple confirm using AppPopup
+    final route = ModalRoute.of(context);
+    if (!await _scope.isCurrent()) return;
+    if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    bool? confirmed = await AppPopup.showCustom<bool>(
-      context,
-      icon: Icons.delete_outline,
-      title: 'Merkliste löschen',
-      showCloseIcon: false,
-      showLeading: false,
-      showAccentLine: false,
-      cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
-      body: _ConfirmDeleteWishlistBody(name: _title ?? widget.title),
-    );
-    if (confirmed == true) {
-      try {
-        await DataService.deleteCustomWishlist(widget.listId);
-        if (mounted) Navigator.of(context).maybePop();
-      } catch (error) {
-        if (!mounted) return;
-        setState(() => _loadError = 'Merkliste wurde nicht gelöscht');
-      }
+    try {
+      final confirmed = await _scope.dialog<bool>(
+        context,
+        icon: Icons.delete_outline,
+        title: 'Merkliste löschen',
+        cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
+        body: (complete) => _ConfirmDeleteWishlistBody(
+            name: _title ?? widget.title, onComplete: complete),
+      );
+      if (confirmed != true || !await _scope.isCurrent()) return;
+      await DataService.deleteCustomWishlist(widget.listId,
+          expectedOwner: _scope.owner);
+      if (!await _scope.isCurrent()) return;
+      _scope.closeRoute(route);
+    } catch (error) {
+      if (!await _scope.isCurrent()) return;
+      setState(() => _loadError =
+          'Löschen konnte nicht bestätigt werden. Bitte erneut laden.');
     }
   }
 }
@@ -1640,9 +1737,26 @@ class _CreateWishlistPopupBodyState extends State<_CreateWishlistPopupBody> {
   }
 }
 
-class _RenameWishlistPopupBody extends StatelessWidget {
-  final TextEditingController controller;
-  const _RenameWishlistPopupBody({required this.controller});
+class _RenameWishlistPopupBody extends StatefulWidget {
+  final String initialName;
+  final ValueChanged<String?> onComplete;
+  const _RenameWishlistPopupBody(
+      {required this.initialName, required this.onComplete});
+
+  @override
+  State<_RenameWishlistPopupBody> createState() =>
+      _RenameWishlistPopupBodyState();
+}
+
+class _RenameWishlistPopupBodyState extends State<_RenameWishlistPopupBody> {
+  late final TextEditingController controller =
+      TextEditingController(text: widget.initialName);
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1691,7 +1805,7 @@ class _RenameWishlistPopupBody extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () => widget.onComplete(null),
                   style: OutlinedButton.styleFrom(
                       foregroundColor: isDark
                           ? Colors.white70
@@ -1708,8 +1822,7 @@ class _RenameWishlistPopupBody extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: FilledButton(
-                  onPressed: () => Navigator.of(context)
-                      .maybePop<String>(controller.text.trim()),
+                  onPressed: () => widget.onComplete(controller.text.trim()),
                   style: FilledButton.styleFrom(
                       backgroundColor: cs.primary,
                       foregroundColor: Colors.white,
@@ -1726,7 +1839,9 @@ class _RenameWishlistPopupBody extends StatelessWidget {
 
 class _ConfirmDeleteWishlistBody extends StatelessWidget {
   final String name;
-  const _ConfirmDeleteWishlistBody({required this.name});
+  final ValueChanged<bool?> onComplete;
+  const _ConfirmDeleteWishlistBody(
+      {required this.name, required this.onComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -1749,7 +1864,7 @@ class _ConfirmDeleteWishlistBody extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).maybePop(false),
+                  onPressed: () => onComplete(false),
                   style: OutlinedButton.styleFrom(
                       foregroundColor: isDark
                           ? Colors.white70
@@ -1766,7 +1881,7 @@ class _ConfirmDeleteWishlistBody extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: FilledButton(
-                  onPressed: () => Navigator.of(context).maybePop(true),
+                  onPressed: () => onComplete(true),
                   style: FilledButton.styleFrom(
                       backgroundColor: cs.error,
                       foregroundColor: Colors.white,

@@ -696,7 +696,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "4b80991b104e96686d8ada3dc140bd3058a8ed993482c527f7da31f22efd01fa"
+      "sha256": "c0ae62245c8537fceeef126f394a28a361c13b26f4c47a399a49573db9bded8b"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -724,7 +724,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "64da8494dc287061847a6fa8c7398e98759d65feb052e16a832235430437453f"
+      "sha256": "6c54e6b41212b8f57682964599e664d5eab410702a20b505bcdd01c57abd907d"
     },
     {
       "path": "lib/screens/help_center_screen.dart",
@@ -764,11 +764,11 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "951df4934d593a540d73a9fad5fcb6167650300ff01325fd9c092c871c06d27d"
+      "sha256": "cb64ca5670af401b7259e3d226cdde54047891c842abcf5287522528590f4bba"
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",
-      "sha256": "fccffdd961e5c0c712288a2e19b9aa37d55f73d8fd18bc3db7c3f6e7bcbaebc0"
+      "sha256": "01d11e932e3a2e3847f256aee9f2894914692a22fed8043319dd16f89b8f472f"
     },
     {
       "path": "lib/config/private_pilot_config.dart",

@@ -1,11 +1,27 @@
 # Current Work Package: WP05 consolidated saved-cart principal correction
 
+Consolidated implementation on evidence base `af20cb4d` now also covers nested
+ItemCard heart/context-menu/selection/create/details routes, guest login/sync,
+and actual cart/group/planner/set navigation origins. Local focused78 and
+enabled navigation14 pass; analyzer0, wiring20 and secret scan PASS. The earlier
+HTTP55 proof remains separately bound; the full run re-executes its mandatory
+lanes. Hash-only propagation converges to a no-op; legal/privacy/provider facts
+are unchanged. Full normal regression PASSES:2232tools/812defaultFlutter plus
+all mandatory profiles, analyzer0, Web/Wasm dryrun, loopback, Android44s/R11.
+The G2 validator's obsolete direct-call assumption was corrected with negative
+helper-chain tests; the prior failed run remains retained. Six extra async
+return-boundary probes pass; the suspected additional gap did not reproduce
+and caused no runtime change. Next: freeze this consolidated source and run
+exact clean-source R10. Signed successor and device acceptance remain OPEN.
+No new candidate, device/provider action or GitHub claim. See the latest
+section of `docs/operations/WP05_CART_SURFACE_PRINCIPAL_2026-09-04.md`.
+
 The assignment correction has exact clean-source proof on
 `b28da2aa06816fd47eefe3a6657e7674e92cce03`: full regression657s, second Android45s,
 byte-identical APKs and entries, unchanged inventories, runner cleanup PASS.
 Its proof is separate from the residual findings below.
 
-Next bounded implementation: remaining saved-cart actions, navigation, wishlist
+Historical implementation decision (current progress above): remaining saved-cart actions, navigation, wishlist
 dialogs/folder lifetime and the listing-overlay cart helper. Local synthetic
 red-first probes pass8 stable controls and fail13 ownership invariants: late A
 responses overwrite B snapshots, A401 attempts B refresh, and A wishlist drafts

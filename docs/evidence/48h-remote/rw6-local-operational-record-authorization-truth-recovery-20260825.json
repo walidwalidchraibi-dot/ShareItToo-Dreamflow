@@ -181,7 +181,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "4b80991b104e96686d8ada3dc140bd3058a8ed993482c527f7da31f22efd01fa"
+      "sha256": "c0ae62245c8537fceeef126f394a28a361c13b26f4c47a399a49573db9bded8b"
     },
     {
       "path": "lib/services/notification_cta_resolver.dart",
@@ -193,15 +193,15 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "2abb4bb9d1d50e0f95cdbc40356bf622affaf4a618c18e15d8335e53924064a8"
+      "sha256": "16095e0c1511ae24a8d3d7371105b3f973c658e10a9ebc725d69ea27c403fdb9"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "a4192e51e02238358c935e563cff14f053088def6f20c26bb799f264a41b1b36"
+      "sha256": "31caac0b3a90b37c7d6cc078d20b09689eed66b019935ea62fd7f40bc1c58999"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
-      "sha256": "63f66d8e8b99201679dacce6f76abe3b96535bad1d442399285ef0b6eeb93480"
+      "sha256": "c0aede510163ab7580a6765d878d706ad6d957e795a8326053aeae84a5bbee97"
     },
     {
       "path": "tool/validate_privacy_disclosures.mjs",
@@ -213,15 +213,15 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "75588b09c58c08b77f16532188dfb2af22f5bea03976cd18475d8957a3b3417e"
+      "sha256": "f7b460c36b17fa1862c8c49c8e6635b74380f4986ab64dd0607f5cc7f7311ca0"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "b079ec722a1bfd4cc17f19d5592b3c1fa2e9a02132c3034ea0da0cebe37788ee"
+      "sha256": "199cdf8611d68000da3b81c83cd4ca091fffe0a5aa6feda67e9f9eb8f2201746"
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "8c7becd467509ecebe565461c44d2c60284276619d3c1d2ff8fd003c30c405bf"
+      "sha256": "094d072402897e5c634d8016d4893a8771ef639392e6d4b12ddcfd697e967818"
     },
     {
       "path": "test/data_service_booking_rules_test.dart",

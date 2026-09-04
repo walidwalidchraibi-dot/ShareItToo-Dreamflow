@@ -13,6 +13,7 @@ const sourcePaths = {
   legalPrivacy: 'lib/screens/legal_privacy_screen.dart',
   mainNavigation: 'lib/navigation/main_navigation.dart',
   itemDetails: 'lib/widgets/item_details_overlay.dart',
+  savedCartIntent: 'lib/widgets/saved_cart_intent.dart',
   login: 'lib/screens/login_screen.dart',
   register: 'lib/screens/register_screen.dart',
   backendApp: 'backend/src/app.js',
@@ -659,9 +660,17 @@ export function validateG2DataLifecycle({
   const itemDetails = source(root, sourceTexts, sourcePaths.itemDetails);
   includesEvery(itemDetails, [
     "const Text('In den Mietkorb')",
-    'DataService.addRentalCartItem',
-    'noch nicht reserviert',
+    'saveListingToRentalCart(context, item: item, range: range)',
   ], 'Item detail Mietkorb entry');
+  const savedCartIntent = source(root, sourceTexts, sourcePaths.savedCartIntent);
+  includesEvery(savedCartIntent, [
+    'DataService.addRentalCartItem',
+    'expectedOwner: owner',
+    'await action.isCurrent()',
+    'await action.notice(context,',
+    'noch nicht reserviert',
+    'Speichern im Mietkorb konnte nicht bestätigt werden',
+  ], 'Owned Mietkorb intent');
   for (const path of [sourcePaths.login, sourcePaths.register]) {
     if (!source(root, sourceTexts, path)
       .includes('syncGuestRentalCartAfterAuthentication')) {

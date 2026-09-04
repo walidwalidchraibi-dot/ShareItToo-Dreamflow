@@ -9,18 +9,18 @@ const source = readFileSync(
 
 test('wishlist dialogs stop after every asynchronous lookup when context is gone', () => {
   assert.equal(
-    source.match(/if \(!context\.mounted\) return null;/gu)?.length,
-    4,
+    source.match(/if \(!await _current\(scope\) \|\| !context\.mounted\) \{\s*return null;\s*\}/gu)?.length,
+    7,
   );
   assert.equal(
     source.match(
-      /DataService\.getWishlists\(\);\s+if \(!context\.mounted\) return null;/gu,
+      /DataService\.getWishlists\(expectedOwner: scope\?\.owner\);\s+if \(!await _current\(scope\) \|\| !context\.mounted\) \{\s*return null;\s*\}/gu,
     )?.length,
     2,
   );
   assert.equal(
     source.match(
-      /DataService\.getItemsByWishlist\(\);\s+if \(!context\.mounted\) return null;/gu,
+      /DataService\.getItemsByWishlist\(expectedOwner: scope\?\.owner\);\s+if \(!await _current\(scope\) \|\| !context\.mounted\) \{\s*return null;\s*\}/gu,
     )?.length,
     2,
   );

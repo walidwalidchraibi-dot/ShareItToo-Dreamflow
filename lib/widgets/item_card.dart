@@ -16,18 +16,21 @@ import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
+import 'package:lendify/widgets/saved_cart_action_scope.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
   final bool compact;
   final ListingOptionsContext? longPressContext;
   final VoidCallback? onContextActionCompleted;
+  final SavedCartActionScope? savedCartScope;
 
   const ItemCard(
       {super.key,
       required this.item,
       this.compact = false,
       this.longPressContext,
+      this.savedCartScope,
       this.onContextActionCompleted});
 
   static double recommendedGridChildAspectRatio(
@@ -67,12 +70,14 @@ class ItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return LongPressFeedbackWrapper(
       child: InkWell(
-        onTap: () => ItemDetailsOverlay.showFullPage(context, item: item),
+        onTap: () => ItemDetailsOverlay.showFullPage(context,
+            item: item, savedCartScope: savedCartScope),
         onLongPress: longPressContext == null
             ? null
             : () => showListingOptionsDialog(context,
                 item: item,
                 contextType: longPressContext!,
+                savedCartScope: savedCartScope,
                 onWishlistChanged: onContextActionCompleted),
         borderRadius: BorderRadius.circular(16),
         mouseCursor: SystemMouseCursors.basic,
@@ -151,7 +156,9 @@ class ItemCard extends StatelessWidget {
                           top: 8,
                           right: 5,
                           child: _WishlistHeartButton(
-                              itemId: item.id, size: iconSize)),
+                              itemId: item.id,
+                              size: iconSize,
+                              savedCartScope: savedCartScope)),
                     ]),
                   ),
                   Expanded(
@@ -239,7 +246,9 @@ class ItemCard extends StatelessWidget {
 class _WishlistHeartButton extends StatefulWidget {
   final String itemId;
   final double size;
-  const _WishlistHeartButton({required this.itemId, required this.size});
+  final SavedCartActionScope? savedCartScope;
+  const _WishlistHeartButton(
+      {required this.itemId, required this.size, this.savedCartScope});
 
   @override
   State<_WishlistHeartButton> createState() => _WishlistHeartButtonState();
@@ -252,6 +261,25 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   final SharedPersistenceRefreshCoordinator _refreshCoordinator =
       SharedPersistenceRefreshCoordinator();
   StreamSubscription<String>? _savedStateSubscription;
+
+  Future<bool> _stillCurrent(SavedCartActionScope? scope) async =>
+      mounted &&
+      identical(scope, widget.savedCartScope) &&
+      (scope == null || await scope.isCurrent()) &&
+      mounted &&
+      identical(scope, widget.savedCartScope);
+
+  @override
+  void didUpdateWidget(covariant _WishlistHeartButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.savedCartScope, widget.savedCartScope) ||
+        oldWidget.itemId != widget.itemId) {
+      listId = null;
+      _stateKnown = false;
+      _loading = true;
+      unawaited(_refreshCoordinator.schedule(_load));
+    }
+  }
 
   @override
   void initState() {
@@ -273,10 +301,13 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   }
 
   Future<void> _load() async {
+    final scope = widget.savedCartScope;
     if (mounted) setState(() => _loading = true);
     try {
-      final id = await DataService.getWishlistForItem(widget.itemId);
-      if (!mounted) return;
+      if (!await _stillCurrent(scope)) return;
+      final id = await DataService.getWishlistForItem(widget.itemId,
+          expectedOwner: scope?.owner);
+      if (!await _stillCurrent(scope)) return;
       setState(() {
         listId = id;
         _stateKnown = true;
@@ -285,9 +316,9 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
       debugPrint(
         '[ItemCard] load wishlist state failed (${e.runtimeType})',
       );
-      if (mounted) setState(() => _stateKnown = false);
+      if (await _stillCurrent(scope)) setState(() => _stateKnown = false);
     } finally {
-      if (mounted) {
+      if (mounted && identical(scope, widget.savedCartScope)) {
         setState(() {
           _loading = false;
         });
@@ -299,6 +330,11 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
     if (_loading) return;
     if (!_stateKnown) {
       await _refreshCoordinator.schedule(_load);
+      return;
+    }
+    final scope = widget.savedCartScope;
+    if (scope != null) {
+      await _onScopedTap(scope);
       return;
     }
     try {
@@ -351,6 +387,54 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
         title: 'Gemerkt konnte nicht aktualisiert werden',
         message: 'Es wurde nichts als gespeichert bestätigt.',
       );
+    }
+  }
+
+  Future<void> _onScopedTap(SavedCartActionScope scope) async {
+    final currentListId = listId;
+    try {
+      if (!await _stillCurrent(scope)) return;
+      if (!mounted) return;
+      String? selected;
+      if (currentListId == null) {
+        selected = await WishlistSelectionSheet.showAdd(context, scope: scope);
+      } else {
+        final choice = await WishlistSelectionSheet.showManageOptions(context,
+            scope: scope);
+        if (!await _stillCurrent(scope)) return;
+        if (!mounted) return;
+        if (choice == 'remove') {
+          await DataService.removeItemFromWishlist(widget.itemId,
+              expectedOwner: scope.owner);
+          if (!await _stillCurrent(scope)) return;
+          setState(() => listId = null);
+          return;
+        }
+        if (choice != 'move') return;
+        selected = await WishlistSelectionSheet.showMove(context,
+            currentListId: currentListId, scope: scope);
+      }
+      if (!await _stillCurrent(scope) || selected == null || selected.isEmpty) {
+        return;
+      }
+      await DataService.setItemWishlist(widget.itemId, selected,
+          expectedOwner: scope.owner);
+      if (!await _stillCurrent(scope)) return;
+      setState(() => listId = selected);
+      if (!mounted) return;
+      await scope.notice(context,
+          icon: Icons.favorite,
+          title: currentListId == null
+              ? 'Unter Gemerkt gespeichert'
+              : 'In Merkliste verschoben');
+    } catch (_) {
+      if (!await _stillCurrent(scope)) return;
+      setState(() => _stateKnown = false);
+      if (!mounted) return;
+      await scope.notice(context,
+          icon: Icons.error_outline,
+          title: 'Gemerkt konnte nicht bestätigt werden',
+          message: 'Bitte lade die Merklisten erneut.');
     }
   }
 

@@ -10,6 +10,7 @@ import 'package:lendify/services/listing_feedback_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
+import 'package:lendify/widgets/saved_cart_action_scope.dart';
 import 'package:share_plus/share_plus.dart';
 
 enum ListingOptionsContext { explore, wishlist }
@@ -20,7 +21,19 @@ Future<void> showListingOptionsDialog(
   required ListingOptionsContext contextType,
   VoidCallback? onWishlistChanged,
   VoidCallback? onVisibilityChanged,
+  SavedCartActionScope? savedCartScope,
 }) async {
+  if (savedCartScope != null) {
+    if (contextType != ListingOptionsContext.wishlist) {
+      throw ArgumentError(
+          'Saved-cart ownership requires the wishlist context.');
+    }
+    await _showOwnedWishlistOptions(context,
+        item: item,
+        scope: savedCartScope,
+        onWishlistChanged: onWishlistChanged);
+    return;
+  }
   final List<_ListingOption> options;
   try {
     options = await _buildOptions(context,
@@ -136,6 +149,98 @@ Future<void> showListingOptionsDialog(
       );
     },
   );
+}
+
+/// Only the saved-folder surface opts into this owner-bound action chain.
+/// General Explore, visibility, reporting and provider workflows are unchanged.
+Future<void> _showOwnedWishlistOptions(
+  BuildContext context, {
+  required Item item,
+  required SavedCartActionScope scope,
+  VoidCallback? onWishlistChanged,
+}) async {
+  try {
+    if (!await scope.isCurrent()) return;
+    final current = await DataService.getWishlistForItem(item.id,
+        expectedOwner: scope.owner);
+    if (!await scope.isCurrent()) return;
+    if (!context.mounted) return;
+    const choices = [
+      (Icons.open_in_new, 'Anzeige öffnen'),
+      (Icons.delete_outline, 'Aus Gemerkt entfernen'),
+      (Icons.drive_file_move_outline, 'In andere Merkliste verschieben'),
+      (Icons.ios_share, 'Teilen'),
+      (Icons.calendar_month_outlined, 'Verfügbarkeit prüfen'),
+    ];
+    final choice = await scope.dialog<int>(
+      context,
+      icon: Icons.more_horiz,
+      title: 'Anzeigenoptionen',
+      body: (complete) => Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(item.title),
+        for (var i = 0; i < choices.length; i++)
+          ListTile(
+            leading: Icon(choices[i].$1),
+            title: Text(choices[i].$2),
+            onTap: () => complete(i),
+          ),
+      ]),
+    );
+    if (choice == null || !await scope.isCurrent()) return;
+    if (!context.mounted) return;
+    if (choice == 0 || choice == 4) {
+      await ItemDetailsOverlay.showFullPage(context,
+          item: item, fresh: true, savedCartScope: scope);
+      return;
+    }
+    if (choice == 3) {
+      final url = AppLinkBuilder.listing(item.id).toString();
+      try {
+        await SharePlus.instance
+            .share(ShareParams(text: '${item.title}\n$url'));
+      } catch (_) {
+        if (!await scope.isCurrent()) return;
+        await Clipboard.setData(ClipboardData(text: url));
+        if (!context.mounted) return;
+        await scope.notice(context, icon: Icons.link, title: 'Link kopiert');
+      }
+      return;
+    }
+    if (choice == 1) {
+      await DataService.removeItemFromWishlist(item.id,
+          expectedOwner: scope.owner);
+    } else if (choice == 2) {
+      final String? selected;
+      if (current == null) {
+        if (!context.mounted) return;
+        selected = await WishlistSelectionSheet.showAdd(context, scope: scope);
+      } else {
+        if (!context.mounted) return;
+        selected = await WishlistSelectionSheet.showMove(context,
+            currentListId: current, scope: scope);
+      }
+      if (selected == null || selected.isEmpty || !await scope.isCurrent()) {
+        return;
+      }
+      await DataService.setItemWishlist(item.id, selected,
+          expectedOwner: scope.owner);
+    } else {
+      return;
+    }
+    if (!await scope.isCurrent()) return;
+    onWishlistChanged?.call();
+    if (!context.mounted) return;
+    await scope.notice(context,
+        icon: choices[choice].$1,
+        title:
+            choice == 1 ? 'Aus Gemerkt entfernt' : 'In Merkliste verschoben');
+  } catch (_) {
+    if (!context.mounted) return;
+    await scope.notice(context,
+        icon: Icons.error_outline,
+        title: 'Gemerkt konnte nicht bestätigt werden',
+        message: 'Bitte lade die Merklisten erneut.');
+  }
 }
 
 Future<List<_ListingOption>> _buildOptions(

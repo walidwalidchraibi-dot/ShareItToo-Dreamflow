@@ -27,6 +27,20 @@ test('accepts active local and account-bound persistent G2B data', () => {
   });
 });
 
+test('rejects disconnected or unowned extracted listing-to-cart intent', () => {
+  for (const [path, marker] of [
+    ['lib/widgets/item_details_overlay.dart', 'saveListingToRentalCart(context, item: item, range: range)'],
+    ...['DataService.addRentalCartItem', 'expectedOwner: owner', 'await action.isCurrent()',
+      'await action.notice(context,', 'noch nicht reserviert',
+      'Speichern im Mietkorb konnte nicht bestätigt werden'].map(marker => ['lib/widgets/saved_cart_intent.dart', marker]),
+  ]) {
+    const original = readFileSync(resolve(root, path), 'utf8');
+    assert.ok(original.includes(marker));
+    const changed = original.replaceAll(marker, 'removed_required_contract');
+    assert.throws(() => validate({ sourceTexts: { [path]: changed } }), /(?:Item detail Mietkorb entry|Owned Mietkorb intent) is missing/u);
+  }
+});
+
 test('rejects cross-principal or unbounded local safety/privacy state', () => {
   const unscoped = clone(baseLifecycle);
   unscoped.localSafetyPrivacy.principalBinding = 'device-global';

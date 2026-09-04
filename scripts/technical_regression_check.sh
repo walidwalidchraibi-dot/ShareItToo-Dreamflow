@@ -973,6 +973,22 @@ flutter test --no-pub \
   --dart-define=SIT_BACKEND_ENABLED=true \
   --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
   test/rental_cart_assignment_principal_test.dart
+# Saved-cart actions, strict acknowledgements and navigation prerequisites use
+# only intercepted HTTP; the default local tests do not replace this lane.
+flutter test --no-pub --test-randomize-ordering-seed=7 \
+  --dart-define=SIT_BACKEND_ENABLED=true \
+  --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
+  test/rental_cart_surface_principal_http_test.dart
+# Actual cart origins run with all three technical surfaces in nonbinding mode;
+# requests are zone-local mocks, not Staging/provider traffic.
+flutter test --no-pub --test-randomize-ordering-seed=7 \
+  --dart-define=SIT_BACKEND_ENABLED=true \
+  --dart-define=SIT_API_BASE_URL=http://127.0.0.1:1/api/v1 \
+  --dart-define=SIT_STAGE_A_NON_BINDING_PILOT=true \
+  --dart-define=SIT_BOOKING_GROUPS_TECHNICAL_UI_ENABLED=true \
+  --dart-define=SIT_PLANNER_TECHNICAL_UI_ENABLED=true \
+  --dart-define=SIT_LISTING_SETS_TECHNICAL_UI_ENABLED=true \
+  test/saved_cart_navigation_principal_test.dart
 # All three provider profiles are mandatory; default skips do not substitute for them.
 flutter test --reporter expanded --test-randomize-ordering-seed=7 \
   --dart-define=SIT_TEST_PROVIDER_SDK_OWNERSHIP=true \

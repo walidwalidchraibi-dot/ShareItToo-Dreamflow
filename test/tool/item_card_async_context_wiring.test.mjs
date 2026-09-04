@@ -10,8 +10,9 @@ const source = readFileSync(
 test('wishlist load cannot update a disposed item card', () => {
   assert.match(
     source,
-    /final id = await DataService\.getWishlistForItem\(widget\.itemId\);\s+if \(!mounted\) return;\s+setState/u,
+    /final id = await DataService\.getWishlistForItem\(widget\.itemId,\s*expectedOwner: scope\?\.owner\);\s+if \(!await _stillCurrent\(scope\)\) return;\s+setState/u,
   );
+  assert.match(source, /Future<bool> _stillCurrent\(SavedCartActionScope\? scope\) async =>\s*mounted &&[\s\S]*?identical\(scope, widget\.savedCartScope\)[\s\S]*?scope\.isCurrent\(\)[\s\S]*?mounted &&\s*identical\(scope, widget\.savedCartScope\)/u);
 });
 
 test('first wishlist assignment guards every post-dialog UI access', () => {

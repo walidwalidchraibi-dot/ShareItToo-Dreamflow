@@ -1,5 +1,19 @@
 # ShareItToo Current State
 
+Consolidated saved-cart source now includes nested saved-widget and actual
+navigation-origin ownership on evidence base `af20cb4d`. Focused78/navigation14,
+wiring20, analyzer0 and secret scan pass. Exact hash propagation converges with
+all legal/privacy/provider facts unchanged. Full normal regression PASSES:
+2232tools/812defaultFlutter+mandatoryprofiles/analyzer0/WebWasm dryrun/loopback/
+Android44s/R11. Six additional async-return boundary probes pass without a
+runtime change. Next exact clean-source R10; signing and physical acceptance
+remain OPEN. No CI/device
+result is promoted. GitHub remains owner-deferred; installed0404 is unchanged.
+Consolidated source is ready for its separate local freeze. Details and retained failed-run
+classifications: `docs/operations/WP05_CART_SURFACE_PRINCIPAL_2026-09-04.md`.
+
+Historical assignment closure and residual decision:
+
 Exact clean proof now PASS for assignment commit
 `b28da2aa06816fd47eefe3a6657e7674e92cce03`: full657s, second Android45s,
 identical APKs/entries, unchanged inventories and completed cleanup. This does
