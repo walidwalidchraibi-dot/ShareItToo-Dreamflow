@@ -1,5 +1,10 @@
 # ShareItToo Current State
 
+Support read/follow-up implementation is locally committed as
+`e8d53d776401fd3b880f8d505dd0cacd7f4c11d1`; full normal local regression passes.
+Next is the existing scoped-SDK-entrypoint debt, then exact cold proof on one
+final frozen successor. GitHub and signed-device acceptance are still open.
+
 WP05 support reads/follow-ups are locally corrected: old-account results and
 errors are suppressed, invalid lists never imply empty success, public messages
 are retained, and appeal/DSA writes keep their initiating owner. Focused UI58,

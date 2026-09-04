@@ -2,6 +2,10 @@
 
 Status: LOCAL CORRECTION / FULL NORMAL PASS / FINAL COLD AND DEVICE PROOF OPEN.
 
+Implementation: `e8d53d776401fd3b880f8d505dd0cacd7f4c11d1`.
+Machine checkpoint:
+`docs/evidence/release-readiness/wp05-support-case-read-local-20260904.json`.
+
 Base: `a67a002d325d34b67a679c16d1224ce2a0adfe48`, branch
 `codex/master-workflow-20260808`, worktree
 `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`.
