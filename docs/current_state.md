@@ -1,6 +1,17 @@
 # ShareItToo Current State
 
-Latest WP04 prerequisite: corrected clean R10 at `2408ada3` passed the full
+Latest WP04 local verification: full normal regression and exact clean R10 at
+`c4c576d3e26166591130ca1e4744048069afbbc3` pass. Both debug APKs are byte-identical;
+source inventories, binary checks, footprint bounds and automatic cleanup pass.
+No signed candidate, device, provider or external CI pass is inferred. GitHub
+CLI remains unavailable and local commits are preserved pending normal push.
+Fresh Staging GETs confirm healthy deployed `5d88295f`, memory payment/live=false;
+the endpoint does not expose current AI-provider selection. A scoped Drive
+refresh and the local V5.2 manifest still leave independent legal approval open.
+Full requirement matrix and next steps:
+`docs/operations/SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-04.md`.
+
+Previous WP04 prerequisite: corrected clean R10 at `2408ada3` passed the full
 technical gate and both debug builds, then failed at the second APK extraction
 with disk-full/unzip exit 50. Its isolated child was cleaned; no execution JSON
 or APK-equivalence pass exists. The five-GiB generic floor did not cover the
@@ -9,7 +20,7 @@ tests, preserving all existing output limits and reproduction checks. The
 same build image is safely expanded to64GiB with verified offline recovery;
 guarded profile and real filesystem checks pass. Full normal regression also
 passes (2,171 tools, Flutter profiles, analyzer, Web/Wasm dry run, loopback,
-Android/R11). Exact clean-head R10 remains pending, not closure. See
+Android/R11). The subsequent local clean-head result is above. See
 `docs/operations/WP04_R10_COLD_STORAGE_2026-09-04.md`.
 
 2026-09-04 WP04 independent progress: distinct Stripe snapshot and Accounts

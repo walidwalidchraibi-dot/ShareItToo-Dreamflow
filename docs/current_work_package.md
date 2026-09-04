@@ -1,6 +1,16 @@
 # Current Work Package: WP04 Stripe webhook destination separation
 
-Latest verification checkpoint: exact R10 on `2408ada3` passed its complete
+Latest completion: full normal regression and full cold R10 now pass at exact
+implementation `c4c576d3e26166591130ca1e4744048069afbbc3`. Both debug APKs are
+byte-identical; all source inventories and automatic cleanup pass. The cold
+storage correction is locally verified, not an exact GitHub or signed-device
+pass. CLI authentication is still unavailable and the preserved commits remain
+unpushed. No next broad hardening Goal begins. The complete remaining scope is
+in `docs/operations/SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-04.md`.
+Fresh read-only Staging health/version is green at deployed `5d88295f`, with
+memory-only payments; it does not establish AI/Stripe or device acceptance.
+
+Previous verification checkpoint: exact R10 on `2408ada3` passed its complete
 technical regression and both Android builds but failed while extracting the
 second APK because the task-owned 32-GiB build image filled. Session 14219 is
 terminal exit 1, with no reproduction result or execution JSON. A new early
@@ -8,8 +18,8 @@ cold-storage admission check passes 23 focused runner/validator tests. The
 same build image is now safely expanded to64GiB with byte-verified recovery,
 unchanged guarded profile and a passing real filesystem probe. Full normal
 regression passes: 2,171 tools, Flutter profiles, analyzer, Web/Wasm dry run,
-loopback and Android/R11. Exact clean-head R10 remains pending and is not
-closed. See `docs/operations/WP04_R10_COLD_STORAGE_2026-09-04.md`.
+loopback and Android/R11. The subsequent clean-head completion is recorded
+above and in `docs/operations/WP04_R10_COLD_STORAGE_2026-09-04.md`.
 
 2026-09-04: independently reproduced the missing separate Accounts v2
 webhook signing-secret path. Real-SDK and workflow tests now verify distinct

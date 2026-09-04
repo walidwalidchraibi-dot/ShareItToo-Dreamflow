@@ -3,6 +3,15 @@
 Status: **LOCAL CORRECTION AND FULL LOCAL REGRESSION PASS /
 PROVIDER E2E NOT PERFORMED**.
 
+Subsequent local verification: exact clean
+`c4c576d3e26166591130ca1e4744048069afbbc3` passes the complete cold R10,
+including Backend, audit, isolated PostgreSQL, full technical regression and
+byte-identical debug APKs. See `WP04_R10_COLD_STORAGE_2026-09-04.md` for the
+two separately preserved runner failures and their verified corrections.
+Fresh Staging readiness still reports payment transport `memory`, live=false,
+on deployed `5d88295f`; no provider E2E, deployment or exact new-head CI pass
+is implied. The eight actual Stripe sandbox scenarios remain unperformed.
+
 Independent work under the encompassing Staging Goal, not WP04 completion.
 Implementation commit: `bd1199211476dbc093dd00ba2865762592cee97f`.
 Base: `9b99e958244ec3b3dd0448933b654832afd555c1`, branch

@@ -1,5 +1,12 @@
 # WP04 prerequisite — R10 package-manager context
 
+Subsequent verification: the full cold R10 on exact clean
+`c4c576d3e26166591130ca1e4744048069afbbc3` now passes, including actual pinned
+pnpm capture and byte-identical debug APKs. The intervening storage failure,
+bounded capacity correction and full evidence are recorded separately in
+`WP04_R10_COLD_STORAGE_2026-09-04.md`. Exact GitHub CI remains pending. The
+original reproduction and checks below retain their historical scope.
+
 Base: `bd1199211476dbc093dd00ba2865762592cee97f`, clean main worktree before
 the failed isolated run. This is a bounded verification-tool correction, not
 a payment, mobile or environment-version change.

@@ -1,8 +1,9 @@
 # WP04 prerequisite — cold R10 storage capacity
 
-Status: **FULL NORMAL REGRESSION AND HOST EXPANSION PASS / CLEAN R10 PENDING**.
-Technical debt: `TD-WP04-R10-COLD-CAPACITY` — **OPEN** until the normal full
-gate and exact clean-head R10 both pass without intervening cleanup.
+Status: **FULL NORMAL REGRESSION AND CLEAN R10 PASS / EXACT CI PENDING**.
+Technical debt: `TD-WP04-R10-COLD-CAPACITY` — **PARTIAL**: the cause is fixed
+and locally verified by both full gates without intervening cleanup. Exact
+GitHub CI remains required before release-readiness closure.
 This is a build-host verification correction, not mobile/provider work or
 completion of WP04. Base: `2408ada3ef3a5939e0222ac3655f2afa580b8fd1`.
 Worktree: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`;
@@ -82,11 +83,41 @@ intervening purge. This is not a signed release or standalone Wasm-runtime
 acceptance. Frozen signed 2026090402 APK/AAB hashes were separately rechecked
 and still match their archive manifest.
 
-Before closure: commit the bounded correction and complete a fresh full
-R10 on that exact clean commit. Keep this failed attempt separate. Until then,
-capacity debt and R10 remain OPEN. GitHub authentication and exact new-head
-CI are still pending; the old frozen candidate's failed Regression and green
-CodeQL are not evidence for this correction.
+## Exact clean-checkout completion
+
+Implementation `c4c576d3e26166591130ca1e4744048069afbbc3` is committed.
+Fresh R10 session28631 completed with exit0. The temporary clone started and
+ended clean at that exact HEAD; generated project output and package caches
+started at zero. All locked restores, Backend tests/syntax, dependency audit,
+secret scan, isolated PostgreSQL and complete technical regression passed.
+The full technical gate took677 seconds and the forced second Android build43
+seconds. Both full APK extractions and every final check completed.
+
+The two debug APKs are **byte-identical**, each231,269,307 bytes with SHA-256
+`3c2d9edb257fa113c2ab3c216a43224ff2cc4e0134661a4ce80d02ae4391ce30`.
+All794 extracted entries match; no metadata normalization exception was used.
+Package `com.shareittoo.app`, version `1.0.0+2026090402`, SDK36/min24/target36
+and all14 permissions pass. The default debug provider/network holds pass;
+this does not produce or replace a signed Staging candidate.
+
+All7 dependency,116 migration,84 asset and3 font inventory entries remained
+identical. Generated project output3,217,282 KiB and fresh package caches
+6,134,014 KiB are within the unchanged5/8-GiB bounds. The guarded child,
+caches and test APK copies were automatically removed; parent fixture folders
+and the log/evidence remain. No manual purge was used. Image free space was
+44,302,384 KiB after cleanup. The unchanged execution-only validator passes.
+
+Retained machine evidence:
+`docs/evidence/release-readiness/wp04-r10-clean-reproducibility-20260904.json`.
+Its legacy `nextPackage=R11` field is not an instruction to start another
+hardening Goal; the active Staging queue and owner boundaries still govern.
+
+The earlier failed attempt is preserved separately. GitHub CLI authentication
+was freshly checked and remains unavailable; exact new-head CI is pending.
+Neither this local pass nor a future newer-head pass clears the frozen
+`bfd3e9e4` candidate's failed Regression. The full WP04/provider Goal remains
+incomplete. Current remaining requirements are inventoried in
+`SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-04.md`.
 
 No Pixel/OnePlus installation, provider call, payment, deployment, Store,
 Production, credential extraction, billing or PR merge occurred.
@@ -101,3 +132,5 @@ Logs remain in the task's owner-only `SIT_WP04_WEBHOOK_EVIDENCE.IQxzop` director
 | Expanded host/profile admission | `f3df75b9599204769500e4b646e2826c6cb821f468c3407cf58753e595761d21` |
 | Real filesystem probe | `ac1c29d766a886e906acd94d972eef9244af3e56795c49dcf8f666fb87f49652` |
 | Full normal regression | `edb8693af3f40d2de1f859836954d1633025cd0ffb53e6af815ddd7354cb848c` |
+| Full exact clean R10 log | `bd5385817bda12ab57ada3daf0b44a071d29b7d0588840d11be917daff3a44a7` |
+| Exact clean R10 execution JSON | `643624b880af890687093106262545bb5db6a6e9023991eaefa409c678090d57` |
