@@ -1,4 +1,15 @@
-# Current Work Package: WP05 privacy-export session ownership
+# Current Work Package: WP05 Pixel successor 2026090403
+
+Prepare a separately versioned signed Pixel successor for the verified export
+correction, starting at clean `bcb4fc52b5c8c672b96310ed487851791688f205`.
+The current step changes only version/fallback and exact source bindings.
+Candidate-preparation full normal regression and secret scan pass; exact
+committed clean regression, signed build and device proof remain pending.
+Keep the same Internal/Staging, canonical signing and Google-only closed-pilot
+configuration. GitHub auth/push/CI is explicitly deferred; no OnePlus or Store.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090403_PREPARATION.md`.
+
+## Completed local correction: WP05 privacy-export session ownership
 
 During actual support/privacy acceptance preparation, two red-first widget
 tests reproduced an export dialog surviving an account switch. The export now

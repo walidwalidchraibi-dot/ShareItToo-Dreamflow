@@ -1,5 +1,14 @@
 # ShareItToo Current State
 
+WP05 delivery now prepares separately versioned Pixel candidate2026090403.
+Preparation base is clean `bcb4fc52b5c8c672b96310ed487851791688f205`; version
+and dependent source bindings only, unchanged Internal/Staging and Google-only
+closed-pilot profile. Full preparation regression passes (2,174tools, 687default
+Flutter tests plus profiles, analyzer, Web/Wasm, loopback, Android/R11).
+Exact committed clean proof, signed build and device acceptance remain pending.
+GitHub is deliberately deferred, not cleared. See
+`docs/operations/WP05_PIXEL_CANDIDATE_2026090403_PREPARATION.md`.
+
 WP05 privacy-export correction is locally implemented after red-first proof of
 an A dialog surviving session change. Owner-bound transport, all six local
 sections, pre-share validation and exact-route dismissal have focused evidence.
