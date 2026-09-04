@@ -1,4 +1,21 @@
-# Current Work Package: WP05 Pixel0404 cart/projects acceptance
+# Current Work Package: WP05 cart-project initiating-account correction
+
+The actual0404 cart read baseline passes with both synthetic backend carts
+empty and no cart mutations. A separate controlled local probe reproduced P1:
+A's project dialog survives A→B and can persist its title under B; stable A
+control passes. The bounded correction is now implemented locally. Focused40,
+enabled HTTP mocks8, wiring6 and analyzer0 pass. Full normal regression passes:
+2216tools/735defaultFlutter+mandatoryprofiles/analyzer0/WebWasm dryrun/loopback/
+Android41s/R11. Earlier binding and fixture failures are retained, not promoted.
+Installed0404 does NOT contain this change. Exact clean/source/successor-device/
+GitHub proof remains open. No new cart/booking/provider/device mutation.
+See `docs/operations/WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
+
+Next: close this bounded correction's exact committed-source clean proof,
+then a separately bound successor before resuming physical cart/projects.
+No additional broad hardening, GitHub auth/remote/push/CI, OnePlus or live action.
+
+Previous support closure and cart acceptance decision:
 
 Bounded support intake/offline/sequential-isolation acceptance is now complete:
 one simulation case, exact receipt/API identity, offline error/retry/recovery,

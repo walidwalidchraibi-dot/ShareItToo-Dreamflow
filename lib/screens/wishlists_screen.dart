@@ -16,6 +16,7 @@ import 'package:lendify/screens/private_pilot_checkout_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
+import 'package:lendify/services/local_principal_scope.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
@@ -23,11 +24,17 @@ import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/local_state_error_panel.dart';
 import 'package:lendify/widgets/wishlist_mosaic_card.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/tracked_dialog_route.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/theme.dart';
 
 class RentalCartScreen extends StatefulWidget {
-  const RentalCartScreen({super.key});
+  const RentalCartScreen({super.key, this.projectCreator});
+
+  final Future<RentalCartProject> Function(
+    String title,
+    LocalPrincipalActionOwner owner,
+  )? projectCreator;
 
   @override
   State<RentalCartScreen> createState() => _RentalCartScreenState();
@@ -53,12 +60,32 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   bool _reloadInFlight = false;
   String? _loadErrorTitle;
   String? _loadErrorMessage;
+  LocalPrincipalActionOwner? _snapshotOwner;
+  int _principalGeneration = 0;
+  bool _projectBusy = false;
+  TrackedDialogRouteHandle<String>? _projectDraft;
+  TrackedDialogRouteHandle<void>? _projectNotice;
 
   @override
   void initState() {
     super.initState();
     _savedStateSubscription = SharedPersistenceSync.changes.listen((key) {
-      if (key == SharedPersistenceSync.wishlistStateKey ||
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _principalGeneration++;
+        _snapshotOwner = null;
+        _projectDraft?.dismiss();
+        _projectNotice?.dismiss();
+        if (mounted) {
+          setState(() {
+            _hasLoadedSnapshot = false;
+            _lists = [];
+            _itemsByList = {};
+            _rentalCart = const RentalCart(localDeviceOnly: true);
+          });
+        }
+      }
+      if (key == SharedPersistenceSync.accountSecurityStateKey ||
+          key == SharedPersistenceSync.wishlistStateKey ||
           key == SharedPersistenceSync.savedItemsKey ||
           key == SharedPersistenceSync.rentalCartKey) {
         unawaited(_refreshCoordinator.schedule(_reload));
@@ -71,21 +98,37 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
   void dispose() {
     _refreshCoordinator.dispose();
     _savedStateSubscription?.cancel();
+    final draft = _projectDraft;
+    final notice = _projectNotice;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      draft?.dismiss();
+      notice?.dismiss();
+    });
     super.dispose();
   }
 
   Future<void> _reload() async {
     if (_reloadInFlight) return;
     _reloadInFlight = true;
+    final generation = _principalGeneration;
+    LocalPrincipalActionOwner? owner;
     setState(() => _loading = true);
     try {
+      owner = await LocalPrincipalActionOwner.capture();
       final results = await Future.wait<Object>(<Future<Object>>[
         DataService.getWishlists(),
         DataService.getItemsByWishlist(),
         DataService.getRentalCart(),
       ]);
-      if (!mounted) return;
+      if (!mounted ||
+          generation != _principalGeneration ||
+          !await owner.isCurrent() ||
+          !mounted ||
+          generation != _principalGeneration) {
+        return;
+      }
       setState(() {
+        _snapshotOwner = owner;
         _lists = results[0] as List<Map<String, dynamic>>;
         _itemsByList = results[1] as Map<String, List<Item>>;
         _rentalCart = results[2] as RentalCart;
@@ -96,7 +139,9 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
         _loading = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || generation != _principalGeneration) return;
+      if (owner != null && !await owner.isCurrent()) return;
+      if (!mounted || generation != _principalGeneration) return;
       setState(() {
         _loading = false;
         _loadErrorTitle = 'Gespeicherte Daten konnten nicht geladen werden';
@@ -105,30 +150,62 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
             'Die lokale Kopie bleibt unverändert.';
         _reloadInFlight = false;
       });
+    } finally {
+      _reloadInFlight = false;
     }
   }
 
   Future<void> _addProject() async {
-    final title = await AppPopup.showCustom<String>(
-      context,
-      icon: Icons.create_new_folder_outlined,
-      title: 'Neues Projekt',
-      showCloseIcon: false,
-      showLeading: false,
-      showAccentLine: false,
-      body: const _CreateWishlistPopupBody(),
-    );
-    if (title == null || title.trim().isEmpty) return;
+    // Capture the already verified snapshot owner synchronously, before any
+    // dialog/session await. A delayed draft can never adopt its successor.
+    final owner = _snapshotOwner;
+    final generation = _principalGeneration;
+    if (owner == null || _projectBusy || !owner.isCurrentEpoch) return;
+    _projectBusy = true;
+    bool stillOwned() => mounted && generation == _principalGeneration;
     try {
-      await DataService.addRentalCartProject(title: title);
+      if (!await owner.isCurrent() || !stillOwned()) return;
+      if (!mounted) return;
+      final draft = TrackedDialogRouteHandle<String>();
+      _projectDraft = draft;
+      final title = await AppPopup.showCustom<String>(
+        context,
+        icon: Icons.create_new_folder_outlined,
+        title: 'Neues Projekt',
+        showCloseIcon: false,
+        showLeading: false,
+        showAccentLine: false,
+        routeHandle: draft,
+        body: _CreateWishlistPopupBody(onComplete: draft.dismiss),
+      );
+      if (title == null || title.trim().isEmpty || !stillOwned()) return;
+      if (!await owner.isCurrent() || !stillOwned()) return;
+      final creator = widget.projectCreator;
+      if (creator == null) {
+        await DataService.addRentalCartProject(
+            title: title, expectedOwner: owner);
+      } else {
+        await creator(title, owner);
+      }
+      if (!await owner.isCurrent() || !stillOwned()) return;
       await _reload();
     } catch (error) {
+      if (!stillOwned() || !await owner.isCurrent() || !stillOwned()) return;
       if (!mounted) return;
+      final notice = TrackedDialogRouteHandle<void>();
+      _projectNotice = notice;
       await AppPopup.toast(
         context,
         icon: Icons.error_outline,
-        title: 'Projekt konnte nicht gespeichert werden',
+        title: 'Projekt konnte nicht bestätigt werden',
+        message:
+            'Bitte lade den Mietkorb erneut, bevor du das Projekt noch einmal anlegst.',
+        routeHandle: notice,
       );
+    } finally {
+      _projectDraft = null;
+      _projectNotice = null;
+      _projectBusy = false;
     }
   }
 
@@ -1391,7 +1468,9 @@ double _wishlistDetailChildAspectRatio(BuildContext context) {
 }
 
 class _CreateWishlistPopupBody extends StatefulWidget {
-  const _CreateWishlistPopupBody();
+  const _CreateWishlistPopupBody({this.onComplete});
+
+  final void Function(String?)? onComplete;
 
   @override
   State<_CreateWishlistPopupBody> createState() =>
@@ -1400,6 +1479,15 @@ class _CreateWishlistPopupBody extends StatefulWidget {
 
 class _CreateWishlistPopupBodyState extends State<_CreateWishlistPopupBody> {
   final TextEditingController _controller = TextEditingController();
+
+  void _complete([String? result]) {
+    final complete = widget.onComplete;
+    if (complete != null) {
+      complete(result);
+    } else {
+      Navigator.of(context).maybePop(result);
+    }
+  }
 
   @override
   void dispose() {
@@ -1442,8 +1530,7 @@ class _CreateWishlistPopupBodyState extends State<_CreateWishlistPopupBody> {
               controller: _controller,
               autofocus: true,
               textInputAction: TextInputAction.done,
-              onSubmitted: (value) =>
-                  Navigator.of(context).maybePop(_controller.text.trim()),
+              onSubmitted: (value) => _complete(_controller.text.trim()),
               style: TextStyle(
                   color: isDark ? Colors.white : AppTheme.textPrimary(context),
                   fontSize: 15),
@@ -1471,7 +1558,7 @@ class _CreateWishlistPopupBodyState extends State<_CreateWishlistPopupBody> {
             Row(children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: _complete,
                   style: OutlinedButton.styleFrom(
                       foregroundColor: isDark
                           ? Colors.white.withValues(alpha: 0.7)
@@ -1489,8 +1576,7 @@ class _CreateWishlistPopupBodyState extends State<_CreateWishlistPopupBody> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () =>
-                      Navigator.of(context).maybePop(_controller.text.trim()),
+                  onPressed: () => _complete(_controller.text.trim()),
                   style: FilledButton.styleFrom(
                       backgroundColor: cs.primary,
                       foregroundColor: Colors.white,

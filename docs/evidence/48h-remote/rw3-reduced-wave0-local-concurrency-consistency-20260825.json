@@ -92,7 +92,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "5288612cdc6018a3b17b3a9064f02ac9356c3e7b1fdeb42ce19a491e58a9bfd4"
+      "sha256": "9d642e9856a72dd83cd6fdfd7c6570adf1c30ba2c014d6a0a5cb383663997bd8"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -112,7 +112,7 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "9c91249157511245d5e705b1b8f2b4ef6d1308f0f7ef12ca3902d78d1fc4cba0"
+      "sha256": "fec9e0fe09f0cd7a62de9dd6decc9485dd73f14b0540252612ca4aeb016282dc"
     },
     {
       "path": "lib/widgets/item_card.dart",
@@ -132,7 +132,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "5641a94741678c091886eb58807f70b979ce2cf2d1d5b9dc69bca557d9c89318"
+      "sha256": "c74a7ab80c2ebd162034b3ecf7b0e9b06b4995ae201e0d81c29051d10c9494ea"
     },
     {
       "path": "test/reduced_wave0_local_state_truth_recovery_test.dart",

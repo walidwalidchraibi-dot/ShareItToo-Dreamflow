@@ -319,17 +319,18 @@ void main() {
       DataService.wlSoonId,
     );
     final cartForA = DataService.addRentalCartProject(title: 'Wechsel A');
+    // Project dispatch now explicitly cancels when its initiating session
+    // changes. Neither A nor B receives an unconfirmed project mutation.
+    final cartCancelled = expectLater(cartForA, throwsStateError);
     await useAccount('switch-b@example.invalid');
-    await Future.wait(<Future<Object?>>[savedForA, cartForA]);
+    await savedForA;
+    await cartCancelled;
 
     expect(await DataService.getSavedItemIds(), isEmpty);
     expect((await DataService.getRentalCart()).projects, isEmpty);
     await useAccount('switch-a@example.invalid');
     expect(await DataService.getSavedItemIds(), <String>{'switch-a-item'});
-    expect(
-      (await DataService.getRentalCart()).projects.single.title,
-      'Wechsel A',
-    );
+    expect((await DataService.getRentalCart()).projects, isEmpty);
   });
 
   test('principal registry is bounded without evicting earlier state',

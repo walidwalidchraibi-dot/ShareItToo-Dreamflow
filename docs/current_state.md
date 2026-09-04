@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+Cart/projects: actual0404 read baseline passes with no mutations. A local
+red-first probe separately proves a P1 project-dialog account-switch defect
+(stable A control pass, two B-isolation failures). Its correction is locally
+implemented with focused40/HTTP8/wiring6/analyzer0. Full normal regression passes
+(2216tools/735defaultFlutter+profiles/WebWasm dryrun/loopback/Android41s/R11);
+exact clean, successor-device and GitHub results are not yet claimed. Installed
+0404 remains unchanged and predates the fix. No deployment/provider/Store/
+OnePlus action. See `docs/operations/WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
+
+Previous bounded support checkpoint:
+
 0404 now passes bounded actual support intake/receipt/list/detail, real offline
 failure/retry/online recovery, and same-process owner→renter→owner isolation.
 One synthetic simulation case remains received/version1; no staff decision or

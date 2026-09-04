@@ -69,3 +69,51 @@ class LocalPrincipalScope {
     return _opaqueToken('user-id', normalized);
   }
 }
+
+/// Immutable, credential-free owner of one local or authenticated action.
+/// A confirmed guest is distinct from an unreadable or malformed session.
+@immutable
+class LocalPrincipalActionOwner {
+  final LocalPrincipalIdentity principal;
+  final AuthSessionOwner? sessionOwner;
+  final int epoch;
+
+  const LocalPrincipalActionOwner._({
+    required this.principal,
+    required this.sessionOwner,
+    required this.epoch,
+  });
+
+  static Future<LocalPrincipalActionOwner> capture() async {
+    final epoch = AuthService.sessionEpoch;
+    final session = await AuthService.readSession();
+    if (epoch != AuthService.sessionEpoch) {
+      throw StateError('Die Kontositzung hat sich geändert.');
+    }
+    final owner = LocalPrincipalActionOwner._(
+      principal: LocalPrincipalScope.fromSession(session),
+      sessionOwner:
+          session == null ? null : AuthService.captureSessionOwner(session),
+      epoch: epoch,
+    );
+    await owner.assertCurrent();
+    return owner;
+  }
+
+  bool get isCurrentEpoch => epoch == AuthService.sessionEpoch;
+
+  Future<bool> isCurrent() async {
+    if (!isCurrentEpoch) return false;
+    final session = sessionOwner;
+    final current = session == null
+        ? await AuthService.isStoredSessionDefinitelyAbsent()
+        : await AuthService.isSessionOwnerDefinitelyCurrent(session);
+    return current && isCurrentEpoch;
+  }
+
+  Future<void> assertCurrent() async {
+    if (!await isCurrent()) {
+      throw StateError('Die Kontositzung hat sich geändert.');
+    }
+  }
+}

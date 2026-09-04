@@ -1,5 +1,10 @@
 # SIT Staging acceptance checkpoint — 2026-09-04
 
+Current execution: a read-only0404 cart baseline passed, then an isolated
+red-first project-dialog principal defect was reproduced and corrected locally.
+Focused and full normal regression pass; exact clean/successor proof is open. Installed0404 is
+unchanged and predates this fix. See `WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`.
+
 Latest functional result: Pixel0404 proves one simulation support intake with
 exact server receipt, list/detail, physical offline error/retry/online recovery,
 and same-process owner→renter→owner login/isolation. Original QA owner role and
@@ -140,7 +145,7 @@ older Drive candidate-completion wording does not close it.
 | Transactional push foreground/background/process-ended | PARTIAL | N27 contains historical controlled FCM evidence. Revalidate the accepted final source/device pair; distinguish process termination from Android user force-stop and document the supported behavior. |
 | Pickup, return, cancellation/withdrawal, damages, reviews and invoices | OPEN | Complete real intended two-role lifecycle evidence is missing; maintain legal/provider boundaries and audit/availability consistency. |
 | Stripe sandbox payment, rejection/interruption, duplicate delivery, refund and simulated payout | OPEN | Fresh runtime is memory-only. WP04 two-secret wiring is locally tested, but platform identity/approved secret setup and all eight P0B real-sandbox scenarios remain open. Never call memory results Stripe test funds. |
-| Cart, projects and booking groups | OPEN | The full connected two-role device workflows are not established by the cited device journeys. |
+| Cart, projects and booking groups | PARTIAL | 0404 actual cart read agrees with two-role HTTP200 empty/non-reserved baselines. A local P1 project-dialog A→B write defect was reproduced and corrected with focused tests; successor-device and full connected workflows remain open. No actual cart/booking mutation or complete project/group acceptance is claimed. See `WP05_CART_PROJECT_PRINCIPAL_2026-09-04.md`. |
 | Support submission/follow-up, reports, blocking, privacy export and deletion | PARTIAL | 0404 proves one simulation intake/exact server receipt/list/detail, real offline retry/recovery and same-process sequential A→B→A isolation. Original driver post-receipt failure is retained; separate follow-ups pass. Duplicate delivery/unknown response, physical in-flight switching, authorized staff/DSA/appeal follow-up and export payload/deletion remain open. Historical0403 export preparation/cancel keeps its binding. See `WP05_PIXEL_SUPPORT_INTAKE_OFFLINE_ISOLATION_2026-09-04.md`. |
 | Light/Dark and available background variants | PARTIAL | On installed `2026090402`, all four actual background selections persist after cold restart and were visually reviewed. Final preference is explicit Dark 1; initial unset choice could not be restored through the UI. Light-preview/text contrast is visibly weak; system-theme, TalkBack/selection semantics and affected-surface acceptance remain open. N28 system-theme observations retain their older binding. |
 | Offline/online, process restart, permission changes and accessibility | PARTIAL | Installed0404 proves process termination/relaunch, install/data identity, five destinations, and actual support-list network loss/error/retry/recovery with original connectivity restored. This does not close other surfaces, permissions or accessibility. N27/N28 older evidence is not relabelled. |

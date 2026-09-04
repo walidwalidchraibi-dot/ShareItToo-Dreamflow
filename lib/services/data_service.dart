@@ -437,11 +437,6 @@ class DataService {
     return _wishlistMutationQueue.run(() => operation(principal));
   }
 
-  static LocalPrincipalIdentity _localPrincipalForSession(
-    AuthSession? session,
-  ) =>
-      LocalPrincipalScope.fromSession(session);
-
   static Future<LocalPrincipalIdentity> _currentLocalPrincipal() =>
       LocalPrincipalScope.current();
 
@@ -5335,20 +5330,23 @@ class DataService {
 
   /// Copies guest intent into the authenticated account. Local guest data is
   /// removed only after every idempotent server upsert has completed.
-  static Future<bool> syncGuestRentalCartAfterAuthentication() async {
-    final accountPrincipal = _localPrincipalForSession(
-      await AuthService.readSession(),
-    );
+  static Future<bool> syncGuestRentalCartAfterAuthentication({
+    LocalPrincipalActionOwner? expectedOwner,
+  }) async {
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
     return _rentalCartMutationQueue.run(
-      () => _syncGuestRentalCartAfterAuthenticationUnlocked(accountPrincipal),
+      () => _syncGuestRentalCartAfterAuthenticationUnlocked(owner),
     );
   }
 
   static Future<bool> _syncGuestRentalCartAfterAuthenticationUnlocked(
-    LocalPrincipalIdentity accountPrincipal,
+    LocalPrincipalActionOwner owner,
   ) async {
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return false;
+    final accountPrincipal = owner.principal;
     if (!accountPrincipal.authenticated) return false;
+    await owner.assertCurrent();
     await _assertCurrentLocalPrincipal(accountPrincipal);
     final guest = LocalPrincipalIdentity.guest;
     final guestBucket = await _readLocalRentalCartBucketUnlocked(guest);
@@ -5374,19 +5372,24 @@ class DataService {
     );
     for (final project in [...local.projects]
       ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder))) {
+      await owner.assertCurrent();
       await _assertCurrentLocalPrincipal(accountPrincipal);
-      await BackendRepository.putRentalCartProject(
+      await BackendRepository.putRentalCartProjectForOwner(
+        owner: owner.sessionOwner!,
         id: project.id,
         title: project.title,
         answers: project.answers,
         sortOrder: project.sortOrder,
       );
+      await owner.assertCurrent();
       await _assertCurrentLocalPrincipal(accountPrincipal);
     }
     for (final item in [...local.items]
       ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder))) {
+      await owner.assertCurrent();
       await _assertCurrentLocalPrincipal(accountPrincipal);
-      await BackendRepository.putRentalCartItem(
+      await BackendRepository.putRentalCartItemForOwner(
+        owner: owner.sessionOwner!,
         id: item.id,
         listingId: item.listingId,
         startDate: _rentalDate(item.startDate),
@@ -5394,8 +5397,10 @@ class DataService {
         projectId: item.projectId,
         sortOrder: item.sortOrder,
       );
+      await owner.assertCurrent();
       await _assertCurrentLocalPrincipal(accountPrincipal);
     }
+    await owner.assertCurrent();
     await _assertCurrentLocalPrincipal(accountPrincipal);
     await _writeLocalRentalCart(
       guest,
@@ -5583,29 +5588,38 @@ class DataService {
   static Future<RentalCartProject> addRentalCartProject({
     required String title,
     Map<String, dynamic> answers = const <String, dynamic>{},
+    LocalPrincipalActionOwner? expectedOwner,
   }) async {
     final normalized = title.trim();
     if (normalized.isEmpty || normalized.length > 120) {
       throw ArgumentError.value(title, 'title', 'Ungültiger Projektname');
     }
-    final principal = await _currentLocalPrincipal();
+    final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
+    await owner.assertCurrent();
+    final principal = owner.principal;
     final project = RentalCartProject(
       id: _rentalCartClientId('project'),
       title: normalized,
       answers: answers,
     );
-    if (await _hasBackendSession()) {
-      await _syncCompatibleGuestCartForCurrentSession();
+    if (BackendConfig.enabled &&
+        !QaRuntimeService.isEnabled &&
+        owner.sessionOwner != null) {
+      await syncGuestRentalCartAfterAuthentication(expectedOwner: owner);
+      await owner.assertCurrent();
       final cart = RentalCart.fromJson(
-        await BackendRepository.putRentalCartProject(
+        await BackendRepository.putRentalCartProjectForOwner(
+          owner: owner.sessionOwner!,
           id: project.id,
           title: project.title,
           answers: project.answers,
         ),
       );
+      await owner.assertCurrent();
       return cart.projects.firstWhere((entry) => entry.id == project.id);
     }
     return _rentalCartMutationQueue.run(() async {
+      await owner.assertCurrent();
       final cart = (await _assertReadableLocalRentalCart(principal)).cart;
       if (cart.projects.length >= 20) {
         throw StateError('Der Mietkorb kann höchstens 20 Projekte enthalten.');
@@ -5616,6 +5630,7 @@ class DataService {
         answers: project.answers,
         sortOrder: cart.projects.length,
       );
+      await owner.assertCurrent();
       await _writeLocalRentalCart(
           principal,
           RentalCart(
@@ -5625,6 +5640,7 @@ class DataService {
             projects: <RentalCartProject>[...cart.projects, nextProject],
             items: cart.items,
           ));
+      await owner.assertCurrent();
       return nextProject;
     });
   }

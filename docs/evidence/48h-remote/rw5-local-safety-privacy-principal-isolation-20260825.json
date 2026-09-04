@@ -136,7 +136,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/local_principal_scope.dart",
-      "sha256": "cbf7c475c7b2fddbd611769db849cb48b8b2fb81c85e88786387ab6d74bffa93"
+      "sha256": "7bc2b1254651b1cca95059ef99de2fe4b9027bb7ebbd3cea88777f3db33e2218"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
@@ -168,7 +168,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "5288612cdc6018a3b17b3a9064f02ac9356c3e7b1fdeb42ce19a491e58a9bfd4"
+      "sha256": "9d642e9856a72dd83cd6fdfd7c6570adf1c30ba2c014d6a0a5cb383663997bd8"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -216,11 +216,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "aac440bdf3e11c0d65760a7a90afe12f37262d10c342a670a26bc6db6d1ac52b"
+      "sha256": "eec7de8bb47c3e3c166eb88fbaf937c552724f3f0c2fa81dd8fe97cf82e71795"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "7866a3129439bff67790a8d49b19e324948f792274a61596e8ffcfb941576734"
+      "sha256": "9d3e6761f6af438b2748eb25278820a5bb19a5aec205cb21a89f20c2e2078406"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -236,7 +236,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "5641a94741678c091886eb58807f70b979ce2cf2d1d5b9dc69bca557d9c89318"
+      "sha256": "c74a7ab80c2ebd162034b3ecf7b0e9b06b4995ae201e0d81c29051d10c9494ea"
     },
     {
       "path": "test/rw5_local_safety_privacy_principal_isolation_test.dart",
