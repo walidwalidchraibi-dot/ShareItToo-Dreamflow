@@ -1,5 +1,17 @@
 # ShareItToo Current State
 
+Latest WP04 prerequisite: corrected clean R10 at `2408ada3` passed the full
+technical gate and both debug builds, then failed at the second APK extraction
+with disk-full/unzip exit 50. Its isolated child was cleaned; no execution JSON
+or APK-equivalence pass exists. The five-GiB generic floor did not cover the
+cold run's peak storage. An early 24-GiB R10 admission budget passes 23 focused
+tests, preserving all existing output limits and reproduction checks. The
+same build image is safely expanded to64GiB with verified offline recovery;
+guarded profile and real filesystem checks pass. Full normal regression also
+passes (2,171 tools, Flutter profiles, analyzer, Web/Wasm dry run, loopback,
+Android/R11). Exact clean-head R10 remains pending, not closure. See
+`docs/operations/WP04_R10_COLD_STORAGE_2026-09-04.md`.
+
 2026-09-04 WP04 independent progress: distinct Stripe snapshot and Accounts
 v2 webhook destination secrets are now wired and verified locally; wrong or
 missing mode is rejected before provider/database work. Focused 26 tests,

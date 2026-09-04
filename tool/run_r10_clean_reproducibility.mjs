@@ -12,6 +12,7 @@ import {
   readFile,
   readdir,
   rm,
+  statfs,
   writeFile,
 } from 'node:fs/promises';
 import os from 'node:os';
@@ -21,6 +22,29 @@ import { androidToolchain } from './validate_android_toolchain.mjs';
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const tempPrefix = 'sit-r10-clean-reproducibility-';
+
+// The cold run temporarily holds more than project output: fresh package
+// caches, a Git clone, two APKs and two fully extracted APK inventories.
+// Preserve the existing output/cache bounds and leave 5 GiB of headroom.
+export const r10StorageBudgetKiB = Object.freeze({
+  projectGenerated: 5 * 1024 * 1024,
+  isolatedPackageCaches: 8 * 1024 * 1024,
+  clone: 1 * 1024 * 1024,
+  apkCopiesAndExtractions: 5 * 1024 * 1024,
+  reserve: 5 * 1024 * 1024,
+});
+
+export async function assertR10StorageCapacity(directory, { inspect = statfs } = {}) {
+  const info = await inspect(directory, { bigint: true });
+  if (typeof info?.bavail !== 'bigint' || typeof info?.bsize !== 'bigint'
+      || info.bavail < 0n || info.bsize <= 0n) fail('r10_invalid_temp_capacity');
+  const available = info.bavail * info.bsize / 1024n;
+  if (available > BigInt(Number.MAX_SAFE_INTEGER)) fail('r10_invalid_temp_capacity');
+  const availableKiB = Number(available);
+  const requiredKiB = Object.values(r10StorageBudgetKiB).reduce((sum, value) => sum + value, 0);
+  if (availableKiB < requiredKiB) fail('r10_insufficient_temp_capacity');
+  return Object.freeze({ availableKiB, requiredKiB });
+}
 
 export const r10ExpectedPermissions = Object.freeze([
   Object.freeze({ name: 'android.permission.ACCESS_COARSE_LOCATION', maxSdkVersion: null }),
@@ -296,8 +320,8 @@ async function generatedFootprint(checkout, cacheRoot) {
 }
 
 export function validateR10GeneratedFootprint(value, {
-  maximumProjectGeneratedKiB = 5 * 1024 * 1024,
-  maximumIsolatedPackageCachesKiB = 8 * 1024 * 1024,
+  maximumProjectGeneratedKiB = r10StorageBudgetKiB.projectGenerated,
+  maximumIsolatedPackageCachesKiB = r10StorageBudgetKiB.isolatedPackageCaches,
 } = {}) {
   if (value.projectGeneratedKiB > maximumProjectGeneratedKiB) {
     fail('r10_project_generated_footprint_exceeds_bound');
@@ -656,7 +680,10 @@ export async function executeR10CleanReproducibility({
   sourceBranch,
   output,
   observedOn = new Date().toISOString().slice(0, 10),
+  inspectStorage = statfs,
 } = {}) {
+  const storage = await assertR10StorageCapacity(os.tmpdir(), { inspect: inspectStorage });
+  process.stdout.write(`[R10] temp capacity: available=${storage.availableKiB} KiB, required=${storage.requiredKiB} KiB\n`);
   const source = path.resolve(sourceRoot);
   const outputPath = output === undefined
     ? path.join(source, 'docs/evidence/48h-remote/r10-clean-reproducibility-20260824.json')

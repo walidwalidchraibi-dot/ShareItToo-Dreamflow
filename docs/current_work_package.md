@@ -1,5 +1,16 @@
 # Current Work Package: WP04 Stripe webhook destination separation
 
+Latest verification checkpoint: exact R10 on `2408ada3` passed its complete
+technical regression and both Android builds but failed while extracting the
+second APK because the task-owned 32-GiB build image filled. Session 14219 is
+terminal exit 1, with no reproduction result or execution JSON. A new early
+cold-storage admission check passes 23 focused runner/validator tests. The
+same build image is now safely expanded to64GiB with byte-verified recovery,
+unchanged guarded profile and a passing real filesystem probe. Full normal
+regression passes: 2,171 tools, Flutter profiles, analyzer, Web/Wasm dry run,
+loopback and Android/R11. Exact clean-head R10 remains pending and is not
+closed. See `docs/operations/WP04_R10_COLD_STORAGE_2026-09-04.md`.
+
 2026-09-04: independently reproduced the missing separate Accounts v2
 webhook signing-secret path. Real-SDK and workflow tests now verify distinct
 snapshot/thin secrets, no cross-key fallback, early mode rejection and raw

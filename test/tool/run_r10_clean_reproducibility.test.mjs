@@ -9,11 +9,14 @@ import {
   captureR10Toolchain,
   compareApkInventories,
   containsConservativeRawByteMarker,
+  executeR10CleanReproducibility,
   knownD8MetadataNormalizedSha256,
   parseAaptBadging,
   parseAaptPermissions,
   resolveR10SourceBranch,
   selectFlutterRuntimePayloadEntries,
+  assertR10StorageCapacity,
+  r10StorageBudgetKiB,
   validateR10GeneratedFootprint,
 } from '../../tool/run_r10_clean_reproducibility.mjs';
 
@@ -21,6 +24,47 @@ const technicalRegression = readFileSync(
   new URL('../../scripts/technical_regression_check.sh', import.meta.url),
   'utf8',
 );
+
+test('R10 budgets cold caches, output, both APK inventories and reserve before starting', async () => {
+  const requiredKiB = Object.values(r10StorageBudgetKiB).reduce((sum, value) => sum + value, 0);
+  assert.equal(requiredKiB, 24 * 1024 * 1024);
+  const observation = await assertR10StorageCapacity('/isolated/temp', {
+    inspect: async (directory, options) => {
+      assert.equal(directory, '/isolated/temp');
+      assert.deepEqual(options, { bigint: true });
+      return { bavail: BigInt(requiredKiB), bsize: 1024n };
+    },
+  });
+  assert.deepEqual(observation, { availableKiB: requiredKiB, requiredKiB });
+  await assert.rejects(assertR10StorageCapacity('/isolated/temp', {
+    inspect: async () => ({ bavail: BigInt(requiredKiB - 1), bsize: 1024n }),
+  }), /r10_insufficient_temp_capacity/u);
+});
+
+test('R10 rejects the observed ten-GiB headroom before touching Git or creating a clone', async () => {
+  await assert.rejects(executeR10CleanReproducibility({
+    sourceRoot: '/nonexistent-r10-source-must-not-be-read',
+    inspectStorage: async () => ({ bavail: 10n * 1024n * 1024n, bsize: 1024n }),
+  }), /r10_insufficient_temp_capacity/u);
+});
+
+test('R10 storage probing fails closed on invalid or unavailable filesystem data', async () => {
+  for (const value of [
+    { bavail: -1n, bsize: 4096n },
+    { bavail: 1n, bsize: 0n },
+    { bavail: 1.5, bsize: 4096n },
+    { bavail: 2n ** 64n, bsize: 4096n },
+    {},
+  ]) {
+    await assert.rejects(assertR10StorageCapacity('/isolated/temp', {
+      inspect: async () => value,
+    }), /r10_invalid_temp_capacity/u);
+  }
+  await assert.rejects(executeR10CleanReproducibility({
+    sourceRoot: '/nonexistent-r10-source-must-not-be-read',
+    inspectStorage: async () => { throw new Error('synthetic-statfs-failure'); },
+  }), /synthetic-statfs-failure/u);
+});
 
 function toolchainRunner(checkout, backendPnpm, calls) {
   return async (command, args, options) => {
