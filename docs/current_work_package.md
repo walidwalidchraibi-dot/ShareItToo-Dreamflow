@@ -1,5 +1,19 @@
 # Current Work Package: WP05 freeze support-corrected Pixel successor
 
+Candidate1.0.0+2026090404 is prepared on base4ed587fe: only pubspec and the
+existing client-build fallback change functionally; exact dependent hashes are
+refreshed with all non-hash claims/approvals/assertions preserved.159 affected
+validator tests pass. Canonical signing and Android Firebase local configuration
+consistency are verified without outputting values. Local archives max0403;
+0404 has no local archive/history reference and is NOT a Play-verified version.
+Freeze this preparation commit, then run unchanged full exact cold R10 with the
+v2 profile and a fresh private TMPDIR on the APFS build volume. No signing,
+distribution or Pixel update until candidate-specific local proof succeeds.
+GitHub remains deferred; no new broad package or actual support mutation.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090404_HANDOVER.md`.
+
+Previous prerequisite closure:
+
 Scoped Android entrypoint is locally verified: 30 focused guards, 45 combined
 guard/R10 helper tests, actual-host positive/wrong-SDK/exit17 controls, and full
 normal regression PASS (2210 tools,724 default Flutter+profiles,analyzer0,

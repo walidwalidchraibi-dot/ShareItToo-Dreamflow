@@ -1,5 +1,13 @@
 # ShareItToo Current State
 
+Next local Pixel candidate1.0.0+2026090404 is prepared, not built or installed.
+Base4ed587fe remains source authority until the preparation commit is frozen.
+159 affected binding tests, canonical signing and Android Firebase file/env
+consistency pass; new normal/cold/signed/device/CI results are not claimed.
+Only the two version strings and their exact dependent hashes changed; no
+legal/provider approvals or historical candidate evidence were promoted.
+See `docs/operations/WP05_PIXEL_CANDIDATE_2026090404_HANDOVER.md`.
+
 Scoped-entrypoint implementation commit:
 `c4923cf1db58dcaccc33597a8c4d534f7f7cbd3a` (local, clean at commit).
 The final complete tool inventory rerun also passes all2210 after explicit
