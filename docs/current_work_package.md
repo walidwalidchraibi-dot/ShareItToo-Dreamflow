@@ -1,4 +1,25 @@
-# Current Work Package: WP05 full-surface Pixel candidate closure
+# Current Work Package: WP06 Listing-AI condition/editor contract closure
+
+WP06 is complete at implementation commit
+`e2559ada5e466be7b947755dec3bb5db2ccdb941`. The model output schema,
+backend domain and Android editor now share one exact condition vocabulary;
+arbitrary prose is rejected and the developer-only empty sentinel remains
+typed and fail-closed. Four synthetic image classes pass with MEDIUM confidence,
+mandatory owner confirmation and no publication authority. Focused47, complete
+local regression, exact clean R10 and exact GitHub Regression33941394258 plus
+CodeQL33941394251 pass; alerts0. The external Staging provider remains disabled,
+and `codex_local_dev` remains developer-only with no API billing or credential
+extraction.
+
+The next bounded package is the independently observed Listing-AI price-domain
+contract: reproduce catalog categories without a valid regional-price rule and
+the semantically incorrect projector mapping, then make draft creation remain
+truthful and usable without inventing a price. Keep the immutable Pixel0503
+candidate and WP06 evidence separate. Do not activate providers, deploy, publish,
+touch devices/Play/production/payment/V5.2 or merge PR#7. See
+`docs/operations/WP06_LISTING_AI_CONDITION_CONTRACT_2026-09-05.md`.
+
+Historical WP05 full-surface Pixel candidate closure:
 
 Candidate `1.0.0+2026090503`/source
 `96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f` is immutable and locally closed:

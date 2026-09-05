@@ -1,5 +1,18 @@
 # ShareItToo Current State
 
+WP06 closes the Listing-AI condition/editor contract locally at implementation
+commit `e2559ada5e466be7b947755dec3bb5db2ccdb941`. Four synthetic
+`codex_local_dev` evaluations exposed that provider-valid condition prose could
+not be applied by Android; domain, provider schema and local adapter now share
+the exact five editor codes and reject drift. Focused47, full local regression
+and exact clean R10 pass; GitHub Regression33941394258 (including R10) and
+CodeQL33941394251 pass with 0 open alerts. PR#7 remains Draft/open/unmerged.
+No credentials were extracted, no API billing was used, and no external
+Staging provider, listing, device, Store, production or payment state changed.
+Next: resolve the separately observed Listing-AI/catalog versus regional-price
+domain mismatch without inventing market prices. See
+`docs/operations/WP06_LISTING_AI_CONDITION_CONTRACT_2026-09-05.md`.
+
 Exact full-surface Pixel candidate `1.0.0+2026090503` is frozen at
 `96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f` and passes exact clean R10,
 signed/private archive verification, data-preserving Pixel update, authenticated
