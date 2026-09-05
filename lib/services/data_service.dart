@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart'
     show debugPrint, kDebugMode, listEquals, visibleForTesting;
@@ -5297,6 +5298,51 @@ class DataService {
     return '${prefix}_${micros}_$entropy';
   }
 
+  static String _rentalCartIntentClientId({
+    required String listingId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    final canonical = jsonEncode(<String>[
+      listingId,
+      _rentalDate(startDate),
+      _rentalDate(endDate),
+    ]);
+    final digest = crypto.sha256.convert(utf8.encode(canonical));
+    return 'cartitem_$digest';
+  }
+
+  static bool _sameRentalCartIntent(
+    RentalCartItem entry, {
+    required String listingId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) =>
+      entry.listingId == listingId &&
+      _rentalDate(entry.startDate) == _rentalDate(startDate) &&
+      _rentalDate(entry.endDate) == _rentalDate(endDate);
+
+  static RentalCart? _existingExactRentalCartIntent(
+    RentalCart cart, {
+    required String listingId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    final matches = cart.items
+        .where((entry) => _sameRentalCartIntent(
+              entry,
+              listingId: listingId,
+              startDate: startDate,
+              endDate: endDate,
+            ))
+        .toList(growable: false);
+    if (matches.length > 1) {
+      throw StateError(
+          'Der Mietkorb enthält mehrere identische Mietabsichten und muss vor einer Wiederholung geprüft werden.');
+    }
+    return matches.length == 1 ? cart : null;
+  }
+
   static Future<bool> _hasBackendSession() async {
     if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return false;
     return await AuthService.readSession() != null;
@@ -5509,39 +5555,72 @@ class DataService {
     final owner = expectedOwner ?? await LocalPrincipalActionOwner.capture();
     await owner.assertCurrent();
     final principal = owner.principal;
-    final id = _rentalCartClientId('cartitem');
     if (BackendConfig.enabled &&
         !QaRuntimeService.isEnabled &&
         owner.sessionOwner != null) {
-      await syncGuestRentalCartAfterAuthentication(expectedOwner: owner);
-      await owner.assertCurrent();
-      final next =
-          RentalCart.fromJson(await BackendRepository.putRentalCartItemForOwner(
-        owner: owner.sessionOwner!,
-        id: id,
-        listingId: item.id,
-        startDate: _rentalDate(range.start),
-        endDate: _rentalDate(range.end),
-        projectId: projectId,
-      ));
-      await owner.assertCurrent();
-      if (!next.items.any((entry) =>
-          entry.id == id &&
-          entry.listingId == item.id &&
-          _rentalDate(entry.startDate) == _rentalDate(range.start) &&
-          _rentalDate(entry.endDate) == _rentalDate(range.end) &&
-          entry.projectId == projectId)) {
-        throw StateError(
-            'Speichern des Mietkorb-Artikels konnte nicht bestätigt werden.');
-      }
-      return next;
+      return _rentalCartMutationQueue.run(() async {
+        await owner.assertCurrent();
+        await _syncGuestRentalCartAfterAuthenticationUnlocked(owner);
+        await owner.assertCurrent();
+        final current = await _getBackendRentalCartForOwner(owner);
+        final existing = _existingExactRentalCartIntent(
+          current,
+          listingId: item.id,
+          startDate: range.start,
+          endDate: range.end,
+        );
+        if (existing != null) return existing;
+        final id = _rentalCartIntentClientId(
+          listingId: item.id,
+          startDate: range.start,
+          endDate: range.end,
+        );
+        final next = RentalCart.fromJson(
+          await BackendRepository.putRentalCartItemForOwner(
+            owner: owner.sessionOwner!,
+            id: id,
+            listingId: item.id,
+            startDate: _rentalDate(range.start),
+            endDate: _rentalDate(range.end),
+            projectId: projectId,
+          ),
+        );
+        await owner.assertCurrent();
+        final matches = next.items
+            .where((entry) => _sameRentalCartIntent(
+                  entry,
+                  listingId: item.id,
+                  startDate: range.start,
+                  endDate: range.end,
+                ))
+            .toList(growable: false);
+        if (matches.length != 1 ||
+            matches.single.id != id ||
+            matches.single.projectId != projectId) {
+          throw StateError(
+              'Speichern des Mietkorb-Artikels konnte nicht bestätigt werden.');
+        }
+        return next;
+      });
     }
     return _rentalCartMutationQueue.run(() async {
       await owner.assertCurrent();
       final cart = (await _assertReadableLocalRentalCart(principal)).cart;
+      final existing = _existingExactRentalCartIntent(
+        cart,
+        listingId: item.id,
+        startDate: range.start,
+        endDate: range.end,
+      );
+      if (existing != null) return existing;
       if (cart.items.length >= 100) {
         throw StateError('Der Mietkorb kann höchstens 100 Artikel enthalten.');
       }
+      final id = _rentalCartIntentClientId(
+        listingId: item.id,
+        startDate: range.start,
+        endDate: range.end,
+      );
       final next = RentalCart(
         revision: cart.revision + 1,
         reservationCreated: false,

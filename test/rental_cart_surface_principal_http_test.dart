@@ -160,6 +160,14 @@ void main() {
               'Bearer synthetic-direct-access-a',
             );
             expect(request.url.path, startsWith('/api/v1/rental-cart'));
+            if (operation == 'add' && request.method == 'GET') {
+              return http.Response(
+                jsonEncode({
+                  'cart': {'projects': [], 'items': []},
+                }),
+                200,
+              );
+            }
             if (outcome != 'stable') await useRole('b');
             final confirmed = cartFor('a');
             if (operation == 'add') {
@@ -181,7 +189,7 @@ void main() {
           reason:
               'An A action must never refresh B credentials after A returns 401.',
         );
-        expect(requests, 1);
+        expect(requests, operation == 'add' ? 2 : 1);
         if (outcome == 'stable') {
           expect(failure, isNull);
           expect(result!.projects.single.title, 'a private project');
@@ -224,11 +232,22 @@ void main() {
   }
   test('truth add rejects unrelated nonempty cart as save acknowledgement',
       () async {
+    var calls = 0;
     await http.runWithClient(() async {
       await expectLater(action('add'), throwsStateError);
     },
-        () => MockClient((request) async =>
-            http.Response(jsonEncode({'cart': cartFor('a')}), 200)));
+        () => MockClient((request) async {
+              calls++;
+              return http.Response(
+                jsonEncode({
+                  'cart': calls == 1
+                      ? <String, dynamic>{'projects': [], 'items': []}
+                      : cartFor('b'),
+                }),
+                200,
+              );
+            }));
+    expect(calls, 2);
   });
 
   for (final stage in [
@@ -331,7 +350,7 @@ void main() {
                 }),
                 200));
         await tester.pumpAndSettle();
-        expect(calls, 1);
+        expect(calls, 2);
         if (outcome.startsWith('late')) {
           expect(find.text('B foreign dialog'), findsOneWidget);
           expect(find.textContaining('Im Mietkorb'), findsNothing);
@@ -358,6 +377,15 @@ void main() {
       },
           () => MockClient((request) async {
                 calls++;
+                if (request.method == 'GET' &&
+                    request.url.path == '/api/v1/rental-cart') {
+                  return http.Response(
+                    jsonEncode({
+                      'cart': {'projects': [], 'items': []},
+                    }),
+                    200,
+                  );
+                }
                 expect(request.method, 'PUT');
                 expect(request.headers['Authorization'],
                     'Bearer synthetic-direct-access-a');

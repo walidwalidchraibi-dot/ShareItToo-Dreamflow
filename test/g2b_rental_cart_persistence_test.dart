@@ -71,6 +71,90 @@ void main() {
     expect(empty.reservationCreated, isFalse);
   });
 
+  test('an identical rental intent is one durable non-reserving cart line',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final item = buildTestItem(id: 'listing-deduplicated', ownerId: 'owner-1');
+    final range = DateTimeRange(
+      start: DateTime(2026, 9, 5),
+      end: DateTime(2026, 9, 8),
+    );
+
+    final first = await DataService.addRentalCartItem(
+      item: item,
+      range: range,
+    );
+    final repeated = await DataService.addRentalCartItem(
+      item: item,
+      range: range,
+    );
+
+    expect(first.items, hasLength(1));
+    expect(repeated.items, hasLength(1));
+    expect(repeated.items.single.id, first.items.single.id);
+    expect(repeated.revision, first.revision);
+    expect(repeated.reservationCreated, isFalse);
+  });
+
+  test('concurrent identical intent is serialized without a duplicate line',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final item = buildTestItem(id: 'listing-concurrent', ownerId: 'owner-1');
+    final range = DateTimeRange(
+      start: DateTime(2026, 9, 10),
+      end: DateTime(2026, 9, 12),
+    );
+
+    final results = await Future.wait([
+      DataService.addRentalCartItem(item: item, range: range),
+      DataService.addRentalCartItem(item: item, range: range),
+    ]);
+    final cart = await DataService.getRentalCart();
+
+    expect(results.last.items, hasLength(1));
+    expect(cart.items, hasLength(1));
+    expect(cart.reservationCreated, isFalse);
+  });
+
+  test('repeat keeps its project while a distinct period stays independent',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final project =
+        await DataService.addRentalCartProject(title: 'Werkstattprojekt');
+    final item = buildTestItem(id: 'listing-periods', ownerId: 'owner-1');
+    final firstRange = DateTimeRange(
+      start: DateTime(2026, 9, 15),
+      end: DateTime(2026, 9, 17),
+    );
+    final secondRange = DateTimeRange(
+      start: DateTime(2026, 9, 18),
+      end: DateTime(2026, 9, 20),
+    );
+
+    final first = await DataService.addRentalCartItem(
+      item: item,
+      range: firstRange,
+      projectId: project.id,
+    );
+    final repeated = await DataService.addRentalCartItem(
+      item: item,
+      range: firstRange,
+    );
+    final distinct = await DataService.addRentalCartItem(
+      item: item,
+      range: secondRange,
+    );
+
+    expect(first.items.single.projectId, project.id);
+    expect(repeated.items.single.projectId, project.id);
+    expect(distinct.items, hasLength(2));
+    expect(
+      distinct.items.map((entry) => entry.id).toSet(),
+      hasLength(2),
+    );
+    expect(distinct.reservationCreated, isFalse);
+  });
+
   test('privacy export fails closed for malformed guest cart data', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'rental_cart_v1': '{"items":"not-a-list"}',
