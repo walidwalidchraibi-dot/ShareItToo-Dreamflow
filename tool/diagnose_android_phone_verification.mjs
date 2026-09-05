@@ -591,6 +591,31 @@ function writePrivateState(directory, state) {
   return sha256(JSON.stringify(state));
 }
 
+export function classifyPhoneVerificationObservation(surfaceState) {
+  if (!['verified', 'unverified', 'unknown'].includes(surfaceState)) {
+    fail('The sanitized phone-verification observation state is invalid.');
+  }
+  if (surfaceState === 'verified') {
+    return Object.freeze({
+      status: 'phone-verification-confirmed',
+      freshSmsRequestRequired: false,
+      reconciliationRequired: false,
+    });
+  }
+  if (surfaceState === 'unverified') {
+    return Object.freeze({
+      status: 'phone-verification-not-confirmed-fresh-request-required',
+      freshSmsRequestRequired: true,
+      reconciliationRequired: false,
+    });
+  }
+  return Object.freeze({
+    status: 'phone-verification-result-unproven-reconciliation-required',
+    freshSmsRequestRequired: false,
+    reconciliationRequired: true,
+  });
+}
+
 export async function diagnoseAndroidPhoneVerification({
   phase,
   protectedOwnerVaultFile,
@@ -714,7 +739,33 @@ export async function diagnoseAndroidPhoneVerification({
     );
     hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
     const currentConfirmationResult = createPhoneConfirmationResultObserver(hierarchy);
+    writePrivateState(privateEvidenceDirectory, {
+      schemaVersion: 1,
+      kind: 'n29-private-phone-verification-state',
+      status: 'sms-confirmation-attempt-in-progress-result-unproven',
+      capturedAt,
+      candidateCommit: candidate.commit,
+      candidateBuildNumber: candidate.buildNumber,
+      confirmationInputSubmitted: false,
+      reconciliationRequired: true,
+      ownerActionRequired: false,
+      containsPhoneNumber: false,
+      containsSmsCode: false,
+    });
     tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Bestätigen');
+    writePrivateState(privateEvidenceDirectory, {
+      schemaVersion: 1,
+      kind: 'n29-private-phone-verification-state',
+      status: 'sms-confirmation-submitted-result-unproven',
+      capturedAt,
+      candidateCommit: candidate.commit,
+      candidateBuildNumber: candidate.buildNumber,
+      confirmationInputSubmitted: true,
+      reconciliationRequired: true,
+      ownerActionRequired: false,
+      containsPhoneNumber: false,
+      containsSmsCode: false,
+    });
     hierarchy = await waitForHierarchy({
       commandRunner,
       adbPath,
@@ -726,6 +777,20 @@ export async function diagnoseAndroidPhoneVerification({
     });
     if (!hierarchy.includes('Telefonnummer verifiziert')
         && inspectPhoneVerificationSurface(hierarchy).state !== 'verified') {
+      writePrivateState(privateEvidenceDirectory, {
+        schemaVersion: 1,
+        kind: 'n29-private-phone-verification-state',
+        status: 'sms-confirmation-rejected-fresh-request-required',
+        capturedAt,
+        candidateCommit: candidate.commit,
+        candidateBuildNumber: candidate.buildNumber,
+        confirmationInputSubmitted: true,
+        freshSmsRequestRequired: true,
+        reconciliationRequired: false,
+        ownerActionRequired: false,
+        containsPhoneNumber: false,
+        containsSmsCode: false,
+      });
       fail('The private SMS confirmation input was not safely accepted.');
     }
     const status = 'valid-code-accepted-awaiting-cold-restart';
@@ -961,8 +1026,25 @@ export async function diagnoseAndroidPhoneVerification({
       }
     }
   } else {
-    const successVisible = inspectPhoneVerificationSurface(hierarchy).state === 'verified';
-    if (!successVisible) fail('Current-candidate phone verification is not yet confirmed.');
+    const observedSurfaceState = inspectPhoneVerificationSurface(hierarchy).state;
+    const observation = classifyPhoneVerificationObservation(observedSurfaceState);
+    if (observedSurfaceState !== 'verified') {
+      writePrivateState(privateEvidenceDirectory, {
+        schemaVersion: 1,
+        kind: 'n29-private-phone-verification-state',
+        status: observation.status,
+        capturedAt,
+        candidateCommit: candidate.commit,
+        candidateBuildNumber: candidate.buildNumber,
+        observedPhoneSurfaceState: observedSurfaceState,
+        freshSmsRequestRequired: observation.freshSmsRequestRequired,
+        reconciliationRequired: observation.reconciliationRequired,
+        ownerActionRequired: false,
+        containsPhoneNumber: false,
+        containsSmsCode: false,
+      });
+      fail('Current-candidate phone verification is not yet confirmed.');
+    }
     currentHeadAndroidAdb(commandRunner, adbPath, device, [
       'shell', 'am', 'force-stop', applicationId,
     ]);

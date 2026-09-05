@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
+  classifyPhoneVerificationObservation,
   clearVerifiedPhoneFromStagingTestAccount,
   createPhoneVerificationCommandRunner,
   createPhoneConfirmationResultObserver,
@@ -38,6 +39,28 @@ test('accepts only a German E.164 phone input', () => {
 test('all persisted phone-verification states use the current N29 evidence kind', () => {
   assert.doesNotMatch(source, /n24-private-phone-verification-state/u);
   assert.match(source, /n29-private-phone-verification-state/u);
+});
+
+test('post-confirmation observation never turns an unproven attempt back into awaiting-code state', () => {
+  assert.deepEqual(classifyPhoneVerificationObservation('verified'), {
+    status: 'phone-verification-confirmed',
+    freshSmsRequestRequired: false,
+    reconciliationRequired: false,
+  });
+  assert.deepEqual(classifyPhoneVerificationObservation('unverified'), {
+    status: 'phone-verification-not-confirmed-fresh-request-required',
+    freshSmsRequestRequired: true,
+    reconciliationRequired: false,
+  });
+  assert.deepEqual(classifyPhoneVerificationObservation('unknown'), {
+    status: 'phone-verification-result-unproven-reconciliation-required',
+    freshSmsRequestRequired: false,
+    reconciliationRequired: true,
+  });
+  assert.throws(
+    () => classifyPhoneVerificationObservation('awaiting-owner-sms-code'),
+    /observation state is invalid/u,
+  );
 });
 
 test('accepts exactly one six-digit private SMS confirmation input', () => {
@@ -423,6 +446,9 @@ test('phone diagnostic is artifact-bound and never emits or persists the SMS inp
     'verifyCurrentHeadAndroidInstalledCandidate',
     "advertisedProvider: 'firebase-phone'",
     "status = 'awaiting-owner-sms-code'",
+    'sms-confirmation-submitted-result-unproven',
+    'phone-verification-not-confirmed-fresh-request-required',
+    'phone-verification-result-unproven-reconciliation-required',
     "status = 'passed-valid-code-and-cold-restart'",
     'containsPhoneNumber: false',
     'containsSmsCode: false',
