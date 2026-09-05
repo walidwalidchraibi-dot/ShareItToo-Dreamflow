@@ -1,4 +1,25 @@
-# Current Work Package: WP07 Listing-AI price/catalog contract closure
+# Current Work Package: WP08 Listing-AI Staging acceptance
+
+WP08 is **PARTIAL** at implementation commit
+`07030b27abeba68d40838e37bcd1d46600a9afa2`: exact Staging deployment,
+non-binding two-role acceptance, safety actions and Pixel FCM in foreground,
+background and terminated-process states pass. A reproduced four-millisecond
+client/server quote skew is corrected and covered; the binding path now reaches
+the intended `409 v52_contract_documents_unavailable` legal hold without
+creating a contract, reservation or payment. Full local regression and exact
+clean R10 pass; CodeQL and exact GitHub Regression including its independent
+R10 job are green with alerts0. PR#7 remains Draft/open/mergeable/unmerged.
+
+External Listing AI remains safely on mock with budget0 because the actual
+OpenAI Platform Work-profile session requires owner authentication and no
+dedicated Staging credential is configured. No credential extraction or API
+billing occurred. Next, after final GitHub/evidence closure, prioritize a
+separate Stripe sandbox/test-money package that cannot affect live money; the
+external Listing-AI owner-auth action and V5.2 professional legal approval
+remain explicit dependencies. See
+`docs/operations/WP08_LISTING_AI_STAGING_ACCEPTANCE_2026-09-05.md`.
+
+Historical WP07 closure:
 
 WP07 is complete at implementation commit
 `3cbe5a3a3065f07a01ee4b463bb7f017ba248b72`. Exact category/subcategory

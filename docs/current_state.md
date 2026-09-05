@@ -1,5 +1,26 @@
 # ShareItToo Current State
 
+WP08 is partially closed at implementation commit
+`07030b27abeba68d40838e37bcd1d46600a9afa2`. Exact backend commit
+`b0d92af3c0fd3b855b797a573a3c99cd206e608b` is deployed to Staging; health,
+database, mail and queues are ready. Listing AI remains mock-only with budget0,
+external execution and automatic publication disabled because the actual
+OpenAI Platform session still requires owner authentication. No credential was
+read or extracted and no API billing was used.
+
+A four-millisecond authoritative-quote skew is reproduced, corrected and
+covered. The binding probe now reaches the intended V5.2 legal hold without a
+contract, reservation or payment. Two-role non-binding login/listing/simulation/
+chat, report/block/export and fresh Pixel FCM in foreground, background and
+terminated-process states pass. Full local regression and exact clean R10 pass;
+GitHub CodeQL33952111490 and Regression33952111491 including independent R10
+are green with alerts0. PR#7 remains Draft/open/unmerged. External Listing AI,
+approved V5.2 snapshots and Stripe sandbox/test money remain separate
+follow-ups. See
+`docs/operations/WP08_LISTING_AI_STAGING_ACCEPTANCE_2026-09-05.md`.
+
+Historical WP07 closure:
+
 WP07 closes the Listing-AI price/catalog contract at implementation commit
 `3cbe5a3a3065f07a01ee4b463bb7f017ba248b72`. The reproduced camera review
 failure and unrelated projector-to-ladders recommendation are removed. All 79
