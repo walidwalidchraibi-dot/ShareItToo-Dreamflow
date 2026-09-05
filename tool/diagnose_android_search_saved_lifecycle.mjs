@@ -79,6 +79,30 @@ function tapPrivateNamedNode({
   ]);
 }
 
+function normalizedLabelNodes(hierarchy, label) {
+  const normalized = (value) => String(value ?? '').replace(/\s+/gu, ' ').trim();
+  const target = normalized(label);
+  return (String(hierarchy).match(/<node\b[^>]*>/gu) ?? []).filter((node) => (
+    [
+      currentHeadAndroidNodeAttribute(node, 'text'),
+      currentHeadAndroidNodeAttribute(node, 'content-desc'),
+    ].some((value) => normalized(value) === target)
+  ));
+}
+
+export function normalizedAndroidLabelVisible(hierarchy, label) {
+  return normalizedLabelNodes(hierarchy, label).length > 0;
+}
+
+function tapNormalizedLabel(commandRunner, adbPath, device, hierarchy, label) {
+  const nodes = normalizedLabelNodes(hierarchy, label);
+  if (nodes.length !== 1) fail('The sanitized normalized-label action is unavailable.');
+  const point = pointForNode(nodes[0], 'normalized-label');
+  currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell', 'input', 'tap', String(point.x), String(point.y),
+  ]);
+}
+
 function queryEditorNode(hierarchy) {
   const named = currentHeadAndroidNamedNodes(hierarchy, 'Was suchst du?')
     .filter((node) => currentHeadAndroidNodeAttribute(node, 'class') === 'android.widget.EditText');
@@ -212,9 +236,12 @@ async function openExactSearch({
     device,
     wait,
     label: 'search category choice',
-    predicate: (value) => containsAllLabels(value, ['Alle Kategorien', toolsCategory]),
+    predicate: (value) => (
+      currentHeadAndroidNamedNodes(value, 'Alle Kategorien').length > 0
+        && normalizedAndroidLabelVisible(value, toolsCategory)
+    ),
   });
-  tapLabel(commandRunner, adbPath, device, hierarchy, toolsCategory);
+  tapNormalizedLabel(commandRunner, adbPath, device, hierarchy, toolsCategory);
   hierarchy = await waitForHierarchy({
     commandRunner,
     adbPath,

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   manualSearchFormVisible,
+  normalizedAndroidLabelVisible,
   runAndroidSearchSavedLifecycle,
 } from '../../tool/diagnose_android_search_saved_lifecycle.mjs';
 
@@ -29,6 +30,16 @@ test('recognizes the real Pixel search form without requiring a hidden hint', ()
   ].join('');
   assert.equal(manualSearchFormVisible(hierarchy), true);
   assert.equal(manualSearchFormVisible(hierarchy.replace('content-desc="Kategorie"', 'content-desc=""')), false);
+});
+
+test('matches a category whose real Pixel semantics wrap onto two lines', () => {
+  const hierarchy = '<node class="android.view.View" text="" '
+    + 'content-desc="Werkzeuge&#10;&amp; Kleingeräte" bounds="[510,406][930,686]"/>';
+  assert.equal(
+    normalizedAndroidLabelVisible(hierarchy, 'Werkzeuge & Kleingeräte'),
+    true,
+  );
+  assert.equal(normalizedAndroidLabelVisible(hierarchy, 'Technik & Elektronik'), false);
 });
 
 function passingOperations(calls) {
