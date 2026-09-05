@@ -17,6 +17,7 @@ import {
   sanitizePhoneVerificationFailure,
   validateFrozenCandidateMobileCompatibility,
   waitForPhoneVerificationHierarchy,
+  wakePhoneVerificationScreen,
 } from '../../tool/diagnose_android_phone_verification.mjs';
 
 const root = resolve(import.meta.dirname, '../..');
@@ -140,6 +141,24 @@ test('phone command runner bounds every device command and keeps output captured
   assert.equal(observed.options.encoding, 'utf8');
   runner('adb', ['exec-out'], { binary: true });
   assert.equal(observed.options.encoding, null);
+});
+
+test('phone diagnostics wake without a persistent setting and still fail closed when locked', () => {
+  const calls = [];
+  wakePhoneVerificationScreen((file, args) => {
+    calls.push({ file, args });
+    return '';
+  }, 'adb', { serial: 'synthetic-device' });
+  assert.deepEqual(calls.map(({ args }) => args.slice(2)), [
+    ['shell', 'input', 'keyevent', '224'],
+    ['shell', 'dumpsys', 'window', 'policy'],
+  ]);
+  assert.equal(calls.some(({ args }) => args.includes('settings')), false);
+  assert.equal(calls.some(({ args }) => args.includes('dismiss-keyguard')), false);
+
+  assert.throws(() => wakePhoneVerificationScreen((_file, args) => (
+    args.includes('dumpsys') ? 'keyguardShowing=true' : ''
+  ), 'adb', { serial: 'synthetic-device' }), /locked/u);
 });
 
 test('phone surface polling has an elapsed-time deadline instead of a timing workaround', async () => {

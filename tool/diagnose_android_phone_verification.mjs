@@ -61,6 +61,16 @@ export function createPhoneVerificationCommandRunner(execute = execFileSync) {
   });
 }
 
+export function wakePhoneVerificationScreen(commandRunner, adbPath, device) {
+  currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'input', 'keyevent', '224'],
+  );
+  assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device);
+}
+
 const phoneVerificationCommandRunner = createPhoneVerificationCommandRunner();
 
 function fail(message) {
@@ -314,6 +324,7 @@ export async function waitForPhoneVerificationHierarchy({
   const deadline = now() + timeoutMs;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (now() >= deadline) break;
+    wakePhoneVerificationScreen(commandRunner, adbPath, device);
     await wait(500);
     if (now() >= deadline) break;
     const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
@@ -598,7 +609,7 @@ export async function diagnoseAndroidPhoneVerification({
   if (!['preflight', 'request', 'confirm', 'observe', 'cleanup'].includes(phase)) {
     fail('Phone diagnostic phase must be preflight, request, confirm, observe or cleanup.');
   }
-  assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device);
+  wakePhoneVerificationScreen(commandRunner, adbPath, device);
   const installed = verifyCurrentHeadAndroidInstalledCandidate(
     commandRunner,
     adbPath,
