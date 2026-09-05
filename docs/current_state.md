@@ -5545,3 +5545,22 @@ or installed at this record. Exact implementation commit, signed artifacts,
 Pixel verification and GitHub Regression/CodeQL remain the next N14 closure
 steps. The active Play candidate and all Production/public/payment gates are
 unchanged.
+
+## Active WP20 and context/credit efficiency policy (2026-09-05)
+
+The autonomous Staging goal continues as bounded sequential work packages.
+`docs/operations/SIT_CODEX_CONTEXT_CREDIT_EFFICIENCY_RULES_V1.md` is now the
+canonical execution policy: only the current package capsule remains active,
+large history is searched rather than reread, focused checks precede one final
+complete local/exact-HEAD GitHub gate, and unchanged green gates or candidates
+are not repeated. Historical evidence is retained; no security, legal,
+privacy, data-integrity, deterministic-test or release standard is relaxed.
+
+WP20 is implemented at runtime HEAD `36820880`, diagnostic HEAD `572a7bc9` and
+source-ratchet HEAD `e4850f6e25f051fd9d867202dc26c9d99fc9f31c`.
+The full local technical regression passes, including 2,296 tool tests,
+Flutter, analyzer, Web/Wasm, loopback and Android. Exact-head GitHub completion,
+single successor candidate `1.0.0+2026090507`, signed artifact verification and
+the physical Pixel cart/project lifecycle remain. Production, Store, live
+payment, external provider, Cloud/VPS/DNS/Firebase-console, OnePlus and PR
+merge remain outside this package.

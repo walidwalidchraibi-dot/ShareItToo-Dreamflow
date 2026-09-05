@@ -1,4 +1,29 @@
-# Current Work Package: WP19 current-candidate Pixel search and saved-state lifecycle
+# Current Work Package: WP20 Pixel rental-cart and project lifecycle
+
+WP20 is **IMPLEMENTED AND LOCALLY VERIFIED; PHYSICAL CANDIDATE PROOF IS IN
+PROGRESS**. Runtime correction HEAD `36820880` gives each rental intent a
+stable deterministic identity, serializes authoritative reconciliation and
+prevents duplicate cart lines across repeated taps and uncertain transport
+outcomes. Diagnostic HEAD `572a7bc9` automates isolated listing setup, two-role
+cart/project persistence and isolation, exact cleanup and protected-owner
+restoration. Source-ratchet HEAD `e4850f6e25f051fd9d867202dc26c9d99fc9f31c`
+passes the full local technical regression with 2,296 tool tests plus Flutter,
+analyzer, Web/Wasm, loopback and Android.
+
+Next: require exact-head GitHub Regression and CodeQL green, reserve the single
+successor candidate `1.0.0+2026090507`, run one final candidate regression,
+build and verify the signed Staging APK/AAB, install the data-preserving update
+on the Pixel and execute the bounded physical cart/project lifecycle. Evidence
+must remain sanitized and PR #7 Draft/open/unmerged.
+
+The execution policy is
+`docs/operations/SIT_CODEX_CONTEXT_CREDIT_EFFICIENCY_RULES_V1.md`: one active
+state capsule, focused checks during changes, one full final gate, no unchanged
+duplicate CI/test runs and no quality or boundary reduction. No Production,
+Store, real-payment, external-provider, Cloud/VPS/DNS/Firebase-console,
+OnePlus or PR-merge action is part of WP20.
+
+# Previous Work Package: WP19 current-candidate Pixel search and saved-state lifecycle
 
 WP19 is **COMPLETE ON THE PHYSICAL PIXEL AND LOCALLY** for exact signed
 Staging candidate `1.0.0+2026090506`, runtime source HEAD

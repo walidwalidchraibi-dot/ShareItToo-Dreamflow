@@ -12,6 +12,14 @@ Work on one bounded package at a time. A green package may continue only within
 the currently authorized runway. Stop on contradictory evidence involving
 money, contracts, privacy, security, release truth or user data.
 
+## Context and credit efficiency
+
+`docs/operations/SIT_CODEX_CONTEXT_CREDIT_EFFICIENCY_RULES_V1.md` is the
+binding efficiency policy. Carry only the active package capsule forward,
+search before rereading large sources, avoid unchanged duplicate gates and
+retain all audit evidence. Efficiency must never weaken deterministic tests,
+exact-HEAD CI, security, legal, privacy, data-integrity or release boundaries.
+
 ## Non-negotiable boundaries
 
 - Do not reset, rebase, squash, force-push, delete branches, rewrite history or
