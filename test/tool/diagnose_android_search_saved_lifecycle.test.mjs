@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  exactSearchListingDetailVisible,
   manualSearchFormVisible,
   manualSearchQueryUnfocused,
   normalizedAndroidLabelVisible,
@@ -49,6 +50,25 @@ test('matches a category whose real Pixel semantics wrap onto two lines', () => 
     true,
   );
   assert.equal(normalizedAndroidLabelVisible(hierarchy, 'Technik & Elektronik'), false);
+});
+
+test('binds listing detail proof to the wrapped exact title and fixture location', () => {
+  const hierarchy = [
+    '<node class="android.view.View" text="" content-desc="SIT Rollenprüfung&#10;n22-safe-fixture" bounds="[50,500][1300,620]"/>',
+    '<node class="android.view.View" text="" content-desc="Heilbronn, Deutschland" bounds="[50,630][1300,700]"/>',
+    '<node class="android.widget.Button" text="" content-desc="Verfügbarkeit prüfen" bounds="[50,1800][1300,1950]"/>',
+  ].join('');
+  assert.equal(
+    exactSearchListingDetailVisible(
+      hierarchy,
+      'SIT Rollenprüfung n22-safe-fixture',
+    ),
+    true,
+  );
+  assert.equal(
+    exactSearchListingDetailVisible(hierarchy, 'SIT Rollenprüfung n22-other'),
+    false,
+  );
 });
 
 function passingOperations(calls) {

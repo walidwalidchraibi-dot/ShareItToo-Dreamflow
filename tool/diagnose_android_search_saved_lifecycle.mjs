@@ -94,6 +94,11 @@ export function normalizedAndroidLabelVisible(hierarchy, label) {
   return normalizedLabelNodes(hierarchy, label).length > 0;
 }
 
+export function exactSearchListingDetailVisible(hierarchy, title) {
+  return normalizedAndroidLabelVisible(hierarchy, title)
+    && containsAllLabels(hierarchy, ['Heilbronn, Deutschland', 'Verfügbarkeit prüfen']);
+}
+
 function tapNormalizedLabel(commandRunner, adbPath, device, hierarchy, label) {
   const nodes = normalizedLabelNodes(hierarchy, label);
   if (nodes.length !== 1) fail('The sanitized normalized-label action is unavailable.');
@@ -316,10 +321,7 @@ async function searchOpenAndSaveOnPixel({
     device,
     wait,
     label: 'exact listing detail',
-    predicate: (value) => (
-      currentHeadAndroidNamedNodes(value, title).length > 0
-        && containsAllLabels(value, ['Verfügbarkeit prüfen', 'Bewertungen'])
-    ),
+    predicate: (value) => exactSearchListingDetailVisible(value, title),
   });
   currentHeadAndroidAdb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '4']);
   hierarchy = await settledSearchResults({
