@@ -67,6 +67,32 @@ export function googleProfileFingerprint(hierarchy) {
   return sha256(value);
 }
 
+export function classifyGoogleSocialAuthSurface(hierarchy, { mailbox } = {}) {
+  const value = String(hierarchy);
+  const has = (label) => currentHeadAndroidNamedNodes(value, label).length > 0;
+  if (has('Abmelden') && has('Entdecken') && has('Mein SIT')) {
+    return 'authenticated-main';
+  }
+  if (has('Abmelden')) return 'authenticated-profile';
+  if (typeof mailbox === 'string' && mailbox.length > 0 && has(mailbox)) {
+    return 'private-account-chooser';
+  }
+  if (has('Mit Google anmelden')) return 'login-entry';
+  if (has('Registrieren')
+      && (value.includes('AGB') || value.includes('Datenschutz'))
+      && (value.includes('18') || value.includes('Privat'))) {
+    return 'registration-consent';
+  }
+  if (value.includes('noch nicht freigeschaltet')) {
+    return 'provider-unavailable';
+  }
+  if (value.includes('Anmeldung ist gerade nicht erreichbar')) {
+    return 'provider-or-backend-error';
+  }
+  if (has('Anmelden')) return 'signed-out';
+  return 'unclassified';
+}
+
 function assertOwnerOnlyFile(path, label) {
   const stat = statSync(path, { throwIfNoEntry: false });
   if (stat === undefined || !stat.isFile() || stat.size === 0
@@ -246,6 +272,8 @@ export async function diagnoseAndroidGoogleSocialAuth({
   let firstProfile;
   let coldProfile;
   let repeatProfile;
+  let failureSurface = 'unavailable';
+  let failureSurfaceSha256 = null;
   try {
     await ensureAndroidGuestSession({ commandRunner, adbPath, device, wait });
     firstProfile = await loginWithExactPrivateGoogleAccount({
@@ -271,6 +299,22 @@ export async function diagnoseAndroidGoogleSocialAuth({
     });
   } catch (error) {
     diagnosticFailure = error;
+    try {
+      const hierarchy = dumpCurrentHeadAndroidUi(
+        commandRunner,
+        adbPath,
+        device,
+      );
+      failureSurface = classifyGoogleSocialAuthSurface(hierarchy, { mailbox });
+      failureSurfaceSha256 = writePrivateHierarchy(
+        privateEvidenceDirectory,
+        'google-failure-surface.xml',
+        hierarchy,
+      );
+    } catch {
+      failureSurface = 'unavailable';
+      failureSurfaceSha256 = null;
+    }
   }
 
   let protectedOwnerRestored = false;
@@ -289,7 +333,15 @@ export async function diagnoseAndroidGoogleSocialAuth({
   if (!protectedOwnerRestored) {
     fail('The protected synthetic owner session could not be restored.');
   }
-  if (diagnosticFailure !== null) throw diagnosticFailure;
+  if (diagnosticFailure !== null) {
+    const capture = failureSurfaceSha256 === null
+      ? 'private-capture-unavailable'
+      : 'private-capture-retained';
+    throw new Error(
+      `Google social-auth stopped at ${failureSurface}; ${capture}.`,
+      { cause: diagnosticFailure },
+    );
+  }
 
   const firstHash = googleProfileFingerprint(firstProfile);
   const coldHash = googleProfileFingerprint(coldProfile);
