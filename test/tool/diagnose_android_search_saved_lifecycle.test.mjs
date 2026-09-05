@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   manualSearchFormVisible,
+  manualSearchQueryUnfocused,
   normalizedAndroidLabelVisible,
   runAndroidSearchSavedLifecycle,
 } from '../../tool/diagnose_android_search_saved_lifecycle.mjs';
@@ -29,6 +30,14 @@ test('recognizes the real Pixel search form without requiring a hidden hint', ()
     '</hierarchy>',
   ].join('');
   assert.equal(manualSearchFormVisible(hierarchy), true);
+  assert.equal(manualSearchQueryUnfocused(hierarchy), true);
+  assert.equal(
+    manualSearchQueryUnfocused(hierarchy.replace(
+      'bounds="[363,608][1238,659]" enabled="true"',
+      'bounds="[363,608][1238,659]" enabled="true" focused="true"',
+    )),
+    false,
+  );
   assert.equal(manualSearchFormVisible(hierarchy.replace('content-desc="Kategorie"', 'content-desc=""')), false);
 });
 

@@ -134,6 +134,14 @@ export function manualSearchFormVisible(hierarchy) {
   }
 }
 
+export function manualSearchQueryUnfocused(hierarchy) {
+  try {
+    return currentHeadAndroidNodeAttribute(queryEditorNode(hierarchy), 'focused') !== 'true';
+  } catch {
+    return false;
+  }
+}
+
 async function settledSearchResults({
   commandRunner,
   adbPath,
@@ -228,6 +236,20 @@ async function openExactSearch({
     wait,
     label: 'search category selector',
     predicate: (value) => containsAllLabels(value, ['Alle Kategorien', 'Suchen']),
+  });
+  // Android Back can hide the keyboard while retaining TextField focus. Tap
+  // the static category label first so the suggestion overlay is removed by
+  // the app's focus listener before the picker action is attempted.
+  tapLabel(commandRunner, adbPath, device, hierarchy, 'Kategorie');
+  hierarchy = await waitForHierarchy({
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+    label: 'unfocused search query',
+    predicate: (value) => (
+      manualSearchFormVisible(value) && manualSearchQueryUnfocused(value)
+    ),
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Alle Kategorien');
   hierarchy = await waitForHierarchy({
