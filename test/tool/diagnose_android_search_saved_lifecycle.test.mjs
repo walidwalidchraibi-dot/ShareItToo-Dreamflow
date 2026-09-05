@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  manualSearchFormVisible,
   runAndroidSearchSavedLifecycle,
 } from '../../tool/diagnose_android_search_saved_lifecycle.mjs';
 
@@ -13,6 +14,21 @@ const candidate = Object.freeze({
   releaseChannel: 'internal',
   apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
   android: { apkSha256: '1'.repeat(64) },
+});
+
+test('recognizes the real Pixel search form without requiring a hidden hint', () => {
+  const hierarchy = [
+    '<hierarchy>',
+    '<node class="android.widget.EditText" text="" content-desc="" bounds="[89,378][1351,479]" enabled="true"/>',
+    '<node class="android.view.View" text="" content-desc="Was" bounds="[83,611][153,656]"/>',
+    '<node class="android.widget.EditText" text="" content-desc="" bounds="[363,608][1238,659]" enabled="true"/>',
+    '<node class="android.view.View" text="" content-desc="Kategorie" bounds="[83,700][250,745]"/>',
+    '<node class="android.view.View" text="" content-desc="Alle Kategorien" bounds="[363,700][900,760]"/>',
+    '<node class="android.view.View" text="" content-desc="Suchen" bounds="[700,1800][1000,1900]"/>',
+    '</hierarchy>',
+  ].join('');
+  assert.equal(manualSearchFormVisible(hierarchy), true);
+  assert.equal(manualSearchFormVisible(hierarchy.replace('content-desc="Kategorie"', 'content-desc=""')), false);
 });
 
 function passingOperations(calls) {

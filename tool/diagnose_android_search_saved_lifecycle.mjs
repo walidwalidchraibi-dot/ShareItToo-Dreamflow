@@ -95,6 +95,21 @@ function queryEditorNode(hierarchy) {
   return editable[0].node;
 }
 
+export function manualSearchFormVisible(hierarchy) {
+  if (!containsAllLabels(
+    hierarchy,
+    ['Was', 'Kategorie', 'Alle Kategorien', 'Suchen'],
+  )) {
+    return false;
+  }
+  try {
+    queryEditorNode(hierarchy);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function settledSearchResults({
   commandRunner,
   adbPath,
@@ -168,10 +183,7 @@ async function openExactSearch({
     device,
     wait,
     label: 'manual search form',
-    predicate: (value) => containsAllLabels(
-      value,
-      ['Was', 'Was suchst du?', 'Kategorie', 'Alle Kategorien', 'Suchen'],
-    ),
+    predicate: manualSearchFormVisible,
   });
   const queryNode = queryEditorNode(hierarchy);
   const queryPoint = pointForNode(queryNode, 'search-query editor');
