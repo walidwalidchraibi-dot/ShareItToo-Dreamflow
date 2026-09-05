@@ -34,6 +34,7 @@ import {
 import {
   validatePrivateAndroidReleaseArchive,
 } from './validate_current_head_android_release_archive.mjs';
+import { diagnoseAndroidControlledFcm } from './diagnose_android_controlled_fcm.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -478,6 +479,7 @@ export async function runAndroidEmailVerifiedTwoRoleProductJourney({
     'publishOwnerDraft',
     'verifyPublished',
     'simulate',
+    'verifyFcm',
     'verifyOwner',
     'verifyRenter',
     'retire',
@@ -491,6 +493,7 @@ export async function runAndroidEmailVerifiedTwoRoleProductJourney({
   let publish = null;
   let published = null;
   let simulation = null;
+  let controlledFcm = null;
   let owner = null;
   let renter = null;
   let retirement = null;
@@ -502,6 +505,7 @@ export async function runAndroidEmailVerifiedTwoRoleProductJourney({
     publish = await operations.publishOwnerDraft(prepared);
     published = await operations.verifyPublished(prepared);
     simulation = await operations.simulate(prepared);
+    controlledFcm = await operations.verifyFcm(prepared);
     owner = await operations.verifyOwner(prepared);
     renter = await operations.verifyRenter(prepared);
   } catch (error) {
@@ -530,6 +534,7 @@ export async function runAndroidEmailVerifiedTwoRoleProductJourney({
   if (publish?.status !== 'pixel-owner-draft-publish-submitted'
       || published?.status !== 'pixel-owner-publish-server-confirmed'
       || simulation?.status !== 'email-verified-two-role-simulation-ready-for-pixel-review'
+      || controlledFcm?.evidence?.status !== 'delivery-passed-icon-visual-review-pending'
       || owner?.status !== 'pixel-owner-accepted-non-binding-surface-passed'
       || renter?.status !== 'pixel-renter-product-surfaces-passed'
       || retirement?.status !== 'email-verified-two-role-product-journey-retired'
@@ -560,6 +565,10 @@ export async function runAndroidEmailVerifiedTwoRoleProductJourney({
         : 'durable-server-and-public-catalog-confirmed',
       renterPublicDiscovery: 'passed',
       requestAcceptance: 'passed-non-binding-simulation',
+      controlledFcm: 'passed-foreground-background-terminated',
+      controlledFcmNotificationIcon: 'private-visual-review-pending',
+      controlledFcmNotificationIconSha256:
+        controlledFcm.evidence.tests.notificationIconVisual.privateDiagnosticScreenshotSha256,
       ownerPresentation: owner.cardTruth,
       renterPresentation: renter.cardTruth,
       chatVisibility: 'passed-renter-visible',
@@ -605,6 +614,10 @@ async function main() {
   const candidateDirectory = resolve(
     argumentValue(args, '--candidate-dir') ?? fail('--candidate-dir is required.'),
   );
+  const privateArtifactDirectory = resolve(
+    argumentValue(args, '--private-artifact-dir')
+      ?? fail('--private-artifact-dir is required.'),
+  );
   const adbPath = argumentValue(args, '--adb') ?? 'adb';
   const candidateArchive = await validatePrivateAndroidReleaseArchive({
     root: repositoryRoot,
@@ -634,6 +647,17 @@ async function main() {
     }),
     verifyPublished: ({ vaultFile }) => verifyStagingEmailVerifiedJourneyPublished({ vaultFile }),
     simulate: ({ vaultFile }) => runStagingEmailVerifiedTwoRoleSimulation({ vaultFile }),
+    verifyFcm: ({ vaultFile }) => diagnoseAndroidControlledFcm({
+      vaultFile,
+      privateArtifactDirectory,
+      commandRunner,
+      adbPath,
+      device,
+      deviceSummary,
+      candidate,
+      archive: candidateArchive,
+      wait,
+    }),
     verifyOwner: ({ vaultFile }) => verifyOwnerAcceptedSurface({
       vaultFile, commandRunner, adbPath, device, wait,
     }),

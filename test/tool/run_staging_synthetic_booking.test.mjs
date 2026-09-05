@@ -411,6 +411,53 @@ test('reuses one prepared listing after a failed booking request', async () => {
   );
 });
 
+test('does not reuse a previously paused listing with the same synthetic run title', async () => {
+  const fixture = vaultFixture();
+  const calls = [];
+  let login = 0;
+  const result = await createSyntheticBookingFixture({
+    ...fixture,
+    now: new Date('2026-08-10T08:00:00.000Z'),
+    random: () => Buffer.from('d4c3b2a1', 'hex'),
+    fetchImpl: async (url, options = {}) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      calls.push({ path, body: typeof options.body === 'string' ? JSON.parse(options.body) : null });
+      if (path === '/auth/login') {
+        login += 1;
+        return response(200, { accessToken: `synthetic-token-${login}-${'x'.repeat(30)}` });
+      }
+      if (path === '/listings/mine') {
+        return response(200, { listings: [{
+          id: 'paused-listing',
+          title: 'SIT Rollenprüfung 20260810t065907z-a6b6f407',
+          status: 'paused',
+          isActive: false,
+        }] });
+      }
+      if (path === '/rental-requests') return response(200, { requests: [] });
+      if (path === '/uploads') {
+        return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/fixture.webp' });
+      }
+      if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
+      if (path.endsWith('/availability')) return response(200, { availability: {} });
+      if (path === '/bookings/quote') {
+        return response(200, { quoteId: 'quote-1', quoteHash: 'a'.repeat(64) });
+      }
+      if (path === '/bookings') {
+        return response(201, { booking: { workflowStatus: 'requested' } });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(result.fixtureRecovered, false);
+  assert.equal(calls.some(({ path }) => path === '/uploads'), true);
+  assert.equal(calls.some(({ path }) => path === '/listings'), true);
+  assert.equal(
+    calls.find(({ path }) => path === '/bookings').body.itemId,
+    'sit-20260810t065907z-a6b6f407-d4c3b2a1-listing',
+  );
+});
+
 test('retires the exact new listing after the V5.2 legal hold rejects booking creation', async () => {
   const fixture = vaultFixture();
   let login = 0;
@@ -704,6 +751,40 @@ test('uses a diagnostic-run-specific idempotency key so a later device probe can
   assert.notEqual(keys[0], keys[1]);
   assert.match(keys[0], /device-probe-one/);
   assert.match(keys[1], /device-probe-two/);
+});
+
+test('sends controlled diagnostics through a payment-free non-binding simulation thread', async () => {
+  const fixture = vaultFixture();
+  const vault = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  vault.status = 'non-binding-simulation-active';
+  vault.nonBindingSimulation = {
+    schemaVersion: 1,
+    status: 'accepted-chat-ready',
+    bookingId: 'private-simulation-booking',
+    threadId: 'private-simulation-thread',
+    paymentEndpointCalled: false,
+    stripeLivemode: false,
+  };
+  writeFileSync(fixture.vaultFile, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(fixture.vaultFile, 0o600);
+  const paths = [];
+  const result = await sendSyntheticBookingDiagnosticMessage({
+    ...fixture,
+    diagnosticKind: 'terminated',
+    diagnosticRunId: 'non-binding-fcm-run',
+    fetchImpl: async (url) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      paths.push(path);
+      if (path === '/auth/login') {
+        return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      }
+      return response(201, { message: { id: 'private-message-id' } });
+    },
+  });
+  assert.equal(result.status, 'synthetic-booking-diagnostic-message-sent');
+  assert.equal(result.workflowStatus, 'accepted');
+  assert.equal(result.paymentEndpointCalled, false);
+  assert.equal(paths.includes('/message-threads/private-simulation-thread/messages'), true);
 });
 
 test('rejects a production or otherwise different API base before any request', async () => {

@@ -69,7 +69,14 @@ function readVault(vaultFile) {
       || vault?.kind !== 'sit-staging-synthetic-account-vault'
       || vault?.apiBaseUrl !== stagingApiBaseUrl
       || vault?.stripeLivemode !== false
-      || !['fixture-verified-ready-for-login', 'email-link-verified-ready-for-login', 'synthetic-booking-active', 'synthetic-booking-completed', 'synthetic-booking-terminal'].includes(vault?.status)
+      || ![
+        'fixture-verified-ready-for-login',
+        'email-link-verified-ready-for-login',
+        'synthetic-booking-active',
+        'synthetic-booking-completed',
+        'synthetic-booking-terminal',
+        'non-binding-simulation-active',
+      ].includes(vault?.status)
       || !Array.isArray(vault?.accounts)
       || vault.accounts.length !== 2) {
     fail('The vault is not an isolated, verified Staging role set.');
@@ -260,9 +267,14 @@ export async function createSyntheticBookingFixture({
     request(fetchImpl, '/listings/mine', { token: ownerToken }),
     request(fetchImpl, '/rental-requests', { token: renterToken }),
   ]);
-  const matchingListings = Array.isArray(mine?.listings)
+  const namedListings = Array.isArray(mine?.listings)
     ? mine.listings.filter((listing) => listing?.title === expectedTitle)
     : [];
+  const matchingListings = namedListings.filter((listing) => (
+    listing?.status !== 'paused'
+    && listing?.status !== 'ended'
+    && listing?.isActive !== false
+  ));
   const matchingRequests = Array.isArray(requests?.requests)
     ? requests.requests.filter((booking) => (
         matchingListings.some((listing) => listing?.id === booking?.itemId)
@@ -923,11 +935,19 @@ export async function sendSyntheticBookingDiagnosticMessage({
     fail('The message diagnostic run identifier is invalid.');
   }
   const { vault, accounts } = readVault(vaultFile);
-  const fixture = vault.syntheticBooking;
-  if (!fixture
-      || !['accepted', 'active'].includes(fixture.workflowStatus)
-      || fixture.paymentEndpointCalled !== false
-      || fixture.stripeLivemode !== false) {
+  const bindingFixture = vault.syntheticBooking;
+  const simulationFixture = vault.nonBindingSimulation;
+  const fixture = bindingFixture
+    && ['accepted', 'active'].includes(bindingFixture.workflowStatus)
+    && bindingFixture.paymentEndpointCalled === false
+    && bindingFixture.stripeLivemode === false
+    ? bindingFixture
+    : simulationFixture?.status === 'accepted-chat-ready'
+      && simulationFixture.paymentEndpointCalled === false
+      && simulationFixture.stripeLivemode === false
+      ? { ...simulationFixture, workflowStatus: 'accepted' }
+      : null;
+  if (!fixture) {
     fail('The synthetic booking is not ready for a controlled diagnostic message.');
   }
   const threadId = safeFixtureIdentifier(fixture.threadId, 'thread fixture');

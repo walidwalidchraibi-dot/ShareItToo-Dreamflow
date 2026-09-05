@@ -22,7 +22,7 @@
       },
       {
         "path": "store/privacy-disclosures.json",
-        "sha256": "5bdb854c4b2dab20050cadf92a45b8f8c601091e4d9e080ed9eacec5f8e316e9"
+        "sha256": "bf8247ae341992dabd96da51bd8ba4b042c4563bf146dd49afd57d030e4f2d5a"
       },
       {
         "path": "store/retention-deletion-readiness.json",

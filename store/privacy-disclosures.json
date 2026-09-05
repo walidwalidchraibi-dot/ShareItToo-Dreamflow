@@ -888,7 +888,7 @@
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
-      "sha256": "5233933218b24dd68f938c03e80ae2dce2b8871c5e8eeb75733d514c64722d00"
+      "sha256": "754c519073b1231c65ec2604cc792f8e4ecbf7b4eeda7df548694307900f4e74"
     },
     {
       "path": "tool/run_staging_non_binding_simulation.mjs",

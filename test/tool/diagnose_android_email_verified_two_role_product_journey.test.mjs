@@ -37,6 +37,19 @@ function passingOperations(calls) {
       calls.push('simulate');
       return { status: 'email-verified-two-role-simulation-ready-for-pixel-review' };
     },
+    verifyFcm: async () => {
+      calls.push('fcm');
+      return {
+        evidence: {
+          status: 'delivery-passed-icon-visual-review-pending',
+          tests: {
+            notificationIconVisual: {
+              privateDiagnosticScreenshotSha256: '2'.repeat(64),
+            },
+          },
+        },
+      };
+    },
     verifyOwner: async () => {
       calls.push('owner');
       return {
@@ -96,6 +109,7 @@ test('closes the Pixel email-verified two-role journey and records only sanitize
     'publish',
     'verify-published',
     'simulate',
+    'fcm',
     'owner',
     'renter',
     'retire',
@@ -104,6 +118,7 @@ test('closes the Pixel email-verified two-role journey and records only sanitize
   assert.equal(result.tests.distinctEmailVerifiedPrincipals, 'passed');
   assert.equal(result.tests.ownerDraftPublishThroughPixelUi, 'passed-server-confirmed-active');
   assert.equal(result.tests.principalSwitchIsolation, 'passed-owner-absent-under-renter');
+  assert.equal(result.tests.controlledFcm, 'passed-foreground-background-terminated');
   assert.equal(result.boundaries.monetaryEffectMinor, 0);
   assert.equal(result.boundaries.listingLeftActive, false);
   assert.equal(result.boundaries.testBookingLeftActive, false);
