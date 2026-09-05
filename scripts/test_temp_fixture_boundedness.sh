@@ -15,6 +15,7 @@ TEST_FILES=(
   test/tool/prepare_android_device_test.test.mjs
   test/tool/prepare_store_screenshot_fixture.test.mjs
   test/tool/provision_staging_test_accounts.test.mjs
+  test/tool/run_staging_listing_ai_acceptance.test.mjs
   test/tool/run_isolated_android_authenticated_links_diagnostic.test.mjs
   test/tool/run_isolated_android_role_booking_diagnostic.test.mjs
   test/tool/diagnose_store_review_disposable_deletion.test.mjs
@@ -27,7 +28,8 @@ is_tracked_fixture() {
     sit-synthetic-booking-*|sit-feed-clean-*|sit-authenticated-links-*|\
     sit-fcm-*|sit-device-prep-*|sit-store-screenshot-*|\
     sit-staging-account-test-*|sit-staging-account-partial-*|\
-    sit-staging-account-verified-*|sit-protected-authenticated-links-*|\
+    sit-staging-account-verified-*|sit-wp08-listing-ai-*|\
+    sit-protected-authenticated-links-*|\
     sit-protected-role-booking-*|sit-review-delete-*|sit-review-safety-*)
       return 0
       ;;

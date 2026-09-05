@@ -127,6 +127,10 @@ test('deployment source keeps listing-AI opt-in, bounded and sanitized', async (
   assert.match(app, /const listingAiHealth = Object\.freeze\(\{/u);
   assert.match(app, /status: config\.listingAi\.enabled \? 'enabled' : 'disabled'/u);
   assert.match(app, /provider: config\.listingAi\.provider/u);
+  assert.match(app, /model: config\.listingAi\.model/u);
+  assert.match(app, /promptVersion: config\.listingAi\.promptVersion/u);
+  assert.match(app, /schemaVersion: config\.listingAi\.schemaVersion/u);
+  assert.match(app, /budgetCents: config\.listingAi\.budgetCents/u);
   assert.match(app, /externalProviderExecutionAllowed: config\.listingAi\.externalProviderExecutionAllowed/u);
   assert.match(app, /automaticPublicationAllowed: false/u);
   assert.equal((app.match(/listingAi: listingAiHealth/gu) ?? []).length, 2);

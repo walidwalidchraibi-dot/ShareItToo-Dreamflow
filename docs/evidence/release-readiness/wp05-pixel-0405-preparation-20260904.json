@@ -38,83 +38,83 @@
   "bindingInventory": [
     {
       "path": "docs/evidence/48h-remote/rw0-reduced-wave0-product-journey-20260825.json",
-      "sha256": "a32a3583865c640aa83da0113b57c17eb02406834e8a32138aea0fad74291782"
+      "sha256": "fd56eeeb71abed1d1aea6cb39ad9c00dd33d834970814b03bc81f07976641dfe"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "b102aa66c5567c67ded99844b4dd4a13405b0019b16a904189c755bfac94311c"
+      "sha256": "c263df522a6c42413e383f405a6f78df68d44e7239287e7d0ccff90590fc56e4"
     },
     {
       "path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
-      "sha256": "970eeaad36c07fb110f1807266652dc4c0b1fc312014c9c2c005eb888e0c3ac6"
+      "sha256": "3c9fef5eedb0856aa2325386b9128f0f587b754cbfbefbe25b90a033d1b9ea97"
     },
     {
       "path": "docs/evidence/48h-remote/rw13-security-logout-all-outcome-principal-epoch-20260825.json",
-      "sha256": "804e75d156353b4cf3de73652ac8728bee69f68252caa215091281e2f3828dd6"
+      "sha256": "8ce5a0c3eafbd9f4036557fce7d8a9c0ff74c4512a3523a57ae31e56428da9c6"
     },
     {
       "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
-      "sha256": "600d86406631b7bd0aae1f8eba49b74fa3a4a32a9006dbbbaac2e590436700fc"
+      "sha256": "a2919d110aec978d4a4da2b380d4ccca0ab1d51f5090869bb496d581c9b7e902"
     },
     {
       "path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json",
-      "sha256": "ee25f62021da1095f36875415f5e4aaccf5fc399ad4f348e30b3e0c372dd5ddd"
+      "sha256": "bb6d2345928eea44a1d112d42d26bfddad7da620de027231d16f2429f244d140"
     },
     {
       "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
-      "sha256": "7fdf60a0aeb618d6d558d67a9af40ab4e600eaabe607fb28a38dd8c431c30a5a"
+      "sha256": "ca6d63a3d55383fab65a4c3506752b3275fdf277c985715bb054e311039309c3"
     },
     {
       "path": "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
-      "sha256": "af867beb422ac073a923179a0c802df74a6e652c578dbc32170a29f2cfd4893c"
+      "sha256": "cc8a27d6911513cef978656dce9f4e2e1bd6048db3417e239cb3dbc25e5bdbe9"
     },
     {
       "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
-      "sha256": "adb06ac3f614aa41d5213c12a5b9970b33a6b3f02e8511a414b38812ac909623"
+      "sha256": "6dc52b862d90ab4831d14fa05d60581a643fd979400924463f9b342469ce5ea7"
     },
     {
       "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
-      "sha256": "9f7f3b9d9ef46e5c1476da714212455f2b1b5e13cd89b2d57cf1de2325cf2d64"
+      "sha256": "ca22bdf4ce7918a8ff96711124826d1073d566812c06b42de4bb98563930e15d"
     },
     {
       "path": "docs/evidence/48h-remote/rw20-listing-mutation-principal-epoch-transaction-20260826.json",
-      "sha256": "7e83ecf431c2c84d1f8e40540372ccee7d6e78f5d83b04cf2177c38b624d5489"
+      "sha256": "f653081b189f762b161c1143418bb2ee40db3b569ec48ef9213711dca3e31651"
     },
     {
       "path": "docs/evidence/48h-remote/rw4-reduced-wave0-local-principal-isolation-20260825.json",
-      "sha256": "5d8a64ddfeb1d20f02ca446746adfec805f13503076c316d3e20b13816da9b14"
+      "sha256": "2e66c1323d9c40da59011252f54b7251db54eb3458451ded350b13af8b2bad26"
     },
     {
       "path": "docs/evidence/48h-remote/rw5-local-safety-privacy-principal-isolation-20260825.json",
-      "sha256": "a813055c235475ac5728976bd0e63844105b0700cc43fcbb11803cbb9bf26c11"
+      "sha256": "f07a1c6104e0a5274af9bda01a20e4d588b31eb09b4d68b136a9caf82b734b2e"
     },
     {
       "path": "docs/evidence/48h-remote/rw6-local-operational-record-authorization-truth-recovery-20260825.json",
-      "sha256": "aff4d2f1cd3f654fb1b760d6b7180b2f8dbe21db2428c43e6052129c9296f646"
+      "sha256": "127b7b9c33b36b9728df1bd0cc3adbcb10d06ccb8ba4009ccef325db2af5ab8e"
     },
     {
       "path": "docs/evidence/48h-remote/rw7-local-listing-catalog-authorization-durability-20260825.json",
-      "sha256": "29daf737891ffb4ae2f63b7874bb13f652c19204858a35b86428fb20dcf56800"
+      "sha256": "bb1d24fe1943eebd0effc8a49eade699e4c3e62261f82967b7e1ba0854f4e6fa"
     },
     {
       "path": "docs/evidence/48h-remote/rw8-local-review-reputation-authorization-durability-20260825.json",
-      "sha256": "a424c93b057ef2c363c087c8aad2ba702576e40e555cc6a1aa50eb78991c9e68"
+      "sha256": "6b9dacb80943741a52f673c5c28249cd3d716741056657964b3c17c5001efc4f"
     },
     {
       "path": "docs/evidence/48h-remote/rw9-local-account-profile-authorization-durability-20260825.json",
-      "sha256": "00eb539c5203ccf9580d67dc7e5695123538888de544625973e30a718cb8a29f"
+      "sha256": "87f704b6c519babfccf8f30b755bb286d7ccd21ceef5a2a717ca681c6ee67591"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "ecd343dd72c8cb343ca38ce105bc66d9da865c35957d10324f646cd0f0bf24b7"
+      "sha256": "550fb44debd6e04b0d3d6ef1b3d8738ee2431bc4dbfb2f19a02666dc6dd8bb44"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "068f00a11678892008b1d76d37c3c095705c51fffe34c4efabc16d8d85c98fd8"
+      "sha256": "2fde97ff453f286af1f0beecee02a87f48592ace0425fb2443cdd19536ccf24b"
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
-      "sha256": "198f467d002f9bbd84a36f0f5c2bf6ce83e2893e1337f1eb739989f26de1d72a"
+      "sha256": "834f7709aa40e3a794bcaeb3377f471d2a187b1ccf5f2d264c88be9543225b6a"
     },
     {
       "path": "tool/validate_rw7_local_listing_catalog_authorization_durability.mjs",
@@ -130,7 +130,7 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "6ea2c7c02f64bdc22cb8fff6eb2f5adbadb053792d86798dcc44de81ca3c8cd9"
+      "sha256": "423faa96d78619505b508a029302d008fc58dd386413f2419457f6bd1bd31bf5"
     }
   ],
   "preparationChecks": {

@@ -161,7 +161,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "4487cab585cadd41af950252741088c8470104c6ec91d990e93bc264a25da9f6"
+      "sha256": "2ff926839de89d2933b51c09d1caf18132bdda2347a02342903b7c197ba443d4"
     },
     {
       "path": "backend/src/moderation_workflow.js",
@@ -201,7 +201,7 @@
     },
     {
       "path": "scripts/technical_regression_check.sh",
-      "sha256": "094d072402897e5c634d8016d4893a8771ef639392e6d4b12ddcfd697e967818"
+      "sha256": "34270a229093d27eaf9b70ea4c9a0937897a6cdf335730c7f1b390b406dbfd6d"
     },
     {
       "path": "test/tool/harassment_block_report_wiring.test.mjs",

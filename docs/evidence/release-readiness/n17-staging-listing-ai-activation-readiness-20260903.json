@@ -61,19 +61,19 @@
   },
   "sourceBindings": {
     "backend/src/openai_listing_ai_provider.js": "0d496771e3aa20ac6e4f3d0d554e9b404f68aca25050d2d8485578ceb9651133",
-    "backend/src/app.js": "4487cab585cadd41af950252741088c8470104c6ec91d990e93bc264a25da9f6",
+    "backend/src/app.js": "2ff926839de89d2933b51c09d1caf18132bdda2347a02342903b7c197ba443d4",
     "backend/compose.staging.listing-ai.yml": "65a3f228a2e7e66fe518470369f554439dae8d078b11b0649a83acabb53c1be1",
     "backend/ops/validate_openai_staging_secret.mjs": "c71dc3986145dee854fa87274afb28c3b154e8bec85662536196161e0705409a",
-    "backend/ops/deploy_release.sh": "c2b82865bd8051759ccb32443c5327f8b908f6f1b049939bb42fa02d0c69cda5",
+    "backend/ops/deploy_release.sh": "a03fbd664d44ee9494d210efe439400f923ebeb12b4f75c73e68ae40c213c840",
     ".github/workflows/regression.yml": "4c5de87ea32620da9b5e31c9682a739df3302e572a7571f62feca5c7974ca9b7",
     "tool/validate_support_launch_content.mjs": "9d6ed4cc88c0f7945bbf9441baa7934472b2e41b81718fcc75cae9a10eca9c10"
   },
   "sourceBindingMaintenance": {
-    "date": "2026-09-04",
-    "baseCommit": "7b1e19331035b1b32f0ae6f7ef76b542705eb235",
-    "reason": "WP03 completed-only response acceptance, refusal precedence, and explicit constant types",
+    "date": "2026-09-05",
+    "baseCommit": "a49a6cc56667f93a24357ccc3b61fe0697cd0688",
+    "reason": "WP03 response hardening plus WP08 exact model, schema, prompt and budget runtime readback",
     "historicalVerificationAppliesToImplementationCommitOnly": true,
-    "followupEvidence": "docs/operations/WP03_LISTING_AI_PROVIDER_RESPONSE_2026-09-04.md",
+    "followupEvidence": "docs/operations/WP08_LISTING_AI_STAGING_ACCEPTANCE_2026-09-05.md",
     "providerActivationOrCandidateApprovalGranted": false
   },
   "verification": {

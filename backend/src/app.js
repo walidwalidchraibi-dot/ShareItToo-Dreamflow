@@ -1623,6 +1623,10 @@ export function createApp({
   const listingAiHealth = Object.freeze({
     status: config.listingAi.enabled ? 'enabled' : 'disabled',
     provider: config.listingAi.provider,
+    model: config.listingAi.model,
+    promptVersion: config.listingAi.promptVersion,
+    schemaVersion: config.listingAi.schemaVersion,
+    budgetCents: config.listingAi.budgetCents,
     externalProviderExecutionAllowed: config.listingAi.externalProviderExecutionAllowed,
     automaticPublicationAllowed: false,
   });

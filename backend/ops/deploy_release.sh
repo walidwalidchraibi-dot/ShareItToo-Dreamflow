@@ -297,7 +297,20 @@ if ! grep -q "\"commit\":\"$task_commit\"" <<<"$task_version_payload"; then
 fi
 task_ready_payload="$(curl --fail --silent --show-error --max-time 20 "$task_health_url/health/ready")"
 if [[ "$task_staging_listing_ai_enabled" == true ]] &&
-   ! grep -Fq '"listingAi":{"status":"enabled","provider":"openai","externalProviderExecutionAllowed":true,"automaticPublicationAllowed":false}' <<<"$task_ready_payload"; then
+   ! printf '%s' "$task_ready_payload" | "$task_node_binary" -e '
+     const { readFileSync } = require("node:fs");
+     const payload = JSON.parse(readFileSync(0, "utf8"));
+     const boundary = payload?.listingAi;
+     const valid = boundary?.status === "enabled"
+       && boundary.provider === "openai"
+       && boundary.model === "gpt-4o-mini-2024-07-18"
+       && boundary.promptVersion === "listing-ai-prompt-v1"
+       && boundary.schemaVersion === "listing-ai-draft-v1"
+       && boundary.budgetCents === Number(process.env.SIT_LISTING_AI_BUDGET_CENTS)
+       && boundary.externalProviderExecutionAllowed === true
+       && boundary.automaticPublicationAllowed === false;
+     process.exitCode = valid ? 0 : 1;
+   '; then
   echo "Staging listing-AI health does not confirm the exact enabled provider boundary." >&2
   exit 1
 fi
