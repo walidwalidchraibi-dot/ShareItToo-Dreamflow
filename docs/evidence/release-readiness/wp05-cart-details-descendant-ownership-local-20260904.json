@@ -103,11 +103,11 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
-      "sha256": "401707543189f0dc8bc72c2672f1cb0a11a85dd1ab41b7073102692699458bba"
+      "sha256": "5e105e740b9d7342ea25811df48c710d96b0aef67d9cc960377b2059194273ab"
     },
     {
       "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
-      "sha256": "9b58709d4e615da95275d8bb80bec0310875fc1ccb5c6046663b4da8b384cb1a"
+      "sha256": "e98f626e53400dbcb7907ad3832bf3a5042ee27b12bf37e3e9675ec5665e2983"
     },
     {
       "path": "docs/evidence/48h-remote/rw2-reduced-wave0-local-state-truth-recovery-20260825.json",

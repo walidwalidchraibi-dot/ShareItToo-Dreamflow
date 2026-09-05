@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  connectedAccountRowReady,
   connectedAccountSnapshot,
   isConnectedAccountProviderEvent,
 } from '../src/payment_workflow.js';
 
-function account(status = 'active') {
+function account(status = 'active', payoutsStatus = 'active') {
   return {
     id: 'acct_test',
     object: 'v2.core.account',
@@ -16,6 +17,12 @@ function account(status = 'active') {
         applied: true,
         capabilities: {
           stripe_balance: {
+            payouts: {
+              status: payoutsStatus,
+              status_details: payoutsStatus === 'active'
+                ? []
+                : [{ code: 'payouts_requirements_past_due' }],
+            },
             stripe_transfers: {
               status,
               status_details: status === 'active' ? [] : [{ code: 'requirements_past_due' }],
@@ -47,6 +54,7 @@ test('Accounts v2 active recipient capability is the only ready snapshot', () =>
     feesCollector: 'application',
     lossesCollector: 'application',
     transfersStatus: 'active',
+    payoutsStatus: 'active',
     detailsSubmitted: true,
     chargesEnabled: false,
     payoutsEnabled: true,
@@ -62,6 +70,36 @@ test('pending or restricted Accounts v2 capability remains not ready', () => {
   assert.equal(snapshot.detailsSubmitted, false);
   assert.equal(snapshot.payoutsEnabled, false);
   assert.equal(snapshot.disabledReason, 'requirements_past_due');
+});
+
+test('active transfers never imply active payouts', () => {
+  const pending = connectedAccountSnapshot(account('active', 'pending'));
+  assert.equal(pending.transfersStatus, 'active');
+  assert.equal(pending.payoutsStatus, 'pending');
+  assert.equal(pending.detailsSubmitted, false);
+  assert.equal(pending.payoutsEnabled, false);
+  assert.equal(pending.disabledReason, 'payouts_requirements_past_due');
+
+  const missing = account();
+  delete missing.configuration.recipient.capabilities.stripe_balance.payouts;
+  const absent = connectedAccountSnapshot(missing);
+  assert.equal(absent.payoutsStatus, 'restricted');
+  assert.equal(absent.detailsSubmitted, false);
+  assert.equal(absent.payoutsEnabled, false);
+});
+
+test('stored Accounts v2 readiness requires both transfer and payout truth', () => {
+  const row = {
+    account_api_version: 'v2',
+    recipient_transfers_status: 'active',
+    payouts_enabled: true,
+    dashboard_type: 'express',
+    fees_collector: 'application',
+    losses_collector: 'application',
+  };
+  assert.equal(connectedAccountRowReady(row), true);
+  assert.equal(connectedAccountRowReady({ ...row, payouts_enabled: false }), false);
+  assert.equal(connectedAccountRowReady({ ...row, recipient_transfers_status: 'pending' }), false);
 });
 
 test('active capability still fails closed when platform responsibility drifts', () => {

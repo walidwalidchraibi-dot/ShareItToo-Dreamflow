@@ -84,10 +84,12 @@ test('connected accounts use Accounts v2 recipient capability truth', () => {
   assert.match(provider, /client\.webhooks\.constructEvent/u);
   assert.match(provider, /client\.v2\.core\.accounts\.retrieve/u);
   assert.match(workflow, /account_api_version !== 'v2'/u);
-  assert.match(workflow, /recipient_transfers_status !== 'active'/u);
-  assert.match(workflow, /dashboard_type !== 'express'/u);
-  assert.match(workflow, /fees_collector !== 'application'/u);
-  assert.match(workflow, /losses_collector !== 'application'/u);
+  assert.match(workflow, /row\.recipient_transfers_status === 'active'/u);
+  assert.match(workflow, /row\.payouts_enabled === true/u);
+  assert.equal(workflow.match(/connectedAccountRowReady\(/gu)?.length >= 4, true);
+  assert.match(workflow, /row\.dashboard_type === 'express'/u);
+  assert.match(workflow, /row\.fees_collector === 'application'/u);
+  assert.match(workflow, /row\.losses_collector === 'application'/u);
   assert.match(workflow, /event\.related_object\?\.id/u);
   assert.match(migration, /account_api_version TEXT NOT NULL DEFAULT 'v1'/u);
 });

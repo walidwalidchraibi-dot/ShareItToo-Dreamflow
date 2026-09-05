@@ -78,17 +78,31 @@ export function connectedAccountSnapshot(account) {
     && account?.configuration?.recipient?.applied === true
     && Array.isArray(account?.applied_configurations)
     && account.applied_configurations.includes('recipient');
-  const rawStatus = v2
+  const rawTransfersStatus = v2
     ? account?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status
     : account?.capabilities?.transfers;
-  const status = text(rawStatus, 30).toLowerCase();
-  const reportedTransfersStatus = ['active', 'pending', 'inactive', 'restricted', 'unsupported'].includes(status)
-    ? status
+  const transfersStatusValue = text(rawTransfersStatus, 30).toLowerCase();
+  const reportedTransfersStatus = ['active', 'pending', 'inactive', 'restricted', 'unsupported'].includes(transfersStatusValue)
+    ? transfersStatusValue
     : 'restricted';
   const transfersStatus = v2 && !recipientApplied ? 'restricted' : reportedTransfersStatus;
-  const statusDetails = v2
+  const rawPayoutsStatus = v2
+    ? account?.configuration?.recipient?.capabilities?.stripe_balance?.payouts?.status
+    : null;
+  const payoutsStatusValue = text(rawPayoutsStatus, 30).toLowerCase();
+  const reportedPayoutsStatus = ['active', 'pending', 'inactive', 'restricted', 'unsupported'].includes(payoutsStatusValue)
+    ? payoutsStatusValue
+    : 'restricted';
+  const payoutsStatus = v2 && recipientApplied ? reportedPayoutsStatus : 'restricted';
+  const transfersStatusDetails = v2
     ? account?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status_details
     : [];
+  const payoutsStatusDetails = v2
+    ? account?.configuration?.recipient?.capabilities?.stripe_balance?.payouts?.status_details
+    : [];
+  const statusDetails = transfersStatus !== 'active'
+    ? transfersStatusDetails
+    : payoutsStatus !== 'active' ? payoutsStatusDetails : [];
   const disabledReason = text(
     v2 ? statusDetails?.[0]?.code : account?.requirements?.disabled_reason,
     255,
@@ -103,6 +117,7 @@ export function connectedAccountSnapshot(account) {
   const ready = v2
     && recipientApplied
     && transfersStatus === 'active'
+    && payoutsStatus === 'active'
     && dashboard === 'express'
     && feesCollector === 'application'
     && lossesCollector === 'application';
@@ -114,6 +129,7 @@ export function connectedAccountSnapshot(account) {
     feesCollector,
     lossesCollector,
     transfersStatus,
+    payoutsStatus,
     detailsSubmitted: ready,
     chargesEnabled: false,
     payoutsEnabled: ready,
@@ -123,13 +139,18 @@ export function connectedAccountSnapshot(account) {
   };
 }
 
-function shapeConnect(row) {
-  if (!row) return { exists: false, ready: false, onboardingRequired: true };
-  const ready = row.account_api_version === 'v2'
+export function connectedAccountRowReady(row) {
+  return row?.account_api_version === 'v2'
     && row.recipient_transfers_status === 'active'
+    && row.payouts_enabled === true
     && row.dashboard_type === 'express'
     && row.fees_collector === 'application'
     && row.losses_collector === 'application';
+}
+
+function shapeConnect(row) {
+  if (!row) return { exists: false, ready: false, onboardingRequired: true };
+  const ready = connectedAccountRowReady(row);
   return {
     exists: true,
     ready,
@@ -376,7 +397,8 @@ export async function createPaymentCheckout({ actor, bookingId, key: rawKey }) {
     const result = await client.query(
       `SELECT booking.*, listing.payload AS listing_payload,
               connected.provider_account_id, connected.account_api_version,
-              connected.recipient_transfers_status, connected.dashboard_type,
+              connected.recipient_transfers_status, connected.payouts_enabled,
+              connected.dashboard_type,
               connected.fees_collector, connected.losses_collector
        FROM bookings AS booking
        JOIN listings AS listing ON listing.id = booking.listing_id
@@ -393,11 +415,7 @@ export async function createPaymentCheckout({ actor, bookingId, key: rawKey }) {
     if (!['accepted', 'payment_pending'].includes(booking.workflow_status)) {
       throw new PaymentDomainError(409, 'booking_not_ready_for_payment', { status: booking.workflow_status });
     }
-    if (!booking.provider_account_id || booking.account_api_version !== 'v2'
-        || booking.recipient_transfers_status !== 'active'
-        || booking.dashboard_type !== 'express'
-        || booking.fees_collector !== 'application'
-        || booking.losses_collector !== 'application') {
+    if (!booking.provider_account_id || !connectedAccountRowReady(booking)) {
       throw new PaymentDomainError(409, 'owner_payout_account_not_ready');
     }
     const amounts = paymentAmounts(booking);
@@ -1166,7 +1184,8 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
               booking.ends_at, booking.return_state, booking.payout_instruction_due_at,
               request.payload AS booking_payload,
               connected.provider_account_id, connected.account_api_version,
-              connected.recipient_transfers_status, connected.dashboard_type,
+              connected.recipient_transfers_status, connected.payouts_enabled,
+              connected.dashboard_type,
               connected.fees_collector, connected.losses_collector,
               COALESCE(refunded.owner_share_minor, 0) AS refunded_owner_minor
        FROM payments AS payment
@@ -1217,11 +1236,7 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
       [payment.owner_id],
     );
     if (suspension.rowCount) throw new PaymentDomainError(409, 'payout_blocked_by_moderation');
-    if (!payment.provider_account_id || payment.account_api_version !== 'v2'
-        || payment.recipient_transfers_status !== 'active'
-        || payment.dashboard_type !== 'express'
-        || payment.fees_collector !== 'application'
-        || payment.losses_collector !== 'application') {
+    if (!payment.provider_account_id || !connectedAccountRowReady(payment)) {
       throw new PaymentDomainError(409, 'owner_payout_account_not_ready');
     }
     const activePayout = await client.query(

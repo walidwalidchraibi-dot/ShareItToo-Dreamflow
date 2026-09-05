@@ -6042,7 +6042,12 @@ if (!databaseUrl) {
         `SELECT account_api_version FROM stripe_connect_accounts WHERE user_id = 'owner'`,
       )).rows[0].account_api_version, 'v2');
 
-      const v2AccountEvent = (id, created, lossesCollector) => ({
+      const v2AccountEvent = (
+        id,
+        created,
+        lossesCollector,
+        payoutsStatus = 'active',
+      ) => ({
         id,
         object: 'v2.core.event',
         type: 'v2.core.account[defaults].updated',
@@ -6054,6 +6059,12 @@ if (!databaseUrl) {
           applied_configurations: ['recipient'],
           dashboard: 'express',
           configuration: { recipient: { applied: true, capabilities: { stripe_balance: {
+            payouts: {
+              status: payoutsStatus,
+              status_details: payoutsStatus === 'active'
+                ? []
+                : [{ code: 'payouts_requirements_past_due' }],
+            },
             stripe_transfers: { status: 'active', status_details: [] },
           } } } },
           defaults: {
@@ -6100,6 +6111,42 @@ if (!databaseUrl) {
       );
       assert.equal(restoredConnectStatus.status, 200);
       assert.equal((await restoredConnectStatus.json()).account.ready, true);
+
+      const payoutsBlocked = v2AccountEvent(
+        'evt_n25_payouts_blocked',
+        1799539250,
+        'application',
+        'restricted',
+      );
+      assert.equal((await applyProviderEvent(
+        payoutsBlocked,
+        Buffer.from(JSON.stringify(payoutsBlocked)),
+      )).status, 'processed');
+      const payoutBlockedConnectStatus = await fetch(
+        `${baseUrl}/v1/payments/connect/status`,
+        { headers: ownerHeaders },
+      );
+      assert.equal(payoutBlockedConnectStatus.status, 200);
+      assert.equal((await payoutBlockedConnectStatus.json()).account.ready, false);
+      assert.equal((await setupPool.query(
+        `SELECT payouts_enabled FROM stripe_connect_accounts WHERE user_id = 'owner'`,
+      )).rows[0].payouts_enabled, false);
+
+      const payoutsRestored = v2AccountEvent(
+        'evt_n25_payouts_restored',
+        1799539300,
+        'application',
+      );
+      assert.equal((await applyProviderEvent(
+        payoutsRestored,
+        Buffer.from(JSON.stringify(payoutsRestored)),
+      )).status, 'processed');
+      const payoutRestoredConnectStatus = await fetch(
+        `${baseUrl}/v1/payments/connect/status`,
+        { headers: ownerHeaders },
+      );
+      assert.equal(payoutRestoredConnectStatus.status, 200);
+      assert.equal((await payoutRestoredConnectStatus.json()).account.ready, true);
 
       const b8ListingRow = (await setupPool.query(
         `SELECT payload, catalog_revision FROM listings WHERE id = 'listing-1'`,

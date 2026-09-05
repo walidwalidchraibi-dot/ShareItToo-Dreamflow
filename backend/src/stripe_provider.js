@@ -37,6 +37,7 @@ function memoryConnectedAccount({ userId, country, currency }) {
         applied: true,
         capabilities: {
           stripe_balance: {
+            payouts: { status: 'active', status_details: [] },
             stripe_transfers: { status: 'active', status_details: [] },
           },
         },
