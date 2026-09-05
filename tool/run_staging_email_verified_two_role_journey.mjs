@@ -439,6 +439,68 @@ export async function verifyStagingEmailVerifiedJourneyPublished({
   });
 }
 
+export async function activateStagingEmailVerifiedJourneyFixture({
+  vaultFile,
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  const { canonical, vault } = readEmailVerifiedJourneyVault(vaultFile);
+  if (vault.realTwoRoleJourney?.kind !== journeyKind
+      || vault.realTwoRoleJourney.status !== 'owner-draft-ready-for-pixel-publish'
+      || vault.realTwoRoleJourney.listingStatus !== 'draft') {
+    fail('The product-journey vault is not an exact isolated draft fixture.');
+  }
+  const owner = await login(fetchImpl, accountMap(vault).get('owner'));
+  const mine = await apiRequest(fetchImpl, '/listings/mine', { token: owner.token });
+  const matches = (mine.value?.listings ?? []).filter((listing) => (
+    listing?.id === vault.realTwoRoleJourney.listingId
+      && listing.title === vault.realTwoRoleJourney.title
+  ));
+  if (matches.length !== 1
+      || matches[0].status !== 'draft'
+      || matches[0].isActive !== false) {
+    fail('The isolated product-journey fixture is not exactly one owner draft.');
+  }
+  const activated = await apiRequest(
+    fetchImpl,
+    `/listings/${encodeURIComponent(vault.realTwoRoleJourney.listingId)}/status`,
+    {
+      method: 'PATCH',
+      token: owner.token,
+      body: { status: 'active' },
+    },
+  );
+  if (activated.value?.listing?.id !== vault.realTwoRoleJourney.listingId
+      || activated.value.listing.title !== vault.realTwoRoleJourney.title
+      || activated.value.listing.status !== 'active'
+      || activated.value.listing.isActive !== true) {
+    fail('The isolated product-journey fixture activation was not exact.');
+  }
+  const catalog = await apiRequest(fetchImpl, '/listings?sort=newest&limit=100');
+  const publicMatches = (catalog.value?.listings ?? []).filter((listing) => (
+    listing?.id === vault.realTwoRoleJourney.listingId
+      && listing.title === vault.realTwoRoleJourney.title
+  ));
+  if (publicMatches.length !== 1) {
+    fail('The isolated product-journey fixture is not exactly once in the public catalog.');
+  }
+  vault.realTwoRoleJourney.status = 'synthetic-fixture-active';
+  vault.realTwoRoleJourney.listingStatus = 'active';
+  vault.realTwoRoleJourney.fixtureActivatedAt = new Date().toISOString();
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: 'isolated-product-journey-fixture-active',
+    listingStatus: 'active',
+    publicCatalogVisible: true,
+    paymentEndpointCalled: false,
+    stripeLivemode: false,
+    monetaryEffectMinor: 0,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
 export async function runStagingEmailVerifiedTwoRoleSimulation({
   vaultFile,
   fetchImpl = globalThis.fetch,
@@ -581,14 +643,16 @@ async function main() {
     const vaultFile = resolve(
       argumentValue(args, '--vault-file') ?? fail('--vault-file is required.'),
     );
-    if (phase === 'verify-published') {
+    if (phase === 'activate-fixture') {
+      result = await activateStagingEmailVerifiedJourneyFixture({ vaultFile });
+    } else if (phase === 'verify-published') {
       result = await verifyStagingEmailVerifiedJourneyPublished({ vaultFile });
     } else if (phase === 'simulate') {
       result = await runStagingEmailVerifiedTwoRoleSimulation({ vaultFile });
     } else if (phase === 'retire') {
       result = await retireStagingEmailVerifiedTwoRoleJourney({ vaultFile });
     } else {
-      fail('--phase must be prepare, verify-published, simulate, or retire.');
+      fail('--phase must be prepare, activate-fixture, verify-published, simulate, or retire.');
     }
   }
   const { vaultFile: privatePath, runId, ...safeResult } = result;

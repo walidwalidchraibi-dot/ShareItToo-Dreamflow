@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import {
+  activateStagingEmailVerifiedJourneyFixture,
   prepareStagingEmailVerifiedTwoRoleJourney,
   retireStagingEmailVerifiedTwoRoleJourney,
   runStagingEmailVerifiedTwoRoleSimulation,
@@ -232,6 +233,58 @@ test('runs and retires an isolated email-verified two-role Staging journey', asy
   assert.equal(vault.realTwoRoleJourney.status, 'retired');
   assert.equal(vault.realTwoRoleJourney.listingStatus, 'ended');
   assert.equal(vault.realTwoRoleJourney.bookingStatus, 'cancelled');
+});
+
+test('activates and retires an exact isolated search fixture without money', async () => {
+  const fixture = privateFixture();
+  const api = stagingApi(fixture.accounts);
+  const prepared = await prepareStagingEmailVerifiedTwoRoleJourney({
+    sourceVaultFile: fixture.sourceVaultFile,
+    vaultRoot: fixture.journeyDirectory,
+    imagePath: fixture.imagePath,
+    fetchImpl: api.fetchImpl,
+    now: new Date('2026-09-03T08:00:00.000Z'),
+    random: () => Buffer.from([1, 2, 3, 4]),
+  });
+  const activated = await activateStagingEmailVerifiedJourneyFixture({
+    vaultFile: prepared.vaultFile,
+    fetchImpl: api.fetchImpl,
+  });
+  assert.equal(activated.status, 'isolated-product-journey-fixture-active');
+  assert.equal(activated.publicCatalogVisible, true);
+  assert.equal(activated.monetaryEffectMinor, 0);
+  const vault = JSON.parse(readFileSync(prepared.vaultFile, 'utf8'));
+  assert.equal(vault.realTwoRoleJourney.status, 'synthetic-fixture-active');
+  assert.equal(vault.realTwoRoleJourney.listingStatus, 'active');
+
+  const retired = await retireStagingEmailVerifiedTwoRoleJourney({
+    vaultFile: prepared.vaultFile,
+    fetchImpl: api.fetchImpl,
+  });
+  assert.equal(retired.status, 'email-verified-two-role-product-journey-retired');
+  assert.equal(retired.listingEnded, true);
+  assert.equal(retired.monetaryEffectMinor, 0);
+});
+
+test('rejects fixture activation unless the exact isolated listing remains a draft', async () => {
+  const fixture = privateFixture();
+  const api = stagingApi(fixture.accounts);
+  const prepared = await prepareStagingEmailVerifiedTwoRoleJourney({
+    sourceVaultFile: fixture.sourceVaultFile,
+    vaultRoot: fixture.journeyDirectory,
+    imagePath: fixture.imagePath,
+    fetchImpl: api.fetchImpl,
+    now: new Date('2026-09-03T08:00:00.000Z'),
+    random: () => Buffer.from([1, 2, 3, 4]),
+  });
+  api.state.listing.status = 'paused';
+  await assert.rejects(
+    () => activateStagingEmailVerifiedJourneyFixture({
+      vaultFile: prepared.vaultFile,
+      fetchImpl: api.fetchImpl,
+    }),
+    /not exactly one owner draft/u,
+  );
 });
 
 test('rejects a source vault that has not completed both email links', async () => {
