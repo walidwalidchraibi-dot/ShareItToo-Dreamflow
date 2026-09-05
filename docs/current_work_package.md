@@ -1,7 +1,7 @@
 # Current Work Package: WP20 Pixel rental-cart and project lifecycle
 
-WP20 is **IMPLEMENTED AND LOCALLY VERIFIED; PHYSICAL CANDIDATE PROOF IS IN
-PROGRESS**. Runtime correction HEAD `36820880` gives each rental intent a
+WP20 is **PHYSICALLY COMPLETE; FINAL CLOSURE-HEAD REGRESSION IS IN PROGRESS**.
+Runtime correction HEAD `36820880` gives each rental intent a
 stable deterministic identity, serializes authoritative reconciliation and
 prevents duplicate cart lines across repeated taps and uncertain transport
 outcomes. Diagnostic HEAD `572a7bc9` automates isolated listing setup, two-role
@@ -10,11 +10,20 @@ restoration. Source-ratchet HEAD `e4850f6e25f051fd9d867202dc26c9d99fc9f31c`
 passes the full local technical regression with 2,296 tool tests plus Flutter,
 analyzer, Web/Wasm, loopback and Android.
 
-Next: require exact-head GitHub Regression and CodeQL green, reserve the single
-successor candidate `1.0.0+2026090507`, run one final candidate regression,
-build and verify the signed Staging APK/AAB, install the data-preserving update
-on the Pixel and execute the bounded physical cart/project lifecycle. Evidence
-must remain sanitized and PR #7 Draft/open/unmerged.
+Signed Staging candidate `1.0.0+2026090507` at source HEAD
+`5b90da53b0bc1b18c073fe0d6e92b89b5a30fae2` passes private-archive validation,
+canonical signing, privacy scan and a data-preserving Pixel update. The full
+physical lifecycle passes duplicate-intent idempotency, exact project
+create/assign server truth, restart persistence, A-to-B isolation, renter
+restore, removal and exact final cleanup. Diagnostic correction HEAD
+`142d1e553344513fd1608af6cc276f083949854b` binds every repeated action to the
+exact listing row and follows the server's first future eligible date. See
+`docs/operations/WP20_PIXEL_RENTAL_CART_PROJECT_LIFECYCLE_2026-09-06.md`.
+
+Next: run the one required full local regression and exact closure-head GitHub
+Regression/CodeQL, verify alerts zero, clean tree, remote divergence zero and
+PR #7 Draft/open/unmerged. No new functional package starts before that
+closure is recorded.
 
 The execution policy is
 `docs/operations/SIT_CODEX_CONTEXT_CREDIT_EFFICIENCY_RULES_V1.md`: one active

@@ -5564,3 +5564,27 @@ single successor candidate `1.0.0+2026090507`, signed artifact verification and
 the physical Pixel cart/project lifecycle remain. Production, Store, live
 payment, external provider, Cloud/VPS/DNS/Firebase-console, OnePlus and PR
 merge remain outside this package.
+
+## WP20 physical Pixel closure (2026-09-06)
+
+Signed Staging candidate `1.0.0+2026090507` is bound to source HEAD
+`5b90da53b0bc1b18c073fe0d6e92b89b5a30fae2`; its private APK/AAB archive,
+canonical upload signature and privacy scan pass. The Pixel updated in place
+from `2026090506` with its installation and app-data container preserved.
+
+The final two-role run passes two physical acknowledgements for one stable
+non-reserving server intent, project create/assign UI and server truth,
+terminated-process persistence, other-principal absence, renter restoration,
+exact-row removal and exact final cleanup. It creates no request, booking,
+reservation, contract or payment; its listing is ended and publicly absent,
+and the protected owner session is restored.
+
+Diagnostic correction HEAD `142d1e553344513fd1608af6cc276f083949854b`
+replaces local-day-zero selection with the first future server-eligible day,
+recognizes the post-selection date label, and binds project/removal actions to
+the exact listing row when unrelated QA cart data exists. A failed pre-fix
+synthetic assignment was semantically restored before the final run, with
+item/project counts preserved and zero failed-fixture remnants. Final
+closure-head local regression and exact GitHub Regression/CodeQL remain the
+only open WP20 checks. No OnePlus, Store, Production, public registration,
+payment, provider, Firebase-console, Cloud/VPS/DNS or PR-merge boundary moved.
