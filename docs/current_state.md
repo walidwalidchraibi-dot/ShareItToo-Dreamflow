@@ -1,5 +1,21 @@
 # ShareItToo Current State
 
+WP07 closes the Listing-AI price/catalog contract at implementation commit
+`3cbe5a3a3065f07a01ee4b463bb7f017ba248b72`. The reproduced camera review
+failure and unrelated projector-to-ladders recommendation are removed. All 79
+allowed catalog pairs now have an explicit safe path: 19 exact deterministic
+regional rules and 60 truthful owner-entered prices with no fabricated
+recommendation or regional snapshot. Outside-pilot pairs fail closed; explicit
+owner confirmation and final publication remain mandatory. Focused30, real
+PostgreSQL persistence, tool2245, full local regression and exact clean R10
+pass with byte-identical APKs. GitHub Regression33943848415 including R10 and
+CodeQL33943848391 pass with alerts0; PR#7 remains Draft/open/unmerged. The
+privacy/retention/provider/RW ratchets were refreshed only for intentional
+current-source drift, with historical boundaries and live gates preserved.
+No deploy, provider activation, listing, device, Store, payment or production
+state changed. See
+`docs/operations/WP07_LISTING_AI_PRICE_CATALOG_CONTRACT_2026-09-05.md`.
+
 WP06 closes the Listing-AI condition/editor contract locally at implementation
 commit `e2559ada5e466be7b947755dec3bb5db2ccdb941`. Four synthetic
 `codex_local_dev` evaluations exposed that provider-valid condition prose could

@@ -1,22 +1,37 @@
-# Current Work Package: WP06 Listing-AI condition/editor contract closure
+# Current Work Package: WP07 Listing-AI price/catalog contract closure
 
-WP06 is complete at implementation commit
-`e2559ada5e466be7b947755dec3bb5db2ccdb941`. The model output schema,
-backend domain and Android editor now share one exact condition vocabulary;
-arbitrary prose is rejected and the developer-only empty sentinel remains
-typed and fail-closed. Four synthetic image classes pass with MEDIUM confidence,
-mandatory owner confirmation and no publication authority. Focused47, complete
-local regression, exact clean R10 and exact GitHub Regression33941394258 plus
-CodeQL33941394251 pass; alerts0. The external Staging provider remains disabled,
-and `codex_local_dev` remains developer-only with no API billing or credential
-extraction.
+WP07 is complete at implementation commit
+`3cbe5a3a3065f07a01ee4b463bb7f017ba248b72`. Exact category/subcategory
+pairs, rather than broad categories, now select the regional-price engine. All
+79 allowed pairs have a defined safe review path: 19 existing deterministic
+rules and 60 owner-entered prices that explicitly claim no SIT recommendation.
+Manual price review creates no regional snapshot, cannot proceed without a
+positive confirmed owner price and retains the separate explicit-publication
+gate. Outside-pilot pairs fail closed.
 
-The next bounded package is the independently observed Listing-AI price-domain
-contract: reproduce catalog categories without a valid regional-price rule and
-the semantically incorrect projector mapping, then make draft creation remain
-truthful and usable without inventing a price. Keep the immutable Pixel0503
-candidate and WP06 evidence separate. Do not activate providers, deploy, publish,
-touch devices/Play/production/payment/V5.2 or merge PR#7. See
+Focused30, transient real PostgreSQL persistence, tool2245, complete local
+regression and exact clean R10 pass. GitHub Regression33943848415 including its
+independent R10 job and CodeQL33943848391 pass with alerts0; PR#7 remains
+Draft/open/mergeable/unmerged. The required privacy/retention/provider/RW
+ratchet refresh is restricted to intentional current-source and direct hash
+dependencies; historical heads, exact boundaries and live gates remain intact.
+No deploy, provider, listing, device, Store, payment, Firebase, cloud, VPS, DNS
+or production state changed. See
+`docs/operations/WP07_LISTING_AI_PRICE_CATALOG_CONTRACT_2026-09-05.md`.
+
+Next select one provider-specific Staging acceptance package from the remaining
+launch path, after a read-only current-state audit. Keep `codex_local_dev`
+developer-only, V5.2 draft-blocked and Pixel0503 immutable. Do not combine
+external Listing AI, Google sign-in and Stripe sandbox/test-money into one
+unbounded change, and do not touch Play, production, public registration, live
+money or PR merge.
+
+Historical WP06 condition/editor closure:
+
+WP06 is complete at `e2559ada5e466be7b947755dec3bb5db2ccdb941` with focused47,
+full local regression, exact clean R10, Regression33941394258 and
+CodeQL33941394251. The external runtime remains disabled and the developer-only
+adapter used no API billing or credential extraction. See
 `docs/operations/WP06_LISTING_AI_CONDITION_CONTRACT_2026-09-05.md`.
 
 Historical WP05 full-surface Pixel candidate closure:
