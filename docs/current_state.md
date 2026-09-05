@@ -1,5 +1,31 @@
 # ShareItToo Current State
 
+WP14 closes direct password change on exact frozen Pixel Staging candidate
+`1.0.0+2026090503`/source
+`96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f`. Definite success UI, invoking
+session clear, old rejection, replacement login, terminated-process cold start,
+Account-A→B isolation, original-password restoration, protected-owner
+restoration and diagnostic-session revocation pass. Diagnostic implementation
+commit `a690d70607c0fff9beacecd055f984dc0a806642` changes no runtime app code and
+adds hint-aware Android input recognition, optional toast dismissal, bounded
+unknown-result probes and owner restoration even while rollback truth is open.
+Focused21, full local regression and exact clean R10 pass with two
+byte-identical APKs; Regression33967578790 and CodeQL33967578777 are green with
+alerts0. PR#7 remains Draft/open/unmerged.
+See `docs/operations/WP14_PASSWORD_CHANGE_CURRENT_CANDIDATE_ACCEPTANCE_2026-09-05.md`.
+
+WP13 remains **PARTIAL**. One owner-provided SMS code did not produce a
+server-confirmed verified state; it was deleted immediately and no fresh SMS
+was sent. The authoritative private state requires a fresh owner SMS request,
+while reconciliation and cleanup are not required and the protected owner is
+restored. Evidence-truth implementation `990375dce4695c1d69081cb0f19db4a303dee37f`,
+full regression/R10, Regression33964425617 and CodeQL33964425640 pass. See
+`docs/operations/WP13_PHONE_VERIFICATION_CURRENT_CANDIDATE_CHECKPOINT_2026-09-05.md`.
+
+Current whole-goal and V2.4 portfolio truth is refreshed in
+`docs/operations/SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-05.md` and
+`docs/architecture/v2-4-portfolio-checkpoint-2026-09-05.md`.
+
 WP12 closes Google Sign-In on exact frozen Pixel Staging candidate
 `1.0.0+2026090503`/source
 `96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f`. First login, terminated-process

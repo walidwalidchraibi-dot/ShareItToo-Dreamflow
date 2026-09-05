@@ -1,4 +1,31 @@
-# Current Work Package: WP12 Google Sign-In current-candidate acceptance
+# Current Work Package: WP14 password-change current-candidate acceptance
+
+WP14 is **COMPLETE LOCALLY, PHYSICALLY AND ON GITHUB** at diagnostic implementation commit
+`a690d70607c0fff9beacecd055f984dc0a806642`. Exact installed Pixel candidate
+`1.0.0+2026090503` passes direct password change, definite success UI, local
+session clear, old-credential rejection, replacement login, terminated-process
+cold start, Account-A→B isolation, exact original restoration and protected
+owner restoration. No private identity or credential entered Git.
+
+Focused21, complete local regression and exact clean R10 pass; its two
+231,344,391-byte APKs are byte-identical across all 794 entries. CodeQL
+33967578777 passes with alerts0. Regression33967578790 passes all required
+jobs, including its independent R10. PR#7 remains Draft/open/unmerged.
+No runtime app, candidate, deployment, Firebase, Play, Stripe, payment,
+production or OnePlus state changed. See
+`docs/operations/WP14_PASSWORD_CHANGE_CURRENT_CANDIDATE_ACCEPTANCE_2026-09-05.md`.
+
+WP13 remains a separate **PARTIAL** owner-interaction lane: the previous SMS
+code was not confirmed and was deleted; a fresh SMS request is required. Do not
+send another automatically. See
+`docs/operations/WP13_PHONE_VERIFICATION_CURRENT_CANDIDATE_CHECKPOINT_2026-09-05.md`.
+
+After exact GitHub closure and the documentation-only evidence commit, proceed
+with current-candidate fresh E-mail registration/verification and password
+recovery as the next independent package. Do not combine it with SMS,
+Facebook/Apple, external Listing AI, Stripe or V5.2.
+
+Historical WP12 checkpoint:
 
 WP12 is **COMPLETE** at diagnostic implementation commit
 `4237cbd7a98148c15e35c7bd52ea2f31b3438239`. Exact installed Pixel candidate
