@@ -7,11 +7,13 @@ import {
   bindExactRole,
   containsAllLabels,
   openMainDestination,
+  tapClosestToLabel,
   tapLabel,
   waitForHierarchy,
 } from './diagnose_android_email_verified_two_role_product_journey.mjs';
 import {
   exactSearchListingDetailVisible,
+  normalizedAndroidLabelVisible,
   openExactSearch,
   tapPrivateNamedNode,
 } from './diagnose_android_search_saved_lifecycle.mjs';
@@ -48,6 +50,11 @@ function fail(message) {
   throw new Error(message);
 }
 
+export const selectedIntentRemoteSettle = Object.freeze({
+  attempts: 40,
+  intervalMs: 650,
+});
+
 function sanitizedFailure(error) {
   const detail = typeof error?.message === 'string' ? error.message.trim() : '';
   if (detail.length === 0 || detail.length > 300
@@ -83,10 +90,73 @@ export function selectableCalendarDayNode(hierarchy, day) {
   return candidates.length === 1 ? candidates[0] : null;
 }
 
+const calendarMonthsDe = Object.freeze([
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+]);
+
+export function firstServerEligibleRentalDate(now) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12);
+}
+
+export function calendarMonthLabel(value) {
+  return `${calendarMonthsDe[value.getMonth()]} ${value.getFullYear()}`;
+}
+
+export function nextCalendarMonthActionNode(hierarchy, currentMonthLabel) {
+  const anchor = currentHeadAndroidNamedNodes(hierarchy, currentMonthLabel)[0];
+  if (anchor === undefined) return null;
+  const anchorPoint = pointForNode(anchor, 'calendar month');
+  const candidates = (String(hierarchy).match(/<node\b[^>]*>/gu) ?? [])
+    .filter((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false')
+    .filter((node) => currentHeadAndroidNodeAttribute(node, 'clickable') === 'true')
+    .map((node) => ({ node, ...pointForNode(node, 'calendar month navigation') }))
+    .filter((node) => node.x > anchorPoint.x && Math.abs(node.y - anchorPoint.y) <= 90)
+    .toSorted((left, right) => left.x - right.x);
+  return candidates[0]?.node ?? null;
+}
+
 function enabledButtonVisible(hierarchy, label) {
   return currentHeadAndroidNamedNodes(hierarchy, label).some(
     (node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false',
   );
+}
+
+export function selectedIntentSurfaceState(hierarchy, title) {
+  const exactInitialDetail = exactSearchListingDetailVisible(hierarchy, title);
+  const exactSelectedDetail = normalizedAndroidLabelVisible(hierarchy, title)
+    && currentHeadAndroidNamedNodes(hierarchy, 'Heilbronn, Deutschland').length > 0;
+  const cartAction = currentHeadAndroidNamedNodes(hierarchy, 'In den Mietkorb').length > 0;
+  if (exactSelectedDetail && cartAction) return 'ready';
+  if (currentHeadAndroidNamedNodes(hierarchy, 'Zeitraum nicht verfügbar').length > 0) {
+    return 'server-reported-unavailable';
+  }
+  if (containsAllLabels(hierarchy, ['Verfügbarkeit prüfen', 'Zeitraum', 'Weiter'])) {
+    return hierarchy.includes('class="android.widget.ProgressBar"')
+      ? 'availability-check-running'
+      : 'availability-selection-still-open';
+  }
+  if (exactInitialDetail || exactSelectedDetail) return 'exact-detail-without-cart-action';
+  if (cartAction) return 'cart-action-without-exact-detail';
+  return 'unknown';
+}
+
+export function selectedIntentDetailSettled(hierarchy, title) {
+  return selectedIntentSurfaceState(hierarchy, title) === 'ready'
+    && currentHeadAndroidNamedNodes(
+      hierarchy,
+      'Im Mietkorb – noch nicht reserviert',
+    ).length === 0;
+}
+
+function nodesContainingNormalizedLabel(hierarchy, label) {
+  const normalized = (value) => String(value ?? '').replace(/\s+/gu, ' ').trim();
+  const target = normalized(label);
+  return (String(hierarchy).match(/<node\b[^>]*>/gu) ?? []).filter((node) => (
+    ['text', 'content-desc'].some((attribute) => (
+      normalized(currentHeadAndroidNodeAttribute(node, attribute)).includes(target)
+    ))
+  ));
 }
 
 async function waitForListingDetail({
@@ -149,9 +219,27 @@ async function addExactIntentTwiceOnPixel({
       ['Verfügbarkeit prüfen', 'Zeitraum', 'Kalender', 'Weiter'],
     ),
   });
-  const dayNode = selectableCalendarDayNode(hierarchy, now.getDate());
-  if (dayNode === null) fail('The sanitized current-day rental action is unavailable.');
-  tapNode(commandRunner, adbPath, device, dayNode, 'current-day rental');
+  const eligibleDate = firstServerEligibleRentalDate(now);
+  if (eligibleDate.getMonth() !== now.getMonth()
+      || eligibleDate.getFullYear() !== now.getFullYear()) {
+    const nextMonth = nextCalendarMonthActionNode(hierarchy, calendarMonthLabel(now));
+    if (nextMonth === null) fail('The sanitized next-month rental action is unavailable.');
+    tapNode(commandRunner, adbPath, device, nextMonth, 'next-month rental');
+    hierarchy = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'next rental month',
+      predicate: (value) => currentHeadAndroidNamedNodes(
+        value,
+        calendarMonthLabel(eligibleDate),
+      ).length === 1,
+    });
+  }
+  const dayNode = selectableCalendarDayNode(hierarchy, eligibleDate.getDate());
+  if (dayNode === null) fail('The sanitized first eligible rental action is unavailable.');
+  tapNode(commandRunner, adbPath, device, dayNode, 'first eligible rental');
   hierarchy = await waitForHierarchy({
     commandRunner,
     adbPath,
@@ -164,17 +252,24 @@ async function addExactIntentTwiceOnPixel({
     ),
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Weiter');
-  hierarchy = await waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-    label: 'selected non-reserving listing intent',
-    predicate: (value) => (
-      exactSearchListingDetailVisible(value, search.title)
-        && currentHeadAndroidNamedNodes(value, 'In den Mietkorb').length > 0
-    ),
-  });
+  try {
+    hierarchy = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      attempts: selectedIntentRemoteSettle.attempts,
+      intervalMs: selectedIntentRemoteSettle.intervalMs,
+      label: 'selected non-reserving listing intent',
+      predicate: (value) => selectedIntentSurfaceState(value, search.title) === 'ready',
+    });
+  } catch {
+    const state = selectedIntentSurfaceState(
+      dumpCurrentHeadAndroidUi(commandRunner, adbPath, device),
+      search.title,
+    );
+    fail(`The sanitized selected listing intent state is ${state}.`);
+  }
   for (let attempt = 0; attempt < 2; attempt += 1) {
     tapLabel(commandRunner, adbPath, device, hierarchy, 'In den Mietkorb');
     await waitForHierarchy({
@@ -202,14 +297,7 @@ async function addExactIntentTwiceOnPixel({
       attempts: 16,
       intervalMs: 250,
       label: 'listing detail after cart acknowledgement',
-      predicate: (value) => (
-        exactSearchListingDetailVisible(value, search.title)
-          && currentHeadAndroidNamedNodes(value, 'In den Mietkorb').length > 0
-          && currentHeadAndroidNamedNodes(
-            value,
-            'Im Mietkorb – noch nicht reserviert',
-          ).length === 0
-      ),
+      predicate: (value) => selectedIntentDetailSettled(value, search.title),
     });
   }
   return Object.freeze({
@@ -331,6 +419,26 @@ function tapBottommostPrivateLabel({
   tapNode(commandRunner, adbPath, device, selected.node, safeLabel);
 }
 
+export function rentalCartItemProjectVisible(hierarchy, listingTitle, projectTitle) {
+  const listingPoints = currentHeadAndroidNamedNodes(hierarchy, listingTitle)
+    .map((node) => pointForNode(node, 'exact rental-cart listing'));
+  const projectPoints = nodesContainingNormalizedLabel(hierarchy, projectTitle)
+    .map((node) => pointForNode(node, 'exact rental-cart project'));
+  return listingPoints.some((listing) => projectPoints.some(
+    (project) => Math.abs(project.y - listing.y) <= 140,
+  ));
+}
+
+export function rentalCartItemActionVisible(hierarchy, listingTitle, actionLabel) {
+  const listingPoints = currentHeadAndroidNamedNodes(hierarchy, listingTitle)
+    .map((node) => pointForNode(node, 'exact rental-cart listing'));
+  const actionPoints = currentHeadAndroidNamedNodes(hierarchy, actionLabel)
+    .map((node) => pointForNode(node, 'exact rental-cart action'));
+  return listingPoints.some((listing) => actionPoints.some(
+    (action) => Math.abs(action.y - listing.y) <= 160,
+  ));
+}
+
 async function createAndAssignProjectOnPixel({
   vaultFile,
   commandRunner,
@@ -339,6 +447,8 @@ async function createAndAssignProjectOnPixel({
   wait,
 }) {
   const { vault } = readEmailVerifiedJourneyVault(vaultFile);
+  const title = vault.realTwoRoleJourney?.title
+    ?? fail('The private rental-cart title is unavailable.');
   const projectTitle = vault.rentalCartLifecycle?.projectTitle
     ?? fail('The private rental-cart project title is unavailable.');
   let hierarchy = await openMainDestination({
@@ -401,7 +511,14 @@ async function createAndAssignProjectOnPixel({
         && !value.includes('class="android.widget.ProgressBar"')
     ),
   });
-  tapLabel(commandRunner, adbPath, device, hierarchy, 'Projekt zuordnen');
+  tapClosestToLabel(
+    commandRunner,
+    adbPath,
+    device,
+    hierarchy,
+    'Projekt zuordnen',
+    title,
+  );
   hierarchy = await waitForHierarchy({
     commandRunner,
     adbPath,
@@ -428,7 +545,7 @@ async function createAndAssignProjectOnPixel({
     wait,
     label: 'assigned rental-cart project',
     predicate: (value) => (
-      currentHeadAndroidNamedNodes(value, projectTitle).length > 0
+      rentalCartItemProjectVisible(value, title, projectTitle)
         && currentHeadAndroidNamedNodes(value, 'Projekt zuordnen').length > 0
         && !value.includes('class="android.widget.ProgressBar"')
     ),
@@ -460,12 +577,20 @@ async function removeExactCartIntentOnPixel({
     device,
     wait,
     label: 'exact rental-cart removal action',
-    predicate: (value) => (
-      currentHeadAndroidNamedNodes(value, title).length > 0
-        && currentHeadAndroidNamedNodes(value, 'Aus Mietkorb entfernen').length === 1
+    predicate: (value) => rentalCartItemActionVisible(
+      value,
+      title,
+      'Aus Mietkorb entfernen',
     ),
   });
-  tapLabel(commandRunner, adbPath, device, hierarchy, 'Aus Mietkorb entfernen');
+  tapClosestToLabel(
+    commandRunner,
+    adbPath,
+    device,
+    hierarchy,
+    'Aus Mietkorb entfernen',
+    title,
+  );
   await waitForHierarchy({
     commandRunner,
     adbPath,

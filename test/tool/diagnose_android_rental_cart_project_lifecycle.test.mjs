@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
+  calendarMonthLabel,
+  firstServerEligibleRentalDate,
+  nextCalendarMonthActionNode,
+  rentalCartItemActionVisible,
+  rentalCartItemProjectVisible,
   runAndroidRentalCartProjectLifecycle,
+  selectedIntentDetailSettled,
+  selectedIntentSurfaceState,
+  selectedIntentRemoteSettle,
   selectableCalendarDayNode,
 } from '../../tool/diagnose_android_rental_cart_project_lifecycle.mjs';
 
@@ -24,6 +33,128 @@ test('selects only one enabled clickable current calendar day', () => {
   assert.equal(selectableCalendarDayNode(selectable + disabled, 5), selectable);
   assert.equal(selectableCalendarDayNode(selectable + selectable, 5), null);
   assert.equal(selectableCalendarDayNode(selectable, 6), null);
+});
+
+test('chooses the first future local rental date across month boundaries', () => {
+  const ordinary = firstServerEligibleRentalDate(new Date(2026, 8, 6, 0, 5));
+  assert.equal(calendarMonthLabel(ordinary), 'September 2026');
+  assert.equal(ordinary.getDate(), 7);
+  const rollover = firstServerEligibleRentalDate(new Date(2026, 8, 30, 23, 55));
+  assert.equal(calendarMonthLabel(rollover), 'Oktober 2026');
+  assert.equal(rollover.getDate(), 1);
+});
+
+test('finds only the enabled clickable next-month control beside the month label', () => {
+  const hierarchy = [
+    '<node text="September 2026" bounds="[300,200][700,260]"/>',
+    '<node clickable="true" enabled="true" bounds="[220,190][280,270]"/>',
+    '<node clickable="true" enabled="true" bounds="[720,190][780,270]"/>',
+    '<node clickable="true" enabled="true" bounds="[720,500][780,580]"/>',
+  ].join('');
+  assert.equal(
+    nextCalendarMonthActionNode(hierarchy, 'September 2026'),
+    '<node clickable="true" enabled="true" bounds="[720,190][780,270]"/>',
+  );
+  assert.equal(nextCalendarMonthActionNode(hierarchy, 'August 2026'), null);
+});
+
+test('binds project confirmation to the exact rental-cart item row', () => {
+  const hierarchy = [
+    '<node text="Other listing" bounds="[80,300][500,350]"/>',
+    '<node text="Exact project" bounds="[80,370][500,420]"/>',
+    '<node text="Exact listing" bounds="[80,900][500,950]"/>',
+    '<node text="07.09.2026 - Exact project - Aktuell geprüft" '
+      + 'bounds="[80,960][500,1040]"/>',
+  ].join('');
+  assert.equal(
+    rentalCartItemProjectVisible(hierarchy, 'Exact listing', 'Exact project'),
+    true,
+  );
+  assert.equal(
+    rentalCartItemProjectVisible(hierarchy, 'Missing listing', 'Exact project'),
+    false,
+  );
+  assert.equal(
+    rentalCartItemProjectVisible(
+      '<node text="Exact listing" bounds="[80,900][500,950]"/>'
+        + '<node text="Exact project" bounds="[80,300][500,350]"/>',
+      'Exact listing',
+      'Exact project',
+    ),
+    false,
+  );
+});
+
+test('binds a repeated cart action to the exact listing row', () => {
+  const hierarchy = [
+    '<node text="Other listing" bounds="[80,300][500,350]"/>',
+    '<node content-desc="Aus Mietkorb entfernen" bounds="[900,290][1000,390]"/>',
+    '<node text="Exact listing" bounds="[80,900][500,950]"/>',
+    '<node content-desc="Aus Mietkorb entfernen" bounds="[900,890][1000,990]"/>',
+  ].join('');
+  assert.equal(
+    rentalCartItemActionVisible(hierarchy, 'Exact listing', 'Aus Mietkorb entfernen'),
+    true,
+  );
+  assert.equal(
+    rentalCartItemActionVisible(hierarchy, 'Missing listing', 'Aus Mietkorb entfernen'),
+    false,
+  );
+});
+
+test('remote availability settling outlives the 20-second transport contract', () => {
+  const backendRepository = readFileSync(
+    new URL('../../lib/services/backend_repository.dart', import.meta.url),
+    'utf8',
+  );
+  assert.match(
+    backendRepository,
+    /Duration timeout = const Duration\(seconds: 20\)/u,
+  );
+  assert.equal(selectedIntentRemoteSettle.intervalMs, 650);
+  assert.equal(selectedIntentRemoteSettle.attempts, 40);
+  assert.ok(
+    selectedIntentRemoteSettle.intervalMs * selectedIntentRemoteSettle.attempts
+      >= 26000,
+  );
+});
+
+test('classifies selected-intent failure states without private values', () => {
+  const title = 'Private fixture title';
+  const detail = `<node text="${title}"/><node text="Heilbronn, Deutschland"/>`
+    + '<node text="Verfügbarkeit prüfen"/>';
+  const selectedDetail = `<node text="${title}"/>`
+    + '<node text="Heilbronn, Deutschland"/><node text="07.09.2026"/>';
+  assert.equal(
+    selectedIntentSurfaceState(`${selectedDetail}<node text="In den Mietkorb"/>`, title),
+    'ready',
+  );
+  assert.equal(
+    selectedIntentSurfaceState('<node text="Zeitraum nicht verfügbar"/>', title),
+    'server-reported-unavailable',
+  );
+  assert.equal(
+    selectedIntentSurfaceState(
+      '<node text="Verfügbarkeit prüfen"/><node text="Zeitraum"/>'
+        + '<node text="Weiter"/><node class="android.widget.ProgressBar"/>',
+      title,
+    ),
+    'availability-check-running',
+  );
+  assert.equal(
+    selectedIntentSurfaceState(`${detail}`, title),
+    'exact-detail-without-cart-action',
+  );
+  assert.equal(selectedIntentSurfaceState('<node text="other"/>', title), 'unknown');
+  const ready = `${selectedDetail}<node text="In den Mietkorb"/>`;
+  assert.equal(selectedIntentDetailSettled(ready, title), true);
+  assert.equal(
+    selectedIntentDetailSettled(
+      `${ready}<node text="Im Mietkorb – noch nicht reserviert"/>`,
+      title,
+    ),
+    false,
+  );
 });
 
 function passingOperations(calls) {
