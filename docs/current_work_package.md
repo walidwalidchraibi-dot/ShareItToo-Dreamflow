@@ -1,4 +1,29 @@
-# Current Work Package: WP17 current-candidate two-role product and push
+# Current Work Package: WP18 current-candidate Pixel listing lifecycle
+
+WP18 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed Staging candidate
+`1.0.0+2026090506`, runtime source HEAD
+`d350e3e26f03ec52eac1a86c1cf400148dfd50b1`. The bounded correction preserves
+the existing listing city during edit instead of replacing accepted server
+truth with profile/default prefill. The real Pixel journey passes owner edit,
+publish, pause, reactivate and end, with server and catalog confirmation plus
+stable renter visibility or absence at each expected state. Revisions advance
+strictly, cleanup ends the listing and the protected owner is restored.
+
+Diagnostic hardening HEAD `d480221d2bbfe133e0a96148ae5b77e16b3bffd8`
+requires exact fresh owner UI and server truth rather than depending on a
+transient success dialog. It removes partial private vaults before any remote
+write, preserves recovery state when cleanup is unproven, and retries only
+idempotent Pixel state goals exactly once. Exact clean R10 and complete local
+regression pass. PR#7 remains Draft/open/unmerged. No booking, contract,
+payment, Store, deployment, provider, Production, public registration,
+OnePlus or real-money boundary changed. See
+`docs/operations/WP18_PIXEL_LISTING_LIFECYCLE_2026-09-05.md`.
+
+Next select a distinct exact-current-candidate user journey with independent
+launch-readiness value. Keep SMS, Facebook/Apple, external Listing AI, Stripe,
+V5.2/legal approval, Google Play, Production, OnePlus and live money isolated.
+
+# Previous Work Package: WP17 current-candidate two-role product and push
 
 WP17 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed candidate
 `1.0.0+2026090505`, source HEAD
@@ -22,10 +47,6 @@ remains Draft/open/unmerged. No payment, contract, reservation, deployment,
 Store, provider, Production, public, OnePlus or real-money boundary changed.
 See
 `docs/operations/WP17_CURRENT_CANDIDATE_TWO_ROLE_PRODUCT_PUSH_2026-09-05.md`.
-
-Next select a distinct current-candidate listing-lifecycle package covering
-owner edit, pause/reactivate and renter visibility/search behavior without
-crossing binding V5.2, payment, provider, Store, OnePlus or Production gates.
 
 # Previous Work Package: WP16 account deletion
 

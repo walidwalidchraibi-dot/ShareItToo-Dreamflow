@@ -1,5 +1,19 @@
 # ShareItToo Current State
 
+WP18 closes the exact current signed Pixel Staging candidate's listing
+lifecycle. Candidate `1.0.0+2026090506`, runtime source HEAD
+`d350e3e26f03ec52eac1a86c1cf400148dfd50b1`, corrects an existing listing city
+being overwritten by profile/default prefill and passes edit, publish,
+pause/hide, reactivate/show and end/hide through the real Pixel UI with
+independent server, public-catalog and renter-surface truth. Revisions advance
+strictly, cleanup ends the synthetic listing and restores the protected owner.
+Diagnostic hardening HEAD `d480221d2bbfe133e0a96148ae5b77e16b3bffd8`
+uses exact fresh UI plus server truth, bounded idempotent state retry and safe
+private-vault cleanup rather than a timing workaround. Exact clean R10 and the
+complete local regression pass. No booking, contract, payment, Store, deploy,
+provider, Production, OnePlus, real-money or PR boundary changed. See
+`docs/operations/WP18_PIXEL_LISTING_LIFECYCLE_2026-09-05.md`.
+
 WP17 closes the exact current signed Pixel Staging candidate's fresh two-role
 product and push journey. Candidate `1.0.0+2026090505`, source HEAD
 `e18e788c0d04fe6b80e3be2f63b30d5f3719ae7d`, passes owner UI publication,
