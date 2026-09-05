@@ -38,6 +38,6 @@
   "sourceHashesSha256": {
     "lib/screens/booking_detail_screen.dart": "848a736ce2b9200ffa251b96c7b3f8ff761d33f5f01f09512c2af8a97ab1f7e3",
     "test/tool/no_demo_payment_surfaces.test.mjs": "55bb7600de1549208943069dc6360128d3b7afa81d3b04d5a7baf4e6447e239a",
-    "store/privacy-disclosures.json": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86"
+    "store/privacy-disclosures.json": "15c92bafb3bc8a50eed315834d958ba96aa45c42eeace357b89056cc51188ff5"
   }
 }

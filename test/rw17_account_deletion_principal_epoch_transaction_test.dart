@@ -91,6 +91,18 @@ void main() {
     );
   });
 
+  test('remote deletion is dispatched only for the captured auth owner',
+      () async {
+    final service = _ClassifyingDeletionService();
+
+    await service.deleteAccount(
+      context: _contextA,
+      currentPassword: _syntheticAccountProof,
+    );
+
+    expect(service.deletedOwner, same(_contextA.owner.authOwner));
+  });
+
   test('local-only partial failure never claims server confirmation', () async {
     final service = _LocalFailureDeletionService();
 
@@ -544,6 +556,7 @@ class _ClassifyingDeletionService extends AccountDeletionService {
   final Object? preflightError;
   final Object? deleteError;
   final Object? localFailure;
+  AuthSessionOwner? deletedOwner;
 
   _ClassifyingDeletionService({
     this.preflightError,
@@ -568,7 +581,11 @@ class _ClassifyingDeletionService extends AccountDeletionService {
   }
 
   @override
-  Future<void> deleteRemoteAccount(String currentPassword) async {
+  Future<void> deleteRemoteAccount({
+    required AuthSessionOwner owner,
+    required String currentPassword,
+  }) async {
+    deletedOwner = owner;
     if (deleteError case final Object error) throw error;
   }
 

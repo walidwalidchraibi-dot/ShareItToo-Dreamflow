@@ -153,8 +153,14 @@ class AccountDeletionService {
       BackendRepository.accountDeletionPreflight();
 
   @protected
-  Future<void> deleteRemoteAccount(String currentPassword) =>
-      BackendRepository.deleteAccount(currentPassword: currentPassword);
+  Future<void> deleteRemoteAccount({
+    required AuthSessionOwner owner,
+    required String currentPassword,
+  }) =>
+      BackendRepository.deleteAccount(
+        owner: owner,
+        currentPassword: currentPassword,
+      );
 
   Future<AccountDeletionContext?> loadCurrentContext() async {
     final session = await _sessionTransitions.readSession();
@@ -412,7 +418,10 @@ class AccountDeletionService {
     }
 
     try {
-      await deleteRemoteAccount(currentPassword);
+      await deleteRemoteAccount(
+        owner: context.owner.authOwner,
+        currentPassword: currentPassword,
+      );
     } on BackendException catch (error) {
       if (_isDefiniteRejection(error)) {
         throw const AccountDeletionFailure.rejected();

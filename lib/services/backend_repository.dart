@@ -170,8 +170,12 @@ class BackendRepository {
     );
   }
 
-  static Future<void> deleteAccount({required String currentPassword}) async {
-    await _authorized(
+  static Future<void> deleteAccount({
+    required AuthSessionOwner owner,
+    required String currentPassword,
+  }) async {
+    await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/account/deletion',
       body: {'currentPassword': currentPassword},

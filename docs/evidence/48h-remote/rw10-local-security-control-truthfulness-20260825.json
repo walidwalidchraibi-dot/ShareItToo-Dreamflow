@@ -144,9 +144,9 @@
   },
   "ratchets": {
     "reason": "retired-local-security-simulation-and-exact-session-clear-source-change",
-    "privacyManifestSha256": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86",
-    "retentionManifestSha256": "d7e84a43d5c332fca1338de437d1f2bb8de1ceba762a781bffdea2cac0a26c30",
-    "activeProviderEvidenceSha256": "fb8e8c79103e1744a1c7c78165512a7e26fd869b00b89a7ff4e6bc2a442b4bb8",
+    "privacyManifestSha256": "15c92bafb3bc8a50eed315834d958ba96aa45c42eeace357b89056cc51188ff5",
+    "retentionManifestSha256": "d798cb6dd50a7c87ba30e796d7763164c2b8a112c1d6d4959a5d322e8f2e816d",
+    "activeProviderEvidenceSha256": "50304f0694ebffe0aa4bf9c6f67c9972a7e0dc5fed9a206270c8780b2433ad80",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -207,7 +207,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "6c54e6b41212b8f57682964599e664d5eab410702a20b505bcdd01c57abd907d"
+      "sha256": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20"
     },
     {
       "path": "lib/services/data_service.dart",
@@ -223,15 +223,15 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86"
+      "sha256": "15c92bafb3bc8a50eed315834d958ba96aa45c42eeace357b89056cc51188ff5"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "d7e84a43d5c332fca1338de437d1f2bb8de1ceba762a781bffdea2cac0a26c30"
+      "sha256": "d798cb6dd50a7c87ba30e796d7763164c2b8a112c1d6d4959a5d322e8f2e816d"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "fb8e8c79103e1744a1c7c78165512a7e26fd869b00b89a7ff4e6bc2a442b4bb8"
+      "sha256": "50304f0694ebffe0aa4bf9c6f67c9972a7e0dc5fed9a206270c8780b2433ad80"
     },
     {
       "path": "tool/validate_privacy_disclosures.mjs",
@@ -243,7 +243,7 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "64b7435697f071bffa51eb44658f0b7d6e8c87720c5bb8021382eb6a4f88ac54"
+      "sha256": "56f070d45bd3611c70c2a73b0384291a4d64f285981c34f4b728f4c09269623a"
     },
     {
       "path": "scripts/technical_regression_check.sh",

@@ -176,7 +176,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "35229adf38b94f17f8c8c5c3779064e0fbac77a42da356d90831cf4c12d1ea1f"
+      "sha256": "c4f4da84e907f6007e61a04b54654c4386ad93ed7b16657c517ad99bd8599c3a"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
@@ -216,11 +216,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86"
+      "sha256": "15c92bafb3bc8a50eed315834d958ba96aa45c42eeace357b89056cc51188ff5"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "d7e84a43d5c332fca1338de437d1f2bb8de1ceba762a781bffdea2cac0a26c30"
+      "sha256": "d798cb6dd50a7c87ba30e796d7763164c2b8a112c1d6d4959a5d322e8f2e816d"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",

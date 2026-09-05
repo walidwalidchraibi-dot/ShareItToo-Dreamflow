@@ -289,9 +289,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86",
-    "retentionManifestSha256": "d7e84a43d5c332fca1338de437d1f2bb8de1ceba762a781bffdea2cac0a26c30",
-    "activeProviderEvidenceSha256": "fb8e8c79103e1744a1c7c78165512a7e26fd869b00b89a7ff4e6bc2a442b4bb8",
+    "privacyManifestSha256": "15c92bafb3bc8a50eed315834d958ba96aa45c42eeace357b89056cc51188ff5",
+    "retentionManifestSha256": "d798cb6dd50a7c87ba30e796d7763164c2b8a112c1d6d4959a5d322e8f2e816d",
+    "activeProviderEvidenceSha256": "50304f0694ebffe0aa4bf9c6f67c9972a7e0dc5fed9a206270c8780b2433ad80",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -338,7 +338,11 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "35229adf38b94f17f8c8c5c3779064e0fbac77a42da356d90831cf4c12d1ea1f"
+      "sha256": "c4f4da84e907f6007e61a04b54654c4386ad93ed7b16657c517ad99bd8599c3a"
+    },
+    {
+      "path": "lib/services/backend_repository.dart",
+      "sha256": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20"
     },
     {
       "path": "lib/services/data_service.dart",
@@ -370,19 +374,19 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86"
+      "sha256": "15c92bafb3bc8a50eed315834d958ba96aa45c42eeace357b89056cc51188ff5"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "d7e84a43d5c332fca1338de437d1f2bb8de1ceba762a781bffdea2cac0a26c30"
+      "sha256": "d798cb6dd50a7c87ba30e796d7763164c2b8a112c1d6d4959a5d322e8f2e816d"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "fb8e8c79103e1744a1c7c78165512a7e26fd869b00b89a7ff4e6bc2a442b4bb8"
+      "sha256": "50304f0694ebffe0aa4bf9c6f67c9972a7e0dc5fed9a206270c8780b2433ad80"
     },
     {
       "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
-      "sha256": "3b7a1b1a4581d3fe54a241330935e719c15368bf0eaabafab310b56a53279775"
+      "sha256": "9240a689ab43b622b0bee225ab805cf85c8cb67ad6597e015982aa21200581ac"
     },
     {
       "path": "scripts/technical_regression_check.sh",
@@ -390,7 +394,7 @@
     },
     {
       "path": "test/rw17_account_deletion_principal_epoch_transaction_test.dart",
-      "sha256": "b0557fc87729ec2a41b63e0413672706c2f8989bf25c1fb04526f802b4ff7c00"
+      "sha256": "be812ddfbde32e18bc313e0bb5acb0c91a6e60ae7220efa59a105e2af6b40538"
     },
     {
       "path": "test/tool/rw5_local_safety_privacy_principal_isolation_wiring.test.mjs",
@@ -406,7 +410,7 @@
     },
     {
       "path": "test/tool/rw17_account_deletion_principal_epoch_transaction_wiring.test.mjs",
-      "sha256": "4266c889c93e8908acabb97f0417b83c719169b17af6db3ee7ca5a36ebf499db"
+      "sha256": "d56add43b20d633ae949fe2176528fd6ff6c1311e9a22c215175493c50a82193"
     },
     {
       "path": "test/tool/validate_rw17_account_deletion_principal_epoch_transaction.test.mjs",
@@ -426,7 +430,7 @@
     },
     {
       "path": "tool/validate_rw17_account_deletion_principal_epoch_transaction.mjs",
-      "sha256": "8eb49893bee15be2601eeb5928250a8a6fac28ccd4d7eb588192674d8a9481c0"
+      "sha256": "f6e6dc9050481a08a1cbcfcdfa166f38e7cab3400cd9d2593abc6ba432e0c01b"
     },
     {
       "path": "docs/architecture/rw17-account-deletion-principal-epoch-transaction-2026-08-26.md",

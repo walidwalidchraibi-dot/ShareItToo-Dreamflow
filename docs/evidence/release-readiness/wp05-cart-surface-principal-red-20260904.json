@@ -51,7 +51,7 @@
   "sourceHashes": {
     "lib/screens/wishlists_screen.dart": "cb64ca5670af401b7259e3d226cdde54047891c842abcf5287522528590f4bba",
     "lib/services/data_service.dart": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50",
-    "lib/services/backend_repository.dart": "6c54e6b41212b8f57682964599e664d5eab410702a20b505bcdd01c57abd907d",
+    "lib/services/backend_repository.dart": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20",
     "lib/widgets/item_details_overlay.dart": "3541d27c2964795b925e30a2d990b81da759f3ef521b79e4fe4902be965c2141",
     "lib/services/local_principal_scope.dart": "7bc2b1254651b1cca95059ef99de2fe4b9027bb7ebbd3cea88777f3db33e2218"
   },

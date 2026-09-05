@@ -92,7 +92,7 @@
   "sourceHashes": {
     "lib/screens/wishlists_screen.dart": "cb64ca5670af401b7259e3d226cdde54047891c842abcf5287522528590f4bba",
     "lib/services/data_service.dart": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50",
-    "lib/services/backend_repository.dart": "6c54e6b41212b8f57682964599e664d5eab410702a20b505bcdd01c57abd907d",
+    "lib/services/backend_repository.dart": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20",
     "lib/services/local_principal_scope.dart": "7bc2b1254651b1cca95059ef99de2fe4b9027bb7ebbd3cea88777f3db33e2218",
     "scripts/technical_regression_check.sh": "34270a229093d27eaf9b70ea4c9a0937897a6cdf335730c7f1b390b406dbfd6d",
     "test/rental_cart_assignment_principal_test.dart": "a530cf56d9cb580d8cc91eb147f007b789a37dcad40e9ad2c10c6b9c1c1c962a",

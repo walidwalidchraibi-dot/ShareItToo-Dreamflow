@@ -7,6 +7,7 @@ const read = (path) => readFileSync(
   'utf8',
 );
 const service = read('lib/services/account_deletion_service.dart');
+const repository = read('lib/services/backend_repository.dart');
 const data = read('lib/services/data_service.dart');
 const safety = read('lib/services/local_safety_privacy_service.dart');
 const screen = read('lib/screens/account_settings_screen.dart');
@@ -91,6 +92,32 @@ test('UI captures owner before await and keeps typed outcomes distinct', () => {
   assert.match(failure, /confirmedLocalFinalizationFailed/u);
   assert.match(failure, /localFinalizationFailed/u);
   assert.match(failure, /outcomeUnknown/u);
+});
+
+test('remote deletion cannot refresh or fall back to a successor principal', () => {
+  const dispatch = method(
+    service,
+    'Future<void> deleteRemoteAccount({',
+    'Future<AccountDeletionContext?> loadCurrentContext()',
+  );
+  assert.match(dispatch, /required AuthSessionOwner owner/u);
+  assert.match(dispatch, /BackendRepository\.deleteAccount\([\s\S]*?owner: owner/u);
+
+  const remoteCall = method(
+    repository,
+    'static Future<void> deleteAccount({',
+    'static Future<Map<String, dynamic>> registerPushDevice(',
+  );
+  assert.match(remoteCall, /required AuthSessionOwner owner/u);
+  assert.match(remoteCall, /_authorizedForOwner\([\s\S]*?owner: owner/u);
+  assert.doesNotMatch(remoteCall, /_authorized\(/u);
+
+  const deletion = method(
+    service,
+    'Future<AccountDeletionCompletion> deleteAccount({',
+    'static bool _isDefiniteRejection(',
+  );
+  assert.match(deletion, /deleteRemoteAccount\([\s\S]*?owner: context\.owner\.authOwner/u);
 });
 
 test('exact route ownership and supported regression retain RW17', () => {

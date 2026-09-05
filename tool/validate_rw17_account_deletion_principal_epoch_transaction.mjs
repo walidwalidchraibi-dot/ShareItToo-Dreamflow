@@ -13,6 +13,7 @@ const evidencePath =
 const sourcePaths = [
   'lib/screens/account_settings_screen.dart',
   'lib/services/account_deletion_service.dart',
+  'lib/services/backend_repository.dart',
   'lib/services/data_service.dart',
   'lib/services/local_safety_privacy_service.dart',
   'lib/services/auth_service.dart',
