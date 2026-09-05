@@ -1,5 +1,26 @@
 # ShareItToo Current State
 
+WP19 closes the exact current signed Pixel Staging candidate's search and
+saved-state lifecycle. Candidate `1.0.0+2026090506`, runtime source HEAD
+`d350e3e26f03ec52eac1a86c1cf400148dfd50b1`, passes unique listing search,
+the exact tool-category filter, detail opening, save to the built-in later
+list, terminated-process persistence, Account-A-to-B isolation, renter
+restoration and exact saved-item removal. Three stable settled observations
+establish each persisted, isolated and removed state. Four pre-proof
+diagnostic attempts failed closed, each independently ending its isolated
+listing and restoring the protected owner. Diagnostic HEAD
+`3f0154bc317b0e76b3bad697b28f9f6a179bdeeb` now matches actual Android empty
+field, wrapped-label, retained-focus and wrapped-title semantics using
+state-based prerequisites; no timeout, parallelism or assertion workaround was
+introduced. Complete local regression passes with 2,292 tool and 864 Flutter
+tests plus 33 declared skips, analyzer, Web/Wasm, loopback and Android.
+Exact-head GitHub Regression `33988972753` passes backend, Flutter, PostgreSQL
+and independent clean-checkout reproducibility; CodeQL `33988972858` passes
+with zero open alerts. The listing is ended/publicly absent, the protected
+owner is restored and no booking, payment, deploy, provider, Store,
+Production, OnePlus, real-money or PR boundary changed. See
+`docs/operations/WP19_PIXEL_SEARCH_SAVED_LIFECYCLE_2026-09-05.md`.
+
 WP18 closes the exact current signed Pixel Staging candidate's listing
 lifecycle. Candidate `1.0.0+2026090506`, runtime source HEAD
 `d350e3e26f03ec52eac1a86c1cf400148dfd50b1`, corrects an existing listing city

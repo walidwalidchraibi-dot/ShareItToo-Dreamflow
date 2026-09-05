@@ -1,4 +1,33 @@
-# Current Work Package: WP18 current-candidate Pixel listing lifecycle
+# Current Work Package: WP19 current-candidate Pixel search and saved-state lifecycle
+
+WP19 is **COMPLETE ON THE PHYSICAL PIXEL AND LOCALLY** for exact signed
+Staging candidate `1.0.0+2026090506`, runtime source HEAD
+`d350e3e26f03ec52eac1a86c1cf400148dfd50b1`. A fresh isolated active listing
+passes unique search, the exact `Werkzeuge & Kleingeräte` filter, exact detail
+opening and save to the built-in `Für später` list. The saved assignment
+persists across a terminated-process restart, stays absent for the other
+principal, reappears after restoring the renter and can be removed without
+changing unrelated saved items. Three stable settled observations establish
+each persistence, isolation and removal state.
+
+Diagnostic implementation HEAD `3f0154bc317b0e76b3bad697b28f9f6a179bdeeb`
+matches actual Android semantics for an empty field, wrapped labels, retained
+input focus and a wrapped listing title. Four earlier diagnostic attempts
+failed closed; each separately ended its isolated listing and restored the
+protected owner. The passing path uses state-based prerequisites and no raised
+timeout, reduced parallelism or weakened assertion. Complete local regression
+passes 2,292 tool tests, 864 Flutter tests with 33 declared skips, analyzer,
+Web/Wasm, loopback and Android. Exact-head GitHub Regression `33988972753`
+passes backend, Flutter, PostgreSQL and independent clean-checkout
+reproducibility; CodeQL `33988972858` passes with zero open alerts. See
+`docs/operations/WP19_PIXEL_SEARCH_SAVED_LIFECYCLE_2026-09-05.md`.
+
+No booking, contract, reservation, payment, deployment, Firebase console,
+provider, Store, Production, public registration, OnePlus, real-money or PR
+boundary changed. The isolated listing is ended and publicly absent, the
+protected owner is restored, and PR #7 remains Draft/open/unmerged.
+
+# Previous Work Package: WP18 current-candidate Pixel listing lifecycle
 
 WP18 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed Staging candidate
 `1.0.0+2026090506`, runtime source HEAD
