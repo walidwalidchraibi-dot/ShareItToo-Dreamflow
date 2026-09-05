@@ -63,7 +63,7 @@ function pointForNode(node, label) {
   };
 }
 
-function tapPrivateNamedNode({
+export function tapPrivateNamedNode({
   commandRunner,
   adbPath,
   device,
@@ -171,7 +171,7 @@ async function settledSearchResults({
   });
 }
 
-async function openExactSearch({
+export async function openExactSearch({
   vaultFile,
   expectedSaved,
   commandRunner,

@@ -536,6 +536,217 @@ export async function runStagingEmailVerifiedTwoRoleSimulation({
   });
 }
 
+function exactRentalCart(value) {
+  const cart = value?.cart;
+  if (cart === null || typeof cart !== 'object' || Array.isArray(cart)
+      || !Array.isArray(cart.projects) || !Array.isArray(cart.items)
+      || cart.reservationCreated !== false) {
+    fail('The Staging rental-cart truth is malformed or reserving.');
+  }
+  return cart;
+}
+
+function canonicalValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value).sort().map((key) => [key, canonicalValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function cartDataSnapshot(cart) {
+  const byId = (left, right) => String(left?.id ?? '').localeCompare(String(right?.id ?? ''));
+  return canonicalValue({
+    projects: structuredClone(cart.projects).sort(byId),
+    items: structuredClone(cart.items).sort(byId),
+  });
+}
+
+function sameCartData(left, right) {
+  return JSON.stringify(canonicalValue(left)) === JSON.stringify(canonicalValue(right));
+}
+
+function exactFixtureRequests(value, listingId) {
+  if (!Array.isArray(value?.requests)) {
+    fail('The Staging rental-request truth is malformed.');
+  }
+  return value.requests.filter((entry) => [
+    entry?.itemId,
+    entry?.listingId,
+    entry?.item?.id,
+    entry?.listing?.id,
+  ].includes(listingId));
+}
+
+function rentalCartLifecycle(vault) {
+  const lifecycle = vault.rentalCartLifecycle;
+  if (lifecycle?.schemaVersion !== 1
+      || lifecycle?.kind !== 'sit-staging-isolated-rental-cart-lifecycle'
+      || typeof lifecycle.projectTitle !== 'string'
+      || lifecycle.projectTitle.length < 10
+      || lifecycle.baseline === null
+      || typeof lifecycle.baseline !== 'object') {
+    fail('The private Staging rental-cart lifecycle is unavailable.');
+  }
+  return lifecycle;
+}
+
+export async function prepareStagingEmailVerifiedRentalCartLifecycle({
+  vaultFile,
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  const { canonical, vault } = readEmailVerifiedJourneyVault(vaultFile);
+  if (vault.realTwoRoleJourney?.kind !== journeyKind
+      || vault.realTwoRoleJourney.status !== 'synthetic-fixture-active'
+      || vault.realTwoRoleJourney.listingStatus !== 'active'
+      || vault.rentalCartLifecycle !== undefined) {
+    fail('The isolated listing is not ready for a fresh rental-cart lifecycle.');
+  }
+  const listingId = vault.realTwoRoleJourney.listingId;
+  const renter = await login(fetchImpl, accountMap(vault).get('renter'));
+  const current = exactRentalCart(
+    (await apiRequest(fetchImpl, '/rental-cart', { token: renter.token })).value,
+  );
+  const projectTitle = `SIT Projekt ${vault.runId}`;
+  if (current.items.some((entry) => entry?.listingId === listingId)
+      || current.projects.some((entry) => entry?.title === projectTitle)) {
+    fail('The isolated rental-cart fixture collides with existing renter data.');
+  }
+  const requests = await apiRequest(fetchImpl, '/rental-requests', { token: renter.token });
+  if (exactFixtureRequests(requests.value, listingId).length !== 0) {
+    fail('The isolated listing already has an unexpected rental request.');
+  }
+  vault.rentalCartLifecycle = {
+    schemaVersion: 1,
+    kind: 'sit-staging-isolated-rental-cart-lifecycle',
+    status: 'baseline-captured',
+    projectTitle,
+    baseline: cartDataSnapshot(current),
+    capturedAt: new Date().toISOString(),
+  };
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: 'isolated-rental-cart-baseline-captured',
+    reservationCreated: false,
+    fixtureRentalRequests: 0,
+    containsAccountIdentity: false,
+    containsFixtureIdentifier: false,
+    containsPrivateCartData: false,
+  });
+}
+
+export async function inspectStagingEmailVerifiedRentalCartLifecycle({
+  vaultFile,
+  expectedProjectAssignment = false,
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  const { canonical, vault } = readEmailVerifiedJourneyVault(vaultFile);
+  const lifecycle = rentalCartLifecycle(vault);
+  const listingId = vault.realTwoRoleJourney?.listingId;
+  const renter = await login(fetchImpl, accountMap(vault).get('renter'));
+  const current = exactRentalCart(
+    (await apiRequest(fetchImpl, '/rental-cart', { token: renter.token })).value,
+  );
+  const items = current.items.filter((entry) => entry?.listingId === listingId);
+  if (items.length !== 1
+      || !/^cartitem_[0-9a-f]{64}$/u.test(String(items[0]?.id ?? ''))
+      || !/^\d{4}-\d{2}-\d{2}$/u.test(String(items[0]?.startDate ?? ''))
+      || !/^\d{4}-\d{2}-\d{2}$/u.test(String(items[0]?.endDate ?? ''))
+      || !(new Date(items[0].endDate).getTime() > new Date(items[0].startDate).getTime())) {
+    fail('The exact non-reserving rental-cart intent is not server-confirmed once.');
+  }
+  const projects = current.projects.filter(
+    (entry) => entry?.title === lifecycle.projectTitle,
+  );
+  if (expectedProjectAssignment) {
+    if (projects.length !== 1 || items[0].projectId !== projects[0].id) {
+      fail('The exact rental-cart project assignment is not server-confirmed.');
+    }
+  } else if (items[0].projectId !== null && items[0].projectId !== undefined) {
+    fail('The isolated rental-cart intent unexpectedly has a project assignment.');
+  }
+  const requests = await apiRequest(fetchImpl, '/rental-requests', { token: renter.token });
+  if (exactFixtureRequests(requests.value, listingId).length !== 0) {
+    fail('The non-reserving rental-cart intent unexpectedly created a request.');
+  }
+  lifecycle.status = expectedProjectAssignment
+    ? 'project-assignment-server-confirmed'
+    : 'single-intent-server-confirmed';
+  lifecycle.observed = {
+    itemId: items[0].id,
+    startDate: items[0].startDate,
+    endDate: items[0].endDate,
+    ...(expectedProjectAssignment ? { projectId: projects[0].id } : {}),
+  };
+  lifecycle.lastInspectedAt = new Date().toISOString();
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: expectedProjectAssignment
+      ? 'isolated-rental-cart-project-server-confirmed'
+      : 'isolated-rental-cart-single-intent-server-confirmed',
+    exactIntentCount: 1,
+    exactProjectCount: expectedProjectAssignment ? 1 : 0,
+    reservationCreated: false,
+    fixtureRentalRequests: 0,
+    containsAccountIdentity: false,
+    containsFixtureIdentifier: false,
+    containsPrivateCartData: false,
+  });
+}
+
+export async function cleanupStagingEmailVerifiedRentalCartLifecycle({
+  vaultFile,
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  const { canonical, vault } = readEmailVerifiedJourneyVault(vaultFile);
+  const lifecycle = rentalCartLifecycle(vault);
+  const listingId = vault.realTwoRoleJourney?.listingId;
+  const renter = await login(fetchImpl, accountMap(vault).get('renter'));
+  let current = exactRentalCart(
+    (await apiRequest(fetchImpl, '/rental-cart', { token: renter.token })).value,
+  );
+  for (const item of current.items.filter((entry) => entry?.listingId === listingId)) {
+    current = exactRentalCart((await apiRequest(
+      fetchImpl,
+      `/rental-cart/items/${encodeURIComponent(item.id)}`,
+      { method: 'DELETE', token: renter.token },
+    )).value);
+  }
+  for (const project of current.projects.filter(
+    (entry) => entry?.title === lifecycle.projectTitle,
+  )) {
+    current = exactRentalCart((await apiRequest(
+      fetchImpl,
+      `/rental-cart/projects/${encodeURIComponent(project.id)}`,
+      { method: 'DELETE', token: renter.token },
+    )).value);
+  }
+  current = exactRentalCart(
+    (await apiRequest(fetchImpl, '/rental-cart', { token: renter.token })).value,
+  );
+  if (!sameCartData(cartDataSnapshot(current), lifecycle.baseline)) {
+    fail('The isolated rental-cart cleanup did not restore the exact baseline.');
+  }
+  const requests = await apiRequest(fetchImpl, '/rental-requests', { token: renter.token });
+  if (exactFixtureRequests(requests.value, listingId).length !== 0) {
+    fail('The isolated rental-cart cleanup found an unexpected rental request.');
+  }
+  lifecycle.status = 'cleanup-server-confirmed';
+  lifecycle.cleanedAt = new Date().toISOString();
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: 'isolated-rental-cart-baseline-restored',
+    reservationCreated: false,
+    fixtureRentalRequests: 0,
+    unrelatedCartDataRestored: true,
+    containsAccountIdentity: false,
+    containsFixtureIdentifier: false,
+    containsPrivateCartData: false,
+  });
+}
+
 export async function retireStagingEmailVerifiedTwoRoleJourney({
   vaultFile,
   fetchImpl = globalThis.fetch,

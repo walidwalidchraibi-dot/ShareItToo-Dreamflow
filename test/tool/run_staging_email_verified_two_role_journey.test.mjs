@@ -13,7 +13,10 @@ import test from 'node:test';
 
 import {
   activateStagingEmailVerifiedJourneyFixture,
+  cleanupStagingEmailVerifiedRentalCartLifecycle,
+  inspectStagingEmailVerifiedRentalCartLifecycle,
   prepareStagingEmailVerifiedTwoRoleJourney,
+  prepareStagingEmailVerifiedRentalCartLifecycle,
   retireStagingEmailVerifiedTwoRoleJourney,
   runStagingEmailVerifiedTwoRoleSimulation,
   verifyStagingEmailVerifiedJourneyPublished,
@@ -89,6 +92,19 @@ function stagingApi(accounts) {
     bookingId: null,
     bookingStatus: null,
     threadId: 'thread-n22-fixture',
+    cart: {
+      schemaVersion: 1,
+      revision: 4,
+      reservationCreated: false,
+      projects: [{ id: 'unrelated-project', title: 'Unrelated project' }],
+      items: [{
+        id: 'unrelated-item',
+        listingId: 'unrelated-listing',
+        projectId: 'unrelated-project',
+        startDate: '2026-09-20',
+        endDate: '2026-09-21',
+      }],
+    },
   };
   const byEmail = new Map(accounts.map((account) => [account.email, account]));
   const fetchImpl = async (url, options = {}) => {
@@ -142,6 +158,24 @@ function stagingApi(accounts) {
       return response(200, {
         requests: state.bookingId ? [safeBooking(state, state.bookingStatus)] : [],
       });
+    }
+    if (path === '/rental-cart' && method === 'GET') {
+      return response(200, { cart: structuredClone(state.cart) });
+    }
+    if (/^\/rental-cart\/items\/[^/]+$/u.test(path) && method === 'DELETE') {
+      const id = decodeURIComponent(path.split('/').at(-1));
+      state.cart.items = state.cart.items.filter((entry) => entry.id !== id);
+      state.cart.revision += 1;
+      return response(200, { cart: structuredClone(state.cart) });
+    }
+    if (/^\/rental-cart\/projects\/[^/]+$/u.test(path) && method === 'DELETE') {
+      const id = decodeURIComponent(path.split('/').at(-1));
+      state.cart.projects = state.cart.projects.filter((entry) => entry.id !== id);
+      state.cart.items = state.cart.items.map((entry) => (
+        entry.projectId === id ? { ...entry, projectId: null } : entry
+      ));
+      state.cart.revision += 1;
+      return response(200, { cart: structuredClone(state.cart) });
     }
     if (/\/availability\/check$/u.test(path)) return response(200, { available: true });
     if (/\/payment$/u.test(path)) return response(409, { error: 'pilot_simulation_payment_forbidden' });
@@ -264,6 +298,76 @@ test('activates and retires an exact isolated search fixture without money', asy
   assert.equal(retired.status, 'email-verified-two-role-product-journey-retired');
   assert.equal(retired.listingEnded, true);
   assert.equal(retired.monetaryEffectMinor, 0);
+});
+
+test('captures, proves, and restores one isolated non-reserving rental-cart intent', async () => {
+  const fixture = privateFixture();
+  const api = stagingApi(fixture.accounts);
+  const prepared = await prepareStagingEmailVerifiedTwoRoleJourney({
+    sourceVaultFile: fixture.sourceVaultFile,
+    vaultRoot: fixture.journeyDirectory,
+    imagePath: fixture.imagePath,
+    fetchImpl: api.fetchImpl,
+    now: new Date('2026-09-03T08:00:00.000Z'),
+    random: () => Buffer.from([1, 2, 3, 4]),
+  });
+  await activateStagingEmailVerifiedJourneyFixture({
+    vaultFile: prepared.vaultFile,
+    fetchImpl: api.fetchImpl,
+  });
+  const baseline = structuredClone(api.state.cart);
+  const captured = await prepareStagingEmailVerifiedRentalCartLifecycle({
+    vaultFile: prepared.vaultFile,
+    fetchImpl: api.fetchImpl,
+  });
+  assert.equal(captured.status, 'isolated-rental-cart-baseline-captured');
+  assert.equal(captured.containsPrivateCartData, false);
+
+  const vault = JSON.parse(readFileSync(prepared.vaultFile, 'utf8'));
+  const listingId = vault.realTwoRoleJourney.listingId;
+  const projectTitle = vault.rentalCartLifecycle.projectTitle;
+  api.state.cart.items.push({
+    id: `cartitem_${'a'.repeat(64)}`,
+    listingId,
+    projectId: null,
+    startDate: '2026-09-24',
+    endDate: '2026-09-25',
+  });
+  api.state.cart.revision += 1;
+  const intent = await inspectStagingEmailVerifiedRentalCartLifecycle({
+    vaultFile: prepared.vaultFile,
+    fetchImpl: api.fetchImpl,
+  });
+  assert.equal(intent.status, 'isolated-rental-cart-single-intent-server-confirmed');
+  assert.equal(intent.exactIntentCount, 1);
+  assert.equal(intent.reservationCreated, false);
+
+  api.state.cart.projects.push({ id: 'isolated-project', title: projectTitle });
+  api.state.cart.items.at(-1).projectId = 'isolated-project';
+  api.state.cart.revision += 1;
+  const assigned = await inspectStagingEmailVerifiedRentalCartLifecycle({
+    vaultFile: prepared.vaultFile,
+    expectedProjectAssignment: true,
+    fetchImpl: api.fetchImpl,
+  });
+  assert.equal(assigned.status, 'isolated-rental-cart-project-server-confirmed');
+  assert.equal(assigned.exactProjectCount, 1);
+
+  const cleaned = await cleanupStagingEmailVerifiedRentalCartLifecycle({
+    vaultFile: prepared.vaultFile,
+    fetchImpl: api.fetchImpl,
+  });
+  assert.equal(cleaned.status, 'isolated-rental-cart-baseline-restored');
+  assert.equal(cleaned.unrelatedCartDataRestored, true);
+  assert.deepEqual(
+    { projects: api.state.cart.projects, items: api.state.cart.items },
+    { projects: baseline.projects, items: baseline.items },
+  );
+
+  await retireStagingEmailVerifiedTwoRoleJourney({
+    vaultFile: prepared.vaultFile,
+    fetchImpl: api.fetchImpl,
+  });
 });
 
 test('rejects fixture activation unless the exact isolated listing remains a draft', async () => {
