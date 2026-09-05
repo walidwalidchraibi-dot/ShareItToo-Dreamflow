@@ -70,7 +70,7 @@ function matchingPoints(hierarchy, label) {
   }));
 }
 
-function tapLabel(commandRunner, adbPath, device, hierarchy, label, {
+export function tapLabel(commandRunner, adbPath, device, hierarchy, label, {
   chooseLast = false,
   chooseBottom = false,
 } = {}) {
@@ -85,7 +85,7 @@ function tapLabel(commandRunner, adbPath, device, hierarchy, label, {
   ]);
 }
 
-function tapClosestToLabel(
+export function tapClosestToLabel(
   commandRunner,
   adbPath,
   device,
@@ -103,7 +103,7 @@ function tapClosestToLabel(
   ]);
 }
 
-async function waitForHierarchy({
+export async function waitForHierarchy({
   commandRunner,
   adbPath,
   device,
@@ -138,7 +138,7 @@ async function observeHierarchy({
   return false;
 }
 
-function containsAllLabels(hierarchy, labels) {
+export function containsAllLabels(hierarchy, labels) {
   return labels.every((label) => currentHeadAndroidNamedNodes(hierarchy, label).length > 0);
 }
 
@@ -169,7 +169,7 @@ export function renterBookingChatVisible(hierarchy, exactListingTitle) {
     && currentHeadAndroidNamedNodes(hierarchy, 'Bestätigt').length > 0;
 }
 
-async function openMainDestination({
+export async function openMainDestination({
   commandRunner,
   adbPath,
   device,
@@ -194,7 +194,7 @@ async function openMainDestination({
   });
 }
 
-async function bindExactRole({
+export async function bindExactRole({
   vault,
   role,
   commandRunner,

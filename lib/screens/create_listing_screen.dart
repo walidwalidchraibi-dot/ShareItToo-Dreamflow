@@ -5,7 +5,8 @@ import 'dart:ui';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, debugPrint, visibleForTesting;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lendify/models/item.dart';
@@ -29,6 +30,28 @@ import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/widgets/private_pilot_risk_notice.dart';
 import 'package:lendify/widgets/listing_mutation_interaction.dart';
 import 'package:lendify/theme.dart';
+
+@visibleForTesting
+String resolveListingEditorCity({
+  String? existingCity,
+  String? supplyPrefillCity,
+  String? userCity,
+  required Iterable<String> availableCities,
+}) {
+  for (final candidate in <String?>[
+    existingCity,
+    supplyPrefillCity,
+    userCity,
+  ]) {
+    final normalized = candidate?.trim() ?? '';
+    if (normalized.isNotEmpty) return normalized;
+  }
+  for (final candidate in availableCities) {
+    final normalized = candidate.trim();
+    if (normalized.isNotEmpty) return normalized;
+  }
+  throw StateError('Für den Anzeigeneditor ist keine Stadt verfügbar.');
+}
 
 class CreateListingScreen extends StatefulWidget {
   final Item? existing; // when provided -> edit mode
@@ -310,9 +333,12 @@ class _CreateListingScreenState extends State<CreateListingScreen>
       _coarseCats =
           ordered.isNotEmpty ? ordered : DataService.coarseCategoryOrder;
       _catsByCoarse = byCoarse;
-      _registeredCity = widget.supplyPrefill?.city ??
-          user?.city ??
-          DataService.getCities().keys.first;
+      _registeredCity = resolveListingEditorCity(
+        existingCity: widget.existing?.city,
+        supplyPrefillCity: widget.supplyPrefill?.city,
+        userCity: user?.city,
+        availableCities: DataService.getCities().keys,
+      );
     });
     if (!_isEdit && user != null) {
       await _restoreBlueOceanRecoverySnapshot(user.id);
