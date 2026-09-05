@@ -1,4 +1,22 @@
-# Current Work Package: WP09 Stripe Accounts v2 payout readiness
+# Current Work Package: WP10 Stripe Staging activation readiness
+
+WP10 implementation is **CLOSED; EXTERNAL TEST-MODE ACTIVATION PENDING** at
+`6714d993adcd0c11b185ab2989295df910b82ba6`. The default-off Staging path now
+requires an exact commit and pilot plus three distinct, test-only, external
+secret files with strict type/path/permission/identity validation. Runtime
+health is sanitized and exact; rollback removes provider mounts and forces
+memory/live=false. Focused32, backend834, tool2251, full local regression and
+exact clean R10 pass. Regression33957235535 and CodeQL33957235541 are green
+with alerts0; PR#7 remains Draft/open/mergeable/unmerged.
+
+No Stripe object, account setting, credential, Staging deployment, Store,
+device, production or real-money state changed. Next is a fresh read-only
+Stripe test-platform audit. Continue into a distinct WP11 provider bootstrap
+and sandbox-acceptance package only if truthful platform readiness is green;
+owner terms and missing business facts must never be invented. See
+`docs/operations/WP10_STRIPE_STAGING_SECRET_ACTIVATION_READINESS_2026-09-05.md`.
+
+Historical WP09 checkpoint:
 
 WP09 implementation is **CLOSED; EXTERNAL TEST-MODE ACTIVATION PENDING** at
 `831fc7ec5138579f691a5ec1e4b3a76feae903b5`. Independent active payouts are now

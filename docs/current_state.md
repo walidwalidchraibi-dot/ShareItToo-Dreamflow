@@ -1,5 +1,22 @@
 # ShareItToo Current State
 
+WP10 closes the safe Stripe Staging activation foundation at implementation
+commit `6714d993adcd0c11b185ab2989295df910b82ba6`. Staging now accepts Stripe
+credentials only through three distinct validated external files; live keys,
+direct environment credentials, symlinks, repository paths, reused files,
+unsafe permissions and reused webhook secrets fail closed. Activation is
+default-off and exact-commit/pilot-bound; sanitized health must confirm
+Stripe/test/API-version/EUR/DE/file sourcing, while rollback removes mounts and
+forces memory/live=false. Focused32, backend834+2 expected DB skips, tool2251,
+full local regression and exact clean R10 pass with byte-identical APKs.
+Regression33957235535 including Docker Compose validation and
+CodeQL33957235541 are green with alerts0. PR#7 remains Draft/open/unmerged.
+No Stripe object/setting, credential, deploy, Store, device, production,
+real-money or legal state changed. See
+`docs/operations/WP10_STRIPE_STAGING_SECRET_ACTIVATION_READINESS_2026-09-05.md`.
+
+Historical WP09 checkpoint:
+
 WP09 closes the local Stripe Accounts v2 payout-readiness defect at
 implementation commit `831fc7ec5138579f691a5ec1e4b3a76feae903b5`.
 Active transfers no longer imply usable payouts: account status, checkout and
