@@ -4,6 +4,13 @@ export const listingAiDraftDomainVersion = 'N2-2026-08-23.1';
 export const listingAiDraftSchemaVersion = 'listing-ai-draft-v1';
 export const listingAiPromptVersion = 'listing-ai-prompt-v1';
 export const listingAiPriceEngineAuthority = 'SIT_REGIONAL_PRICE_ENGINE_V2';
+export const listingAiConditionValues = Object.freeze([
+  'new',
+  'like-new',
+  'good',
+  'acceptable',
+  'worn',
+]);
 
 export const listingAiDraftFieldKeys = Object.freeze([
   'title',
@@ -162,6 +169,12 @@ function normalizeFieldValue(value, key, confidence) {
       maximum: 100_000_000,
       code: 'invalid_listing_ai_replacement_value_minor',
     });
+  }
+  if (key === 'condition') {
+    if (!listingAiConditionValues.includes(value)) {
+      fail('invalid_listing_ai_condition');
+    }
+    return value;
   }
   if (key === 'projectTags' || key === 'useCases' || key === 'accessories') {
     if (!Array.isArray(value) || value.length > 12) fail('invalid_listing_ai_list_field', { field: key });

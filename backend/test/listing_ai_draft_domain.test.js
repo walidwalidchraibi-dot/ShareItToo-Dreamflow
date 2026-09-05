@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   assessListingAiDraftReadiness,
   createListingAiDraftRevision,
+  listingAiConditionValues,
   listingAiDraftFieldKeys,
   listingAiOwnerConfirmationIds,
   listingAiPriceEngineAuthority,
@@ -38,7 +39,7 @@ function revision(overrides = {}) {
     imageReferences,
     fields: {
       title: field('Akku-Bohrschrauber'),
-      condition: field('Gebraucht, sichtbar gepflegt', {
+      condition: field('good', {
         confirmationRequired: true,
         ownerConfirmed: true,
       }),
@@ -71,7 +72,9 @@ test('every generated field carries confidence, provenance, reason and version',
       ? 25000
       : ['projectTags', 'useCases', 'accessories'].includes(key)
         ? ['renovation']
-        : 'sichtbarer Wert';
+        : key === 'condition'
+          ? 'good'
+          : 'sichtbarer Wert';
     const result = normalizeListingAiDraftField(key, field(value), { imageReferences });
     assert.equal(result.confidence, 'HIGH');
     assert.equal(result.source.type, 'image_analysis');
@@ -104,6 +107,31 @@ test('medium values require review and low confidence stays blank', () => {
     }), { imageReferences }),
     (error) => error instanceof ListingAiDraftError
       && error.code === 'listing_ai_low_confidence_value_must_be_blank',
+  );
+});
+
+test('condition values are restricted to the exact Android editor contract', () => {
+  assert.deepEqual(listingAiConditionValues, [
+    'new',
+    'like-new',
+    'good',
+    'acceptable',
+    'worn',
+  ]);
+  for (const value of listingAiConditionValues) {
+    assert.equal(
+      normalizeListingAiDraftField('condition', field(value), { imageReferences }).value,
+      value,
+    );
+  }
+  assert.throws(
+    () => normalizeListingAiDraftField(
+      'condition',
+      field('Optisch gepflegt, Funktion ungeprueft'),
+      { imageReferences },
+    ),
+    (error) => error instanceof ListingAiDraftError
+      && error.code === 'invalid_listing_ai_condition',
   );
 });
 

@@ -97,6 +97,14 @@ test('CLI output schema uses typed empty sentinels without weakening strict obje
   assert.equal(schema.properties.fields.additionalProperties, false);
   assert.equal(schema.properties.fields.properties.model.properties.value.type, 'string');
   assert.equal(schema.properties.fields.properties.model.properties.value.minLength, 0);
+  assert.deepEqual(
+    schema.properties.fields.properties.condition.properties.value.enum,
+    ['new', 'like-new', 'good', 'acceptable', 'worn', ''],
+  );
+  assert.equal(
+    schema.properties.fields.properties.condition.properties.value.minLength,
+    undefined,
+  );
   assert.equal(schema.properties.fields.properties.replacementValueMinor.properties.value.type, 'integer');
   assert.equal(schema.properties.fields.properties.replacementValueMinor.properties.value.minimum, 0);
   assert.equal(schema.properties.promptVersion.type, 'string');
@@ -110,6 +118,7 @@ test('fixed prompt preserves the untrusted-image and authority boundaries', () =
   assert.match(prompt, /keinen verbindlichen Mietpreis/u);
   assert.match(prompt, /veröffentliche nichts/u);
   assert.match(prompt, /LOW mit value 0/u);
+  assert.match(prompt, /condition ist ausschließlich new, like-new, good, acceptable oder worn/u);
   assert.doesNotMatch(prompt, /API[_ -]?key|OAuth token|cookie/iu);
 });
 

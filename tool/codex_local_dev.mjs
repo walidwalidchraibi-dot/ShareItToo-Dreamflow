@@ -98,7 +98,17 @@ export function codexLocalDevOutputSchema() {
       fail('codex_local_dev_output_schema_union_unsupported');
     }
     const { type: _type, ...constraints } = normalized;
-    if (nonNullTypes[0] === 'string') constraints.minLength = 0;
+    if (nonNullTypes[0] === 'string') {
+      if (Array.isArray(constraints.enum)) {
+        constraints.enum = [
+          ...constraints.enum.filter((entry) => entry !== null),
+          '',
+        ];
+        delete constraints.minLength;
+      } else {
+        constraints.minLength = 0;
+      }
+    }
     if (nonNullTypes[0] === 'integer') constraints.minimum = 0;
     return { type: nonNullTypes[0], ...constraints };
   };
@@ -171,6 +181,7 @@ export function buildCodexLocalDevPrompt({ imageReference }) {
     'Behaupte niemals Eigentum, Funktionsfähigkeit, Zertifizierung, Vollständigkeit, verdeckte Schäden, Marktwert, Nachfrage, Einkommen, Verfügbarkeit, Adresse oder Rechtskonformität.',
     'Erzeuge keinen verbindlichen Mietpreis und veröffentliche nichts.',
     'replacementValueMinor bleibt LOW mit value 0 und pickupRegion LOW mit value "", da das Bild sie nicht belegen kann.',
+    'condition ist ausschließlich new, like-new, good, acceptable oder worn; wenn der Zustand nicht visuell einzuordnen ist, nutze LOW mit value "".',
     'condition und accessories bleiben bestätigungspflichtig; Unsicherheit ist ausdrücklich zu benennen.',
     'Wähle Kategorie und Unterkategorie nur als exaktes Paar aus dieser privaten Test-Allowlist; bei Unsicherheit beide LOW/null:',
     allowedCatalogPrompt(),

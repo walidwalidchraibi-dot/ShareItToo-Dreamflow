@@ -240,6 +240,25 @@ test('schema validator rejects owner authority and accepts only the private-pilo
   );
 });
 
+test('provider schema and runtime reject conditions the Android editor cannot apply', () => {
+  assert.deepEqual(
+    listingAiProviderResponseSchema.schema.properties.fields.properties.condition
+      .properties.value.enum,
+    ['new', 'like-new', 'good', 'acceptable', 'worn', null],
+  );
+  const output = structuredClone(deterministicListingAiMockOutput(imageReferences));
+  output.fields.condition.value = 'Optisch gepflegt, Funktion ungeprueft';
+  assert.throws(
+    () => validateListingAiProviderOutput(output, {
+      provider: 'mock',
+      ...input(),
+      generatedAt: new Date(),
+    }),
+    (error) => error instanceof ListingAiGatewayError
+      && error.code === 'listing_ai_response_schema_rejected',
+  );
+});
+
 test('rejects hallucinated certification, functionality, ownership and market price claims', () => {
   const claims = [
     'Das Gerät ist CE-zertifiziert laut Foto.',

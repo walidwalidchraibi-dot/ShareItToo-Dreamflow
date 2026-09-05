@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 
 import {
   createListingAiDraftRevision,
+  listingAiConditionValues,
   listingAiDraftFieldKeys,
   listingAiDraftSchemaVersion,
   listingAiOwnerConfirmationIds,
@@ -39,6 +40,12 @@ function fieldValueSchema(key) {
       type: ['array', 'null'],
       items: { type: 'string', minLength: 1, maxLength: 120 },
       maxItems: 12,
+    };
+  }
+  if (key === 'condition') {
+    return {
+      type: ['string', 'null'],
+      enum: [...listingAiConditionValues, null],
     };
   }
   return { type: ['string', 'null'], minLength: 1, maxLength: 4000 };
