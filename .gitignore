@@ -28,7 +28,6 @@ migrate_working_dir/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .crashlytics/
-.env
 backend/.env
 backend/.env.*
 !backend/.env.example
@@ -60,3 +59,11 @@ app.*.map.json
 
 *.hologram.dart
 tool/.qa_seed_backups/
+
+.projects/cache
+.projects/vault
+.projects/state.test.json
+.projects/state.local.test.json
+.env
+.env.*
+!.env.example
