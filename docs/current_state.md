@@ -1,5 +1,18 @@
 # ShareItToo Current State
 
+WP16 closes account deletion on exact signed Pixel Staging candidate
+`1.0.0+2026090505`, source and runtime implementation HEAD
+`e18e788c0d04fe6b80e3be2f63b30d5f3719ae7d`. A clear preflight, durable
+wrong-password rejection, subsequent confirmed deletion, deleted-credential
+rejection, terminated-process Guest state, private credential scrub and
+protected-owner restoration pass. The deletion request now stays bound to the
+captured auth owner and cannot refresh or fall back to a successor principal.
+Exact local regression/R10 and GitHub Regression33975265727 and
+CodeQL33975265754 pass with alerts0. PR#7 remains Draft/open/unmerged. No Store,
+deployment, Firebase-console, provider, Stripe/payment, Production, public,
+OnePlus or real-money boundary changed. See
+`docs/operations/WP16_ACCOUNT_DELETION_CURRENT_CANDIDATE_2026-09-05.md`.
+
 WP15 closes fresh E-mail registration/verification and password recovery on
 exact signed Pixel Staging candidate `1.0.0+2026090504`, source and runtime
 implementation HEAD `e1a737740e2d06aeaee4add8d3e2521642baac0f`.

@@ -1,4 +1,29 @@
-# Current Work Package: WP15 E-mail registration and password recovery
+# Current Work Package: WP16 account deletion
+
+WP16 is **COMPLETE LOCALLY, PHYSICALLY AND ON GITHUB** at runtime implementation
+commit `e18e788c0d04fe6b80e3be2f63b30d5f3719ae7d`. Exact signed Pixel candidate
+`1.0.0+2026090505` passes a durable wrong-password rejection without session
+refresh, confirmed disposable-account deletion, deleted-credential rejection,
+terminated-process Guest state and protected-owner restoration.
+
+Account deletion now dispatches only for the principal captured before the
+first await. A `401:invalid_credentials` cannot refresh that session, advance
+its epoch or suppress its typed rejected result. Successor-principal fallback
+is forbidden, while the existing owned-route and epoch guards continue to
+protect real account switches. HTTP 408, unstructured or intermediary 4xx and
+transport failure remain non-definite outcomes.
+
+Focused checks, 2,279 tool tests, full local regression, signed archive and
+exact clean R10 pass with two byte-identical 231,344,819-byte APKs. GitHub
+Regression33975265727 and CodeQL33975265754 pass with alerts0. PR#7 remains
+Draft/open/mergeable/unmerged. No private credential entered Git. See
+`docs/operations/WP16_ACCOUNT_DELETION_CURRENT_CANDIDATE_2026-09-05.md`.
+
+Next choose the highest-value independent current-candidate journey. Keep the
+PARTIAL SMS lane and Facebook/Apple, external Listing AI, Stripe owner setup,
+V5.2/legal approval, Google Play, Production, OnePlus and live money isolated.
+
+# Previous Work Package: WP15 E-mail registration and password recovery
 
 WP15 is **COMPLETE LOCALLY, PHYSICALLY AND ON GITHUB** at runtime and
 diagnostic implementation commit
