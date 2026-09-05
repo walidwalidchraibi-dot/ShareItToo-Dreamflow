@@ -1,5 +1,16 @@
 # ShareItToo Current State
 
+WP11 is PARTIAL after a fresh read-only Stripe test-platform audit at base
+`3d00b300f542d76fb61093e2c23c4549f57075b5`. Germany/EUR are correct, but the
+business type/profile and owner terms remain incomplete; charges and payouts
+are disabled, and there are zero connected accounts and webhook endpoints.
+No provider object, credential, deployment or payment changed. Stripe work is
+isolated at its owner gate while independent readiness continues with WP12
+Google Sign-In Staging acceptance. See
+`docs/operations/WP11_STRIPE_TEST_PLATFORM_READINESS_GATE_2026-09-05.md`.
+
+Historical WP10 checkpoint:
+
 WP10 closes the safe Stripe Staging activation foundation at implementation
 commit `6714d993adcd0c11b185ab2989295df910b82ba6`. Staging now accepts Stripe
 credentials only through three distinct validated external files; live keys,

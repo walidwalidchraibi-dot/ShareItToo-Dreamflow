@@ -1,19 +1,28 @@
-# Current Work Package: WP10 Stripe Staging activation readiness
+# Current Work Package: WP11 Stripe test-platform readiness gate
+
+WP11 is **PARTIAL; OWNER BUSINESS PROFILE AND TERMS REQUIRED** after a fresh
+read-only Stripe test-platform audit at repository base
+`3d00b300f542d76fb61093e2c23c4549f57075b5`. Test mode, DE and EUR are correct,
+but platform details are not submitted, charges and payouts are disabled, and
+five business-profile/terms requirements are past due. There are zero connected
+accounts and zero webhook endpoints. No provider object, setting, credential,
+deployment, Store, device, production or payment state changed.
+
+The Stripe branch waits only for truthful owner profile completion and personal
+terms acceptance. Independent work continues as a distinct WP12 Google Sign-In
+Staging acceptance package; it must not change Stripe, external Listing AI,
+V5.2 legal, OnePlus, Store, production, public registration, live money or PR
+merge state. See
+`docs/operations/WP11_STRIPE_TEST_PLATFORM_READINESS_GATE_2026-09-05.md`.
+
+Historical WP10 checkpoint:
 
 WP10 implementation is **CLOSED; EXTERNAL TEST-MODE ACTIVATION PENDING** at
 `6714d993adcd0c11b185ab2989295df910b82ba6`. The default-off Staging path now
 requires an exact commit and pilot plus three distinct, test-only, external
-secret files with strict type/path/permission/identity validation. Runtime
-health is sanitized and exact; rollback removes provider mounts and forces
-memory/live=false. Focused32, backend834, tool2251, full local regression and
-exact clean R10 pass. Regression33957235535 and CodeQL33957235541 are green
-with alerts0; PR#7 remains Draft/open/mergeable/unmerged.
-
-No Stripe object, account setting, credential, Staging deployment, Store,
-device, production or real-money state changed. Next is a fresh read-only
-Stripe test-platform audit. Continue into a distinct WP11 provider bootstrap
-and sandbox-acceptance package only if truthful platform readiness is green;
-owner terms and missing business facts must never be invented. See
+secret files with strict validation. Focused32, backend834, tool2251, full local
+regression and exact clean R10 pass. Regression33957235535 and
+CodeQL33957235541 are green with alerts0; PR#7 remains Draft/open/unmerged. See
 `docs/operations/WP10_STRIPE_STAGING_SECRET_ACTIVATION_READINESS_2026-09-05.md`.
 
 Historical WP09 checkpoint:
