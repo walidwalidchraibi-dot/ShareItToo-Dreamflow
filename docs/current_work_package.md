@@ -1,4 +1,24 @@
-# Current Work Package: WP08 Listing-AI Staging acceptance
+# Current Work Package: WP09 Stripe Accounts v2 payout readiness
+
+WP09 implementation is **CLOSED; EXTERNAL TEST-MODE ACTIVATION PENDING** at
+`831fc7ec5138579f691a5ec1e4b3a76feae903b5`. Independent active payouts are now
+mandatory alongside active transfers for stored account status, checkout and
+payout release. Unknown or restricted provider truth fails closed. Focused31,
+backend826, real PostgreSQL2, tool2251, full local regression and exact clean
+R10 pass. CodeQL33955021006 and exact-head Regression33955020884 including its
+independent R10 job are green with alerts0. PR#7 remains
+Draft/open/mergeable/unmerged.
+
+Read-only Stripe test-mode truth remains not ready: the platform business
+profile and owner terms are incomplete, charges/payouts are false, and there
+are zero connected accounts and zero webhook destinations. No provider object
+or setting changed. Next, after exact GitHub closure, implement only a
+fail-closed Staging activation preflight and external secret-file contract; do
+not create provider objects or deploy until current platform readiness can be
+proved. See
+`docs/operations/WP09_STRIPE_ACCOUNTS_V2_PAYOUT_READINESS_2026-09-05.md`.
+
+Historical WP08 checkpoint:
 
 WP08 is **PARTIAL** at implementation commit
 `07030b27abeba68d40838e37bcd1d46600a9afa2`: exact Staging deployment,

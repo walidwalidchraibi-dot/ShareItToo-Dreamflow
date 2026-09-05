@@ -1,5 +1,22 @@
 # ShareItToo Current State
 
+WP09 closes the local Stripe Accounts v2 payout-readiness defect at
+implementation commit `831fc7ec5138579f691a5ec1e4b3a76feae903b5`.
+Active transfers no longer imply usable payouts: account status, checkout and
+payout release now require independent active transfer and payout capability
+truth plus the established recipient/Express/application-responsibility
+contract; unknown state fails closed. Focused31, backend826+2 expected DB
+skips, real PostgreSQL2, tool2251, full local regression and exact clean R10
+pass with byte-identical APKs. CodeQL33955021006 and exact-head
+Regression33955020884 including independent R10 are green with alerts0. A
+fresh read-only Stripe test-mode audit still shows
+the platform profile/owner terms incomplete, charges/payouts disabled, zero
+connected accounts and zero webhook endpoints. No Stripe, deploy, Store,
+device, production, real-money or PR state changed. See
+`docs/operations/WP09_STRIPE_ACCOUNTS_V2_PAYOUT_READINESS_2026-09-05.md`.
+
+Historical WP08 checkpoint:
+
 WP08 is partially closed at implementation commit
 `07030b27abeba68d40838e37bcd1d46600a9afa2`. Exact backend commit
 `b0d92af3c0fd3b855b797a573a3c99cd206e608b` is deployed to Staging; health,
