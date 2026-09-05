@@ -30,7 +30,7 @@
       },
       {
         "path": "backend/src/config.js",
-        "sha256": "3a8b315ec8ca54bf902b64c56d6f8a75708c20c79e3f5e49befc681c8f61d7a0"
+        "sha256": "504de9462413eb35dfbf0e9843e6eb0b3b65ef51d5a42b92db9dc99c870eb907"
       },
       {
         "path": "backend/src/private_pilot_domain.js",

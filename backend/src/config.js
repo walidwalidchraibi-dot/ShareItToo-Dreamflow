@@ -8,6 +8,7 @@ import { evaluateGoogleMapsActivation } from './google_maps_activation.js';
 import { readListingAiGatewayConfiguration } from './listing_ai_gateway_config.js';
 import { evaluateOperatorReadiness } from './operator_readiness.js';
 import { normalizePrivatePilotRegion } from './private_pilot_domain.js';
+import { readStripeSecretConfiguration } from './stripe_secret_files.js';
 
 function required(name) {
   const value = process.env[name]?.trim();
@@ -173,9 +174,13 @@ const paymentTransport = (process.env.PAYMENT_TRANSPORT ?? (
 if (!['disabled', 'memory', 'stripe'].includes(paymentTransport)) {
   throw new Error('PAYMENT_TRANSPORT must be disabled, memory, or stripe');
 }
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim() ?? '';
-const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim() ?? '';
-const stripeConnectWebhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET?.trim() ?? '';
+const stripeSecrets = readStripeSecretConfiguration(process.env, {
+  deploymentEnvironment,
+  paymentTransport,
+});
+const stripeSecretKey = stripeSecrets.secretKey;
+const stripeWebhookSecret = stripeSecrets.webhookSecret;
+const stripeConnectWebhookSecret = stripeSecrets.connectWebhookSecret;
 const stripeLivemode = (process.env.STRIPE_LIVEMODE ?? 'false').trim().toLowerCase() === 'true';
 if (paymentTransport === 'stripe') {
   if (!/^(?:sk|rk)_(?:test|live)_[A-Za-z0-9]+$/.test(stripeSecretKey)) {
@@ -470,6 +475,7 @@ export const config = Object.freeze({
     secretKey: stripeSecretKey,
     webhookSecret: stripeWebhookSecret,
     connectWebhookSecret: stripeConnectWebhookSecret,
+    credentialSource: stripeSecrets.credentialSource,
     apiVersion: process.env.STRIPE_API_VERSION?.trim() || '2026-08-26.dahlia',
     currency: paymentCurrency,
     connectCountry,

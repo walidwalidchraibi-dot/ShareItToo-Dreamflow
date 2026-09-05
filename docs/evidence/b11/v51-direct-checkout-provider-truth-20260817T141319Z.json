@@ -58,12 +58,12 @@
     "diffCheck": "passed"
   },
   "sourceHashesSha256": {
-    "backend/src/app.js": "2ff926839de89d2933b51c09d1caf18132bdda2347a02342903b7c197ba443d4",
+    "backend/src/app.js": "6a10db4bff5d044eb8cba11574806f195f01aade17ba193692c90ba5f7013850",
     "backend/src/notifications.js": "7f62dab8453861d8ae7558bc46b271ff06e59a0452b7049049763f13122dda5d",
     "lib/screens/payment_checkout_screen.dart": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc",
     "test/payment_provider_truthfulness_test.dart": "4a34d22b010efdf13039d3f7a1ee222f2c16ca2072280b2f92f4fd22f83100e7",
     "test/tool/payment_provider_truthfulness_wiring.test.mjs": "83ac643ad20fba0bb0e04b2a25b4df2617f61bb6dcaad3bbb3e904b1333b6342",
-    "store/privacy-disclosures.json": "01f91668e848ad4a167629c417034740e561ba8c91a9fa83860e7f6e7cfe64c1",
-    "store/retention-deletion-readiness.json": "071a73f231a40ee565dc6815a3c8d964eaf28e560fb175cc7367deff163416b2"
+    "store/privacy-disclosures.json": "e478193ead089b55b3ddc1cec72174849a179c18789a51c0bfd7974cbf9f8541",
+    "store/retention-deletion-readiness.json": "d7e84a43d5c332fca1338de437d1f2bb8de1ceba762a781bffdea2cac0a26c30"
   }
 }

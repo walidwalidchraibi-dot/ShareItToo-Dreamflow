@@ -81,6 +81,43 @@ dependency. Release evidence records only `stagingListingAi=true` or `false`.
 Provider billing/project creation and the first real image evaluation remain
 separate owner actions; this procedure alone performs neither.
 
+## Optional Staging Stripe test-mode activation
+
+Stripe remains on the in-memory provider unless an exact Staging deployment
+explicitly enables the test-only override. Prepare three distinct secret files
+outside the repository: one server-side Stripe test key and the independent
+signing secrets for the snapshot and Accounts v2 thin-event destinations. Each
+file must be a regular non-symlink file owned by root or the invoking operator
+with mode `0600`, or `root:65532` with mode `0640`. Never place their values in
+the environment file, command arguments, Git, Drive, Flutter, chat, logs or
+release evidence.
+
+```sh
+ENABLE_STAGING_STRIPE=1 \
+SIT_STAGING_PILOT_ID=heilbronn_wave0 \
+CONFIRM_STAGING_STRIPE=FULL_40_CHARACTER_COMMIT \
+STRIPE_SECRET_KEY_HOST_FILE=/absolute/private/path/stripe-secret-key \
+STRIPE_WEBHOOK_SECRET_HOST_FILE=/absolute/private/path/stripe-webhook-secret \
+STRIPE_CONNECT_WEBHOOK_SECRET_HOST_FILE=/absolute/private/path/stripe-connect-webhook-secret \
+  ./ops/deploy_release.sh staging FULL_40_CHARACTER_COMMIT
+```
+
+The validator rejects live keys, missing or linked files, unsafe permissions,
+repository-contained files, reused webhook secrets and non-test credentials
+before Compose can start. The three files are mounted read-only, direct secret
+environment values are cleared, and startup requires file-sourced credentials.
+Post-deploy readback must identify Stripe, test mode, the reviewed API version,
+EUR/DE and file credentials. A failed rollout removes the Stripe overlay and
+rolls back with the payment transport on memory, so credentials cannot become
+a rollback prerequisite. Sanitized release evidence records only
+`stagingStripe=true` or `false`.
+
+This command is not provider-account approval. Run it only after the intended
+test platform, truthful business profile, owner terms, PSP legal/privacy facts,
+two dashboard webhook destinations and rollback route are independently
+verified. It cannot enable live money or Production and does not create Stripe
+accounts, endpoints, payments, refunds or payouts.
+
 ## B7 messaging and account-erasure acceptance
 
 `staging_b7_acceptance.mjs` creates three isolated staging accounts and proves

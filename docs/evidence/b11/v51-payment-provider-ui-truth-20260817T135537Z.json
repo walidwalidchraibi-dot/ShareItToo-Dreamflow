@@ -57,7 +57,7 @@
     "diffCheck": "passed"
   },
   "sourceHashesSha256": {
-    "backend/src/app.js": "2ff926839de89d2933b51c09d1caf18132bdda2347a02342903b7c197ba443d4",
+    "backend/src/app.js": "6a10db4bff5d044eb8cba11574806f195f01aade17ba193692c90ba5f7013850",
     "lib/services/backend_repository.dart": "60f4599624201ba5661e84b284dd72c21579aa74d909dd7cc8a9f30afc76ac75",
     "lib/screens/payment_methods_screen.dart": "47591d15c4ae31869be0d6483a99cf173bd581efa0cd70deda5091160d4b21ff",
     "lib/screens/stripe_payout_account_screen.dart": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08",

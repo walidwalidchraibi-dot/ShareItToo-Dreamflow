@@ -608,7 +608,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "3a8b315ec8ca54bf902b64c56d6f8a75708c20c79e3f5e49befc681c8f61d7a0"
+      "sha256": "504de9462413eb35dfbf0e9843e6eb0b3b65ef51d5a42b92db9dc99c870eb907"
     },
     {
       "path": "backend/src/notifications.js",
@@ -880,7 +880,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "2ff926839de89d2933b51c09d1caf18132bdda2347a02342903b7c197ba443d4"
+      "sha256": "6a10db4bff5d044eb8cba11574806f195f01aade17ba193692c90ba5f7013850"
     },
     {
       "path": "backend/src/rate_limit_policy.js",

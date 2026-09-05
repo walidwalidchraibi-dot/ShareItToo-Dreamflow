@@ -9,7 +9,7 @@ import { StripeProvider } from '../src/stripe_provider.js';
 // provider credential, network request, database or payment is used.
 const snapshotSecret = 'whsec_snapshotunitfixture';
 const connectSecret = 'whsec_connectunitfixture';
-process.env.DEPLOYMENT_ENVIRONMENT = 'staging';
+process.env.DEPLOYMENT_ENVIRONMENT = 'test';
 process.env.PAYMENT_TRANSPORT = 'stripe';
 process.env.STRIPE_SECRET_KEY = 'rk_test_localunitfixture';
 process.env.STRIPE_WEBHOOK_SECRET = snapshotSecret;

@@ -70,15 +70,15 @@
     "realMoneyActionPerformed": false
   },
   "sourceHashesSha256": {
-    "backend/src/app.js": "2ff926839de89d2933b51c09d1caf18132bdda2347a02342903b7c197ba443d4",
+    "backend/src/app.js": "6a10db4bff5d044eb8cba11574806f195f01aade17ba193692c90ba5f7013850",
     "backend/src/server.js": "56eb8383d74e6f609ff2b54f4af4910c26c76b4006dc7ea5fe6f456eb97e68c3",
     "backend/src/config.js": "00f00dd0e0fae98f2dc7090da620ae41babdd865926633415175346b12015cdc",
     "backend/src/crashlytics_cleanup.js": "fef8a5977fabec6c2547d0d6ca0dc7e19e6e0db5bd6e6fe300d194d37d1d36c6",
     "backend/sql/migrations/022_crashlytics_subject_deletion.up.sql": "2d018478ee2691a7900a2665c541acc522c634763505e12e65e997a1d1054f9a",
     "backend/test/crashlytics_cleanup.test.js": "b1dbdfc721d1ca1e53c3388d1b3f27599aa0fd7be5a1aa7fb5e510b27a57faa5",
     "test/tool/crashlytics_report_deletion_foundation_wiring.test.mjs": "d367e8a0624855db127d92603514e90824b6e3161fafe433277a6865adc4e10c",
-    "store/privacy-disclosures.json": "01f91668e848ad4a167629c417034740e561ba8c91a9fa83860e7f6e7cfe64c1",
-    "store/retention-deletion-readiness.json": "071a73f231a40ee565dc6815a3c8d964eaf28e560fb175cc7367deff163416b2",
+    "store/privacy-disclosures.json": "e478193ead089b55b3ddc1cec72174849a179c18789a51c0bfd7974cbf9f8541",
+    "store/retention-deletion-readiness.json": "d7e84a43d5c332fca1338de437d1f2bb8de1ceba762a781bffdea2cac0a26c30",
     "docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json": "7d09b3571b2b9e12b82895a8ca4ba16563b38c5a79a1ed75e5554d7e091f2246",
     "docs/evidence/b11/retention-deletion-decision-preparation-20260817.json": "9ef8d8a02fde2f8d67ff0f17db65458032aecbb31c92ae199801511a1f321bb1"
   },

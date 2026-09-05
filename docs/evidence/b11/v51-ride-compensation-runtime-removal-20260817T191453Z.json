@@ -58,7 +58,7 @@
   "sourceHashesSha256": {
     "lib/services/data_service.dart": "0efd956db2c34c8f75229dbbf652b049711be106311e61bb44ccb2ab71bd3f42",
     "lib/screens/ongoing_owner_detail_screen.dart": "17d7d78447c0eed2fb216380c8d07638ecb7f7713d85a1a2a0addc49c5b9456f",
-    "store/privacy-disclosures.json": "01f91668e848ad4a167629c417034740e561ba8c91a9fa83860e7f6e7cfe64c1",
+    "store/privacy-disclosures.json": "e478193ead089b55b3ddc1cec72174849a179c18789a51c0bfd7974cbf9f8541",
     "test/tool/v51_ride_compensation_runtime_removed_wiring.test.mjs": "aeae839ae5db3874fc2f1a0395cd9223cfe62e86eafb9ea287660053a41a8a3f"
   }
 }

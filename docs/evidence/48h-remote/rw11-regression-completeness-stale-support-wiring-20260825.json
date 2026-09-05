@@ -161,7 +161,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "2ff926839de89d2933b51c09d1caf18132bdda2347a02342903b7c197ba443d4"
+      "sha256": "6a10db4bff5d044eb8cba11574806f195f01aade17ba193692c90ba5f7013850"
     },
     {
       "path": "backend/src/moderation_workflow.js",

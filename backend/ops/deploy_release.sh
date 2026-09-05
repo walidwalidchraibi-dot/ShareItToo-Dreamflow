@@ -7,6 +7,7 @@ task_commit="${2:-}"
 task_enable_staging_fcm="${ENABLE_STAGING_FCM:-0}"
 task_enable_staging_smtp="${ENABLE_STAGING_SMTP:-0}"
 task_enable_staging_listing_ai="${ENABLE_STAGING_LISTING_AI:-0}"
+task_enable_staging_stripe="${ENABLE_STAGING_STRIPE:-0}"
 task_node_binary="${NODE_BINARY:-node}"
 task_deployment_started=false
 task_previous_image_id=''
@@ -20,6 +21,7 @@ task_staging_pilot_id="${SIT_STAGING_PILOT_ID:-}"
 task_pull_release_image="${PULL_RELEASE_IMAGE:-0}"
 task_staging_smtp_enabled=false
 task_staging_listing_ai_enabled=false
+task_staging_stripe_enabled=false
 task_rollback_compose_args=()
 
 cleanup() {
@@ -38,12 +40,19 @@ rollback_failed_deployment() {
 
   if [[ "$task_deployment_started" == true && -n "$task_previous_image_id" ]]; then
     task_rollback_override="$(mktemp)"
+    printf 'services:\n  api:\n    image: "%s"\n' \
+      "$task_previous_image_id" > "$task_rollback_override"
+    if [[ "$task_staging_listing_ai_enabled" == true ||
+          "$task_staging_stripe_enabled" == true ]]; then
+      printf '    environment:\n' >> "$task_rollback_override"
+    fi
     if [[ "$task_staging_listing_ai_enabled" == true ]]; then
-      printf 'services:\n  api:\n    image: "%s"\n    environment:\n      SIT_LISTING_AI_PROVIDER: mock\n      SIT_LISTING_AI_MODEL: listing-ai-mock-v1\n      SIT_LISTING_AI_BUDGET_CENTS: "0"\n      SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: "0"\n      OPENAI_API_KEY: ""\n      OPENAI_API_KEY_FILE: ""\n' \
-        "$task_previous_image_id" > "$task_rollback_override"
-    else
-      printf 'services:\n  api:\n    image: "%s"\n' \
-        "$task_previous_image_id" > "$task_rollback_override"
+      printf '      SIT_LISTING_AI_PROVIDER: mock\n      SIT_LISTING_AI_MODEL: listing-ai-mock-v1\n      SIT_LISTING_AI_BUDGET_CENTS: "0"\n      SIT_LISTING_AI_EXTERNAL_EXECUTION_APPROVED: "0"\n      OPENAI_API_KEY: ""\n      OPENAI_API_KEY_FILE: ""\n' \
+        >> "$task_rollback_override"
+    fi
+    if [[ "$task_staging_stripe_enabled" == true ]]; then
+      printf '      PAYMENT_TRANSPORT: memory\n      STRIPE_LIVEMODE: "false"\n      STRIPE_SECRET_KEY: ""\n      STRIPE_WEBHOOK_SECRET: ""\n      STRIPE_CONNECT_WEBHOOK_SECRET: ""\n      STRIPE_SECRET_KEY_FILE: ""\n      STRIPE_WEBHOOK_SECRET_FILE: ""\n      STRIPE_CONNECT_WEBHOOK_SECRET_FILE: ""\n' \
+        >> "$task_rollback_override"
     fi
 
     task_rollback_commit="${task_previous_commit:-unknown}"
@@ -112,6 +121,10 @@ if [[ "$task_enable_staging_listing_ai" != 0 && "$task_enable_staging_listing_ai
   echo "ENABLE_STAGING_LISTING_AI must be 0 or 1." >&2
   exit 1
 fi
+if [[ "$task_enable_staging_stripe" != 0 && "$task_enable_staging_stripe" != 1 ]]; then
+  echo "ENABLE_STAGING_STRIPE must be 0 or 1." >&2
+  exit 1
+fi
 if [[ "$task_environment" == production && "$task_enable_staging_fcm" == 1 ]]; then
   echo "The staging FCM override is forbidden for production deployments." >&2
   exit 1
@@ -122,6 +135,10 @@ if [[ "$task_environment" == production && "$task_enable_staging_smtp" == 1 ]]; 
 fi
 if [[ "$task_environment" == production && "$task_enable_staging_listing_ai" == 1 ]]; then
   echo "The staging listing-AI override is forbidden for production deployments." >&2
+  exit 1
+fi
+if [[ "$task_environment" == production && "$task_enable_staging_stripe" == 1 ]]; then
+  echo "The staging Stripe override is forbidden for production deployments." >&2
   exit 1
 fi
 if [[ "$task_pull_release_image" != 0 && "$task_pull_release_image" != 1 ]]; then
@@ -140,8 +157,16 @@ if [[ "$task_enable_staging_listing_ai" == 1 && "$task_staging_pilot_id" != heil
   echo "The staging listing-AI override requires SIT_STAGING_PILOT_ID=heilbronn_wave0." >&2
   exit 1
 fi
+if [[ "$task_enable_staging_stripe" == 1 && "$task_staging_pilot_id" != heilbronn_wave0 ]]; then
+  echo "The staging Stripe override requires SIT_STAGING_PILOT_ID=heilbronn_wave0." >&2
+  exit 1
+fi
 if [[ "$task_enable_staging_listing_ai" == 1 && "${CONFIRM_STAGING_LISTING_AI:-}" != "$task_commit" ]]; then
   echo "CONFIRM_STAGING_LISTING_AI must equal the exact deployment commit." >&2
+  exit 1
+fi
+if [[ "$task_enable_staging_stripe" == 1 && "${CONFIRM_STAGING_STRIPE:-}" != "$task_commit" ]]; then
+  echo "CONFIRM_STAGING_STRIPE must equal the exact deployment commit." >&2
   exit 1
 fi
 
@@ -225,6 +250,14 @@ else
     task_compose_args+=(-f "$task_backend_root/compose.staging.listing-ai.yml")
     task_staging_listing_ai_enabled=true
   fi
+  if [[ "$task_enable_staging_stripe" == 1 ]]; then
+    STRIPE_SECRET_KEY_HOST_FILE="${STRIPE_SECRET_KEY_HOST_FILE:-}" \
+    STRIPE_WEBHOOK_SECRET_HOST_FILE="${STRIPE_WEBHOOK_SECRET_HOST_FILE:-}" \
+    STRIPE_CONNECT_WEBHOOK_SECRET_HOST_FILE="${STRIPE_CONNECT_WEBHOOK_SECRET_HOST_FILE:-}" \
+      "$task_node_binary" "$task_backend_root/ops/validate_stripe_staging_secrets.mjs"
+    task_compose_args+=(-f "$task_backend_root/compose.staging.stripe.yml")
+    task_staging_stripe_enabled=true
+  fi
 fi
 
 if [[ ! -f "$task_env_file" ]]; then
@@ -253,14 +286,15 @@ if [[ "$task_environment" == staging && "$task_enable_staging_smtp" == 1 ]]; the
   task_staging_smtp_enabled=true
 fi
 
-# Rollback must never inherit the optional listing-AI overlay because that
-# overlay contains the credential mount. Preserve all other active Staging
-# overlays while removing the listing-AI pair before deployment can begin.
+# Rollback must never inherit optional external-provider overlays because they
+# contain credential mounts. Preserve all other active Staging overlays while
+# removing each external-provider pair before deployment can begin.
 for ((task_compose_index = 0; task_compose_index < ${#task_compose_args[@]}; task_compose_index++)); do
   if [[ "${task_compose_args[$task_compose_index]}" == -f &&
-        "${task_compose_args[$((task_compose_index + 1))]:-}" == "$task_backend_root/compose.staging.listing-ai.yml" ]]; then
-    task_compose_index=$((task_compose_index + 1))
-    continue
+        ( "${task_compose_args[$((task_compose_index + 1))]:-}" == "$task_backend_root/compose.staging.listing-ai.yml" ||
+          "${task_compose_args[$((task_compose_index + 1))]:-}" == "$task_backend_root/compose.staging.stripe.yml" ) ]]; then
+      task_compose_index=$((task_compose_index + 1))
+      continue
   fi
   task_rollback_compose_args+=("${task_compose_args[$task_compose_index]}")
 done
@@ -314,14 +348,32 @@ if [[ "$task_staging_listing_ai_enabled" == true ]] &&
   echo "Staging listing-AI health does not confirm the exact enabled provider boundary." >&2
   exit 1
 fi
+if [[ "$task_staging_stripe_enabled" == true ]] &&
+   ! printf '%s' "$task_ready_payload" | "$task_node_binary" -e '
+     const { readFileSync } = require("node:fs");
+     const payload = JSON.parse(readFileSync(0, "utf8"));
+     const boundary = payload?.checks?.paymentProvider;
+     const valid = boundary?.status === "enabled"
+       && boundary.provider === "stripe"
+       && boundary.mode === "test"
+       && boundary.apiVersion === "2026-08-26.dahlia"
+       && boundary.currency === "EUR"
+       && boundary.country === "DE"
+       && boundary.credentialSource === "file";
+     process.exitCode = valid ? 0 : 1;
+   '; then
+  echo "Staging Stripe health does not confirm the exact test-only provider boundary." >&2
+  exit 1
+fi
 
 install -d -m 700 "$task_release_dir"
 task_timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 task_report="$task_release_dir/${task_environment}-${task_timestamp}-${task_commit:0:12}.json"
-printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingSmtp":%s,"stagingListingAi":%s,"stagingPilotId":"%s"}\n' \
+printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingSmtp":%s,"stagingListingAi":%s,"stagingStripe":%s,"stagingPilotId":"%s"}\n' \
   "$task_environment" "$task_commit" "$task_previous_commit" "$task_version" \
   "$task_build_time" "$task_timestamp" "$task_fcm_enabled" "$task_staging_smtp_enabled" \
-  "$task_staging_listing_ai_enabled" "$task_staging_pilot_id" > "$task_report"
+  "$task_staging_listing_ai_enabled" "$task_staging_stripe_enabled" \
+  "$task_staging_pilot_id" > "$task_report"
 chmod 600 "$task_report"
 task_deployment_started=false
 

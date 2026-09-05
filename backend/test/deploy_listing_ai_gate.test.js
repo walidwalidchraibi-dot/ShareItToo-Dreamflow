@@ -135,7 +135,7 @@ test('deployment source keeps listing-AI opt-in, bounded and sanitized', async (
   assert.match(app, /automaticPublicationAllowed: false/u);
   assert.equal((app.match(/listingAi: listingAiHealth/gu) ?? []).length, 2);
   assert.doesNotMatch(
-    app.slice(app.indexOf('const listingAiHealth'), app.indexOf('const attemptFirebaseIdentityDeletion')),
+    app.slice(app.indexOf('const listingAiHealth'), app.indexOf('const paymentProviderHealth')),
     /(?:apiKey|credential|secret|OPENAI_API_KEY)/u,
   );
 });

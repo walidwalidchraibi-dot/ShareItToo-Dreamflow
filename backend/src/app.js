@@ -1630,6 +1630,19 @@ export function createApp({
     externalProviderExecutionAllowed: config.listingAi.externalProviderExecutionAllowed,
     automaticPublicationAllowed: false,
   });
+  const paymentProviderHealth = Object.freeze({
+    status: config.payments.transport === 'stripe' ? 'enabled' : 'disabled',
+    provider: config.payments.transport,
+    mode: config.payments.transport === 'stripe'
+      ? (config.payments.livemode ? 'live' : 'test')
+      : 'unavailable',
+    apiVersion: config.payments.apiVersion,
+    currency: config.payments.currency,
+    country: config.payments.connectCountry,
+    credentialSource: config.payments.transport === 'stripe'
+      ? config.payments.credentialSource
+      : 'none',
+  });
   const attemptFirebaseIdentityDeletion = async (ids) => {
     try {
       await drainFirebaseIdentityDeletions(ids);
@@ -1779,6 +1792,7 @@ export function createApp({
         mail,
         notifications,
         payments,
+        paymentProvider: paymentProviderHealth,
         supportDeadlines,
         listingAi: listingAiHealth,
       },
@@ -1810,6 +1824,7 @@ export function createApp({
         mail,
         notifications,
         payments,
+        paymentProvider: paymentProviderHealth,
         supportDeadlines,
         listingAi: listingAiHealth,
       },
