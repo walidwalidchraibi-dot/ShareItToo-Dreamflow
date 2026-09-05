@@ -374,13 +374,15 @@ export async function probePasswordChangeJournal({
 } = {}) {
   if (typeof fetchImpl !== 'function') fail('A password-state fetch implementation is required.');
   const { journal, account } = readPasswordChangeJournal(journalFile, { readVault });
-  const original = await probeCredential(fetchImpl, account, account.password);
-  if (journal.replacementPassword === undefined) {
+  if (journal.replacementPassword === undefined
+      || journal.status === 'prepared-before-password-mutation') {
+    const original = await probeCredential(fetchImpl, account, account.password);
     const originalAccepted = original.status === 200
       && original.principalMatches === true
       && original.sessionRevoked === true;
     return Object.freeze({
-      state: journal.status === 'original-password-restored' && originalAccepted
+      state: ['prepared-before-password-mutation', 'original-password-restored']
+        .includes(journal.status) && originalAccepted
         ? 'original-password-active'
         : 'password-state-unknown',
       originalAccepted,
@@ -397,6 +399,7 @@ export async function probePasswordChangeJournal({
     account,
     journal.replacementPassword,
   );
+  const original = await probeCredential(fetchImpl, account, account.password);
   const state = classifyPasswordCredentialState({ original, replacement });
   return Object.freeze({
     state,
@@ -408,6 +411,27 @@ export async function probePasswordChangeJournal({
     containsCredential: false,
     containsToken: false,
   });
+}
+
+export async function probePasswordChangeJournalUntilKnown({
+  journalFile,
+  fetchImpl,
+  readVault,
+  probe = probePasswordChangeJournal,
+  wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
+  attempts = 3,
+} = {}) {
+  if (typeof probe !== 'function' || typeof wait !== 'function'
+      || !Number.isInteger(attempts) || attempts < 1 || attempts > 5) {
+    fail('The bounded password-state probe configuration is invalid.');
+  }
+  let observed = { state: 'password-state-unknown' };
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    observed = await probe({ journalFile, fetchImpl, readVault });
+    if (observed?.state !== 'password-state-unknown') return observed;
+    if (attempt + 1 < attempts) await wait(attempt === 0 ? 1_000 : 3_000);
+  }
+  return observed;
 }
 
 export function transitionPasswordChangeJournal({
@@ -535,12 +559,19 @@ export async function restoreOriginalPassword({
   mutate = authenticatedPasswordMutation,
   occurredAt = new Date(),
   random = randomBytes,
+  wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
 } = {}) {
   if (typeof fetchImpl !== 'function' || typeof probe !== 'function' || typeof mutate !== 'function') {
     fail('The password rollback dependencies are invalid.');
   }
   let { journal, account } = readPasswordChangeJournal(journalFile, { readVault });
-  let observed = await probe({ journalFile, fetchImpl, readVault });
+  let observed = await probePasswordChangeJournalUntilKnown({
+    journalFile,
+    fetchImpl,
+    readVault,
+    probe,
+    wait,
+  });
   if (journal.status === 'original-password-restored') {
     if (observed.state !== 'original-password-active') {
       fail('The completed password rollback no longer has exact credential truth.');
@@ -601,7 +632,13 @@ export async function restoreOriginalPassword({
   } catch {
     // A lost response is resolved only by the independent credential probe.
   }
-  observed = await probe({ journalFile, fetchImpl, readVault });
+  observed = await probePasswordChangeJournalUntilKnown({
+    journalFile,
+    fetchImpl,
+    readVault,
+    probe,
+    wait,
+  });
   if (observed.state !== 'original-password-active') {
     fail('The original password was not independently confirmed after rollback.');
   }
@@ -645,18 +682,47 @@ function pointForNode(node, label) {
   };
 }
 
-function tapNamedNode(commandRunner, adbPath, device, hierarchy, label, { chooseLast = false } = {}) {
+export function selectNamedPasswordActionNode(
+  hierarchy,
+  label,
+  { chooseLast = false } = {},
+) {
   const enabled = currentHeadAndroidNamedNodes(hierarchy, label)
     .filter((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false');
   const clickable = enabled
     .filter((node) => currentHeadAndroidNodeAttribute(node, 'clickable') === 'true');
   const nodes = clickable.length > 0 ? clickable : enabled;
   if (nodes.length === 0) fail(`The sanitized ${label} action is unavailable.`);
-  const node = chooseLast ? nodes.at(-1) : nodes[0];
+  return chooseLast ? nodes.at(-1) : nodes[0];
+}
+
+export function passwordSuccessResultRequiresExplicitDismissal(hierarchy) {
+  return currentHeadAndroidNamedNodes(hierarchy, 'OK')
+    .some((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false');
+}
+
+export function isPasswordChangeLoginSurface(hierarchy) {
+  return currentHeadAndroidNamedNodes(hierarchy, 'Anmelden').length > 0
+    && editableNodesForLabel(hierarchy, 'E-Mail').length > 0;
+}
+
+function tapNamedNode(commandRunner, adbPath, device, hierarchy, label, { chooseLast = false } = {}) {
+  const node = selectNamedPasswordActionNode(hierarchy, label, { chooseLast });
   const point = pointForNode(node, label);
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell', 'input', 'tap', String(point.x), String(point.y),
   ]);
+}
+
+function editableNodesForLabel(hierarchy, label) {
+  return (String(hierarchy).match(/<node\b[^>]*>/gu) ?? [])
+    .filter((node) => currentHeadAndroidNodeAttribute(node, 'class') === 'android.widget.EditText')
+    .filter((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false')
+    .filter((node) => [
+      currentHeadAndroidNodeAttribute(node, 'hint'),
+      currentHeadAndroidNodeAttribute(node, 'text'),
+      currentHeadAndroidNodeAttribute(node, 'content-desc'),
+    ].includes(label));
 }
 
 function editableNodeForLabel(hierarchy, label) {
@@ -668,11 +734,8 @@ function editableNodeForLabel(hierarchy, label) {
     .filter((node) => currentHeadAndroidNodeAttribute(node, 'enabled') !== 'false')
     .map((node) => ({ node, bounds: nodeBounds(node) }))
     .filter((entry) => entry.bounds !== null);
-  const direct = editable.filter(({ node }) => [
-    currentHeadAndroidNodeAttribute(node, 'hint'),
-    currentHeadAndroidNodeAttribute(node, 'text'),
-    currentHeadAndroidNodeAttribute(node, 'content-desc'),
-  ].includes(label));
+  const directNodes = new Set(editableNodesForLabel(hierarchy, label));
+  const direct = editable.filter(({ node }) => directNodes.has(node));
   if (direct.length === 1) return direct[0].node;
   const candidates = [];
   for (const labelled of labels) {
@@ -720,14 +783,40 @@ async function waitForPasswordSurface({
   predicate,
   label,
   attempts = 60,
+  classify,
 }) {
+  let lastClassification = null;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     wakePasswordChangeScreen(commandRunner, adbPath, device);
     await wait(500);
     const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
     if (predicate(hierarchy)) return hierarchy;
+    if (typeof classify === 'function') lastClassification = classify(hierarchy);
   }
-  fail(`The sanitized ${label} surface did not appear.`);
+  fail(lastClassification === null
+    ? `The sanitized ${label} surface did not appear.`
+    : `The sanitized ${label} surface did not appear; last classification: ${lastClassification}.`);
+}
+
+export function classifyPasswordChangeSurface(hierarchy) {
+  const value = String(hierarchy);
+  if (['Aktuelles Passwort', 'Neues Passwort', 'Neues Passwort bestätigen']
+    .every((entry) => editableNodesForLabel(value, entry).length > 0)) {
+    return 'password-form';
+  }
+  if (currentHeadAndroidNamedNodes(value, 'Passwort ändern').length > 0) {
+    return 'security-settings';
+  }
+  if (currentHeadAndroidNamedNodes(value, 'Kontoeinstellungen').length > 0) {
+    return 'account-settings-entry';
+  }
+  if (currentHeadAndroidNamedNodes(value, 'Abmelden').length > 0) {
+    return 'authenticated-profile';
+  }
+  if (currentHeadAndroidNamedNodes(value, 'Anmelden').length > 0) {
+    return 'login';
+  }
+  return 'unclassified';
 }
 
 async function findPasswordAction({ commandRunner, adbPath, device, wait, label }) {
@@ -782,7 +871,7 @@ async function openPasswordChangeSurface({ commandRunner, adbPath, device, wait 
     wait,
     label: 'Passwort ändern',
   });
-  tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Passwort ändern');
+  tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Passwort ändern', { chooseLast: true });
   return waitForPasswordSurface({
     commandRunner,
     adbPath,
@@ -790,7 +879,109 @@ async function openPasswordChangeSurface({ commandRunner, adbPath, device, wait 
     wait,
     label: 'password change',
     predicate: (value) => ['Aktuelles Passwort', 'Neues Passwort', 'Neues Passwort bestätigen']
-      .every((entry) => currentHeadAndroidNamedNodes(value, entry).length > 0),
+      .every((entry) => editableNodesForLabel(value, entry).length > 0),
+    classify: classifyPasswordChangeSurface,
+  });
+}
+
+export async function preflightPixelPasswordChange({
+  journalFile,
+  candidate,
+  device,
+  commandRunner = defaultCurrentHeadAndroidCommandRunner,
+  adbPath = 'adb',
+  wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
+  readVault = readEmailVerifiedJourneyVault,
+  probe = probePasswordChangeJournal,
+  openSurface = openPasswordChangeSurface,
+  ensureGuest = ensureAndroidGuestSession,
+  restoreSession = restoreSyntheticSession,
+  restoreOwner = restoreProtectedOwner,
+  verifyInstalled = verifyCurrentHeadAndroidInstalledCandidate,
+} = {}) {
+  const exactCandidate = validateCandidate(candidate);
+  const { journal, source, account: renter } = readPasswordChangeJournal(
+    journalFile,
+    { readVault },
+  );
+  assertCandidateBinding(journal.candidate, exactCandidate);
+  if (journal.status !== 'prepared-before-password-mutation' || journal.rollbackRequired) {
+    fail('The password-change journal is not in its safe pre-mutation state.');
+  }
+  const owner = source.vault.accounts.find((entry) => entry.role === 'owner');
+  if (owner === undefined || owner.role === renter.role) {
+    fail('The distinct protected owner fixture is unavailable.');
+  }
+  wakePasswordChangeScreen(commandRunner, adbPath, device);
+  const installed = verifyInstalled(commandRunner, adbPath, device, exactCandidate);
+  const before = await probePasswordChangeJournalUntilKnown({
+    journalFile,
+    readVault,
+    probe,
+    wait,
+  });
+  if (before.state !== 'original-password-active') {
+    fail('The original password is not the exact pre-mutation truth.');
+  }
+
+  let formReached = false;
+  let preflightError;
+  try {
+    if (await ensureGuest({ commandRunner, adbPath, device, wait }) !== true
+        || await restoreSession({
+          commandRunner,
+          adbPath,
+          device,
+          wait,
+          account: renter,
+        }) !== true) {
+      fail('The protected password-change account could not be restored on the Pixel.');
+    }
+    const hierarchy = await openSurface({ commandRunner, adbPath, device, wait });
+    for (const label of ['Aktuelles Passwort', 'Neues Passwort', 'Neues Passwort bestätigen']) {
+      const field = editableNodeForLabel(hierarchy, label);
+      if ((currentHeadAndroidNodeAttribute(field, 'text') ?? '').length !== 0) {
+        fail('The password-change preflight found a nonempty private input.');
+      }
+    }
+    formReached = true;
+  } catch (error) {
+    preflightError = error;
+  }
+
+  let ownerRestored = false;
+  try {
+    ownerRestored = await restoreOwner({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      owner,
+      renter,
+    }) === true;
+  } catch {
+    ownerRestored = false;
+  }
+  if (!ownerRestored) {
+    fail('The password-change preflight could not restore the protected owner session.');
+  }
+  if (preflightError !== undefined) throw preflightError;
+  if (!formReached) fail('The password-change preflight did not prove the empty form.');
+  return Object.freeze({
+    status: 'passed-current-candidate-password-change-preflight',
+    candidateCommit: exactCandidate.commit,
+    candidateBuildNumber: exactCandidate.buildNumber,
+    installedVersionName: installed.versionName,
+    installedBuildNumber: installed.buildNumber,
+    originalPasswordActive: true,
+    acceptedSessionRevoked: true,
+    emptyPasswordFormReached: true,
+    protectedOwnerSessionRestored: true,
+    passwordMutationAttempted: false,
+    containsEmailAddress: false,
+    containsCredential: false,
+    containsToken: false,
+    containsRawDeviceIdentifier: false,
   });
 }
 
@@ -840,15 +1031,16 @@ async function performPixelPasswordChangeUi({
   });
   const succeeded = currentHeadAndroidNamedNodes(hierarchy, 'Passwort geändert').length > 0;
   if (!succeeded) fail('The Pixel did not present the definite password-changed result.');
-  tapNamedNode(commandRunner, adbPath, device, hierarchy, 'OK');
+  if (passwordSuccessResultRequiresExplicitDismissal(hierarchy)) {
+    tapNamedNode(commandRunner, adbPath, device, hierarchy, 'OK');
+  }
   await waitForPasswordSurface({
     commandRunner,
     adbPath,
     device,
     wait,
     label: 'post-password-change login',
-    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Anmelden').length > 0
-      && currentHeadAndroidNamedNodes(value, 'E-Mail').length > 0,
+    predicate: isPasswordChangeLoginSurface,
   });
   return { definiteSuccessPresented: true, localSessionCleared: true };
 }
@@ -864,13 +1056,21 @@ export async function executePixelPasswordChange({
   probe = probePasswordChangeJournal,
   performUi = performPixelPasswordChangeUi,
   rollback = restoreOriginalPassword,
+  restoreOwner = restoreProtectedOwner,
   verifyInstalled = verifyCurrentHeadAndroidInstalledCandidate,
   occurredAt = new Date(),
   random = randomBytes,
 } = {}) {
   const exactCandidate = validateCandidate(candidate);
-  const { journal: boundJournal } = readPasswordChangeJournal(journalFile, { readVault });
+  const { journal: boundJournal, source, account: renter } = readPasswordChangeJournal(
+    journalFile,
+    { readVault },
+  );
   assertCandidateBinding(boundJournal.candidate, exactCandidate);
+  const owner = source.vault.accounts.find((entry) => entry.role === 'owner');
+  if (owner === undefined || owner.role === renter.role) {
+    fail('The distinct protected owner fixture is unavailable.');
+  }
   wakePasswordChangeScreen(commandRunner, adbPath, device);
   const installed = verifyInstalled(
     commandRunner,
@@ -901,7 +1101,12 @@ export async function executePixelPasswordChange({
       account,
       replacementPassword: journal.replacementPassword,
     });
-    const after = await probe({ journalFile, readVault });
+    const after = await probePasswordChangeJournalUntilKnown({
+      journalFile,
+      readVault,
+      probe,
+      wait,
+    });
     if (after.state !== 'replacement-password-active') {
       fail('The replacement password was not independently confirmed.');
     }
@@ -925,10 +1130,30 @@ export async function executePixelPasswordChange({
       acceptedSessionRevoked: true,
     });
   } catch (error) {
+    let rollbackError = null;
     try {
-      await rollback({ journalFile, readVault });
+      await rollback({ journalFile, readVault, wait });
+    } catch (currentRollbackError) {
+      rollbackError = currentRollbackError;
+    }
+    let ownerRestored = false;
+    try {
+      ownerRestored = await restoreOwner({
+        commandRunner,
+        adbPath,
+        device,
+        wait,
+        owner,
+        renter,
+      }) === true;
     } catch {
-      fail('Password-change execution failed and the durable rollback remains required.');
+      ownerRestored = false;
+    }
+    if (!ownerRestored) {
+      fail('Password-change execution rolled back, but the protected owner session is not restored.');
+    }
+    if (rollbackError !== null) {
+      fail('Password-change execution failed and the durable rollback remains required; the protected owner session was restored.');
     }
     throw error;
   }
@@ -1160,7 +1385,7 @@ export function sanitizePasswordChangeFailure(error) {
   if (message.length > 0
       && message.length <= 220
       && !/@|\+\d|\b\d{6,}\b|[A-Za-z0-9_-]{32,}/u.test(message)
-      && /^(The |A |Password |Pixel |Staging |Android |Current-|Original |Replacement )/u.test(message)) {
+      && /^(The |A |Password(?: |-)|Pixel |Staging |Android |Current-|Original |Replacement )/u.test(message)) {
     return message;
   }
   return 'The sanitized current-candidate password diagnostic failed.';
@@ -1185,7 +1410,7 @@ async function run() {
     process.stdout.write(`${JSON.stringify(await restoreOriginalPassword({ journalFile }), null, 2)}\n`);
     return;
   }
-  if (!['prepare', 'execute', 'complete'].includes(phase)) {
+  if (!['prepare', 'preflight', 'execute', 'complete'].includes(phase)) {
     fail('The password-change phase is invalid.');
   }
   const candidateDirectory = resolve(
@@ -1214,9 +1439,11 @@ async function run() {
   );
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: 'adb', device });
-  const result = phase === 'execute'
-    ? await executePixelPasswordChange({ journalFile, candidate, device })
-    : await completePixelPasswordChange({ journalFile, candidate, device });
+  const result = phase === 'preflight'
+    ? await preflightPixelPasswordChange({ journalFile, candidate, device })
+    : phase === 'execute'
+      ? await executePixelPasswordChange({ journalFile, candidate, device })
+      : await completePixelPasswordChange({ journalFile, candidate, device });
   process.stdout.write(`${JSON.stringify({
     ...result,
     device: deviceSummary,

@@ -14,12 +14,18 @@ import test from 'node:test';
 
 import {
   classifyPasswordCredentialState,
+  classifyPasswordChangeSurface,
   completePixelPasswordChange,
   executePixelPasswordChange,
+  isPasswordChangeLoginSurface,
+  passwordSuccessResultRequiresExplicitDismissal,
+  preflightPixelPasswordChange,
   preparePasswordChangeJournal,
   probePasswordChangeJournal,
+  probePasswordChangeJournalUntilKnown,
   restoreOriginalPassword,
   sanitizePasswordChangeFailure,
+  selectNamedPasswordActionNode,
   transitionPasswordChangeJournal,
 } from '../../tool/diagnose_android_password_change.mjs';
 
@@ -101,6 +107,68 @@ test('credential truth requires exact structured rejection and revoked accepted 
   }
 });
 
+test('password surface classification stays sanitized and distinguishes navigation stages', () => {
+  const node = (label) => `<node content-desc="${label}" />`;
+  const field = (label) => `<node class="android.widget.EditText" enabled="true" hint="${label}" />`;
+  assert.equal(classifyPasswordChangeSurface([
+    field('Aktuelles Passwort'),
+    field('Neues Passwort'),
+    field('Neues Passwort bestätigen'),
+  ].join('')), 'password-form');
+  assert.notEqual(classifyPasswordChangeSurface([
+    node('Aktuelles Passwort'),
+    node('Neues Passwort'),
+    node('Neues Passwort bestätigen'),
+  ].join('')), 'password-form');
+  assert.equal(classifyPasswordChangeSurface(node('Passwort ändern')), 'security-settings');
+  assert.equal(classifyPasswordChangeSurface(node('Kontoeinstellungen')), 'account-settings-entry');
+  assert.equal(classifyPasswordChangeSurface(node('Abmelden')), 'authenticated-profile');
+  assert.equal(classifyPasswordChangeSurface(node('Anmelden')), 'login');
+  assert.equal(classifyPasswordChangeSurface(node('private-unrecognized-value')), 'unclassified');
+});
+
+test('password navigation selects the final same-label action when semantics are merged', () => {
+  const first = '<node content-desc="Passwort ändern" enabled="true" clickable="false" bounds="[10,10][200,80]" />';
+  const second = '<node content-desc="Passwort ändern" enabled="true" clickable="false" bounds="[10,300][500,420]" />';
+  assert.equal(
+    selectNamedPasswordActionNode(`${first}${second}`, 'Passwort ändern', { chooseLast: true }),
+    second,
+  );
+  const clickable = second.replace('clickable="false"', 'clickable="true"');
+  assert.equal(
+    selectNamedPasswordActionNode(`${first}${clickable}`, 'Passwort ändern'),
+    clickable,
+  );
+});
+
+test('password success toast does not require a nonexistent dismissal action', () => {
+  assert.equal(passwordSuccessResultRequiresExplicitDismissal(
+    '<node content-desc="Passwort geändert" enabled="true" />',
+  ), false);
+  assert.equal(passwordSuccessResultRequiresExplicitDismissal([
+    '<node content-desc="Passwort geändert" enabled="true" />',
+    '<node text="OK" enabled="true" />',
+  ].join('')), true);
+  assert.equal(passwordSuccessResultRequiresExplicitDismissal([
+    '<node content-desc="Passwort geändert" enabled="true" />',
+    '<node text="OK" enabled="false" />',
+  ].join('')), false);
+});
+
+test('post-password-change login accepts the Android email input hint', () => {
+  const login = [
+    '<node text="Anmelden" enabled="true" />',
+    '<node class="android.widget.EditText" enabled="true" hint="E-Mail" />',
+  ].join('');
+  assert.equal(isPasswordChangeLoginSurface(login), true);
+  assert.equal(isPasswordChangeLoginSurface(
+    '<node text="Anmelden" enabled="true" /><node hint="E-Mail" />',
+  ), false);
+  assert.equal(isPasswordChangeLoginSurface(
+    '<node class="android.widget.EditText" enabled="true" hint="E-Mail" />',
+  ), false);
+});
+
 function response(status, value = null) {
   return {
     status,
@@ -143,8 +211,24 @@ test('Staging probe validates the exact principal and revokes every accepted ses
   });
   assert.equal(result.state, 'original-password-active');
   assert.equal(result.acceptedSessionRevoked, true);
+  assert.equal(calls.filter(({ url }) => url.endsWith('/auth/login')).length, 1);
   assert.equal(calls.filter(({ url }) => url.endsWith('/auth/logout')).length, 1);
   assert.doesNotMatch(JSON.stringify(result), /synthetic|fixture|@|accessToken|refreshToken/u);
+});
+
+test('bounded password-state probe retries only unknown transport outcomes', async () => {
+  const waits = [];
+  let probes = 0;
+  const result = await probePasswordChangeJournalUntilKnown({
+    journalFile: '/synthetic-private-journal',
+    probe: async () => ({
+      state: ++probes < 3 ? 'password-state-unknown' : 'replacement-password-active',
+    }),
+    wait: async (milliseconds) => waits.push(milliseconds),
+  });
+  assert.equal(result.state, 'replacement-password-active');
+  assert.equal(probes, 3);
+  assert.deepEqual(waits, [1_000, 3_000]);
 });
 
 test('Staging probe leaves transport and unstructured authentication results unknown', async (t) => {
@@ -323,6 +407,7 @@ test('rollback remains armed and performs no write when credential truth is unkn
     journalFile: value.journalFile,
     readVault: value.readVault,
     probe: async () => ({ state: 'password-state-unknown' }),
+    wait: async () => {},
     mutate: async () => {
       mutationCalls += 1;
     },
@@ -334,6 +419,17 @@ test('rollback remains armed and performs no write when credential truth is unkn
 test('Pixel execution durably arms rollback before the first UI mutation', async (t) => {
   const value = fixture();
   t.after(() => rmSync(value.directory, { recursive: true, force: true }));
+  value.readVault = () => ({
+    canonical: value.sourceVaultFile,
+    vault: {
+      apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+      stripeLivemode: false,
+      accounts: [
+        value.account,
+        { ...value.account, role: 'owner', displayName: 'OwnerFixture' },
+      ],
+    },
+  });
   preparePasswordChangeJournal({
     sourceVaultFile: value.sourceVaultFile,
     journalFile: value.journalFile,
@@ -395,6 +491,136 @@ test('Pixel execution rejects a mismatched candidate binding before touching the
   const privateValue = JSON.parse(readFileSync(value.journalFile, 'utf8'));
   assert.equal(privateValue.status, 'prepared-before-password-mutation');
   assert.equal(privateValue.rollbackRequired, false);
+});
+
+test('password preflight restores the protected owner even when form navigation fails', async (t) => {
+  const value = fixture();
+  t.after(() => rmSync(value.directory, { recursive: true, force: true }));
+  const owner = { ...value.account, role: 'owner', displayName: 'OwnerFixture' };
+  value.readVault = () => ({
+    canonical: value.sourceVaultFile,
+    vault: {
+      apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+      stripeLivemode: false,
+      accounts: [value.account, owner],
+    },
+  });
+  preparePasswordChangeJournal({
+    sourceVaultFile: value.sourceVaultFile,
+    journalFile: value.journalFile,
+    candidate,
+    readVault: value.readVault,
+  });
+  const events = [];
+  await assert.rejects(preflightPixelPasswordChange({
+    journalFile: value.journalFile,
+    candidate,
+    device: { serial: 'synthetic-device' },
+    readVault: value.readVault,
+    commandRunner: (_file, args) => args.includes('policy') ? 'keyguardShowing=false' : '',
+    verifyInstalled: () => ({ versionName: '1.0.0', buildNumber: '2026090503' }),
+    probe: async () => ({ state: 'original-password-active' }),
+    ensureGuest: async () => true,
+    restoreSession: async () => true,
+    openSurface: async () => {
+      events.push('surface');
+      throw new Error('The sanitized password change surface did not appear.');
+    },
+    restoreOwner: async () => {
+      events.push('owner');
+      return true;
+    },
+  }), /surface did not appear/u);
+  assert.deepEqual(events, ['surface', 'owner']);
+  const privateValue = JSON.parse(readFileSync(value.journalFile, 'utf8'));
+  assert.equal(privateValue.status, 'prepared-before-password-mutation');
+  assert.equal(privateValue.rollbackRequired, false);
+});
+
+test('failed Pixel execution rolls back and restores the protected owner session', async (t) => {
+  const value = fixture();
+  t.after(() => rmSync(value.directory, { recursive: true, force: true }));
+  const owner = { ...value.account, role: 'owner', displayName: 'OwnerFixture' };
+  value.readVault = () => ({
+    canonical: value.sourceVaultFile,
+    vault: {
+      apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+      stripeLivemode: false,
+      accounts: [value.account, owner],
+    },
+  });
+  preparePasswordChangeJournal({
+    sourceVaultFile: value.sourceVaultFile,
+    journalFile: value.journalFile,
+    candidate,
+    readVault: value.readVault,
+  });
+  const events = [];
+  await assert.rejects(executePixelPasswordChange({
+    journalFile: value.journalFile,
+    candidate,
+    device: { serial: 'synthetic-device' },
+    readVault: value.readVault,
+    commandRunner: (_file, args) => args.includes('policy') ? 'keyguardShowing=false' : '',
+    verifyInstalled: () => ({ versionName: '1.0.0', buildNumber: '2026090503' }),
+    probe: async () => ({ state: 'original-password-active' }),
+    performUi: async () => {
+      events.push('surface');
+      throw new Error('The sanitized password change surface did not appear.');
+    },
+    rollback: async () => {
+      events.push('rollback');
+      return { originalPasswordRestored: true };
+    },
+    restoreOwner: async () => {
+      events.push('owner');
+      return true;
+    },
+  }), /surface did not appear/u);
+  assert.deepEqual(events, ['surface', 'rollback', 'owner']);
+});
+
+test('failed Pixel execution still restores the protected owner when rollback stays armed', async (t) => {
+  const value = fixture();
+  t.after(() => rmSync(value.directory, { recursive: true, force: true }));
+  const owner = { ...value.account, role: 'owner', displayName: 'OwnerFixture' };
+  value.readVault = () => ({
+    canonical: value.sourceVaultFile,
+    vault: {
+      apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+      stripeLivemode: false,
+      accounts: [value.account, owner],
+    },
+  });
+  preparePasswordChangeJournal({
+    sourceVaultFile: value.sourceVaultFile,
+    journalFile: value.journalFile,
+    candidate,
+    readVault: value.readVault,
+  });
+  const events = [];
+  await assert.rejects(executePixelPasswordChange({
+    journalFile: value.journalFile,
+    candidate,
+    device: { serial: 'synthetic-device' },
+    readVault: value.readVault,
+    commandRunner: (_file, args) => args.includes('policy') ? 'keyguardShowing=false' : '',
+    verifyInstalled: () => ({ versionName: '1.0.0', buildNumber: '2026090503' }),
+    probe: async () => ({ state: 'original-password-active' }),
+    performUi: async () => {
+      events.push('surface');
+      throw new Error('The sanitized password change surface did not appear.');
+    },
+    rollback: async () => {
+      events.push('rollback');
+      throw new Error('password-state-unknown');
+    },
+    restoreOwner: async () => {
+      events.push('owner');
+      return true;
+    },
+  }), /rollback remains required; the protected owner session was restored/u);
+  assert.deepEqual(events, ['surface', 'rollback', 'owner']);
 });
 
 test('completion always restores the original password before reporting a verification failure', async (t) => {
@@ -521,5 +747,9 @@ test('diagnostic failures never emit credentials, addresses, phone numbers or pr
   assert.equal(
     sanitizePasswordChangeFailure(new Error('The original password is not the exact pre-mutation truth.')),
     'The original password is not the exact pre-mutation truth.',
+  );
+  assert.equal(
+    sanitizePasswordChangeFailure(new Error('Password-change execution failed and the durable rollback remains required; the protected owner session was restored.')),
+    'Password-change execution failed and the durable rollback remains required; the protected owner session was restored.',
   );
 });
