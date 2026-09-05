@@ -18,6 +18,10 @@ import {
   recommendRegionalPriceV2,
   selectOwnerRegionalDailyPrice,
 } from './regional_price_engine_v2.js';
+import {
+  privatePilotAllowedCatalogKeys,
+  privatePilotCatalogKey,
+} from './private_pilot_domain.js';
 
 export const blueOceanListingWorkflowVersion = 'N6-2026-08-24.1';
 export const blueOceanListingDisclosureVersion = listingAiImageDisclosureVersion;
@@ -39,14 +43,32 @@ const confirmationForField = Object.freeze({
   pickupRegion: 'pickup_region',
 });
 
-const categoryKeyByCatalogId = Object.freeze({
-  cat5: 'cleaning_machines',
-  cat7: 'garden_machines',
-  cat8: 'power_tools',
-  cat20: 'ladders_hand_tools',
-  cat22: 'event_camping',
-  cat23: 'event_camping',
+export const blueOceanRegionalPriceRuleByCatalogKey = Object.freeze({
+  [privatePilotCatalogKey('cat5', 'Staubsauger')]: 'cleaning_machines',
+  [privatePilotCatalogKey('cat7', 'Rasenmäher')]: 'garden_machines',
+  [privatePilotCatalogKey('cat7', 'Heckenscheren')]: 'garden_machines',
+  [privatePilotCatalogKey('cat7', 'Gartengeräte')]: 'garden_machines',
+  [privatePilotCatalogKey('cat8', 'Handwerkzeuge')]: 'ladders_hand_tools',
+  [privatePilotCatalogKey('cat8', 'Elektrowerkzeuge')]: 'power_tools',
+  [privatePilotCatalogKey('cat8', 'Bohrmaschinen')]: 'power_tools',
+  [privatePilotCatalogKey('cat8', 'Sägen')]: 'power_tools',
+  [privatePilotCatalogKey('cat8', 'Schleifer')]: 'power_tools',
+  [privatePilotCatalogKey('cat20', 'Zubehör')]: 'accessories',
+  [privatePilotCatalogKey('cat22', 'Party-Deko')]: 'event_camping',
+  [privatePilotCatalogKey('cat22', 'Eventtechnik')]: 'event_camping',
+  [privatePilotCatalogKey('cat22', 'Tische & Stühle')]: 'event_camping',
+  [privatePilotCatalogKey('cat22', 'Pavillons')]: 'event_camping',
+  [privatePilotCatalogKey('cat22', 'Buffet & Catering')]: 'event_camping',
+  [privatePilotCatalogKey('cat23', 'Zelte')]: 'event_camping',
+  [privatePilotCatalogKey('cat23', 'Schlafsäcke')]: 'event_camping',
+  [privatePilotCatalogKey('cat23', 'Campingküche')]: 'event_camping',
+  [privatePilotCatalogKey('cat23', 'Outdoor-Zubehör')]: 'accessories',
 });
+
+export const blueOceanPriceReviewVersion = 'WP07-2026-09-05.1';
+const blueOceanManualPriceNotice =
+  'Für diese Artikelart gibt es noch keine belastbare SIT-Preisregel. '
+  + 'Lege deinen Tagespreis selbst fest und bestätige ihn; SIT zeigt keine erfundene Empfehlung.';
 
 const conditionByListingValue = Object.freeze({
   new: 'like_new',
@@ -104,6 +126,14 @@ function identifier(value, code, pattern = /^[A-Za-z0-9_.:-]{8,160}$/u) {
   const candidate = text(value, { maximum: 160, code });
   if (!pattern.test(candidate) || /[/\\]|https?:|file:|@/iu.test(candidate)) fail(400, code);
   return candidate;
+}
+
+function optionalOwnerDailyPriceMinor(value) {
+  if (value == null) return null;
+  if (!Number.isSafeInteger(value) || value < 1 || value > 100_000_000) {
+    fail(400, 'blue_ocean_owner_daily_price_invalid');
+  }
+  return value;
 }
 
 function deepFreeze(value) {
@@ -405,49 +435,75 @@ export function reviewBlueOceanListingDraft({
   if (!replacementBands.has(priceInput.replacementValueBand)) {
     fail(400, 'blue_ocean_replacement_value_band_invalid');
   }
-  const categoryKey = categoryKeyByCatalogId[fields.category.value];
-  if (!categoryKey) fail(409, 'blue_ocean_category_outside_price_engine_scope');
   const condition = conditionByListingValue[fields.condition.value];
   if (!condition) fail(409, 'blue_ocean_condition_outside_stage_a_scope');
-
-  const recommendation = recommendRegionalPriceV2({
-    categoryKey,
-    subcategory: fields.subcategory.value,
-    brandModelFamily: [fields.brand.value, fields.model.value].filter(Boolean).join(' ') || null,
-    condition,
-    replacementValueBand: priceInput.replacementValueBand,
-    replacementValueBandConfidence: priceInput.ownerConfirmedReplacementValueBand ? 'HIGH' : 'LOW',
-    ownerConfirmedReplacementValueBand: priceInput.ownerConfirmedReplacementValueBand,
-    ownerConfirmedReplacementValueMinor: priceInput.ownerConfirmedReplacementValueMinor,
-    observations: [],
-  });
-  const requestedDaily = priceInput.ownerDailyPriceMinor;
-  const ownerDailyPriceMinor = requestedDaily == null
-    ? recommendation.recommendedDailyMinor
-    : requestedDaily;
-  const selection = selectOwnerRegionalDailyPrice({
-    recommendation,
-    ownerDailyPriceMinor,
-    ownerConfirmed: ownerConfirmations.owner_price,
-  });
-  const durationSchedule = buildRegionalDurationPriceSchedule({
-    ownerDailyPriceMinor,
-    enabled: priceInput.durationPricingEnabled === true,
-  });
   if (!Array.isArray(previewDays)
       || previewDays.length < 1
       || previewDays.length > 3
       || previewDays.some((days) => !Number.isSafeInteger(days) || days < 1 || days > 30)) {
     fail(400, 'blue_ocean_preview_days_invalid');
   }
-  const quotePreviews = [...new Set(previewDays)].map((days) => ({
-    days,
-    ...previewRegionalPriceWithV52Fee({
+  const catalogKey = privatePilotCatalogKey(
+    fields.category.value,
+    fields.subcategory.value,
+  );
+  if (!privatePilotAllowedCatalogKeys.includes(catalogKey)) {
+    fail(409, 'blue_ocean_catalog_pair_outside_private_pilot');
+  }
+  const categoryKey = blueOceanRegionalPriceRuleByCatalogKey[catalogKey] ?? null;
+  const requestedDaily = optionalOwnerDailyPriceMinor(priceInput.ownerDailyPriceMinor);
+  const priceMode = categoryKey == null
+    ? 'owner_manual_no_recommendation'
+    : 'regional_recommendation';
+  const recommendation = categoryKey == null
+    ? null
+    : recommendRegionalPriceV2({
+      categoryKey,
+      subcategory: fields.subcategory.value,
+      brandModelFamily: [fields.brand.value, fields.model.value].filter(Boolean).join(' ') || null,
+      condition,
+      replacementValueBand: priceInput.replacementValueBand,
+      replacementValueBandConfidence: priceInput.ownerConfirmedReplacementValueBand ? 'HIGH' : 'LOW',
+      ownerConfirmedReplacementValueBand: priceInput.ownerConfirmedReplacementValueBand,
+      ownerConfirmedReplacementValueMinor: priceInput.ownerConfirmedReplacementValueMinor,
+      observations: [],
+    });
+  const ownerDailyPriceMinor = categoryKey == null
+    ? requestedDaily
+    : (requestedDaily ?? recommendation.recommendedDailyMinor);
+  const selection = categoryKey == null
+    ? deepFreeze({
+      recommendationAvailable: false,
+      engineRecommendationMinor: null,
+      ownerSelectedDailyMinor: ownerDailyPriceMinor,
+      ownerOverrideApplied: false,
+      ownerConfirmed: ownerConfirmations.owner_price === true
+        && ownerDailyPriceMinor != null,
+      publicationPriceReady: ownerConfirmations.owner_price === true
+        && ownerDailyPriceMinor != null,
+      automaticPublicationAllowed: false,
+    })
+    : selectOwnerRegionalDailyPrice({
+      recommendation,
       ownerDailyPriceMinor,
+      ownerConfirmed: ownerConfirmations.owner_price,
+    });
+  const durationSchedule = ownerDailyPriceMinor == null
+    ? null
+    : buildRegionalDurationPriceSchedule({
+      ownerDailyPriceMinor,
+      enabled: priceInput.durationPricingEnabled === true,
+    });
+  const quotePreviews = durationSchedule == null
+    ? []
+    : [...new Set(previewDays)].map((days) => ({
       days,
-      durationPricingEnabled: durationSchedule.enabled,
-    }),
-  }));
+      ...previewRegionalPriceWithV52Fee({
+        ownerDailyPriceMinor,
+        days,
+        durationPricingEnabled: durationSchedule.enabled,
+      }),
+    }));
   const domainReadiness = assessListingAiDraftReadiness(revision);
   const missingBeforeFinalPublication = domainReadiness.missingConfirmations.filter(
     (id) => id !== 'final_publication',
@@ -477,6 +533,9 @@ export function reviewBlueOceanListingDraft({
   });
   return deepFreeze({
     workflowVersion: blueOceanListingWorkflowVersion,
+    priceReviewVersion: blueOceanPriceReviewVersion,
+    priceMode,
+    priceNotice: categoryKey == null ? blueOceanManualPriceNotice : null,
     status: 'review_ready',
     generationKey,
     revision,
@@ -486,6 +545,9 @@ export function reviewBlueOceanListingDraft({
     quotePreviews,
     readiness,
     priceInputSha256: digest({
+      priceReviewVersion: blueOceanPriceReviewVersion,
+      priceMode,
+      catalogKey,
       categoryKey,
       subcategory: fields.subcategory.value,
       condition,

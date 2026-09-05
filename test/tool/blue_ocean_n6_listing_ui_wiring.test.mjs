@@ -11,6 +11,7 @@ const mutationService = readFileSync(
   'utf8',
 );
 const app = readFileSync('backend/src/app.js', 'utf8');
+const store = readFileSync('backend/src/blue_ocean_listing_store.js', 'utf8');
 
 test('Flutter gate is default-off while the complete manual editor remains present', () => {
   assert.match(config, /SIT_BLUE_OCEAN_LISTING_ASSISTANT/u);
@@ -65,6 +66,17 @@ test('regional price, duration and V5.2 fee preview stay editable and simulation
   assert.match(screen, /SIT-Beitrag/u);
   assert.match(screen, /Mieter gesamt/u);
   assert.match(screen, /Reine Simulation ohne Zahlung/u);
+});
+
+test('missing exact price rules use an explicit owner-only price path', () => {
+  assert.match(screen, /owner_manual_no_recommendation/u);
+  assert.match(screen, /Tagespreis selbst festlegen/u);
+  assert.match(screen, /keine SIT-Preisempfehlung/u);
+  assert.match(
+    store,
+    /if \(review\.recommendation != null\) \{[\s\S]*INSERT INTO regional_price_engine_snapshots/u,
+  );
+  assert.match(store, /priceInputSha256: review\.priceInputSha256/u);
 });
 
 test('every automatic or manual daily-price change invalidates owner confirmation and final review', () => {

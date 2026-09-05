@@ -196,6 +196,10 @@ export async function persistBlueOceanReview(client, {
       review.revision.payloadSha256,
       JSON.stringify({
         readiness: review.readiness,
+        priceReviewVersion: review.priceReviewVersion,
+        priceMode: review.priceMode,
+        priceNotice: review.priceNotice,
+        priceInputSha256: review.priceInputSha256,
         recommendation: review.recommendation,
         selection: review.selection,
         durationSchedule: review.durationSchedule,
@@ -206,9 +210,10 @@ export async function persistBlueOceanReview(client, {
       review.revision.generatedAt,
     ],
   );
-  const options = review.recommendation.ownerOptions.map((entry) => entry.dailyPriceMinor);
-  await client.query(
-    `INSERT INTO regional_price_engine_snapshots (
+  if (review.recommendation != null) {
+    const options = review.recommendation.ownerOptions.map((entry) => entry.dailyPriceMinor);
+    await client.query(
+      `INSERT INTO regional_price_engine_snapshots (
        draft_id, draft_version_id, engine_authority, engine_version,
        input_sha256, range_low_minor, recommended_daily_minor,
        range_high_minor, explanation, snapshot_payload,
@@ -250,8 +255,9 @@ export async function persistBlueOceanReview(client, {
       JSON.stringify({ previews: review.quotePreviews }),
       review.selection.ownerSelectedDailyMinor,
       review.selection.ownerOverrideApplied,
-    ],
-  );
+      ],
+    );
+  }
   await client.query(
     `UPDATE listing_ai_drafts
         SET status = $2, updated_at = now()

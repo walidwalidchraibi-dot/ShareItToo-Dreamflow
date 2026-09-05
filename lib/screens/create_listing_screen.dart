@@ -2229,8 +2229,9 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                   title: const Text(
-                    'Ich bestätige die Wertspanne. Sie dient nur der '
-                    'deterministischen Preisempfehlung.',
+                    'Ich bestätige die Wertspanne. Sie wird nur verwendet, '
+                    'wenn für diese Artikelart eine passende '
+                    'deterministische Preisregel vorhanden ist.',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -2315,6 +2316,22 @@ class _CreateListingScreenState extends State<CreateListingScreen>
                         ),
                       );
                     }),
+              ],
+              if (assistant?['priceMode'] ==
+                  'owner_manual_no_recommendation') ...[
+                const SizedBox(height: 18),
+                Text('Tagespreis selbst festlegen',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  assistant?['priceNotice']?.toString() ??
+                      'Für diese Artikelart ist keine SIT-Preisempfehlung '
+                          'verfügbar. Dein bestätigter Tagespreis bleibt '
+                          'maßgeblich.',
+                  style: const TextStyle(fontSize: 13.5, height: 1.4),
+                ),
               ],
               if (quotePreviews.isNotEmpty) ...[
                 const SizedBox(height: 14),

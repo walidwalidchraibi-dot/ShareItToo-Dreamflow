@@ -155,7 +155,7 @@
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "f12dd31f4900ec25cf24abb155dd67e94bf42a56dccb6d7b2fda187a15321549"
+      "sha256": "e79fcdff2b0e47466161c385d948af50192549b3554813dc6cd81db8b4f7664a"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",

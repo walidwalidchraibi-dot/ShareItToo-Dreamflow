@@ -8,11 +8,14 @@ import {
   assertBlueOceanExplicitPublication,
   blueOceanListingDisclosureText,
   blueOceanListingDisclosureVersion,
+  blueOceanRegionalPriceRuleByCatalogKey,
   blueOceanListingWorkflowVersion,
   BlueOceanListingWorkflowError,
   createBlueOceanListingWorkflow,
   reviewBlueOceanListingDraft,
 } from '../src/blue_ocean_listing_workflow.js';
+import { privatePilotAllowedCatalogKeys } from '../src/private_pilot_domain.js';
+import { regionalPriceCategoryRules } from '../src/regional_price_engine_v2.js';
 import {
   listingAiMockModel,
   listingAiOpenAiModel,
@@ -102,6 +105,31 @@ function pricing(ownerDailyPriceMinor = null) {
     durationPricingEnabled: true,
   };
 }
+
+test('regional price rules bind exact catalog pairs rather than broad categories', () => {
+  for (const [catalogKey, rule] of Object.entries(
+    blueOceanRegionalPriceRuleByCatalogKey,
+  )) {
+    assert.ok(privatePilotAllowedCatalogKeys.includes(catalogKey));
+    assert.ok(rule in regionalPriceCategoryRules);
+  }
+  assert.equal(
+    blueOceanRegionalPriceRuleByCatalogKey['cat8\u001fBohrmaschinen'],
+    'power_tools',
+  );
+  assert.equal(
+    blueOceanRegionalPriceRuleByCatalogKey['cat8\u001fHandwerkzeuge'],
+    'ladders_hand_tools',
+  );
+  assert.equal(
+    blueOceanRegionalPriceRuleByCatalogKey['cat3\u001fKameras'],
+    undefined,
+  );
+  assert.equal(
+    blueOceanRegionalPriceRuleByCatalogKey['cat20\u001fPräsentation'],
+    undefined,
+  );
+});
 
 test('trusted local preflight composes N4, mock N3 and an editable non-published draft', async () => {
   const workflow = createBlueOceanListingWorkflow({
@@ -429,6 +457,204 @@ test('owner review composes deterministic N5 price, duration and V5.2 preview', 
   assert.equal(review.readiness.readyToPublish, false);
   assert.equal(review.readiness.state, 'NEEDS_REVIEW');
   assert.deepEqual(review.readiness.missingConfirmations, ['final_publication']);
+});
+
+test('catalog entries without an exact price rule stay usable without a fabricated recommendation', async (t) => {
+  const workflow = createBlueOceanListingWorkflow({
+    configuration: config(),
+    screenImage: async () => ({
+      localOcrText: '',
+      visualScanCompleted: true,
+      visualSignals: [],
+    }),
+  });
+  const generated = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('manual-price-source'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+
+  for (const catalog of [
+    { category: 'cat3', subcategory: 'Kameras', title: 'Systemkamera' },
+    { category: 'cat20', subcategory: 'Präsentation', title: 'Heimprojektor' },
+  ]) {
+    await t.test(`${catalog.category}/${catalog.subcategory}`, () => {
+      const fields = {
+        ...editedFields(),
+        title: catalog.title,
+        category: catalog.category,
+        subcategory: catalog.subcategory,
+      };
+      const pendingConfirmations = confirmations({ finalPublication: true });
+      pendingConfirmations.owner_price = false;
+      const pending = reviewBlueOceanListingDraft({
+        previousRevision: generated.revision,
+        generationKey: key(`manual-price-pending-${catalog.category}`),
+        editedFields: fields,
+        answeredClarificationIds: generated.revision.clarificationQuestions
+          .map((entry) => entry.id),
+        ownerConfirmations: pendingConfirmations,
+        pricing: pricing(),
+        imagePreflightPassed: true,
+        consentValid: true,
+      });
+      assert.equal(pending.priceMode, 'owner_manual_no_recommendation');
+      assert.equal(pending.recommendation, null);
+      assert.equal(pending.selection.recommendationAvailable, false);
+      assert.equal(pending.selection.ownerSelectedDailyMinor, null);
+      assert.equal(pending.selection.publicationPriceReady, false);
+      assert.equal(pending.durationSchedule, null);
+      assert.deepEqual(pending.quotePreviews, []);
+      assert.equal(pending.readiness.state, 'NEEDS_REVIEW');
+      assert.equal(pending.readiness.ownerPriceConfirmed, false);
+
+      const confirmed = reviewBlueOceanListingDraft({
+        previousRevision: generated.revision,
+        generationKey: key(`manual-price-confirmed-${catalog.category}`),
+        editedFields: fields,
+        answeredClarificationIds: generated.revision.clarificationQuestions
+          .map((entry) => entry.id),
+        ownerConfirmations: confirmations({ finalPublication: true }),
+        pricing: pricing(1_600),
+        imagePreflightPassed: true,
+        consentValid: true,
+      });
+      assert.equal(confirmed.priceMode, 'owner_manual_no_recommendation');
+      assert.equal(confirmed.recommendation, null);
+      assert.equal(confirmed.selection.recommendationAvailable, false);
+      assert.equal(confirmed.selection.ownerSelectedDailyMinor, 1_600);
+      assert.equal(confirmed.selection.publicationPriceReady, true);
+      assert.equal(confirmed.quotePreviews.length, 2);
+      assert.ok(confirmed.quotePreviews.every(
+        (entry) => entry.simulation === true && entry.noRealMoney === true,
+      ));
+      assert.equal(confirmed.readiness.state, 'READY_TO_PUBLISH');
+      assert.equal(
+        assertBlueOceanExplicitPublication(confirmed, { explicitOwnerAction: true })
+          .ownerDailyPriceMinor,
+        1_600,
+      );
+    });
+  }
+});
+
+test('every allowed pilot catalog pair has an explicit safe price path', async () => {
+  const workflow = createBlueOceanListingWorkflow({
+    configuration: config(),
+    screenImage: async () => ({
+      localOcrText: '',
+      visualScanCompleted: true,
+      visualSignals: [],
+    }),
+  });
+  const generated = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('catalog-matrix-source'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+
+  for (const catalogKey of privatePilotAllowedCatalogKeys) {
+    const [category, subcategory] = catalogKey.split('\u001f');
+    const review = reviewBlueOceanListingDraft({
+      previousRevision: generated.revision,
+      generationKey: key(`catalog-matrix-${catalogKey}`),
+      editedFields: {
+        ...editedFields(),
+        category,
+        subcategory,
+      },
+      answeredClarificationIds: generated.revision.clarificationQuestions
+        .map((entry) => entry.id),
+      ownerConfirmations: confirmations({ finalPublication: true }),
+      pricing: pricing(1_600),
+      imagePreflightPassed: true,
+      consentValid: true,
+    });
+    const expectedRule = blueOceanRegionalPriceRuleByCatalogKey[catalogKey];
+    assert.equal(
+      review.priceMode,
+      expectedRule == null
+        ? 'owner_manual_no_recommendation'
+        : 'regional_recommendation',
+      catalogKey,
+    );
+    assert.equal(review.recommendation == null, expectedRule == null, catalogKey);
+    if (expectedRule != null) {
+      assert.equal(
+        review.recommendation.categoryMinimumMinor,
+        regionalPriceCategoryRules[expectedRule].minimumMinor,
+        catalogKey,
+      );
+      assert.equal(
+        review.recommendation.categoryMaximumMinor,
+        regionalPriceCategoryRules[expectedRule].maximumMinor,
+        catalogKey,
+      );
+    }
+    assert.equal(review.selection.ownerSelectedDailyMinor, 1_600, catalogKey);
+    assert.equal(review.readiness.state, 'READY_TO_PUBLISH', catalogKey);
+    assert.equal(
+      assertBlueOceanExplicitPublication(review, { explicitOwnerAction: true })
+        .ownerDailyPriceMinor,
+      1_600,
+      catalogKey,
+    );
+  }
+});
+
+test('manual price fallback cannot admit a catalog pair outside the private pilot', async () => {
+  const workflow = createBlueOceanListingWorkflow({
+    configuration: config(),
+    screenImage: async () => ({
+      localOcrText: '',
+      visualScanCompleted: true,
+      visualSignals: [],
+    }),
+  });
+  const generated = await workflow.analyze({
+    draftId,
+    ownerId,
+    generationKey: key('catalog-boundary-source'),
+    images: [{
+      imageReference: 'listing_image_12345678',
+      mimeType: 'image/png',
+      bytes: await fixtureImage(),
+    }],
+    consent: consent(),
+  });
+
+  assert.throws(
+    () => reviewBlueOceanListingDraft({
+      previousRevision: generated.revision,
+      generationKey: key('catalog-boundary-review'),
+      editedFields: {
+        ...editedFields(),
+        category: 'cat999',
+        subcategory: 'Nicht erlaubt',
+      },
+      answeredClarificationIds: generated.revision.clarificationQuestions
+        .map((entry) => entry.id),
+      ownerConfirmations: confirmations({ finalPublication: true }),
+      pricing: pricing(1_600),
+      imagePreflightPassed: true,
+      consentValid: true,
+    }),
+    (error) => error instanceof BlueOceanListingWorkflowError
+      && error.status === 409
+      && error.code === 'blue_ocean_catalog_pair_outside_private_pilot',
+  );
 });
 
 test('READY_TO_PUBLISH still requires the separate exact owner publication action', async () => {
