@@ -54,7 +54,7 @@
   },
   "sourceHashesSha256": {
     "lib/screens/booking_detail_screen.dart": "848a736ce2b9200ffa251b96c7b3f8ff761d33f5f01f09512c2af8a97ab1f7e3",
-    "store/privacy-disclosures.json": "80c643aeaa4ea2a3e09aafc85ded1e06f9d9ba4bdca5c477cd801075d4afbfff",
+    "store/privacy-disclosures.json": "e747d684fb176ab376dee04eb3239635aff6c4d72af8182acad0172171e1e700",
     "test/tool/booking_detail_dead_collapsible_hint_state_cleanup_wiring.test.mjs": "e71bc952d6d264969d9726d2939a9233b19d039ee7d5b6b26c33cba8b8a518bc",
     "test/tool/v51_booking_detail_server_price_snapshot_wiring.test.mjs": "9b4bdf08d05078fe2381a1380e2351dfc5997fb71977c410d05852df503ad52d",
     "test/tool/v51_booking_detail_transport_disabled_wiring.test.mjs": "ce040e3a60c692e140284230388e9f605e08d443923a999ab309e8a842564b30"
