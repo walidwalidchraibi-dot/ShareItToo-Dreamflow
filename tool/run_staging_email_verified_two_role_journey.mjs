@@ -10,6 +10,7 @@ import {
   openSync,
   readFileSync,
   realpathSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -267,14 +268,17 @@ export async function prepareStagingEmailVerifiedTwoRoleJourney({
   writePrivateJson(vaultFile, vault);
 
   const accounts = accountMap(vault);
-  const [owner, renter] = await Promise.all([
-    login(fetchImpl, accounts.get('owner')),
-    login(fetchImpl, accounts.get('renter')),
-  ]);
-  if (owner.userId === renter.userId) fail('The email-verified Staging roles resolved to one principal.');
-
+  let owner = null;
+  let renter = null;
   let listingCreated = false;
   try {
+    [owner, renter] = await Promise.all([
+      login(fetchImpl, accounts.get('owner')),
+      login(fetchImpl, accounts.get('renter')),
+    ]);
+    if (owner.userId === renter.userId) {
+      fail('The email-verified Staging roles resolved to one principal.');
+    }
     const mine = await apiRequest(fetchImpl, '/listings/mine', { token: owner.token });
     if ((mine.value?.listings ?? []).some((listing) => listing?.title === title)) {
       fail('The isolated product-journey listing title already exists.');
@@ -352,12 +356,26 @@ export async function prepareStagingEmailVerifiedTwoRoleJourney({
     vault.realTwoRoleJourney.preparedAt = new Date().toISOString();
     writePrivateJson(vaultFile, vault);
   } catch (error) {
-    if (listingCreated) {
-      await apiRequest(fetchImpl, `/listings/${encodeURIComponent(listingId)}/status`, {
-        method: 'PATCH',
-        token: owner.token,
-        body: { status: 'ended' },
-      }).catch(() => {});
+    let cleanupClosed = !listingCreated;
+    if (listingCreated && owner !== null) {
+      try {
+        const ended = await apiRequest(
+          fetchImpl,
+          `/listings/${encodeURIComponent(listingId)}/status`,
+          {
+            method: 'PATCH',
+            token: owner.token,
+            body: { status: 'ended' },
+          },
+        );
+        cleanupClosed = ended.value?.listing?.status === 'ended'
+          && ended.value.listing.isActive === false;
+      } catch {
+        cleanupClosed = false;
+      }
+    }
+    if (cleanupClosed) {
+      rmSync(directory, { recursive: true, force: false });
     }
     throw error;
   }

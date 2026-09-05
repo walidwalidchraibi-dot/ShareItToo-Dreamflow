@@ -5,6 +5,7 @@ import {
   ownerNonBindingDetailVisible,
   renterBookingChatVisible,
   renterNonBindingDetailVisible,
+  retryIdempotentPixelState,
   runAndroidEmailVerifiedTwoRoleProductJourney,
 } from '../../tool/diagnose_android_email_verified_two_role_product_journey.mjs';
 
@@ -93,6 +94,27 @@ test('matches the exact booking chat through the shipped middle-dot title prefix
   const hierarchy = `<hierarchy>${node('Nachrichten-Einstellungen')}${node(`· ${title}`)}${node('Bestätigt')}</hierarchy>`;
   assert.equal(renterBookingChatVisible(hierarchy, title), true);
   assert.equal(renterBookingChatVisible(hierarchy, 'SIT Rollenprüfung another'), false);
+});
+
+test('retries an idempotent Pixel state transition exactly once', async () => {
+  let attempts = 0;
+  const value = await retryIdempotentPixelState(async () => {
+    attempts += 1;
+    if (attempts === 1) throw new Error('transient surface');
+    return 'settled';
+  });
+  assert.equal(value, 'settled');
+  assert.equal(attempts, 2);
+
+  attempts = 0;
+  await assert.rejects(
+    () => retryIdempotentPixelState(async () => {
+      attempts += 1;
+      throw new Error('persistent surface');
+    }),
+    /persistent surface/u,
+  );
+  assert.equal(attempts, 2);
 });
 
 test('closes the Pixel email-verified two-role journey and records only sanitized truth', async () => {

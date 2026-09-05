@@ -112,13 +112,26 @@ async function waitForSavedEdit({
   adbPath,
   device,
   wait,
+  editedTitle,
   attempts = 48,
 }) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     await wait(650);
     const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
     if (containsAllLabels(hierarchy, ['Änderungen wurden gespeichert', 'OK'])) {
-      return hierarchy;
+      return Object.freeze({ hierarchy, confirmationDialogVisible: true });
+    }
+    // MyListings reloads the exact server-backed owner collection before it
+    // presents the owned confirmation dialog. The dialog can therefore be
+    // skipped safely by an interrupted post-frame callback even though the
+    // editor already returned successfully. Accept the exact updated draft
+    // surface as UI truth; the caller still verifies owner and public server
+    // state independently before any later lifecycle action.
+    if (containsAllLabels(
+      hierarchy,
+      [editedTitle, 'Entwurf', 'Status ändern'],
+    )) {
+      return Object.freeze({ hierarchy, confirmationDialogVisible: false });
     }
     for (const [title, code] of listingEditFailureTitles) {
       if (currentHeadAndroidNamedNodes(hierarchy, title).length > 0) {
@@ -257,13 +270,17 @@ async function editDraftOnPixel({
     ).length > 0,
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Bearbeitung speichern');
-  hierarchy = await waitForSavedEdit({
+  const saved = await waitForSavedEdit({
     commandRunner,
     adbPath,
     device,
     wait,
+    editedTitle,
   });
-  tapLabel(commandRunner, adbPath, device, hierarchy, 'OK');
+  hierarchy = saved.hierarchy;
+  if (saved.confirmationDialogVisible) {
+    tapLabel(commandRunner, adbPath, device, hierarchy, 'OK');
+  }
   await waitForHierarchy({
     commandRunner,
     adbPath,
@@ -316,16 +333,67 @@ async function ownerListingActionOnPixel({
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, action);
   if (action === 'Veröffentlichen') {
-    hierarchy = await waitForHierarchy({
-      commandRunner,
-      adbPath,
-      device,
-      wait,
-      attempts: 48,
-      label: 'listing publication confirmation',
-      predicate: (value) => containsAllLabels(value, ['Anzeige veröffentlicht', 'OK']),
-    });
-    tapLabel(commandRunner, adbPath, device, hierarchy, 'OK');
+    let publication = null;
+    for (let attempt = 0; attempt < 16; attempt += 1) {
+      await wait(650);
+      hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+      if (containsAllLabels(hierarchy, ['Anzeige veröffentlicht', 'OK'])) {
+        publication = Object.freeze({ hierarchy, confirmationDialogVisible: true });
+        break;
+      }
+      // The owner collection is reloaded from the server before the optional
+      // success dialog. Exact title plus status is therefore sufficient UI
+      // truth if that owned dialog is not mounted; the following API check is
+      // still mandatory before renter visibility is evaluated.
+      if (containsAllLabels(hierarchy, [title, expectedAfter, 'Status ändern'])) {
+        publication = Object.freeze({ hierarchy, confirmationDialogVisible: false });
+        break;
+      }
+      for (const failureTitle of [
+        'Serverseitig verarbeitet',
+        'Änderungsstatus unklar',
+        'Änderung abgelehnt',
+        'Lokaler Stand nicht verfügbar',
+      ]) {
+        if (currentHeadAndroidNamedNodes(hierarchy, failureTitle).length > 0) {
+          fail('The Pixel listing publication stopped at a safe failure outcome.');
+        }
+      }
+    }
+    if (publication === null) {
+      // Success messages are useful feedback, but not durable truth. If the
+      // owned dialog is absent, require an exact active/public server result
+      // and then reopen the owner collection to prove the same active item in
+      // a freshly loaded UI before continuing.
+      try {
+        await verifyServerLifecycleState({
+          vaultFile,
+          title,
+          expectedStatus: 'active',
+          publicVisible: true,
+        });
+        hierarchy = await openOwnerListings({
+          vault: readEmailVerifiedJourneyVault(vaultFile).vault,
+          title,
+          draft: false,
+          expectedStatusLabel: expectedAfter,
+          commandRunner,
+          adbPath,
+          device,
+          wait,
+        });
+        publication = Object.freeze({
+          hierarchy,
+          confirmationDialogVisible: false,
+        });
+      } catch {
+        fail('The listing publication did not reach exact owner UI and server truth.');
+      }
+    }
+    hierarchy = publication.hierarchy;
+    if (publication.confirmationDialogVisible) {
+      tapLabel(commandRunner, adbPath, device, hierarchy, 'OK');
+    }
   }
   await waitForHierarchy({
     commandRunner,
@@ -539,22 +607,47 @@ export async function runAndroidListingLifecycle({
   let restored = false;
   let primaryFailure = null;
   let cleanupFailure = null;
+  const stage = async (name, operation) => {
+    try {
+      return await operation();
+    } catch (error) {
+      fail(`Stage ${name} failed: ${sanitizedFailure(error)}`);
+    }
+  };
   try {
-    prepared = await operations.prepare();
-    const edited = await operations.editDraft(prepared);
-    const draft = await operations.verifyDraft(prepared, edited);
-    const publishedUi = await operations.publish(prepared, edited);
-    const published = await operations.verifyPublished(prepared, edited);
-    const visibleBeforePause = await operations.verifyRenterVisibleBeforePause(prepared, edited);
-    const pausedUi = await operations.pause(prepared, edited);
-    const paused = await operations.verifyPaused(prepared, edited);
-    const hiddenWhilePaused = await operations.verifyRenterHiddenWhilePaused(prepared, edited);
-    const reactivatedUi = await operations.reactivate(prepared, edited);
-    const reactivated = await operations.verifyReactivated(prepared, edited);
-    const visibleAfterReactivate = await operations.verifyRenterVisibleAfterReactivate(prepared, edited);
-    const endedUi = await operations.end(prepared, edited);
-    const ended = await operations.verifyEnded(prepared, edited);
-    const hiddenAfterEnd = await operations.verifyRenterHiddenAfterEnd(prepared, edited);
+    prepared = await stage('prepare', () => operations.prepare());
+    const edited = await stage('edit-draft', () => operations.editDraft(prepared));
+    const draft = await stage('verify-draft', () => operations.verifyDraft(prepared, edited));
+    const publishedUi = await stage('publish', () => operations.publish(prepared, edited));
+    const published = await stage('verify-published', () => operations.verifyPublished(prepared, edited));
+    const visibleBeforePause = await stage(
+      'renter-visible-before-pause',
+      () => operations.verifyRenterVisibleBeforePause(prepared, edited),
+    );
+    const pausedUi = await stage('pause', () => operations.pause(prepared, edited));
+    const paused = await stage('verify-paused', () => operations.verifyPaused(prepared, edited));
+    const hiddenWhilePaused = await stage(
+      'renter-hidden-while-paused',
+      () => operations.verifyRenterHiddenWhilePaused(prepared, edited),
+    );
+    const reactivatedUi = await stage(
+      'reactivate',
+      () => operations.reactivate(prepared, edited),
+    );
+    const reactivated = await stage(
+      'verify-reactivated',
+      () => operations.verifyReactivated(prepared, edited),
+    );
+    const visibleAfterReactivate = await stage(
+      'renter-visible-after-reactivate',
+      () => operations.verifyRenterVisibleAfterReactivate(prepared, edited),
+    );
+    const endedUi = await stage('end', () => operations.end(prepared, edited));
+    const ended = await stage('verify-ended', () => operations.verifyEnded(prepared, edited));
+    const hiddenAfterEnd = await stage(
+      'renter-hidden-after-end',
+      () => operations.verifyRenterHiddenAfterEnd(prepared, edited),
+    );
     const revisions = [draft, published, paused, reactivated, ended]
       .map((entry) => entry.catalogRevision);
     if (edited.status !== 'pixel-owner-draft-edit-saved'

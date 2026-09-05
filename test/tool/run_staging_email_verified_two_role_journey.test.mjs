@@ -4,6 +4,7 @@ import {
   mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -247,4 +248,22 @@ test('rejects a source vault that has not completed both email links', async () 
     }),
     /exact email-link-verified two-role Staging fixture/u,
   );
+});
+
+test('removes a partial private journey vault when preparation fails before listing creation', async () => {
+  const fixture = privateFixture();
+  await assert.rejects(
+    () => prepareStagingEmailVerifiedTwoRoleJourney({
+      sourceVaultFile: fixture.sourceVaultFile,
+      vaultRoot: fixture.journeyDirectory,
+      imagePath: fixture.imagePath,
+      fetchImpl: async () => {
+        throw new Error('transport unavailable');
+      },
+      now: new Date('2026-09-03T08:00:00.000Z'),
+      random: () => Buffer.from([1, 2, 3, 4]),
+    }),
+    /transport unavailable/u,
+  );
+  assert.deepEqual(readdirSync(fixture.journeyDirectory), []);
 });

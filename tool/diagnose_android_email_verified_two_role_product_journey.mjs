@@ -52,6 +52,21 @@ function sanitizedFailure(error) {
   return detail;
 }
 
+export async function retryIdempotentPixelState(operation) {
+  if (typeof operation !== 'function') {
+    fail('The idempotent Pixel state operation is unavailable.');
+  }
+  let lastFailure;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastFailure = error;
+    }
+  }
+  throw lastFailure;
+}
+
 function pointForNode(node, label) {
   const bounds = /\[(\d+),(\d+)\]\[(\d+),(\d+)\]/u.exec(
     currentHeadAndroidNodeAttribute(node, 'bounds') ?? '',
@@ -207,23 +222,49 @@ export async function bindExactRole({
   const other = vault.accounts.find((entry) => entry.role !== role)
     ?? fail('The opposite email-verified product-journey role is unavailable.');
   launchCurrentHeadAndroidCandidate(commandRunner, adbPath, device);
-  if (await ensureAndroidGuestSession({ commandRunner, adbPath, device, wait }) !== true
-      || await restoreSyntheticSession({
+  let guestEstablished = false;
+  try {
+    guestEstablished = await retryIdempotentPixelState(
+      () => ensureAndroidGuestSession({
+        commandRunner,
+        adbPath,
+        device,
+        wait,
+      }),
+    ) === true;
+  } catch {
+    fail(`The exact ${role} Pixel guest-reset surface did not appear.`);
+  }
+  if (!guestEstablished) {
+    fail(`The exact ${role} Pixel guest session could not be established.`);
+  }
+  let sessionRestored = false;
+  try {
+    sessionRestored = await retryIdempotentPixelState(() => restoreSyntheticSession({
         commandRunner,
         adbPath,
         device,
         wait,
         account,
-      }) !== true) {
+      })) === true;
+  } catch {
+    fail(`The exact ${role} Pixel login-restore surface did not appear.`);
+  }
+  if (!sessionRestored) {
     fail(`The exact ${role} Pixel session could not be established.`);
   }
-  const profile = await openMainDestination({
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-    label: 'Mein SIT',
-  });
+  let profile;
+  try {
+    profile = await openMainDestination({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'Mein SIT',
+    });
+  } catch {
+    fail(`The exact ${role} Pixel profile surface did not appear.`);
+  }
   const exact = await waitForHierarchy({
     commandRunner,
     adbPath,
