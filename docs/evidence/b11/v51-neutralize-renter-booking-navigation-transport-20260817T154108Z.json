@@ -50,7 +50,7 @@
     "candidateBuiltOrRelabeled": false
   },
   "sourceHashesSha256": {
-    "lib/screens/bookings_screen.dart": "86d099c20154056230549a77c7a5ad6913dd177b6ded12d49d83c77e22ed5668",
+    "lib/screens/bookings_screen.dart": "1eda9806562ef1c31d4c86c67990b6f91dd59ccb8360f69d5b8194331dcb754a",
     "test/tool/bookings_screen_dead_ui_cleanup_wiring.test.mjs": "dc650c4cdd7c892b6f1bfbd400f58b83d6c42cef4a7482c1ee81e0a8d2e25716"
   }
 }

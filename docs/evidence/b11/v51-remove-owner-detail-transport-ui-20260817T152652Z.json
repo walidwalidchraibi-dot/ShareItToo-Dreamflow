@@ -56,8 +56,8 @@
     "candidateBuiltOrRelabeled": false
   },
   "sourceHashesSha256": {
-    "lib/screens/ongoing_owner_detail_screen.dart": "401e865b3afc517af27796898df8c901e7f609cdce81d13eb38d9961ff3e67fd",
-    "store/privacy-disclosures.json": "e478193ead089b55b3ddc1cec72174849a179c18789a51c0bfd7974cbf9f8541",
+    "lib/screens/ongoing_owner_detail_screen.dart": "3df03f4ce7e529411139bcb1462399571bdbe74376421dfb6402b4a06e125568",
+    "store/privacy-disclosures.json": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86",
     "test/tool/v51_owner_detail_transport_disabled_wiring.test.mjs": "932023f58030a2b1f54de25f383f7cc53b80842aad3d5b8a8d2f44c1b38ef0a9"
   }
 }

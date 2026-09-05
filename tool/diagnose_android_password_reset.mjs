@@ -168,6 +168,8 @@ function readResetVault(vaultFile) {
   const { canonical, value: vault } = readPrivateJson(vaultFile, 'The password-reset vault');
   const needsPendingPassword = [
     'prepared-for-pixel-password-reset',
+    'pixel-password-reset-request-in-progress',
+    'pixel-password-reset-request-outcome-unknown',
     'pixel-password-reset-request-accepted-pending-email',
   ].includes(vault?.status);
   if (vault?.schemaVersion !== 1
@@ -186,12 +188,59 @@ function readResetVault(vaultFile) {
   return { canonical, vault, account };
 }
 
+export function beginPasswordResetRequest({ vaultFile, occurredAt = new Date() }) {
+  if (!(occurredAt instanceof Date) || !Number.isFinite(occurredAt.getTime())) {
+    fail('The password-reset request-start timestamp is invalid.');
+  }
+  const { canonical, vault } = readResetVault(vaultFile);
+  if (vault.status !== 'prepared-for-pixel-password-reset') {
+    fail('The password-reset request-start transition is out of order.');
+  }
+  vault.status = 'pixel-password-reset-request-in-progress';
+  vault.events = [...(Array.isArray(vault.events) ? vault.events : []), {
+    event: 'pixel-ui-password-reset-request-started',
+    occurredAt: occurredAt.toISOString(),
+  }];
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: vault.status,
+    containsEmailAddress: false,
+    containsCredential: false,
+  });
+}
+
+export function markPasswordResetRequestOutcomeUnknown({
+  vaultFile,
+  occurredAt = new Date(),
+} = {}) {
+  if (!(occurredAt instanceof Date) || !Number.isFinite(occurredAt.getTime())) {
+    fail('The password-reset unknown-result timestamp is invalid.');
+  }
+  const { canonical, vault } = readResetVault(vaultFile);
+  if (vault.status !== 'pixel-password-reset-request-in-progress') {
+    fail('The password-reset unknown-result transition is out of order.');
+  }
+  vault.status = 'pixel-password-reset-request-outcome-unknown';
+  vault.events = [...(Array.isArray(vault.events) ? vault.events : []), {
+    event: 'pixel-ui-password-reset-request-outcome-unknown',
+    occurredAt: occurredAt.toISOString(),
+  }];
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: vault.status,
+    freshRequestAllowed: false,
+    reconciliationRequired: true,
+    containsEmailAddress: false,
+    containsCredential: false,
+  });
+}
+
 export function transitionPasswordResetRequest({ vaultFile, occurredAt = new Date() }) {
   if (!(occurredAt instanceof Date) || !Number.isFinite(occurredAt.getTime())) {
     fail('The password-reset event timestamp is invalid.');
   }
   const { canonical, vault } = readResetVault(vaultFile);
-  if (vault.status !== 'prepared-for-pixel-password-reset') {
+  if (vault.status !== 'pixel-password-reset-request-in-progress') {
     fail('The password-reset request transition is out of order.');
   }
   vault.status = 'pixel-password-reset-request-accepted-pending-email';
@@ -202,6 +251,31 @@ export function transitionPasswordResetRequest({ vaultFile, occurredAt = new Dat
   writePrivateJson(canonical, vault);
   return Object.freeze({
     status: vault.status,
+    containsEmailAddress: false,
+    containsCredential: false,
+  });
+}
+
+export function reconcilePasswordResetEmailDelivery({
+  vaultFile,
+  occurredAt = new Date(),
+} = {}) {
+  if (!(occurredAt instanceof Date) || !Number.isFinite(occurredAt.getTime())) {
+    fail('The password-reset delivery timestamp is invalid.');
+  }
+  const { canonical, vault } = readResetVault(vaultFile);
+  if (vault.status !== 'pixel-password-reset-request-outcome-unknown') {
+    fail('The password-reset delivery reconciliation is out of order.');
+  }
+  vault.status = 'pixel-password-reset-request-accepted-pending-email';
+  vault.events = [...(Array.isArray(vault.events) ? vault.events : []), {
+    event: 'password-reset-email-delivery-reconciled',
+    occurredAt: occurredAt.toISOString(),
+  }];
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: vault.status,
+    deliveryReconciled: true,
     containsEmailAddress: false,
     containsCredential: false,
   });
@@ -472,16 +546,22 @@ export async function requestPixelPasswordReset({
     );
     hierarchy = dumpUi(commandRunner, adbPath, device);
   }
-  tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Link senden');
-  await waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    predicate: (value) => value.includes('E-Mail gesendet')
-      && value.includes('Wenn ein Konto existiert'),
-    wait,
-    attempts: 32,
-  });
+  beginPasswordResetRequest({ vaultFile });
+  try {
+    tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Link senden');
+    await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      predicate: (value) => value.includes('E-Mail gesendet')
+        && value.includes('Wenn ein Konto existiert'),
+      wait,
+      attempts: 32,
+    });
+  } catch (error) {
+    markPasswordResetRequestOutcomeUnknown({ vaultFile });
+    throw error;
+  }
   transitionPasswordResetRequest({ vaultFile });
   return Object.freeze({
     status: 'pixel-password-reset-request-accepted-pending-email',
@@ -590,6 +670,11 @@ async function run() {
   const vaultFile = resolve(argumentValue(args, '--vault-file') ?? fail('--vault-file is required.'));
   if (phase === 'record-server-confirmation') {
     const result = await verifyOldPasswordRejectedAndFinalize({ vaultFile });
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+  if (phase === 'record-delivered-email') {
+    const result = reconcilePasswordResetEmailDelivery({ vaultFile });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }

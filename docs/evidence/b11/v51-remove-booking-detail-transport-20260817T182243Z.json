@@ -53,10 +53,10 @@
     "candidateBuiltOrRelabeled": false
   },
   "sourceHashesSha256": {
-    "lib/screens/booking_detail_screen.dart": "eea69894977356af2b5f314bf5f8c2cea3012cdf48a1c5ef7c28b2bb090657f3",
-    "store/privacy-disclosures.json": "e478193ead089b55b3ddc1cec72174849a179c18789a51c0bfd7974cbf9f8541",
-    "test/tool/booking_detail_dead_collapsible_hint_state_cleanup_wiring.test.mjs": "f47f7b1a1f61f3c639522abbafa8aa185552fa6a40ede2c775c289f3e84ead05",
-    "test/tool/v51_booking_detail_server_price_snapshot_wiring.test.mjs": "b39a89364255efbaf45f6a41edf02446f23080c93d46a2feb31e75f960444921",
-    "test/tool/v51_booking_detail_transport_disabled_wiring.test.mjs": "8122e22dd4b6ae52fbac865a29f7d1baabba1e7ff297113cda5fe0a184d24ce4"
+    "lib/screens/booking_detail_screen.dart": "848a736ce2b9200ffa251b96c7b3f8ff761d33f5f01f09512c2af8a97ab1f7e3",
+    "store/privacy-disclosures.json": "fc8fc8a320a2010af011315790eb7efc011cfb9aa8dc0801042be252954b1f86",
+    "test/tool/booking_detail_dead_collapsible_hint_state_cleanup_wiring.test.mjs": "e71bc952d6d264969d9726d2939a9233b19d039ee7d5b6b26c33cba8b8a518bc",
+    "test/tool/v51_booking_detail_server_price_snapshot_wiring.test.mjs": "9b4bdf08d05078fe2381a1380e2351dfc5997fb71977c410d05852df503ad52d",
+    "test/tool/v51_booking_detail_transport_disabled_wiring.test.mjs": "ce040e3a60c692e140284230388e9f605e08d443923a999ab309e8a842564b30"
   }
 }

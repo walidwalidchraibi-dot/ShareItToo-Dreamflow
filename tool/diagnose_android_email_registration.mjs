@@ -158,7 +158,7 @@ function readVault(vaultFile) {
 
 const transitions = Object.freeze({
   'pixel-ui-submitted': Object.freeze({
-    from: 'prepared-for-pixel-ui-registration',
+    from: 'pixel-ui-registration-submission-in-progress',
     to: 'pixel-ui-registration-accepted-pending-email',
   }),
   'email-link-confirmed': Object.freeze({
@@ -170,6 +170,56 @@ const transitions = Object.freeze({
     to: 'pixel-ui-registration-login-complete',
   }),
 });
+
+export function beginUiRegistrationSubmission({
+  vaultFile,
+  occurredAt = new Date(),
+} = {}) {
+  if (!(occurredAt instanceof Date) || !Number.isFinite(occurredAt.getTime())) {
+    fail('The UI registration submission timestamp is invalid.');
+  }
+  const { canonical, vault } = readVault(vaultFile);
+  if (vault.status !== 'prepared-for-pixel-ui-registration') {
+    fail('The UI registration submission transition is out of order.');
+  }
+  vault.status = 'pixel-ui-registration-submission-in-progress';
+  vault.events = [...(Array.isArray(vault.events) ? vault.events : []), {
+    event: 'pixel-ui-registration-submission-started',
+    occurredAt: occurredAt.toISOString(),
+  }];
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: vault.status,
+    containsEmailAddress: false,
+    containsCredential: false,
+  });
+}
+
+export function markUiRegistrationSubmissionOutcomeUnknown({
+  vaultFile,
+  occurredAt = new Date(),
+} = {}) {
+  if (!(occurredAt instanceof Date) || !Number.isFinite(occurredAt.getTime())) {
+    fail('The UI registration unknown-result timestamp is invalid.');
+  }
+  const { canonical, vault } = readVault(vaultFile);
+  if (vault.status !== 'pixel-ui-registration-submission-in-progress') {
+    fail('The UI registration unknown-result transition is out of order.');
+  }
+  vault.status = 'pixel-ui-registration-submission-outcome-unknown';
+  vault.events = [...(Array.isArray(vault.events) ? vault.events : []), {
+    event: 'pixel-ui-registration-submission-outcome-unknown',
+    occurredAt: occurredAt.toISOString(),
+  }];
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: vault.status,
+    freshSubmissionAllowed: false,
+    reconciliationRequired: true,
+    containsEmailAddress: false,
+    containsCredential: false,
+  });
+}
 
 export function transitionUiRegistrationVault({ vaultFile, event, occurredAt = new Date() }) {
   const transition = transitions[event] ?? fail('The UI registration transition is invalid.');
@@ -187,6 +237,31 @@ export function transitionUiRegistrationVault({ vaultFile, event, occurredAt = n
   return Object.freeze({
     status: vault.status,
     event,
+    containsEmailAddress: false,
+    containsCredential: false,
+  });
+}
+
+export function reconcileUiRegistrationEmailDelivery({
+  vaultFile,
+  occurredAt = new Date(),
+} = {}) {
+  if (!(occurredAt instanceof Date) || !Number.isFinite(occurredAt.getTime())) {
+    fail('The UI registration delivery timestamp is invalid.');
+  }
+  const { canonical, vault } = readVault(vaultFile);
+  if (vault.status !== 'pixel-ui-registration-submission-outcome-unknown') {
+    fail('The UI registration delivery reconciliation is out of order.');
+  }
+  vault.status = 'pixel-ui-registration-accepted-pending-email';
+  vault.events = [...(Array.isArray(vault.events) ? vault.events : []), {
+    event: 'registration-email-delivery-reconciled',
+    occurredAt: occurredAt.toISOString(),
+  }];
+  writePrivateJson(canonical, vault);
+  return Object.freeze({
+    status: vault.status,
+    deliveryReconciled: true,
     containsEmailAddress: false,
     containsCredential: false,
   });
@@ -395,16 +470,22 @@ export async function submitPixelUiRegistration({
     });
   }
   hierarchy = dumpUi(commandRunner, adbPath, device);
-  tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Kostenlos registrieren');
-  await waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    predicate: (value) => value.includes('Prüfe deine E-Mail')
-      && namedNodes(value, 'Anmelden').length >= 1,
-    wait,
-    attempts: 32,
-  });
+  beginUiRegistrationSubmission({ vaultFile });
+  try {
+    tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Kostenlos registrieren');
+    await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      predicate: (value) => value.includes('Prüfe deine E-Mail')
+        && namedNodes(value, 'Anmelden').length >= 1,
+      wait,
+      attempts: 32,
+    });
+  } catch (error) {
+    markUiRegistrationSubmissionOutcomeUnknown({ vaultFile });
+    throw error;
+  }
   transitionUiRegistrationVault({ vaultFile, event: 'pixel-ui-submitted' });
   return Object.freeze({
     status: 'pixel-ui-registration-accepted-pending-email',
@@ -490,6 +571,11 @@ async function run() {
   const vaultFile = resolve(argumentValue(args, '--vault-file') ?? fail('--vault-file is required.'));
   if (phase === 'record-email-confirmation') {
     const result = transitionUiRegistrationVault({ vaultFile, event: 'email-link-confirmed' });
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+  if (phase === 'reconcile-delivered-email') {
+    const result = reconcileUiRegistrationEmailDelivery({ vaultFile });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }

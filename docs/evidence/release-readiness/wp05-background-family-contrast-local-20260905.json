@@ -54,7 +54,7 @@
   "sourceInventory": [
     {
       "path": "lib/main.dart",
-      "sha256": "e9614eb62423f732283d8f74d30a041bf3009d52fd4953518edfa50035fad04c"
+      "sha256": "b30abf9ccf3c63c227938adf8927781b11b8529bc25ebc2a070abd798a17ad6e"
     },
     {
       "path": "lib/screens/background_settings_screen.dart",
@@ -70,11 +70,11 @@
     },
     {
       "path": "test/background_theme_contrast_test.dart",
-      "sha256": "1dea69b225b9dad5a4af92384c68368c6a3d1641d43f1d715ace43fe50c754b8"
+      "sha256": "bbf2b043bce34782e83577d833bcbe254ed4bab8b67a57af2f2222d2eca7519d"
     },
     {
       "path": "test/tool/background_theme_contrast_wiring.test.mjs",
-      "sha256": "a3453146cce060c5889947c1ea0e81e7cf3293cfb9b1ee7659975f1b55d4569f"
+      "sha256": "606a4fcadff81f657eb37f055135c879f6a9346ff29670d70194537195fefcf1"
     }
   ],
   "nextGates": {

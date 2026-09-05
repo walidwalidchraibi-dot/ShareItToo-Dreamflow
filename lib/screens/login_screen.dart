@@ -19,12 +19,15 @@ import 'package:lendify/widgets/social_auth_button.dart';
 import 'package:lendify/widgets/tracked_dialog_route.dart';
 import 'package:provider/provider.dart';
 
+typedef PasswordResetRequester = Future<bool> Function(String email);
+
 class LoginScreen extends StatefulWidget {
   final int? returnTabIndex;
   final String? initialEmail;
   final bool verificationPending;
   final SessionTransitionService? sessionTransitionService;
   final ContactVerificationService? contactVerificationService;
+  final PasswordResetRequester? passwordResetRequester;
 
   const LoginScreen({
     super.key,
@@ -33,6 +36,7 @@ class LoginScreen extends StatefulWidget {
     this.verificationPending = false,
     this.sessionTransitionService,
     this.contactVerificationService,
+    this.passwordResetRequester,
   });
 
   @override
@@ -535,12 +539,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _openResetFlow() async {
     final prefill = _emailCtrl.text.trim();
-    await showBlurBottomSheet<void>(
+    final sent = await showBlurBottomSheet<bool>(
       context,
       child: SheetScaffold(
         title: 'Passwort zurücksetzen',
-        body: _PasswordResetSheet(initialEmail: prefill),
+        body: _PasswordResetSheet(
+          initialEmail: prefill,
+          requestPasswordReset:
+              widget.passwordResetRequester ?? AuthService.requestPasswordReset,
+        ),
       ),
+    );
+    if (!mounted || sent != true) return;
+    await AppPopup.info(
+      context,
+      title: 'E-Mail gesendet',
+      message:
+          'Wenn ein Konto existiert, erhältst du gleich einen Link zum Zurücksetzen.',
     );
   }
 
@@ -1618,7 +1633,11 @@ class _PressableState extends State<_Pressable> {
 
 class _PasswordResetSheet extends StatefulWidget {
   final String initialEmail;
-  const _PasswordResetSheet({required this.initialEmail});
+  final PasswordResetRequester requestPasswordReset;
+  const _PasswordResetSheet({
+    required this.initialEmail,
+    required this.requestPasswordReset,
+  });
 
   @override
   State<_PasswordResetSheet> createState() => _PasswordResetSheetState();
@@ -1656,7 +1675,7 @@ class _PasswordResetSheetState extends State<_PasswordResetSheet> {
 
     setState(() => _busy = true);
     try {
-      final sent = await AuthService.requestPasswordReset(
+      final sent = await widget.requestPasswordReset(
         _emailCtrl.text.trim(),
       );
       if (!mounted) return;
@@ -1669,14 +1688,7 @@ class _PasswordResetSheetState extends State<_PasswordResetSheet> {
         );
         return;
       }
-      Navigator.of(context).maybePop();
-      await AppPopup.toast(
-        context,
-        icon: Icons.mark_email_read_outlined,
-        title: 'E-Mail gesendet',
-        message:
-            'Wenn ein Konto existiert, erhältst du gleich einen Link zum Zurücksetzen.',
-      );
+      Navigator.of(context).pop(true);
     } catch (e) {
       debugPrint('[PasswordReset] submit failed: $e');
     } finally {

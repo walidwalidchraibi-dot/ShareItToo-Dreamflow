@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
+  beginPasswordResetRequest,
+  markPasswordResetRequestOutcomeUnknown,
   preparePasswordResetVault,
+  reconcilePasswordResetEmailDelivery,
   transitionPasswordResetLogin,
   transitionPasswordResetRequest,
   verifyOldPasswordRejectedAndFinalize,
@@ -70,6 +73,7 @@ test('requires exact old-password rejection before safely moving the new credent
     random: fixedRandom,
   });
   const pending = JSON.parse(readFileSync(prepared.vaultFile, 'utf8')).pendingPassword;
+  beginPasswordResetRequest({ vaultFile: prepared.vaultFile });
   transitionPasswordResetRequest({ vaultFile: prepared.vaultFile });
   const result = await verifyOldPasswordRejectedAndFinalize({
     vaultFile: prepared.vaultFile,
@@ -87,6 +91,34 @@ test('requires exact old-password rejection before safely moving the new credent
     'pixel-password-reset-login-complete');
 });
 
+test('retains an unknown submitted request until exact mail delivery reconciles it', () => {
+  const root = tempFixtures.makeSync('sit-password-reset-unknown-');
+  const prepared = preparePasswordResetVault({
+    accountVaultFile: sourceAccount(root),
+    vaultRoot: resolve(root, 'resets'),
+    now: new Date('2026-09-03T08:10:00.000Z'),
+    random: fixedRandom,
+  });
+  assert.equal(beginPasswordResetRequest({ vaultFile: prepared.vaultFile }).status,
+    'pixel-password-reset-request-in-progress');
+  const unknown = markPasswordResetRequestOutcomeUnknown({
+    vaultFile: prepared.vaultFile,
+  });
+  assert.equal(unknown.status, 'pixel-password-reset-request-outcome-unknown');
+  assert.equal(unknown.freshRequestAllowed, false);
+  assert.equal(unknown.reconciliationRequired, true);
+  assert.throws(
+    () => transitionPasswordResetRequest({ vaultFile: prepared.vaultFile }),
+    /out of order/u,
+  );
+  const reconciled = reconcilePasswordResetEmailDelivery({
+    vaultFile: prepared.vaultFile,
+  });
+  assert.equal(reconciled.status,
+    'pixel-password-reset-request-accepted-pending-email');
+  assert.equal(reconciled.deliveryReconciled, true);
+});
+
 test('rejects ambiguous auth outcomes and preserves both vaults byte-for-byte', async () => {
   for (const result of [
     { status: 200, error: null },
@@ -101,6 +133,7 @@ test('rejects ambiguous auth outcomes and preserves both vaults byte-for-byte', 
       now: new Date('2026-09-03T08:10:00.000Z'),
       random: fixedRandom,
     });
+    beginPasswordResetRequest({ vaultFile: prepared.vaultFile });
     transitionPasswordResetRequest({ vaultFile: prepared.vaultFile });
     const beforeReset = readFileSync(prepared.vaultFile);
     const beforeAccount = readFileSync(accountVaultFile);
@@ -116,12 +149,28 @@ test('rejects ambiguous auth outcomes and preserves both vaults byte-for-byte', 
   }
 });
 
+test('never records a password-reset request before submission starts', () => {
+  const root = tempFixtures.makeSync('sit-password-reset-unstarted-');
+  const prepared = preparePasswordResetVault({
+    accountVaultFile: sourceAccount(root),
+    vaultRoot: resolve(root, 'resets'),
+    now: new Date('2026-09-03T08:10:00.000Z'),
+    random: fixedRandom,
+  });
+  assert.throws(
+    () => transitionPasswordResetRequest({ vaultFile: prepared.vaultFile }),
+    /out of order/u,
+  );
+});
+
 test('wires exact candidate, Pixel UI request, single-use confirmation and cold start', () => {
   for (const marker of [
     'validatePrivateAndroidReleaseArchive',
     'verifyInstalledCandidate',
     'ensureAndroidGuestSession',
     'restoreSyntheticSession',
+    'pixel-ui-password-reset-request-outcome-unknown',
+    'password-reset-email-delivery-reconciled',
     'Passwort vergessen?',
     'Passwort zurücksetzen',
     'Link senden',

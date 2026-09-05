@@ -51,7 +51,7 @@
     "candidateBuiltOrRelabeled": false
   },
   "sourceHashesSha256": {
-    "lib/widgets/item_details_overlay.dart": "a821e8f427f5ebcff8cc5bd2d9474917c5d5ad361b99857e0e9ee1d6ddd5ad13",
+    "lib/widgets/item_details_overlay.dart": "3541d27c2964795b925e30a2d990b81da759f3ef521b79e4fe4902be965c2141",
     "test/tool/v51_item_details_transport_fail_closed_wiring.test.mjs": "ae0cedba2474c668bd23d4377a765628ca1e56ba53b57ccc913260bc385c2b23"
   }
 }

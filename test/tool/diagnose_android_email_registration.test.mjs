@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
+  beginUiRegistrationSubmission,
+  markUiRegistrationSubmissionOutcomeUnknown,
   prepareUiRegistrationVault,
+  reconcileUiRegistrationEmailDelivery,
   transitionUiRegistrationVault,
 } from '../../tool/diagnose_android_email_registration.mjs';
 import { createTestTempTracker } from './test_temp_fixtures.mjs';
@@ -45,6 +48,7 @@ test('enforces exact private state transitions', () => {
     now: new Date('2026-09-03T08:00:00.000Z'),
     random: fixedRandom,
   });
+  beginUiRegistrationSubmission({ vaultFile: prepared.vaultFile });
   for (const [event, status] of [
     ['pixel-ui-submitted', 'pixel-ui-registration-accepted-pending-email'],
     ['email-link-confirmed', 'email-link-verified-ready-for-pixel-login'],
@@ -59,6 +63,36 @@ test('enforces exact private state transitions', () => {
     assert.equal(result.containsEmailAddress, false);
     assert.equal(result.containsCredential, false);
   }
+});
+
+test('retains an unknown registration submission until mail delivery reconciles it', () => {
+  const root = tempFixtures.makeSync('sit-ui-registration-unknown-');
+  const prepared = prepareUiRegistrationVault({
+    baseEmail: 'owner@example.test',
+    vaultRoot: root,
+    now: new Date('2026-09-03T08:00:00.000Z'),
+    random: fixedRandom,
+  });
+  assert.equal(beginUiRegistrationSubmission({ vaultFile: prepared.vaultFile }).status,
+    'pixel-ui-registration-submission-in-progress');
+  const unknown = markUiRegistrationSubmissionOutcomeUnknown({
+    vaultFile: prepared.vaultFile,
+  });
+  assert.equal(unknown.status, 'pixel-ui-registration-submission-outcome-unknown');
+  assert.equal(unknown.freshSubmissionAllowed, false);
+  assert.equal(unknown.reconciliationRequired, true);
+  assert.throws(
+    () => transitionUiRegistrationVault({
+      vaultFile: prepared.vaultFile,
+      event: 'pixel-ui-submitted',
+    }),
+    /out of order/u,
+  );
+  const reconciled = reconcileUiRegistrationEmailDelivery({
+    vaultFile: prepared.vaultFile,
+  });
+  assert.equal(reconciled.status, 'pixel-ui-registration-accepted-pending-email');
+  assert.equal(reconciled.deliveryReconciled, true);
 });
 
 test('rejects skipped transitions and non-private vaults', () => {
@@ -96,6 +130,8 @@ test('wires the exact candidate, form, consent, verification and cold-start gate
     'Passwort wiederholen',
     'Kostenlos registrieren',
     'Prüfe deine E-Mail',
+    'pixel-ui-registration-submission-outcome-unknown',
+    'registration-email-delivery-reconciled',
     ...[
       'Ich bin 18 Jahre oder älter.',
       'Ich akzeptiere die AGB.',

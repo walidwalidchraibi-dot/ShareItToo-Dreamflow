@@ -49,10 +49,10 @@
     "failures": 2
   },
   "sourceHashes": {
-    "lib/screens/wishlists_screen.dart": "951df4934d593a540d73a9fad5fcb6167650300ff01325fd9c092c871c06d27d",
-    "lib/services/data_service.dart": "4b80991b104e96686d8ada3dc140bd3058a8ed993482c527f7da31f22efd01fa",
-    "lib/services/backend_repository.dart": "64da8494dc287061847a6fa8c7398e98759d65feb052e16a832235430437453f",
-    "lib/widgets/item_details_overlay.dart": "fccffdd961e5c0c712288a2e19b9aa37d55f73d8fd18bc3db7c3f6e7bcbaebc0",
+    "lib/screens/wishlists_screen.dart": "cb64ca5670af401b7259e3d226cdde54047891c842abcf5287522528590f4bba",
+    "lib/services/data_service.dart": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50",
+    "lib/services/backend_repository.dart": "6c54e6b41212b8f57682964599e664d5eab410702a20b505bcdd01c57abd907d",
+    "lib/widgets/item_details_overlay.dart": "3541d27c2964795b925e30a2d990b81da759f3ef521b79e4fe4902be965c2141",
     "lib/services/local_principal_scope.dart": "7bc2b1254651b1cca95059ef99de2fe4b9027bb7ebbd3cea88777f3db33e2218"
   },
   "logHashes": {
