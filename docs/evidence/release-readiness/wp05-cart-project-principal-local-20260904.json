@@ -91,11 +91,11 @@
     "lib/screens/wishlists_screen.dart": "cb64ca5670af401b7259e3d226cdde54047891c842abcf5287522528590f4bba",
     "lib/services/local_principal_scope.dart": "7bc2b1254651b1cca95059ef99de2fe4b9027bb7ebbd3cea88777f3db33e2218",
     "lib/services/backend_repository.dart": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20",
-    "lib/services/data_service.dart": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50",
+    "lib/services/data_service.dart": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac",
     "scripts/technical_regression_check.sh": "34270a229093d27eaf9b70ea4c9a0937897a6cdf335730c7f1b390b406dbfd6d",
     "test/reduced_wave0_local_principal_isolation_test.dart": "68d82e3a6c2cbb5bbc6bb60db675f1dbbb76610e5b35f616036f72abb7444907",
     "test/rental_cart_project_principal_test.dart": "589540c4a715816484b8ec2d5e3dad9076f94642e7dd41e5b7a9cba944c5ceaa",
-    "test/rental_cart_project_backend_owner_test.dart": "f92612b69e50e8dc514d0ec0c55600d385f36ca1c0d828d049ba9f709286eb61",
+    "test/rental_cart_project_backend_owner_test.dart": "5c651dd9ab55a3d7a5694a0696d9d0b09a1349df0e6dc2a0753a3930a51014b1",
     "test/tool/rental_cart_project_principal_wiring.test.mjs": "896ff2eb0c2ad063bfb81bf9c936f629b702f9ab8597cea7d13180e1cf0cc22c"
   },
   "proofHashes": {

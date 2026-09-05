@@ -305,9 +305,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "5f2ad84f5509bb9d0b62528ac9f95381c34e6fafb48da9b34aca457df91be3ea",
-    "retentionManifestSha256": "1d051ae27a78495dde96b2552b3360b1e2c2c8de700d2b04048f3cf0b48de210",
-    "activeProviderEvidenceSha256": "1e6be89c7e024ee09741a1c7996b3cbd7c0c19a2d7cfdec12b3772c2daca091e",
+    "privacyManifestSha256": "80c643aeaa4ea2a3e09aafc85ded1e06f9d9ba4bdca5c477cd801075d4afbfff",
+    "retentionManifestSha256": "9bf6b2b7b24653102947b363cfa2d08d48b45267f7c29aa119bbee637cab165e",
+    "activeProviderEvidenceSha256": "467791df84169646a8e65188ada2a6204978088c55cf9217d48c55be75a39cba",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -403,7 +403,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "2db5019d8889c7d878f5050029f5d58d9985b70dc965a080f7fb564dc4548f50"
+      "sha256": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -419,27 +419,27 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "5f2ad84f5509bb9d0b62528ac9f95381c34e6fafb48da9b34aca457df91be3ea"
+      "sha256": "80c643aeaa4ea2a3e09aafc85ded1e06f9d9ba4bdca5c477cd801075d4afbfff"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "1d051ae27a78495dde96b2552b3360b1e2c2c8de700d2b04048f3cf0b48de210"
+      "sha256": "9bf6b2b7b24653102947b363cfa2d08d48b45267f7c29aa119bbee637cab165e"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "1e6be89c7e024ee09741a1c7996b3cbd7c0c19a2d7cfdec12b3772c2daca091e"
+      "sha256": "467791df84169646a8e65188ada2a6204978088c55cf9217d48c55be75a39cba"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "3e5feed5c8325e4657d7b39e550c8373ea44f910f948c077d7c9ddfa1cfdadff"
+      "sha256": "d4b7138416110bcefd7667dfa54cede3cea1c5f77ec9a7615e1cf48a473359f0"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
-      "sha256": "7cfff4e61cb78b88bdcfada67c5a6a35df8b53aeb328bcdcd4aa5d84f05ae2f8"
+      "sha256": "d201313aa5a69af3c835ecddeaed26507c872c8c1618bfb07649e4272b3f1309"
     },
     {
       "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
-      "sha256": "83abd4d069e20cba821f6f55d6147aafbaefde1defbd002ae76f6cdc47b0807f"
+      "sha256": "c87582fd4c485e19846ee5afeef650d72d6046676d37638f534323c82c9d047a"
     },
     {
       "path": "scripts/technical_regression_check.sh",

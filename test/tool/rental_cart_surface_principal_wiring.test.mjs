@@ -73,7 +73,16 @@ test('cart acknowledgement is exact and malformed lists cannot become empty succ
   assert.match(parser, /_strictMaps\(cart\[key\]\)/u);
   assert.match(parser, /!ids\.add\(id\)/u);
   const add = section(read('lib/services/data_service.dart'), 'static Future<RentalCart> addRentalCartItem', 'static Future<RentalCart> removeRentalCartItem');
-  for (const token of ['entry.id == id', 'entry.listingId == item.id', '_rentalDate(range.start)', '_rentalDate(range.end)', 'entry.projectId == projectId']) assert.ok(add.includes(token));
+  for (const token of [
+    '_rentalCartIntentClientId',
+    '_existingExactRentalCartIntent',
+    'matches.length != 1',
+    'matches.single.id != id',
+    'listingId: item.id',
+    '_rentalDate(range.start)',
+    '_rentalDate(range.end)',
+    'matches.single.projectId != projectId',
+  ]) assert.ok(add.includes(token));
   const helper = read('lib/widgets/saved_cart_intent.dart');
   assert.match(helper, /expectedOwner: owner/u);
   assert.match(helper, /action\.notice/u);
