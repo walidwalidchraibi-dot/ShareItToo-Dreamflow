@@ -48,20 +48,39 @@ Future<void> main() async {
   // Release startup must never seed showcase data or clear user data.
   debugPrint('[Main] showcase seed and destructive reset disabled');
 
-  debugPrint('[Main] runApp(MyApp)');
   DeveloperUserState? initialPreview;
   try {
-    initialPreview = await QaBootstrapService.maybeBootstrap() ??
+    initialPreview =
+        await QaBootstrapService.maybeBootstrap() ??
         await DeveloperPreviewController.readStateOnce();
   } catch (e) {
     debugPrint('[Main] bootstrap/readStateOnce failed: $e');
   }
-  runApp(MyApp(initialPreviewState: initialPreview));
+
+  // Resolve the persisted background family before the first frame. Rendering
+  // with ThemeMode.system while the explicit choice is still loading can pair
+  // a dark background with light-theme text during Android activity restarts.
+  final backgroundThemeController = BackgroundThemeController();
+  await backgroundThemeController.loadFromPrefs();
+
+  debugPrint('[Main] runApp(MyApp)');
+  runApp(
+    MyApp(
+      initialPreviewState: initialPreview,
+      backgroundThemeController: backgroundThemeController,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   final DeveloperUserState? initialPreviewState;
-  const MyApp({super.key, this.initialPreviewState});
+  final BackgroundThemeController backgroundThemeController;
+
+  const MyApp({
+    super.key,
+    this.initialPreviewState,
+    required this.backgroundThemeController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,8 +97,8 @@ class MyApp extends StatelessWidget {
               DeveloperPreviewController(initialState: initialPreviewState)
                 ..loadFromPrefs(),
         ),
-        ChangeNotifierProvider<BackgroundThemeController>(
-          create: (_) => BackgroundThemeController()..loadFromPrefs(),
+        ChangeNotifierProvider<BackgroundThemeController>.value(
+          value: backgroundThemeController,
         ),
         ChangeNotifierProvider<AppLinkController>(
           create: (_) => AppLinkController()..initialize(),

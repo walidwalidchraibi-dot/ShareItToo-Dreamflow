@@ -13,50 +13,54 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
-  test('explicit background family controls theme and reset restores system',
-      () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'app_background_choice_v1': 'dark2',
-    });
-    final controller = BackgroundThemeController();
+  test(
+    'explicit background family controls theme and reset restores system',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'app_background_choice_v1': 'dark2',
+      });
+      final controller = BackgroundThemeController();
+      expect(controller.hydrated, isFalse);
 
-    await controller.loadFromPrefs();
-    expect(controller.selectedChoice, AppBackgroundChoice.dark2);
-    expect(controller.themeMode, ThemeMode.dark);
+      await controller.loadFromPrefs();
+      expect(controller.hydrated, isTrue);
+      expect(controller.selectedChoice, AppBackgroundChoice.dark2);
+      expect(controller.themeMode, ThemeMode.dark);
 
-    await controller.setChoice(AppBackgroundChoice.light1);
-    expect(controller.themeMode, ThemeMode.light);
-    expect(
-      (await SharedPreferences.getInstance())
-          .getString('app_background_choice_v1'),
-      'light1',
-    );
+      await controller.setChoice(AppBackgroundChoice.light1);
+      expect(controller.themeMode, ThemeMode.light);
+      expect(
+        (await SharedPreferences.getInstance()).getString(
+          'app_background_choice_v1',
+        ),
+        'light1',
+      );
 
-    await controller.clearChoice();
-    expect(controller.selectedChoice, isNull);
-    expect(controller.themeMode, ThemeMode.system);
-    expect(
-      (await SharedPreferences.getInstance())
-          .containsKey('app_background_choice_v1'),
-      isFalse,
-    );
-    expect(
-      controller.effectiveChoice(Brightness.dark),
-      AppBackgroundChoice.dark1,
-    );
-    expect(
-      controller.effectiveChoice(Brightness.light),
-      AppBackgroundChoice.light1,
-    );
-  });
+      await controller.clearChoice();
+      expect(controller.selectedChoice, isNull);
+      expect(controller.themeMode, ThemeMode.system);
+      expect(
+        (await SharedPreferences.getInstance()).containsKey(
+          'app_background_choice_v1',
+        ),
+        isFalse,
+      );
+      expect(
+        controller.effectiveChoice(Brightness.dark),
+        AppBackgroundChoice.dark1,
+      );
+      expect(
+        controller.effectiveChoice(Brightness.light),
+        AppBackgroundChoice.light1,
+      );
+    },
+  );
 
   testWidgets(
     'background selector exposes exact selection semantics and adaptive labels',
     (tester) async {
       tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
-      addTearDown(
-        tester.platformDispatcher.clearPlatformBrightnessTestValue,
-      );
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
       final controller = BackgroundThemeController();
       final semantics = tester.ensureSemantics();
       try {
@@ -99,8 +103,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(controller.selectedChoice, AppBackgroundChoice.dark1);
         expect(
-          Theme.of(tester.element(find.byType(BackgroundSettingsScreen)))
-              .brightness,
+          Theme.of(
+            tester.element(find.byType(BackgroundSettingsScreen)),
+          ).brightness,
           Brightness.dark,
         );
         expect(
@@ -127,8 +132,9 @@ void main() {
         expect(controller.selectedChoice, isNull);
         expect(controller.themeMode, ThemeMode.system);
         expect(
-          Theme.of(tester.element(find.byType(BackgroundSettingsScreen)))
-              .brightness,
+          Theme.of(
+            tester.element(find.byType(BackgroundSettingsScreen)),
+          ).brightness,
           Brightness.light,
         );
         systemData = tester

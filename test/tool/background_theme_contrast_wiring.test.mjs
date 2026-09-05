@@ -23,6 +23,30 @@ test('explicit background family is the sole Material theme override', async () 
   );
 });
 
+test('persisted background choice is hydrated before the first app frame', async () => {
+  const main = await read('lib/main.dart');
+
+  const createIndex = main.indexOf(
+    'final backgroundThemeController = BackgroundThemeController();',
+  );
+  const hydrateIndex = main.indexOf(
+    'await backgroundThemeController.loadFromPrefs();',
+  );
+  const runAppIndex = main.indexOf('runApp(\n    MyApp(');
+
+  assert.notEqual(createIndex, -1);
+  assert.ok(hydrateIndex > createIndex);
+  assert.ok(runAppIndex > hydrateIndex);
+  assert.match(
+    main,
+    /MyApp\([\s\S]*backgroundThemeController: backgroundThemeController[\s\S]*ChangeNotifierProvider<BackgroundThemeController>\.value\([\s\S]*value: backgroundThemeController/,
+  );
+  assert.doesNotMatch(
+    main,
+    /create:\s*\(_\) => BackgroundThemeController\(\)\.\.loadFromPrefs\(\)/,
+  );
+});
+
 test('background surface keeps family-aware contrast and exact selection semantics', async () => {
   const [theme, screen] = await Promise.all([
     read('lib/theme.dart'),
