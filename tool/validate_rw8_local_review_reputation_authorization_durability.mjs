@@ -165,11 +165,11 @@ export function validateRw8LocalReviewReputationAuthorizationDurability({
     reason:
       'validated-local-review-lifecycle-privacy-retention-and-provider-source-change',
     privacyManifestSha256:
-      '449b957b9d0f0ba373e83c8f9141994dbccf5a28d188beb5234c6f2e75ea8610',
+      '367850e6fa811bb813d0ced8c2d5c481c659ffdca33e397e28b263293a15bd8e',
     retentionManifestSha256:
       'f12dd31f4900ec25cf24abb155dd67e94bf42a56dccb6d7b2fda187a15321549',
     activeProviderEvidenceSha256:
-      '7c3dd53eeb68bf4f33a08f626966599ce8c32f1bf1b871d21bba338ee7c1bf46',
+      'e1d663142f9ee3e748b928edb18999f90748505f159d3aeccdf435e5e808803c',
     activeProviderState: 'prepared-hold',
     completedOwnerDecisions: 0,
     requiredOwnerDecisions: 10,
