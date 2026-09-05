@@ -772,7 +772,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "3398d3d9f8afe1d2d258590c904d7d2ca00757ca5d6b0202b94dc231f5a4461e"
+      "sha256": "6ed9c30dba2d60e7285be69a24a32558e71b084a8ee5a60c24196783ce745e97"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
