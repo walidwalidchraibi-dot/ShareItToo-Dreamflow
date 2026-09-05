@@ -1,5 +1,22 @@
 # ShareItToo Current State
 
+WP12 closes Google Sign-In on exact frozen Pixel Staging candidate
+`1.0.0+2026090503`/source
+`96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f`. First login, terminated-process
+cold persistence, repeat login, stable private profile identity, no duplicate
+account and protected owner restoration pass. The first attempt failed safely
+at an over-generic navigation diagnostic; tooling commit
+`4237cbd7a98148c15e35c7bd52ea2f31b3438239` now classifies post-provider
+surfaces without exposing private UI or account data. Focused4, Google-only3,
+Firebase-social4, provider SDK profiles, tool2252, backend836, full local
+regression and exact clean R10 pass with two byte-identical APKs. GitHub
+Regression33958820805 and CodeQL33958820859 pass with alerts0; PR#7 remains
+Draft/open/mergeable/unmerged. No runtime app, candidate, Firebase, provider,
+deployment, Play, Stripe, payment, production or OnePlus state changed. See
+`docs/operations/WP12_GOOGLE_SIGNIN_CURRENT_CANDIDATE_ACCEPTANCE_2026-09-05.md`.
+
+Historical WP11 checkpoint:
+
 WP11 is PARTIAL after a fresh read-only Stripe test-platform audit at base
 `3d00b300f542d76fb61093e2c23c4549f57075b5`. Germany/EUR are correct, but the
 business type/profile and owner terms remain incomplete; charges and payouts

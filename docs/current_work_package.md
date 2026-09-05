@@ -1,4 +1,28 @@
-# Current Work Package: WP11 Stripe test-platform readiness gate
+# Current Work Package: WP12 Google Sign-In current-candidate acceptance
+
+WP12 is **COMPLETE** at diagnostic implementation commit
+`4237cbd7a98148c15e35c7bd52ea2f31b3438239`. Exact installed Pixel candidate
+`1.0.0+2026090503` passes real first Google login, terminated-process cold
+session persistence, repeat login, stable private profile identity, duplicate
+prevention and protected owner restoration. The diagnostic now preserves a
+sanitized actionable surface classification instead of collapsing all
+post-provider failures into one timeout; no runtime application code changed.
+
+Focused, provider-profile and complete local regression pass. Exact clean R10
+produced two byte-identical 231,344,595-byte APKs with identical 794-entry
+payloads. GitHub Regression33958820805 and CodeQL33958820859 pass with zero
+open alerts; PR#7 remains Draft/open/mergeable/unmerged. No Firebase, provider,
+deployment, Play, Stripe, payment, production, OnePlus or account configuration
+changed. See
+`docs/operations/WP12_GOOGLE_SIGNIN_CURRENT_CANDIDATE_ACCEPTANCE_2026-09-05.md`.
+
+Before implementation of the next independent package, select the remaining
+launch gap with the highest evidence gain while preserving external owner and
+legal gates. Google Sign-In is no longer an open final-candidate row. Do not
+combine Facebook/Apple, SMS, external Listing AI, Stripe or V5.2 into one broad
+change.
+
+Historical WP11 checkpoint:
 
 WP11 is **PARTIAL; OWNER BUSINESS PROFILE AND TERMS REQUIRED** after a fresh
 read-only Stripe test-platform audit at repository base
@@ -6,13 +30,7 @@ read-only Stripe test-platform audit at repository base
 but platform details are not submitted, charges and payouts are disabled, and
 five business-profile/terms requirements are past due. There are zero connected
 accounts and zero webhook endpoints. No provider object, setting, credential,
-deployment, Store, device, production or payment state changed.
-
-The Stripe branch waits only for truthful owner profile completion and personal
-terms acceptance. Independent work continues as a distinct WP12 Google Sign-In
-Staging acceptance package; it must not change Stripe, external Listing AI,
-V5.2 legal, OnePlus, Store, production, public registration, live money or PR
-merge state. See
+deployment, Store, device, production or payment state changed. See
 `docs/operations/WP11_STRIPE_TEST_PLATFORM_READINESS_GATE_2026-09-05.md`.
 
 Historical WP10 checkpoint:
