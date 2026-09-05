@@ -21,9 +21,6 @@ const defaultVaultRoot = join(
   'qa',
   'staging-accounts',
 );
-const deviceManifest = JSON.parse(
-  readFileSync(resolve(repositoryRoot, 'store/device-validation.json'), 'utf8'),
-);
 
 function fail(message) {
   throw new Error(message);
@@ -64,17 +61,32 @@ export function parseEligibleVault(value) {
     if (error instanceof Error && error.message.startsWith('The review account vault')) throw error;
     fail('The review account vault is invalid.');
   }
-  const fixture = vault?.syntheticBooking;
+  const bindingFixture = vault?.syntheticBooking;
+  const simulationFixture = vault?.nonBindingSimulation;
+  const fixtureKind = vault?.status === 'synthetic-booking-active'
+    && bindingFixture
+    && ['accepted', 'active'].includes(bindingFixture.workflowStatus)
+    && bindingFixture.paymentMode === 'memory'
+    && bindingFixture.stripeLivemode === false
+    && bindingFixture.paymentEndpointCalled === false
+    ? 'binding-staging-fixture'
+    : vault?.status === 'non-binding-simulation-active'
+      && simulationFixture?.status === 'accepted-chat-ready'
+      && simulationFixture.availabilityUnaffected === true
+      && simulationFixture.paymentReadRejected === true
+      && simulationFixture.inAppNotificationsVerified === true
+      && simulationFixture.stripeLivemode === false
+      && simulationFixture.paymentEndpointCalled === false
+      ? 'non-binding-staging-simulation'
+      : null;
+  const fixture = fixtureKind === 'binding-staging-fixture'
+    ? bindingFixture
+    : simulationFixture;
   if (vault?.schemaVersion !== 1
       || vault?.kind !== 'sit-staging-synthetic-account-vault'
       || vault?.apiBaseUrl !== stagingApiBaseUrl
       || vault?.stripeLivemode !== false
-      || vault?.status !== 'synthetic-booking-active'
-      || !fixture
-      || !['accepted', 'active'].includes(fixture.workflowStatus)
-      || fixture.paymentMode !== 'memory'
-      || fixture.stripeLivemode !== false
-      || fixture.paymentEndpointCalled !== false
+      || fixtureKind === null
       || !Array.isArray(vault.accounts)
       || vault.accounts.length !== 2) {
     fail('The vault is not an eligible isolated Staging review fixture.');
@@ -97,11 +109,14 @@ export function parseEligibleVault(value) {
   return {
     vault,
     accounts,
+    fixtureKind,
     fixture: {
       listingId: safeFixtureIdentifier(fixture.listingId, 'listing fixture'),
       bookingId: safeFixtureIdentifier(fixture.bookingId, 'booking fixture'),
       threadId: safeFixtureIdentifier(fixture.threadId, 'thread fixture'),
-      workflowStatus: fixture.workflowStatus,
+      workflowStatus: fixtureKind === 'binding-staging-fixture'
+        ? fixture.workflowStatus
+        : 'accepted',
     },
   };
 }
@@ -227,8 +242,22 @@ export async function diagnoseStoreReviewAccounts({
   const renterBooking = Array.isArray(renterRequests?.requests)
     ? renterRequests.requests.find((entry) => entry?.id === selected.fixture.bookingId)
     : null;
-  const ownerBookingVisible = ownerBooking?.workflowStatus === selected.fixture.workflowStatus;
-  const renterBookingVisible = renterBooking?.workflowStatus === selected.fixture.workflowStatus;
+  const safeSimulationBooking = (booking) => (
+    booking?.workflowStatus === 'accepted'
+    && booking.simulationOnly === true
+    && booking.platformContract == null
+    && booking.bindingExpiresAt == null
+    && booking.contractCreated === false
+    && booking.paymentCreated === false
+    && booking.reservationCreated === false
+    && booking.monetaryEffectMinor === 0
+  );
+  const expectedBookingVisible = (booking) => (
+    booking?.workflowStatus === selected.fixture.workflowStatus
+    && (selected.fixtureKind === 'binding-staging-fixture' || safeSimulationBooking(booking))
+  );
+  const ownerBookingVisible = expectedBookingVisible(ownerBooking);
+  const renterBookingVisible = expectedBookingVisible(renterBooking);
   const ownerThreadVisible = Array.isArray(ownerThreads?.threads)
     && ownerThreads.threads.some((entry) => entry?.id === selected.fixture.threadId);
   const renterThreadVisible = Array.isArray(renterThreads?.threads)
@@ -262,12 +291,9 @@ export async function diagnoseStoreReviewAccounts({
     kind: 'store-review-access-diagnostic',
     status: 'technical-review-access-passed-store-fields-pending',
     capturedAt: capturedAt.toISOString(),
-    candidate: {
-      applicationId: deviceManifest.candidate.applicationId,
-      bundleId: deviceManifest.candidate.bundleId,
-      versionName: deviceManifest.candidate.versionName,
-      buildNumber: deviceManifest.candidate.buildNumber,
-      commit: deviceManifest.candidate.commit,
+    clientCandidate: {
+      scope: 'api-only',
+      binding: 'not-performed',
     },
     roles: ['owner', 'renter'],
     checks: {
@@ -280,6 +306,10 @@ export async function diagnoseStoreReviewAccounts({
       acceptedBookingVisibleToBothRoles: true,
       sharedChatVisibleToBothRoles: true,
       sharedChatReadableByBothRoles: true,
+      nonBindingSimulationSafety: selected.fixtureKind === 'non-binding-staging-simulation',
+    },
+    fixture: {
+      kind: selected.fixtureKind,
     },
     environment: {
       apiBaseUrl: stagingApiBaseUrl,
@@ -297,6 +327,8 @@ export async function diagnoseStoreReviewAccounts({
       containsAccountIdentifiers: false,
       containsFixtureIdentifiers: false,
       syntheticAccountsOnly: true,
+      contractCreated: selected.fixtureKind === 'binding-staging-fixture',
+      reservationCreated: selected.fixtureKind === 'binding-staging-fixture',
       publicStoreChanged: false,
       productionChanged: false,
     },

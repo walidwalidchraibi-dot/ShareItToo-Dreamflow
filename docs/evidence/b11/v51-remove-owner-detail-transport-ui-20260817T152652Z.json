@@ -57,7 +57,7 @@
   },
   "sourceHashesSha256": {
     "lib/screens/ongoing_owner_detail_screen.dart": "401e865b3afc517af27796898df8c901e7f609cdce81d13eb38d9961ff3e67fd",
-    "store/privacy-disclosures.json": "550fb44debd6e04b0d3d6ef1b3d8738ee2431bc4dbfb2f19a02666dc6dd8bb44",
+    "store/privacy-disclosures.json": "01f91668e848ad4a167629c417034740e561ba8c91a9fa83860e7f6e7cfe64c1",
     "test/tool/v51_owner_detail_transport_disabled_wiring.test.mjs": "932023f58030a2b1f54de25f383f7cc53b80842aad3d5b8a8d2f44c1b38ef0a9"
   }
 }

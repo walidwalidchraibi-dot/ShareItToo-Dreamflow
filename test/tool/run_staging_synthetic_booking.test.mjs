@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
+  acceptanceTimestampForQuote,
   archiveCompletedSyntheticBookingFixture,
   archiveTerminalSyntheticBookingFixture,
   createSyntheticBookingFixture,
@@ -52,6 +53,15 @@ function response(status, value) {
   });
 }
 
+function boundQuote() {
+  return {
+    quoteId: 'quote-1',
+    quoteHash: 'a'.repeat(64),
+    quotedAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2099-01-01T00:10:00.000Z',
+  };
+}
+
 function bookingConfirmationResponse(path, options = {}) {
   if (path.endsWith('/confirmation-challenges')) {
     const segment = JSON.parse(options.body).segment;
@@ -95,10 +105,7 @@ function createFetch(log) {
     if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
     if (path.endsWith('/availability')) return response(200, { availability: {} });
     if (path === '/bookings/quote') {
-      return response(200, {
-        quoteId: 'quote-1',
-        quoteHash: 'a'.repeat(64),
-      });
+      return response(200, boundQuote());
     }
     if (path === '/bookings') return response(201, { booking: { workflowStatus: 'requested' } });
     throw new Error(`Unexpected path ${path}`);
@@ -160,6 +167,16 @@ test('creates an isolated requested booking and returns no credentials or identi
   );
   const stored = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
   assert.equal(stored.syntheticBooking.workflowStatus, 'requested');
+});
+
+test('clamps V5.2 acceptance to a slightly newer authoritative quote timestamp', () => {
+  assert.equal(
+    acceptanceTimestampForQuote({
+      quotedAt: '2026-09-05T06:40:00.004Z',
+      expiresAt: '2026-09-05T06:50:00.004Z',
+    }, new Date('2026-09-05T06:40:00.000Z')),
+    '2026-09-05T06:40:00.004Z',
+  );
 });
 
 test('transitions the synthetic booking with the correct roles and no payment endpoint', async () => {
@@ -293,10 +310,7 @@ test('runs the complete role-visible lifecycle without returning private fixture
       if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
       if (path.endsWith('/availability')) return response(200, { availability: {} });
       if (path === '/bookings/quote') {
-        return response(200, {
-          quoteId: 'quote-1',
-          quoteHash: 'a'.repeat(64),
-        });
+        return response(200, boundQuote());
       }
       if (path === '/bookings') {
         workflowStatus = 'requested';
@@ -389,10 +403,7 @@ test('reuses one prepared listing after a failed booking request', async () => {
       }
       if (path === '/rental-requests') return response(200, { requests: [] });
       if (path === '/bookings/quote') {
-        return response(200, {
-          quoteId: 'quote-1',
-          quoteHash: 'a'.repeat(64),
-        });
+        return response(200, boundQuote());
       }
       if (path === '/bookings') {
         return response(201, { booking: { workflowStatus: 'requested' } });
@@ -441,7 +452,7 @@ test('does not reuse a previously paused listing with the same synthetic run tit
       if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
       if (path.endsWith('/availability')) return response(200, { availability: {} });
       if (path === '/bookings/quote') {
-        return response(200, { quoteId: 'quote-1', quoteHash: 'a'.repeat(64) });
+        return response(200, boundQuote());
       }
       if (path === '/bookings') {
         return response(201, { booking: { workflowStatus: 'requested' } });
@@ -494,10 +505,7 @@ test('retires the exact new listing after the V5.2 legal hold rejects booking cr
           return response(200, { listing: { status: 'paused', isActive: false } });
         }
         if (path === '/bookings/quote') {
-          return response(200, {
-            quoteId: 'quote-1',
-            quoteHash: 'a'.repeat(64),
-          });
+          return response(200, boundQuote());
         }
         if (path === '/bookings') {
           return response(409, {

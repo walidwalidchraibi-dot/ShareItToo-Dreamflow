@@ -221,6 +221,7 @@ export async function diagnoseStoreReviewSafetyActions({
     },
     environment: {
       apiBaseUrl: stagingApiBaseUrl,
+      fixtureKind: selected.fixtureKind,
       paymentMode: 'memory',
       stripeLivemode: false,
       paymentEndpointCalled: false,
@@ -237,6 +238,7 @@ export async function diagnoseStoreReviewSafetyActions({
       containsAccountIdentifiers: false,
       containsFixtureIdentifiers: false,
       syntheticAccountsOnly: true,
+      bindingContractRequiredForDiagnostic: false,
       publicStoreChanged: false,
       productionChanged: false,
     },

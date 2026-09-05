@@ -8,7 +8,7 @@ import { createTestTempTracker } from './test_temp_fixtures.mjs';
 
 const tempFixtures = createTestTempTracker();
 
-function fixture() {
+function fixture({ nonBinding = false } = {}) {
   const root = tempFixtures.makeSync('sit-review-safety-');
   chmodSync(root, 0o700);
   const path = resolve(root, 'accounts.json');
@@ -17,16 +17,21 @@ function fixture() {
     kind: 'sit-staging-synthetic-account-vault',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
-    status: 'synthetic-booking-active',
+    status: nonBinding ? 'non-binding-simulation-active' : 'synthetic-booking-active',
     accounts: [
       { role: 'owner', registrationStatus: 'accepted', verificationStatus: 'email-link-verified', email: 'owner@example.test', password: `owner-${'x'.repeat(24)}` },
       { role: 'renter', registrationStatus: 'accepted', verificationStatus: 'email-link-verified', email: 'renter@example.test', password: `renter-${'y'.repeat(24)}` },
     ],
-    syntheticBooking: {
+    ...(nonBinding ? { nonBindingSimulation: {
+      listingId: 'listing-safe', bookingId: 'booking-safe', threadId: 'thread-safe',
+      status: 'accepted-chat-ready', availabilityUnaffected: true,
+      paymentReadRejected: true, inAppNotificationsVerified: true,
+      stripeLivemode: false, paymentEndpointCalled: false,
+    } } : { syntheticBooking: {
       listingId: 'listing-safe', bookingId: 'booking-safe', threadId: 'thread-safe',
       workflowStatus: 'accepted', paymentMode: 'memory', stripeLivemode: false,
       paymentEndpointCalled: false,
-    },
+    } }),
   }), { mode: 0o600 });
   chmodSync(path, 0o600);
   return path;
@@ -85,6 +90,18 @@ test('passes report, temporary block cleanup and private export without leaking 
   const exportCall = calls.find((entry) => entry.path === '/account/export');
   assert.equal(exportCall.method, 'POST');
   assert.deepEqual(exportCall.body, { currentPassword: `renter-${'y'.repeat(24)}` });
+});
+
+test('runs safety actions on a non-binding simulation without claiming a contract', async () => {
+  const calls = [];
+  const result = await diagnoseStoreReviewSafetyActions({
+    vaultFile: fixture({ nonBinding: true }),
+    fetchImpl: successfulFetch(calls),
+    capturedAt: new Date('2026-08-11T03:00:00Z'),
+  });
+  assert.equal(result.environment.fixtureKind, 'non-binding-staging-simulation');
+  assert.equal(result.boundaries.bindingContractRequiredForDiagnostic, false);
+  assert.equal(result.scenarios.reportAndBlock, 'passed');
 });
 
 test('rejects an incomplete or cacheable account export before moderation mutations', async () => {

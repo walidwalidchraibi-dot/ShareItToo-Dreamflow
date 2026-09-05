@@ -52,7 +52,7 @@
     "backend/test/v51_transport_disabled.test.js": "ac9e7e3b0fbe2a59b8e084ca68ef849d45720cd298ebcab3e65efc4d5cc18fb3",
     "lib/screens/contact_data_screen.dart": "e0e08663f291e335179e411d3003b0976bf3420e35999bcc2940fcdb2e6509f8",
     "lib/screens/privacy_info_screen.dart": "815fdf46ecffa72ce9f517633646a484e932282f84cdc8f44a6bbedd6eff1be6",
-    "store/privacy-disclosures.json": "550fb44debd6e04b0d3d6ef1b3d8738ee2431bc4dbfb2f19a02666dc6dd8bb44",
+    "store/privacy-disclosures.json": "01f91668e848ad4a167629c417034740e561ba8c91a9fa83860e7f6e7cfe64c1",
     "store/retention-deletion-readiness.json": "071a73f231a40ee565dc6815a3c8d964eaf28e560fb175cc7367deff163416b2",
     "test/tool/v51_transport_disabled_wiring.test.mjs": "6018a8a488d68f2392989bed9d85c5b8df42b926f9eb1716604b3555000cf148"
   }

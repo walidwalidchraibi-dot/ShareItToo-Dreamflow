@@ -35,6 +35,24 @@ function fixture(overrides = {}) {
   return { root, vaultFile, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
+function nonBindingFixture() {
+  return fixture({
+    status: 'non-binding-simulation-active',
+    syntheticBooking: undefined,
+    nonBindingSimulation: {
+      listingId: 'private-listing',
+      bookingId: 'private-booking',
+      threadId: 'private-thread',
+      status: 'accepted-chat-ready',
+      availabilityUnaffected: true,
+      paymentReadRejected: true,
+      inAppNotificationsVerified: true,
+      stripeLivemode: false,
+      paymentEndpointCalled: false,
+    },
+  });
+}
+
 function jsonResponse(value, status = 200) {
   return { status, text: async () => JSON.stringify(value) };
 }
@@ -62,6 +80,27 @@ function happyFetch({ missing = null, challenge = false } = {}) {
   };
 }
 
+function nonBindingFetch(options = {}) {
+  const base = happyFetch(options);
+  return async (url, requestOptions) => {
+    const path = new URL(url).pathname.replace('/api/v1', '');
+    if (path === '/rental-requests') {
+      return jsonResponse({ requests: [{
+        id: 'private-booking',
+        workflowStatus: 'accepted',
+        simulationOnly: true,
+        platformContract: null,
+        bindingExpiresAt: null,
+        contractCreated: false,
+        paymentCreated: false,
+        reservationCreated: false,
+        monetaryEffectMinor: 0,
+      }] });
+    }
+    return base(url, requestOptions);
+  };
+}
+
 test('passes read-only access for both roles without leaking private values', async () => {
   const item = fixture();
   try {
@@ -71,10 +110,26 @@ test('passes read-only access for both roles without leaking private values', as
     assert.equal(result.boundaries.businessDataMutations, false);
     assert.equal(result.boundaries.authenticationSessionsCreated, true);
     assert.equal(result.checks.sharedChatReadableByBothRoles, true);
+    assert.deepEqual(result.clientCandidate, { scope: 'api-only', binding: 'not-performed' });
     const output = JSON.stringify(result);
     for (const forbidden of ['owner@example', 'renter@example', 'private-listing', 'private-booking', 'private-thread', 'password-long', 'token-123']) {
       assert.equal(output.includes(forbidden), false);
     }
+  } finally { item.cleanup(); }
+});
+
+test('passes an explicitly non-binding simulation without misclassifying it as a contract', async () => {
+  const item = nonBindingFixture();
+  try {
+    const result = await diagnoseStoreReviewAccounts({
+      vaultFile: item.vaultFile,
+      fetchImpl: nonBindingFetch(),
+      capturedAt: new Date('2026-08-11T01:00:00Z'),
+    });
+    assert.equal(result.fixture.kind, 'non-binding-staging-simulation');
+    assert.equal(result.checks.nonBindingSimulationSafety, true);
+    assert.equal(result.boundaries.contractCreated, false);
+    assert.equal(result.boundaries.reservationCreated, false);
   } finally { item.cleanup(); }
 });
 

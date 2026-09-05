@@ -106,6 +106,21 @@ function dateOnly(now, daysFromNow) {
   return new Date(now.getTime() + daysFromNow * 86_400_000).toISOString().slice(0, 10);
 }
 
+export function acceptanceTimestampForQuote(quote, observedAt = new Date()) {
+  const issuedAt = Date.parse(quote?.quotedAt);
+  const expiresAt = Date.parse(quote?.expiresAt);
+  const observed = observedAt instanceof Date ? observedAt.getTime() : Number.NaN;
+  if (!Number.isFinite(issuedAt)
+      || !Number.isFinite(expiresAt)
+      || !Number.isFinite(observed)
+      || expiresAt <= issuedAt) {
+    fail('The synthetic booking quote validity window is invalid.');
+  }
+  const acceptedAt = Math.max(observed, issuedAt);
+  if (acceptedAt >= expiresAt) fail('The synthetic booking quote expired before acceptance.');
+  return new Date(acceptedAt).toISOString();
+}
+
 async function request(fetchImpl, path, {
   method = 'GET',
   token = null,
@@ -414,10 +429,10 @@ export async function createSyntheticBookingFixture({
         || !/^[0-9a-f]{64}$/.test(quote.quoteHash)) {
       fail('The synthetic booking quote is not immutably bound.');
     }
-    // Acceptance must be recorded after the server issued the quote. Reusing
-    // the fixture start time can predate a real remote quote and is rejected by
-    // the V5.2 binding contract.
-    const acceptedAt = new Date().toISOString();
+    // The server clock can be a few milliseconds ahead of this client even
+    // after the quote response arrives. Clamp to the authoritative issued-at
+    // value so a transport-timing skew cannot invalidate the V5.2 consent.
+    const acceptedAt = acceptanceTimestampForQuote(quote);
     const clientBuild = 'synthetic-review-tool-v52';
     const legalDeclarations = privatePilotRequiredCheckoutDeclarations.map(
       ({ type, wording, documentReferences }) => ({
