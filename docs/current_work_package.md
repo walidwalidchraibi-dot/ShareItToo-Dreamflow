@@ -1,4 +1,29 @@
-# Current Work Package: WP05 background-family contrast correction
+# Current Work Package: WP05 full-surface Pixel candidate closure
+
+Candidate `1.0.0+2026090503`/source
+`96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f` is immutable and locally closed:
+exact clean R10, signed lifecycle, private archive verification,
+data-preserving Pixel update, theme/background surface matrix and a combined
+email-verified two-role non-binding product journey with controlled FCM all
+pass. The protected owner session is restored and all temporary listing/
+simulation state is retired. Binding V5.2 remains intentionally blocked; no
+contract, reservation or payment exists.
+
+The separate maintained tooling closure at
+`d2af1d842b56dd75a86f892f128c469084faeb65` passes focused27, Node2244 and
+the full local technical regression. Its exact Regression run33939051291 and
+CodeQL run33939051309 are green, including exact clean reproducibility. The
+sanitized closure evidence is committed and pushed in a separate
+documentation-only commit. Preserve PR#7 as Draft and unmerged.
+
+After closure, verify the now owner-prepared provider access read-only. Then
+take Google sign-in/listing-AI and Stripe sandbox/test-money as separate,
+provider-specific Staging packages. Do not combine them, do not bypass the
+V5.2 legal hold, and do not touch OnePlus, Google Play, production, public
+registration, live money, tester lists, Cloud/VPS/DNS or PR merge. See
+`docs/operations/WP05_PIXEL_CANDIDATE_2026090503_HANDOVER.md`.
+
+Historical background-family correction:
 
 The bounded runtime correction is locally complete at
 `833dfc1361cef532b1fe7394b79de581776377bb`: explicit background families

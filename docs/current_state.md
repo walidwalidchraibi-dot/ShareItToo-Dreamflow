@@ -1,5 +1,26 @@
 # ShareItToo Current State
 
+Exact full-surface Pixel candidate `1.0.0+2026090503` is frozen at
+`96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f` and passes exact clean R10,
+signed/private archive verification, data-preserving Pixel update, authenticated
+cold start and the candidate-generic theme/background surface matrix. A fresh
+combined two-role Staging journey passes owner publication, renter discovery,
+non-binding acceptance, chat, A/B isolation, foreground/background/terminated
+FCM, complete cleanup and protected owner restoration. The notification icon
+has private visual proof; only its hash is retained in sanitized evidence.
+Tooling commit `d2af1d842b56dd75a86f892f128c469084faeb65`
+decouples controlled FCM from binding legal documents and refuses paused
+synthetic listings; focused27, Node2244 and full local technical regression pass.
+Candidate GitHub Regression33935962863/CodeQL33935962806 and tooling
+Regression33939051291/CodeQL33939051309 are green, including exact clean
+reproducibility.
+V5.2 remains correctly draft-blocked at `409
+v52_contract_documents_unavailable`; no contract, reservation, payment, Store,
+OnePlus, production, public or live-money action occurred. Next: verify the
+owner-prepared provider access read-only and close Google sign-in/listing-AI and
+Stripe sandbox/test-money as separate Staging packages. See
+`docs/operations/WP05_PIXEL_CANDIDATE_2026090503_HANDOVER.md`.
+
 The background-family contrast P1 is locally corrected at implementation
 commit `833dfc1361cef532b1fe7394b79de581776377bb`. Explicit dark/light
 backgrounds now select the matching Material theme; clearing the choice restores
