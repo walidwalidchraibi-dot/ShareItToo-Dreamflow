@@ -1,5 +1,20 @@
 # ShareItToo Current State
 
+WP17 closes the exact current signed Pixel Staging candidate's fresh two-role
+product and push journey. Candidate `1.0.0+2026090505`, source HEAD
+`e18e788c0d04fe6b80e3be2f63b30d5f3719ae7d`, passes owner UI publication,
+server/public-catalog confirmation, renter discovery, non-binding
+request/acceptance, truthful role surfaces, chat, A-to-B isolation and FCM in
+foreground/background/terminated-process states. Push consent was correctly
+off after WP16 account deletion and was explicitly renewed in-app; crash
+diagnostics remained off. After one cleaned timing outlier, two consecutive
+unchanged complete runs pass with no workaround. Both test listings and
+bookings were retired, the protected owner was restored, private screenshots
+with unrelated notifications and temporary credential copies were removed.
+No Store, deploy, provider, payment, Production, OnePlus, real-money or PR
+boundary changed. See
+`docs/operations/WP17_CURRENT_CANDIDATE_TWO_ROLE_PRODUCT_PUSH_2026-09-05.md`.
+
 WP16 closes account deletion on exact signed Pixel Staging candidate
 `1.0.0+2026090505`, source and runtime implementation HEAD
 `e18e788c0d04fe6b80e3be2f63b30d5f3719ae7d`. A clear preflight, durable

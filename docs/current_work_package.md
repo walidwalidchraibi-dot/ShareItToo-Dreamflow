@@ -1,4 +1,33 @@
-# Current Work Package: WP16 account deletion
+# Current Work Package: WP17 current-candidate two-role product and push
+
+WP17 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed candidate
+`1.0.0+2026090505`, source HEAD
+`e18e788c0d04fe6b80e3be2f63b30d5f3719ae7d`. Two consecutive unchanged full
+runs pass owner UI publication, server/public-catalog confirmation, renter
+discovery, non-binding request/acceptance, role-truth surfaces, chat,
+principal isolation and controlled FCM in foreground, background and after a
+terminated process. Cleanup ended each listing and cancelled each synthetic
+booking; the protected owner session was restored.
+
+Push consent was correctly disabled after WP16 account deletion and was
+renewed explicitly through the app. One post-FCM navigation timing outlier was
+cleaned safely; two subsequent complete runs passed without timeout,
+parallelism or assertion changes. The recognizable notification icon passed
+visual review. Private captures containing unrelated device notifications and
+temporary normalized credentials were removed after verification.
+
+Candidate local regression/R10, GitHub Regression33975265727 and
+CodeQL33975265754 pass; the preceding evidence HEAD also passes GitHub. PR#7
+remains Draft/open/unmerged. No payment, contract, reservation, deployment,
+Store, provider, Production, public, OnePlus or real-money boundary changed.
+See
+`docs/operations/WP17_CURRENT_CANDIDATE_TWO_ROLE_PRODUCT_PUSH_2026-09-05.md`.
+
+Next select a distinct current-candidate listing-lifecycle package covering
+owner edit, pause/reactivate and renter visibility/search behavior without
+crossing binding V5.2, payment, provider, Store, OnePlus or Production gates.
+
+# Previous Work Package: WP16 account deletion
 
 WP16 is **COMPLETE LOCALLY, PHYSICALLY AND ON GITHUB** at runtime implementation
 commit `e18e788c0d04fe6b80e3be2f63b30d5f3719ae7d`. Exact signed Pixel candidate
