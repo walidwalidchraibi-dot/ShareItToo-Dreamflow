@@ -1,5 +1,26 @@
 # ShareItToo Current State
 
+WP15 closes fresh E-mail registration/verification and password recovery on
+exact signed Pixel Staging candidate `1.0.0+2026090504`, source and runtime
+implementation HEAD `e1a737740e2d06aeaee4add8d3e2521642baac0f`.
+Data-preserving Pixel update, all four registration consents, one matching
+verification mail, single-use confirmation, new-account login/cold start,
+durable password-reset success, one matching reset mail, exact old-credential
+rejection, replacement login/cold start and protected-owner restoration pass.
+Ambiguous submissions now persist as `outcome-unknown` until independent mail
+evidence reconciles them; a timeout can never become success or authorize a
+replay. The closing-sheet context defect is fixed by presenting success from
+the mounted Login route. Exact local clean R10 is byte-identical; GitHub
+Regression33971877065 and CodeQL33971877091 pass with alerts0. PR#7 remains
+Draft/open/unmerged. No Store, deployment, Firebase-console, Stripe/payment,
+Production, public, OnePlus or real-money boundary changed. See
+`docs/operations/WP15_EMAIL_REGISTRATION_PASSWORD_RECOVERY_CURRENT_CANDIDATE_2026-09-05.md`.
+
+The configured-checkout non-CI gate still cannot re-hash the absent historical
+private `2026090204` archive on this host. No waiver or replacement was added;
+the current `2026090504` archive independently passes. Exact local R10 and
+GitHub run the complete gate through the existing CI-metadata contract.
+
 WP14 closes direct password change on exact frozen Pixel Staging candidate
 `1.0.0+2026090503`/source
 `96b97b55983111d9e0ae8d8fcc91e9e241a2cb6f`. Definite success UI, invoking

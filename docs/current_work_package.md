@@ -1,4 +1,36 @@
-# Current Work Package: WP14 password-change current-candidate acceptance
+# Current Work Package: WP15 E-mail registration and password recovery
+
+WP15 is **COMPLETE LOCALLY, PHYSICALLY AND ON GITHUB** at runtime and
+diagnostic implementation commit
+`e1a737740e2d06aeaee4add8d3e2521642baac0f`. Exact signed Pixel candidate
+`1.0.0+2026090504` passes data-preserving update, fresh E-mail registration,
+all four consents, exact mail delivery, single-use verification, login and
+cold start. Password recovery passes durable neutral success, exact mail,
+single-use reset, structured old-credential rejection, replacement login and
+cold start. The protected synthetic owner is restored and no private value
+entered Git.
+
+The reset result now comes from the mounted Login route after the sheet closes.
+Both registration and reset persist `in-progress` before submission and retain
+`outcome-unknown` until independent delivery reconciliation. Focused checks,
+2,278 tool tests, signed archive/privacy/signature validation and exact local
+clean R10 pass; its two 231,343,811-byte debug APKs are byte-identical. GitHub
+Regression33971877065 and CodeQL33971877091 pass with alerts0. PR#7 remains
+Draft/open/mergeable/unmerged. See
+`docs/operations/WP15_EMAIL_REGISTRATION_PASSWORD_RECOVERY_CURRENT_CANDIDATE_2026-09-05.md`.
+
+One non-CI configured-checkout gate remains unable to re-hash the absent
+historical private `2026090204` Play archive. It did not reject current code or
+the verified `2026090504` archive, and no waiver was introduced. Exact clean
+R10 and GitHub complete the full gate using its established metadata-only CI
+mode.
+
+Next select a separate current-candidate account-lifecycle package with the
+highest independent evidence gain. Keep SMS, Facebook/Apple, external Listing
+AI, Stripe test-platform owner actions and V5.2 as distinct lanes; do not touch
+OnePlus, Google Play, Production, public registration, live money or PR merge.
+
+# Previous Work Package: WP14 password-change current-candidate acceptance
 
 WP14 is **COMPLETE LOCALLY, PHYSICALLY AND ON GITHUB** at diagnostic implementation commit
 `a690d70607c0fff9beacecd055f984dc0a806642`. Exact installed Pixel candidate
