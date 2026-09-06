@@ -1,4 +1,29 @@
-# Current Work Package: WP29 Pixel candidate 2026090607
+# Current Work Package: WP30 return-case UI reachability
+
+WP30 is **COMPLETE LOCALLY AND ON GITHUB; PHYSICAL JOURNEY OPEN** at
+implementation HEAD `ec8c85fce8b52b68286ca4adbf2ca91416069fce`.
+The previously secured return-case screen now has a distinct, fail-closed
+production entry point from renter and owner booking details. Eligibility
+requires completed real booking truth, accepted V5.2 contract, the inclusive
+return-report window and no existing review/case. General support remains a
+separate action. Principal/epoch ownership is captured before the first await,
+rechecked around exact route navigation and cannot close a successor route.
+
+All 2,345 tool tests, 900 active Flutter tests with 33 declared skips,
+analyzer, full technical regression and independent exact clean-checkout R10
+pass. The clean run builds two byte-identical 794-entry APKs. Exact-head
+GitHub Regression `34042259106` and CodeQL `34042259112` pass with all four
+required Regression jobs and zero open alerts. PR #7 remains Draft and
+unmerged. See
+`docs/operations/WP30_RETURN_CASE_UI_REACHABILITY_2026-09-06.md`.
+
+The installed Pixel candidate remains WP29 `1.0.0+2026090607` from source
+`0708609f66ecebee75e7d3786130c5231e578148` and therefore does not contain
+WP30. A strictly newer signed Internal Staging candidate and fresh physical
+journey remain separate. No Store, Production, payment/provider,
+Firebase-console, backend deploy, device, OnePlus or PR-merge boundary changed.
+
+# Previous Work Package: WP29 Pixel candidate 2026090607
 
 WP29 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed Internal Staging
 candidate `1.0.0+2026090607`, source HEAD

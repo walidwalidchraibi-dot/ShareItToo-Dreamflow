@@ -1,5 +1,26 @@
 # ShareItToo Current State
 
+WP30 closes the missing production UI path into the WP28-secured V5.2 return-
+case transaction at implementation HEAD
+`ec8c85fce8b52b68286ca4adbf2ca91416069fce`. Renter and owner booking details
+now retain general `Problem melden` support and expose a distinct return-case
+action only for a completed, non-simulation, accepted V5.2 booking inside the
+inclusive server-projected return window with no existing/review case. Missing
+truth fails closed. Principal capture precedes the first await, exact route
+ownership prevents an A route from disturbing B, and successful completion
+reloads booking truth.
+
+Six policy tests, four production-wiring checks, all 2,345 tool tests, 900
+active Flutter tests with 33 declared skips, analyzer and the full technical
+regression pass. Detached exact-head R10 passes with two byte-identical
+794-entry APKs. GitHub Regression `34042259106`, CodeQL `34042259112` and all
+four required jobs pass; open code-scanning alerts are zero. PR #7 remains
+Draft, open, mergeable and unmerged. The installed WP29 candidate
+`1.0.0+2026090607` predates WP30, so no physical journey is claimed. No Store,
+Production, payment/provider, Firebase-console, backend deployment, device or
+other live boundary changed. See
+`docs/operations/WP30_RETURN_CASE_UI_REACHABILITY_2026-09-06.md`.
+
 WP29 closes exact signed Internal Staging candidate `1.0.0+2026090607`, source
 HEAD `0708609f66ecebee75e7d3786130c5231e578148`, on the physical Pixel. The
 owner-only AAB/APK archive, hashes, canonical upload signature, package/version,
