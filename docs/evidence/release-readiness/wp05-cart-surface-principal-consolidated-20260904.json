@@ -119,7 +119,7 @@
     "docs/evidence/48h-remote/rw7-local-listing-catalog-authorization-durability-20260825.json": "c6fd2274f7005f4537b9c93b1dc0fe96f4f5002e8b9e2a1018f57849a2ced708",
     "docs/evidence/48h-remote/rw8-local-review-reputation-authorization-durability-20260825.json": "0e1b6c0209d752d608b6fda28e9f9f3ac0eef096a106cc00b8be7db9d120e144",
     "docs/evidence/48h-remote/rw9-local-account-profile-authorization-durability-20260825.json": "ede757c63efd9597670c9421802dff76a5d79121f95afa38ca8be5451e40c8dd",
-    "store/privacy-disclosures.json": "93cd4a6181259616b83895c650272af13574132908c0ef229281adbad2d602c0",
+    "store/privacy-disclosures.json": "3fea471eebe4b91685d548c5ff9e63b5c91db4fed60d027b6961e50350dd71f9",
     "store/retention-deletion-readiness.json": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1",
     "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json": "ef17091a953d99fc79885bb2b68de730f77bacccecd8b0b4353b072541b8b686",
     "tool/validate_rw16_session_transition_principal_epoch.mjs": "2dc90171cbb584dbbf0cb33dd4c3199b693dd45bad29f0bbacefed109027b080",

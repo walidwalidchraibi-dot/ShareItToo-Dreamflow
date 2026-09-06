@@ -28,11 +28,11 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "3c7c814044341f9246ae517a41902ba1e65d754a11137a5523db826149ed452b"
+      "sha256": "55fd6d506c248f83b6be3aa0ca223090de693790ec36ed6e63e6bde5939ed43f"
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "23b882b0fb8a9f6ae85d9246d4b118d1069aa592494ee5cbcb17d4454e1dbd5b"
+      "sha256": "986b20f083d48f57c731b6e27f5a478eadf614dccb3a31e6c15dca4e36e01d98"
     }
   ],
   "bindingInventory": [
@@ -106,7 +106,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "93cd4a6181259616b83895c650272af13574132908c0ef229281adbad2d602c0"
+      "sha256": "3fea471eebe4b91685d548c5ff9e63b5c91db4fed60d027b6961e50350dd71f9"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",

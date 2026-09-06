@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
   classifySyntheticImagePickerSurface,
   composerActionPoint,
+  containsExactWp21MessageState,
+  isExactWp21AddressEntrySurface,
   parseAndroidDisplayScale,
   runWp21Lifecycle,
   shouldRetrySyntheticGalleryTap,
@@ -175,6 +177,46 @@ test('synthetic image picker classification remains identity-free', () => {
     ...chat,
     mainNavigation: true,
   }, 2), false);
+});
+
+test('WP21 message convergence requires every exact server-backed label', () => {
+  const labels = ['Foto hinzugefügt', 'Übergabezeit angefragt'];
+  assert.equal(
+    containsExactWp21MessageState(
+      '<hierarchy><node text="Foto hinzugefügt" /></hierarchy>',
+      labels,
+    ),
+    false,
+  );
+  assert.equal(
+    containsExactWp21MessageState(
+      '<hierarchy><node text="Foto hinzugefügt" /><node text="Übergabezeit angefragt" /></hierarchy>',
+      labels,
+    ),
+    true,
+  );
+  assert.throws(
+    () => containsExactWp21MessageState('<hierarchy />', []),
+    /labels are invalid/u,
+  );
+});
+
+test('WP21 address entry binds the active field instead of presentation-only hint text', () => {
+  const surface = [
+    '<hierarchy>',
+    '<node text="Adresse teilen" class="android.widget.TextView" />',
+    '<node text="" content-desc="" class="android.widget.EditText" enabled="true" bounds="[40,300][1040,430]" />',
+    '</hierarchy>',
+  ].join('');
+  assert.equal(isExactWp21AddressEntrySurface(surface), true);
+  assert.equal(
+    isExactWp21AddressEntrySurface(surface.replace('enabled="true"', 'enabled="false"')),
+    false,
+  );
+  assert.equal(
+    isExactWp21AddressEntrySurface(surface.replace('Adresse teilen', 'Standort teilen')),
+    false,
+  );
 });
 
 test('WP21 summary proves media, two-party times, persistence and gated location only', () => {

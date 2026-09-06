@@ -196,7 +196,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "196e14a111a804328aab6a8149271453aa200b1541b5753f7cdafff3745224fb"
+      "sha256": "fb7f1e905625e2faaa463aee3e25f9043b1461df222c1928f59146122fbe49f6"
     },
     {
       "path": "lib/widgets/messages_settings_sheet.dart",
@@ -216,7 +216,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "93cd4a6181259616b83895c650272af13574132908c0ef229281adbad2d602c0"
+      "sha256": "3fea471eebe4b91685d548c5ff9e63b5c91db4fed60d027b6961e50350dd71f9"
     },
     {
       "path": "store/retention-deletion-readiness.json",

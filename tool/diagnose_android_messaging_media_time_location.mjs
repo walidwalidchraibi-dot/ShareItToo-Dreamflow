@@ -310,6 +310,19 @@ function textIncludes(hierarchy, text) {
   return typeof hierarchy === 'string' && hierarchy.includes(text);
 }
 
+export function containsExactWp21MessageState(hierarchy, labels) {
+  if (!Array.isArray(labels) || labels.length === 0
+      || labels.some((label) => typeof label !== 'string' || label.length === 0)) {
+    fail('The exact WP21 message-state labels are invalid.');
+  }
+  return labels.every((label) => textIncludes(hierarchy, label));
+}
+
+export function isExactWp21AddressEntrySurface(hierarchy) {
+  return currentHeadAndroidNamedNodes(hierarchy, 'Adresse teilen').length > 0
+    && activeEditFieldNodes(hierarchy).length === 1;
+}
+
 export function classifySyntheticImagePickerSurface(hierarchy) {
   const value = String(hierarchy);
   const packages = new Set(
@@ -534,9 +547,22 @@ async function acceptTimeProposal({
   device,
   wait,
 }) {
-  let stage = 'tap-counterparty-time-action';
+  let stage = 'wait-counterparty-time-request';
   try {
-    tapComposerAction(commandRunner, adbPath, device, hierarchy, 'schedule');
+    const ready = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: `WP21 ${segmentLabel} counterparty request`,
+      attempts: 70,
+      intervalMs: 650,
+      predicate: (value) => containsExactWp21MessageState(value, [
+        `${segmentLabel} angefragt`,
+      ]),
+    });
+    stage = 'tap-counterparty-time-action';
+    tapComposerAction(commandRunner, adbPath, device, ready, 'schedule');
     stage = 'wait-counterparty-time-coordination';
     let next = await waitForHierarchy({
       commandRunner,
@@ -678,14 +704,11 @@ async function verifyLocationFailClosed({
     device,
     wait,
     label: 'WP21 synthetic address entry',
-    predicate: (value) => currentHeadAndroidNamedNodes(
-      value,
-      'z. B. Musterstraße 22, 12489 Berlin',
-    ).length === 1,
+    predicate: isExactWp21AddressEntrySurface,
     });
     stage = 'enter-synthetic-address';
     const entry = bounds(
-    currentHeadAndroidNamedNodes(next, 'z. B. Musterstraße 22, 12489 Berlin')[0],
+    activeEditFieldNodes(next)[0],
     'synthetic address entry',
     );
     currentHeadAndroidAdb(commandRunner, adbPath, device, [
@@ -993,10 +1016,19 @@ async function exercisePixelMessaging({
       device,
       wait,
     });
-    if (!textIncludes(hierarchy, 'Foto hinzugefügt')
-        || !textIncludes(hierarchy, 'Übergabezeit angefragt')) {
-      fail('The renter WP21 attachment or handover proposal is not visible.');
-    }
+    hierarchy = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'renter WP21 attachment and handover proposal',
+      attempts: 70,
+      intervalMs: 650,
+      predicate: (value) => containsExactWp21MessageState(value, [
+        'Foto hinzugefügt',
+        'Übergabezeit angefragt',
+      ]),
+    });
     stage = 'accept-handover-time';
     hierarchy = await acceptTimeProposal({
       hierarchy,
@@ -1072,12 +1104,21 @@ async function exercisePixelMessaging({
       device,
       wait,
     });
-    const coldRestartVisible = textIncludes(hierarchy, 'Foto hinzugefügt')
-      && textIncludes(hierarchy, 'Übergabezeit bestätigt')
-      && textIncludes(hierarchy, 'Rückgabezeit bestätigt');
-    if (!coldRestartVisible) {
-      fail('The WP21 message state did not survive the terminated-process restart.');
-    }
+    hierarchy = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'terminated-process WP21 message state',
+      attempts: 70,
+      intervalMs: 650,
+      predicate: (value) => containsExactWp21MessageState(value, [
+        'Foto hinzugefügt',
+        'Übergabezeit bestätigt',
+        'Rückgabezeit bestätigt',
+      ]),
+    });
+    const coldRestartVisible = true;
     return {
       afterAttachment,
       afterTimes,

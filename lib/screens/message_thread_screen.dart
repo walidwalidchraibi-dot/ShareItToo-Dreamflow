@@ -2807,7 +2807,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final closedContext =
         phaseIntent == _LocationIntent.unknown || _request?.needsReview == true;
     if (!mounted) return;
-    await _showLocationFlowSheet(
+    final selection = await _showLocationFlowSheet<String>(
       title:
           title ?? (data.isAddressShare ? 'Adresse teilen' : 'Standort teilen'),
       onBack: onBack,
@@ -2840,22 +2840,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         backgroundColor: BrandColors.primary,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: () async {
-                        Navigator.of(sheetContext).pop();
-                        await _sharePreparedLocation(
-                          data,
-                          setAs: _LocationIntent.handover,
-                          onBackToPreview: () =>
-                              _showPreparedLocationShareSheet(
-                            data,
-                            title: title ??
-                                (data.isAddressShare
-                                    ? 'Adresse teilen'
-                                    : 'Standort teilen'),
-                            onBack: onBack,
-                          ),
-                        );
-                      },
+                      onPressed: () =>
+                          Navigator.of(sheetContext).pop('handover'),
                       child: const Text('Als Übergabeort teilen'),
                     ),
                   if (canSetReturn)
@@ -2864,22 +2850,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         backgroundColor: BrandColors.primary,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: () async {
-                        Navigator.of(sheetContext).pop();
-                        await _sharePreparedLocation(
-                          data,
-                          setAs: _LocationIntent.returnTrip,
-                          onBackToPreview: () =>
-                              _showPreparedLocationShareSheet(
-                            data,
-                            title: title ??
-                                (data.isAddressShare
-                                    ? 'Adresse teilen'
-                                    : 'Standort teilen'),
-                            onBack: onBack,
-                          ),
-                        );
-                      },
+                      onPressed: () =>
+                          Navigator.of(sheetContext).pop('return'),
                       child: const Text('Als Rückgabeort teilen'),
                     ),
                   FilledButton(
@@ -2887,10 +2859,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                       backgroundColor: BrandColors.primary,
                       foregroundColor: Colors.white,
                     ),
-                    onPressed: () async {
-                      Navigator.of(sheetContext).pop();
-                      await _sharePreparedLocation(data);
-                    },
+                    onPressed: () =>
+                        Navigator.of(sheetContext).pop('share-only'),
                     child: const Text('Nur teilen'),
                   ),
                 ],
@@ -2900,6 +2870,28 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         );
       },
     );
+    if (!mounted || selection == null) return;
+    void reopenPreview() => _showPreparedLocationShareSheet(
+          data,
+          title: title ??
+              (data.isAddressShare ? 'Adresse teilen' : 'Standort teilen'),
+          onBack: onBack,
+        );
+    if (selection == 'handover') {
+      await _sharePreparedLocation(
+        data,
+        setAs: _LocationIntent.handover,
+        onBackToPreview: reopenPreview,
+      );
+    } else if (selection == 'return') {
+      await _sharePreparedLocation(
+        data,
+        setAs: _LocationIntent.returnTrip,
+        onBackToPreview: reopenPreview,
+      );
+    } else if (selection == 'share-only') {
+      await _sharePreparedLocation(data);
+    }
   }
 
   Future<void> _showAddressEntrySheet({String initialAddress = ''}) async {

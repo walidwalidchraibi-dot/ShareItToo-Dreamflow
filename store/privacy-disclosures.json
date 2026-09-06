@@ -20,7 +20,7 @@
     },
     {
       "path": "pubspec.yaml",
-      "sha256": "3c7c814044341f9246ae517a41902ba1e65d754a11137a5523db826149ed452b"
+      "sha256": "55fd6d506c248f83b6be3aa0ca223090de693790ec36ed6e63e6bde5939ed43f"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -772,7 +772,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "23b882b0fb8a9f6ae85d9246d4b118d1069aa592494ee5cbcb17d4454e1dbd5b"
+      "sha256": "986b20f083d48f57c731b6e27f5a478eadf614dccb3a31e6c15dca4e36e01d98"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
@@ -908,7 +908,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "196e14a111a804328aab6a8149271453aa200b1541b5753f7cdafff3745224fb"
+      "sha256": "fb7f1e905625e2faaa463aee3e25f9043b1461df222c1928f59146122fbe49f6"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",

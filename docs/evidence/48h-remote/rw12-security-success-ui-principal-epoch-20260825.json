@@ -133,9 +133,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "93cd4a6181259616b83895c650272af13574132908c0ef229281adbad2d602c0",
+    "privacyManifestSha256": "3fea471eebe4b91685d548c5ff9e63b5c91db4fed60d027b6961e50350dd71f9",
     "retentionManifestSha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1",
-    "activeProviderEvidenceSha256": "fb5e06c276c0918463db950521081d8a20acb1ef95bf410cee628c3816614c32",
+    "activeProviderEvidenceSha256": "4945015275ea34716735b19eba07d48dfcc9ca355510fae97ff61081ec3c3ac2",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -198,7 +198,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "93cd4a6181259616b83895c650272af13574132908c0ef229281adbad2d602c0"
+      "sha256": "3fea471eebe4b91685d548c5ff9e63b5c91db4fed60d027b6961e50350dd71f9"
     },
     {
       "path": "store/retention-deletion-readiness.json",
@@ -206,15 +206,15 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "fb5e06c276c0918463db950521081d8a20acb1ef95bf410cee628c3816614c32"
+      "sha256": "4945015275ea34716735b19eba07d48dfcc9ca355510fae97ff61081ec3c3ac2"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "eb3199ff6651143c34df319afbef393f3536ffc89959fd7ad6e0a65a3f728c3f"
+      "sha256": "d629eb3e4ec07077a2543a45712361d520921486c8a252195db8e11f056ef93a"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
-      "sha256": "0bef3517b60fbc0f156829a7e02047776c40ef3f7ff47d3c1d8a922ff1e410a9"
+      "sha256": "c1a8e50fbf64e08728e4cb5eff68628e46b320624074f4428f0b2b11fe1bc6dd"
     },
     {
       "path": "scripts/technical_regression_check.sh",

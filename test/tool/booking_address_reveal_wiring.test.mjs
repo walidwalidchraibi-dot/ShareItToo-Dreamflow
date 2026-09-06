@@ -36,4 +36,12 @@ test('SUP-046 through SUP-048 use one server-authoritative audited reveal path',
   assert.match(read('lib/screens/ongoing_owner_detail_screen.dart'), /segment: 'return'/u);
   assert.doesNotMatch(bookingDetail, /AddressPrivacy\.shouldRevealExactAddress/u);
   assert.match(messageThread, /Standortfreigabe noch gesperrt/u);
+  assert.match(
+    messageThread,
+    /final selection = await _showLocationFlowSheet<String>[\s\S]*pop\('share-only'\)[\s\S]*if \(!mounted \|\| selection == null\) return;[\s\S]*selection == 'share-only'[\s\S]*await _sharePreparedLocation\(data\)/u,
+  );
+  assert.doesNotMatch(
+    messageThread,
+    /onPressed: \(\) async \{\s*Navigator\.of\(sheetContext\)\.pop\(\);\s*await _sharePreparedLocation/u,
+  );
 });
