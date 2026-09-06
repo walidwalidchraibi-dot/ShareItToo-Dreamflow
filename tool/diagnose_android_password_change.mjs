@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
-import { createHash, randomBytes } from 'node:crypto';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from 'node:crypto';
 import {
   chmodSync,
   closeSync,
@@ -56,6 +61,17 @@ function fail(message) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function sourceVaultMac(value, integrityKey) {
+  return createHmac('sha256', Buffer.from(integrityKey, 'base64url'))
+    .update(value)
+    .digest('hex');
+}
+
+function sameDigest(left, right) {
+  if (!/^[0-9a-f]{64}$/u.test(left) || !/^[0-9a-f]{64}$/u.test(right)) return false;
+  return timingSafeEqual(Buffer.from(left, 'hex'), Buffer.from(right, 'hex'));
 }
 
 function outsideRepository(path, label) {
@@ -177,6 +193,20 @@ function replacementPassword(random) {
 }
 
 function journalPublicResult(journal) {
+  const publicState = {
+    schemaVersion: journal.schemaVersion,
+    kind: journal.kind,
+    status: journal.status,
+    createdAt: journal.createdAt,
+    apiBaseUrl: journal.apiBaseUrl,
+    stripeLivemode: journal.stripeLivemode,
+    candidate: journal.candidate,
+    accountRole: journal.accountRole,
+    rollbackRequired: journal.rollbackRequired,
+    events: journal.events,
+    replacementCredentialRetained: typeof journal.replacementPassword === 'string',
+    replacementCredentialRemoved: journal.replacementCredentialRemoved === true,
+  };
   return Object.freeze({
     schemaVersion: 1,
     kind: 'android-current-candidate-password-change-journal',
@@ -185,7 +215,7 @@ function journalPublicResult(journal) {
     candidateBuildNumber: journal.candidate.buildNumber,
     accountRole: journal.accountRole,
     rollbackRequired: journal.rollbackRequired,
-    journalSha256: sha256(JSON.stringify(journal)),
+    journalPublicStateSha256: sha256(JSON.stringify(publicState)),
     containsEmailAddress: false,
     containsCredential: false,
     containsToken: false,
@@ -218,6 +248,10 @@ export function preparePasswordChangeJournal({
   }
   const canonicalSourceVault = realpathSync(source.canonical);
   outsideRepository(canonicalSourceVault, 'The password-change source vault');
+  const sourceVaultIntegrityKey = random(32).toString('base64url');
+  if (!/^[A-Za-z0-9_-]{43}$/u.test(sourceVaultIntegrityKey)) {
+    fail('The password-change source-vault integrity key is invalid.');
+  }
   const journal = {
     schemaVersion: 1,
     kind: 'sit-staging-current-candidate-password-change-journal',
@@ -235,7 +269,11 @@ export function preparePasswordChangeJournal({
       apiBaseUrl: exactCandidate.apiBaseUrl,
     },
     sourceVaultFile: canonicalSourceVault,
-    sourceVaultSha256: sha256(readFileSync(canonicalSourceVault)),
+    sourceVaultIntegrityKey,
+    sourceVaultMac: sourceVaultMac(
+      readFileSync(canonicalSourceVault),
+      sourceVaultIntegrityKey,
+    ),
     accountRole,
     replacementPassword: replacementPassword(random),
     rollbackRequired: false,
@@ -256,7 +294,8 @@ function validateJournal(value) {
       || !['owner', 'renter'].includes(value?.accountRole)
       || typeof value?.sourceVaultFile !== 'string'
       || !isAbsolute(value.sourceVaultFile)
-      || !/^[0-9a-f]{64}$/u.test(value?.sourceVaultSha256 ?? '')
+      || !/^[A-Za-z0-9_-]{43}$/u.test(value?.sourceVaultIntegrityKey ?? '')
+      || !/^[0-9a-f]{64}$/u.test(value?.sourceVaultMac ?? '')
       || (activeRollback && !/^S1tC[A-Za-z0-9_-]{32}$/u.test(value?.replacementPassword ?? ''))
       || (!activeRollback && value?.replacementPassword !== undefined)
       || (!activeRollback && value?.replacementCredentialRemoved !== true)
@@ -275,7 +314,11 @@ export function readPasswordChangeJournal(
   const { canonical, value } = readPrivateJson(journalFile, 'The password-change journal');
   const journal = validateJournal(value);
   const source = readVault(journal.sourceVaultFile);
-  if (sha256(readFileSync(source.canonical)) !== journal.sourceVaultSha256) {
+  const actualSourceVaultMac = sourceVaultMac(
+    readFileSync(source.canonical),
+    journal.sourceVaultIntegrityKey,
+  );
+  if (!sameDigest(actualSourceVaultMac, journal.sourceVaultMac)) {
     fail('The password-change source vault changed after journal preparation.');
   }
   const account = source.vault.accounts.find((entry) => entry.role === journal.accountRole);

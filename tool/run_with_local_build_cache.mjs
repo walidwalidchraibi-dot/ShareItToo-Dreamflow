@@ -4,7 +4,17 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync, realpathSync, statfsSync, statSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  lstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+  statfsSync,
+  statSync,
+} from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -162,6 +172,24 @@ export function parseBuildCacheArguments(args) {
   return { profilePath: path.resolve(args[1]), command: args[3], args: args.slice(4) };
 }
 
+function readOwnerOnlyBuildProfile(profilePath) {
+  let descriptor;
+  try {
+    descriptor = openSync(
+      profilePath,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_CLOEXEC,
+    );
+    const info = fstatSync(descriptor);
+    if (!info.isFile() || info.uid !== process.getuid() || (info.mode & 0o077) !== 0
+        || info.size < 2 || info.size > 64 * 1024) {
+      fail('unsafe_build_cache_profile_file');
+    }
+    return JSON.parse(readFileSync(descriptor, 'utf8'));
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
 function spawnBuildChild(request, environment) {
   return new Promise((resolve, reject) => {
     const child = spawn(request.command, request.args, {
@@ -198,10 +226,7 @@ export async function runBuildCacheCommand(profile, request, {
 
 async function main(args) {
   const request = parseBuildCacheArguments(args);
-  const info = lstatSync(request.profilePath);
-  if (!info.isFile() || info.isSymbolicLink() || info.uid !== process.getuid() || (info.mode & 0o077) !== 0)
-    fail('unsafe_build_cache_profile_file');
-  const profile = parseBuildCacheProfile(JSON.parse(readFileSync(request.profilePath, 'utf8')));
+  const profile = parseBuildCacheProfile(readOwnerOnlyBuildProfile(request.profilePath));
   process.exitCode = await runBuildCacheCommand(profile, request);
 }
 

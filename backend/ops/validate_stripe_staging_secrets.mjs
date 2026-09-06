@@ -41,21 +41,11 @@ function inspectSecretFile(filePath, repositoryRoot) {
     fail('stripe_staging_secret_path_invalid');
   }
 
-  let linkMetadata;
-  let resolvedFile;
   let resolvedRepository;
   try {
-    linkMetadata = lstatSync(filePath);
-    resolvedFile = realpathSync(filePath);
     resolvedRepository = realpathSync(repositoryRoot);
   } catch {
     fail('stripe_staging_secret_unavailable');
-  }
-  if (!linkMetadata.isFile() || linkMetadata.isSymbolicLink()) {
-    fail('stripe_staging_secret_type_invalid');
-  }
-  if (isInside(resolvedRepository, resolvedFile)) {
-    fail('stripe_staging_secret_inside_repository');
   }
 
   let bytes;
@@ -67,10 +57,17 @@ function inspectSecretFile(filePath, repositoryRoot) {
       constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_CLOEXEC,
     );
     metadata = fstatSync(descriptor);
-    if (!metadata.isFile()
-        || metadata.dev !== linkMetadata.dev
-        || metadata.ino !== linkMetadata.ino) {
+    if (!metadata.isFile()) {
       fail('stripe_staging_secret_type_invalid');
+    }
+    const linkMetadata = lstatSync(filePath);
+    const resolvedFile = realpathSync(filePath);
+    if (!linkMetadata.isFile() || linkMetadata.isSymbolicLink()
+        || metadata.dev !== linkMetadata.dev || metadata.ino !== linkMetadata.ino) {
+      fail('stripe_staging_secret_type_invalid');
+    }
+    if (isInside(resolvedRepository, resolvedFile)) {
+      fail('stripe_staging_secret_inside_repository');
     }
     if (!hasSafeStripeSecretPermissions(metadata)) {
       fail('stripe_staging_secret_permissions_invalid');
@@ -81,6 +78,7 @@ function inspectSecretFile(filePath, repositoryRoot) {
     bytes = readFileSync(descriptor);
   } catch (error) {
     if (String(error?.code ?? '').startsWith('stripe_staging_')) throw error;
+    if (error?.code === 'ELOOP') fail('stripe_staging_secret_type_invalid');
     fail('stripe_staging_secret_unavailable');
   } finally {
     if (descriptor !== undefined) closeSync(descriptor);

@@ -204,6 +204,10 @@ async function apiRequest(path, {
   if (typeof path !== 'string' || !path.startsWith('/') || path.includes('://')) {
     fail('A WP21 Staging API path is invalid.');
   }
+  // This owner-only physical-device diagnostic intentionally sends its
+  // protected fixture inputs only to the fixed non-production SIT origin;
+  // every dynamic resource identifier is encoded before it reaches `path`.
+  // codeql[js/file-access-to-http]
   const response = await fetch(`${stagingApiBaseUrl}${path}`, {
     method,
     headers: {

@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 
 import { createHash, randomBytes } from 'node:crypto';
-import { readFileSync, realpathSync, statSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  fstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -50,12 +57,25 @@ function safeError(value) {
 }
 
 function verifiedFixture(path) {
-  const candidate = realpathSync(resolve(path));
-  const metadata = statSync(candidate);
-  if (!metadata.isFile() || metadata.size < 100 || metadata.size > 4 * 1024 * 1024) {
+  const candidate = resolve(path);
+  let descriptor;
+  let bytes;
+  try {
+    descriptor = openSync(
+      candidate,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_CLOEXEC,
+    );
+    const metadata = fstatSync(descriptor);
+    if (!metadata.isFile() || metadata.size < 100 || metadata.size > 4 * 1024 * 1024) {
+      fail('The Listing-AI acceptance image is invalid.');
+    }
+    bytes = readFileSync(descriptor);
+  } catch (error) {
+    if (error?.message === 'The Listing-AI acceptance image is invalid.') throw error;
     fail('The Listing-AI acceptance image is invalid.');
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
-  const bytes = readFileSync(candidate);
   if (sha256(bytes) !== fixtureSha256) {
     fail('The Listing-AI acceptance image does not match the reviewed fixture.');
   }

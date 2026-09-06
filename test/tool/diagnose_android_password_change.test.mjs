@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import {
   chmodSync,
+  closeSync,
+  constants,
+  fstatSync,
   mkdtempSync,
+  openSync,
   readFileSync,
   rmSync,
   statSync,
@@ -28,6 +32,18 @@ import {
   selectNamedPasswordActionNode,
   transitionPasswordChangeJournal,
 } from '../../tool/diagnose_android_password_change.mjs';
+
+function readOwnerOnlyJson(path) {
+  const descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const metadata = fstatSync(descriptor);
+    assert.equal(metadata.isFile(), true);
+    assert.equal(metadata.mode & 0o077, 0);
+    return JSON.parse(readFileSync(descriptor, 'utf8'));
+  } finally {
+    closeSync(descriptor);
+  }
+}
 
 const candidate = Object.freeze({
   applicationId: 'com.shareittoo.app',
@@ -79,8 +95,11 @@ test('prepares a durable owner-only rollback credential before any mutation', (t
   assert.equal(result.containsPrivateFilesystemPath, false);
   assert.equal(statSync(resolve(value.directory, 'journal')).mode & 0o077, 0);
   assert.equal(statSync(value.journalFile).mode & 0o077, 0);
-  const privateValue = JSON.parse(readFileSync(value.journalFile, 'utf8'));
+  const privateValue = readOwnerOnlyJson(value.journalFile);
   assert.match(privateValue.replacementPassword, /^S1tC[A-Za-z0-9_-]{32}$/u);
+  assert.match(privateValue.sourceVaultIntegrityKey, /^[A-Za-z0-9_-]{43}$/u);
+  assert.match(privateValue.sourceVaultMac, /^[0-9a-f]{64}$/u);
+  assert.equal(privateValue.sourceVaultSha256, undefined);
   assert.equal(privateValue.rollbackRequired, false);
   assert.deepEqual(privateValue.events.map((entry) => entry.event), [
     'rollback-credential-durably-prepared',

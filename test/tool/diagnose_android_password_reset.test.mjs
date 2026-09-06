@@ -24,6 +24,10 @@ function fixedRandom(size) {
   return Buffer.alloc(size, 8);
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
 function sourceAccount(root) {
   const path = resolve(root, 'n20-account.json');
   const syntheticFixturePassword = ['Old', 'Fixture', '08'.repeat(12)].join('');
@@ -177,6 +181,6 @@ test('wires exact candidate, Pixel UI request, single-use confirmation and cold 
     'E-Mail gesendet',
     'invalid_credentials',
     'new-password-pixel-login-cold-start-passed',
-  ]) assert.match(source, new RegExp(marker.replace(/[?]/g, '\\?'), 'u'));
+  ]) assert.match(source, new RegExp(escapeRegExp(marker), 'u'));
   assert.doesNotMatch(source, /console\.log\([^\n]*(email|password|token)/u);
 });
