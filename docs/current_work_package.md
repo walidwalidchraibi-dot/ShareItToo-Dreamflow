@@ -1,19 +1,28 @@
 # Current Work Package: WP25 current-candidate SMS verification closure
 
-WP25 is **ACTIVE / OWNER CODE PENDING** for exact signed Pixel candidate
+WP25 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed Staging candidate
 `1.0.0+2026090606`, source
-`637c80d0086f7ad1aa08fe5ba1df5c1624b3e545`. Backend/provider preflight is
-green, exactly one fresh SMS challenge was requested, invalid-code rejection
-passed and no resend occurred. Valid confirmation, cold restart, exact phone
-cleanup and protected-owner restoration await only the private six-digit code.
-Fifty-four focused UI, result-semantic, observer and principal/epoch checks
-pass. The Pixel surface is not disturbed while that challenge is pending.
+`637c80d0086f7ad1aa08fe5ba1df5c1624b3e545`. The live Firebase-phone path
+passes consent, invalid-code rejection, two bounded challenges, one accepted
+owner code, authoritative fresh-login reconciliation and persistence through a
+terminated-process cold restart. Both immediate result surfaces timed out and
+remained explicitly unproven. The first fresh observation correctly required a
+new challenge; the second supplied authoritative success without requesting a
+third SMS.
 
-Independent read-only work confirmed that Stripe test mode remains blocked by
-the same five overdue truthful owner-profile/terms requirements, with zero
-connected accounts and webhook endpoints. Drive contains no newer approved
-V5.2 legal material than the 18.08. specification/legal folder. Neither branch
-was mutated.
+Cleanup then removed the exact phone from the isolated Staging account and
+confirmed the cleared state by mutation, backend readback and current-candidate
+UI. Diagnostic sessions were revoked, the protected synthetic owner remains
+available, and the temporary mode-`0600` code file and directory were deleted.
+No private value entered Git. Fifty-four focused checks and the unchanged
+candidate's full local, signed-archive, GitHub Regression and CodeQL evidence
+remain green. See
+`docs/operations/WP25_CURRENT_CANDIDATE_SMS_VERIFICATION_CLOSURE_2026-09-06.md`.
+
+Independent read-only work still confirms that Stripe test mode is blocked by
+five truthful owner-profile/terms requirements with zero connected accounts or
+webhooks, and Drive contains no newer approved V5.2 legal material than the
+18.08. specification/legal folder. These separate gates were not changed.
 
 WP26 separately closes the historical Android build-host/Kotlin/SDK-XML debt
 using the already-proven uninterrupted signed lifecycle, exact GitHub

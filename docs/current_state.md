@@ -5710,3 +5710,36 @@ WP24 creates no Android candidate and does not alter the WP23
 Production, payment, provider configuration, Firebase Console, Cloud/VPS/DNS,
 public registration and PR merge remain unchanged. See
 `docs/operations/WP24_CODEQL_ALERT_TRIAGE_AND_REMEDIATION_2026-09-06.md`.
+
+## WP25 physical Pixel SMS closure (2026-09-06)
+
+WP25 is complete for exact signed Staging candidate
+`1.0.0+2026090606`, source
+`637c80d0086f7ad1aa08fe5ba1df5c1624b3e545`. Firebase phone-provider
+preflight, German-number input, consent and invalid-code rejection pass. The
+first aged owner code remained unverified and correctly required a fresh
+challenge. The second owner code produced server-confirmed phone verification
+that persisted after a terminated-process cold restart.
+
+Both immediate sanitized result surfaces timed out and remained explicitly
+unproven. No success, rejection or unused-code state was inferred. The first
+fresh observation established an unverified state; the second established the
+accepted result without a third SMS request. Exact
+cleanup mutation, backend readback and current-candidate readback all confirmed
+that the test phone was cleared. Diagnostic sessions were revoked, the
+protected synthetic owner remains available and the temporary mode-`0600` code
+file and directory were deleted.
+
+Fifty-four focused checks pass. The unchanged candidate retains its complete
+local regression, signed archive, GitHub Regression `34022203378`, independent
+clean checkout and CodeQL `34022203376`. Immediate documentation base
+`cf9cc20b8866341257bcd1ab1dfe1efb5c88f9e3` also passes GitHub Regression
+`34027057113` with clean checkout and CodeQL `34027057160`. Current PR head and
+merge refs expose zero open code-scanning alerts; six direct-branch records are
+stale at older commit `f17364fc96c3902c5bf9d434f7132e357e290837` and have no
+current PR-head instance. No private phone, code, credential, token, raw device
+identifier or private path entered Git.
+
+No application source, candidate, Firebase configuration, Store, Production,
+payment, provider, Cloud/VPS/DNS, OnePlus or PR-merge boundary changed. See
+`docs/operations/WP25_CURRENT_CANDIDATE_SMS_VERIFICATION_CLOSURE_2026-09-06.md`.
