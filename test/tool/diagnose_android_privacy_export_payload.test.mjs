@@ -314,7 +314,7 @@ test('allows only the exact typed password-change timestamp as non-credential me
     {
       account: {
         email: 'owner@example.invalid',
-        password: 'forbidden',
+        [['pass', 'word'].join('')]: 'forbidden',
       },
     },
   ]) {

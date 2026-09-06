@@ -471,7 +471,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
-      "sha256": "61302e909034b8156d30ac8dd49f3ab4831ad1fb70698e6ab2773a70f9e75478"
+      "sha256": "e820858714a090bca3910f27055aeaae36c5d5146e958919e1e096cd6e47280c"
     },
     {
       "path": "scripts/technical_regression_check.sh",
