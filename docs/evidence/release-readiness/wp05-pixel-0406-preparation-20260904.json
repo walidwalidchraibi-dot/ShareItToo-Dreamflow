@@ -106,15 +106,15 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "f77a0a7b0924538ab4cb7e784a6d4fc87dcea873830b6105cb29732a7d53cb81"
+      "sha256": "3cef2d9b72ac47142e3214683677266eda227e915eb6babed55782a0ad502842"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "aa226e4d26a57d9f72a9e7398393eb1db8b3fa62f889d4cfd71323097e9e25f5"
+      "sha256": "9725e11bb3f8a4a6e13812b0e2ec81ee23394b583017b32b6371de7bdcfaed64"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "a6238c29a2278b0c00b6e80425aea202cbb2e01a0d178b6ead351439b4d456b7"
+      "sha256": "afa4748424ddf598a6bc20825b5ba267808417a40768daa300c2a35451d08ee0"
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
