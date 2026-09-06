@@ -1,4 +1,39 @@
-# Current Work Package: WP31 Pixel candidate 2026090608
+# Current Work Package: WP32 Pixel V5.2 return-case physical lane
+
+WP32 is **IMPLEMENTATION COMPLETE; PHYSICAL SUCCESS BLOCKED BY THE EXISTING
+V5.2 LEGAL-SNAPSHOT HOLD** at implementation HEAD
+`dd0123094188799d433e885448337f5175cbd49d`.
+
+The exact isolated Pixel runner and two-role server-truth inspection are
+implemented. Focused checks pass, all 2,353 tool tests pass, 900 active Flutter
+tests plus 33 declared skips pass, analyzer reports zero issues and the full
+local version-2 regression passes through Web/Wasm, loopback and Android
+minSdk 24.
+
+Exact-head GitHub Regression `34048891874` passes all four required jobs,
+including independent clean-checkout reproducibility. CodeQL `34048891840`
+passes, open code-scanning alerts are zero and PR #7 remains Draft, open,
+mergeable and unmerged.
+
+The protected account status compatibility gap was fixed without weakening
+isolation. The real Staging run then stopped on the structured
+`409 v52_contract_documents_unavailable` response. No booking, reservation,
+contract, payment or return case was created; the temporary listing was
+verified unbooked and paused, the temporary Pixel file was removed, the
+protected owner was restored and the source vault remained byte-unchanged.
+
+Read-only Drive and repository checks found no newer professionally approved
+V5.2 source. The legal manifest remains `draft-blocked`, has no effective date
+and forbids activation. WP32 must not claim a physical success or convert a
+non-binding simulation into contract truth. It can resume on the unchanged
+WP31 candidate after genuine approved legal snapshots are provisioned. See
+`docs/operations/WP32_PIXEL_V52_RETURN_CASE_LEGAL_HOLD_2026-09-06.md`.
+
+No Production, Store, payment/provider, Firebase Console, Cloud/VPS/DNS,
+OnePlus or PR-merge boundary changed. Independent non-contract work may
+continue as a separate package.
+
+# Previous Work Package: WP31 Pixel candidate 2026090608
 
 WP31 is **COMPLETE ON THE PHYSICAL PIXEL** for exact candidate source
 `15f7766ef15c0be30cf96a743edc4d62d1a588e3` and version

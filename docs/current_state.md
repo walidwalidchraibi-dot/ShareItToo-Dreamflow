@@ -1,5 +1,30 @@
 # ShareItToo Current State
 
+WP32 prepares the exact physical Pixel V5.2 return-case journey at
+implementation HEAD `dd0123094188799d433e885448337f5175cbd49d` without
+changing the WP31 candidate. The isolated runner requires both participant
+entry points, private evidence upload, server acceptance, equal participant
+truth, `needsReview`, duplicate prevention, preserved general support and
+protected-owner restoration. All 2,353 tool tests, 900 active Flutter tests
+with 33 declared skips, analyzer, Web/Wasm, loopback, Android minSdk 24 and the
+complete local regression pass.
+
+GitHub Regression `34048891874` passes all four required jobs at that exact
+implementation HEAD, including independent clean-checkout reproducibility.
+CodeQL `34048891840` passes, open code-scanning alerts remain zero and PR #7
+remains Draft, open, mergeable and unmerged.
+
+The real Staging run stops truthfully at
+`409 v52_contract_documents_unavailable`; no booking, reservation, contract,
+payment or return case was created. Its temporary listing was verified
+unbooked and paused, the device file was removed, the owner was restored and
+the protected vault remained unchanged. Read-only Drive and repository checks
+found no newer professionally approved V5.2 source: the manifest remains
+`draft-blocked`, without effective date or activation permission. WP32
+physical success therefore remains `BLOCKED`, not inferred. No external/live
+boundary changed. See
+`docs/operations/WP32_PIXEL_V52_RETURN_CASE_LEGAL_HOLD_2026-09-06.md`.
+
 WP31 closes exact signed Internal Staging candidate `1.0.0+2026090608`, source
 HEAD `15f7766ef15c0be30cf96a743edc4d62d1a588e3`, on the physical Pixel. The
 owner-only AAB/APK archive, hashes, canonical upload signature, package/version,
