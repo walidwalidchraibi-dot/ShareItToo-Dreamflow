@@ -615,12 +615,34 @@ function removeSink(commandRunner, adbPath, device) {
   return true;
 }
 
+export function privacyExportSinkFileSize(value, name) {
+  if (![exportFileName, 'receipt.json'].includes(name)) {
+    fail('The temporary sink file name is not allowlisted.');
+  }
+  const normalized = String(value).trim();
+  if (!/^\d{1,10}$/u.test(normalized)) {
+    fail(`The temporary sink ${name} file is unavailable.`);
+  }
+  const size = Number(normalized);
+  const maximum = name === 'receipt.json' ? 4096 : 32 * 1024 * 1024;
+  if (!Number.isSafeInteger(size) || size < 1 || size > maximum) {
+    fail(`The temporary sink ${name} file has an invalid byte length.`);
+  }
+  return size;
+}
+
 function pullSinkFile(commandRunner, adbPath, device, name) {
+  const expectedSize = privacyExportSinkFileSize(currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    ['shell', 'run-as', sinkApplicationId, 'stat', '-c', '%s', `files/${name}`],
+  ), name);
   const output = execFileSync(adbPath, [
     '-s', device.serial, 'exec-out', 'run-as', sinkApplicationId,
     'cat', `files/${name}`,
   ], { stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 40 * 1024 * 1024 });
-  if (!Buffer.isBuffer(output) || output.length === 0) {
+  if (!Buffer.isBuffer(output) || output.length !== expectedSize) {
     fail(`The temporary sink ${name} file is unavailable.`);
   }
   return output;

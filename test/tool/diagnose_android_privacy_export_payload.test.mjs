@@ -6,6 +6,7 @@ import {
   privacyExportSinkManifest,
   privacyExportPasswordField,
   privacyExportPasswordDialogVisible,
+  privacyExportSinkFileSize,
   validatePrivacyExportPayload,
   validatePrivacyExportSinkSources,
 } from '../../tool/diagnose_android_privacy_export_payload.mjs';
@@ -99,6 +100,24 @@ test('temporary Android sink has no network or external-storage capability', () 
   assert.equal(result.privateFileOnly, true);
   assert.doesNotMatch(privacyExportSinkManifest, /uses-permission/u);
   assert.doesNotMatch(privacyExportSinkJava, /https?:|Socket|URLConnection|HttpClient|WebView/u);
+});
+
+test('temporary sink requires an exact bounded file size before reading bytes', () => {
+  assert.equal(privacyExportSinkFileSize('196\n', 'receipt.json'), 196);
+  assert.equal(
+    privacyExportSinkFileSize(String(32 * 1024 * 1024), 'shareittoo-data-export.json'),
+    32 * 1024 * 1024,
+  );
+  for (const missingOrUnsafe of ['', '0', 'not found', '-1', '4097']) {
+    assert.throws(
+      () => privacyExportSinkFileSize(missingOrUnsafe, 'receipt.json'),
+      /unavailable|invalid byte length/u,
+    );
+  }
+  assert.throws(
+    () => privacyExportSinkFileSize('1', '../receipt.json'),
+    /not allowlisted/u,
+  );
 });
 
 test('accepts an exact owner-bound export with all six local sections', () => {
