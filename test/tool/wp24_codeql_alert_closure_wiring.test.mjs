@@ -12,9 +12,9 @@ test('credential-bearing journal bytes use private keyed integrity rather than a
   assert.match(value, /timingSafeEqual/u);
   assert.match(value, /sourceVaultIntegrityKey/u);
   assert.match(value, /sourceVaultMac/u);
-  assert.match(value, /journalPublicStateSha256/u);
   assert.doesNotMatch(value, /sourceVaultSha256/u);
   assert.doesNotMatch(value, /sha256\(JSON\.stringify\(journal\)\)/u);
+  assert.doesNotMatch(value, /createHash/u);
 });
 
 test('security-sensitive local files are consumed through no-follow descriptors', () => {
@@ -53,17 +53,17 @@ test('intentional file-backed egress remains fixed, bounded and locally document
   assert.match(provider, /externalProviderExecutionAllowed !== true/u);
   assert.match(provider, /providerExecutionAllowed !== true/u);
   assert.match(provider, /constants\.O_NOFOLLOW/u);
-  assert.match(provider, /codeql\[js\/file-access-to-http\]/u);
+  assert.match(provider, /SIT-INTENTIONAL-EGRESS/u);
 
   const passwordReset = source('tool/diagnose_android_password_reset.mjs');
   assert.match(passwordReset, /const apiBaseUrl = 'https:\/\/staging\.shareittoo\.com\/api\/v1';/u);
   assert.match(passwordReset, /constants\.O_NOFOLLOW/u);
   assert.match(passwordReset, /\^\[A-Za-z0-9\._\+@-\]\+\$/u);
-  assert.match(passwordReset, /codeql\[js\/file-access-to-http\]/u);
+  assert.match(passwordReset, /SIT-INTENTIONAL-EGRESS/u);
 
   const messaging = source('tool/diagnose_android_messaging_media_time_location.mjs');
   assert.match(messaging, /const stagingApiBaseUrl = 'https:\/\/staging\.shareittoo\.com\/api\/v1';/u);
   assert.match(messaging, /!path\.startsWith\('\/'\) \|\| path\.includes\(':\/\/'\)/u);
   assert.ok((messaging.match(/encodeURIComponent\(/gu) ?? []).length >= 2);
-  assert.match(messaging, /codeql\[js\/file-access-to-http\]/u);
+  assert.match(messaging, /SIT-INTENTIONAL-EGRESS/u);
 });

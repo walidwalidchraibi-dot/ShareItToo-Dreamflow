@@ -60,7 +60,7 @@
     "deprecationsDocumentation": "https://developers.openai.com/api/docs/deprecations"
   },
   "sourceBindings": {
-    "backend/src/openai_listing_ai_provider.js": "728fc75b8278b3808113c567e6702a4b3a028ecb43b71ce0d4036d07da1ecd77",
+    "backend/src/openai_listing_ai_provider.js": "95287eaf41efadf048e0b48bfb4c45c2b2d70552f67abed4f7f8a3f1f738e426",
     "backend/src/app.js": "6a10db4bff5d044eb8cba11574806f195f01aade17ba193692c90ba5f7013850",
     "backend/compose.staging.listing-ai.yml": "65a3f228a2e7e66fe518470369f554439dae8d078b11b0649a83acabb53c1be1",
     "backend/ops/validate_openai_staging_secret.mjs": "c71dc3986145dee854fa87274afb28c3b154e8bec85662536196161e0705409a",

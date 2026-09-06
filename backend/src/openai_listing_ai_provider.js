@@ -241,7 +241,7 @@ export function createOpenAiListingAiProvider({
         transportAttempted = true;
         // The owner-only API credential and consent-screened WebP derivative
         // intentionally leave only for this fixed official provider endpoint.
-        // codeql[js/file-access-to-http]
+        // SIT-INTENTIONAL-EGRESS: reviewed and regression-bound.
         response = await fetchImpl(responsesEndpoint, {
           method: 'POST',
           headers: {

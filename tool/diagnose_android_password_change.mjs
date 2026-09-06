@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import {
-  createHash,
   createHmac,
   randomBytes,
   timingSafeEqual,
@@ -57,10 +56,6 @@ const applicationId = 'com.shareittoo.app';
 
 function fail(message) {
   throw new Error(message);
-}
-
-function sha256(value) {
-  return createHash('sha256').update(value).digest('hex');
 }
 
 function sourceVaultMac(value, integrityKey) {
@@ -193,20 +188,6 @@ function replacementPassword(random) {
 }
 
 function journalPublicResult(journal) {
-  const publicState = {
-    schemaVersion: journal.schemaVersion,
-    kind: journal.kind,
-    status: journal.status,
-    createdAt: journal.createdAt,
-    apiBaseUrl: journal.apiBaseUrl,
-    stripeLivemode: journal.stripeLivemode,
-    candidate: journal.candidate,
-    accountRole: journal.accountRole,
-    rollbackRequired: journal.rollbackRequired,
-    events: journal.events,
-    replacementCredentialRetained: typeof journal.replacementPassword === 'string',
-    replacementCredentialRemoved: journal.replacementCredentialRemoved === true,
-  };
   return Object.freeze({
     schemaVersion: 1,
     kind: 'android-current-candidate-password-change-journal',
@@ -215,7 +196,6 @@ function journalPublicResult(journal) {
     candidateBuildNumber: journal.candidate.buildNumber,
     accountRole: journal.accountRole,
     rollbackRequired: journal.rollbackRequired,
-    journalPublicStateSha256: sha256(JSON.stringify(publicState)),
     containsEmailAddress: false,
     containsCredential: false,
     containsToken: false,

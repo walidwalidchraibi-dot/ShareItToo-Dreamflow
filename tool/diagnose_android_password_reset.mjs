@@ -284,7 +284,7 @@ export function reconcilePasswordResetEmailDelivery({
 async function defaultAuthenticate(email, password) {
   // This owner-only local recovery diagnostic intentionally verifies the old
   // credential only against the fixed non-production ShareItToo endpoint.
-  // codeql[js/file-access-to-http]
+  // SIT-INTENTIONAL-EGRESS: reviewed and regression-bound.
   const response = await fetch(`${apiBaseUrl}/auth/login`, {
     method: 'POST',
     headers: {

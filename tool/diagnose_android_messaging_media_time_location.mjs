@@ -207,7 +207,7 @@ async function apiRequest(path, {
   // This owner-only physical-device diagnostic intentionally sends its
   // protected fixture inputs only to the fixed non-production SIT origin;
   // every dynamic resource identifier is encoded before it reaches `path`.
-  // codeql[js/file-access-to-http]
+  // SIT-INTENTIONAL-EGRESS: reviewed and regression-bound.
   const response = await fetch(`${stagingApiBaseUrl}${path}`, {
     method,
     headers: {
