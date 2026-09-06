@@ -1,5 +1,21 @@
 # ShareItToo Current State
 
+WP29 prepares a separately versioned Internal Staging candidate
+`1.0.0+2026090607` from clean WP28 closure HEAD
+`96096f4413d5c274764536495865003189ffeea8`. The connected Pixel still contains
+`2026090606`, and no local `2026090607` archive or prior checked-in reservation
+existed. Only the checked-in version and client-build fallback change; dependent
+JSON changes are exclusively SHA-256 leaves. All 2,341 tool tests pass after
+the binding graph converges.
+
+The exact preparation commit, full regression, signed private AAB/APK archive,
+independent artifact verification, data-preserving Pixel update and exact-head
+GitHub checks remain open. The envelope stays Internal Staging, Google-only,
+closed non-binding `heilbronn_wave0`, canonical signing, provider hold and no
+real money. No Store, tester-list, Production, Firebase Console, payment/KYC,
+Cloud/VPS/DNS, OnePlus or PR-merge state changed. See
+`docs/operations/WP29_PIXEL_CANDIDATE_2026090607_PREPARATION.md`.
+
 WP28 closes the booking return-case and issue-report principal transaction
 locally and on GitHub at implementation HEAD
 `ffaef68daabd6f34487044f5307e92129d3b84a6`. The screen now binds evidence
