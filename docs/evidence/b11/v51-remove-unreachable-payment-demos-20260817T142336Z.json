@@ -36,7 +36,7 @@
     "candidateBuiltOrRelabeled": false
   },
   "sourceHashesSha256": {
-    "lib/screens/booking_detail_screen.dart": "c4d691b2e723f8e21db7daa06dde992a4e2f453d531239fa93ef7f03e96e50e1",
+    "lib/screens/booking_detail_screen.dart": "77d32ecd187be5883bb645e2722e40429c5eae005f640276fb4dae371b3f404a",
     "test/tool/no_demo_payment_surfaces.test.mjs": "55bb7600de1549208943069dc6360128d3b7afa81d3b04d5a7baf4e6447e239a",
     "store/privacy-disclosures.json": "7b3d11e404c15d7a00954ce8c9154f4f1822ddc7d5e78cdf726ac187ecade25f"
   }

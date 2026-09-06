@@ -804,7 +804,7 @@
     },
     {
       "path": "lib/screens/bookings_screen.dart",
-      "sha256": "1eda9806562ef1c31d4c86c67990b6f91dd59ccb8360f69d5b8194331dcb754a"
+      "sha256": "78c844201745c6a21e13389453c4d9641c35c3c392f2fc3bec615cd431fabcb6"
     },
     {
       "path": "lib/screens/payment_methods_screen.dart",
@@ -840,11 +840,11 @@
     },
     {
       "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "c4d691b2e723f8e21db7daa06dde992a4e2f453d531239fa93ef7f03e96e50e1"
+      "sha256": "77d32ecd187be5883bb645e2722e40429c5eae005f640276fb4dae371b3f404a"
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "6aa51e32643d687a35cac59e1d3a73932697853b2371cebbfd7d6485cabc2f09"
+      "sha256": "b05dc82e4ad57a94f5c99305a21ff84c0da16ec07109eca139d278d7c914d93d"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",

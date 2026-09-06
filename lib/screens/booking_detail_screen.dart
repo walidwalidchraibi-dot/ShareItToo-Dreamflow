@@ -35,6 +35,8 @@ import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/screens/report_issue_screen.dart';
+import 'package:lendify/services/return_case_entry_point_policy.dart';
 import 'package:lendify/widgets/support_principal_controller.dart';
 import 'package:lendify/screens/payment_checkout_screen.dart';
 import 'package:lendify/screens/platform_withdrawal_screen.dart';
@@ -318,6 +320,27 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return status == 'Laufend' && _isOngoing;
   }
 
+  DateTime? _bookingInstant(String key) {
+    final value = widget.booking[key];
+    if (value is DateTime) return value;
+    return DateTime.tryParse(value?.toString() ?? '');
+  }
+
+  bool get _returnCaseEntryPointEligible =>
+      ReturnCaseEntryPointPolicy.isEligible(
+        bookingStatus: (widget.booking['rawStatus'] ??
+                widget.booking['workflowStatus'] ??
+                widget.booking['status'] ??
+                '')
+            .toString(),
+        simulationOnly: _simulationOnly,
+        needsReview: widget.booking['needsReview'] == true,
+        platformContract: _platformContract,
+        returnT0: _bookingInstant('returnT0'),
+        reportDeadline: _bookingInstant('returnReportDeadline'),
+        returnCaseOpenedAt: _bookingInstant('returnCaseOpenedAt'),
+      );
+
   _BoundBookingPriceSnapshot? get _boundPriceSnapshot =>
       _BoundBookingPriceSnapshot.fromBooking(widget.booking);
 
@@ -489,6 +512,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       if (request != null) {
         widget.booking['startIso'] = request.start.toIso8601String();
         widget.booking['endIso'] = request.end.toIso8601String();
+        widget.booking['rawStatus'] = request.status;
+        widget.booking['workflowStatus'] = request.workflowStatus;
+        widget.booking['platformContract'] = request.platformContract;
+        widget.booking['needsReview'] = request.needsReview;
+        widget.booking['returnT0'] = request.returnT0?.toIso8601String();
+        widget.booking['returnReportDeadline'] =
+            request.returnReportDeadline?.toIso8601String();
+        widget.booking['returnCaseOpenedAt'] =
+            request.returnCaseOpenedAt?.toIso8601String();
       }
     });
     await _syncBookingLifecycleFromRequest(requestId);
@@ -580,6 +612,31 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openReturnCase({
+    required String requestId,
+    required String itemTitle,
+  }) async {
+    final owner = _supportPrincipal.capture();
+    if (owner == null || !_returnCaseEntryPointEligible) return;
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+    final result = await _supportPrincipal.pushOwnedRoute<bool?>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
+        builder: (_) => ReportIssueScreen(
+          requestId: requestId,
+          itemTitle: itemTitle,
+        ),
+      ),
+    );
+    if (result != true ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
+      return;
+    }
+    await _reloadFromSharedPersistence();
   }
 
   Future<void> _manageBookingTime({required bool isReturn}) async {
@@ -1084,6 +1141,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   label: 'Problem melden',
                   value: 'issue',
                 ),
+                if (_returnCaseEntryPointEligible)
+                  const SitMenuOption(
+                    icon: Icons.fact_check_outlined,
+                    label: 'Rückgabe-Prüffall eröffnen',
+                    value: 'return_case',
+                  ),
               ];
               final picked = await showSITOverflowMenu<String>(
                 context,
@@ -1112,6 +1175,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         itemTitle: title,
                       );
                     }
+                  }
+                  break;
+                case 'return_case':
+                  final requestId = widget.booking['requestId'] as String?;
+                  final title = (widget.booking['title'] as String?) ?? '-';
+                  if (requestId != null && requestId.isNotEmpty) {
+                    await _openReturnCase(
+                      requestId: requestId,
+                      itemTitle: title,
+                    );
                   }
                   break;
                 case 'payment':

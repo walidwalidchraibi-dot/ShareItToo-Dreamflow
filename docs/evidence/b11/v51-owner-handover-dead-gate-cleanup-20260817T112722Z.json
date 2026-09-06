@@ -6,7 +6,7 @@
   "sourceBaseCommit": "13c169f9a257edee6bebe127d5a60292d10b356e",
   "runtimeChange": {
     "path": "lib/screens/ongoing_owner_detail_screen.dart",
-    "sha256": "6aa51e32643d687a35cac59e1d3a73932697853b2371cebbfd7d6485cabc2f09",
+    "sha256": "b05dc82e4ad57a94f5c99305a21ff84c0da16ec07109eca139d278d7c914d93d",
     "removedSymbol": "_canStartOwnerHandover",
     "runtimeLinesAdded": 0,
     "runtimeLinesDeleted": 5,

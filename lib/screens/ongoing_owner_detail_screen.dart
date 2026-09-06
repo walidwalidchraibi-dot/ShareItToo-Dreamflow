@@ -21,6 +21,8 @@ import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/screens/report_issue_screen.dart';
+import 'package:lendify/services/return_case_entry_point_policy.dart';
 import 'package:lendify/widgets/support_principal_controller.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'dart:ui' show ImageFilter;
@@ -242,6 +244,31 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openReturnCase({
+    required RentalRequest req,
+    required Item item,
+  }) async {
+    final owner = _supportPrincipal.capture();
+    if (owner == null || !_returnCaseEntryPointEligible(req)) return;
+    if (!await _supportPrincipal.isCurrent(owner) || !mounted) return;
+    final result = await _supportPrincipal.pushOwnedRoute<bool?>(
+      context: context,
+      owner: owner,
+      route: MaterialPageRoute(
+        builder: (_) => ReportIssueScreen(
+          requestId: req.id,
+          itemTitle: item.title,
+        ),
+      ),
+    );
+    if (result != true ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
+      return;
+    }
+    await _load();
   }
 
   Future<void> _manageBookingTime({
@@ -575,6 +602,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                       label: 'Problem melden',
                       value: 'issue',
                     ),
+                    if (_returnCaseEntryPointEligible(req))
+                      const SitMenuOption(
+                        icon: Icons.fact_check_outlined,
+                        label: 'Rückgabe-Prüffall eröffnen',
+                        value: 'return_case',
+                      ),
                   ],
                 );
                 if (!context.mounted) return;
@@ -631,6 +664,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                     break;
                   case 'issue':
                     await _openSupportFlow(req: req, item: item);
+                    break;
+                  case 'return_case':
+                    await _openReturnCase(req: req, item: item);
                     break;
                   default:
                 }
@@ -707,6 +743,17 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     // Fallback
     return 'upcoming';
   }
+
+  bool _returnCaseEntryPointEligible(RentalRequest request) =>
+      ReturnCaseEntryPointPolicy.isEligible(
+        bookingStatus: request.status,
+        simulationOnly: request.simulationOnly,
+        needsReview: request.needsReview,
+        platformContract: request.platformContract,
+        returnT0: request.returnT0,
+        reportDeadline: request.returnReportDeadline,
+        returnCaseOpenedAt: request.returnCaseOpenedAt,
+      );
 
   Widget _buildOngoingBody(
     BuildContext context,
