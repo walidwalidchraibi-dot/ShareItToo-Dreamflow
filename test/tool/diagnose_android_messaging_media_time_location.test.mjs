@@ -5,6 +5,7 @@ import {
   classifySyntheticImagePickerSurface,
   composerActionPoint,
   containsExactWp21MessageState,
+  containsWp21LocationGateFeedback,
   isExactWp21AddressEntrySurface,
   parseAndroidDisplayScale,
   runWp21Lifecycle,
@@ -215,6 +216,21 @@ test('WP21 address entry binds the active field instead of presentation-only hin
   );
   assert.equal(
     isExactWp21AddressEntrySurface(surface.replace('Adresse teilen', 'Standort teilen')),
+    false,
+  );
+});
+
+test('WP21 location gate accepts persistent Flutter feedback in merged semantics', () => {
+  const combined = [
+    '<hierarchy>',
+    '<node text="" content-desc="Hinweis: Standortfreigabe noch gesperrt. Ein genauer Ort bleibt geschützt." />',
+    '</hierarchy>',
+  ].join('');
+  assert.equal(containsWp21LocationGateFeedback(combined), true);
+  assert.equal(
+    containsWp21LocationGateFeedback(
+      '<hierarchy><node text="Standort wurde geteilt" /></hierarchy>',
+    ),
     false,
   );
 });

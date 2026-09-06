@@ -310,6 +310,10 @@ function textIncludes(hierarchy, text) {
   return typeof hierarchy === 'string' && hierarchy.includes(text);
 }
 
+export function containsWp21LocationGateFeedback(hierarchy) {
+  return textIncludes(hierarchy, 'Standortfreigabe noch gesperrt');
+}
+
 export function containsExactWp21MessageState(hierarchy, labels) {
   if (!Array.isArray(labels) || labels.length === 0
       || labels.some((label) => typeof label !== 'string' || label.length === 0)) {
@@ -748,12 +752,9 @@ async function verifyLocationFailClosed({
     device,
     wait,
     label: 'WP21 server-gated location result',
-    attempts: 70,
-    intervalMs: 250,
-    predicate: (value) => currentHeadAndroidNamedNodes(
-      value,
-      'Standortfreigabe noch gesperrt',
-    ).length === 1,
+    attempts: 40,
+    intervalMs: 650,
+    predicate: containsWp21LocationGateFeedback,
     });
   } catch (error) {
     throw stagedError(
