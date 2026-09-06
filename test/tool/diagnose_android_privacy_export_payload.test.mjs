@@ -275,6 +275,56 @@ test('rejects missing sections, cross-owner local sections and credential keys',
   );
 });
 
+test('allows only the exact typed password-change timestamp as non-credential metadata', () => {
+  const accepted = validatePrivacyExportPayload({
+    bytes: payload({
+      data: {
+        account: {
+          email: 'owner@example.invalid',
+          password_changed_at: '2026-09-06T17:30:00.000Z',
+        },
+      },
+    }),
+    ...identities,
+  });
+  assert.equal(accepted.forbiddenCredentialKeyCount, 0);
+  assert.equal(validatePrivacyExportPayload({
+    bytes: payload({
+      data: {
+        account: {
+          email: 'owner@example.invalid',
+          password_changed_at: null,
+        },
+      },
+    }),
+    ...identities,
+  }).forbiddenCredentialKeyCount, 0);
+
+  for (const data of [
+    {
+      account: {
+        email: 'owner@example.invalid',
+        password_changed_at: 'not-a-timestamp',
+      },
+    },
+    {
+      account: { email: 'owner@example.invalid' },
+      password_changed_at: '2026-09-06T17:30:00.000Z',
+    },
+    {
+      account: {
+        email: 'owner@example.invalid',
+        password: 'forbidden',
+      },
+    },
+  ]) {
+    assert.throws(
+      () => validatePrivacyExportPayload({ bytes: payload({ data }), ...identities }),
+      /credential- or session-shaped key/u,
+    );
+  }
+});
+
 test('rejects invalid, empty and oversized export bytes', () => {
   assert.throws(
     () => validatePrivacyExportPayload({ bytes: Buffer.alloc(0), ...identities }),

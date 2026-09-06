@@ -70,6 +70,7 @@ const sharedCounterpartyLocalSections = Object.freeze([
   'safetyPrivacy',
 ]);
 const forbiddenKeyPattern = /(?:password|passcode|credential|access.?token|refresh.?token|session.?token|cookie|private.?key|api.?key|authorization)/iu;
+const allowedSecurityMetadataPath = 'data.account.password_changed_at';
 
 function fail(message) {
   throw new Error(message);
@@ -105,16 +106,25 @@ function privateDirectory(path) {
   return realpathSync(exact);
 }
 
-function recursiveKeys(value, result = []) {
+function recursiveFields(value, path = [], result = []) {
   if (Array.isArray(value)) {
-    for (const entry of value) recursiveKeys(entry, result);
+    for (const entry of value) recursiveFields(entry, path, result);
   } else if (value !== null && typeof value === 'object') {
     for (const [key, entry] of Object.entries(value)) {
-      result.push(key);
-      recursiveKeys(entry, result);
+      const fieldPath = [...path, key];
+      result.push({ key, path: fieldPath.join('.'), value: entry });
+      recursiveFields(entry, fieldPath, result);
     }
   }
   return result;
+}
+
+function allowedNonCredentialSecurityMetadata(field) {
+  if (field.path !== allowedSecurityMetadataPath) return false;
+  if (field.value === null) return true;
+  if (typeof field.value !== 'string') return false;
+  const parsed = new Date(field.value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === field.value;
 }
 
 function identityAppears(serialized, identity) {
@@ -178,8 +188,11 @@ export function validatePrivacyExportPayload({
     }
     sharedCounterpartySections.push(name);
   }
-  const forbiddenKeys = recursiveKeys(value).filter((key) => forbiddenKeyPattern.test(key));
-  if (forbiddenKeys.length > 0) {
+  const forbiddenFields = recursiveFields(value).filter((field) => (
+    forbiddenKeyPattern.test(field.key)
+      && !allowedNonCredentialSecurityMetadata(field)
+  ));
+  if (forbiddenFields.length > 0) {
     fail('The privacy export contains a credential- or session-shaped key.');
   }
   return Object.freeze({
