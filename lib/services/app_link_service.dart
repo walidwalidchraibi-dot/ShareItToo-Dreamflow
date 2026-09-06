@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import 'backend_config.dart';
 import 'firebase_runtime.dart';
+import 'local_principal_scope.dart';
 
 enum AppLinkKind {
   listing,
@@ -26,38 +27,106 @@ class AppLinkTarget {
   const AppLinkTarget({required this.kind, required this.uri, this.id});
 }
 
+/// Credential-free ownership boundary for one accepted app-link action.
+///
+/// Production ownership delegates to [LocalPrincipalActionOwner]. Tests can
+/// provide a small fake without persisting or exposing an authenticated
+/// session. Only the opaque local principal token and monotonic epoch are
+/// retained with a target.
+abstract interface class AppLinkPrincipalOwner {
+  String get principalToken;
+  bool get authenticated;
+  int get epoch;
+  bool get isCurrentEpoch;
+  Future<bool> isCurrent();
+}
+
+class LocalAppLinkPrincipalOwner implements AppLinkPrincipalOwner {
+  final LocalPrincipalActionOwner _owner;
+
+  const LocalAppLinkPrincipalOwner._(this._owner);
+
+  static Future<AppLinkPrincipalOwner> capture() async =>
+      LocalAppLinkPrincipalOwner._(await LocalPrincipalActionOwner.capture());
+
+  @override
+  String get principalToken => _owner.principal.token;
+
+  @override
+  bool get authenticated => _owner.principal.authenticated;
+
+  @override
+  int get epoch => _owner.epoch;
+
+  @override
+  bool get isCurrentEpoch => _owner.isCurrentEpoch;
+
+  @override
+  Future<bool> isCurrent() => _owner.isCurrent();
+}
+
+class PrincipalBoundAppLinkTarget {
+  final AppLinkTarget target;
+  final AppLinkPrincipalOwner owner;
+
+  const PrincipalBoundAppLinkTarget({
+    required this.target,
+    required this.owner,
+  });
+}
+
+class AppLinkPrincipalChanged implements Exception {
+  const AppLinkPrincipalChanged();
+}
+
+/// Executes one app-link read or side effect only for its captured owner.
+///
+/// The current owner is verified immediately before the operation starts and
+/// again before its result can escape to UI or navigation code. A transport
+/// result from Account A can therefore never become Account B presentation.
+Future<T> runPrincipalBoundAppLinkOperation<T>({
+  required AppLinkPrincipalOwner owner,
+  required Future<T> Function() operation,
+}) async {
+  if (!await owner.isCurrent()) throw const AppLinkPrincipalChanged();
+  final result = await operation();
+  if (!await owner.isCurrent()) throw const AppLinkPrincipalChanged();
+  return result;
+}
+
 class AppLinkTargetInbox {
   static const duplicateWindow = Duration(seconds: 5);
 
   final DateTime Function() _now;
-  AppLinkTarget? _pending;
+  PrincipalBoundAppLinkTarget? _pending;
   Uri? _lastAcceptedUri;
+  String? _lastAcceptedPrincipalToken;
+  int? _lastAcceptedEpoch;
   DateTime? _lastAcceptedAt;
 
   AppLinkTargetInbox({DateTime Function()? now}) : _now = now ?? DateTime.now;
 
-  AppLinkTarget? takePending() {
+  PrincipalBoundAppLinkTarget? takePending() {
     final target = _pending;
     _pending = null;
     return target;
   }
 
-  bool accept(String raw) {
-    if (raw.isEmpty || raw == '/') return false;
-    final uri = Uri.tryParse(raw);
-    final target = uri == null ? null : AppLinkParser.parse(uri);
-    if (target == null) return false;
-
+  bool accept(AppLinkTarget target, AppLinkPrincipalOwner owner) {
     final acceptedAt = _now();
     final previousAt = _lastAcceptedAt;
-    if (_lastAcceptedUri == uri &&
+    if (_lastAcceptedUri == target.uri &&
+        _lastAcceptedPrincipalToken == owner.principalToken &&
+        _lastAcceptedEpoch == owner.epoch &&
         previousAt != null &&
         acceptedAt.difference(previousAt) <= duplicateWindow) {
       return false;
     }
 
-    _pending = target;
-    _lastAcceptedUri = uri;
+    _pending = PrincipalBoundAppLinkTarget(target: target, owner: owner);
+    _lastAcceptedUri = target.uri;
+    _lastAcceptedPrincipalToken = owner.principalToken;
+    _lastAcceptedEpoch = owner.epoch;
     _lastAcceptedAt = acceptedAt;
     return true;
   }
@@ -139,10 +208,7 @@ class AppLinkParser {
             segments[1] == 'email-verification' &&
             segments[2] == 'confirm' &&
             (uri.queryParameters['token'] ?? '').isNotEmpty) {
-          return AppLinkTarget(
-            kind: AppLinkKind.emailVerification,
-            uri: uri,
-          );
+          return AppLinkTarget(kind: AppLinkKind.emailVerification, uri: uri);
         }
         if (segments.length >= 2 &&
             segments[1] == 'password-reset' &&
@@ -156,11 +222,7 @@ class AppLinkParser {
             : safeId(1);
         return id == null
             ? null
-            : AppLinkTarget(
-                kind: AppLinkKind.paymentReturn,
-                id: id,
-                uri: uri,
-              );
+            : AppLinkTarget(kind: AppLinkKind.paymentReturn, id: id, uri: uri);
       case 'notifications':
         return segments.length == 1
             ? AppLinkTarget(kind: AppLinkKind.notifications, uri: uri)
@@ -188,17 +250,23 @@ class AppLinkParser {
 class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
   final AppLinkTargetInbox _inbox;
   final Future<Uri?> Function() _takeNativePendingActionLink;
+  final Future<AppLinkPrincipalOwner> Function() _capturePrincipalOwner;
   bool _initialized = false;
+  bool _disposed = false;
+  Future<void> _ingressQueue = Future<void>.value();
   StreamSubscription<Uri>? _firebaseActionSubscription;
 
   AppLinkController({
     AppLinkTargetInbox? inbox,
     Future<Uri?> Function()? takeNativePendingActionLink,
+    Future<AppLinkPrincipalOwner> Function()? capturePrincipalOwner,
   })  : _inbox = inbox ?? AppLinkTargetInbox(),
         _takeNativePendingActionLink = takeNativePendingActionLink ??
-            FirebaseRuntime.takeAndroidPendingActionLink;
+            FirebaseRuntime.takeAndroidPendingActionLink,
+        _capturePrincipalOwner =
+            capturePrincipalOwner ?? LocalAppLinkPrincipalOwner.capture;
 
-  AppLinkTarget? takePending() => _inbox.takePending();
+  PrincipalBoundAppLinkTarget? takePending() => _inbox.takePending();
 
   void initialize() {
     if (_initialized) return;
@@ -207,18 +275,19 @@ class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
     final raw = kIsWeb
         ? Uri.base.toString()
         : WidgetsBinding.instance.platformDispatcher.defaultRouteName;
-    _accept(raw);
+    _capture(raw);
     final firebasePending = FirebaseRuntime.takePendingActionLink();
-    if (firebasePending != null) _accept(firebasePending.toString());
+    if (firebasePending != null) _capture(firebasePending.toString());
     _firebaseActionSubscription ??= FirebaseRuntime.actionLinks.listen(
-      (uri) => _accept(uri.toString()),
+      (uri) => _capture(uri.toString()),
     );
   }
 
   @override
   Future<bool> didPushRouteInformation(
-      RouteInformation routeInformation) async {
-    _accept(routeInformation.uri.toString());
+    RouteInformation routeInformation,
+  ) async {
+    _capture(routeInformation.uri.toString());
     return true;
   }
 
@@ -230,16 +299,53 @@ class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _refreshNativePendingActionLink() async {
+    // Start ownership capture before the first await in this resumed action.
+    // A native A link can therefore never adopt a successor B session while
+    // the platform bridge is being read.
+    final owner = _capturePrincipalOwner();
     final uri = await _takeNativePendingActionLink();
-    if (uri != null) _accept(uri.toString());
+    if (uri != null) {
+      _capture(uri.toString(), startedOwner: owner);
+      return;
+    }
+    try {
+      await owner;
+    } catch (_) {
+      // A principal transition while no native target exists is a no-op.
+    }
   }
 
-  void _accept(String raw) {
-    if (_inbox.accept(raw)) notifyListeners();
+  void _capture(String raw, {Future<AppLinkPrincipalOwner>? startedOwner}) {
+    if (_disposed || raw.isEmpty || raw == '/') return;
+    final uri = Uri.tryParse(raw);
+    final target = uri == null ? null : AppLinkParser.parse(uri);
+    if (target == null) return;
+
+    // Calling the async capture now records AuthService.sessionEpoch before
+    // its first storage await. Queue only the completion so concurrent native
+    // and Firebase ingress cannot reorder targets.
+    final owner = startedOwner ?? _capturePrincipalOwner();
+    _ingressQueue = _ingressQueue.then((_) async {
+      AppLinkPrincipalOwner captured;
+      try {
+        captured = await owner;
+      } catch (_) {
+        return;
+      }
+      if (_disposed ||
+          !captured.isCurrentEpoch ||
+          !await captured.isCurrent() ||
+          _disposed ||
+          !captured.isCurrentEpoch) {
+        return;
+      }
+      if (_inbox.accept(target, captured)) notifyListeners();
+    });
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _firebaseActionSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

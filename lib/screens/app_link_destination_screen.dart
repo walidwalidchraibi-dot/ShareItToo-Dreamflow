@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
@@ -14,6 +16,7 @@ import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/firebase_runtime.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
@@ -29,7 +32,20 @@ class AppLinkHost extends StatefulWidget {
 
 class _AppLinkHostState extends State<AppLinkHost> {
   AppLinkController? _controller;
+  StreamSubscription<String>? _principalSubscription;
+  Route<void>? _activeOwnedRoute;
+  AppLinkPrincipalOwner? _activeOwner;
   bool _opening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _principalSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _removeStaleOwnedRoute();
+      }
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -43,24 +59,77 @@ class _AppLinkHostState extends State<AppLinkHost> {
 
   void _handlePending() {
     if (!mounted || _opening) return;
-    final target = _controller?.takePending();
-    if (target == null) return;
+    final action = _controller?.takePending();
+    if (action == null) return;
     _opening = true;
-    Navigator.of(context)
-        .push<void>(
-      MaterialPageRoute(
-        builder: (_) => AppLinkDestinationScreen(target: target),
-      ),
-    )
-        .whenComplete(() {
+    unawaited(_openOwned(action));
+  }
+
+  Future<void> _openOwned(PrincipalBoundAppLinkTarget action) async {
+    Route<void>? route;
+    try {
+      if (!action.owner.isCurrentEpoch ||
+          !await action.owner.isCurrent() ||
+          !mounted ||
+          !action.owner.isCurrentEpoch) {
+        return;
+      }
+      route = MaterialPageRoute<void>(
+        builder: (_) => AppLinkDestinationScreen(
+          target: action.target,
+          owner: action.owner,
+        ),
+      );
+      _activeOwnedRoute = route;
+      _activeOwner = action.owner;
+      final navigator = Navigator.of(context);
+      if (!action.owner.isCurrentEpoch) return;
+      await navigator.push<void>(route);
+    } finally {
+      if (identical(route, _activeOwnedRoute)) {
+        _activeOwnedRoute = null;
+        _activeOwner = null;
+      }
       _opening = false;
-      _handlePending();
-    });
+      if (mounted) _handlePending();
+    }
+  }
+
+  void _removeStaleOwnedRoute() {
+    final route = _activeOwnedRoute;
+    final owner = _activeOwner;
+    if (route == null || owner == null) return;
+    if (!owner.isCurrentEpoch) {
+      _removeExactOwnedRoute(route, owner);
+      return;
+    }
+    unawaited(_removeIfNoLongerCurrent(route, owner));
+  }
+
+  Future<void> _removeIfNoLongerCurrent(
+    Route<void> route,
+    AppLinkPrincipalOwner owner,
+  ) async {
+    if (!await owner.isCurrent()) {
+      _removeExactOwnedRoute(route, owner);
+    }
+  }
+
+  void _removeExactOwnedRoute(Route<void> route, AppLinkPrincipalOwner owner) {
+    if (!identical(route, _activeOwnedRoute) ||
+        !identical(owner, _activeOwner)) {
+      return;
+    }
+    final navigator = route.navigator;
+    if (navigator != null && route.isActive) {
+      navigator.removeRoute(route);
+    }
   }
 
   @override
   void dispose() {
     _controller?.removeListener(_handlePending);
+    _principalSubscription?.cancel();
     super.dispose();
   }
 
@@ -70,8 +139,13 @@ class _AppLinkHostState extends State<AppLinkHost> {
 
 class AppLinkDestinationScreen extends StatefulWidget {
   final AppLinkTarget target;
+  final AppLinkPrincipalOwner owner;
 
-  const AppLinkDestinationScreen({super.key, required this.target});
+  const AppLinkDestinationScreen({
+    super.key,
+    required this.target,
+    required this.owner,
+  });
 
   @override
   State<AppLinkDestinationScreen> createState() =>
@@ -79,14 +153,77 @@ class AppLinkDestinationScreen extends StatefulWidget {
 }
 
 class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
-  late Future<_ResolvedBooking?> _booking = _resolveBooking();
-  late Future<Item?> _listing = _resolveListing();
-  late final Future<bool> _crashDiagnostic = _runCrashDiagnostic();
+  late Future<_ResolvedBooking?> _booking;
+  late Future<Item?> _listing;
+  late Future<AuthSession?> _session;
+  late Future<bool> _ownerCurrent;
+  late Future<bool> _crashDiagnostic;
+  late Future<bool> _externalAction;
+  StreamSubscription<String>? _principalSubscription;
+  Route<dynamic>? _ownedRoute;
   bool _externalOpened = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _booking = _resolveBooking();
+    _listing = _resolveListing();
+    _session = _resolveSession();
+    _ownerCurrent = widget.owner.isCurrent();
+    _crashDiagnostic = _runCrashDiagnostic();
+    _externalAction = _openExternalAction();
+    _principalSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _removeIfPrincipalChanged();
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _ownedRoute ??= ModalRoute.of(context);
+  }
+
+  Future<T> _runOwned<T>(Future<T> Function() operation) async {
+    return runPrincipalBoundAppLinkOperation(
+      owner: widget.owner,
+      operation: operation,
+    );
+  }
+
+  void _removeIfPrincipalChanged() {
+    if (!widget.owner.isCurrentEpoch) {
+      _removeExactOwnedRoute();
+      return;
+    }
+    unawaited(() async {
+      if (!await widget.owner.isCurrent()) _removeExactOwnedRoute();
+    }());
+  }
+
+  void _removeExactOwnedRoute() {
+    final route = _ownedRoute;
+    final navigator = route?.navigator;
+    if (route != null && navigator != null && route.isActive) {
+      navigator.removeRoute(route);
+    }
+  }
+
+  Future<AuthSession?> _resolveSession() async {
+    if (!const {
+      AppLinkKind.chat,
+      AppLinkKind.paymentReturn,
+      AppLinkKind.notifications,
+    }.contains(widget.target.kind)) {
+      return null;
+    }
+    return _runOwned(AuthService.readSession);
+  }
 
   Future<Item?> _resolveListing() async {
     if (widget.target.kind != AppLinkKind.listing) return null;
-    final publicItems = await DataService.getPublicItems();
+    final publicItems = await _runOwned(DataService.getPublicItems);
     for (final item in publicItems) {
       if (item.id == widget.target.id) return item;
     }
@@ -95,15 +232,19 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
 
   Future<_ResolvedBooking?> _resolveBooking() async {
     if (widget.target.kind != AppLinkKind.booking) return null;
-    final session = await AuthService.readSession();
+    final session = await _runOwned(AuthService.readSession);
     if (session == null) return null;
-    final request = await DataService.getRentalRequestById(widget.target.id!);
+    final request = await _runOwned(
+      () => DataService.getRentalRequestById(widget.target.id!),
+    );
     if (request == null) return null;
-    final values = await Future.wait<Object?>([
-      DataService.getCurrentUser(),
-      DataService.getItemById(request.itemId),
-      DataService.getUserById(request.ownerId),
-    ]);
+    final values = await _runOwned(
+      () => Future.wait<Object?>([
+        DataService.getCurrentUser(),
+        DataService.getItemById(request.itemId),
+        DataService.getUserById(request.ownerId),
+      ]),
+    );
     return _ResolvedBooking(
       request: request,
       viewer: values[0] as User?,
@@ -114,17 +255,81 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
 
   Future<bool> _runCrashDiagnostic() async {
     if (widget.target.kind != AppLinkKind.crashDiagnostic) return false;
-    return FirebaseRuntime.recordControlledStagingCrashDiagnostic(
-      widget.target.id!,
+    return _runOwned(
+      () => FirebaseRuntime.recordControlledStagingCrashDiagnostic(
+        widget.target.id!,
+      ),
+    );
+  }
+
+  Future<bool> _openExternalAction() async {
+    if (!const {
+      AppLinkKind.emailVerification,
+      AppLinkKind.passwordReset,
+    }.contains(widget.target.kind)) {
+      return false;
+    }
+    if (_externalOpened) return true;
+    _externalOpened = true;
+    return _runOwned(
+      () => launchUrl(widget.target.uri, mode: LaunchMode.externalApplication),
     );
   }
 
   Future<void> _loginAndRetry() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
-    if (!mounted) return;
+    if (!await widget.owner.isCurrent() || !mounted) return;
+    final route = MaterialPageRoute<void>(builder: (_) => const LoginScreen());
+    final navigator = Navigator.of(context);
+    if (!widget.owner.isCurrentEpoch) return;
+    await navigator.push<void>(route);
+    if (!mounted || !await widget.owner.isCurrent()) return;
+    setState(() {
+      _booking = _resolveBooking();
+      _session = _resolveSession();
+    });
+  }
+
+  Future<void> _retryListing() async {
+    if (!await widget.owner.isCurrent() || !mounted) return;
+    setState(() => _listing = _resolveListing());
+  }
+
+  Future<void> _retryBooking() async {
+    if (!await widget.owner.isCurrent() || !mounted) return;
     setState(() => _booking = _resolveBooking());
+  }
+
+  Future<void> _retryExternalAction() async {
+    if (!await widget.owner.isCurrent() || !mounted) return;
+    setState(() {
+      _externalOpened = false;
+      _externalAction = _openExternalAction();
+    });
+  }
+
+  bool _isStale(AsyncSnapshot<dynamic> snapshot) =>
+      snapshot.error is AppLinkPrincipalChanged;
+
+  Widget _principalBound(Widget child) => FutureBuilder<bool>(
+        future: _ownerCurrent,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done ||
+              snapshot.data != true) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _removeExactOwnedRoute();
+              });
+            }
+            return const _LinkLoadingScreen();
+          }
+          return child;
+        },
+      );
+
+  @override
+  void dispose() {
+    _principalSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -137,6 +342,16 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
             if (snapshot.connectionState != ConnectionState.done) {
               return const _LinkLoadingScreen();
             }
+            if (snapshot.hasError) {
+              if (_isStale(snapshot)) return const _LinkLoadingScreen();
+              return _LinkErrorScreen(
+                title: 'Anzeige konnte nicht geladen werden',
+                message:
+                    'Die Anzeige ist gerade nicht erreichbar. Ihr Status wurde nicht als entfernt oder pausiert bewertet.',
+                actionLabel: 'Erneut versuchen',
+                onAction: _retryListing,
+              );
+            }
             final item = snapshot.data;
             if (item == null) {
               return _LinkErrorScreen(
@@ -144,28 +359,36 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
                 message:
                     'Die Anzeige wurde entfernt, pausiert oder ist nicht mehr öffentlich.',
                 actionLabel: 'Erneut prüfen',
-                onAction: () async {
-                  setState(() => _listing = _resolveListing());
-                },
+                onAction: _retryListing,
               );
             }
             return LinkedListingDetailsScreen(item: item);
           },
         );
       case AppLinkKind.profile:
-        return PublicProfileScreen(userId: widget.target.id!);
+        return _principalBound(PublicProfileScreen(userId: widget.target.id!));
       case AppLinkKind.chat:
         return FutureBuilder<AuthSession?>(
-          future: AuthService.readSession(),
+          future: _session,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const _LinkLoadingScreen();
+            }
+            if (snapshot.hasError) {
+              if (_isStale(snapshot)) return const _LinkLoadingScreen();
+              return _LinkErrorScreen(
+                title: 'Chat konnte nicht geladen werden',
+                message:
+                    'Die Kontositzung konnte nicht sicher bestätigt werden.',
+                actionLabel: 'Erneut versuchen',
+                onAction: _loginAndRetry,
+              );
             }
             if (snapshot.data == null) {
               return _LinkErrorScreen(
                 title: 'Bitte zuerst anmelden',
                 message:
-                    'Nach der Anmeldung öffnen wir den sicheren Chat-Kontext.',
+                    'Melde dich an und öffne die Benachrichtigung danach erneut.',
                 actionLabel: 'Anmelden',
                 onAction: _loginAndRetry,
               );
@@ -179,6 +402,16 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const _LinkLoadingScreen();
+            }
+            if (snapshot.hasError) {
+              if (_isStale(snapshot)) return const _LinkLoadingScreen();
+              return _LinkErrorScreen(
+                title: 'Buchung konnte nicht geladen werden',
+                message:
+                    'Die Buchung ist gerade nicht erreichbar. Das wurde nicht als fehlende oder fremde Buchung bewertet.',
+                actionLabel: 'Erneut versuchen',
+                onAction: _retryBooking,
+              );
             }
             final resolved = snapshot.data;
             if (resolved == null) {
@@ -207,37 +440,55 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
         );
       case AppLinkKind.emailVerification:
       case AppLinkKind.passwordReset:
-        if (!_externalOpened) {
-          _externalOpened = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            await launchUrl(widget.target.uri,
-                mode: LaunchMode.externalApplication);
-          });
-        }
-        return _LinkErrorScreen(
-          title: 'Sicheren Link geöffnet',
-          message:
-              'Die Bestätigung wird in einer sicheren Browserseite abgeschlossen. Danach kannst du zu ShareItToo zurückkehren.',
-          actionLabel: 'Link erneut öffnen',
-          onAction: () async {
-            await launchUrl(
-              widget.target.uri,
-              mode: LaunchMode.externalApplication,
+        return FutureBuilder<bool>(
+          future: _externalAction,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const _LinkLoadingScreen();
+            }
+            if (snapshot.hasError) {
+              if (_isStale(snapshot)) return const _LinkLoadingScreen();
+              return _LinkErrorScreen(
+                title: 'Sicherer Link konnte nicht geöffnet werden',
+                message: 'Die Bestätigung wurde nicht als geöffnet bewertet.',
+                actionLabel: 'Erneut versuchen',
+                onAction: _retryExternalAction,
+              );
+            }
+            return _LinkErrorScreen(
+              title: snapshot.data == true
+                  ? 'Sicheren Link geöffnet'
+                  : 'Sicherer Link nicht geöffnet',
+              message: snapshot.data == true
+                  ? 'Die Bestätigung wird in einer sicheren Browserseite abgeschlossen. Danach kannst du zu ShareItToo zurückkehren.'
+                  : 'Die sichere Browserseite wurde nicht geöffnet.',
+              actionLabel: 'Link erneut öffnen',
+              onAction: _retryExternalAction,
             );
           },
         );
       case AppLinkKind.paymentReturn:
         return FutureBuilder<AuthSession?>(
-          future: AuthService.readSession(),
+          future: _session,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const _LinkLoadingScreen();
+            }
+            if (snapshot.hasError) {
+              if (_isStale(snapshot)) return const _LinkLoadingScreen();
+              return _LinkErrorScreen(
+                title: 'Zahlungsstatus konnte nicht geladen werden',
+                message:
+                    'Die Kontositzung konnte nicht sicher bestätigt werden.',
+                actionLabel: 'Erneut versuchen',
+                onAction: _loginAndRetry,
+              );
             }
             if (snapshot.data == null) {
               return _LinkErrorScreen(
                 title: 'Bitte zuerst anmelden',
                 message:
-                    'Nach der Anmeldung wird der sichere Zahlungsstatus neu geladen.',
+                    'Melde dich an und öffne den sicheren Zahlungsstatus danach erneut.',
                 actionLabel: 'Anmelden',
                 onAction: _loginAndRetry,
               );
@@ -247,16 +498,26 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
         );
       case AppLinkKind.notifications:
         return FutureBuilder<AuthSession?>(
-          future: AuthService.readSession(),
+          future: _session,
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const _LinkLoadingScreen();
+            }
+            if (snapshot.hasError) {
+              if (_isStale(snapshot)) return const _LinkLoadingScreen();
+              return _LinkErrorScreen(
+                title: 'Benachrichtigungen konnten nicht geladen werden',
+                message:
+                    'Die Kontositzung konnte nicht sicher bestätigt werden.',
+                actionLabel: 'Erneut versuchen',
+                onAction: _loginAndRetry,
+              );
             }
             if (snapshot.data == null) {
               return _LinkErrorScreen(
                 title: 'Bitte zuerst anmelden',
                 message:
-                    'Nach der Anmeldung werden die Details sicher aus ShareItToo geladen.',
+                    'Melde dich an und öffne die Benachrichtigung danach erneut.',
                 actionLabel: 'Anmelden',
                 onAction: _loginAndRetry,
               );
@@ -270,6 +531,17 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
               return const _LinkLoadingScreen();
+            }
+            if (snapshot.hasError) {
+              if (_isStale(snapshot)) return const _LinkLoadingScreen();
+              return _LinkErrorScreen(
+                title: 'Diagnose konnte nicht ausgeführt werden',
+                message: 'Der interne Diagnosestatus ist nicht bestätigt.',
+                actionLabel: 'Zurück',
+                onAction: () async {
+                  _removeExactOwnedRoute();
+                },
+              );
             }
             final sent = snapshot.data == true;
             return _LinkErrorScreen(
@@ -352,9 +624,8 @@ class _LinkLoadingScreen extends StatelessWidget {
   const _LinkLoadingScreen();
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: CircularProgressIndicator()));
 }
 
 class _LinkErrorScreen extends StatelessWidget {

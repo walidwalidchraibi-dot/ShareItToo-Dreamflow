@@ -1,6 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/app_link_service.dart';
+
+class _FakePrincipalOwner implements AppLinkPrincipalOwner {
+  @override
+  final String principalToken;
+  @override
+  bool get authenticated => true;
+  @override
+  final int epoch;
+  bool current = true;
+
+  _FakePrincipalOwner({
+    required this.principalToken,
+    required this.epoch,
+  });
+
+  @override
+  bool get isCurrentEpoch => current;
+
+  @override
+  Future<bool> isCurrent() async => current;
+}
+
+AppLinkTarget target(String raw) => AppLinkParser.parse(Uri.parse(raw))!;
 
 void main() {
   test('parses secure booking and chat links', () {
@@ -10,15 +35,14 @@ void main() {
     expect(booking?.kind, AppLinkKind.booking);
     expect(booking?.id, 'booking-123');
 
-    final chat = AppLinkParser.parse(
-      Uri.parse('shareittoo://chat/thread_456'),
-    );
+    final chat = AppLinkParser.parse(Uri.parse('shareittoo://chat/thread_456'));
     expect(chat?.kind, AppLinkKind.chat);
     expect(chat?.id, 'thread_456');
 
     final payment = AppLinkParser.parse(
       Uri.parse(
-          'https://shareittoo.com/api/v1/open/payment/booking-123?result=success'),
+        'https://shareittoo.com/api/v1/open/payment/booking-123?result=success',
+      ),
     );
     expect(payment?.kind, AppLinkKind.paymentReturn);
     expect(payment?.id, 'booking-123');
@@ -93,9 +117,7 @@ void main() {
       isNull,
     );
     expect(
-      AppLinkParser.parse(
-        Uri.parse('shareittoo://booking/not%2Fsafe'),
-      ),
+      AppLinkParser.parse(Uri.parse('shareittoo://booking/not%2Fsafe')),
       isNull,
     );
   });
@@ -111,7 +133,8 @@ void main() {
     expect(
       AppLinkParser.parse(
         Uri.parse(
-            'https://staging.shareittoo.com/qa/crashlytics/b11-android-2026081027'),
+          'https://staging.shareittoo.com/qa/crashlytics/b11-android-2026081027',
+        ),
       ),
       isNull,
     );
@@ -124,49 +147,134 @@ void main() {
   test('keeps one pending target and suppresses duplicate push ingress', () {
     var now = DateTime.utc(2026, 8, 11, 8);
     final inbox = AppLinkTargetInbox(now: () => now);
+    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
     const raw =
         'https://staging.shareittoo.com/api/v1/open/booking/booking-123';
 
-    expect(inbox.accept(raw), isTrue);
-    expect(inbox.takePending()?.id, 'booking-123');
+    expect(inbox.accept(target(raw), owner), isTrue);
+    expect(inbox.takePending()?.target.id, 'booking-123');
 
     now = now.add(const Duration(seconds: 1));
-    expect(inbox.accept(raw), isFalse);
+    expect(inbox.accept(target(raw), owner), isFalse);
     expect(inbox.takePending(), isNull);
 
     now = now.add(AppLinkTargetInbox.duplicateWindow);
-    expect(inbox.accept(raw), isTrue);
-    expect(inbox.takePending()?.kind, AppLinkKind.booking);
+    expect(inbox.accept(target(raw), owner), isTrue);
+    expect(inbox.takePending()?.target.kind, AppLinkKind.booking);
+  });
+
+  test('duplicate suppression is scoped to exact principal and epoch', () {
+    final inbox = AppLinkTargetInbox();
+    final action = target('shareittoo://notifications');
+    final ownerA = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
+    final ownerB = _FakePrincipalOwner(principalToken: 'opaque-b', epoch: 8);
+    final ownerANewEpoch = _FakePrincipalOwner(
+      principalToken: 'opaque-a',
+      epoch: 9,
+    );
+
+    expect(inbox.accept(action, ownerA), isTrue);
+    expect(inbox.takePending()?.owner, same(ownerA));
+    expect(inbox.accept(action, ownerB), isTrue);
+    expect(inbox.takePending()?.owner, same(ownerB));
+    expect(inbox.accept(action, ownerANewEpoch), isTrue);
+    expect(inbox.takePending()?.owner, same(ownerANewEpoch));
   });
 
   test('does not let an invalid link replace a valid pending target', () {
     final inbox = AppLinkTargetInbox();
+    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
+    expect(inbox.accept(target('shareittoo://chat/thread_456'), owner), isTrue);
     expect(
-      inbox.accept('shareittoo://chat/thread_456'),
-      isTrue,
+      AppLinkParser.parse(
+        Uri.parse('https://attacker.example/open/booking/booking-123'),
+      ),
+      isNull,
     );
-    expect(
-      inbox.accept('https://attacker.example/open/booking/booking-123'),
-      isFalse,
-    );
-    expect(inbox.takePending()?.id, 'thread_456');
+    expect(inbox.takePending()?.target.id, 'thread_456');
   });
 
-  testWidgets('replays a pending Android notification link when app resumes',
-      (tester) async {
+  testWidgets('drops an ingress whose captured principal becomes stale', (
+    tester,
+  ) async {
+    final capture = Completer<AppLinkPrincipalOwner>();
+    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
+    var captures = 0;
+    final controller = AppLinkController(
+      capturePrincipalOwner: () {
+        captures += 1;
+        return capture.future;
+      },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.didPushRouteInformation(
+      RouteInformation(uri: Uri.parse('shareittoo://notifications')),
+    );
+    expect(captures, 1);
+
+    owner.current = false;
+    capture.complete(owner);
+    await tester.pump();
+    await tester.pump();
+
+    expect(controller.takePending(), isNull);
+  });
+
+  test('principal-bound operation never starts for an already stale owner',
+      () async {
+    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7)
+      ..current = false;
+    var calls = 0;
+
+    await expectLater(
+      runPrincipalBoundAppLinkOperation<int>(
+        owner: owner,
+        operation: () async {
+          calls += 1;
+          return 1;
+        },
+      ),
+      throwsA(isA<AppLinkPrincipalChanged>()),
+    );
+    expect(calls, 0);
+  });
+
+  test('principal-bound operation rejects an A result after B becomes active',
+      () async {
+    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
+    final remote = Completer<int>();
+    final result = runPrincipalBoundAppLinkOperation<int>(
+      owner: owner,
+      operation: () => remote.future,
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    owner.current = false;
+    remote.complete(42);
+
+    await expectLater(result, throwsA(isA<AppLinkPrincipalChanged>()));
+  });
+
+  testWidgets('replays a pending Android notification link when app resumes', (
+    tester,
+  ) async {
+    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
     final controller = AppLinkController(
       takeNativePendingActionLink: () async => Uri.parse(
         'https://staging.shareittoo.com/api/v1/open/booking/booking-resumed',
       ),
+      capturePrincipalOwner: () async => owner,
     );
     addTearDown(controller.dispose);
     controller.initialize();
 
     controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
     await tester.pump();
+    await tester.pump();
 
     final target = controller.takePending();
-    expect(target?.kind, AppLinkKind.booking);
-    expect(target?.id, 'booking-resumed');
+    expect(target?.target.kind, AppLinkKind.booking);
+    expect(target?.target.id, 'booking-resumed');
   });
 }

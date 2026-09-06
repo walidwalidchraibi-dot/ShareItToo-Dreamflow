@@ -28,11 +28,11 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "040e0aa803e449e545982206ffffd4926484ffe842c50601011962525d4fd1a4"
+      "sha256": "ec1683efe35579722c894c629ce5ae5cb3041e82cb994feed8d5ec29c35f68a9"
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "909a096e52bafe31d59fc3f22e8ba69265b21e4bce0825bcda14a11e5a4f2c3b"
+      "sha256": "42ad014cf3a236239a70af40a71954fc7f8add2ff2ca431e166dc6e5b05a0db8"
     }
   ],
   "bindingInventory": [
@@ -106,11 +106,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "5e230f19693b39a436f3b29661d215fa0b9e85bbd3e144e27241ee7207a066ab"
+      "sha256": "7b3d11e404c15d7a00954ce8c9154f4f1822ddc7d5e78cdf726ac187ecade25f"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "ef17091a953d99fc79885bb2b68de730f77bacccecd8b0b4353b072541b8b686"
+      "sha256": "17d7f9e1675431e9467d6c789306afa67c366eb34118a126df5911209f069b34"
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",

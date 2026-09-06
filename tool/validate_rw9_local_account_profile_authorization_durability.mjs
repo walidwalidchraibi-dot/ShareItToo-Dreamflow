@@ -180,11 +180,11 @@ export function validateRw9LocalAccountProfileAuthorizationDurability({
     reason:
       'validated-local-account-profile-lifecycle-privacy-retention-and-provider-source-change',
     privacyManifestSha256:
-      '5e230f19693b39a436f3b29661d215fa0b9e85bbd3e144e27241ee7207a066ab',
+      '7b3d11e404c15d7a00954ce8c9154f4f1822ddc7d5e78cdf726ac187ecade25f',
     retentionManifestSha256:
-      '65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1',
+      '6d02d68f9f6124e2eaa33a7eb2883bcfaf61d0315e2ff60aba582ca6c47273b5',
     activeProviderEvidenceSha256:
-      '120ec7e48951c7ac2143ef20e20f7558dd71fdbded3bdd8c7742dc2fa415753e',
+      '17d7f9e1675431e9467d6c789306afa67c366eb34118a126df5911209f069b34',
     activeProviderState: 'prepared-hold',
     completedOwnerDecisions: 0,
     requiredOwnerDecisions: 10,

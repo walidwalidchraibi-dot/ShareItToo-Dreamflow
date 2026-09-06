@@ -252,9 +252,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "5e230f19693b39a436f3b29661d215fa0b9e85bbd3e144e27241ee7207a066ab",
-    "retentionManifestSha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1",
-    "activeProviderEvidenceSha256": "120ec7e48951c7ac2143ef20e20f7558dd71fdbded3bdd8c7742dc2fa415753e",
+    "privacyManifestSha256": "7b3d11e404c15d7a00954ce8c9154f4f1822ddc7d5e78cdf726ac187ecade25f",
+    "retentionManifestSha256": "6d02d68f9f6124e2eaa33a7eb2883bcfaf61d0315e2ff60aba582ca6c47273b5",
+    "activeProviderEvidenceSha256": "17d7f9e1675431e9467d6c789306afa67c366eb34118a126df5911209f069b34",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -341,19 +341,19 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "5e230f19693b39a436f3b29661d215fa0b9e85bbd3e144e27241ee7207a066ab"
+      "sha256": "7b3d11e404c15d7a00954ce8c9154f4f1822ddc7d5e78cdf726ac187ecade25f"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1"
+      "sha256": "6d02d68f9f6124e2eaa33a7eb2883bcfaf61d0315e2ff60aba582ca6c47273b5"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "120ec7e48951c7ac2143ef20e20f7558dd71fdbded3bdd8c7742dc2fa415753e"
+      "sha256": "17d7f9e1675431e9467d6c789306afa67c366eb34118a126df5911209f069b34"
     },
     {
       "path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json",
-      "sha256": "d7da533a55c87254ed41ac8ff6a98e4ae5aaecb60a82f920d2da3eacca29da3f"
+      "sha256": "ab79298cce58fb3fdcd9b5d27d79ea03576fbad312eb975fa12ff0a091c5f1ae"
     },
     {
       "path": "scripts/technical_regression_check.sh",
@@ -373,7 +373,7 @@
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
-      "sha256": "f9af54a7bd63c031b8abfe71a39d1db2b871cb98b6f14805752379c3d466838e"
+      "sha256": "3b3fffaa27422f9058a4e33b8a520e8b341d66d0a232f65a00cf8ae6b8ad80fc"
     },
     {
       "path": "docs/architecture/rw16-session-transition-principal-epoch-invariant-2026-08-26.md",
