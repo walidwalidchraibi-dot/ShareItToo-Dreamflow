@@ -822,12 +822,16 @@ export async function runAndroidPrivacyExportPayload({
       vault, role: 'owner', commandRunner, adbPath, device, wait,
     });
 
+    const wrongPassword = randomBytes(24).toString('base64url');
+    if (wrongPassword === owner.password) {
+      fail('A distinct privacy export rejection credential could not be generated.');
+    }
     await submitExportPassword({
       commandRunner,
       adbPath,
       device,
       wait,
-      password: 'SITWrong9xyz',
+      password: wrongPassword,
     });
     let hierarchy = await waitForHierarchy({
       commandRunner,
