@@ -1,5 +1,30 @@
 # ShareItToo Current State
 
+WP22 closes current-candidate notification delivery and the surrounding exact
+two-role product path on signed Internal Staging candidate
+`1.0.0+2026090604`, source HEAD
+`9ccd44e21fe572eaf0aa9687cbf035d27fda69bd`. A data-preserving Pixel update,
+owner publication, server/public-catalog truth, renter discovery, non-binding
+request/acceptance, chat, Account-A-to-B isolation and controlled FCM in
+foreground, background and terminated-process states pass. The recognizable
+ShareItToo icon passes private visual review; the personal capture was deleted
+immediately and only its hash remains. The isolated booking/listing are
+retired and the protected owner is restored.
+
+The first run exposed that core owner-request cards were blocked behind
+sequential optional enrichment across all historical requests. Candidate HEAD
+`9ccd44e2` now renders authoritative core cards first, excludes ineligible
+terminal history from flow-time reads and binds every async result to the
+captured principal and epoch. Loading, failure and confirmed empty remain
+distinct; optional enrichment failure cannot erase core truth. Focused tests,
+2,315 tool tests and the complete local regression pass. Exact candidate
+Regression `34017389812` and CodeQL `34017389777` pass. No
+backend source changed, so the verified Staging backend remains at
+`68c97a437969dc98f17eb151da3e006259ffbafa` without deployment-only churn.
+No OnePlus, Play, Production, public registration, real-money,
+external-provider or PR-merge boundary changed. See
+`docs/operations/WP22_CURRENT_CANDIDATE_NOTIFICATION_DELIVERY_2026-09-06.md`.
+
 WP21 closes physical Pixel messaging, media, time coordination and location
 privacy on signed Staging candidate `1.0.0+2026090603`, source HEAD
 `68c97a437969dc98f17eb151da3e006259ffbafa`. The exact two-role journey passes

@@ -1,36 +1,42 @@
-# Current Work Package: WP21 Pixel messaging, media, time and location
+# Current Work Package: WP22 current-candidate notification delivery
 
-WP21 is **PHYSICALLY COMPLETE ON THE PIXEL AND DEPLOYED TO STAGING**. Signed
-candidate `1.0.0+2026090603` at source HEAD
-`68c97a437969dc98f17eb151da3e006259ffbafa` passes private-archive validation,
-canonical signing, privacy scan and a data-preserving Pixel update. The full
-two-role journey passes exact-once image attachment, equal participant server
-projection, handover and return proposal plus counterparty confirmation,
-terminated-process persistence and a server-blocked pre-window location
-attempt with no location message. Cleanup removes the isolated booking,
-listing and device file and restores the protected owner.
+WP22 is **PHYSICALLY COMPLETE ON THE PIXEL, LOCALLY AND ON GITHUB**. Signed Internal
+Staging candidate `1.0.0+2026090604` at source HEAD
+`9ccd44e21fe572eaf0aa9687cbf035d27fda69bd` passes archive, canonical signing,
+privacy and a data-preserving Pixel update. The exact two-role journey passes
+owner publication, server/public-catalog truth, renter discovery, non-binding
+request/acceptance, chat, principal isolation and FCM in foreground,
+background and terminated-process states. The ShareItToo icon passes private
+visual review; the personal screenshot is deleted. Cleanup cancels the
+isolated request, ends the listing and restores the protected owner.
 
-Candidate HEAD `68c97a43` also replaces ephemeral blocked-location feedback
-with an awaited persistent dialog. Diagnostic HEAD `5b58c80c` covers Android's
-valid merged Flutter accessibility semantics without weakening the exact
-server no-location assertion. GitHub candidate Regression `34014883783`,
-CodeQL `34014883747` and publish-image Regression `34014899735` pass, including
-clean-checkout reproducibility. Exact Staging readback shows the same candidate
-commit, healthy zero-restart container, database/mail ready, empty queues,
-memory payment, Stripe live mode off and mock Listing AI budget zero. See
-`docs/operations/WP21_PIXEL_MESSAGING_MEDIA_TIME_LOCATION_2026-09-06.md`.
+The candidate corrects the real cause of the first attempt: authoritative core
+request cards waited behind sequential optional hydration of complete
+historical request data. Core cards now render first, terminal history avoids
+flow-time enrichment, optional failure preserves core truth, and results are
+discarded across principal/epoch changes. Loading, failure and confirmed empty
+are distinct. Focused checks, 2,315 tool tests and the complete local
+regression pass. Exact candidate Regression `34017389812` passes including
+independent clean-checkout reproducibility, and CodeQL `34017389777` passes. See
+`docs/operations/WP22_CURRENT_CANDIDATE_NOTIFICATION_DELIVERY_2026-09-06.md`.
 
-Next: close the documentation/head gate with one complete local regression,
-exact GitHub Regression/CodeQL, alerts zero, clean tree, remote divergence zero
-and PR #7 Draft/open/unmerged. Then select the next distinct highest-value
-launch-readiness package without reopening WP21.
-
-The execution policy is
+The execution policy remains
 `docs/operations/SIT_CODEX_CONTEXT_CREDIT_EFFICIENCY_RULES_V1.md`: one active
 state capsule, focused checks during changes, one full final gate, no unchanged
 duplicate CI/test runs and no quality or boundary reduction. No Production,
-Store, real-payment, external-provider, Cloud/VPS/DNS/Firebase-console,
-OnePlus or PR-merge action is part of WP21.
+Store, real payment, external provider, Cloud/VPS/DNS/Firebase-console,
+OnePlus or PR merge is part of WP22.
+
+# Previous Work Package: WP21 Pixel messaging, media, time and location
+
+WP21 is **PHYSICALLY COMPLETE ON THE PIXEL AND DEPLOYED TO STAGING**. Signed
+candidate `1.0.0+2026090603` at source HEAD
+`68c97a437969dc98f17eb151da3e006259ffbafa` passes exact-once image attachment,
+participant projection, two-party handover/return times, restart persistence
+and server-blocked pre-window location sharing. The protected owner is
+restored and isolated data is removed. Candidate Regression `34014883783`,
+CodeQL `34014883747` and publish-image Regression `34014899735` pass. See
+`docs/operations/WP21_PIXEL_MESSAGING_MEDIA_TIME_LOCATION_2026-09-06.md`.
 
 # Previous Work Package: WP20 Pixel rental-cart and project lifecycle
 
