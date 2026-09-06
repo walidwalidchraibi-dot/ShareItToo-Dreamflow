@@ -1,17 +1,23 @@
 # ShareItToo Current State
 
-WP31 reserves strictly newer signed Internal Staging candidate
-`1.0.0+2026090608` from clean base
-`9f6e775a93fa6f2e9f1c6f77d4fd6ef007be386f`. The highest verified local
-archive and installed Pixel version before reservation are both `2026090607`;
-no `2026090608` archive or repository reference existed. This candidate is
-limited to carrying the already verified WP30 return-case UI onto the physical
-Pixel through the maintained version-2 build profile and a data-preserving
-replace update. Exact source freeze, regression, signed archive, artifact
-verification and physical installation remain open. No Store, Production,
+WP31 closes exact signed Internal Staging candidate `1.0.0+2026090608`, source
+HEAD `15f7766ef15c0be30cf96a743edc4d62d1a588e3`, on the physical Pixel. The
+owner-only AAB/APK archive, hashes, canonical upload signature, package/version,
+Firebase Staging, Google-only provider profile and compiled privacy scan pass.
+The complete local regression passes with 2,345 tool and 900 active Flutter
+tests plus 33 declared skips. Independent clean-checkout R10 passes all nine
+commands and produces two byte-identical 794-entry Android builds. Exact-source
+GitHub Regression `34044793109`, CodeQL `34044793087` and all four required
+jobs pass; open code-scanning alerts are zero.
+
+The Pixel was updated without uninstall, reset or downgrade from `2026090607`
+to `2026090608`. Installed APK bytes and certificate match the private
+candidate, first-install time and app-data inode remain unchanged, and the app
+is verified in the foreground. This proves candidate installation only; the
+physical V5.2 return-case journey remains separate. No Store, Production,
 payment/provider, Firebase-console, backend deployment, OnePlus or PR-merge
-boundary is authorized by this reservation. See
-`docs/operations/WP31_PIXEL_CANDIDATE_2026090608_PREPARATION.md`.
+boundary changed. See
+`docs/operations/WP31_PIXEL_CANDIDATE_2026090608_CLOSURE.md`.
 
 WP30 closes the missing production UI path into the WP28-secured V5.2 return-
 case transaction at implementation HEAD

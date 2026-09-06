@@ -1,22 +1,25 @@
 # Current Work Package: WP31 Pixel candidate 2026090608
 
-WP31 is **PREPARED FOR SOURCE FREEZE** from clean synchronized base
-`9f6e775a93fa6f2e9f1c6f77d4fd6ef007be386f`. It reserves the previously unused
-identity `1.0.0+2026090608` for one signed Internal Staging candidate containing
-WP30. The highest verified owner-private archive and installed Pixel build are
-both `2026090607`; that immutable WP29 candidate remains the rollback.
+WP31 is **COMPLETE ON THE PHYSICAL PIXEL** for exact candidate source
+`15f7766ef15c0be30cf96a743edc4d62d1a588e3` and version
+`1.0.0+2026090608`.
 
-The scope is exact source freeze, complete regression and clean
-reproducibility through the maintained version-2 Mac-mini profile, canonical
-signed AAB/APK archive verification and one strictly newer data-preserving
-Pixel replace update. No uninstall, reset or downgrade is allowed. The
-subsequent physical V5.2 return-case journey remains a separate package so the
-candidate/install evidence cannot be conflated with product behavior.
+The owner-private AAB/APK archive has exactly four owner-only files. Hashes,
+canonical certificate, AAB/APK signatures, package/version, Firebase Staging,
+Google-only auth profile, closed `heilbronn_wave0` envelope and compiled
+privacy scan pass. Complete local regression passes 2,345 tool and 900 active
+Flutter tests with 33 declared skips. Independent R10 passes all nine commands
+and produces two byte-identical 794-entry APKs. Exact-source GitHub Regression
+`34044793109`, CodeQL `34044793087` and all four required jobs pass with zero
+open alerts.
 
-No Google Play upload or track change, Production, real money, provider,
-Firebase Console, backend deploy, Cloud/VPS/DNS, OnePlus or PR merge is in
-scope. See
-`docs/operations/WP31_PIXEL_CANDIDATE_2026090608_PREPARATION.md`.
+The Pixel replace update from `2026090607` to `2026090608` preserves first
+install time and app-data inode; installed bytes and certificate match and the
+app reaches the foreground. No uninstall, reset or downgrade occurred. The
+physical V5.2 return-case journey remains a separate package. No Google Play,
+Production, real-money, provider, Firebase Console, backend deploy,
+Cloud/VPS/DNS, OnePlus or PR-merge boundary changed. See
+`docs/operations/WP31_PIXEL_CANDIDATE_2026090608_CLOSURE.md`.
 
 # Previous Work Package: WP30 return-case UI reachability
 
