@@ -1,4 +1,22 @@
-# Current Work Package: WP22 current-candidate notification delivery
+# Current Work Package: WP23 notification-route principal ownership
+
+WP23 is **COMPLETE FOR THE EXACT PIXEL CANDIDATE**. Signed Internal Staging
+candidate `1.0.0+2026090606`, source HEAD
+`637c80d0086f7ad1aa08fe5ba1df5c1624b3e545`, preserves the principal/epoch
+owner across an expired-session cold start without rebinding to a successor
+account. The data-preserving Pixel update, exact archive, real terminated-
+process FCM tap, Notifications destination, exact Back behavior and complete
+fixture cleanup pass. Local full regression, GitHub Regression `34022203378`
+and CodeQL workflow `34022203376` pass.
+
+Ten open CodeQL alerts remain in older backend and local diagnostic/build-tool
+paths that WP23 did not change. They are not hidden by the successful workflow
+and form the next bounded release-blocking package,
+`WP24_CODEQL_ALERT_TRIAGE_AND_REMEDIATION`. No live, Store, payment, provider,
+Production, OnePlus or PR-merge action is part of that package. See
+`docs/operations/WP23_NOTIFICATION_ROUTE_PRINCIPAL_OWNERSHIP_2026-09-06.md`.
+
+# Previous Work Package: WP22 current-candidate notification delivery
 
 WP22 is **PHYSICALLY COMPLETE ON THE PIXEL, LOCALLY AND ON GITHUB**. Signed Internal
 Staging candidate `1.0.0+2026090604` at source HEAD

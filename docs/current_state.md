@@ -1,5 +1,23 @@
 # ShareItToo Current State
 
+WP23 closes principal-owned notification routing and the expired-session cold
+start on signed Internal Staging candidate `1.0.0+2026090606`, source HEAD
+`637c80d0086f7ad1aa08fe5ba1df5c1624b3e545`. Firebase initializes and an
+existing backend session settles before `runApp`; normal principal/epoch checks
+and exact route ownership remain active. The physical Pixel update preserves
+app data and exact installed bytes. A real terminated-process FCM tap opens the
+Notifications destination after cold start, and Back closes only that route.
+The isolated booking/listing and private fixture are completely retired.
+
+Local full regression, private archive validation, GitHub Regression
+`34022203378` and CodeQL workflow `34022203376` pass. The exact PR merge scan
+nevertheless exposes ten open alerts in older backend and local diagnostic/
+build-tool paths, none changed by WP23. They are the next release-blocking
+security package; workflow success is not misreported as zero alerts. No
+OnePlus, Play, Production, live payment, provider, Firebase-console, Cloud/VPS/
+DNS or PR-merge boundary changed. See
+`docs/operations/WP23_NOTIFICATION_ROUTE_PRINCIPAL_OWNERSHIP_2026-09-06.md`.
+
 WP22 closes current-candidate notification delivery and the surrounding exact
 two-role product path on signed Internal Staging candidate
 `1.0.0+2026090604`, source HEAD
