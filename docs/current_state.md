@@ -5660,3 +5660,27 @@ item/project counts preserved and zero failed-fixture remnants. Final
 closure-head local regression and exact GitHub Regression/CodeQL remain the
 only open WP20 checks. No OnePlus, Store, Production, public registration,
 payment, provider, Firebase-console, Cloud/VPS/DNS or PR-merge boundary moved.
+
+## WP24 CodeQL closure (2026-09-06)
+
+WP24 closes the ten exact open PR-merge CodeQL alerts at implementation HEAD
+`3ab44472885dab14e88808e3684c1f13cf0c5cc6`. File-race reads now use
+validated no-follow descriptors, reset-source regex escaping is complete and
+the password diagnostic exposes no fast digest derived from credential-bearing
+state. Four intentional fixed-destination provider/Staging egress flows were
+reviewed and triaged individually with durable source and regression markers;
+there is no global CodeQL exclusion or workflow weakening.
+
+The 39 focused checks, all 2,324 tool tests and the complete local technical
+regression pass. Exact
+GitHub CodeQL `34024441466` and Regression `34024441534` pass, including
+Backend, PostgreSQL, Flutter and independent clean-checkout reproducibility;
+the exact PR merge analysis has zero open alerts. The N17 ratchet changes only
+the provider source hash, not provider, budget, billing, activation or
+Production truth.
+
+WP24 creates no Android candidate and does not alter the WP23
+`1.0.0+2026090606` candidate or its Pixel evidence. Google Play, OnePlus,
+Production, payment, provider configuration, Firebase Console, Cloud/VPS/DNS,
+public registration and PR merge remain unchanged. See
+`docs/operations/WP24_CODEQL_ALERT_TRIAGE_AND_REMEDIATION_2026-09-06.md`.

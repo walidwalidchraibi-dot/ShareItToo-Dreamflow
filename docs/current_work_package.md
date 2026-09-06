@@ -1,4 +1,23 @@
-# Current Work Package: WP23 notification-route principal ownership
+# Current Work Package: WP24 CodeQL alert triage and remediation
+
+WP24 is **COMPLETE LOCALLY AND ON GITHUB** at implementation HEAD
+`3ab44472885dab14e88808e3684c1f13cf0c5cc6`. Six original alerts and one
+intermediate password-taint alert are removed structurally. Four required
+fixed-destination egress flows are reviewed and triaged individually with
+durable source/regression markers. The exact PR merge analysis now has zero
+open alerts, with no global suppression or workflow weakening.
+
+The 39 focused checks, all 2,324 tool tests and the full local technical
+regression pass. GitHub
+CodeQL `34024441466` and Regression `34024441534` pass on the exact
+implementation source, including independent clean-checkout reproducibility.
+WP24 creates no Android candidate and remains separate from the exact WP23
+candidate and physical evidence. No Store, Production, payment, provider
+configuration, Firebase Console, Cloud/VPS/DNS, OnePlus or PR-merge boundary
+changed. See
+`docs/operations/WP24_CODEQL_ALERT_TRIAGE_AND_REMEDIATION_2026-09-06.md`.
+
+# Previous Work Package: WP23 notification-route principal ownership
 
 WP23 is **COMPLETE FOR THE EXACT PIXEL CANDIDATE**. Signed Internal Staging
 candidate `1.0.0+2026090606`, source HEAD
@@ -7,13 +26,7 @@ owner across an expired-session cold start without rebinding to a successor
 account. The data-preserving Pixel update, exact archive, real terminated-
 process FCM tap, Notifications destination, exact Back behavior and complete
 fixture cleanup pass. Local full regression, GitHub Regression `34022203378`
-and CodeQL workflow `34022203376` pass.
-
-Ten open CodeQL alerts remain in older backend and local diagnostic/build-tool
-paths that WP23 did not change. They are not hidden by the successful workflow
-and form the next bounded release-blocking package,
-`WP24_CODEQL_ALERT_TRIAGE_AND_REMEDIATION`. No live, Store, payment, provider,
-Production, OnePlus or PR-merge action is part of that package. See
+and CodeQL workflow `34022203376` pass. See
 `docs/operations/WP23_NOTIFICATION_ROUTE_PRINCIPAL_OWNERSHIP_2026-09-06.md`.
 
 # Previous Work Package: WP22 current-candidate notification delivery
