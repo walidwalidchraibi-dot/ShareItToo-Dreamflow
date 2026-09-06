@@ -1,20 +1,23 @@
 # ShareItToo Current State
 
-WP29 prepares a separately versioned Internal Staging candidate
-`1.0.0+2026090607` from clean WP28 closure HEAD
-`96096f4413d5c274764536495865003189ffeea8`. The connected Pixel still contains
-`2026090606`, and no local `2026090607` archive or prior checked-in reservation
-existed. Only the checked-in version and client-build fallback change; dependent
-JSON changes are exclusively SHA-256 leaves. All 2,341 tool tests pass after
-the binding graph converges.
+WP29 closes exact signed Internal Staging candidate `1.0.0+2026090607`, source
+HEAD `0708609f66ecebee75e7d3786130c5231e578148`, on the physical Pixel. The
+owner-only AAB/APK archive, hashes, canonical upload signature, package/version,
+Firebase Staging binding and compiled privacy scan pass. The independent clean
+checkout passes the complete technical regression and produces two
+byte-identical equivalent Android builds. Exact-head GitHub Regression
+`34038653430`, CodeQL `34038653410` and every required job pass; repository-wide
+open code-scanning alerts are zero.
 
-The exact preparation commit, full regression, signed private AAB/APK archive,
-independent artifact verification, data-preserving Pixel update and exact-head
-GitHub checks remain open. The envelope stays Internal Staging, Google-only,
-closed non-binding `heilbronn_wave0`, canonical signing, provider hold and no
-real money. No Store, tester-list, Production, Firebase Console, payment/KYC,
-Cloud/VPS/DNS, OnePlus or PR-merge state changed. See
-`docs/operations/WP29_PIXEL_CANDIDATE_2026090607_PREPARATION.md`.
+The Pixel was updated without uninstall or data reset from `2026090606` to
+`2026090607`. Installed bytes/signature match the candidate, Android
+first-install time and app-data inode are preserved, and the foreground activity
+is verified. The envelope stays Internal Staging, Google-only, closed
+non-binding `heilbronn_wave0`, provider hold and no real money. The WP28
+return-case journey remains WP30 and is not inferred from installation. No
+Store, tester-list, Production, Firebase Console, payment/KYC, Cloud/VPS/DNS,
+OnePlus or PR-merge state changed. See
+`docs/operations/WP29_PIXEL_CANDIDATE_2026090607_CLOSURE.md`.
 
 WP28 closes the booking return-case and issue-report principal transaction
 locally and on GitHub at implementation HEAD

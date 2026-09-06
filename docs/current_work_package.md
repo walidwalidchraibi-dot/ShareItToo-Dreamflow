@@ -1,20 +1,23 @@
 # Current Work Package: WP29 Pixel candidate 2026090607
 
-WP29 is **PREPARED FOR FREEZE** from clean WP28 closure HEAD
-`96096f4413d5c274764536495865003189ffeea8`. It reserves the strictly newer
-Internal Staging identity `1.0.0+2026090607` because the connected Pixel still
-contains `2026090606`, which predates the WP28 booking issue/return-case client
-changes. No `2026090607` local archive or prior checked-in reservation existed.
+WP29 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed Internal Staging
+candidate `1.0.0+2026090607`, source HEAD
+`0708609f66ecebee75e7d3786130c5231e578148`. The owner-only AAB/APK archive,
+hashes, canonical upload signature, package/version, Firebase Staging binding
+and privacy scan pass. The independent clean checkout passes the full technical
+regression, and two equivalent Android builds are byte-identical. Exact-head
+GitHub Regression `34038653430`, CodeQL `34038653410` and all four required
+Regression jobs pass; open code-scanning alerts are zero.
 
-Only the checked-in version and existing client-build fallback change.
-Dependent bindings are hash-only: parsed comparison covers 23 JSON files and
-150 changed SHA-256 leaves with zero non-hash JSON changes. All 2,341 tool tests
-pass. Exact clean regression, signed AAB/APK archive, independent verification,
-data-preserving Pixel update and exact-head GitHub checks remain open until the
-subsequent preparation commit is frozen. See
-`docs/operations/WP29_PIXEL_CANDIDATE_2026090607_PREPARATION.md`.
+The connected Pixel was updated by a strictly newer replace install from
+`2026090606` to `2026090607`. Installed bytes and signature match the private
+candidate, first-install time and app-data inode remain unchanged, and the app
+returns to the foreground. No uninstall, data reset, login or account mutation
+occurred. See
+`docs/operations/WP29_PIXEL_CANDIDATE_2026090607_CLOSURE.md`.
 
-No Store, tester-list, Production, provider, Firebase Console, payment/KYC,
+The WP28 return-case journey remains a separate WP30 physical claim. No Store,
+tester-list, Production, provider, Firebase Console, payment/KYC,
 public-registration, Cloud/VPS/DNS, OnePlus or PR-merge boundary changed.
 
 # Previous Work Package: WP28 return-case principal transaction
