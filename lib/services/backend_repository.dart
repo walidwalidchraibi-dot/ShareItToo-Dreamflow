@@ -1155,6 +1155,8 @@ class BackendRepository {
     required String segment,
     String? label,
     DateTime? time,
+    String? localDate,
+    String? localTime,
   }) async {
     final response = await _authorized(
       method: 'POST',
@@ -1164,6 +1166,8 @@ class BackendRepository {
         'segment': segment,
         if (label != null) 'label': label,
         if (time != null) 'timeIso': time.toUtc().toIso8601String(),
+        if (localDate != null) 'localDate': localDate,
+        if (localTime != null) 'localTime': localTime,
       },
       additionalHeaders: {
         'Idempotency-Key':

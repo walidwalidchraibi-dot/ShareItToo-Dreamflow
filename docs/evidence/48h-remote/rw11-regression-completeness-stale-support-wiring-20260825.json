@@ -118,9 +118,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f",
-    "retentionManifestSha256": "c5ff91a6b4da531e637eb5d11f24dcd54b401b1d1572a3381da193cf65a45f54",
-    "activeProviderEvidenceSha256": "e28b5786da4459c69761b840d27a722d955435c0bc74168ae3affcd7f9daa9cc",
+    "privacyManifestSha256": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402",
+    "retentionManifestSha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1",
+    "activeProviderEvidenceSha256": "ef17091a953d99fc79885bb2b68de730f77bacccecd8b0b4353b072541b8b686",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -173,7 +173,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20"
+      "sha256": "07d0d99b361211104af647518a1204e1e8871732170d0fce9bf7b628e0794d83"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",

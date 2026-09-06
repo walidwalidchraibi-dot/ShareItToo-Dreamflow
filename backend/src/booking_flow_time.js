@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 
 import { bookingLocalDate } from './booking_address_reveal_domain.js';
+import { resolveZonedCalendarInstant } from './return_calendar_policy.js';
 
 const allowedWorkflowStatuses = Object.freeze([
   'accepted',
@@ -83,6 +84,50 @@ export function bookingFlowTimeSystemMessage({
     return `${icon} ${flowLabel} bestätigt: ${label} Uhr`;
   }
   throw new BookingFlowTimeError(400, 'invalid_flow_time_action');
+}
+
+export function normalizeBookingFlowTimeProposal({
+  raw,
+  rentalStartDate,
+  rentalEndDate,
+  rentalTimezone = 'Europe/Berlin',
+}) {
+  const input = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  if (safeText(input.action, 32) !== 'propose') return input;
+  const hasLocalDate = Object.hasOwn(input, 'localDate');
+  const hasLocalTime = Object.hasOwn(input, 'localTime');
+  if (!hasLocalDate && !hasLocalTime) return input;
+  const segment = safeText(input.segment, 16);
+  prefixForSegment(segment);
+  const localDate = safeText(input.localDate, 10);
+  const localTime = safeText(input.localTime, 5);
+  const expectedDate = segment === 'pickup' ? rentalStartDate : rentalEndDate;
+  if (localDate !== expectedDate || !/^\d{4}-\d{2}-\d{2}$/u.test(localDate)
+      || !/^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(localTime)) {
+    throw new BookingFlowTimeError(400, 'flow_time_outside_booking_date');
+  }
+  let instant;
+  try {
+    instant = resolveZonedCalendarInstant({
+      date: localDate,
+      time: localTime,
+      timezone: rentalTimezone,
+    });
+  } catch {
+    throw new BookingFlowTimeError(400, 'invalid_flow_time_proposal');
+  }
+  if (bookingLocalDate(instant, rentalTimezone) !== expectedDate) {
+    throw new BookingFlowTimeError(400, 'flow_time_outside_booking_date');
+  }
+  const dateProbe = new Date(`${localDate}T00:00:00.000Z`);
+  const weekdays = Object.freeze([
+    'Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag',
+  ]);
+  return {
+    ...input,
+    label: `${weekdays[dateProbe.getUTCDay()]}, ${localTime}`,
+    timeIso: instant.toISOString(),
+  };
 }
 
 export function applyBookingFlowTimeAction({
@@ -233,6 +278,12 @@ export async function updateBookingFlowTime(client, {
     throw new BookingFlowTimeError(409, 'booking_chat_unavailable');
   }
 
+  const normalizedRaw = normalizeBookingFlowTimeProposal({
+    raw,
+    rentalStartDate: row.rental_start_date_text,
+    rentalEndDate: row.rental_end_date_text,
+    rentalTimezone: row.rental_timezone,
+  });
   const applied = applyBookingFlowTimeAction({
     payload: row.payload,
     actorId: actor.id,
@@ -242,7 +293,7 @@ export async function updateBookingFlowTime(client, {
     rentalStartDate: row.rental_start_date_text,
     rentalEndDate: row.rental_end_date_text,
     rentalTimezone: row.rental_timezone,
-    raw,
+    raw: normalizedRaw,
   });
   await client.query(
     'UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1',

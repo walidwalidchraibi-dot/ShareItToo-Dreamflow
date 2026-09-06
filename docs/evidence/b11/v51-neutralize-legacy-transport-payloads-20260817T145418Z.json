@@ -42,7 +42,7 @@
   },
   "sourceHashesSha256": {
     "lib/models/item.dart": "df6476d5939d06766765361285f4966c71c24ab931239e96e348b6ced882926c",
-    "lib/models/rental_request.dart": "84d064187a19fbb9e9c5a484efd9369e48ba6a1ce13bd90d8f7dcc8f18062dd7",
+    "lib/models/rental_request.dart": "edfa985cfcd71bc391fd4ed6ce7d8161fa2b6671c3cfeda648666b8c1a0b6c9b",
     "test/v51_transport_ingestion_test.dart": "39ac7b6fe23182019105dad635301cb09ca01b074dc50418e0ea10a7a5912f3c"
   }
 }

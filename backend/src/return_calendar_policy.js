@@ -91,6 +91,37 @@ function resolveLocalInstant(parts, timezone) {
   throw new Error('unresolvable_return_policy_calendar_time');
 }
 
+export function resolveZonedCalendarInstant({ date, time, timezone = 'Europe/Berlin' }) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(
+    typeof date === 'string' ? date.trim() : '',
+  );
+  const timeMatch = /^(\d{2}):(\d{2})$/u.exec(
+    typeof time === 'string' ? time.trim() : '',
+  );
+  if (!dateMatch || !timeMatch) throw new Error('invalid_zoned_calendar_time');
+  const parts = {
+    year: Number(dateMatch[1]),
+    month: Number(dateMatch[2]),
+    day: Number(dateMatch[3]),
+    hour: Number(timeMatch[1]),
+    minute: Number(timeMatch[2]),
+    second: 0,
+    millisecond: 0,
+  };
+  const dateProbe = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+  if (parts.year < 2000 || parts.year > 2200
+      || parts.month < 1 || parts.month > 12
+      || parts.day < 1 || parts.day > 31
+      || dateProbe.getUTCFullYear() !== parts.year
+      || dateProbe.getUTCMonth() + 1 !== parts.month
+      || dateProbe.getUTCDate() !== parts.day
+      || parts.hour < 0 || parts.hour > 23
+      || parts.minute < 0 || parts.minute > 59) {
+    throw new Error('invalid_zoned_calendar_time');
+  }
+  return resolveLocalInstant(parts, returnPolicyTimeZone(timezone));
+}
+
 export function addReturnPolicyCalendarDays(value, days, timezone = 'Europe/Berlin') {
   const source = instant(value, 'invalid_return_policy_instant');
   if (!Number.isSafeInteger(days) || days < 0 || days > 3660) {

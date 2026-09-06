@@ -106,11 +106,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f"
+      "sha256": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "e28b5786da4459c69761b840d27a722d955435c0bc74168ae3affcd7f9daa9cc"
+      "sha256": "ef17091a953d99fc79885bb2b68de730f77bacccecd8b0b4353b072541b8b686"
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
@@ -130,7 +130,7 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "c9b450cd43acd60056f43ad2a2792bbf7effdea8aff020bc97456f6aeed9af36"
+      "sha256": "f3620bdbc0f1dbcdc97bce1e20e2ba1e4e8fedcca91a5576745add37387ea31f"
     }
   ],
   "preparationChecks": {

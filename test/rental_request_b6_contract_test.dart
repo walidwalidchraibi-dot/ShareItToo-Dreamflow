@@ -40,6 +40,35 @@ void main() {
     expect(json['endDate'], '2026-03-31');
   });
 
+  test('flow-time proposal uses the canonical rental date, not the UTC day',
+      () {
+    final request = RentalRequest.fromJson({
+      'id': 'booking-flow-time',
+      'itemId': 'listing-1',
+      'ownerId': 'owner',
+      'renterId': 'renter',
+      'start': '2026-11-19T23:00:00.000Z',
+      'end': '2026-11-21T23:00:00.000Z',
+      'status': 'accepted',
+      'startDate': '2026-11-20',
+      'endDate': '2026-11-22',
+    });
+
+    final pickup = request.flowTimeAt(
+      isReturn: false,
+      hour: 10,
+      minute: 15,
+    );
+    final returnTime = request.flowTimeAt(
+      isReturn: true,
+      hour: 18,
+      minute: 30,
+    );
+
+    expect(pickup, DateTime(2026, 11, 20, 10, 15));
+    expect(returnTime, DateTime(2026, 11, 22, 18, 30));
+  });
+
   test('server quote snapshot survives parsing, copy and serialization', () {
     final request = RentalRequest.fromJson({
       'id': 'booking-quote',
@@ -92,7 +121,8 @@ void main() {
     expect(json['bindingExpiresAt'], '2026-09-01T10:30:00.000Z');
   });
 
-  test('non-binding simulation marker survives parsing, copy and serialization', () {
+  test('non-binding simulation marker survives parsing, copy and serialization',
+      () {
     final request = RentalRequest.fromJson({
       'id': 'simulation-1',
       'itemId': 'listing-1',

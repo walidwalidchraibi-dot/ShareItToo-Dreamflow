@@ -3664,7 +3664,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final me = _currentUser;
     if (t == null || req == null || me == null) return;
 
-    final initialTime = isReturn ? (req.end) : (req.start);
+    final initialTime = (isReturn ? req.end : req.start).toLocal();
     final state = await DataService.getHandoverReturnState(req.id);
     if (!mounted) return;
     final requestedLabel =
@@ -3713,12 +3713,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     if (picked == null || !mounted) return;
 
-    final proposedTime = DateTime(
-      initialTime.year,
-      initialTime.month,
-      initialTime.day,
-      picked.hour,
-      picked.minute,
+    final proposedTime = req.flowTimeAt(
+      isReturn: isReturn,
+      hour: picked.hour,
+      minute: picked.minute,
     );
 
     final dayName = _weekdayName(proposedTime.weekday);
@@ -3921,7 +3919,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       ),
     );
 
-    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+    if (result == null ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
 

@@ -153,11 +153,11 @@
     },
     {
       "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "848a736ce2b9200ffa251b96c7b3f8ff761d33f5f01f09512c2af8a97ab1f7e3"
+      "sha256": "c4d691b2e723f8e21db7daa06dde992a4e2f453d531239fa93ef7f03e96e50e1"
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "658ad4569eb2a9ea9753c7fb729f285518771a02daea75db2a002e2722b4daf3"
+      "sha256": "196e14a111a804328aab6a8149271453aa200b1541b5753f7cdafff3745224fb"
     },
     {
       "path": "lib/screens/messages_screen.dart",
@@ -169,7 +169,7 @@
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "3df03f4ce7e529411139bcb1462399571bdbe74376421dfb6402b4a06e125568"
+      "sha256": "6aa51e32643d687a35cac59e1d3a73932697853b2371cebbfd7d6485cabc2f09"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
@@ -181,7 +181,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac"
+      "sha256": "27093cb64ad728f358b793353071b56902a26d04e5986c4515832c398db1f970"
     },
     {
       "path": "lib/services/notification_cta_resolver.dart",
@@ -193,11 +193,11 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f"
+      "sha256": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "c5ff91a6b4da531e637eb5d11f24dcd54b401b1d1572a3381da193cf65a45f54"
+      "sha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1"
     },
     {
       "path": "tool/validate_g2_data_lifecycle.mjs",
@@ -213,11 +213,11 @@
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "c9b450cd43acd60056f43ad2a2792bbf7effdea8aff020bc97456f6aeed9af36"
+      "sha256": "5c47e336413bfbc7733e3d019bd19bb84f941fbf087b2e9340e33a92e111a765"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "e28b5786da4459c69761b840d27a722d955435c0bc74168ae3affcd7f9daa9cc"
+      "sha256": "998b39165604bc38749e58e995608f37fab28dcfe6e414216effb0ea47243a78"
     },
     {
       "path": "scripts/technical_regression_check.sh",
@@ -225,7 +225,7 @@
     },
     {
       "path": "test/data_service_booking_rules_test.dart",
-      "sha256": "80d135fdd16142e95eddba41274e1bccb7bed1728ba41f3c56f98eb4bee632eb"
+      "sha256": "39125917a212400396b7459e6cd37981cc1a7fd7218502b46d73663876d52b37"
     },
     {
       "path": "test/invoices_service_rules_test.dart",

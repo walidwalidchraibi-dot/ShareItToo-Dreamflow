@@ -310,6 +310,29 @@ void main() {
       expect(after['handoverActive'], isFalse);
     });
 
+    test('flow time stays on the canonical rental day after caller date drift',
+        () async {
+      await seedBookingState(currentUser: owner);
+      final request = await DataService.getRentalRequestById('req-pickup');
+
+      await DataService.requestFlowTime(
+        requestId: 'req-pickup',
+        isReturn: false,
+        label: 'untrusted weekday, 10:15',
+        time: DateTime(2026, 7, 28, 10, 15),
+        requestedByUserId: owner.id,
+      );
+
+      final state = await DataService.getHandoverReturnState('req-pickup');
+      final expected = request!.flowTimeAt(
+        isReturn: false,
+        hour: 10,
+        minute: 15,
+      );
+      expect(state['handoverTimeIso'], expected.toIso8601String());
+      expect(state['handoverTimeRequested'], 'Mi, 10:15');
+    });
+
     test(
       'handover start rejects involved renter on accepted request',
       () async {

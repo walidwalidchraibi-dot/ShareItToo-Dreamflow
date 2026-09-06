@@ -385,11 +385,11 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20"
+      "sha256": "07d0d99b361211104af647518a1204e1e8871732170d0fce9bf7b628e0794d83"
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac"
+      "sha256": "27093cb64ad728f358b793353071b56902a26d04e5986c4515832c398db1f970"
     },
     {
       "path": "lib/services/profile_mutation_service.dart",
@@ -413,7 +413,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
-      "sha256": "0588531f21f3f5127fda5e2066afae7951ace03f37ad7a58e26d0272e486b4b4"
+      "sha256": "280ecfeb28bb067b4078ce3b1af62d4b9b3ecb75402c90f09b8bca7be7c418e4"
     },
     {
       "path": "scripts/technical_regression_check.sh",

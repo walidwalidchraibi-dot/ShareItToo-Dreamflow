@@ -1,5 +1,6 @@
 import { parseRentalDates } from './booking_domain.js';
 import { BookingWorkflowError, quoteBooking } from './booking_workflow.js';
+import { postgresDateText } from './postgres_date.js';
 
 const MAX_PROJECTS = 20;
 const MAX_ITEMS = 100;
@@ -51,8 +52,7 @@ function projectAnswers(value) {
 }
 
 function dateValue(value) {
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
-  return String(value).slice(0, 10);
+  return postgresDateText(value);
 }
 
 function timestamp(value) {

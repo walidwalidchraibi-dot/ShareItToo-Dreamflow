@@ -21,6 +21,7 @@ import { v51CancellationAmounts } from './v51_termination_domain.js';
 import { settleV51WithdrawalRefundAtReturn } from './v51_withdrawal_workflow.js';
 import { openV52ActualLossCase } from './v52_actual_loss_workflow.js';
 import { hasVerifiedBookingConfirmation } from './booking_confirmation_workflow.js';
+import { postgresDateText } from './postgres_date.js';
 import {
   assertPrivatePilotAccountState,
   assertPrivatePilotBooking,
@@ -149,8 +150,7 @@ function quoteSnapshotPayload(quote) {
 }
 
 function databaseDate(value) {
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
-  return String(value).slice(0, 10);
+  return postgresDateText(value);
 }
 
 function bookingPayload(row, viewerUserId = null) {

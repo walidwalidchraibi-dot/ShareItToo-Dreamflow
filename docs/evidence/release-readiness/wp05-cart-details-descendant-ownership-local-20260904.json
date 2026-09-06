@@ -29,7 +29,7 @@
   "sourceInventory": [
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac"
+      "sha256": "27093cb64ad728f358b793353071b56902a26d04e5986c4515832c398db1f970"
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",
@@ -111,7 +111,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw2-reduced-wave0-local-state-truth-recovery-20260825.json",
-      "sha256": "1f99626c4630bbe2f94e666893c8c02382d3bb34065c288e285e4d13a16b1d95"
+      "sha256": "b9915084882e2a7f4e950233b983221a62589101da49b50dd71fef984e1695f3"
     },
     {
       "path": "docs/evidence/48h-remote/rw20-listing-mutation-principal-epoch-transaction-20260826.json",
@@ -119,7 +119,7 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw3-reduced-wave0-local-concurrency-consistency-20260825.json",
-      "sha256": "8592a9a9811751d65cbb0b44657be0ae2de38fa6be088b7270363989452bf703"
+      "sha256": "be433ccf0be7d4ba5456dadb4ea0b3b1ea521a34b35045c3de53b6278a7073ba"
     },
     {
       "path": "docs/evidence/48h-remote/rw4-reduced-wave0-local-principal-isolation-20260825.json",
@@ -147,19 +147,19 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "e28b5786da4459c69761b840d27a722d955435c0bc74168ae3affcd7f9daa9cc"
+      "sha256": "ef17091a953d99fc79885bb2b68de730f77bacccecd8b0b4353b072541b8b686"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f"
+      "sha256": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "c5ff91a6b4da531e637eb5d11f24dcd54b401b1d1572a3381da193cf65a45f54"
+      "sha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "c9b450cd43acd60056f43ad2a2792bbf7effdea8aff020bc97456f6aeed9af36"
+      "sha256": "f3620bdbc0f1dbcdc97bce1e20e2ba1e4e8fedcca91a5576745add37387ea31f"
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",

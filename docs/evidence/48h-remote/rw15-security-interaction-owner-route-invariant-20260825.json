@@ -305,9 +305,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f",
-    "retentionManifestSha256": "c5ff91a6b4da531e637eb5d11f24dcd54b401b1d1572a3381da193cf65a45f54",
-    "activeProviderEvidenceSha256": "e28b5786da4459c69761b840d27a722d955435c0bc74168ae3affcd7f9daa9cc",
+    "privacyManifestSha256": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402",
+    "retentionManifestSha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1",
+    "activeProviderEvidenceSha256": "998b39165604bc38749e58e995608f37fab28dcfe6e414216effb0ea47243a78",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -399,11 +399,11 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20"
+      "sha256": "07d0d99b361211104af647518a1204e1e8871732170d0fce9bf7b628e0794d83"
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac"
+      "sha256": "27093cb64ad728f358b793353071b56902a26d04e5986c4515832c398db1f970"
     },
     {
       "path": "lib/services/shared_persistence_sync.dart",
@@ -419,27 +419,27 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f"
+      "sha256": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402"
     },
     {
       "path": "store/retention-deletion-readiness.json",
-      "sha256": "c5ff91a6b4da531e637eb5d11f24dcd54b401b1d1572a3381da193cf65a45f54"
+      "sha256": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "e28b5786da4459c69761b840d27a722d955435c0bc74168ae3affcd7f9daa9cc"
+      "sha256": "998b39165604bc38749e58e995608f37fab28dcfe6e414216effb0ea47243a78"
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "a0513995ceffbf6cb0b93215c7433c3f27a7ef18ba9dabc83074683055ade11f"
+      "sha256": "40f64759c6a3dbf7592b364c7c8224f87313e9976b060009dace3dfb55da3775"
     },
     {
       "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
-      "sha256": "4df54fd1c876946ac4f3262eeff83e0caca90779a6968bd5b9dcc059dec3e5b3"
+      "sha256": "f6444dc06d7e96c7c14599e78fc419c4145c37c75617c7eee811b6906bd3872f"
     },
     {
       "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
-      "sha256": "4c83ada41c997081feec19b42d1daefd97617fff27dd4c2d2105df08dcdfba20"
+      "sha256": "6b56906ca7a653868b613341ff1e49d352b2d40df47163cb2cf2b92dad061d2a"
     },
     {
       "path": "scripts/technical_regression_check.sh",

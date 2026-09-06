@@ -56,9 +56,9 @@
     "candidateBuiltOrRelabeled": false
   },
   "sourceHashesSha256": {
-    "lib/services/data_service.dart": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac",
-    "lib/screens/ongoing_owner_detail_screen.dart": "3df03f4ce7e529411139bcb1462399571bdbe74376421dfb6402b4a06e125568",
-    "store/privacy-disclosures.json": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f",
+    "lib/services/data_service.dart": "85f8d2f2b658d308e6ebec61f6eec39551daaa9c8f3c18269ed6f30862c49bbf",
+    "lib/screens/ongoing_owner_detail_screen.dart": "6aa51e32643d687a35cac59e1d3a73932697853b2371cebbfd7d6485cabc2f09",
+    "store/privacy-disclosures.json": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402",
     "test/tool/v51_ride_compensation_runtime_removed_wiring.test.mjs": "aeae839ae5db3874fc2f1a0395cd9223cfe62e86eafb9ea287660053a41a8a3f"
   }
 }

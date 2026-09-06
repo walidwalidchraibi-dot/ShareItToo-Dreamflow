@@ -509,13 +509,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     required String itemTitle,
   }) async {
     final owner = _supportPrincipal.capture();
-    if (owner == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+    if (owner == null ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final current = await DataService.getCurrentUser();
     if (current == null ||
         current.id != owner.userId ||
-        !await _supportPrincipal.isCurrent(owner) || !mounted) {
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final flowContext = SupportFlowContext.fromBookingDetail(
@@ -539,7 +542,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         builder: (_) => SupportFlowScreen(context: flowContext, owner: owner),
       ),
     );
-    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+    if (result == null ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final supportThread = await DataService.createSupportThread(
@@ -592,6 +597,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       );
       return;
     }
+    final request = await DataService.getRentalRequestById(requestId);
+    if (!mounted) return;
     final state = await DataService.getHandoverReturnState(requestId);
     if (!mounted) return;
     final key = isReturn ? 'return' : 'handover';
@@ -655,22 +662,29 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
     if (!mounted) return;
     final (start, end) = _parseDateRange();
-    final initial = isReturn
-        ? (end ?? DateTime.now().add(const Duration(days: 1)))
-        : (start ?? DateTime.now().add(const Duration(hours: 2)));
+    final initial = request == null
+        ? (isReturn
+            ? (end ?? DateTime.now().add(const Duration(days: 1)))
+            : (start ?? DateTime.now().add(const Duration(hours: 2))))
+        : (isReturn ? request.end : request.start).toLocal();
     final picked = await SitGlassTimePicker.show(
       context,
       title: isReturn ? 'Rückgabezeit wählen' : 'Übergabezeit wählen',
       initialTime: TimeOfDay.fromDateTime(initial),
     );
     if (picked == null || !mounted) return;
-    final proposed = DateTime(
-      initial.year,
-      initial.month,
-      initial.day,
-      picked.hour,
-      picked.minute,
-    );
+    final proposed = request?.flowTimeAt(
+          isReturn: isReturn,
+          hour: picked.hour,
+          minute: picked.minute,
+        ) ??
+        DateTime(
+          initial.year,
+          initial.month,
+          initial.day,
+          picked.hour,
+          picked.minute,
+        );
     const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     final label =
         '${days[(proposed.weekday - 1) % 7]}, ${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';

@@ -4563,7 +4563,53 @@ if (!databaseUrl) {
         body: JSON.stringify({ status: 'accepted' }),
       });
       assert.equal(acceptB6.status, 200);
-      assert.equal((await acceptB6.json()).booking.workflowStatus, 'accepted');
+      const acceptedB6 = (await acceptB6.json()).booking;
+      assert.equal(acceptedB6.workflowStatus, 'accepted');
+      const createB6Thread = await fetch(`${baseUrl}/v1/message-threads/booking/b6-flow`, {
+        method: 'POST',
+        headers: ownerHeaders,
+      });
+      assert.equal(createB6Thread.status, 201);
+      const b6ThreadId = (await createB6Thread.json()).thread.id;
+
+      const proposeB6FlowTime = await fetch(`${baseUrl}/v1/bookings/b6-flow/flow-time`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'propose-b6-flow-time-integration' },
+        body: JSON.stringify({
+          action: 'propose',
+          segment: 'pickup',
+          localDate: acceptedB6.startDate,
+          localTime: '10:15',
+          label: 'untrusted client label',
+          timeIso: '2026-09-30T10:15:00.000Z',
+        }),
+      });
+      const proposeB6FlowTimePayload = await proposeB6FlowTime.json();
+      assert.equal(
+        proposeB6FlowTime.status,
+        201,
+        JSON.stringify(proposeB6FlowTimePayload),
+      );
+      const proposedB6FlowTime = proposeB6FlowTimePayload.state;
+      assert.equal(proposedB6FlowTime.handoverTimeRequested, 'Donnerstag, 10:15');
+      assert.equal(proposedB6FlowTime.handoverTimeIso, '2026-10-01T08:15:00.000Z');
+      const confirmB6FlowTime = await fetch(`${baseUrl}/v1/bookings/b6-flow/flow-time`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'confirm-b6-flow-time-integration' },
+        body: JSON.stringify({ action: 'confirm', segment: 'pickup' }),
+      });
+      assert.equal(confirmB6FlowTime.status, 201);
+      assert.equal((await confirmB6FlowTime.json()).state.handoverTimeConfirmed, true);
+      const flowTimeMessages = await setupPool.query(
+        `SELECT body FROM messages
+          WHERE thread_id = $1 AND sender_type = 'system' AND body LIKE '📦%'
+          ORDER BY created_at`,
+        [b6ThreadId],
+      );
+      assert.deepEqual(flowTimeMessages.rows.map((row) => row.body), [
+        '📦 Übergabezeit angefragt: Donnerstag, 10:15 Uhr',
+        '📦 Übergabezeit bestätigt: Donnerstag, 10:15 Uhr',
+      ]);
 
       const { getBookingAddressReveal } = await import(
         '../src/booking_address_reveal_workflow.js'
@@ -4706,6 +4752,7 @@ if (!databaseUrl) {
       const b6Events = await setupPool.query(
         `SELECT from_status, to_status
          FROM booking_events WHERE booking_id = 'b6-flow'
+           AND event_type NOT LIKE 'booking.flow_time.%'
          ORDER BY from_status NULLS FIRST, to_status`,
       );
       assert.deepEqual(

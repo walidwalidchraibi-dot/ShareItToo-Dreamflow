@@ -12867,6 +12867,17 @@ class DataService {
     await _requireCurrentOperationalUser(requestedUserId: requestedByUserId);
     final participant = await _requireCurrentRequestParticipant(id);
     await _runHandoverForParticipant(participant, () async {
+      final canonicalTime = participant.$2.flowTimeAt(
+        isReturn: isReturn,
+        hour: time.hour,
+        minute: time.minute,
+      );
+      final localDate = participant.$2.flowTimeDate(isReturn: isReturn);
+      final localTime =
+          '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+      const weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+      final canonicalLabel =
+          '${weekdays[canonicalTime.weekday - 1]}, $localTime';
       final map = await _getHandoverReturnStateMap();
       final existing = (map[id] is Map)
           ? Map<String, dynamic>.from(map[id] as Map)
@@ -12876,8 +12887,10 @@ class DataService {
           bookingId: id,
           action: 'propose',
           segment: isReturn ? 'return' : 'pickup',
-          label: label,
-          time: time,
+          label: label == canonicalLabel ? label : canonicalLabel,
+          time: canonicalTime,
+          localDate: localDate,
+          localTime: localTime,
         );
         existing.addAll(remote);
         map[id] = existing;
@@ -12885,8 +12898,9 @@ class DataService {
         return;
       }
       final prefix = isReturn ? 'return' : 'handover';
-      existing['${prefix}TimeRequested'] = label;
-      existing['${prefix}TimeIso'] = time.toIso8601String();
+      existing['${prefix}TimeRequested'] =
+          label == canonicalLabel ? label : canonicalLabel;
+      existing['${prefix}TimeIso'] = canonicalTime.toIso8601String();
       existing['${prefix}TimeRequestedByUserId'] = requestedByUserId;
       existing['${prefix}TimeConfirmed'] = false;
       map[id] = existing;

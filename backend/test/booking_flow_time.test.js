@@ -5,6 +5,7 @@ import {
   applyBookingFlowTimeAction,
   bookingFlowTimeSystemMessage,
   BookingFlowTimeError,
+  normalizeBookingFlowTimeProposal,
   normalizeBookingFlowTimeState,
   updateBookingFlowTime,
 } from '../src/booking_flow_time.js';
@@ -62,6 +63,50 @@ test('changed return proposal has an accurate server-authored message', () => {
     changed: true,
     state: { returnTimeRequested: 'Freitag, 10:00' },
   }), '🔄 Rückgabezeit geändert: Freitag, 10:00 Uhr');
+});
+
+test('canonical local proposal survives UTC date rollover and authors its label', () => {
+  const normalized = normalizeBookingFlowTimeProposal({
+    rentalStartDate: '2026-11-20',
+    rentalEndDate: '2026-11-22',
+    rentalTimezone: 'Europe/Berlin',
+    raw: {
+      action: 'propose',
+      segment: 'pickup',
+      localDate: '2026-11-20',
+      localTime: '10:15',
+      label: 'untrusted label',
+      timeIso: '2026-11-19T10:15:00.000Z',
+    },
+  });
+  assert.equal(normalized.label, 'Freitag, 10:15');
+  assert.equal(normalized.timeIso, '2026-11-20T09:15:00.000Z');
+});
+
+test('canonical local proposal is DST-safe and cannot cross its booking date', () => {
+  const spring = normalizeBookingFlowTimeProposal({
+    rentalStartDate: '2026-03-29',
+    rentalEndDate: '2026-03-30',
+    rentalTimezone: 'Europe/Berlin',
+    raw: {
+      action: 'propose', segment: 'pickup',
+      localDate: '2026-03-29', localTime: '03:30',
+    },
+  });
+  assert.equal(spring.timeIso, '2026-03-29T01:30:00.000Z');
+  assert.throws(
+    () => normalizeBookingFlowTimeProposal({
+      rentalStartDate: '2026-03-29',
+      rentalEndDate: '2026-03-30',
+      rentalTimezone: 'Europe/Berlin',
+      raw: {
+        action: 'propose', segment: 'pickup',
+        localDate: '2026-03-28', localTime: '23:00',
+      },
+    }),
+    (error) => error instanceof BookingFlowTimeError
+      && error.code === 'flow_time_outside_booking_date',
+  );
 });
 
 test('flow-time mutation writes one atomic system message to the booking thread', async () => {

@@ -6,7 +6,7 @@
   "sourceBaseCommit": "64d6cf10c9f67c1f6835d3614a904547a00b0328",
   "runtimeChange": {
     "path": "lib/screens/booking_detail_screen.dart",
-    "sha256": "848a736ce2b9200ffa251b96c7b3f8ff761d33f5f01f09512c2af8a97ab1f7e3",
+    "sha256": "c4d691b2e723f8e21db7daa06dde992a4e2f453d531239fa93ef7f03e96e50e1",
     "removedSymbol": "_returnRenterCode",
     "runtimeLinesAdded": 0,
     "runtimeLinesDeleted": 5,

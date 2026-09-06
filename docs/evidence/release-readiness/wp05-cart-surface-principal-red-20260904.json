@@ -50,8 +50,8 @@
   },
   "sourceHashes": {
     "lib/screens/wishlists_screen.dart": "cb64ca5670af401b7259e3d226cdde54047891c842abcf5287522528590f4bba",
-    "lib/services/data_service.dart": "f54bc0a141c21a470dc1bef2a831d5ef911482483694f617bb0809e5731f6cac",
-    "lib/services/backend_repository.dart": "7052f714676160dd5cba163ed702f812d2742dfb61976bed5eb4abce32315a20",
+    "lib/services/data_service.dart": "85f8d2f2b658d308e6ebec61f6eec39551daaa9c8f3c18269ed6f30862c49bbf",
+    "lib/services/backend_repository.dart": "07d0d99b361211104af647518a1204e1e8871732170d0fce9bf7b628e0794d83",
     "lib/widgets/item_details_overlay.dart": "3541d27c2964795b925e30a2d990b81da759f3ef521b79e4fe4902be965c2141",
     "lib/services/local_principal_scope.dart": "7bc2b1254651b1cca95059ef99de2fe4b9027bb7ebbd3cea88777f3db33e2218"
   },

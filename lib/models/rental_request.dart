@@ -401,6 +401,33 @@ class RentalRequest {
     );
   }
 
+  String flowTimeDate({required bool isReturn}) =>
+      isReturn ? endDate : startDate;
+
+  DateTime flowTimeAt({
+    required bool isReturn,
+    required int hour,
+    required int minute,
+  }) {
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+      throw ArgumentError('Ungültige Uhrzeit.');
+    }
+    final raw = flowTimeDate(isReturn: isReturn);
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(raw);
+    if (match == null) throw const FormatException('Ungültiger Miettag.');
+    final value = DateTime(
+      int.parse(match.group(1)!),
+      int.parse(match.group(2)!),
+      int.parse(match.group(3)!),
+      hour,
+      minute,
+    );
+    if (_dateOnly(value) != raw) {
+      throw const FormatException('Ungültiger Miettag.');
+    }
+    return value;
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'itemId': itemId,

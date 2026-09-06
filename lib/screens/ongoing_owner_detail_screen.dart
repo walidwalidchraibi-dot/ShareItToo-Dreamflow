@@ -176,13 +176,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     required Item item,
   }) async {
     final owner = _supportPrincipal.capture();
-    if (owner == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+    if (owner == null ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final current = await DataService.getCurrentUser();
     if (current == null ||
         current.id != owner.userId ||
-        !await _supportPrincipal.isCurrent(owner) || !mounted) {
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final flowContext = SupportFlowContext.fromOwnerRequestDetail(
@@ -201,7 +204,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         builder: (_) => SupportFlowScreen(context: flowContext, owner: owner),
       ),
     );
-    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+    if (result == null ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final supportThread = await DataService.createSupportThread(
@@ -309,19 +314,17 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         return;
       }
     }
-    final initial = isReturn ? req.end : req.start;
+    final initial = (isReturn ? req.end : req.start).toLocal();
     final picked = await SitGlassTimePicker.show(
       context,
       title: isReturn ? 'Rückgabezeit wählen' : 'Übergabezeit wählen',
       initialTime: TimeOfDay.fromDateTime(initial),
     );
     if (picked == null || !mounted) return;
-    final proposed = DateTime(
-      initial.year,
-      initial.month,
-      initial.day,
-      picked.hour,
-      picked.minute,
+    final proposed = req.flowTimeAt(
+      isReturn: isReturn,
+      hour: picked.hour,
+      minute: picked.minute,
     );
     const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     final label =
