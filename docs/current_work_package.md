@@ -1,4 +1,24 @@
-# Current Work Package: WP30 return-case UI reachability
+# Current Work Package: WP31 Pixel candidate 2026090608
+
+WP31 is **PREPARED FOR SOURCE FREEZE** from clean synchronized base
+`9f6e775a93fa6f2e9f1c6f77d4fd6ef007be386f`. It reserves the previously unused
+identity `1.0.0+2026090608` for one signed Internal Staging candidate containing
+WP30. The highest verified owner-private archive and installed Pixel build are
+both `2026090607`; that immutable WP29 candidate remains the rollback.
+
+The scope is exact source freeze, complete regression and clean
+reproducibility through the maintained version-2 Mac-mini profile, canonical
+signed AAB/APK archive verification and one strictly newer data-preserving
+Pixel replace update. No uninstall, reset or downgrade is allowed. The
+subsequent physical V5.2 return-case journey remains a separate package so the
+candidate/install evidence cannot be conflated with product behavior.
+
+No Google Play upload or track change, Production, real money, provider,
+Firebase Console, backend deploy, Cloud/VPS/DNS, OnePlus or PR merge is in
+scope. See
+`docs/operations/WP31_PIXEL_CANDIDATE_2026090608_PREPARATION.md`.
+
+# Previous Work Package: WP30 return-case UI reachability
 
 WP30 is **COMPLETE LOCALLY AND ON GITHUB; PHYSICAL JOURNEY OPEN** at
 implementation HEAD `ec8c85fce8b52b68286ca4adbf2ca91416069fce`.

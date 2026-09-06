@@ -1,5 +1,18 @@
 # ShareItToo Current State
 
+WP31 reserves strictly newer signed Internal Staging candidate
+`1.0.0+2026090608` from clean base
+`9f6e775a93fa6f2e9f1c6f77d4fd6ef007be386f`. The highest verified local
+archive and installed Pixel version before reservation are both `2026090607`;
+no `2026090608` archive or repository reference existed. This candidate is
+limited to carrying the already verified WP30 return-case UI onto the physical
+Pixel through the maintained version-2 build profile and a data-preserving
+replace update. Exact source freeze, regression, signed archive, artifact
+verification and physical installation remain open. No Store, Production,
+payment/provider, Firebase-console, backend deployment, OnePlus or PR-merge
+boundary is authorized by this reservation. See
+`docs/operations/WP31_PIXEL_CANDIDATE_2026090608_PREPARATION.md`.
+
 WP30 closes the missing production UI path into the WP28-secured V5.2 return-
 case transaction at implementation HEAD
 `ec8c85fce8b52b68286ca4adbf2ca91416069fce`. Renter and owner booking details

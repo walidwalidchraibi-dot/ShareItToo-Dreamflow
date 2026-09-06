@@ -42,39 +42,39 @@
     },
     {
       "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
-      "sha256": "8eed6a93ffc4a41c8b60472ddc69ddd831b3822f22174d2a765747f08bd3e479"
+      "sha256": "a6da3ee1522f0376ffcb78c6a7f3b41bf7302c38c896d79f862a0d250b6ef10f"
     },
     {
       "path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
-      "sha256": "f37ef10b16aa24057c206a5f3a2f32d086dd5751cbe775c850d5b71d551daab6"
+      "sha256": "f41e3c38f7dd3412112a89d123faf3cf73cb239d22433d9076c6978723dc7f3f"
     },
     {
       "path": "docs/evidence/48h-remote/rw13-security-logout-all-outcome-principal-epoch-20260825.json",
-      "sha256": "ad81f8410d36ea027c10fc1a377fd6a5c137819d8adde85cef2de6aaad3b39e3"
+      "sha256": "0e71667007e429f07d6a8fa9d2d22c37c366b0979199451600aa6fbeb5dbbd2b"
     },
     {
       "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
-      "sha256": "7fa4552596b52bb3d8449449a937676108d9a9dc5aac4e0748b1d93a02fdc6b6"
+      "sha256": "c752485132e4e036206df6c9ed1c1aecf6d9fa223c86af415db370e027b9693f"
     },
     {
       "path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json",
-      "sha256": "194f46337c91a3d70563c639f901966a5b8ed112c22478553b5e4ad21d2bd790"
+      "sha256": "e3f98a9ca938586beb0e8cd057a2abc42b06fe0ef7363c93b9b0ed690d8b49d0"
     },
     {
       "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
-      "sha256": "9179c1baca364e62c613eda8069d0e8d06242adde84fe161f4f263fb8e3825e4"
+      "sha256": "c41c02fcbbebac1ccd0ef014e210fcb1710baf1fd8598969f8ddab593beb5375"
     },
     {
       "path": "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
-      "sha256": "52c9f70354c7f7df090aa2409d5dd66be0f0aef41af7a415eae9fe2e23f45f30"
+      "sha256": "1d932d99450a759a97258a1cccd07e4128c498f5f08420228a54d1f0d1ed4ab8"
     },
     {
       "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
-      "sha256": "1867fc725cf02414ca9e290386a7c64ef58faadc63358c40e067bf263a32e656"
+      "sha256": "209d45b3a1089472dd9ffdc23ad7a22914f44ba546564d6e60b920caa07182ad"
     },
     {
       "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
-      "sha256": "fdc666bf9a9832d9b7d4c551fc55c6da8e2c33803ae069163dbccdc8b414c82d"
+      "sha256": "e738bd9ae21d362f8e171d834b8497465b6367a9deba73ed392df9d1321b8901"
     },
     {
       "path": "docs/evidence/48h-remote/rw20-listing-mutation-principal-epoch-transaction-20260826.json",
@@ -106,15 +106,15 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "495c215638df206874306923648304eeb7e04883bd08037805c8420ea8882c02"
+      "sha256": "f591accd55c14ee42328567b6cf997da592546823251632eecb253d71747c1da"
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "c86f8b85153e48593c85598d3a9f7ebc9353e0fbf5b524710c91300f25c90418"
+      "sha256": "27ef6a03ebdf3e9bd730c3a0053cf3d5cc87fbd6547a881fe133009737ffadbf"
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
-      "sha256": "1185538e59e74200d15006f94c8bd7e4ebd3818fa730e13a783e992bbd523521"
+      "sha256": "34a7699b387cca97cf76846dca02c33f482d3046e28db5a24df9fae0f530dd0d"
     },
     {
       "path": "tool/validate_rw7_local_listing_catalog_authorization_durability.mjs",
@@ -122,15 +122,15 @@
     },
     {
       "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
-      "sha256": "df619be47a08e0e03159df45cc44cbdcf8bdebf208f4d2ecdea824d7a26e0b1f"
+      "sha256": "175b1182bc4863f16e9da1c932564f1838529edd9f160e79aab74c194d0065fa"
     },
     {
       "path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs",
-      "sha256": "ad7b1dbf8fad090fe7a2d43adad4e40771ccbad1bbeba32c37571f7b42d1be60"
+      "sha256": "5bddcf06d6a331ff53a27728fb2aa1da45e1592d920ad6b40eea33d0cac0edf3"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "8d3dfa25cd2245ad55131d0c4ac10a47fd1feb02c43f570fca463c868dd44724"
+      "sha256": "086ac5df3e71c4a19f03e895fb48b8c84efca8d2d1a107e6b2456dd6aeb736a3"
     }
   ],
   "preparationChecks": {
