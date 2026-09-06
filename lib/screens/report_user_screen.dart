@@ -1,14 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:lendify/models/user.dart';
-import 'package:lendify/services/backend_config.dart';
-import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/data_service.dart';
-import 'package:lendify/services/qa_runtime_service.dart';
-import 'package:lendify/services/user_reports_service.dart';
+import 'package:lendify/services/safety_action_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
+import 'package:lendify/widgets/safety_action_interaction.dart';
 import 'package:lendify/widgets/user_avatar.dart';
-import 'package:lendify/widgets/app_popup.dart';
 
 enum ReportReason {
   inappropriate,
@@ -21,14 +21,25 @@ enum ReportReason {
 class ReportUserScreen extends StatefulWidget {
   final String? reportedUserId;
   final String? reference;
+  final SafetyActionService? safetyActionService;
 
-  const ReportUserScreen({super.key, this.reportedUserId, this.reference});
+  const ReportUserScreen({
+    super.key,
+    this.reportedUserId,
+    this.reference,
+    this.safetyActionService,
+  });
 
   @override
   State<ReportUserScreen> createState() => _ReportUserScreenState();
 }
 
 class _ReportUserScreenState extends State<ReportUserScreen> {
+  late final SafetyActionService _safetyService;
+  final SafetyActionInteractionController _safetyActions =
+      SafetyActionInteractionController();
+  StreamSubscription<String>? _sessionSubscription;
+  int _loadRevision = 0;
   bool _loading = true;
   bool _submitting = false;
   bool _uploadingEvidence = false;
@@ -41,47 +52,90 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
 
   ReportReason? _reason;
   bool? _immediateDanger;
-  final String _harassmentIdempotencyKey =
-      'harassment_${DateTime.now().microsecondsSinceEpoch}';
+  String _harassmentIdempotencyKey = '';
+  String _reportIdempotencyKey = '';
   final TextEditingController _detailsController = TextEditingController();
   final List<_ReportEvidence> _evidence = [];
 
   @override
   void initState() {
     super.initState();
+    _safetyService = widget.safetyActionService ?? const SafetyActionService();
     _load();
+    _sessionSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || key != SharedPersistenceSync.accountSecurityStateKey) {
+        return;
+      }
+      _safetyActions.invalidate();
+      _loadRevision += 1;
+      _detailsController.clear();
+      setState(() {
+        _loading = true;
+        _submitting = false;
+        _uploadingEvidence = false;
+        _success = false;
+        _reportedUser = null;
+        _currentUser = null;
+        _reason = null;
+        _immediateDanger = null;
+        _evidence.clear();
+      });
+      unawaited(_load());
+    });
   }
 
   @override
   void dispose() {
+    _sessionSubscription?.cancel();
+    _safetyActions.dispose();
     _detailsController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    final revision = ++_loadRevision;
+    _safetyActions.invalidate();
+    if (mounted) setState(() => _loading = true);
     try {
-      final me = await DataService.getCurrentUser();
+      final actionContext = await _safetyService.loadCurrentContext();
+      if (!mounted || revision != _loadRevision || actionContext == null) {
+        return;
+      }
       final users = await DataService.getUsers();
+      if (!mounted ||
+          revision != _loadRevision ||
+          !await _safetyService.isContextCurrent(actionContext)) {
+        return;
+      }
       final reportedId = (widget.reportedUserId?.trim().isNotEmpty ?? false)
           ? widget.reportedUserId!.trim()
           : users
-              .where((u) => u.id != me?.id)
+              .where((u) => u.id != actionContext.user.id)
               .map((u) => u.id)
               .cast<String?>()
               .firstOrNull;
       final reported =
           reportedId == null ? null : await DataService.getUserById(reportedId);
 
-      if (!mounted) return;
+      if (!mounted ||
+          revision != _loadRevision ||
+          !await _safetyService.isContextCurrent(actionContext)) {
+        return;
+      }
+      _safetyActions.replaceContext(actionContext);
+      final nonce = DateTime.now().microsecondsSinceEpoch;
       setState(() {
-        _currentUser = me;
+        _currentUser = actionContext.user;
         _reportedUser = reported;
+        _harassmentIdempotencyKey = 'harassment_$nonce';
+        _reportIdempotencyKey = 'report_$nonce';
       });
     } catch (e) {
       debugPrint('[ReportUserScreen] _load failed: $e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && revision == _loadRevision) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -111,93 +165,173 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
 
   Future<void> _addEvidence() async {
     if (_uploadingEvidence || _evidence.length >= 8) return;
+    final owner = _safetyActions.capture();
+    if (owner == null) return;
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 90,
       maxWidth: 2048,
       maxHeight: 2048,
     );
-    if (picked == null) return;
+    if (picked == null ||
+        !mounted ||
+        !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
     setState(() => _uploadingEvidence = true);
     try {
-      String? uploadId;
-      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        final upload = await BackendRepository.uploadReportEvidence(
-          bytes: await picked.readAsBytes(),
-          filename: picked.name,
-        );
-        uploadId = upload['id']?.toString();
-        if ((uploadId ?? '').isEmpty) throw StateError('Missing upload id');
+      final bytes = await picked.readAsBytes();
+      if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+        return;
       }
-      if (!mounted) return;
+      final uploadId = await _safetyService.uploadEvidence(
+        context: owner.context,
+        bytes: bytes,
+        filename: picked.name,
+      );
+      if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+        return;
+      }
       setState(() => _evidence
           .add(_ReportEvidence(name: picked.name, uploadId: uploadId)));
+    } on SafetyActionFailure catch (failure) {
+      debugPrint(
+        '[ReportUserScreen] evidence upload failed: ${failure.kind}',
+      );
+      if (failure.kind == SafetyActionFailureKind.principalChanged) return;
+      await _showOwnedNotice(
+        owner,
+        title: failure.kind == SafetyActionFailureKind.outcomeUnknown
+            ? 'Uploadstatus unklar'
+            : 'Beweis nicht hochgeladen',
+        message: failure.kind == SafetyActionFailureKind.outcomeUnknown
+            ? 'Der Upload könnte verarbeitet worden sein. Lade die Meldung neu, bevor du es erneut versuchst.'
+            : 'Bitte prüfe die Datei und versuche es erneut.',
+      );
     } catch (e) {
       debugPrint('[ReportUserScreen] evidence upload failed: $e');
-      if (mounted) {
-        AppPopup.error(
-          context,
-          title: 'Beweis nicht hochgeladen',
-          message: 'Bitte prüfe die Datei und versuche es erneut.',
-        );
-      }
+      await _showOwnedNotice(
+        owner,
+        title: 'Beweis nicht verarbeitet',
+        message: 'Bitte prüfe die Datei und versuche es erneut.',
+      );
     } finally {
-      if (mounted) setState(() => _uploadingEvidence = false);
+      if (mounted && _safetyActions.isSynchronouslyCurrent(owner)) {
+        setState(() => _uploadingEvidence = false);
+      }
     }
   }
 
   Future<void> _submit() async {
+    final owner = _safetyActions.capture();
     final reported = _reportedUser;
     final me = _currentUser;
     final reason = _reason;
-    if (reported == null || me == null || reason == null) return;
+    if (owner == null || reported == null || me == null || reason == null) {
+      return;
+    }
     if (reason == ReportReason.harassment && _immediateDanger != false) return;
 
     setState(() => _submitting = true);
     try {
+      if (!await _safetyActions.isCurrent(_safetyService, owner)) return;
       final evidenceNames = _evidence.map((entry) => entry.name).toList();
       final evidenceUploadIds =
           _evidence.map((entry) => entry.uploadId).whereType<String>().toList();
-      var harassmentBlockActive = false;
-      if (reason == ReportReason.harassment) {
-        harassmentBlockActive =
-            await UserReportsService.addHarassmentBlockReport(
-          reporterUserId: me.id,
-          reportedUserId: reported.id,
-          immediateDanger: false,
-          idempotencyKey: _harassmentIdempotencyKey,
-          details: _detailsController.text.trim(),
-          evidenceNames: evidenceNames,
-          evidenceUploadIds: evidenceUploadIds,
-          reference: widget.reference,
-        );
-      } else {
-        await UserReportsService.addReport(
-          reporterUserId: me.id,
-          reportedUserId: reported.id,
-          reasonCode: _reasonCode(reason),
-          details: _detailsController.text.trim(),
-          evidenceNames: evidenceNames,
-          evidenceUploadIds: evidenceUploadIds,
-          reference: widget.reference,
-        );
+      final result = await _safetyService.submitReport(
+        context: owner.context,
+        reportedUserId: reported.id,
+        reasonCode: _reasonCode(reason),
+        idempotencyKey: reason == ReportReason.harassment
+            ? _harassmentIdempotencyKey
+            : _reportIdempotencyKey,
+        details: _detailsController.text.trim(),
+        evidenceNames: evidenceNames,
+        evidenceUploadIds: evidenceUploadIds,
+        reference: widget.reference,
+        harassment: reason == ReportReason.harassment,
+      );
+      if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+        return;
       }
-      if (!mounted) return;
       setState(() {
         _success = true;
         _successWasHarassment = reason == ReportReason.harassment;
-        _successHasActiveBlock = harassmentBlockActive;
+        _successHasActiveBlock = result.directContactBlocked;
       });
+    } on SafetyActionFailure catch (failure) {
+      debugPrint('[ReportUserScreen] submit failed: ${failure.kind}');
+      if (failure.kind == SafetyActionFailureKind.principalChanged) return;
+      final (title, message) = switch (failure.kind) {
+        SafetyActionFailureKind.rejected => (
+            'Meldung abgelehnt',
+            'Der Server hat diese Meldung eindeutig abgelehnt. Prüfe die Angaben.',
+          ),
+        SafetyActionFailureKind.localUnavailable
+            when failure.remoteAcceptedOrConfirmed =>
+          (
+            'Meldung serverseitig empfangen',
+            'Die lokale Bestätigung ist fehlgeschlagen. Lade den Bereich neu, bevor du erneut sendest.',
+          ),
+        SafetyActionFailureKind.localUnavailable => (
+            'Meldung nicht gespeichert',
+            'Die lokale Meldung konnte nicht gespeichert werden.',
+          ),
+        SafetyActionFailureKind.outcomeUnknown => (
+            'Sendestatus unklar',
+            'Die Meldung könnte serverseitig angekommen sein. Lade den Bereich neu, bevor du erneut sendest.',
+          ),
+        SafetyActionFailureKind.principalChanged => ('', ''),
+      };
+      await _showOwnedNotice(owner, title: title, message: message);
     } catch (e) {
       debugPrint('[ReportUserScreen] submit failed: $e');
-      if (!mounted) return;
-      AppPopup.error(
-        context,
-        title: 'Meldung nicht gesendet',
-        message: 'Bitte versuche es erneut.',
+      await _showOwnedNotice(
+        owner,
+        title: 'Meldung nicht verarbeitet',
+        message: 'Bitte lade den Bereich neu und prüfe den aktuellen Status.',
       );
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted && _safetyActions.isSynchronouslyCurrent(owner)) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
+  Future<void> _showOwnedNotice(
+    SafetyActionOwner owner, {
+    required String title,
+    required String message,
+  }) async {
+    if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
+    if (!mounted || !_safetyActions.isSynchronouslyCurrent(owner)) return;
+    await _safetyActions.showOwnedDialog<void>(
+      context: context,
+      owner: owner,
+      builder: (_, dismiss) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => dismiss(null),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _finishSuccess() async {
+    final owner = _safetyActions.capture();
+    if (owner == null ||
+        !mounted ||
+        !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
+    if (mounted && _safetyActions.isSynchronouslyCurrent(owner)) {
+      Navigator.of(context).maybePop(true);
     }
   }
 
@@ -226,7 +360,7 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
                     ? _ReportSuccess(
                         protectedByBlock: _successWasHarassment,
                         directContactBlocked: _successHasActiveBlock,
-                        onDone: () => Navigator.of(context).maybePop(true))
+                        onDone: () => unawaited(_finishSuccess()))
                     : SingleChildScrollView(
                         key: const ValueKey('form'),
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),

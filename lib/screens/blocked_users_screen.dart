@@ -4,13 +4,16 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import 'package:lendify/models/user.dart';
-import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/safety_action_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
+import 'package:lendify/widgets/safety_action_interaction.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 
 class BlockedUsersScreen extends StatefulWidget {
-  const BlockedUsersScreen({super.key});
+  final SafetyActionService? safetyActionService;
+
+  const BlockedUsersScreen({super.key, this.safetyActionService});
 
   @override
   State<BlockedUsersScreen> createState() => _BlockedUsersScreenState();
@@ -29,6 +32,10 @@ class _BlockedUserEntry {
 }
 
 class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
+  late final SafetyActionService _safetyService;
+  final SafetyActionInteractionController _safetyActions =
+      SafetyActionInteractionController();
+  int _loadRevision = 0;
   bool _loading = true;
   bool _loadFailed = false;
   List<_BlockedUserEntry> _blocked = const [];
@@ -39,10 +46,17 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   @override
   void initState() {
     super.initState();
+    _safetyService = widget.safetyActionService ?? const SafetyActionService();
     _load();
     _persistenceSubscription = SharedPersistenceSync.changes.listen((key) {
-      if (!mounted || key != SharedPersistenceSync.localSafetyPrivacyStateKey) {
+      if (!mounted ||
+          (key != SharedPersistenceSync.localSafetyPrivacyStateKey &&
+              key != SharedPersistenceSync.accountSecurityStateKey)) {
         return;
+      }
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _safetyActions.invalidate();
+        _loadRevision += 1;
       }
       unawaited(_refreshCoordinator.schedule(() async {
         await SharedPersistenceSync.reloadPreferences();
@@ -55,43 +69,75 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   void dispose() {
     _persistenceSubscription?.cancel();
     _refreshCoordinator.dispose();
+    _safetyActions.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
+    final revision = ++_loadRevision;
+    _safetyActions.invalidate();
     setState(() {
       _loading = true;
       _loadFailed = false;
       _blocked = const [];
     });
     try {
-      final ids = await BlockedUsersService.getBlockedUserIds();
+      final actionContext = await _safetyService.loadCurrentContext();
+      if (!mounted || revision != _loadRevision) {
+        return;
+      }
+      final ids = actionContext == null
+          ? await _safetyService.loadConfirmedGuestBlockedUsers()
+          : await _safetyService.loadBlockedUsers(actionContext);
+      if (ids == null) {
+        throw const SafetyActionFailure.principalChanged();
+      }
+      if (!mounted ||
+          revision != _loadRevision ||
+          (actionContext != null &&
+              !await _safetyService.isContextCurrent(actionContext))) {
+        return;
+      }
       final users = <_BlockedUserEntry>[];
       for (final id in ids) {
         final u = await DataService.getUserById(id);
+        if (!mounted ||
+            revision != _loadRevision ||
+            (actionContext != null &&
+                !await _safetyService.isContextCurrent(actionContext))) {
+          return;
+        }
         users.add(_BlockedUserEntry(userId: id, user: u));
       }
-      if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
       users.sort((a, b) =>
           a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
+      _safetyActions.replaceContext(actionContext);
       setState(() => _blocked = users);
     } catch (e) {
       debugPrint('[BlockedUsersScreen] _load failed: $e');
-      if (mounted) setState(() => _loadFailed = true);
+      if (mounted && revision == _loadRevision) {
+        setState(() => _loadFailed = true);
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && revision == _loadRevision) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   Future<void> _confirmUnblock(_BlockedUserEntry entry) async {
+    final owner = _safetyActions.capture();
+    if (owner == null) return;
     final theme = Theme.of(context);
-    final ok = await showGeneralDialog<bool>(
+    final ok = await _safetyActions.showOwnedGeneralDialog<bool>(
       context: context,
+      owner: owner,
       barrierDismissible: true,
       barrierLabel: 'Nutzer entblockieren?',
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 220),
-      pageBuilder: (dialogContext, a1, a2) {
+      builder: (dialogContext, dismiss) {
         return Stack(
           children: [
             Positioned.fill(
@@ -131,9 +177,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                                           ?.copyWith(
                                               fontWeight: FontWeight.w900))),
                               IconButton(
-                                  onPressed: () => Navigator.of(dialogContext,
-                                          rootNavigator: true)
-                                      .maybePop(false),
+                                  onPressed: () => dismiss(false),
                                   icon: const Icon(Icons.close)),
                             ]),
                             const SizedBox(height: 8),
@@ -148,9 +192,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                                 child: SizedBox(
                                   height: 48,
                                   child: OutlinedButton(
-                                    onPressed: () => Navigator.of(dialogContext,
-                                            rootNavigator: true)
-                                        .maybePop(false),
+                                    onPressed: () => dismiss(false),
                                     style: OutlinedButton.styleFrom(
                                         shape: RoundedRectangleBorder(
                                             borderRadius:
@@ -164,9 +206,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                                 child: SizedBox(
                                   height: 48,
                                   child: ElevatedButton(
-                                    onPressed: () => Navigator.of(dialogContext,
-                                            rootNavigator: true)
-                                        .maybePop(true),
+                                    onPressed: () => dismiss(true),
                                     style: ElevatedButton.styleFrom(
                                         shape: RoundedRectangleBorder(
                                             borderRadius:
@@ -198,18 +238,82 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
         );
       },
     );
-    if (ok != true) return;
+    if (ok != true ||
+        !mounted ||
+        !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
     try {
-      await BlockedUsersService.unblockUser(entry.userId);
-      if (!mounted) return;
+      await _safetyService.unblockUser(owner.context, entry.userId);
+      if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+        return;
+      }
       setState(() {
         _blocked = _blocked
             .where((candidate) => candidate.userId != entry.userId)
             .toList(growable: false);
       });
+    } on SafetyActionFailure catch (failure) {
+      debugPrint('[BlockedUsersScreen] unblock failed: ${failure.kind}');
+      if (failure.kind == SafetyActionFailureKind.principalChanged) return;
+      final (title, message) = switch (failure.kind) {
+        SafetyActionFailureKind.rejected => (
+            'Entblockierung abgelehnt',
+            'Der Server hat die Entblockierung eindeutig abgelehnt.',
+          ),
+        SafetyActionFailureKind.localUnavailable
+            when failure.remoteAcceptedOrConfirmed =>
+          (
+            'Serverseitig entblockiert',
+            'Die lokale Aktualisierung ist fehlgeschlagen. Die Liste wird neu geladen.',
+          ),
+        SafetyActionFailureKind.localUnavailable => (
+            'Entblockierung nicht gespeichert',
+            'Die lokale Blockliste konnte nicht aktualisiert werden.',
+          ),
+        SafetyActionFailureKind.outcomeUnknown => (
+            'Status der Entblockierung unklar',
+            'Die Anfrage könnte verarbeitet worden sein. Die Liste wird neu geladen.',
+          ),
+        SafetyActionFailureKind.principalChanged => ('', ''),
+      };
+      await _showOwnedNotice(owner, title: title, message: message);
+      if (mounted && _safetyActions.isSynchronouslyCurrent(owner)) {
+        unawaited(_load());
+      }
     } catch (e) {
       debugPrint('[BlockedUsersScreen] unblock failed: $e');
+      await _showOwnedNotice(
+        owner,
+        title: 'Entblockierung nicht verarbeitet',
+        message: 'Bitte lade die Liste neu und prüfe den aktuellen Status.',
+      );
     }
+  }
+
+  Future<void> _showOwnedNotice(
+    SafetyActionOwner owner, {
+    required String title,
+    required String message,
+  }) async {
+    if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
+    if (!mounted || !_safetyActions.isSynchronouslyCurrent(owner)) return;
+    await _safetyActions.showOwnedDialog<void>(
+      context: context,
+      owner: owner,
+      builder: (_, dismiss) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => dismiss(null),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

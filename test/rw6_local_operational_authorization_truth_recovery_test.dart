@@ -129,7 +129,10 @@ void main() {
     }));
     await useAccount(accountA);
 
-    await DataService.deleteMessageThread(threadId: thread.id);
+    await DataService.deleteMessageThreadForUser(
+      threadId: thread.id,
+      userId: accountA.id,
+    );
     expect(await DataService.getMessageThreadsForUser(accountA.id), isEmpty);
 
     await useAccount(accountB);

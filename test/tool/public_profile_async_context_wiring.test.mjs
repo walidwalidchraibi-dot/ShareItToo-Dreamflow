@@ -14,11 +14,13 @@ test('profile sharing rechecks its exact context after clipboard access', () => 
   );
 });
 
-test('profile blocking proves context lifetime before its asynchronous flow', () => {
+test('profile blocking captures the exact principal before its asynchronous flow', () => {
   assert.match(
     source,
-    /if \(value == 'block_user'\)[\s\S]*?if \(targetUserId\.isEmpty\) return;\s+if \(!context\.mounted\) return;\s+await runPublicProfileBlockFlow\(\s+context,/u,
+    /if \(value == 'block_user'\)[\s\S]*?final owner = _safetyActions\.capture\(\);[\s\S]*?if \(owner == null \|\| targetUserId\.isEmpty\) return;[\s\S]*?await runPublicProfileBlockFlow\(\s+context,[\s\S]*?safetyService: _safetyService,[\s\S]*?interaction: _safetyActions,[\s\S]*?owner: owner,/u,
   );
+  assert.match(source, /SharedPersistenceSync\.accountSecurityStateKey/u);
+  assert.match(source, /showOwnedPublicProfileBlockDialog/u);
 });
 
 test('public-profile context fix contains no timing or lint accommodation', () => {

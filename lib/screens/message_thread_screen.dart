@@ -22,6 +22,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
+import 'package:lendify/services/safety_action_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -33,10 +34,10 @@ import 'package:lendify/widgets/translation_language_dialog.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
-import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/widgets/support_principal_controller.dart';
+import 'package:lendify/widgets/safety_action_interaction.dart';
 import 'package:lendify/utils/booking_flow_policy.dart';
 
 const String _translationDemoThreadId = 'demo_translation_thread';
@@ -59,6 +60,7 @@ class MessageThreadScreen extends StatefulWidget {
   final String? participantName;
   final String? avatarUrl;
   final String? itemTitle;
+  final SafetyActionService? safetyActionService;
 
   const MessageThreadScreen({
     super.key,
@@ -67,6 +69,7 @@ class MessageThreadScreen extends StatefulWidget {
     this.participantName,
     this.avatarUrl,
     this.itemTitle,
+    this.safetyActionService,
   });
 
   @override
@@ -200,6 +203,9 @@ bool isPrivatePilotBookingChatOpen({
 
 class _MessageThreadScreenState extends State<MessageThreadScreen> {
   final _supportPrincipal = SupportPrincipalController();
+  late final SafetyActionService _safetyService;
+  final SafetyActionInteractionController _safetyActions =
+      SafetyActionInteractionController();
   final TextEditingController _controller = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _listController = ScrollController();
@@ -240,13 +246,19 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   @override
   void initState() {
     super.initState();
+    _safetyService = widget.safetyActionService ?? const SafetyActionService();
     _load();
     _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
-      if (!mounted ||
-          !shouldReloadMessageThreadForPersistenceChange(
-            key: key,
-            loadInProgress: _loadInProgress,
-          )) {
+      if (!mounted) return;
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _safetyActions.invalidate();
+        _clearSensitiveThreadState();
+        return;
+      }
+      if (!shouldReloadMessageThreadForPersistenceChange(
+        key: key,
+        loadInProgress: _loadInProgress,
+      )) {
         return;
       }
       unawaited(_sharedPersistenceRefresh.schedule(() async {
@@ -276,6 +288,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   @override
   void dispose() {
     _supportPrincipal.dispose();
+    _safetyActions.dispose();
     _fallbackRefreshTimer?.cancel();
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
@@ -288,11 +301,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Future<void> _refreshThreadMessagesInBackground() async {
     final threadId = (_thread?.id ?? widget.threadId ?? '').trim();
-    if (!mounted || threadId.isEmpty) return;
+    final actionContext = _safetyActions.context;
+    if (!mounted || threadId.isEmpty || actionContext == null) return;
     try {
       final expectedUserId = (_currentUser?.id ?? '').trim();
       final currentUser = await DataService.getCurrentUser();
       if (!mounted) return;
+      if (!await _safetyService.isContextCurrent(actionContext)) {
+        if (mounted) _clearSensitiveThreadState();
+        return;
+      }
       if (expectedUserId.isEmpty || currentUser?.id.trim() != expectedUserId) {
         _clearSensitiveThreadState();
         return;
@@ -322,6 +340,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         await DataService.markThreadMessagesAsRead(
           threadId: refreshed.id,
           userId: userId,
+          sessionOwner: actionContext.owner.authOwner,
         );
       }
       if (mounted) {
@@ -346,6 +365,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _load() async {
     if (_loadInProgress) return;
     _loadInProgress = true;
+    _safetyActions.invalidate();
     setState(() {
       _isLoading = true;
       _loadFailed = false;
@@ -358,10 +378,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     });
     try {
       final requestedThreadId = (widget.threadId ?? '').trim();
-      final me = await DataService.getCurrentUser();
 
       if (requestedThreadId == _translationDemoThreadId &&
           QaRuntimeService.isEnabled) {
+        final me = await DataService.getCurrentUser();
         final demo = _buildTranslationDemoState(me);
         final rawSettings = await MessagesSettingsService.get();
         final normalizedSettings = _normalizeTranslationDefaults(rawSettings);
@@ -383,7 +403,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         return;
       }
 
-      if (me == null) {
+      final actionContext = await _safetyService.loadCurrentContext();
+      if (actionContext == null) {
         if (!mounted) return;
         setState(() {
           _currentUser = null;
@@ -391,6 +412,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         });
         return;
       }
+      final me = actionContext.user;
 
       MessageThread? thread;
       if (requestedThreadId.isNotEmpty) {
@@ -423,7 +445,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
       final isThreadArchived =
           thread != null && thread.archivedForUserIds.contains(me.id);
-      final blockedUserIds = await BlockedUsersService.getBlockedUserIds();
+      final blockedUserIds =
+          await _safetyService.loadBlockedUsers(actionContext);
       final isOtherUserBlocked =
           otherId.isNotEmpty && blockedUserIds.contains(otherId);
       final isThreadMuted = thread != null
@@ -443,12 +466,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         await MessagesSettingsService.set(normalizedSettings);
       }
 
-      final currentAfterLoad = await DataService.getCurrentUser();
       if (!mounted) return;
-      if (currentAfterLoad?.id.trim() != me.id.trim()) {
+      if (!await _safetyService.isContextCurrent(actionContext)) {
         _clearSensitiveThreadState();
         return;
       }
+      _safetyActions.replaceContext(actionContext);
       setState(() {
         _currentUser = me;
         _thread = thread;
@@ -469,11 +492,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           shouldMarkThreadMessagesAsRead(
             messages: thread.messages,
             userId: me.id,
-          )) {
+          ) &&
+          await _safetyService.isContextCurrent(actionContext)) {
         await DataService.markThreadMessagesAsRead(
           threadId: thread.id,
           userId: me.id,
+          sessionOwner: actionContext.owner.authOwner,
         );
+        if (!await _safetyService.isContextCurrent(actionContext)) return;
       }
       if (thread != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
@@ -497,6 +523,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   void _clearSensitiveThreadState() {
+    _safetyActions.invalidate();
     if (!mounted) return;
     setState(() {
       _isLoading = false;
@@ -2849,8 +2876,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         backgroundColor: BrandColors.primary,
                         foregroundColor: Colors.white,
                       ),
-                      onPressed: () =>
-                          Navigator.of(sheetContext).pop('return'),
+                      onPressed: () => Navigator.of(sheetContext).pop('return'),
                       child: const Text('Als Rückgabeort teilen'),
                     ),
                   FilledButton(
@@ -3524,29 +3550,26 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _toggleBlockUser() async {
+    final owner = _safetyActions.capture();
     final t = _thread;
     final me = _currentUser;
-    if (t == null || me == null) {
-      AppPopup.toast(
-        context,
-        icon: Icons.info_outline,
-        title: 'Blockieren nicht möglich',
-      );
+    if (owner == null ||
+        t == null ||
+        me == null ||
+        owner.context.user.id.trim() != me.id.trim()) {
       return;
     }
     if (!_canBlockCurrentThread()) {
-      AppPopup.toast(
-        context,
-        icon: Icons.info_outline,
+      await _showSafetyNotice(
+        owner,
         title: 'Blockieren erst nach abgeschlossener Buchung möglich',
       );
       return;
     }
 
     if (t.id == _translationDemoThreadId) {
-      AppPopup.toast(
-        context,
-        icon: Icons.visibility_outlined,
+      await _showSafetyNotice(
+        owner,
         title: 'Demo-Chat',
         message: 'Blockieren ist in der Demo deaktiviert.',
       );
@@ -3558,9 +3581,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         (t.user1Id == 'support') ||
         (t.user2Id == 'support');
     if (isSupport) {
-      AppPopup.toast(
-        context,
-        icon: Icons.info_outline,
+      await _showSafetyNotice(
+        owner,
         title: 'Support kann nicht blockiert werden',
       );
       return;
@@ -3572,49 +3594,89 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       debugPrint(
         '[MessageThreadScreen] Cannot determine other user id for blocking',
       );
-      AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
+      await _showSafetyNotice(
+        owner,
         title: 'Blockieren fehlgeschlagen',
       );
       return;
     }
 
     try {
+      if (!await _safetyActions.isCurrent(_safetyService, owner)) return;
       final nextBlocked = !_isOtherUserBlocked;
       if (nextBlocked) {
-        await BlockedUsersService.blockUser(otherUserId);
-        await DataService.archiveMessageThreadForUser(
-          threadId: t.id,
-          userId: me.id,
-        );
+        await _safetyService.blockUser(owner.context, otherUserId);
       } else {
-        await BlockedUsersService.unblockUser(otherUserId);
+        await _safetyService.unblockUser(owner.context, otherUserId);
       }
-      await _load();
-      if (mounted) {
-        setState(() {
-          _isOtherUserBlocked = nextBlocked;
-          if (nextBlocked) _isThreadArchived = true;
-        });
-        AppPopup.toast(
-          context,
-          icon: nextBlocked ? Icons.block : Icons.lock_open_outlined,
-          title: nextBlocked ? 'Nutzer blockiert' : 'Blockierung aufgehoben',
-        );
+      if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+        return;
       }
+      setState(() => _isOtherUserBlocked = nextBlocked);
+      await _showSafetyNotice(
+        owner,
+        title: nextBlocked ? 'Nutzer blockiert' : 'Blockierung aufgehoben',
+      );
+    } on SafetyActionFailure catch (failure) {
+      debugPrint(
+        '[MessageThreadScreen] _toggleBlockUser failed: ${failure.kind}',
+      );
+      if (failure.kind == SafetyActionFailureKind.principalChanged) return;
+      final (title, message) = switch (failure.kind) {
+        SafetyActionFailureKind.rejected => (
+            'Aktion abgelehnt',
+            'Der Server hat die Aktion eindeutig abgelehnt.',
+          ),
+        SafetyActionFailureKind.localUnavailable
+            when failure.remoteAcceptedOrConfirmed =>
+          (
+            'Serverseitig verarbeitet',
+            'Die lokale Aktualisierung ist fehlgeschlagen. Öffne den Chat neu, um den Status zu prüfen.',
+          ),
+        SafetyActionFailureKind.localUnavailable => (
+            'Aktion nicht gespeichert',
+            'Der lokale Sicherheitsstatus konnte nicht aktualisiert werden.',
+          ),
+        SafetyActionFailureKind.outcomeUnknown => (
+            'Aktionsstatus unklar',
+            'Die Anfrage könnte verarbeitet worden sein. Öffne den Chat neu, bevor du es erneut versuchst.',
+          ),
+        SafetyActionFailureKind.principalChanged => ('', ''),
+      };
+      await _showSafetyNotice(owner, title: title, message: message);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _toggleBlockUser failed: $e');
-      if (mounted) {
-        AppPopup.toast(
-          context,
-          icon: Icons.error_outline,
-          title: _isOtherUserBlocked
-              ? 'Entblocken fehlgeschlagen'
-              : 'Blockieren fehlgeschlagen',
-        );
-      }
+      await _showSafetyNotice(
+        owner,
+        title: 'Aktion nicht verarbeitet',
+        message: 'Öffne den Chat neu und prüfe den aktuellen Status.',
+      );
     }
+  }
+
+  Future<void> _showSafetyNotice(
+    SafetyActionOwner owner, {
+    required String title,
+    String? message,
+  }) async {
+    if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
+    if (!mounted || !_safetyActions.isSynchronouslyCurrent(owner)) return;
+    await _safetyActions.showOwnedDialog<void>(
+      context: context,
+      owner: owner,
+      builder: (_, dismiss) => AlertDialog(
+        title: Text(title),
+        content: message == null ? null : Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => dismiss(null),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<String?> _showTimeRequestActionDialog({
@@ -3826,9 +3888,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _toggleArchiveChat() async {
+    final owner = _safetyActions.capture();
     final t = _thread;
     final me = _currentUser;
-    if (t == null || me == null) {
+    if (owner == null ||
+        t == null ||
+        me == null ||
+        me.id.trim() != owner.context.user.id.trim()) {
       AppPopup.toast(
         context,
         icon: Icons.info_outline,
@@ -3854,15 +3920,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         await DataService.unarchiveMessageThreadForUser(
           threadId: t.id,
           userId: me.id,
+          sessionOwner: owner.context.owner.authOwner,
         );
       } else {
         await DataService.archiveMessageThreadForUser(
           threadId: t.id,
           userId: me.id,
+          sessionOwner: owner.context.owner.authOwner,
         );
       }
-      await _load();
-      if (mounted) {
+      if (!await _safetyActions.isCurrent(_safetyService, owner)) return;
+      if (mounted && _safetyActions.isSynchronouslyCurrent(owner)) {
         setState(() => _isThreadArchived = nextArchived);
         AppPopup.toast(
           context,
@@ -3871,17 +3939,19 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           title: nextArchived ? 'Chat archiviert' : 'Aus Archiv geholt',
         );
       }
+      await _load();
     } catch (e) {
       debugPrint('[MessageThreadScreen] _toggleArchiveChat failed: $e');
-      if (mounted) {
-        AppPopup.toast(
-          context,
-          icon: Icons.error_outline,
-          title: _isThreadArchived
-              ? 'Wiederherstellen fehlgeschlagen'
-              : 'Archivieren fehlgeschlagen',
-        );
-      }
+      if (!mounted) return;
+      if (!await _safetyActions.isCurrent(_safetyService, owner)) return;
+      if (!mounted || !_safetyActions.isSynchronouslyCurrent(owner)) return;
+      AppPopup.toast(
+        context,
+        icon: Icons.error_outline,
+        title: _isThreadArchived
+            ? 'Wiederherstellen fehlgeschlagen'
+            : 'Archivieren fehlgeschlagen',
+      );
     }
   }
 

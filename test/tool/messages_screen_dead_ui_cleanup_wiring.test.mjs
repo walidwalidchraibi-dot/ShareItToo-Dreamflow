@@ -26,7 +26,10 @@ test('message loading and the bounded translation demo stay wired', () => {
     /DataService\.getArchivedMessageThreadsForUser\(user\.id\)/,
   );
   assert.match(messages, /MessagesSettingsService\.get\(\)/);
-  assert.match(messages, /BlockedUsersService\.getBlockedUserIds\(\)/);
+  assert.match(
+    messages,
+    /_safetyService\.loadBlockedUsers\(actionContext\)/,
+  );
   assert.equal(
     (messages.match(/_withTranslationDemoThread\(\s*user: user,/g) || []).length,
     2,
@@ -65,19 +68,34 @@ test('opening threads and unread state stay wired', () => {
 test('blocking and archive controls stay wired', () => {
   assert.match(
     messages,
-    /onArchiveToggle: \(\) async \{[\s\S]*?final isArchived = thread\s*\.archivedForUserIds\s*\.contains\(_currentUser!\.id\);[\s\S]*?if \(isArchived\) \{[\s\S]*?await DataService\s*\.unarchiveMessageThreadForUser\(\s*threadId: thread\.id,\s*userId: _currentUser!\.id\);[\s\S]*?\} else \{[\s\S]*?await DataService\s*\.archiveMessageThreadForUser\(\s*threadId: thread\.id,\s*userId: _currentUser!\.id\);[\s\S]*?\}[\s\S]*?await _loadData\(\);[\s\S]*?\},\s+onDelete:/,
+    /onSwipeActions: \(\) =>\s*_openSwipeActions\(thread\)/,
   );
   assert.match(
     messages,
-    /onDelete: \(\) async \{[\s\S]*?final ok = await _confirmDelete\(\);[\s\S]*?if \(!ok\) return;[\s\S]*?await DataService\.deleteMessageThread\(\s*threadId: thread\.id\);[\s\S]*?await _loadData\(\);[\s\S]*?\},\s+child: _ChatThreadTile/,
+    /Future<void> _openSwipeActions\(MessageThread thread\) async \{[\s\S]*?final owner = _safetyActions\.capture\(\);[\s\S]*?final choice = await _safetyActions\.showOwnedSheet<String>\([\s\S]*?_SwipeActionSheet\(onChoice: dismiss\)[\s\S]*?_safetyActions\.isCurrent\([\s\S]*?DataService\.archiveMessageThreadForUser\([\s\S]*?DataService\.deleteMessageThreadForUser\([\s\S]*?_safetyActions\.isCurrent\([\s\S]*?await _loadData\(\);/,
   );
+  const dismissible = messages.slice(messages.indexOf('class _ThreadDismissible'), messages.indexOf('class _SwipeActionsBackground'));
+  assert.match(dismissible, /await onSwipeActions\(\);/);
+  assert.doesNotMatch(dismissible, /showModalBottomSheet|Navigator/u);
+  assert.match(messages, /class _GlassSheet[\s\S]*?final VoidCallback onClose;[\s\S]*?onTap: onClose/);
+  assert.doesNotMatch(messages, /Navigator\.of\(context\)\.pop\(/u);
   assert.match(
     messages,
     /_ThreadOptionsSheet\([\s\S]*?canBlock: _canBlockThread\(thread\)[\s\S]*?isBlocked: _isOtherUserBlocked\(thread\)/,
   );
   assert.match(messages, /case 'block':/);
-  assert.match(messages, /BlockedUsersService\.blockUser\(otherUserId\)/);
-  assert.match(messages, /BlockedUsersService\.unblockUser\(otherUserId\)/);
+  assert.match(
+    messages,
+    /_safetyService\.blockUser\(owner\.context, otherUserId\)/,
+  );
+  assert.match(
+    messages,
+    /_safetyService\.unblockUser\(owner\.context, otherUserId\)/,
+  );
+  assert.doesNotMatch(
+    messages,
+    /BlockedUsersService\.(?:blockUser|unblockUser)\(/,
+  );
 });
 
 test('message settings stay reachable from the app bar', () => {

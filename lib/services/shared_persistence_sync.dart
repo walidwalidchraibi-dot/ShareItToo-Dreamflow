@@ -77,7 +77,9 @@ class SharedPersistenceSync {
   static bool affectsBookingSync(String key) => _bookingKeys.contains(key);
 
   static bool affectsCommunicationSync(String key) =>
-      affectsBookingSync(key) || key == localSafetyPrivacyStateKey;
+      affectsBookingSync(key) ||
+      key == localSafetyPrivacyStateKey ||
+      key == accountSecurityStateKey;
 
   static bool isSharedPersistenceKey(String key) => _sharedKeys.contains(key);
 

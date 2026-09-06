@@ -1,4 +1,29 @@
-# Current Work Package: WP25 current-candidate SMS verification closure
+# Current Work Package: WP27 safety/privacy principal ownership
+
+WP27 is **COMPLETE LOCALLY; EXACT-HEAD GITHUB PENDING**. Reachable user
+report, evidence-upload, block and unblock actions now capture one immutable
+principal/session owner and one action epoch before the first await, retain it
+through remote and local writes, and recheck it before result UI or navigation.
+Exact structured rejections remain distinct from accepted-plus-local-failure
+and unknown transport outcomes. HTTP 408 and intermediary or unstructured 4xx
+cannot become safe rejection.
+
+Safety routes are dismissed only through their exact A-owned route handle. A
+later B dialog or navigation element cannot be globally popped. The messages
+swipe menu now captures ownership before it waits, and message read/archive/
+delete calls retain the same auth owner through server mutation and refresh.
+Analyzer, 65 focused Flutter checks, 15 focused tool checks, all 2,333
+repository tool tests and the complete technical regression pass, including
+887 Flutter tests with 33 declared skips, Web/Wasm, loopback and Android.
+Exact-head GitHub Regression/CodeQL remain before closure. See
+`docs/operations/WP27_SAFETY_PRIVACY_PRINCIPAL_OWNERSHIP_2026-09-06.md`.
+
+The booking return-case workflow in `report_issue_screen.dart` is explicitly
+outside WP27 and remains a separate next-package candidate. No Android
+candidate, Firebase Console, provider, payment, Google Play, Production,
+Cloud/VPS/DNS, OnePlus or PR-merge boundary changed.
+
+# Previous Work Package: WP25 current-candidate SMS verification closure
 
 WP25 is **COMPLETE ON THE PHYSICAL PIXEL** for exact signed Staging candidate
 `1.0.0+2026090606`, source

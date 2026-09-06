@@ -1469,6 +1469,20 @@ class BackendRepository {
     return _maps(response['threads']);
   }
 
+  static Future<List<Map<String, dynamic>>> getMessageThreadsForOwner(
+    AuthSessionOwner owner, {
+    bool includeArchived = false,
+    Duration timeout = const Duration(seconds: 20),
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'GET',
+      path: '/message-threads${includeArchived ? '?includeArchived=true' : ''}',
+      timeout: timeout,
+    );
+    return _maps(response['threads']);
+  }
+
   static Future<Map<String, dynamic>> createOrGetBookingThread(
     String bookingId,
   ) async {
@@ -1506,11 +1520,35 @@ class BackendRepository {
     );
   }
 
+  static Future<void> markThreadReadForOwner({
+    required AuthSessionOwner owner,
+    required String threadId,
+  }) async {
+    await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path: '/message-threads/${Uri.encodeComponent(threadId)}/read',
+    );
+  }
+
   static Future<void> setThreadArchived({
     required String threadId,
     required bool archived,
   }) async {
     await _authorized(
+      method: 'PATCH',
+      path: '/message-threads/${Uri.encodeComponent(threadId)}',
+      body: {'archived': archived},
+    );
+  }
+
+  static Future<void> setThreadArchivedForOwner({
+    required AuthSessionOwner owner,
+    required String threadId,
+    required bool archived,
+  }) async {
+    await _authorizedForOwner(
+      owner: owner,
       method: 'PATCH',
       path: '/message-threads/${Uri.encodeComponent(threadId)}',
       body: {'archived': archived},
@@ -1525,6 +1563,20 @@ class BackendRepository {
         .toList(growable: false);
   }
 
+  static Future<List<String>> getBlockedUserIdsForOwner(
+    AuthSessionOwner owner,
+  ) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'GET',
+      path: '/user-blocks',
+    );
+    return _maps(response['blocks'])
+        .map((entry) => entry['userId']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+  }
+
   static Future<void> blockUser(String userId) async {
     await _authorized(
       method: 'PUT',
@@ -1533,8 +1585,31 @@ class BackendRepository {
     );
   }
 
+  static Future<void> blockUserForOwner({
+    required AuthSessionOwner owner,
+    required String userId,
+  }) async {
+    await _authorizedForOwner(
+      owner: owner,
+      method: 'PUT',
+      path: '/user-blocks/${Uri.encodeComponent(userId)}',
+      body: {'reasonCode': 'user_request'},
+    );
+  }
+
   static Future<void> unblockUser(String userId) async {
     await _authorized(
+      method: 'DELETE',
+      path: '/user-blocks/${Uri.encodeComponent(userId)}',
+    );
+  }
+
+  static Future<void> unblockUserForOwner({
+    required AuthSessionOwner owner,
+    required String userId,
+  }) async {
+    await _authorizedForOwner(
+      owner: owner,
       method: 'DELETE',
       path: '/user-blocks/${Uri.encodeComponent(userId)}',
     );
@@ -1567,6 +1642,34 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['report'] as Map);
   }
 
+  static Future<Map<String, dynamic>> createReportForOwner({
+    required AuthSessionOwner owner,
+    required String targetType,
+    required String targetId,
+    required String reasonCode,
+    required String idempotencyKey,
+    String details = '',
+    String? reference,
+    List<String> evidenceUploadIds = const <String>[],
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
+      method: 'POST',
+      path: '/reports',
+      body: {
+        'targetType': targetType,
+        'targetId': targetId,
+        'reasonCode': reasonCode,
+        if (details.trim().isNotEmpty) 'details': details.trim(),
+        if ((reference ?? '').trim().isNotEmpty) 'reference': reference!.trim(),
+        if (evidenceUploadIds.isNotEmpty)
+          'evidenceUploadIds': evidenceUploadIds,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response['report'] as Map);
+  }
+
   static Future<Map<String, dynamic>> createHarassmentBlockReport({
     required String targetUserId,
     required bool immediateDanger,
@@ -1576,6 +1679,32 @@ class BackendRepository {
     List<String> evidenceUploadIds = const <String>[],
   }) async {
     final response = await _authorized(
+      method: 'POST',
+      path: '/reports/harassment-block',
+      body: {
+        'targetUserId': targetUserId,
+        'immediateDanger': immediateDanger,
+        if (details.trim().isNotEmpty) 'details': details.trim(),
+        if ((reference ?? '').trim().isNotEmpty) 'reference': reference!.trim(),
+        if (evidenceUploadIds.isNotEmpty)
+          'evidenceUploadIds': evidenceUploadIds,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response);
+  }
+
+  static Future<Map<String, dynamic>> createHarassmentBlockReportForOwner({
+    required AuthSessionOwner owner,
+    required String targetUserId,
+    required bool immediateDanger,
+    required String idempotencyKey,
+    String details = '',
+    String? reference,
+    List<String> evidenceUploadIds = const <String>[],
+  }) async {
+    final response = await _authorizedForOwner(
+      owner: owner,
       method: 'POST',
       path: '/reports/harassment-block',
       body: {
@@ -2227,6 +2356,49 @@ class BackendRepository {
     final body = await response.stream.bytesToString();
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw BackendException(response.statusCode, 'evidence_upload_failed');
+    }
+    final value = jsonDecode(body);
+    if (value is! Map || (value['id']?.toString() ?? '').isEmpty) {
+      throw const BackendException(500, 'invalid_upload_response');
+    }
+    return Map<String, dynamic>.from(value);
+  }
+
+  static Future<Map<String, dynamic>> uploadReportEvidenceForOwner({
+    required AuthSessionOwner owner,
+    required Uint8List bytes,
+    required String filename,
+  }) async {
+    final token = await AuthService.accessTokenForOwner(owner);
+    if (token == null || token.isEmpty) {
+      throw const BackendException(401, 'authentication_required');
+    }
+    if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw const BackendException(401, 'authentication_required');
+    }
+    final request = http.MultipartRequest(
+      'POST',
+      BackendConfig.uri('/uploads'),
+    )
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['purpose'] = 'report_evidence'
+      ..files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
+    final response = await request.send().timeout(const Duration(seconds: 45));
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      var code = 'evidence_upload_failed';
+      try {
+        final decoded = jsonDecode(body);
+        if (decoded is Map) {
+          final structured = decoded['error']?.toString().trim() ?? '';
+          if (structured.isNotEmpty) code = structured;
+        }
+      } catch (_) {
+        // An unstructured intermediary response must remain outcome-unknown.
+      }
+      throw BackendException(response.statusCode, code);
     }
     final value = jsonDecode(body);
     if (value is! Map || (value['id']?.toString() ?? '').isEmpty) {

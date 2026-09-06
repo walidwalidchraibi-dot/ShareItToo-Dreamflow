@@ -13339,18 +13339,28 @@ class DataService {
   static Future<void> archiveMessageThreadForUser({
     required String threadId,
     required String userId,
+    AuthSessionOwner? sessionOwner,
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
     final current =
         await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        await BackendRepository.setThreadArchived(
+        final owner = sessionOwner;
+        if (owner == null) {
+          throw StateError('Die Kontositzung der Aktion fehlt.');
+        }
+        await BackendRepository.setThreadArchivedForOwner(
+          owner: owner,
           threadId: threadId,
           archived: true,
         );
         final prefs = await SharedPreferences.getInstance();
-        final remote = await BackendRepository.getMessageThreads();
+        final remote = await BackendRepository.getMessageThreadsForOwner(owner);
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw StateError(
+              'Die Kontositzung hat während der Aktion gewechselt.');
+        }
         await _assertCurrentOperationalUserId(current.id);
         await _persistMessageThreads(prefs, remote);
         return;
@@ -13385,18 +13395,28 @@ class DataService {
   static Future<void> unarchiveMessageThreadForUser({
     required String threadId,
     required String userId,
+    AuthSessionOwner? sessionOwner,
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
     final current =
         await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        await BackendRepository.setThreadArchived(
+        final owner = sessionOwner;
+        if (owner == null) {
+          throw StateError('Die Kontositzung der Aktion fehlt.');
+        }
+        await BackendRepository.setThreadArchivedForOwner(
+          owner: owner,
           threadId: threadId,
           archived: false,
         );
         final prefs = await SharedPreferences.getInstance();
-        final remote = await BackendRepository.getMessageThreads();
+        final remote = await BackendRepository.getMessageThreadsForOwner(owner);
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw StateError(
+              'Die Kontositzung hat während der Aktion gewechselt.');
+        }
         await _assertCurrentOperationalUserId(current.id);
         await _persistMessageThreads(prefs, remote);
         return;
@@ -13430,18 +13450,32 @@ class DataService {
     }
   }
 
-  /// Hides a local thread only for the current participant.
-  static Future<void> deleteMessageThread({required String threadId}) async {
-    if (threadId.isEmpty) return;
-    final current = await _requireCurrentOperationalUser();
+  /// Hides a local thread only for the explicitly captured participant.
+  static Future<void> deleteMessageThreadForUser({
+    required String threadId,
+    required String userId,
+    AuthSessionOwner? sessionOwner,
+  }) async {
+    if (threadId.isEmpty || userId.isEmpty) return;
+    final current =
+        await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        await BackendRepository.setThreadArchived(
+        final owner = sessionOwner;
+        if (owner == null) {
+          throw StateError('Die Kontositzung der Aktion fehlt.');
+        }
+        await BackendRepository.setThreadArchivedForOwner(
+          owner: owner,
           threadId: threadId,
           archived: true,
         );
         final prefs = await SharedPreferences.getInstance();
-        final remote = await BackendRepository.getMessageThreads();
+        final remote = await BackendRepository.getMessageThreadsForOwner(owner);
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw StateError(
+              'Die Kontositzung hat während der Aktion gewechselt.');
+        }
         await _assertCurrentOperationalUserId(current.id);
         await _persistMessageThreads(prefs, remote);
         return;
@@ -13468,7 +13502,7 @@ class DataService {
         );
       });
     } catch (e) {
-      debugPrint('[DataService] deleteMessageThread error: $e');
+      debugPrint('[DataService] deleteMessageThreadForUser error: $e');
       rethrow;
     }
   }
@@ -13720,14 +13754,26 @@ class DataService {
   static Future<void> markThreadMessagesAsRead({
     required String threadId,
     required String userId,
+    AuthSessionOwner? sessionOwner,
   }) async {
     final current =
         await _requireCurrentOperationalUser(requestedUserId: userId);
     try {
       if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-        await BackendRepository.markThreadRead(threadId);
+        final owner = sessionOwner;
+        if (owner == null) {
+          throw StateError('Die Kontositzung der Aktion fehlt.');
+        }
+        await BackendRepository.markThreadReadForOwner(
+          owner: owner,
+          threadId: threadId,
+        );
         final prefs = await SharedPreferences.getInstance();
-        final remote = await BackendRepository.getMessageThreads();
+        final remote = await BackendRepository.getMessageThreadsForOwner(owner);
+        if (!await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+          throw StateError(
+              'Die Kontositzung hat während der Aktion gewechselt.');
+        }
         await _assertCurrentOperationalUserId(current.id);
         await _persistMessageThreads(prefs, remote);
         return;

@@ -5743,3 +5743,24 @@ identifier or private path entered Git.
 No application source, candidate, Firebase configuration, Store, Production,
 payment, provider, Cloud/VPS/DNS, OnePlus or PR-merge boundary changed. See
 `docs/operations/WP25_CURRENT_CANDIDATE_SMS_VERIFICATION_CLOSURE_2026-09-06.md`.
+
+## WP27 safety/privacy principal ownership (2026-09-06)
+
+WP27 is complete locally with exact-head GitHub checks pending. User report,
+evidence-upload, block and unblock operations retain the principal, session
+epoch and explicit local principal captured before the first await. Remote
+credentials never fall back to a successor account; late A results cannot
+write or display as B state. Exact structured rejection, confirmed remote
+acceptance plus local failure and unknown transport outcome remain separate;
+408 and unstructured/intermediary 4xx are never safe rejection.
+
+Safety dialogs and sheets are dismissed only through their exact owned route.
+The messages swipe menu captures ownership before showing its first sheet, and
+read/archive/delete calls retain that owner through remote refresh. Analyzer,
+65 focused Flutter checks, 15 focused tool checks, all 2,333 tool tests and the
+complete regression pass, including 887 Flutter tests with 33 declared skips,
+Web/Wasm, loopback and Android. Exact-head GitHub Regression/CodeQL remain.
+Dependent evidence/disclosure hashes were refreshed mechanically without
+changing historical status, legal/provider/billing truth or live gates. The
+booking return-case `report_issue_screen.dart` workflow remains outside WP27
+for a distinct later package. No candidate or external/device state changed.

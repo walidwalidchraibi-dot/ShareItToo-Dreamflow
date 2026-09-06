@@ -118,9 +118,9 @@
     ]
   },
   "ratchets": {
-    "privacyManifestSha256": "2c9781be71b1ce869a6257454ec89a785e51eef6ea6f301bba3e271363fd3490",
-    "retentionManifestSha256": "1c40ae00ca4125ebbeec3908ea9b43af3ed43ee42e173a3d4eefe855e6730b22",
-    "activeProviderEvidenceSha256": "100ec20216539b9a2cecf42a278ab78cf60ea5e2d78ca9bc73df01e2aa9e2fbf",
+    "privacyManifestSha256": "f261ec4dcc464b9d1077a351c71739bca6a2df704ebb47b6215034fd666ffba1",
+    "retentionManifestSha256": "d64da96a5e5b61471650d888ff904258cd1ccdfe9c8e0d06f264728a0887d950",
+    "activeProviderEvidenceSha256": "8bfe4a91639e2c3ad974935729a8e7daf4b73ed5b7e76806554b1ac2cecda806",
     "activeProviderState": "prepared-hold",
     "completedOwnerDecisions": 0,
     "requiredOwnerDecisions": 10,
@@ -169,15 +169,15 @@
     },
     {
       "path": "lib/screens/messages_screen.dart",
-      "sha256": "80d4c76a2f4913ffabdb928eaca24216486bb1a7c05791ab83e0d261f8dc0672"
+      "sha256": "9c4c80880f0c105674f334a8475069cff6167de67b3400fe9a11e5f7ff2dbf4f"
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "07d0d99b361211104af647518a1204e1e8871732170d0fce9bf7b628e0794d83"
+      "sha256": "be958770b535cded3b063a71953eca7762d4048aeb5b668e5d34f31ea96daed1"
     },
     {
       "path": "lib/services/local_safety_privacy_service.dart",
-      "sha256": "64c817fd544ac6fba038ec41e4b1045aa09cb3a8ec3bfb944f4d05e5d4118105"
+      "sha256": "3fcc60ee0668675e16f3b076a8d509d085d884559b7ef5fa5182503981dcfc9e"
     },
     {
       "path": "lib/services/user_reports_service.dart",

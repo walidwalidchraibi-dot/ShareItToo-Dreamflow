@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,11 +9,13 @@ import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/review_metrics_service.dart';
-import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/profile_ecosystem_service.dart';
+import 'package:lendify/services/safety_action_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/widgets/support_principal_controller.dart';
+import 'package:lendify/widgets/safety_action_interaction.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
@@ -105,78 +108,19 @@ enum PublicProfileBlockFlowOutcome {
   persistFailed,
 }
 
-Future<T?> showCenteredPublicProfileBlockDialog<T>(
-  BuildContext context, {
-  required IconData icon,
-  required String title,
-  required Widget body,
-  bool barrierDismissible = false,
-  bool showCloseIcon = true,
-}) {
-  return showGeneralDialog<T>(
-    context: context,
-    barrierDismissible: barrierDismissible,
-    barrierLabel: title,
-    barrierColor: Colors.transparent,
-    transitionDuration: const Duration(milliseconds: 220),
-    pageBuilder: (ctx, anim, secondaryAnim) {
-      return Stack(
-        children: [
-          Positioned.fill(
-            child: IgnorePointer(
-              ignoring: true,
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: _PublicProfileBlockDialogCard(
-                      icon: icon,
-                      title: title,
-                      body: body,
-                      showCloseIcon: showCloseIcon,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    },
-    transitionBuilder: (ctx, anim, secondary, child) {
-      final t = Curves.easeOutCubic.transform(anim.value);
-      return Opacity(
-        opacity: anim.value,
-        child: Transform.scale(
-          scale: 0.96 + (0.04 * t),
-          child: child,
-        ),
-      );
-    },
-  );
-}
-
 class _PublicProfileBlockDialogCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final Widget body;
   final bool showCloseIcon;
+  final VoidCallback onClose;
 
   const _PublicProfileBlockDialogCard({
     required this.icon,
     required this.title,
     required this.body,
     required this.showCloseIcon,
+    required this.onClose,
   });
 
   @override
@@ -233,8 +177,7 @@ class _PublicProfileBlockDialogCard extends StatelessWidget {
                 ),
                 if (showCloseIcon)
                   InkResponse(
-                    onTap: () =>
-                        Navigator.of(context, rootNavigator: true).maybePop(),
+                    onTap: onClose,
                     radius: 18,
                     child: Container(
                       width: 30,
@@ -271,87 +214,6 @@ class _PublicProfileBlockDialogCard extends StatelessWidget {
   }
 }
 
-Future<bool?> showPublicProfileBlockConfirmationDialog(
-  BuildContext context, {
-  required String displayName,
-}) {
-  return showCenteredPublicProfileBlockDialog<bool>(
-    context,
-    icon: Icons.block_outlined,
-    title: '$displayName blockieren?',
-    barrierDismissible: false,
-    showCloseIcon: true,
-    body: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Solange du $displayName blockiert hast, werden dir keine öffentlichen Anzeigen oder Profile dieses Nutzers angezeigt.',
-          style:
-              TextStyle(color: AppTheme.textSecondary(context), height: 1.45),
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: TextButton(
-                onPressed: () =>
-                    Navigator.of(context, rootNavigator: true).pop(false),
-                child: const Text('Abbrechen'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  foregroundColor: Theme.of(context).colorScheme.onError,
-                ),
-                onPressed: () =>
-                    Navigator.of(context, rootNavigator: true).pop(true),
-                child: const Text('Blockieren'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-Future<void> showPublicProfileBlockSuccessDialog(
-  BuildContext context, {
-  required String displayName,
-}) {
-  return showCenteredPublicProfileBlockDialog<void>(
-    context,
-    icon: Icons.block,
-    title: 'Du hast $displayName blockiert.',
-    barrierDismissible: false,
-    showCloseIcon: true,
-    body: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Solange du $displayName blockiert hast, werden dir keine öffentlichen Anzeigen oder Profile dieses Nutzers angezeigt.',
-          style:
-              TextStyle(color: AppTheme.textSecondary(context), height: 1.45),
-        ),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).maybePop(),
-            child: const Text('Zu Entdecken'),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 Future<void> navigateToExploreAfterBlocking(BuildContext context) async {
   context.read<MainNavController>().setIndex(0);
   if (!context.mounted) return;
@@ -361,63 +223,215 @@ Future<void> navigateToExploreAfterBlocking(BuildContext context) async {
   );
 }
 
+Future<T?> showOwnedPublicProfileBlockDialog<T>(
+  BuildContext context, {
+  required SafetyActionInteractionController interaction,
+  required SafetyActionOwner owner,
+  required IconData icon,
+  required String title,
+  required Widget Function(
+    BuildContext context,
+    void Function(T? result) dismiss,
+  ) bodyBuilder,
+  bool showCloseIcon = true,
+}) {
+  return interaction.showOwnedGeneralDialog<T>(
+    context: context,
+    owner: owner,
+    barrierDismissible: false,
+    barrierLabel: title,
+    barrierColor: Colors.transparent,
+    transitionDuration: const Duration(milliseconds: 220),
+    builder: (dialogContext, dismiss) => Stack(
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(
+            ignoring: true,
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Material(
+                  color: Colors.transparent,
+                  child: _PublicProfileBlockDialogCard(
+                    icon: icon,
+                    title: title,
+                    body: bodyBuilder(dialogContext, dismiss),
+                    showCloseIcon: showCloseIcon,
+                    onClose: () => dismiss(null),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+    transitionBuilder: (ctx, anim, secondary, child) {
+      final t = Curves.easeOutCubic.transform(anim.value);
+      return Opacity(
+        opacity: anim.value,
+        child: Transform.scale(scale: 0.96 + (0.04 * t), child: child),
+      );
+    },
+  );
+}
+
 Future<PublicProfileBlockFlowOutcome> runPublicProfileBlockFlow(
   BuildContext context, {
   required String displayName,
   required String targetUserId,
+  required SafetyActionService safetyService,
+  required SafetyActionInteractionController interaction,
+  required SafetyActionOwner owner,
   Future<ActionGuardResult> Function(String otherUserId)? canBlockUser,
-  Future<void> Function(String userId)? blockUser,
-  Future<bool> Function(String userId)? isBlocked,
   Future<void> Function(BuildContext context)? navigateToExplore,
 }) async {
   final guardCheck = canBlockUser ??
       (otherUserId) =>
           ProfileEcosystemService.canBlockUser(otherUserId: otherUserId);
-  final persistBlock = blockUser ?? BlockedUsersService.blockUser;
-  final blockedCheck = isBlocked ?? BlockedUsersService.isBlocked;
   final navigate = navigateToExplore ?? navigateToExploreAfterBlocking;
 
+  if (!await interaction.isCurrent(safetyService, owner)) {
+    return PublicProfileBlockFlowOutcome.cancelled;
+  }
   final guard = await guardCheck(targetUserId);
   if (!context.mounted) return PublicProfileBlockFlowOutcome.cancelled;
+  if (!await interaction.isCurrent(safetyService, owner) ||
+      !context.mounted ||
+      !interaction.isSynchronouslyCurrent(owner)) {
+    return PublicProfileBlockFlowOutcome.cancelled;
+  }
   if (!guard.allowed) {
-    await AppPopup.show(
-      context,
-      icon: Icons.block_outlined,
-      backgroundColor:
-          AppTheme.isDark(context) ? null : AppTheme.surfacePrimary(context),
-      borderColor:
-          AppTheme.isDark(context) ? null : AppTheme.glassStroke(context),
-      title: 'Du kannst $displayName im Moment nicht blockieren.',
-      message: '${guard.reason}\n\nNächster Schritt: ${guard.actionLabel}',
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          child: const Text('Schließen'),
+    await interaction.showOwnedDialog<void>(
+      context: context,
+      owner: owner,
+      builder: (_, dismiss) => AlertDialog(
+        title: Text('Du kannst $displayName im Moment nicht blockieren.'),
+        content: Text(
+          '${guard.reason}\n\nNächster Schritt: ${guard.actionLabel}',
         ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () => dismiss(null),
+            child: const Text('Schließen'),
+          ),
+        ],
+      ),
     );
     return PublicProfileBlockFlowOutcome.cancelled;
   }
 
-  final confirmed = await showPublicProfileBlockConfirmationDialog(
+  if (!context.mounted || !interaction.isSynchronouslyCurrent(owner)) {
+    return PublicProfileBlockFlowOutcome.cancelled;
+  }
+  final confirmed = await showOwnedPublicProfileBlockDialog<bool>(
     context,
-    displayName: displayName,
+    interaction: interaction,
+    owner: owner,
+    icon: Icons.block_outlined,
+    title: '$displayName blockieren?',
+    bodyBuilder: (dialogContext, dismiss) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Solange du $displayName blockiert hast, werden dir keine öffentlichen Anzeigen oder Profile dieses Nutzers angezeigt.',
+          style: TextStyle(
+            color: AppTheme.textSecondary(dialogContext),
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            Expanded(
+              child: TextButton(
+                onPressed: () => dismiss(false),
+                child: const Text('Abbrechen'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                  foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+                ),
+                onPressed: () => dismiss(true),
+                child: const Text('Blockieren'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
   );
   if (!context.mounted || confirmed != true) {
     return PublicProfileBlockFlowOutcome.cancelled;
   }
-
-  await persistBlock(targetUserId);
-  final persisted = await blockedCheck(targetUserId);
-  if (!context.mounted || !persisted) {
-    return PublicProfileBlockFlowOutcome.persistFailed;
+  if (!await interaction.isCurrent(safetyService, owner) ||
+      !context.mounted ||
+      !interaction.isSynchronouslyCurrent(owner)) {
+    return PublicProfileBlockFlowOutcome.cancelled;
   }
 
-  await showPublicProfileBlockSuccessDialog(
+  try {
+    await safetyService.blockUser(owner.context, targetUserId);
+  } on SafetyActionFailure catch (failure) {
+    if (failure.kind == SafetyActionFailureKind.principalChanged) {
+      return PublicProfileBlockFlowOutcome.cancelled;
+    }
+    rethrow;
+  }
+  if (!context.mounted) return PublicProfileBlockFlowOutcome.blocked;
+  if (!await interaction.isCurrent(safetyService, owner) ||
+      !context.mounted ||
+      !interaction.isSynchronouslyCurrent(owner)) {
+    return PublicProfileBlockFlowOutcome.blocked;
+  }
+  await showOwnedPublicProfileBlockDialog<void>(
     context,
-    displayName: displayName,
+    interaction: interaction,
+    owner: owner,
+    icon: Icons.block,
+    title: 'Du hast $displayName blockiert.',
+    bodyBuilder: (dialogContext, dismiss) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Solange du $displayName blockiert hast, werden dir keine öffentlichen Anzeigen oder Profile dieses Nutzers angezeigt.',
+          style: TextStyle(
+            color: AppTheme.textSecondary(dialogContext),
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: () => dismiss(null),
+            child: const Text('Zu Entdecken'),
+          ),
+        ),
+      ],
+    ),
   );
   if (!context.mounted) return PublicProfileBlockFlowOutcome.blocked;
+  if (!await interaction.isCurrent(safetyService, owner) ||
+      !context.mounted ||
+      !interaction.isSynchronouslyCurrent(owner)) {
+    return PublicProfileBlockFlowOutcome.blocked;
+  }
   await navigate(context);
   return PublicProfileBlockFlowOutcome.blocked;
 }
@@ -427,12 +441,14 @@ class PublicProfileScreen extends StatefulWidget {
   final User? previewUser;
   final bool isOwnPreview;
   final String appBarTitle;
+  final SafetyActionService? safetyActionService;
   const PublicProfileScreen({
     super.key,
     this.userId,
     this.previewUser,
     this.isOwnPreview = false,
     this.appBarTitle = 'Öffentliches Profil',
+    this.safetyActionService,
   });
   @override
   State<PublicProfileScreen> createState() => _PublicProfileScreenState();
@@ -440,6 +456,11 @@ class PublicProfileScreen extends StatefulWidget {
 
 class _PublicProfileScreenState extends State<PublicProfileScreen> {
   final _supportPrincipal = SupportPrincipalController();
+  late final SafetyActionService _safetyService;
+  final SafetyActionInteractionController _safetyActions =
+      SafetyActionInteractionController();
+  StreamSubscription<String>? _sessionSubscription;
+  int _loadRevision = 0;
   User? _user;
   List<Item> _items = [];
   bool _redirectingBlockedProfile = false;
@@ -447,7 +468,16 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _safetyService = widget.safetyActionService ?? const SafetyActionService();
     _load();
+    _sessionSubscription = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || key != SharedPersistenceSync.accountSecurityStateKey) {
+        return;
+      }
+      _safetyActions.invalidate();
+      _loadRevision += 1;
+      unawaited(_load());
+    });
   }
 
   String? get _profileUserId =>
@@ -455,6 +485,8 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   @override
   void dispose() {
+    _sessionSubscription?.cancel();
+    _safetyActions.dispose();
     _supportPrincipal.dispose();
     super.dispose();
   }
@@ -467,17 +499,27 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   String? _viewerId;
 
   Future<void> _load() async {
+    final revision = ++_loadRevision;
+    _safetyActions.invalidate();
+    final actionContext = await _safetyService.loadCurrentContext();
+    if (!mounted || revision != _loadRevision) return;
     final u = widget.previewUser ??
         (widget.userId != null
             ? await DataService.getUserById(widget.userId!)
             : await DataService.getCurrentUser());
     final items = await DataService.getItems();
-    final viewer = await DataService.getCurrentUser();
+    final viewer = actionContext?.user ?? await DataService.getCurrentUser();
     final profileGuard = await ProfileEcosystemService.canViewPublicProfile(
       profileUserId: u?.id,
       currentUserId: viewer?.id,
     );
-    if (!mounted) return;
+    if (!mounted || revision != _loadRevision) return;
+    if (actionContext != null &&
+        !await _safetyService.isContextCurrent(actionContext)) {
+      return;
+    }
+    if (!mounted || revision != _loadRevision) return;
+    _safetyActions.replaceContext(actionContext);
     if (!widget.isOwnPreview && !profileGuard.allowed) {
       if (!_redirectingBlockedProfile) {
         _redirectingBlockedProfile = true;
@@ -507,7 +549,12 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             .where(ProfileEcosystemService.isPubliclyVisibleItem)
             .toList()
         : await ProfileEcosystemService.filterVisiblePublicItems(ownerItems);
-    if (!mounted) return;
+    if (!mounted || revision != _loadRevision) return;
+    if (actionContext != null &&
+        !await _safetyService.isContextCurrent(actionContext)) {
+      return;
+    }
+    if (!mounted || revision != _loadRevision) return;
     setState(() {
       _user = u;
       _viewerId = viewer?.id;
@@ -517,7 +564,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   Future<void> _openProfileSupportFlow(String issueType) async {
     final owner = _supportPrincipal.capture();
-    if (owner == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+    if (owner == null ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final u = _user;
@@ -546,7 +595,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           builder: (_) =>
               SupportFlowScreen(context: flowContext, owner: owner)),
     );
-    if (result == null || !await _supportPrincipal.isCurrent(owner) || !mounted) {
+    if (result == null ||
+        !await _supportPrincipal.isCurrent(owner) ||
+        !mounted) {
       return;
     }
     final supportThread = await DataService.createSupportThread(
@@ -624,14 +675,58 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                       icon: Icons.link, title: l10n.t('Profil-Link kopiert'));
                 }
                 if (value == 'block_user') {
+                  final owner = _safetyActions.capture();
                   final targetUserId = u.id;
-                  if (targetUserId.isEmpty) return;
+                  if (owner == null || targetUserId.isEmpty) return;
                   if (!context.mounted) return;
-                  await runPublicProfileBlockFlow(
-                    context,
-                    displayName: displayName,
-                    targetUserId: targetUserId,
-                  );
+                  try {
+                    await runPublicProfileBlockFlow(
+                      context,
+                      displayName: displayName,
+                      targetUserId: targetUserId,
+                      safetyService: _safetyService,
+                      interaction: _safetyActions,
+                      owner: owner,
+                    );
+                  } on SafetyActionFailure catch (failure) {
+                    if (failure.kind ==
+                        SafetyActionFailureKind.principalChanged) {
+                      return;
+                    }
+                    if (!context.mounted ||
+                        !await _safetyActions.isCurrent(
+                          _safetyService,
+                          owner,
+                        )) {
+                      return;
+                    }
+                    if (!context.mounted ||
+                        !_safetyActions.isSynchronouslyCurrent(owner)) {
+                      return;
+                    }
+                    final title =
+                        failure.kind == SafetyActionFailureKind.outcomeUnknown
+                            ? 'Blockierungsstatus unklar'
+                            : failure.remoteAcceptedOrConfirmed
+                                ? 'Serverseitig verarbeitet'
+                                : 'Blockierung nicht verarbeitet';
+                    await _safetyActions.showOwnedDialog<void>(
+                      context: context,
+                      owner: owner,
+                      builder: (_, dismiss) => AlertDialog(
+                        title: Text(title),
+                        content: const Text(
+                          'Öffne das Profil neu und prüfe den aktuellen Status, bevor du es erneut versuchst.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => dismiss(null),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                 }
               },
               itemBuilder: (context) {

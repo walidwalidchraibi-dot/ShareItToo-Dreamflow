@@ -18,6 +18,7 @@ const Set<String> _watchedKeys = {
   'rental_cart_v1',
   'rental_cart_v2',
   'account_security_state_v1',
+  'local_safety_privacy_state_v1',
 };
 
 String _canonicalKey(String key) => switch (key) {

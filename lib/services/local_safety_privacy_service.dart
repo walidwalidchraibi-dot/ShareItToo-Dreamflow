@@ -163,6 +163,16 @@ class LocalSafetyPrivacyService {
     Future<T> Function(LocalPrincipalIdentity principal) operation,
   ) async {
     final principal = await LocalPrincipalScope.current();
+    return _runForPrincipal(principal, operation);
+  }
+
+  static Future<T> _runForPrincipal<T>(
+    LocalPrincipalIdentity principal,
+    Future<T> Function(LocalPrincipalIdentity principal) operation,
+  ) {
+    if (!_validPrincipalToken(principal.token)) {
+      throw StateError('Ungültiger lokaler Kontobereich.');
+    }
     return _queue.run(() => operation(principal));
   }
 
@@ -605,6 +615,16 @@ class LocalSafetyPrivacyService {
         );
       });
 
+  static Future<List<String>> getBlockedUserIdsForPrincipal(
+    LocalPrincipalIdentity principal,
+  ) =>
+      _runForPrincipal(principal, (principal) async {
+        final prefs = await SharedPreferences.getInstance();
+        return List<String>.from(
+          (await _readState(prefs, principal)).blockedUserIds,
+        );
+      });
+
   static Future<void> setBlockedUserIds(List<String> ids) =>
       _runForCurrent((principal) async {
         final cleaned = _decodeStringList(
@@ -619,6 +639,29 @@ class LocalSafetyPrivacyService {
         // causing a self-sustaining refresh loop on authenticated Explore.
         // Keep a real change observable, but make a read-through sync
         // idempotent.
+        if (_sameStrings(state.blockedUserIds, cleaned)) return;
+        await _writeState(
+          prefs,
+          principal,
+          state.copyWith(
+            revision: state.revision + 1,
+            blockedUserIds: cleaned,
+          ),
+        );
+      });
+
+  static Future<void> setBlockedUserIdsForPrincipal(
+    LocalPrincipalIdentity principal,
+    List<String> ids,
+  ) =>
+      _runForPrincipal(principal, (principal) async {
+        final cleaned = _decodeStringList(
+          ids,
+          label: 'Blocklisten',
+          maximum: _maxBlockedUsers,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final state = await _readState(prefs, principal);
         if (_sameStrings(state.blockedUserIds, cleaned)) return;
         await _writeState(
           prefs,
@@ -661,8 +704,56 @@ class LocalSafetyPrivacyService {
         );
       });
 
+  static Future<void> blockUserForPrincipal(
+    LocalPrincipalIdentity principal,
+    String userId,
+  ) =>
+      _runForPrincipal(principal, (principal) async {
+        final normalized = userId.trim();
+        if (normalized.isEmpty || normalized.length > 300) {
+          throw ArgumentError.value(userId, 'userId', 'Ungültiger Nutzer');
+        }
+        final prefs = await SharedPreferences.getInstance();
+        final state = await _readState(prefs, principal);
+        final next = <String>{...state.blockedUserIds, normalized}.toList()
+          ..sort();
+        if (next.length > _maxBlockedUsers) {
+          throw StateError('Zu viele lokal blockierte Nutzer.');
+        }
+        await _writeState(
+          prefs,
+          principal,
+          state.copyWith(
+            revision: state.revision + 1,
+            blockedUserIds: next,
+          ),
+        );
+      });
+
   static Future<void> unblockUser(String userId) =>
       _runForCurrent((principal) async {
+        final normalized = userId.trim();
+        if (normalized.isEmpty) return;
+        final prefs = await SharedPreferences.getInstance();
+        final state = await _readState(prefs, principal);
+        if (!state.blockedUserIds.contains(normalized)) return;
+        await _writeState(
+          prefs,
+          principal,
+          state.copyWith(
+            revision: state.revision + 1,
+            blockedUserIds: state.blockedUserIds
+                .where((entry) => entry != normalized)
+                .toList(growable: false),
+          ),
+        );
+      });
+
+  static Future<void> unblockUserForPrincipal(
+    LocalPrincipalIdentity principal,
+    String userId,
+  ) =>
+      _runForPrincipal(principal, (principal) async {
         final normalized = userId.trim();
         if (normalized.isEmpty) return;
         final prefs = await SharedPreferences.getInstance();
@@ -872,6 +963,39 @@ class LocalSafetyPrivacyService {
         );
       });
 
+  static Future<void> addReportForPrincipal({
+    required LocalPrincipalIdentity principal,
+    required String reporterUserId,
+    required String reportedUserId,
+    required String reasonCode,
+    String details = '',
+    List<String> evidenceNames = const <String>[],
+    String? reference,
+  }) =>
+      _runForPrincipal(principal, (principal) async {
+        final prefs = await SharedPreferences.getInstance();
+        final state = await _readState(prefs, principal);
+        if (state.reports.length >= _maxReports) {
+          throw StateError('Zu viele lokale Meldungen.');
+        }
+        final report = _newReport(
+          reporterUserId: reporterUserId,
+          reportedUserId: reportedUserId,
+          reasonCode: reasonCode,
+          details: details,
+          evidenceNames: evidenceNames,
+          reference: reference,
+        );
+        await _writeState(
+          prefs,
+          principal,
+          state.copyWith(
+            revision: state.revision + 1,
+            reports: <Map<String, dynamic>>[...state.reports, report],
+          ),
+        );
+      });
+
   static Future<void> addHarassmentReportAndBlock({
     required String reporterUserId,
     required String reportedUserId,
@@ -880,6 +1004,48 @@ class LocalSafetyPrivacyService {
     String? reference,
   }) =>
       _runForCurrent((principal) async {
+        final prefs = await SharedPreferences.getInstance();
+        final state = await _readState(prefs, principal);
+        if (state.reports.length >= _maxReports) {
+          throw StateError('Zu viele lokale Meldungen.');
+        }
+        final report = _newReport(
+          reporterUserId: reporterUserId,
+          reportedUserId: reportedUserId,
+          reasonCode: 'harassment',
+          details: details,
+          evidenceNames: evidenceNames,
+          reference: reference,
+        );
+        final normalizedTarget = reportedUserId.trim();
+        final blocked = <String>{
+          ...state.blockedUserIds,
+          normalizedTarget,
+        }.toList()
+          ..sort();
+        if (blocked.length > _maxBlockedUsers) {
+          throw StateError('Zu viele lokal blockierte Nutzer.');
+        }
+        await _writeState(
+          prefs,
+          principal,
+          state.copyWith(
+            revision: state.revision + 1,
+            reports: <Map<String, dynamic>>[...state.reports, report],
+            blockedUserIds: blocked,
+          ),
+        );
+      });
+
+  static Future<void> addHarassmentReportAndBlockForPrincipal({
+    required LocalPrincipalIdentity principal,
+    required String reporterUserId,
+    required String reportedUserId,
+    String details = '',
+    List<String> evidenceNames = const <String>[],
+    String? reference,
+  }) =>
+      _runForPrincipal(principal, (principal) async {
         final prefs = await SharedPreferences.getInstance();
         final state = await _readState(prefs, principal);
         if (state.reports.length >= _maxReports) {

@@ -8,9 +8,9 @@ import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/messages_settings_screen.dart';
 import 'package:lendify/screens/blocked_users_screen.dart';
 import 'package:lendify/models/item.dart';
-import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/safety_action_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
@@ -18,9 +18,12 @@ import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/user_avatar.dart';
+import 'package:lendify/widgets/safety_action_interaction.dart';
 
 class MessagesScreen extends StatefulWidget {
-  const MessagesScreen({super.key});
+  final SafetyActionService? safetyActionService;
+
+  const MessagesScreen({super.key, this.safetyActionService});
 
   @override
   State<MessagesScreen> createState() => _MessagesScreenState();
@@ -56,6 +59,10 @@ Future<void> openBlockedUsersManagement(BuildContext context) {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
+  late final SafetyActionService _safetyService;
+  final SafetyActionInteractionController _safetyActions =
+      SafetyActionInteractionController();
+  int _loadRevision = 0;
   _MessagesFilter _filter = _MessagesFilter.active;
   List<MessageThread> _activeThreads = [];
   List<MessageThread> _archivedThreads = [];
@@ -79,10 +86,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   void initState() {
     super.initState();
+    _safetyService = widget.safetyActionService ?? const SafetyActionService();
     _loadData();
     _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
       if (!mounted || !SharedPersistenceSync.affectsCommunicationSync(key)) {
         return;
+      }
+      if (key == SharedPersistenceSync.accountSecurityStateKey) {
+        _safetyActions.invalidate();
+        _loadRevision += 1;
       }
       unawaited(_sharedPersistenceRefresh.schedule(() async {
         await SharedPersistenceSync.reloadPreferences();
@@ -169,12 +181,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void dispose() {
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
+    _safetyActions.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
+    final revision = ++_loadRevision;
+    _safetyActions.invalidate();
     if (mounted) {
       setState(() {
         _isLoading = true;
@@ -189,13 +204,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
       });
     }
     try {
-      final user = await DataService.getCurrentUser();
-      final users = await DataService.getUsers();
-      final items = await DataService.getItems();
+      final actionContext = await _safetyService.loadCurrentContext();
+      if (!mounted || revision != _loadRevision) return;
       final messageSettings = await MessagesSettingsService.get();
-
-      if (user == null) {
-        if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
+      if (actionContext == null) {
         setState(() {
           _currentUser = null;
           _activeThreads = const [];
@@ -211,28 +224,26 @@ class _MessagesScreenState extends State<MessagesScreen> {
         return;
       }
 
+      final user = actionContext.user;
+      final users = await DataService.getUsers();
+      final items = await DataService.getItems();
+      if (!mounted ||
+          revision != _loadRevision ||
+          !await _safetyService.isContextCurrent(actionContext)) {
+        return;
+      }
       final threads = await DataService.getMessageThreadsForUser(user.id);
       final archived =
           await DataService.getArchivedMessageThreadsForUser(user.id);
       final blockedUserIds =
-          (await BlockedUsersService.getBlockedUserIds()).toSet();
+          (await _safetyService.loadBlockedUsers(actionContext)).toSet();
       final mutedThreadKeys = await _loadMutedThreadKeys(user.id);
-      final currentAfterLoad = await DataService.getCurrentUser();
       final usersById = {for (final u in users) u.id: u};
       final itemsById = {for (final i in items) i.id: i};
 
-      if (!mounted) return;
-      if (currentAfterLoad?.id.trim() != user.id.trim()) {
-        setState(() {
-          _currentUser = null;
-          _activeThreads = const [];
-          _archivedThreads = const [];
-          _usersCache = const {};
-          _itemsCache = const {};
-          _blockedUserIds = const {};
-          _mutedThreadKeys = const {};
-          _isLoading = false;
-        });
+      if (!mounted ||
+          revision != _loadRevision ||
+          !await _safetyService.isContextCurrent(actionContext)) {
         return;
       }
 
@@ -241,19 +252,25 @@ class _MessagesScreenState extends State<MessagesScreen> {
       // (only when empty) and reload once.
       if (threads.isEmpty && archived.isEmpty) {
         if (QaRuntimeService.isEnabled) {
+          if (!await _safetyService.isContextCurrent(actionContext)) return;
           await DataService.ensureSeededMessageThreadsForUser(user.id);
         }
         final seededThreads =
             await DataService.getMessageThreadsForUser(user.id);
         final seededArchived =
             await DataService.getArchivedMessageThreadsForUser(user.id);
-        if (!mounted) return;
+        if (!mounted ||
+            revision != _loadRevision ||
+            !await _safetyService.isContextCurrent(actionContext)) {
+          return;
+        }
         if (seededThreads.isNotEmpty || seededArchived.isNotEmpty) {
           final injected = _withTranslationDemoThread(
               user: user,
               activeThreads: seededThreads,
               users: usersById,
               items: itemsById);
+          _safetyActions.replaceContext(actionContext);
           setState(() {
             _currentUser = user;
             _activeThreads = injected.activeThreads;
@@ -269,6 +286,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           return;
         }
 
+        _safetyActions.replaceContext(actionContext);
         setState(() {
           _currentUser = user;
           _activeThreads = const [];
@@ -290,6 +308,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           users: usersById,
           items: itemsById);
 
+      _safetyActions.replaceContext(actionContext);
       setState(() {
         _currentUser = user;
         _activeThreads = injected.activeThreads;
@@ -303,7 +322,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       });
     } catch (e) {
       debugPrint('MessagesScreen._loadData failed: $e');
-      if (mounted) {
+      if (mounted && revision == _loadRevision) {
         setState(() {
           _isLoading = false;
           _loadFailed = true;
@@ -557,51 +576,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       dismissKey: ValueKey(
                                           'thread_${thread.id}_${_filter.name}'),
                                       thread: thread,
-                                      onArchiveToggle: () async {
-                                        if (_currentUser == null) return;
-                                        if (isDemoTranslation) {
-                                          if (mounted) {
-                                            AppPopup.toast(context,
-                                                icon: Icons.visibility_outlined,
-                                                title: 'Demo-Chat',
-                                                message:
-                                                    'Archivieren ist für die Demo deaktiviert.');
-                                          }
-                                          return;
-                                        }
-                                        final isArchived = thread
-                                            .archivedForUserIds
-                                            .contains(_currentUser!.id);
-                                        if (isArchived) {
-                                          await DataService
-                                              .unarchiveMessageThreadForUser(
-                                                  threadId: thread.id,
-                                                  userId: _currentUser!.id);
-                                        } else {
-                                          await DataService
-                                              .archiveMessageThreadForUser(
-                                                  threadId: thread.id,
-                                                  userId: _currentUser!.id);
-                                        }
-                                        await _loadData();
-                                      },
-                                      onDelete: () async {
-                                        if (isDemoTranslation) {
-                                          if (mounted) {
-                                            AppPopup.toast(context,
-                                                icon: Icons.visibility_outlined,
-                                                title: 'Demo-Chat',
-                                                message:
-                                                    'Löschen ist für die Demo deaktiviert.');
-                                          }
-                                          return;
-                                        }
-                                        final ok = await _confirmDelete();
-                                        if (!ok) return;
-                                        await DataService.deleteMessageThread(
-                                            threadId: thread.id);
-                                        await _loadData();
-                                      },
+                                      onSwipeActions: () =>
+                                          _openSwipeActions(thread),
                                       child: _ChatThreadTile(
                                         name: isSupport
                                             ? 'SIT Support'
@@ -843,8 +819,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _openThreadOptions(MessageThread thread) async {
+    final owner = _safetyActions.capture();
     final userId = _currentUser?.id;
-    if (userId == null) return;
+    if (owner == null ||
+        userId == null ||
+        userId.trim() != owner.context.user.id.trim()) {
+      return;
+    }
     if (thread.id == _translationDemoThreadId ||
         thread.id.startsWith('mock_')) {
       if (mounted) {
@@ -856,93 +837,247 @@ class _MessagesScreenState extends State<MessagesScreen> {
       return;
     }
 
-    final choice = await showModalBottomSheet<String>(
+    final choice = await _safetyActions.showOwnedSheet<String>(
       context: context,
+      owner: owner,
       useRootNavigator: true,
       isScrollControlled: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
       backgroundColor: Colors.transparent,
-      builder: (context) => _ThreadOptionsSheet(
+      builder: (context, dismiss) => _ThreadOptionsSheet(
           isArchived: thread.archivedForUserIds.contains(userId),
           hasUnread: _hasUnread(thread),
           canBlock: _canBlockThread(thread),
-          isBlocked: _isOtherUserBlocked(thread)),
+          isBlocked: _isOtherUserBlocked(thread),
+          onChoice: dismiss),
     );
-    if (choice == null) return;
-
-    switch (choice) {
-      case 'read':
-        await DataService.markThreadMessagesAsRead(
-            threadId: thread.id, userId: userId);
-        break;
-      case 'archive':
-        await DataService.archiveMessageThreadForUser(
-            threadId: thread.id, userId: userId);
-        break;
-      case 'unarchive':
-        await DataService.unarchiveMessageThreadForUser(
-            threadId: thread.id, userId: userId);
-        break;
-      case 'delete':
-        final ok = await _confirmDelete();
-        if (!ok) return;
-        await DataService.deleteMessageThread(threadId: thread.id);
-        break;
-      case 'block':
-        final otherUserId =
-            thread.user1Id == userId ? thread.user2Id : thread.user1Id;
-        if (otherUserId.isEmpty || otherUserId == 'support') {
-          if (mounted) {
-            AppPopup.toast(context,
-                icon: Icons.info_outline,
-                title: 'Kann Support nicht blockieren');
-          }
-          return;
-        }
-        final isBlocked = _isOtherUserBlocked(thread);
-        if (!isBlocked && !_canBlockThread(thread)) {
-          if (mounted) {
-            AppPopup.toast(context,
-                icon: Icons.info_outline,
-                title: 'Blockieren erst nach abgeschlossener Buchung möglich');
-          }
-          return;
-        }
-        if (isBlocked) {
-          await BlockedUsersService.unblockUser(otherUserId);
-          if (mounted) {
-            AppPopup.toast(context,
-                icon: Icons.lock_open_outlined,
-                title: 'Blockierung aufgehoben');
-          }
-        } else {
-          await BlockedUsersService.blockUser(otherUserId);
-          await DataService.archiveMessageThreadForUser(
-              threadId: thread.id, userId: userId);
-          debugPrint(
-              '[Messages] User $otherUserId blocked and thread ${thread.id} archived');
-          if (mounted) {
-            AppPopup.toast(context,
-                icon: Icons.block,
-                title: 'Nutzer blockiert',
-                message:
-                    'Du erhältst keine Nachrichten mehr von dieser Person.');
-          }
-        }
-        break;
+    if (choice == null ||
+        !mounted ||
+        !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
     }
-    await _loadData();
+
+    try {
+      switch (choice) {
+        case 'read':
+          await DataService.markThreadMessagesAsRead(
+            threadId: thread.id,
+            userId: userId,
+            sessionOwner: owner.context.owner.authOwner,
+          );
+          break;
+        case 'archive':
+          await DataService.archiveMessageThreadForUser(
+            threadId: thread.id,
+            userId: userId,
+            sessionOwner: owner.context.owner.authOwner,
+          );
+          break;
+        case 'unarchive':
+          await DataService.unarchiveMessageThreadForUser(
+            threadId: thread.id,
+            userId: userId,
+            sessionOwner: owner.context.owner.authOwner,
+          );
+          break;
+        case 'delete':
+          final ok = await _confirmDelete(owner);
+          if (!ok || !await _safetyActions.isCurrent(_safetyService, owner)) {
+            return;
+          }
+          await DataService.deleteMessageThreadForUser(
+            threadId: thread.id,
+            userId: userId,
+            sessionOwner: owner.context.owner.authOwner,
+          );
+          break;
+        case 'block':
+          final otherUserId =
+              thread.user1Id == userId ? thread.user2Id : thread.user1Id;
+          if (otherUserId.isEmpty || otherUserId == 'support') {
+            await _showSafetyNotice(
+              owner,
+              title: 'Support kann nicht blockiert werden',
+            );
+            return;
+          }
+          final isBlocked = _isOtherUserBlocked(thread);
+          if (!isBlocked && !_canBlockThread(thread)) {
+            await _showSafetyNotice(
+              owner,
+              title: 'Blockieren noch nicht möglich',
+              message: 'Das ist erst nach abgeschlossener Buchung möglich.',
+            );
+            return;
+          }
+          if (isBlocked) {
+            await _safetyService.unblockUser(owner.context, otherUserId);
+          } else {
+            await _safetyService.blockUser(owner.context, otherUserId);
+          }
+          if (!mounted ||
+              !await _safetyActions.isCurrent(_safetyService, owner)) {
+            return;
+          }
+          setState(() {
+            final next = <String>{..._blockedUserIds};
+            if (isBlocked) {
+              next.remove(otherUserId);
+            } else {
+              next.add(otherUserId);
+            }
+            _blockedUserIds = next;
+            _filter = _normalizedFilterForBlocked(next);
+          });
+          await _showSafetyNotice(
+            owner,
+            title: isBlocked ? 'Blockierung aufgehoben' : 'Nutzer blockiert',
+            message: isBlocked
+                ? null
+                : 'Du erhältst keine Nachrichten mehr von dieser Person.',
+          );
+          break;
+      }
+    } on SafetyActionFailure catch (failure) {
+      if (failure.kind == SafetyActionFailureKind.principalChanged) return;
+      final (title, message) = switch (failure.kind) {
+        SafetyActionFailureKind.rejected => (
+            'Aktion abgelehnt',
+            'Der Server hat die Aktion eindeutig abgelehnt.',
+          ),
+        SafetyActionFailureKind.localUnavailable
+            when failure.remoteAcceptedOrConfirmed =>
+          (
+            'Serverseitig verarbeitet',
+            'Die lokale Aktualisierung ist fehlgeschlagen. Der Bereich wird neu geladen.',
+          ),
+        SafetyActionFailureKind.localUnavailable => (
+            'Aktion nicht gespeichert',
+            'Der lokale Sicherheitsstatus konnte nicht aktualisiert werden.',
+          ),
+        SafetyActionFailureKind.outcomeUnknown => (
+            'Aktionsstatus unklar',
+            'Die Anfrage könnte verarbeitet worden sein. Der Bereich wird neu geladen.',
+          ),
+        SafetyActionFailureKind.principalChanged => ('', ''),
+      };
+      await _showSafetyNotice(owner, title: title, message: message);
+    } catch (error) {
+      debugPrint('[Messages] thread action failed: $error');
+      if (!await _safetyActions.isCurrent(_safetyService, owner)) return;
+      await _showSafetyNotice(
+        owner,
+        title: 'Aktion nicht verarbeitet',
+        message: 'Bitte lade den Bereich neu und prüfe den aktuellen Status.',
+      );
+    }
+    if (mounted && _safetyActions.isSynchronouslyCurrent(owner)) {
+      await _loadData();
+    }
   }
 
-  Future<bool> _confirmDelete() async {
-    return (await showModalBottomSheet<bool>(
+  Future<void> _openSwipeActions(MessageThread thread) async {
+    final owner = _safetyActions.capture();
+    final userId = _currentUser?.id;
+    if (owner == null ||
+        userId == null ||
+        userId.trim() != owner.context.user.id.trim() ||
+        thread.id == _translationDemoThreadId ||
+        thread.id.startsWith('mock_')) {
+      return;
+    }
+
+    final choice = await _safetyActions.showOwnedSheet<String>(
+      context: context,
+      owner: owner,
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      backgroundColor: Colors.transparent,
+      builder: (_, dismiss) => _SwipeActionSheet(onChoice: dismiss),
+    );
+    if (choice == null ||
+        !mounted ||
+        !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
+
+    try {
+      if (choice == 'archive') {
+        final isArchived = thread.archivedForUserIds.contains(userId);
+        if (!await _safetyActions.isCurrent(_safetyService, owner)) return;
+        if (isArchived) {
+          await DataService.unarchiveMessageThreadForUser(
+            threadId: thread.id,
+            userId: userId,
+            sessionOwner: owner.context.owner.authOwner,
+          );
+        } else {
+          await DataService.archiveMessageThreadForUser(
+            threadId: thread.id,
+            userId: userId,
+            sessionOwner: owner.context.owner.authOwner,
+          );
+        }
+      } else if (choice == 'delete') {
+        final ok = await _confirmDelete(owner);
+        if (!ok || !await _safetyActions.isCurrent(_safetyService, owner)) {
+          return;
+        }
+        await DataService.deleteMessageThreadForUser(
+          threadId: thread.id,
+          userId: userId,
+          sessionOwner: owner.context.owner.authOwner,
+        );
+      }
+      if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+        return;
+      }
+      await _loadData();
+    } catch (error) {
+      debugPrint('[Messages] swipe action failed: $error');
+      await _showSafetyNotice(
+        owner,
+        title: 'Aktion nicht verarbeitet',
+        message: 'Bitte lade den Bereich neu und prüfe den aktuellen Status.',
+      );
+    }
+  }
+
+  Future<bool> _confirmDelete(SafetyActionOwner owner) async {
+    return (await _safetyActions.showOwnedSheet<bool>(
           context: context,
+          owner: owner,
           useRootNavigator: true,
           barrierColor: Colors.black.withValues(alpha: 0.45),
           backgroundColor: Colors.transparent,
-          builder: (context) => const _ConfirmDeleteSheet(),
+          builder: (context, dismiss) => _ConfirmDeleteSheet(onChoice: dismiss),
         )) ??
         false;
+  }
+
+  Future<void> _showSafetyNotice(
+    SafetyActionOwner owner, {
+    required String title,
+    String? message,
+  }) async {
+    if (!mounted || !await _safetyActions.isCurrent(_safetyService, owner)) {
+      return;
+    }
+    if (!mounted || !_safetyActions.isSynchronouslyCurrent(owner)) return;
+    await _safetyActions.showOwnedDialog<void>(
+      context: context,
+      owner: owner,
+      builder: (_, dismiss) => AlertDialog(
+        title: Text(title),
+        content: message == null ? null : Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => dismiss(null),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatTime(DateTime time) {
@@ -1603,16 +1738,14 @@ class _ThreadDismissible extends StatelessWidget {
   final Key dismissKey;
   final MessageThread thread;
   final Widget child;
-  final Future<void> Function() onArchiveToggle;
-  final Future<void> Function() onDelete;
+  final Future<void> Function() onSwipeActions;
   final bool enabled;
 
   const _ThreadDismissible({
     required this.dismissKey,
     required this.thread,
     required this.child,
-    required this.onArchiveToggle,
-    required this.onDelete,
+    required this.onSwipeActions,
     this.enabled = true,
   });
 
@@ -1626,19 +1759,7 @@ class _ThreadDismissible extends StatelessWidget {
       secondaryBackground:
           _SwipeActionsBackground(onArchive: () {}, onDelete: () {}),
       confirmDismiss: (dir) async {
-        // Instead of auto-action, open a quick action sheet (more trust-focused).
-        final choice = await showModalBottomSheet<String>(
-          context: context,
-          useRootNavigator: true,
-          barrierColor: Colors.black.withValues(alpha: 0.35),
-          backgroundColor: Colors.transparent,
-          builder: (context) => const _SwipeActionSheet(),
-        );
-        if (choice == 'archive') {
-          await onArchiveToggle();
-        } else if (choice == 'delete') {
-          await onDelete();
-        }
+        await onSwipeActions();
         return false;
       },
       child: child,
@@ -1719,12 +1840,15 @@ class _SwipeActionPill extends StatelessWidget {
 }
 
 class _SwipeActionSheet extends StatelessWidget {
-  const _SwipeActionSheet();
+  final ValueChanged<String?> onChoice;
+
+  const _SwipeActionSheet({required this.onChoice});
 
   @override
   Widget build(BuildContext context) {
     return _GlassSheet(
       title: 'Chat verwalten',
+      onClose: () => onChoice(null),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1732,7 +1856,7 @@ class _SwipeActionSheet extends StatelessWidget {
             icon: Icons.archive_outlined,
             title: 'Archivieren',
             subtitle: 'Du findest den Chat später im Archiv.',
-            onTap: () => Navigator.of(context).pop('archive'),
+            onTap: () => onChoice('archive'),
           ),
           const SizedBox(height: 10),
           _SheetAction(
@@ -1740,12 +1864,11 @@ class _SwipeActionSheet extends StatelessWidget {
             title: 'Löschen',
             subtitle: 'Entfernt den Chat dauerhaft (lokal).',
             danger: true,
-            onTap: () => Navigator.of(context).pop('delete'),
+            onTap: () => onChoice('delete'),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Abbrechen')),
+              onPressed: () => onChoice(null), child: const Text('Abbrechen')),
         ],
       ),
     );
@@ -1757,16 +1880,19 @@ class _ThreadOptionsSheet extends StatelessWidget {
   final bool hasUnread;
   final bool canBlock;
   final bool isBlocked;
+  final ValueChanged<String?> onChoice;
   const _ThreadOptionsSheet(
       {required this.isArchived,
       required this.hasUnread,
       required this.canBlock,
-      required this.isBlocked});
+      required this.isBlocked,
+      required this.onChoice});
 
   @override
   Widget build(BuildContext context) {
     return _GlassSheet(
       title: 'Optionen',
+      onClose: () => onChoice(null),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1775,7 +1901,7 @@ class _ThreadOptionsSheet extends StatelessWidget {
               icon: Icons.mark_email_read_outlined,
               title: 'Als gelesen markieren',
               subtitle: 'Entfernt den ungelesen Badge.',
-              onTap: () => Navigator.of(context).pop('read'),
+              onTap: () => onChoice('read'),
             ),
             const SizedBox(height: 10),
           ],
@@ -1786,8 +1912,7 @@ class _ThreadOptionsSheet extends StatelessWidget {
             subtitle: isArchived
                 ? 'Chat erscheint wieder unter „Alle“. '
                 : 'Chat erscheint unter „Archiv“.',
-            onTap: () =>
-                Navigator.of(context).pop(isArchived ? 'unarchive' : 'archive'),
+            onTap: () => onChoice(isArchived ? 'unarchive' : 'archive'),
           ),
           const SizedBox(height: 10),
           if (canBlock || isBlocked)
@@ -1798,7 +1923,7 @@ class _ThreadOptionsSheet extends StatelessWidget {
                   ? 'Der Nutzer kann wieder normal kontaktiert werden.'
                   : 'Nur nach abgeschlossener Buchung möglich.',
               danger: !isBlocked,
-              onTap: () => Navigator.of(context).pop('block'),
+              onTap: () => onChoice('block'),
             ),
           const SizedBox(height: 10),
           _SheetAction(
@@ -1806,12 +1931,11 @@ class _ThreadOptionsSheet extends StatelessWidget {
             title: 'Löschen',
             subtitle: 'Entfernt den Chat dauerhaft (lokal).',
             danger: true,
-            onTap: () => Navigator.of(context).pop('delete'),
+            onTap: () => onChoice('delete'),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Schließen')),
+              onPressed: () => onChoice(null), child: const Text('Schließen')),
         ],
       ),
     );
@@ -1819,12 +1943,15 @@ class _ThreadOptionsSheet extends StatelessWidget {
 }
 
 class _ConfirmDeleteSheet extends StatelessWidget {
-  const _ConfirmDeleteSheet();
+  final ValueChanged<bool?> onChoice;
+
+  const _ConfirmDeleteSheet({required this.onChoice});
 
   @override
   Widget build(BuildContext context) {
     return _GlassSheet(
       title: 'Chat löschen?',
+      onClose: () => onChoice(null),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1839,14 +1966,14 @@ class _ConfirmDeleteSheet extends StatelessWidget {
           Row(children: [
             Expanded(
                 child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
+                    onPressed: () => onChoice(false),
                     child: const Text('Abbrechen'))),
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                     backgroundColor: BrandColors.danger),
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () => onChoice(true),
                 child: const Text('Löschen'),
               ),
             ),
@@ -1860,7 +1987,12 @@ class _ConfirmDeleteSheet extends StatelessWidget {
 class _GlassSheet extends StatelessWidget {
   final String title;
   final Widget child;
-  const _GlassSheet({required this.title, required this.child});
+  final VoidCallback onClose;
+  const _GlassSheet({
+    required this.title,
+    required this.child,
+    required this.onClose,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1911,7 +2043,7 @@ class _GlassSheet extends StatelessWidget {
                           bottom: 0,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(22),
-                            onTap: () => Navigator.of(context).pop(),
+                            onTap: onClose,
                             child: SizedBox(
                                 width: 44,
                                 height: 44,

@@ -3,14 +3,20 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/blocked_users_screen.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/listing_feedback_service.dart';
+import 'package:lendify/services/local_principal_scope.dart';
 import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
+import 'package:lendify/services/safety_action_service.dart';
+import 'package:lendify/services/session_transition_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/user_reports_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/test_builders.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -489,7 +495,11 @@ void main() {
     await useGuest();
 
     await tester.pumpWidget(
-      const MaterialApp(home: BlockedUsersScreen()),
+      MaterialApp(
+        home: BlockedUsersScreen(
+          safetyActionService: _Rw5LocalSafetyActionService(),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -509,7 +519,11 @@ void main() {
     await BlockedUsersService.blockUser('blocked-ui-a');
 
     await tester.pumpWidget(
-      const MaterialApp(home: BlockedUsersScreen()),
+      MaterialApp(
+        home: BlockedUsersScreen(
+          safetyActionService: _Rw5LocalSafetyActionService(),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
     expect(find.text('blocked-ui-a'), findsWidgets);
@@ -523,4 +537,29 @@ void main() {
     expect(find.text('blocked-ui-a'), findsNothing);
     expect(find.text('Du hast keine Nutzer blockiert.'), findsOneWidget);
   });
+}
+
+class _Rw5LocalSafetyActionService extends SafetyActionService {
+  @override
+  bool get backendEnabled => false;
+
+  @override
+  Future<SafetyActionContext?> loadCurrentContext() async {
+    final session = await AuthService.readSession();
+    if (session == null) return null;
+    final owner = AuthService.captureSessionOwner(session);
+    final id = (session.userId ?? session.email).trim();
+    return SafetyActionContext(
+      user: buildTestUser(id, name: id, email: session.email),
+      owner: SessionTransitionOwner(
+        authOwner: owner,
+        profileUserId: session.userId,
+      ),
+      localPrincipal: LocalPrincipalScope.fromSession(session),
+    );
+  }
+
+  @override
+  Future<bool> isContextCurrent(SafetyActionContext context) =>
+      AuthService.isSessionOwnerDefinitelyCurrent(context.owner.authOwner);
 }
