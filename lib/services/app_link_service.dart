@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'auth_service.dart';
 import 'backend_config.dart';
 import 'firebase_runtime.dart';
 import 'local_principal_scope.dart';
@@ -77,6 +78,25 @@ class PrincipalBoundAppLinkTarget {
 
 class AppLinkPrincipalChanged implements Exception {
   const AppLinkPrincipalChanged();
+}
+
+/// Settles an existing backend session before the first app-link owner exists.
+///
+/// A cold Android notification intent is retained by [FirebaseRuntime] while
+/// `main` runs. Refreshing an expired access token after [AppLinkController]
+/// has captured its epoch would correctly invalidate that owner and therefore
+/// lose the initial route. Before `runApp` there is no UI from which a user can
+/// switch accounts, so completing the existing session refresh here preserves
+/// strict principal/epoch ownership without ever rebinding Account A to B.
+Future<void> settleInitialAppLinkPrincipal({
+  bool? backendEnabled,
+  Future<AuthSession?> Function()? readSession,
+  Future<String?> Function()? resolveAccessToken,
+}) async {
+  if (!(backendEnabled ?? BackendConfig.enabled)) return;
+  final session = await (readSession ?? AuthService.readSession)();
+  if (session == null) return;
+  await (resolveAccessToken ?? AuthService.accessToken)();
 }
 
 /// Executes one app-link read or side effect only for its captured owner.
@@ -158,7 +178,8 @@ class AppLinkParser {
   static AppLinkTarget? parse(Uri uri) {
     if (uri.userInfo.isNotEmpty) return null;
     final isCustom = uri.scheme.toLowerCase() == 'shareittoo';
-    final isWeb = (uri.scheme == 'https' || uri.scheme == 'http') &&
+    final isWeb =
+        (uri.scheme == 'https' || uri.scheme == 'http') &&
         _allowedWebHosts.contains(uri.host.toLowerCase());
     if (!isCustom && !isWeb) return null;
 
@@ -260,11 +281,12 @@ class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
     AppLinkTargetInbox? inbox,
     Future<Uri?> Function()? takeNativePendingActionLink,
     Future<AppLinkPrincipalOwner> Function()? capturePrincipalOwner,
-  })  : _inbox = inbox ?? AppLinkTargetInbox(),
-        _takeNativePendingActionLink = takeNativePendingActionLink ??
-            FirebaseRuntime.takeAndroidPendingActionLink,
-        _capturePrincipalOwner =
-            capturePrincipalOwner ?? LocalAppLinkPrincipalOwner.capture;
+  }) : _inbox = inbox ?? AppLinkTargetInbox(),
+       _takeNativePendingActionLink =
+           takeNativePendingActionLink ??
+           FirebaseRuntime.takeAndroidPendingActionLink,
+       _capturePrincipalOwner =
+           capturePrincipalOwner ?? LocalAppLinkPrincipalOwner.capture;
 
   PrincipalBoundAppLinkTarget? takePending() => _inbox.takePending();
 

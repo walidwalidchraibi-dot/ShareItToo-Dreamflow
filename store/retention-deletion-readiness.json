@@ -641,7 +641,7 @@
     },
     {
       "path": "lib/services/app_link_service.dart",
-      "sha256": "024d06dc4ebbc2dff5bb9a4b0d2912a35289db6edde5d8a9dbd1199c724b1dfb"
+      "sha256": "d3e71f7f10aaa556441722a5b5b036f8d1d9fb9ab891dcbe5eb3922214b597bb"
     },
     {
       "path": "lib/screens/app_link_destination_screen.dart",

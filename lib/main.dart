@@ -28,6 +28,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ReleaseIdentity.validateCurrentBuild();
   await FirebaseRuntime.initialize();
+  // Firebase retains a cold notification intent while an existing backend
+  // session refresh settles. App-link principal/epoch capture starts only
+  // afterwards, so a same-account token refresh cannot discard the route and
+  // a successor account can never inherit it.
+  await settleInitialAppLinkPrincipal();
 
   // Surface synchronous Flutter framework errors to the console
   FlutterError.onError = (FlutterErrorDetails details) {

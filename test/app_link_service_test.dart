@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/app_link_service.dart';
+import 'package:lendify/services/auth_service.dart';
 
 class _FakePrincipalOwner implements AppLinkPrincipalOwner {
   @override
@@ -13,10 +14,7 @@ class _FakePrincipalOwner implements AppLinkPrincipalOwner {
   final int epoch;
   bool current = true;
 
-  _FakePrincipalOwner({
-    required this.principalToken,
-    required this.epoch,
-  });
+  _FakePrincipalOwner({required this.principalToken, required this.epoch});
 
   @override
   bool get isCurrentEpoch => current;
@@ -28,6 +26,61 @@ class _FakePrincipalOwner implements AppLinkPrincipalOwner {
 AppLinkTarget target(String raw) => AppLinkParser.parse(Uri.parse(raw))!;
 
 void main() {
+  test(
+    'settles an existing backend session before initial link ownership',
+    () async {
+      final refreshStarted = Completer<void>();
+      final releaseRefresh = Completer<String?>();
+
+      final settled = settleInitialAppLinkPrincipal(
+        backendEnabled: true,
+        readSession: () async => const AuthSession(
+          userId: 'opaque-test-user',
+          email: 'private-test@example.invalid',
+        ),
+        resolveAccessToken: () {
+          refreshStarted.complete();
+          return releaseRefresh.future;
+        },
+      );
+
+      await refreshStarted.future;
+      var completed = false;
+      settled.then((_) => completed = true);
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+
+      releaseRefresh.complete(null);
+      await settled;
+      expect(completed, isTrue);
+    },
+  );
+
+  test(
+    'does not resolve credentials without a persisted backend session',
+    () async {
+      var accessTokenCalls = 0;
+      await settleInitialAppLinkPrincipal(
+        backendEnabled: true,
+        readSession: () async => null,
+        resolveAccessToken: () async {
+          accessTokenCalls += 1;
+          return null;
+        },
+      );
+      await settleInitialAppLinkPrincipal(
+        backendEnabled: false,
+        readSession: () async =>
+            const AuthSession(email: 'not-read@example.invalid'),
+        resolveAccessToken: () async {
+          accessTokenCalls += 1;
+          return null;
+        },
+      );
+      expect(accessTokenCalls, 0);
+    },
+  );
+
   test('parses secure booking and chat links', () {
     final booking = AppLinkParser.parse(
       Uri.parse('https://shareittoo.com/api/v1/open/booking/booking-123'),
@@ -122,8 +175,7 @@ void main() {
     );
   });
 
-  test('accepts only the bounded custom-scheme Crashlytics diagnostic link',
-      () {
+  test('accepts only the bounded custom-scheme Crashlytics diagnostic link', () {
     final diagnostic = AppLinkParser.parse(
       Uri.parse('shareittoo://qa/crashlytics/b11-android-2026081027'),
     );
@@ -221,40 +273,44 @@ void main() {
     expect(controller.takePending(), isNull);
   });
 
-  test('principal-bound operation never starts for an already stale owner',
-      () async {
-    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7)
-      ..current = false;
-    var calls = 0;
+  test(
+    'principal-bound operation never starts for an already stale owner',
+    () async {
+      final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7)
+        ..current = false;
+      var calls = 0;
 
-    await expectLater(
-      runPrincipalBoundAppLinkOperation<int>(
+      await expectLater(
+        runPrincipalBoundAppLinkOperation<int>(
+          owner: owner,
+          operation: () async {
+            calls += 1;
+            return 1;
+          },
+        ),
+        throwsA(isA<AppLinkPrincipalChanged>()),
+      );
+      expect(calls, 0);
+    },
+  );
+
+  test(
+    'principal-bound operation rejects an A result after B becomes active',
+    () async {
+      final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
+      final remote = Completer<int>();
+      final result = runPrincipalBoundAppLinkOperation<int>(
         owner: owner,
-        operation: () async {
-          calls += 1;
-          return 1;
-        },
-      ),
-      throwsA(isA<AppLinkPrincipalChanged>()),
-    );
-    expect(calls, 0);
-  });
+        operation: () => remote.future,
+      );
+      await Future<void>.delayed(Duration.zero);
 
-  test('principal-bound operation rejects an A result after B becomes active',
-      () async {
-    final owner = _FakePrincipalOwner(principalToken: 'opaque-a', epoch: 7);
-    final remote = Completer<int>();
-    final result = runPrincipalBoundAppLinkOperation<int>(
-      owner: owner,
-      operation: () => remote.future,
-    );
-    await Future<void>.delayed(Duration.zero);
+      owner.current = false;
+      remote.complete(42);
 
-    owner.current = false;
-    remote.complete(42);
-
-    await expectLater(result, throwsA(isA<AppLinkPrincipalChanged>()));
-  });
+      await expectLater(result, throwsA(isA<AppLinkPrincipalChanged>()));
+    },
+  );
 
   testWidgets('replays a pending Android notification link when app resumes', (
     tester,

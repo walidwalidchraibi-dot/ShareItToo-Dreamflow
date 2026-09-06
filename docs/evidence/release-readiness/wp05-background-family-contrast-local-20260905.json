@@ -54,7 +54,7 @@
   "sourceInventory": [
     {
       "path": "lib/main.dart",
-      "sha256": "b30abf9ccf3c63c227938adf8927781b11b8529bc25ebc2a070abd798a17ad6e"
+      "sha256": "746cdc86f0eedf8bfc8557fcfc3f27085372b42f22c8847fd9bb4e1dceacff24"
     },
     {
       "path": "lib/screens/background_settings_screen.dart",
