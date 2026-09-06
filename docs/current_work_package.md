@@ -1,6 +1,7 @@
 # Current Work Package: WP28 return-case principal transaction
 
-WP28 is **COMPLETE LOCALLY; EXACT-HEAD GITHUB CHECKS PENDING**. The booking
+WP28 is **COMPLETE LOCALLY AND ON GITHUB** at implementation HEAD
+`ffaef68daabd6f34487044f5307e92129d3b84a6`. The booking
 return-case and issue-report screen now capture one immutable principal/session
 owner and action epoch before the first await. Evidence upload, hard V5.2
 return-case creation, soft authenticated booking reports, local/QA writes,
@@ -19,7 +20,10 @@ checks, all 2,341 repository tool tests, the repository secret scan and the
 complete technical regression pass. The normal local gate first stopped on an
 unavailable historical private archive; the established metadata-only branch
 then completed the unchanged gate through Flutter, Web/Wasm, loopback and
-Android minSdk 24. This is not archive, Store or device acceptance. See
+Android minSdk 24. Exact-head GitHub Regression `34036280507` and CodeQL
+`34036280537` pass, independent clean-checkout reproducibility passes, and
+repository-wide open code-scanning alerts are zero. PR #7 remains Draft, open,
+mergeable and unmerged. This is not archive, Store or device acceptance. See
 `docs/operations/WP28_RETURN_CASE_PRINCIPAL_TRANSACTION_2026-09-06.md`.
 
 No Android candidate, Firebase Console, provider, payment, Google Play,

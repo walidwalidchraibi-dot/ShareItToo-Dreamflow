@@ -59,7 +59,14 @@ current navigator stack and therefore cannot close a newer B dialog or route.
   build with minSdk 24.
 - Repository secret scan: passed; no high-confidence secret in history or the
   working tree.
-- Exact-head GitHub Regression and CodeQL: pending the implementation push.
+- Exact implementation HEAD:
+  `ffaef68daabd6f34487044f5307e92129d3b84a6`.
+- Exact-head GitHub Regression `34036280507`: passed all four required jobs,
+  including the independent clean-checkout reproducibility proof.
+- Exact-head GitHub CodeQL `34036280537`: passed. Repository-wide open
+  code-scanning alerts: zero.
+- PR #7 remains Draft, open, mergeable and unmerged at the exact
+  implementation HEAD.
 
 The initial full local run correctly stopped at the unavailable private
 candidate archive. The unchanged complete gate then passed through its

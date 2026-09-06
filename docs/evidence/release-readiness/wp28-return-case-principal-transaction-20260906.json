@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
   "kind": "sit-wp28-return-case-principal-transaction",
-  "status": "complete-local-github-pending",
+  "status": "complete-local-and-github",
   "capturedAt": "2026-09-06T13:28:41Z",
   "workPackage": "WP28",
   "source": {
     "branch": "codex/master-workflow-20260808",
-    "implementationBase": "7674d580cad29c8260c1b3c1ca7476fb7697a15b"
+    "implementationBase": "7674d580cad29c8260c1b3c1ca7476fb7697a15b",
+    "implementationHead": "ffaef68daabd6f34487044f5307e92129d3b84a6"
   },
   "scope": {
     "ownerBoundReturnCase": true,
@@ -40,8 +41,11 @@
     "completeToolFailed": 0,
     "fullTechnicalRegression": "passed-local-metadata-only-for-private-archives",
     "repositorySecretScan": "passed-no-high-confidence-secret",
-    "githubRegression": "pending",
-    "githubCodeql": "pending"
+    "githubRegression": "passed-34036280507",
+    "githubRegressionRequiredJobsPassed": 4,
+    "githubCleanCheckoutReproducibility": "passed",
+    "githubCodeql": "passed-34036280537",
+    "repositoryOpenCodeScanningAlerts": 0
   },
   "ratchets": {
     "reason": "return-case-owner-transaction-and-dependent-source-binding-change",
@@ -69,9 +73,5 @@
     "containsToken": false,
     "containsPrivateFilesystemPath": false
   },
-  "remaining": [
-    "exact-head-github-regression",
-    "exact-head-github-codeql",
-    "open-code-scanning-alert-readback"
-  ]
+  "remaining": []
 }
