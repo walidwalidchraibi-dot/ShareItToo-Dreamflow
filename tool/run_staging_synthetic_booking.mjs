@@ -697,6 +697,100 @@ export async function inspectSyntheticBookingRoleVisibility({
   });
 }
 
+export async function inspectSyntheticReturnCaseRoleTruth({
+  vaultFile,
+  expectedEvidenceCount = 1,
+  expectedContestedAuthorizedMinor = 100,
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  if (!Number.isSafeInteger(expectedEvidenceCount) || expectedEvidenceCount < 1) {
+    fail('The expected synthetic return-case evidence count is invalid.');
+  }
+  if (!Number.isSafeInteger(expectedContestedAuthorizedMinor)
+      || expectedContestedAuthorizedMinor < 1) {
+    fail('The expected synthetic return-case amount is invalid.');
+  }
+  const { vault, accounts } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (!fixture
+      || fixture.workflowStatus !== 'completed'
+      || fixture.paymentMode !== 'memory'
+      || fixture.paymentEndpointCalled !== false
+      || fixture.stripeLivemode !== false) {
+    fail('The synthetic booking is not ready for return-case truth inspection.');
+  }
+  const projections = [];
+  for (const role of ['owner', 'renter']) {
+    const token = await login(fetchImpl, accounts.get(role));
+    const result = await request(fetchImpl, '/rental-requests', { token });
+    const matches = Array.isArray(result?.requests)
+      ? result.requests.filter((entry) => entry?.id === fixture.bookingId)
+      : [];
+    if (matches.length !== 1) {
+      fail(`The synthetic return case is not exactly once visible to the ${role} role.`);
+    }
+    projections.push(matches[0]);
+  }
+  const exactFields = [
+    'workflowStatus',
+    'needsReview',
+    'reviewSource',
+    'returnState',
+    'returnT0',
+    'returnReportDeadline',
+    'returnCaseOpenedAt',
+    'contestedAuthorizedMinor',
+    'undisputedReleasableMinor',
+    'additionalChargeMinor',
+  ];
+  for (const field of exactFields) {
+    if (JSON.stringify(projections[0]?.[field]) !== JSON.stringify(projections[1]?.[field])) {
+      fail('The participant return-case projections do not agree on server-owned truth.');
+    }
+  }
+  const [truth] = projections;
+  const t0 = Date.parse(truth.returnT0);
+  const openedAt = Date.parse(truth.returnCaseOpenedAt);
+  const reportDeadline = Date.parse(truth.returnReportDeadline);
+  const evidence = truth.reviewEvidenceReferences;
+  if (truth.workflowStatus !== 'completed'
+      || truth.needsReview !== true
+      || truth.reviewSource !== 'v52_return_case'
+      || truth.returnState !== 'needsReview'
+      || !Number.isFinite(t0)
+      || !Number.isFinite(openedAt)
+      || !Number.isFinite(reportDeadline)
+      || openedAt < t0
+      || openedAt > reportDeadline
+      || reportDeadline - t0 !== 48 * 60 * 60 * 1000
+      || !Array.isArray(evidence)
+      || evidence.length !== expectedEvidenceCount
+      || evidence.some((entry) => !/^upload:[0-9a-f-]{36}$/iu.test(String(entry)))
+      || truth.contestedAuthorizedMinor !== expectedContestedAuthorizedMinor
+      || !Number.isSafeInteger(truth.undisputedReleasableMinor)
+      || truth.undisputedReleasableMinor < 0
+      || truth.additionalChargeMinor !== 0) {
+    fail('The synthetic return-case server truth is incomplete or unsafe.');
+  }
+  return Object.freeze({
+    status: 'synthetic-return-case-role-truth-passed',
+    participantProjections: 2,
+    workflowStatus: 'completed',
+    needsReview: true,
+    returnState: 'needsReview',
+    evidenceCount: expectedEvidenceCount,
+    contestedAuthorizedMinor: expectedContestedAuthorizedMinor,
+    additionalChargeMinor: 0,
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
 export async function runSyntheticRoleBookingLifecycle({
   vaultFile,
   imagePath = resolve(repositoryRoot, 'assets/images/shareittoo_app_icon_master.png'),

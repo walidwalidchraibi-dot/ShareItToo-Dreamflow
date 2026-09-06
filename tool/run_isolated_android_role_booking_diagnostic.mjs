@@ -71,7 +71,10 @@ function readProtectedVault(vaultFile) {
   }
   const fixture = vault.syntheticBooking;
   const readyWithoutBooking = fixture === undefined
-    && vault.status === 'fixture-verified-ready-for-login';
+    && [
+      'fixture-verified-ready-for-login',
+      'email-link-verified-ready-for-login',
+    ].includes(vault.status);
   const reusableNonBinding = reusableNonBindingDiagnosticContext(vault);
   const safeActiveBooking = fixture !== undefined
     && ['accepted', 'active'].includes(fixture.workflowStatus)
@@ -88,8 +91,10 @@ export async function runIsolatedAndroidRoleBookingDiagnostic({
   vaultFile,
   runner,
   retirementRunner = retireSyntheticBookingFixture,
+  expectedStatus = 'passed-bounded-synthetic-role-booking-diagnostic',
 }) {
   const protectedVaultFile = resolve(nonEmptyString(vaultFile, 'vaultFile'));
+  const exactExpectedStatus = nonEmptyString(expectedStatus, 'expectedStatus');
   const {
     raw: originalRaw,
     vault,
@@ -157,7 +162,7 @@ export async function runIsolatedAndroidRoleBookingDiagnostic({
     throw primaryFailure;
   }
   if (retirementFailure !== null) throw retirementFailure;
-  if (result?.status !== 'passed-bounded-synthetic-role-booking-diagnostic') {
+  if (result?.status !== exactExpectedStatus) {
     fail('The isolated Android role-booking diagnostic did not pass safely.');
   }
   return {

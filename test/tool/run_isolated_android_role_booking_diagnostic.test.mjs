@@ -13,7 +13,11 @@ function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
-function fixture({ withoutBooking = false, reusableNonBinding = false } = {}) {
+function fixture({
+  withoutBooking = false,
+  reusableNonBinding = false,
+  loginReadyStatus = 'fixture-verified-ready-for-login',
+} = {}) {
   const root = tempFixtures.makeSync('sit-protected-role-booking-');
   chmodSync(root, 0o700);
   const vaultFile = resolve(root, 'accounts.json');
@@ -24,7 +28,7 @@ function fixture({ withoutBooking = false, reusableNonBinding = false } = {}) {
     status: reusableNonBinding
       ? 'non-binding-simulation-active'
       : withoutBooking
-        ? 'fixture-verified-ready-for-login'
+        ? loginReadyStatus
         : 'synthetic-booking-active',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
@@ -130,6 +134,52 @@ test('accepts a login-ready protected vault without an active booking', async ()
 
   assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
   assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});
+
+test('accepts the email-link-verified protected vault without weakening isolation', async () => {
+  const vaultFile = fixture({
+    withoutBooking: true,
+    loginReadyStatus: 'email-link-verified-ready-for-login',
+  });
+  const before = readFileSync(vaultFile, 'utf8');
+  let projected;
+  const result = await runIsolatedAndroidRoleBookingDiagnostic({
+    vaultFile,
+    runner: async (isolatedVaultFile) => {
+      projected = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      return { status: 'passed-bounded-synthetic-role-booking-diagnostic' };
+    },
+    retirementRunner: async () => ({
+      status: 'synthetic-booking-retired',
+      bookingCompleted: true,
+      listingPaused: true,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+  });
+
+  assert.equal(projected.status, 'fixture-verified-ready-for-login');
+  assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});
+
+test('accepts a distinct caller-owned diagnostic success contract', async () => {
+  const vaultFile = fixture({ withoutBooking: true });
+  const result = await runIsolatedAndroidRoleBookingDiagnostic({
+    vaultFile,
+    expectedStatus: 'passed-pixel-v52-return-case-lifecycle',
+    runner: async () => ({ status: 'passed-pixel-v52-return-case-lifecycle' }),
+    retirementRunner: async () => ({
+      status: 'synthetic-booking-retired',
+      bookingCompleted: true,
+      listingPaused: true,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+  });
+
+  assert.equal(result.status, 'passed-pixel-v52-return-case-lifecycle');
+  assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
 });
 
 test('reuses a verified non-binding Staging vault through an isolated clean projection', async () => {

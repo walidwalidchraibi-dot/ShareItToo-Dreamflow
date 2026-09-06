@@ -9,6 +9,7 @@ import {
   archiveCompletedSyntheticBookingFixture,
   archiveTerminalSyntheticBookingFixture,
   createSyntheticBookingFixture,
+  inspectSyntheticReturnCaseRoleTruth,
   prepareSyntheticBookingThread,
   reconcileSyntheticBookingFixture,
   retireSyntheticBookingFixture,
@@ -338,6 +339,92 @@ test('runs the complete role-visible lifecycle without returning private fixture
   assert.equal(result.containsSecrets, false);
   assert.equal(result.containsFixtureIdentifiers, false);
   assert.equal(calls.some(({ path }) => path.includes('payment')), false);
+});
+
+test('requires equal owner and renter truth for one server-confirmed return case', async () => {
+  const fixture = vaultFixture();
+  const vault = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  vault.status = 'synthetic-booking-completed';
+  vault.syntheticBooking = {
+    schemaVersion: 1,
+    listingId: 'private-listing-id',
+    bookingId: 'private-booking-id',
+    workflowStatus: 'completed',
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+  };
+  writeFileSync(fixture.vaultFile, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(fixture.vaultFile, 0o600);
+  const truth = {
+    id: 'private-booking-id',
+    workflowStatus: 'completed',
+    needsReview: true,
+    reviewSource: 'v52_return_case',
+    reviewEvidenceReferences: ['upload:00000000-0000-4000-8000-000000000001'],
+    returnState: 'needsReview',
+    returnT0: '2026-09-06T10:00:00.000Z',
+    returnCaseOpenedAt: '2026-09-06T10:05:00.000Z',
+    returnReportDeadline: '2026-09-08T10:00:00.000Z',
+    contestedAuthorizedMinor: 100,
+    undisputedReleasableMinor: 3900,
+    additionalChargeMinor: 0,
+  };
+  const result = await inspectSyntheticReturnCaseRoleTruth({
+    vaultFile: fixture.vaultFile,
+    fetchImpl: async (url) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      if (path === '/auth/login') {
+        return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      }
+      if (path === '/rental-requests') return response(200, { requests: [truth] });
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+
+  assert.equal(result.status, 'synthetic-return-case-role-truth-passed');
+  assert.equal(result.participantProjections, 2);
+  assert.equal(result.needsReview, true);
+  assert.equal(result.additionalChargeMinor, 0);
+  assert.equal(JSON.stringify(result).includes('private-booking-id'), false);
+});
+
+test('fails closed when participant return-case projections disagree', async () => {
+  const fixture = vaultFixture();
+  const vault = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  vault.status = 'synthetic-booking-completed';
+  vault.syntheticBooking = {
+    schemaVersion: 1,
+    listingId: 'private-listing-id',
+    bookingId: 'private-booking-id',
+    workflowStatus: 'completed',
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+  };
+  writeFileSync(fixture.vaultFile, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+  let reads = 0;
+  await assert.rejects(
+    inspectSyntheticReturnCaseRoleTruth({
+      vaultFile: fixture.vaultFile,
+      fetchImpl: async (url) => {
+        const path = new URL(url).pathname.replace('/api/v1', '');
+        if (path === '/auth/login') {
+          return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+        }
+        if (path === '/rental-requests') {
+          reads += 1;
+          return response(200, { requests: [{
+            id: 'private-booking-id',
+            workflowStatus: 'completed',
+            needsReview: reads === 1,
+          }] });
+        }
+        throw new Error(`Unexpected path ${path}`);
+      },
+    }),
+    /do not agree on server-owned truth/,
+  );
 });
 
 test('recovers one already-created requested fixture without creating a duplicate', async () => {
