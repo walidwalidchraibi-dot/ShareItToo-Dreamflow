@@ -6,6 +6,7 @@ import {
   privacyExportSinkManifest,
   privacyExportPasswordField,
   privacyExportPasswordDialogVisible,
+  parsePrivacyExportSinkReceipt,
   privacyExportSinkFileSize,
   validatePrivacyExportPayload,
   validatePrivacyExportSinkSources,
@@ -118,6 +119,29 @@ test('temporary sink requires an exact bounded file size before reading bytes', 
     () => privacyExportSinkFileSize('1', '../receipt.json'),
     /not allowlisted/u,
   );
+});
+
+test('temporary sink receipt is exact and bounded for chooser or direct delivery', () => {
+  const receipt = Buffer.from(JSON.stringify({
+    status: 'received',
+    bytes: 1234,
+    sha256: 'a'.repeat(64),
+  }));
+  assert.deepEqual(parsePrivacyExportSinkReceipt(receipt), {
+    status: 'received',
+    bytes: 1234,
+    sha256: 'a'.repeat(64),
+  });
+  for (const invalid of [
+    Buffer.from('not-json'),
+    Buffer.from(JSON.stringify({ status: 'received', bytes: 0, sha256: 'a'.repeat(64) })),
+    Buffer.from(JSON.stringify({ status: 'received', bytes: 1, sha256: 'invalid' })),
+    Buffer.from(JSON.stringify({
+      status: 'received', bytes: 1, sha256: 'a'.repeat(64), extra: true,
+    })),
+  ]) {
+    assert.throws(() => parsePrivacyExportSinkReceipt(invalid), /receipt is invalid/u);
+  }
 });
 
 test('accepts an exact owner-bound export with all six local sections', () => {

@@ -651,12 +651,9 @@ function pullSinkFile(commandRunner, adbPath, device, name) {
 async function waitForSinkReceipt({ commandRunner, adbPath, device, wait }) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      const receipt = JSON.parse(pullSinkFile(
+      return parsePrivacyExportSinkReceipt(pullSinkFile(
         commandRunner, adbPath, device, 'receipt.json',
-      ).toString('utf8'));
-      if (receipt.status === 'received'
-          && Number.isInteger(receipt.bytes) && receipt.bytes > 0
-          && /^[a-f0-9]{64}$/u.test(receipt.sha256)) return receipt;
+      ));
     } catch {
       // The exact local receipt is not durable yet.
     }
@@ -665,34 +662,57 @@ async function waitForSinkReceipt({ commandRunner, adbPath, device, wait }) {
   fail('The temporary privacy export sink did not receive an exact payload.');
 }
 
+export function parsePrivacyExportSinkReceipt(bytes) {
+  let receipt;
+  try {
+    receipt = JSON.parse(Buffer.from(bytes).toString('utf8'));
+  } catch {
+    fail('The temporary privacy export sink receipt is invalid.');
+  }
+  if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt)
+      || Object.keys(receipt).toSorted().join(',') !== 'bytes,sha256,status'
+      || receipt.status !== 'received'
+      || !Number.isInteger(receipt.bytes) || receipt.bytes < 1
+      || receipt.bytes > 32 * 1024 * 1024
+      || typeof receipt.sha256 !== 'string'
+      || !/^[a-f0-9]{64}$/u.test(receipt.sha256)) {
+    fail('The temporary privacy export sink receipt is invalid.');
+  }
+  return Object.freeze(receipt);
+}
+
+function currentSinkReceipt(commandRunner, adbPath, device) {
+  try {
+    return parsePrivacyExportSinkReceipt(pullSinkFile(
+      commandRunner, adbPath, device, 'receipt.json',
+    ));
+  } catch {
+    return null;
+  }
+}
+
 async function selectSinkFromChooser({ commandRunner, adbPath, device, wait }) {
-  let hierarchy = await waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-    label: 'Android privacy export chooser',
-    predicate: (value) => value.includes('com.android.intentresolver')
-      || currentHeadAndroidNamedNodes(value, sinkLabel).length > 0,
-  });
-  if (currentHeadAndroidNamedNodes(hierarchy, sinkLabel).length === 0) {
+  let expanded = false;
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    await wait(500);
+    if (currentSinkReceipt(commandRunner, adbPath, device) !== null) {
+      return Object.freeze({ delivery: 'direct-single-handler' });
+    }
+    const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    if (currentHeadAndroidNamedNodes(hierarchy, sinkLabel).length > 0) {
+      tapNamed(commandRunner, adbPath, device, hierarchy, sinkLabel);
+      return Object.freeze({ delivery: 'chooser-selected' });
+    }
     const moreLabels = ['Mehr', 'Weitere', 'More'];
     const more = moreLabels.find(
       (label) => currentHeadAndroidNamedNodes(hierarchy, label).length > 0,
     );
-    if (more !== undefined) {
+    if (!expanded && more !== undefined) {
       tapNamed(commandRunner, adbPath, device, hierarchy, more);
-      hierarchy = await waitForHierarchy({
-        commandRunner,
-        adbPath,
-        device,
-        wait,
-        label: 'expanded Android privacy export chooser',
-        predicate: (value) => currentHeadAndroidNamedNodes(value, sinkLabel).length > 0,
-      });
+      expanded = true;
     }
   }
-  tapNamed(commandRunner, adbPath, device, hierarchy, sinkLabel);
+  fail('The sanitized Android privacy export chooser or direct receiver did not appear.');
 }
 
 async function stagingPrincipal(fetchImpl, account) {
@@ -831,7 +851,9 @@ export async function runAndroidPrivacyExportPayload({
       wait,
       password: owner.password,
     });
-    await selectSinkFromChooser({ commandRunner, adbPath, device, wait });
+    const shareDelivery = await selectSinkFromChooser({
+      commandRunner, adbPath, device, wait,
+    });
     const receipt = await waitForSinkReceipt({ commandRunner, adbPath, device, wait });
     const bytes = pullSinkFile(commandRunner, adbPath, device, exportFileName);
     const payload = validatePrivacyExportPayload({
@@ -873,6 +895,7 @@ export async function runAndroidPrivacyExportPayload({
       sink: {
         applicationId: sinkApplicationId,
         apkSha256: sink.apkSha256,
+        delivery: shareDelivery.delivery,
         internetPermission: false,
         externalStoragePermission: false,
         backupEnabled: false,
