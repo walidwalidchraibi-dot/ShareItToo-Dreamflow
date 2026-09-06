@@ -5661,6 +5661,32 @@ closure-head local regression and exact GitHub Regression/CodeQL remain the
 only open WP20 checks. No OnePlus, Store, Production, public registration,
 payment, provider, Firebase-console, Cloud/VPS/DNS or PR-merge boundary moved.
 
+## WP26 Android build-host/toolchain debt closure (2026-09-06)
+
+WP26 closes the historical host-capacity, incompatible Kotlin-metadata and SDK
+XML reader debt. Candidate `2026090402` supplied the required uninterrupted
+complete-gate-to-signed-archive lifecycle without a purge or weakened gate;
+current candidate `1.0.0+2026090606` adds a later complete local regression,
+normal signed archive, independent validation and exact GitHub Regression
+`34022203378`/CodeQL `34022203376`. The release path permanently rejects the
+known diagnostics even on exit zero. Twenty focused checks pass, and current
+macOS/dedicated APFS capacity remains above the fixed 5-GiB floor. Historical
+failed attempts remain failed evidence. No product, candidate, external system
+or device state changed. See
+`docs/operations/WP26_ANDROID_BUILD_HOST_TOOLCHAIN_DEBT_CLOSURE_2026-09-06.md`.
+
+## Active WP25 SMS closure (2026-09-06)
+
+Exact candidate `1.0.0+2026090606` has a green phone-provider preflight and one
+fresh SMS challenge. Invalid-code rejection passed; no resend occurred. Fifty-
+four focused result-semantic, retry-observer and Account-A-to-B ownership checks
+pass. Valid confirmation, cold restart, cleanup and owner restoration await the
+private six-digit code, so the Pixel remains on the owned verification sheet.
+Fresh read-only Stripe and Drive checks did not unlock their separate gates:
+five truthful owner profile/terms requirements remain overdue with zero Stripe
+connected accounts/webhooks, and no approved V5.2 legal file newer than 18.08.
+was found. No provider, Drive, payment, legal or device mutation occurred.
+
 ## WP24 CodeQL closure (2026-09-06)
 
 WP24 closes the ten exact open PR-merge CodeQL alerts at implementation HEAD

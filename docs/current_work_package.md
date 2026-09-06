@@ -1,4 +1,26 @@
-# Current Work Package: WP24 CodeQL alert triage and remediation
+# Current Work Package: WP25 current-candidate SMS verification closure
+
+WP25 is **ACTIVE / OWNER CODE PENDING** for exact signed Pixel candidate
+`1.0.0+2026090606`, source
+`637c80d0086f7ad1aa08fe5ba1df5c1624b3e545`. Backend/provider preflight is
+green, exactly one fresh SMS challenge was requested, invalid-code rejection
+passed and no resend occurred. Valid confirmation, cold restart, exact phone
+cleanup and protected-owner restoration await only the private six-digit code.
+Fifty-four focused UI, result-semantic, observer and principal/epoch checks
+pass. The Pixel surface is not disturbed while that challenge is pending.
+
+Independent read-only work confirmed that Stripe test mode remains blocked by
+the same five overdue truthful owner-profile/terms requirements, with zero
+connected accounts and webhook endpoints. Drive contains no newer approved
+V5.2 legal material than the 18.08. specification/legal folder. Neither branch
+was mutated.
+
+WP26 separately closes the historical Android build-host/Kotlin/SDK-XML debt
+using the already-proven uninterrupted signed lifecycle, exact GitHub
+reproduction, current capacity and 20 permanent fail-closed checks. See
+`docs/operations/WP26_ANDROID_BUILD_HOST_TOOLCHAIN_DEBT_CLOSURE_2026-09-06.md`.
+
+# Previous Work Package: WP24 CodeQL alert triage and remediation
 
 WP24 is **COMPLETE LOCALLY AND ON GITHUB** at implementation HEAD
 `3ab44472885dab14e88808e3684c1f13cf0c5cc6`. Six original alerts and one
