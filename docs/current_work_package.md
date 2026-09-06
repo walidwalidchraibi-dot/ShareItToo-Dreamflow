@@ -1,4 +1,26 @@
-# Current Work Package: WP32 Pixel V5.2 return-case physical lane
+# Current Work Package: WP33 Pixel privacy-export payload
+
+WP33 is **PREPARED FOR CANDIDATE SOURCE FREEZE**. Source HEAD
+`f48ed611e851a7ea208bc2b0b13f5cd2ee6225e5` corrects the Android share cache
+retention finding with exact-scope cleanup at cold start and safe resume. The
+fix and dependent evidence ratchets pass four focused Flutter tests, all 2,368
+tool tests and analyzer.
+
+Candidate `1.0.0+2026090609` is reserved because installed candidate
+`1.0.0+2026090608` does not contain the fix. After this reservation is
+committed and pushed, the remaining ordered work is complete local regression,
+independent clean-checkout reproducibility, signed owner-private archive
+creation and verification, a strictly newer Pixel replace update, and one
+rate-limit-respecting physical export run proving wrong-password rejection,
+correct payload structure, principal ownership and credential absence.
+
+The existing WP32 V5.2 legal hold remains unchanged and does not block this
+non-contract privacy proof. No Store, Production, payment/provider, Firebase
+Console, backend deployment, Cloud/VPS/DNS, OnePlus or PR-merge mutation is in
+scope. See
+`docs/operations/WP33_PIXEL_PRIVACY_EXPORT_CANDIDATE_2026090609_PREPARATION.md`.
+
+# Previous Work Package: WP32 Pixel V5.2 return-case physical lane
 
 WP32 is **IMPLEMENTATION COMPLETE; PHYSICAL SUCCESS BLOCKED BY THE EXISTING
 V5.2 LEGAL-SNAPSHOT HOLD** at implementation HEAD

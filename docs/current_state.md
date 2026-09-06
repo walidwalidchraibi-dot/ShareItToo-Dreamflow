@@ -1,5 +1,22 @@
 # ShareItToo Current State
 
+WP33 has corrected the retained Android privacy-export cache finding at source
+HEAD `f48ed611e851a7ea208bc2b0b13f5cd2ee6225e5`. The app now creates export
+files in an exact controlled private directory, removes its source after the
+native share operation returns, and purges only exact retained privacy-export
+copies on cold start and safe resume. Unrelated cache files are preserved.
+Four focused Flutter tests, 2,368 tool tests, all protected-source ratchets and
+the analyzer pass.
+
+Because installed candidate `1.0.0+2026090608` predates that fix, WP33 now
+reserves distinct Internal Staging candidate `1.0.0+2026090609`. Complete
+regression, clean-checkout reproducibility, signed private archive creation,
+strictly newer Pixel replacement and the physical wrong-password/correct-
+export payload proof remain open until the reservation is frozen and verified.
+No Store, Production, payment/provider, Firebase Console, backend deployment,
+Cloud/VPS/DNS, OnePlus or PR-merge boundary changes in this preparation step.
+See `docs/operations/WP33_PIXEL_PRIVACY_EXPORT_CANDIDATE_2026090609_PREPARATION.md`.
+
 WP32 prepares the exact physical Pixel V5.2 return-case journey at
 implementation HEAD `dd0123094188799d433e885448337f5175cbd49d` without
 changing the WP31 candidate. The isolated runner requires both participant
