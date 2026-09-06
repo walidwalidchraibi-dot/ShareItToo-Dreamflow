@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 import { bookingLocalDate } from './booking_address_reveal_domain.js';
 
 const allowedWorkflowStatuses = Object.freeze([
@@ -63,6 +65,26 @@ export function normalizeBookingFlowTimeState(payload) {
   };
 }
 
+export function bookingFlowTimeSystemMessage({
+  action,
+  segment,
+  state,
+  changed = false,
+}) {
+  const prefix = prefixForSegment(segment);
+  const label = safeText(state?.[`${prefix}TimeRequested`], 120);
+  if (!label) throw new BookingFlowTimeError(409, 'flow_time_proposal_missing');
+  const flowLabel = segment === 'return' ? 'Rückgabezeit' : 'Übergabezeit';
+  const icon = segment === 'return' ? '🔄' : '📦';
+  if (action === 'propose') {
+    return `${icon} ${flowLabel} ${changed ? 'geändert' : 'angefragt'}: ${label} Uhr`;
+  }
+  if (action === 'confirm') {
+    return `${icon} ${flowLabel} bestätigt: ${label} Uhr`;
+  }
+  throw new BookingFlowTimeError(400, 'invalid_flow_time_action');
+}
+
 export function applyBookingFlowTimeAction({
   payload,
   actorId,
@@ -82,6 +104,7 @@ export function applyBookingFlowTimeAction({
   const segment = safeText(input.segment, 16);
   const prefix = prefixForSegment(segment);
   const state = normalizeBookingFlowTimeState(payload);
+  const previousRequested = safeText(state[`${prefix}TimeRequested`], 120);
 
   if (action === 'propose') {
     const label = safeText(input.label, 120);
@@ -123,6 +146,12 @@ export function applyBookingFlowTimeAction({
     state,
     eventType: `booking.flow_time.${action}`,
     eventMetadata: { segment, action, flowTimeRevision: state.flowTimeRevision },
+    systemMessage: bookingFlowTimeSystemMessage({
+      action,
+      segment,
+      state,
+      changed: action === 'propose' && previousRequested.length > 0,
+    }),
   };
 }
 
@@ -191,6 +220,19 @@ export async function updateBookingFlowTime(client, {
     return { state: normalizeBookingFlowTimeState(row.payload), replayed: true, participantUserIds: [row.owner_id, row.renter_id] };
   }
 
+  const threadResult = await client.query(
+    `SELECT id
+     FROM message_threads
+     WHERE booking_id = $1 OR request_id = $1
+     ORDER BY CASE WHEN booking_id = $1 THEN 0 ELSE 1 END
+     LIMIT 1
+     FOR UPDATE`,
+    [bookingId],
+  );
+  if (!threadResult.rowCount) {
+    throw new BookingFlowTimeError(409, 'booking_chat_unavailable');
+  }
+
   const applied = applyBookingFlowTimeAction({
     payload: row.payload,
     actorId: actor.id,
@@ -211,6 +253,23 @@ export async function updateBookingFlowTime(client, {
        booking_id, actor_id, event_type, idempotency_key, metadata
      ) VALUES ($1, $2, $3, $4, $5::jsonb)`,
     [bookingId, actor.id, applied.eventType, eventKey, JSON.stringify(applied.eventMetadata)],
+  );
+  const messageId = `message_${crypto.randomUUID()}`;
+  await client.query(
+    `INSERT INTO messages (
+       id, thread_id, sender_id, sender_type, body, is_read,
+       client_message_id, message_version, created_at
+     ) VALUES ($1, $2, NULL, 'system', $3, true, $4, 1, now())`,
+    [
+      messageId,
+      threadResult.rows[0].id,
+      applied.systemMessage,
+      `system:flow-time:${eventKey}`,
+    ],
+  );
+  await client.query(
+    'UPDATE message_threads SET last_message_at = now() WHERE id = $1',
+    [threadResult.rows[0].id],
   );
   return {
     state: applied.state,
