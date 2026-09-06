@@ -1,23 +1,36 @@
 # Current Work Package: WP33 Pixel privacy-export payload
 
-WP33 is **PREPARED FOR CANDIDATE SOURCE FREEZE**. Source HEAD
-`f48ed611e851a7ea208bc2b0b13f5cd2ee6225e5` corrects the Android share cache
-retention finding with exact-scope cleanup at cold start and safe resume. The
-fix and dependent evidence ratchets pass four focused Flutter tests, all 2,368
-tool tests and analyzer.
+WP33 is **COMPLETE ON THE PHYSICAL PIXEL, LOCALLY AND ON GITHUB**. Candidate
+`1.0.0+2026090609` at source
+`dbcb8c79739ca9441a5e13b7b999346665a5dc96` is installed with matching bytes
+and certificate and no later mobile-source drift.
 
-Candidate `1.0.0+2026090609` is reserved because installed candidate
-`1.0.0+2026090608` does not contain the fix. After this reservation is
-committed and pushed, the remaining ordered work is complete local regression,
-independent clean-checkout reproducibility, signed owner-private archive
-creation and verification, a strictly newer Pixel replace update, and one
-rate-limit-respecting physical export run proving wrong-password rejection,
-correct payload structure, principal ownership and credential absence.
+The rate-limit-respecting real Pixel run proves wrong-password rejection,
+correct-password acceptance, exact current-owner binding, all six local export
+sections, permitted shared-record counterparty references and zero forbidden
+credential keys. Raw export and identities were not retained. The no-network
+receiver, raw data/build and probe sessions are removed, the protected vault
+is unchanged and the exact owner remains signed in.
 
-The existing WP32 V5.2 legal hold remains unchanged and does not block this
-non-contract privacy proof. No Store, Production, payment/provider, Firebase
-Console, backend deployment, Cloud/VPS/DNS, OnePlus or PR-merge mutation is in
-scope. See
+All 2,369 tool tests pass. Candidate full local regression and clean
+reproducibility pass with byte-identical 794-entry Android builds. Exact
+technical HEAD `a98786f7fd66ab40edabb2ae7ccd81fe48f70fec` has green GitHub
+Regression `34065599328`, CodeQL `34065599331` and zero open alerts. PR #7
+remains Draft and unmerged. See
+`docs/operations/WP33_PIXEL_PRIVACY_EXPORT_PAYLOAD_2026-09-07.md`.
+
+The next package should first refresh the complete Pixel acceptance and
+operations checkpoint. Its leading newly observed risk is Staging readiness
+HTTP 503/degraded from one ordinary overdue support next-update; database,
+mail, watchdog freshness, P0 ownership and critical deadlines are healthy.
+That risk remains separate from the completed privacy export. No broad new
+hardening begins until the checkpoint has ranked all remaining gaps.
+
+# Previous Work Package: WP33 candidate preparation
+
+Source HEAD `f48ed611e851a7ea208bc2b0b13f5cd2ee6225e5` corrected the Android
+share-cache retention finding and reserved candidate `1.0.0+2026090609` for
+the now-completed physical proof. See
 `docs/operations/WP33_PIXEL_PRIVACY_EXPORT_CANDIDATE_2026090609_PREPARATION.md`.
 
 # Previous Work Package: WP32 Pixel V5.2 return-case physical lane

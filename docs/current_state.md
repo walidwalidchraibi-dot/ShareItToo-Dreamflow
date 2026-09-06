@@ -1,21 +1,40 @@
 # ShareItToo Current State
 
-WP33 has corrected the retained Android privacy-export cache finding at source
-HEAD `f48ed611e851a7ea208bc2b0b13f5cd2ee6225e5`. The app now creates export
-files in an exact controlled private directory, removes its source after the
-native share operation returns, and purges only exact retained privacy-export
-copies on cold start and safe resume. Unrelated cache files are preserved.
-Four focused Flutter tests, 2,368 tool tests, all protected-source ratchets and
-the analyzer pass.
+WP33 is **COMPLETE ON THE PHYSICAL PIXEL, LOCALLY AND ON GITHUB**. Exact
+Internal Staging candidate `1.0.0+2026090609` remains bound to source HEAD
+`dbcb8c79739ca9441a5e13b7b999346665a5dc96`; installed APK bytes and canonical
+certificate match, preserved Pixel application data is confirmed and no later
+mobile source drift exists.
 
-Because installed candidate `1.0.0+2026090608` predates that fix, WP33 now
-reserves distinct Internal Staging candidate `1.0.0+2026090609`. Complete
-regression, clean-checkout reproducibility, signed private archive creation,
-strictly newer Pixel replacement and the physical wrong-password/correct-
-export payload proof remain open until the reservation is frozen and verified.
-No Store, Production, payment/provider, Firebase Console, backend deployment,
-Cloud/VPS/DNS, OnePlus or PR-merge boundary changes in this preparation step.
-See `docs/operations/WP33_PIXEL_PRIVACY_EXPORT_CANDIDATE_2026090609_PREPARATION.md`.
+The real Pixel UI rejects a generated wrong password before sharing and accepts
+the correct protected credential. The 1,552,413-byte export is exactly owner
+bound, contains all six required local sections, excludes the foreign email
+and permits a foreign opaque counterparty only in a shared operational record.
+No credential-shaped field is present. Raw export, identities, credentials and
+device identifiers were not printed or retained. The no-network temporary
+receiver, its data/build and both probe sessions are removed, the protected
+vault is unchanged and the exact owner remains signed in.
+
+The Android share-cache retention finding is fixed with exact-scope cleanup.
+The validator's only password-shaped non-secret field is now a strict typed
+allowance for `data.account.password_changed_at`; all other credential/session
+keys remain forbidden. The historical synthetic test occurrence is recorded
+in the immutable-history baseline without rewriting history, and evidence
+hashes are consistent through RW20.
+
+All 2,369 current tool tests pass, the secret scan has zero unexpected finding,
+the candidate's full local/clean proof passes with two byte-identical 794-entry
+Android builds, GitHub Regression `34065599328` and CodeQL `34065599331` pass,
+and open code-scanning alerts are zero. PR #7 remains Draft, open, mergeable
+and unmerged. See
+`docs/operations/WP33_PIXEL_PRIVACY_EXPORT_PAYLOAD_2026-09-07.md`.
+
+A separate read-only Staging readiness check is degraded only because one
+ordinary support next-update deadline is overdue; database, mail, watchdog,
+P0 ownership and critical deadlines are healthy. This is not a WP33 failure
+and is the leading input to the next acceptance/operations checkpoint. No
+Store, Production, payment/provider, Firebase Console, backend deployment,
+Cloud/VPS/DNS, OnePlus or PR-merge boundary changed.
 
 WP32 prepares the exact physical Pixel V5.2 return-case journey at
 implementation HEAD `dd0123094188799d433e885448337f5175cbd49d` without
