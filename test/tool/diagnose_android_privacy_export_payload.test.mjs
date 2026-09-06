@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   privacyExportSinkJava,
   privacyExportSinkManifest,
+  privacyExportPasswordDialogVisible,
   validatePrivacyExportPayload,
   validatePrivacyExportSinkSources,
 } from '../../tool/diagnose_android_privacy_export_payload.mjs';
@@ -31,6 +32,20 @@ const identities = Object.freeze({
   ownerEmail: 'owner@example.invalid',
   foreignUserId: 'renter-id',
   foreignEmail: 'renter@example.invalid',
+});
+
+function androidNode({ text = '', contentDescription = '' }) {
+  return `<node text="${text}" content-desc="${contentDescription}" />`;
+}
+
+test('password dialog recognition does not depend on a keyboard-obscured action button', () => {
+  assert.equal(privacyExportPasswordDialogVisible(
+    `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}`
+      + `${androidNode({ text: 'Aktuelles Passwort' })}</hierarchy>`,
+  ), true);
+  assert.equal(privacyExportPasswordDialogVisible(
+    `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}</hierarchy>`,
+  ), false);
 });
 
 test('temporary Android sink has no network or external-storage capability', () => {

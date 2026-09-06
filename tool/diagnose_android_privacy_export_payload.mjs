@@ -532,10 +532,13 @@ async function openExportPasswordDialog({ commandRunner, adbPath, device, wait }
     device,
     wait,
     label: 'privacy export password dialog',
-    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Datenexport bestätigen').length > 0
-      && currentHeadAndroidNamedNodes(value, 'Aktuelles Passwort').length > 0
-      && currentHeadAndroidNamedNodes(value, 'Export erstellen').length > 0,
+    predicate: privacyExportPasswordDialogVisible,
   });
+}
+
+export function privacyExportPasswordDialogVisible(hierarchy) {
+  return currentHeadAndroidNamedNodes(hierarchy, 'Datenexport bestätigen').length > 0
+    && currentHeadAndroidNamedNodes(hierarchy, 'Aktuelles Passwort').length > 0;
 }
 
 async function submitExportPassword({
@@ -543,8 +546,9 @@ async function submitExportPassword({
 }) {
   let hierarchy = await openExportPasswordDialog({ commandRunner, adbPath, device, wait });
   inputPrivateText(commandRunner, adbPath, device, hierarchy, 'Aktuelles Passwort', password);
-  hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
-  tapNamed(commandRunner, adbPath, device, hierarchy, 'Export erstellen');
+  currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell', 'input', 'keyevent', '66',
+  ]);
 }
 
 function packagePresent(commandRunner, adbPath, device, packageName) {
