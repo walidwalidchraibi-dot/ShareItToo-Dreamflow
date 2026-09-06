@@ -177,7 +177,9 @@ test('correct-password rejection is detected before waiting for an Android share
 test('accepts an exact owner-bound export with all six local sections', () => {
   const result = validatePrivacyExportPayload({ bytes: payload(), ...identities });
   assert.equal(result.exactOwnerBound, true);
-  assert.equal(result.foreignIdentityAbsent, true);
+  assert.equal(result.foreignEmailAbsent, true);
+  assert.equal(result.foreignOpaqueIdentifierOutsideSharedRecordsAbsent, true);
+  assert.deepEqual(result.sharedCounterpartySections, []);
   assert.deepEqual(result.localSections, [
     'accountProfile',
     'operationalRecords',
@@ -188,7 +190,7 @@ test('accepts an exact owner-bound export with all six local sections', () => {
   ]);
 });
 
-test('rejects a foreign root principal or foreign identity anywhere', () => {
+test('rejects a foreign root principal or account email anywhere', () => {
   assert.throws(
     () => validatePrivacyExportPayload({
       bytes: payload({ accountId: 'renter-id' }),
@@ -206,8 +208,48 @@ test('rejects a foreign root principal or foreign identity anywhere', () => {
       }),
       ...identities,
     }),
-    /foreign test principal/u,
+    /foreign account email/u,
   );
+  assert.throws(
+    () => validatePrivacyExportPayload({
+      bytes: payload({
+        data: {
+          profile: { email: 'owner@example.invalid' },
+          counterpartyId: 'renter-id',
+        },
+      }),
+      ...identities,
+    }),
+    /remote privacy export contains a foreign opaque principal identifier/u,
+  );
+});
+
+test('allows opaque counterpart references only in shared local record sections', () => {
+  const shared = JSON.parse(payload().toString('utf8'));
+  shared.localDevice.operationalRecords.thread = { participantId: 'renter-id' };
+  shared.localDevice.reviews.received = [{ reviewerId: 'renter-id' }];
+  shared.localDevice.safetyPrivacy.blockedUserIds = ['renter-id'];
+  const result = validatePrivacyExportPayload({
+    bytes: Buffer.from(JSON.stringify(shared)),
+    ...identities,
+  });
+  assert.deepEqual(result.sharedCounterpartySections, [
+    'operationalRecords',
+    'reviews',
+    'safetyPrivacy',
+  ]);
+
+  for (const section of ['accountProfile', 'ownedListings', 'savedItems']) {
+    const unsafe = JSON.parse(payload().toString('utf8'));
+    unsafe.localDevice[section].foreignUserId = 'renter-id';
+    assert.throws(
+      () => validatePrivacyExportPayload({
+        bytes: Buffer.from(JSON.stringify(unsafe)),
+        ...identities,
+      }),
+      /principal-private local export section/u,
+    );
+  }
 });
 
 test('rejects missing sections, cross-owner local sections and credential keys', () => {

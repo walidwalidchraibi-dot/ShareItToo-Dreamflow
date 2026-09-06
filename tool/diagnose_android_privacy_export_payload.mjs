@@ -64,6 +64,11 @@ const expectedLocalSections = Object.freeze([
   'safetyPrivacy',
   'savedItems',
 ]);
+const sharedCounterpartyLocalSections = Object.freeze([
+  'operationalRecords',
+  'reviews',
+  'safetyPrivacy',
+]);
 const forbiddenKeyPattern = /(?:password|passcode|credential|access.?token|refresh.?token|session.?token|cookie|private.?key|api.?key|authorization)/iu;
 
 function fail(message) {
@@ -159,9 +164,19 @@ export function validatePrivacyExportPayload({
   if (!identityAppears(serialized, ownerEmail)) {
     fail('The privacy export does not contain the expected owner identity.');
   }
-  if (identityAppears(serialized, foreignEmail)
-      || identityAppears(serialized, foreignUserId)) {
-    fail('The privacy export contains the foreign test principal.');
+  if (identityAppears(serialized, foreignEmail)) {
+    fail('The privacy export contains a foreign account email.');
+  }
+  if (identityAppears(JSON.stringify(value.data), foreignUserId)) {
+    fail('The remote privacy export contains a foreign opaque principal identifier.');
+  }
+  const sharedCounterpartySections = [];
+  for (const [name, section] of Object.entries(value.localDevice)) {
+    if (!identityAppears(JSON.stringify(section), foreignUserId)) continue;
+    if (!sharedCounterpartyLocalSections.includes(name)) {
+      fail('A principal-private local export section contains a foreign opaque identifier.');
+    }
+    sharedCounterpartySections.push(name);
   }
   const forbiddenKeys = recursiveKeys(value).filter((key) => forbiddenKeyPattern.test(key));
   if (forbiddenKeys.length > 0) {
@@ -171,7 +186,9 @@ export function validatePrivacyExportPayload({
     schemaVersion: value.schemaVersion,
     exactOwnerBound: true,
     ownerIdentityPresent: true,
-    foreignIdentityAbsent: true,
+    foreignEmailAbsent: true,
+    foreignOpaqueIdentifierOutsideSharedRecordsAbsent: true,
+    sharedCounterpartySections: sharedCounterpartySections.toSorted(),
     localSections: sections,
     forbiddenCredentialKeyCount: 0,
     bytes: bytes.length,
@@ -956,7 +973,10 @@ export async function runAndroidPrivacyExportPayload({
         androidShareReceiverInvokedOnce: true,
         exactOwnerBound: payload.exactOwnerBound,
         ownerIdentityPresent: payload.ownerIdentityPresent,
-        foreignIdentityAbsent: payload.foreignIdentityAbsent,
+        foreignEmailAbsent: payload.foreignEmailAbsent,
+        foreignOpaqueIdentifierOutsideSharedRecordsAbsent:
+          payload.foreignOpaqueIdentifierOutsideSharedRecordsAbsent,
+        sharedCounterpartySections: payload.sharedCounterpartySections,
         localSections: payload.localSections,
         forbiddenCredentialKeyCount: payload.forbiddenCredentialKeyCount,
         exportBytes: payload.bytes,
