@@ -36,6 +36,10 @@ const reportIssueSource = readFileSync(
   new URL('../../lib/screens/report_issue_screen.dart', import.meta.url),
   'utf8',
 );
+const safetyActionServiceSource = readFileSync(
+  new URL('../../lib/services/safety_action_service.dart', import.meta.url),
+  'utf8',
+);
 
 const documentText = 'V5.2 handover return damage snapshot';
 const documentSha256 = crypto.createHash('sha256').update(documentText).digest('hex');
@@ -193,7 +197,11 @@ test('V5.2 direct metadata attempts fail closed and callers use the authorized e
 
 test('client requires an explicit already-authorized contested amount without a full-rent fallback', () => {
   assert.match(reportIssueSource, /_contestedAmountMinor\(\)/u);
-  assert.match(reportIssueSource, /contestedAuthorizedMinor: contestedAmountMinor!/u);
+  assert.match(reportIssueSource, /contestedAuthorizedMinor: contestedAmountMinor/u);
+  assert.match(
+    safetyActionServiceSource,
+    /final contested = contestedAuthorizedMinor;[\s\S]*contested == null \|\| contested <= 0[\s\S]*v52_return_case_contested_amount_invalid/u,
+  );
   assert.match(dataServiceSource, /contestedAuthorizedMinor <= 0/u);
   assert.doesNotMatch(dataServiceSource, /requestedMinor[\s\S]{0,200}quotedTotalMinor/u);
 });

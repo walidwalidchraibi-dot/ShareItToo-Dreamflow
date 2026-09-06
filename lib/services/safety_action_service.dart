@@ -5,6 +5,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/local_principal_scope.dart';
 import 'package:lendify/services/local_safety_privacy_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
@@ -83,6 +84,16 @@ class SafetyReportResult {
   final bool directContactBlocked;
 
   const SafetyReportResult({this.directContactBlocked = false});
+}
+
+class SafetyReturnCaseIssueResult {
+  final bool reviewOpened;
+  final bool reportRecorded;
+
+  const SafetyReturnCaseIssueResult({
+    required this.reviewOpened,
+    required this.reportRecorded,
+  });
 }
 
 /// Principal-bound coordinator for user reports and contact blocking.
@@ -214,6 +225,61 @@ class SafetyActionService {
         : SafetyActionFailureKind.outcomeUnknown;
   }
 
+  static SafetyActionFailureKind classifyReturnCaseBackendFailure(
+    BackendException error,
+  ) {
+    const rejected = <int, Set<String>>{
+      400: <String>{
+        'invalid_idempotency_key',
+        'invalid_report_target_type',
+        'invalid_report_target',
+        'invalid_report_reason',
+        'invalid_report_priority',
+        'invalid_report_evidence',
+        'invalid_report_details',
+        'invalid_report_reference',
+        'report_evidence_not_owned',
+        'v52_return_case_reason_code_invalid',
+        'v52_return_case_details_required',
+        'v52_return_case_evidence_required',
+        'v52_return_case_evidence_invalid',
+        'v52_return_case_contested_amount_invalid',
+        'v52_return_case_evidence_not_owned',
+      },
+      401: <String>{
+        'authentication_required',
+        'invalid_or_expired_session',
+        'account_not_active',
+      },
+      403: <String>{
+        'action_blocked_by_moderation',
+        'report_target_forbidden',
+        'v52_return_case_forbidden',
+      },
+      404: <String>{
+        'booking_not_found',
+        'report_target_not_found',
+      },
+      409: <String>{
+        'idempotency_key_reused',
+        'active_report_already_exists',
+        'v52_handover_contract_binding_invalid',
+        'v52_return_case_contract_required',
+        'v52_return_case_wrong_booking_state',
+        'v52_return_report_window_not_open',
+        'v52_return_report_window_closed',
+        'v52_return_case_amount_exceeds_authorization',
+        'v52_active_return_case_exists',
+        'v52_return_case_already_recorded',
+        'v52_active_booking_report_exists',
+      },
+      429: <String>{'rate_limit_exceeded'},
+    };
+    return rejected[error.statusCode]?.contains(error.code) == true
+        ? SafetyActionFailureKind.rejected
+        : SafetyActionFailureKind.outcomeUnknown;
+  }
+
   @protected
   Future<List<String>> fetchBlockedUsersRemote(
     SafetyActionContext context,
@@ -291,6 +357,88 @@ class SafetyActionService {
         bytes: bytes,
         filename: filename,
       );
+
+  @protected
+  Future<Map<String, dynamic>> openReturnCaseRemote({
+    required SafetyActionContext context,
+    required String requestId,
+    required String reasonCode,
+    required String details,
+    required List<String> evidenceUploadIds,
+    required int contestedAuthorizedMinor,
+    required String idempotencyKey,
+  }) =>
+      BackendRepository.openV52ReturnCaseForOwner(
+        owner: context.owner.authOwner,
+        bookingId: requestId,
+        reasonCode: reasonCode,
+        details: details,
+        evidenceUploadIds: evidenceUploadIds,
+        contestedAuthorizedMinor: contestedAuthorizedMinor,
+        idempotencyKey: idempotencyKey,
+      );
+
+  @protected
+  Future<Map<String, dynamic>> createBookingIssueReportRemote({
+    required SafetyActionContext context,
+    required String requestId,
+    required String reasonCode,
+    required String details,
+    required String idempotencyKey,
+  }) =>
+      BackendRepository.createReportForOwner(
+        owner: context.owner.authOwner,
+        targetType: 'booking',
+        targetId: requestId,
+        reasonCode: reasonCode,
+        idempotencyKey: idempotencyKey,
+        details: details,
+        reference: 'return_issue',
+      );
+
+  @protected
+  Future<bool> openReturnCaseLocal({
+    required SafetyActionContext context,
+    required String requestId,
+    required String reason,
+    required String reasonCode,
+    required List<String> evidenceNames,
+    required int contestedAuthorizedMinor,
+  }) =>
+      DataService.markRentalRequestNeedsReviewForOwner(
+        requestId,
+        owner: context.owner.authOwner,
+        expectedUserId: context.user.id,
+        reason: reason,
+        source: 'report_issue_screen',
+        reasonCode: reasonCode,
+        localEvidenceReferences: evidenceNames
+            .map((name) => 'local-private-photo:$name')
+            .toList(growable: false),
+        contestedAuthorizedMinor: contestedAuthorizedMinor,
+      );
+
+  @protected
+  Future<void> recordBookingIssueLocal({
+    required SafetyActionContext context,
+    required String requestId,
+    required String reasonCode,
+    required String details,
+  }) async {
+    await DataService.addTimelineEventForOwner(
+      owner: context.owner.authOwner,
+      expectedUserId: context.user.id,
+      requestId: requestId,
+      type: 'issue:$reasonCode',
+      note: details.isEmpty ? 'Keine Details' : details,
+    );
+    await DataService.addNotificationForOwner(
+      owner: context.owner.authOwner,
+      expectedUserId: context.user.id,
+      title: 'Problem gemeldet',
+      body: 'Deine Meldung wurde gespeichert.',
+    );
+  }
 
   @protected
   Future<void> cacheBlockedUsers(
@@ -594,6 +742,136 @@ class SafetyActionService {
       }
       throw const SafetyActionFailure.localUnavailable(
         'local_report_failed',
+      );
+    }
+  }
+
+  Future<SafetyReturnCaseIssueResult> submitReturnCaseIssue({
+    required SafetyActionContext context,
+    required String requestId,
+    required String reasonCode,
+    required String idempotencyKey,
+    required String details,
+    required List<String> evidenceNames,
+    required List<String> evidenceUploadIds,
+    required bool opensReview,
+    int? contestedAuthorizedMinor,
+  }) async {
+    await _requireCurrent(context);
+    var remoteAccepted = false;
+    try {
+      if (backendEnabled && !qaRuntimeEnabled) {
+        await _requireCurrent(context);
+        if (opensReview) {
+          final contested = contestedAuthorizedMinor;
+          if (contested == null || contested <= 0) {
+            throw const SafetyActionFailure.rejected(
+              'v52_return_case_contested_amount_invalid',
+            );
+          }
+          await openReturnCaseRemote(
+            context: context,
+            requestId: requestId,
+            reasonCode: reasonCode,
+            details: details,
+            evidenceUploadIds: evidenceUploadIds,
+            contestedAuthorizedMinor: contested,
+            idempotencyKey: idempotencyKey,
+          );
+        } else {
+          await createBookingIssueReportRemote(
+            context: context,
+            requestId: requestId,
+            reasonCode: reasonCode,
+            details: details,
+            idempotencyKey: idempotencyKey,
+          );
+        }
+        remoteAccepted = true;
+        await _requireCurrent(
+          context,
+          remoteAcceptedOrConfirmed: true,
+        );
+        return SafetyReturnCaseIssueResult(
+          reviewOpened: opensReview,
+          reportRecorded: true,
+        );
+      }
+
+      if (opensReview) {
+        final contested = contestedAuthorizedMinor;
+        if (contested == null || contested <= 0) {
+          throw const SafetyActionFailure.rejected(
+            'v52_return_case_contested_amount_invalid',
+          );
+        }
+        final opened = await openReturnCaseLocal(
+          context: context,
+          requestId: requestId,
+          reason: details,
+          reasonCode: reasonCode,
+          evidenceNames: evidenceNames,
+          contestedAuthorizedMinor: contested,
+        );
+        await _requireCurrent(context);
+        if (!opened) {
+          await recordBookingIssueLocal(
+            context: context,
+            requestId: requestId,
+            reasonCode: reasonCode,
+            details: details,
+          );
+          await _requireCurrent(context);
+        }
+        return SafetyReturnCaseIssueResult(
+          reviewOpened: opened,
+          reportRecorded: true,
+        );
+      }
+
+      await recordBookingIssueLocal(
+        context: context,
+        requestId: requestId,
+        reasonCode: reasonCode,
+        details: details,
+      );
+      await _requireCurrent(context);
+      return const SafetyReturnCaseIssueResult(
+        reviewOpened: false,
+        reportRecorded: true,
+      );
+    } on SafetyActionFailure {
+      rethrow;
+    } on BackendException catch (error) {
+      if (!await isContextCurrent(context)) {
+        throw SafetyActionFailure.principalChanged(
+          remoteAcceptedOrConfirmed: remoteAccepted,
+        );
+      }
+      final kind = classifyReturnCaseBackendFailure(error);
+      if (kind == SafetyActionFailureKind.rejected) {
+        throw SafetyActionFailure.rejected(error.code);
+      }
+      throw SafetyActionFailure.outcomeUnknown(error.code);
+    } catch (_) {
+      if (!await isContextCurrent(context)) {
+        throw SafetyActionFailure.principalChanged(
+          remoteAcceptedOrConfirmed: remoteAccepted,
+        );
+      }
+      if (remoteAccepted) {
+        throw const SafetyActionFailure.localUnavailable(
+          'return_case_local_confirmation_failed',
+          remoteAcceptedOrConfirmed: true,
+        );
+      }
+      if (backendEnabled && !qaRuntimeEnabled) {
+        throw const SafetyActionFailure.outcomeUnknown(
+          'return_case_transport_failed',
+        );
+      }
+      throw const SafetyActionFailure.localUnavailable(
+        'local_return_case_failed',
       );
     }
   }

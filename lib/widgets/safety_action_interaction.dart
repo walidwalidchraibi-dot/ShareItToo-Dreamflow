@@ -8,6 +8,7 @@ class SafetyActionInteractionController {
   int _actionEpoch = 0;
   Object? _activeRouteIdentity;
   void Function()? _dismissActiveRoute;
+  Route<dynamic>? _ownedScreenRoute;
 
   SafetyActionContext? get context => _context;
 
@@ -23,6 +24,42 @@ class SafetyActionInteractionController {
     _activeRouteIdentity = null;
     _dismissActiveRoute = null;
     dismiss?.call();
+    final screenRoute = _ownedScreenRoute;
+    _ownedScreenRoute = null;
+    final navigator = screenRoute?.navigator;
+    if (screenRoute != null &&
+        navigator != null &&
+        screenRoute.isActive &&
+        !screenRoute.isFirst) {
+      navigator.removeRoute(screenRoute);
+    }
+  }
+
+  /// Tracks the exact screen route owned by the currently loaded principal.
+  /// Removing this route can never pop a newer dialog or successor-account
+  /// route that happens to be on top of the navigator.
+  VoidCallback trackOwnedScreenRoute(Route<dynamic> route) {
+    _ownedScreenRoute = route;
+    return () {
+      if (identical(_ownedScreenRoute, route)) _ownedScreenRoute = null;
+    };
+  }
+
+  void completeOwnedScreenRoute<T>(
+    SafetyActionOwner owner,
+    T result,
+  ) {
+    if (!isSynchronouslyCurrent(owner)) return;
+    final route = _ownedScreenRoute;
+    final navigator = route?.navigator;
+    if (route == null ||
+        navigator == null ||
+        !route.isActive ||
+        route.isFirst) {
+      return;
+    }
+    _ownedScreenRoute = null;
+    navigator.removeRoute(route, result);
   }
 
   SafetyActionOwner? capture() {

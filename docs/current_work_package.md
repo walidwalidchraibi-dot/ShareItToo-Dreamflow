@@ -1,4 +1,32 @@
-# Current Work Package: WP27 safety/privacy principal ownership
+# Current Work Package: WP28 return-case principal transaction
+
+WP28 is **COMPLETE LOCALLY; EXACT-HEAD GITHUB CHECKS PENDING**. The booking
+return-case and issue-report screen now capture one immutable principal/session
+owner and action epoch before the first await. Evidence upload, hard V5.2
+return-case creation, soft authenticated booking reports, local/QA writes,
+result UI and route completion retain and recheck that exact owner.
+
+The Staging path cannot write success before server confirmation or borrow a
+successor account's credentials. Exact structured rejection, accepted remote
+change plus local failure and outcome-unknown remain distinct; 408,
+intermediary/unstructured 4xx, 422, transport and 5xx failures are never safe
+rejection. An A-owned screen or dialog is removed only by its exact route, so a
+newer B-owned route remains untouched. Local/QA hard reports now mirror the
+server's return-T0 and inclusive 48-hour window.
+
+Analyzer, 7 focused Flutter checks, 8 focused tool checks, 13 V5.2 workflow
+checks, all 2,341 repository tool tests, the repository secret scan and the
+complete technical regression pass. The normal local gate first stopped on an
+unavailable historical private archive; the established metadata-only branch
+then completed the unchanged gate through Flutter, Web/Wasm, loopback and
+Android minSdk 24. This is not archive, Store or device acceptance. See
+`docs/operations/WP28_RETURN_CASE_PRINCIPAL_TRANSACTION_2026-09-06.md`.
+
+No Android candidate, Firebase Console, provider, payment, Google Play,
+Production, public registration, Cloud/VPS/DNS, device, OnePlus or PR-merge
+boundary changed.
+
+# Previous Work Package: WP27 safety/privacy principal ownership
 
 WP27 is **COMPLETE LOCALLY AND ON GITHUB** at implementation HEAD
 `6b39ebf898a979951c330f6fba58fdd0951ffe9f`. Reachable user

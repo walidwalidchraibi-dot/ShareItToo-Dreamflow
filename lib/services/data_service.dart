@@ -561,6 +561,46 @@ class DataService {
     }
   }
 
+  static Future<User> _assertSessionOwnerOperationalUser(
+    AuthSessionOwner owner,
+    String expectedUserId,
+  ) async {
+    final normalizedUserId = expectedUserId.trim();
+    if (normalizedUserId.isEmpty ||
+        !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw StateError('Die lokale Kontositzung hat sich geändert.');
+    }
+    final current = await readCurrentUserForSessionTransition();
+    final ownerUserId = (owner.userId ?? '').trim();
+    final ownerEmail = owner.email.trim().toLowerCase();
+    if (current == null ||
+        current.isDeactivated ||
+        current.id.trim() != normalizedUserId ||
+        ownerUserId.isNotEmpty && ownerUserId != normalizedUserId ||
+        ownerEmail.isEmpty ||
+        current.email.trim().toLowerCase() != ownerEmail ||
+        !await AuthService.isSessionOwnerDefinitelyCurrent(owner)) {
+      throw StateError('Die lokale Kontositzung hat sich geändert.');
+    }
+    return current;
+  }
+
+  static RentalRequest _requireCachedRequestParticipant(
+    List<RentalRequest> requests, {
+    required String requestId,
+    required String userId,
+  }) {
+    for (final request in requests) {
+      if (request.id == requestId) {
+        if (!_isRequestParticipant(request, userId)) {
+          throw StateError('Die lokale Buchung gehört zu einem anderen Konto.');
+        }
+        return request;
+      }
+    }
+    throw StateError('Die lokale Buchung wurde nicht gefunden.');
+  }
+
   static bool _isRequestParticipant(RentalRequest request, String userId) =>
       request.ownerId == userId || request.renterId == userId;
 
@@ -10993,6 +11033,117 @@ class DataService {
     });
   }
 
+  /// Local/QA return-case mutation bound to the exact authenticated session
+  /// captured by the caller. The Staging backend path must use the dedicated
+  /// owner-bound server endpoint instead of this cache mutation.
+  static Future<bool> markRentalRequestNeedsReviewForOwner(
+    String requestId, {
+    required AuthSessionOwner owner,
+    required String expectedUserId,
+    required String reason,
+    required String source,
+    required String reasonCode,
+    List<String> localEvidenceReferences = const [],
+    int contestedAuthorizedMinor = 0,
+  }) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      throw StateError('Der Server-Prüffall benötigt den autorisierten Pfad.');
+    }
+    final normalizedReason = reason.trim();
+    if (normalizedReason.length < 10 || contestedAuthorizedMinor <= 0) {
+      return false;
+    }
+    if (localEvidenceReferences.isEmpty) return false;
+
+    final opened = await _rentalRequestMutationQueue.run(() async {
+      await _assertSessionOwnerOperationalUser(owner, expectedUserId);
+      final prefs = await SharedPreferences.getInstance();
+      await _assertSessionOwnerOperationalUser(owner, expectedUserId);
+      final raw = prefs.getString(_rentalRequestsKey);
+      if (raw == null || raw.trim().isEmpty) {
+        throw StateError('Die lokale Buchung wurde nicht gefunden.');
+      }
+      final all = _decodeRentalRequestsStrict(raw);
+      final request = _requireCachedRequestParticipant(
+        all,
+        requestId: requestId,
+        userId: expectedUserId,
+      );
+      final authorizedBookingMinor = request.quotedTotalMinor ?? 0;
+      if (authorizedBookingMinor <= 0 ||
+          contestedAuthorizedMinor > authorizedBookingMinor) {
+        return false;
+      }
+      final requestedAt = DateTime.now();
+      final returnT0 = request.returnT0 ?? request.end;
+      final reportDeadline = returnT0.add(
+        const Duration(hours: PrivatePilotConfig.returnReportWindowHours),
+      );
+      if (requestedAt.isBefore(returnT0) ||
+          requestedAt.isAfter(reportDeadline)) {
+        return false;
+      }
+      final split = PrivatePilotReturnPolicy.splitAuthorizedAmount(
+        authorizedBookingMinor: authorizedBookingMinor,
+        contestedAuthorizedMinor: contestedAuthorizedMinor,
+        allegedDamageMinor: 0,
+      );
+      final index = all.indexWhere((candidate) => candidate.id == requestId);
+      all[index] = request.copyWith(
+        needsReview: true,
+        reviewReason: normalizedReason,
+        reviewSource: source,
+        reviewRequestedAt: requestedAt,
+        reviewEvidenceReferences: localEvidenceReferences,
+        returnState: PrivatePilotReturnState.needsReview.storageValue,
+        returnCaseOpenedAt: requestedAt,
+        returnT0: returnT0,
+        returnReportDeadline: reportDeadline,
+        returnClarificationDeadline: returnT0.add(
+          const Duration(
+            days: PrivatePilotConfig.missingReturnConfirmationDays,
+          ),
+        ),
+        contestedAuthorizedMinor: split.contestedAuthorizedMinor,
+        allegedDamageMinorRecordedOnly: split.allegedDamageMinorRecordedOnly,
+      );
+      final encoded = jsonEncode(all.map((entry) => entry.toJson()).toList());
+      _decodeRentalRequestsStrict(encoded);
+      await _assertSessionOwnerOperationalUser(owner, expectedUserId);
+      await _writePreferenceString(prefs, _rentalRequestsKey, encoded);
+      SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
+      return true;
+    });
+    if (!opened) return false;
+
+    try {
+      await addTimelineEventForOwner(
+        owner: owner,
+        expectedUserId: expectedUserId,
+        requestId: requestId,
+        type: 'review_required',
+        note: 'Manuelle Prüfung markiert ($source): $reason',
+      );
+    } catch (error) {
+      debugPrint(
+        '[DataService] owner-bound review timeline failed: $error',
+      );
+    }
+    try {
+      await addNotificationForOwner(
+        owner: owner,
+        expectedUserId: expectedUserId,
+        title: 'Prüfung erforderlich',
+        body: 'Eine Buchung wurde zur manuellen Prüfung markiert.',
+      );
+    } catch (error) {
+      debugPrint(
+        '[DataService] owner-bound review notification failed: $error',
+      );
+    }
+    return true;
+  }
+
   static Future<bool> _markRentalRequestNeedsReviewUnlocked(
     String requestId, {
     required String reason,
@@ -11224,6 +11375,54 @@ class DataService {
     });
   }
 
+  static Future<void> addTimelineEventForOwner({
+    required AuthSessionOwner owner,
+    required String expectedUserId,
+    required String requestId,
+    required String type,
+    String? note,
+  }) async {
+    final normalizedType = type.trim();
+    final normalizedNote = note?.trim() ?? '';
+    if (normalizedType.isEmpty ||
+        normalizedType.length > 128 ||
+        normalizedNote.length > 5000) {
+      throw ArgumentError('Ungültiger lokaler Timeline-Eintrag.');
+    }
+    await _operationalMutationQueue.run(() async {
+      await _assertSessionOwnerOperationalUser(owner, expectedUserId);
+      final prefs = await SharedPreferences.getInstance();
+      await _assertSessionOwnerOperationalUser(owner, expectedUserId);
+      final requestsRaw = prefs.getString(_rentalRequestsKey);
+      if (requestsRaw == null || requestsRaw.trim().isEmpty) {
+        throw StateError('Die lokale Buchung wurde nicht gefunden.');
+      }
+      _requireCachedRequestParticipant(
+        _decodeRentalRequestsStrict(requestsRaw),
+        requestId: requestId,
+        userId: expectedUserId,
+      );
+      final raw = prefs.getString(_timelineEventsKey);
+      final list =
+          raw == null ? <Map<String, dynamic>>[] : _decodeTimelineStrict(raw);
+      if (list.length >= _maxLocalTimelineEvents) {
+        throw StateError('Der lokale Buchungsverlauf ist voll.');
+      }
+      list.add({
+        'requestId': requestId,
+        'type': normalizedType,
+        'note': normalizedNote,
+        'ts': DateTime.now().toIso8601String(),
+      });
+      await _assertSessionOwnerOperationalUser(owner, expectedUserId);
+      await _writePreferenceString(
+        prefs,
+        _timelineEventsKey,
+        jsonEncode(list),
+      );
+    });
+  }
+
   static Future<List<Map<String, dynamic>>> getTimelineForRequest(
     String requestId,
   ) async {
@@ -11293,12 +11492,29 @@ class DataService {
     );
   }
 
+  static Future<void> addNotificationForOwner({
+    required AuthSessionOwner owner,
+    required String expectedUserId,
+    required String title,
+    required String body,
+  }) =>
+      _addStructuredNotification(
+        userId: expectedUserId,
+        expectedCurrentUserId: expectedUserId,
+        expectedSessionOwner: owner,
+        category: 'platform',
+        priority: 5,
+        title: title,
+        body: body,
+      );
+
   // ===== Notifications (structured feed, local) =====
   // NOTE: Stored as a list of map entries under [_notificationsKey]. We keep
   // legacy entries compatible by backfilling missing fields at read time.
   static Future<void> _addStructuredNotification({
     required String userId,
     String? expectedCurrentUserId,
+    AuthSessionOwner? expectedSessionOwner,
     required String
         category, // important | bookings | messages | reviews | platform
     required String title,
@@ -11329,10 +11545,21 @@ class DataService {
       throw ArgumentError('Ungültige lokale Benachrichtigung.');
     }
     await _operationalMutationQueue.run(() async {
-      if (expectedCurrentUserId != null) {
+      if (expectedSessionOwner != null && expectedCurrentUserId != null) {
+        await _assertSessionOwnerOperationalUser(
+          expectedSessionOwner,
+          expectedCurrentUserId,
+        );
+      } else if (expectedCurrentUserId != null) {
         await _assertCurrentOperationalUserId(expectedCurrentUserId);
       }
       final prefs = await SharedPreferences.getInstance();
+      if (expectedSessionOwner != null && expectedCurrentUserId != null) {
+        await _assertSessionOwnerOperationalUser(
+          expectedSessionOwner,
+          expectedCurrentUserId,
+        );
+      }
       final raw = prefs.getString(_notificationsKey);
       final list = raw == null
           ? <Map<String, dynamic>>[]
@@ -11368,6 +11595,12 @@ class DataService {
         'read': false,
       };
       list.add(entry);
+      if (expectedSessionOwner != null && expectedCurrentUserId != null) {
+        await _assertSessionOwnerOperationalUser(
+          expectedSessionOwner,
+          expectedCurrentUserId,
+        );
+      }
       await _persistNotifications(prefs, list);
     });
   }

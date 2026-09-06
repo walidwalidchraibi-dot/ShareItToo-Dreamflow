@@ -1,5 +1,24 @@
 # ShareItToo Current State
 
+WP28 closes the booking return-case and issue-report principal transaction
+locally. The screen now binds evidence upload, the final hard-return or soft
+booking-report request, local/QA writes, result presentation and completion to
+the principal/session owner and action epoch captured before the first await.
+Staging never writes a local success before server confirmation and never
+re-resolves credentials from a successor account. Account-A results cannot be
+shown under B, and exact A route removal cannot close a newer B dialog.
+
+Exact structured rejection remains separate from accepted-plus-local-failure
+and unknown transport. HTTP 408, intermediary/unstructured 4xx, 422 and 5xx
+remain outcome-unknown. Local/QA hard reports mirror the server's T0-to-
+inclusive-48-hour window. Analyzer, 7 focused Flutter tests, 8 focused wiring
+tests, 13 V5.2 workflow checks, all 2,341 tool tests, the secret scan and the
+complete metadata-only local technical regression pass through Web/Wasm,
+loopback and Android minSdk 24. Exact-head GitHub Regression/CodeQL and alert
+readback remain pending. No candidate, device or external/live boundary
+changed. See
+`docs/operations/WP28_RETURN_CASE_PRINCIPAL_TRANSACTION_2026-09-06.md`.
+
 WP23 closes principal-owned notification routing and the expired-session cold
 start on signed Internal Staging candidate `1.0.0+2026090606`, source HEAD
 `637c80d0086f7ad1aa08fe5ba1df5c1624b3e545`. Firebase initializes and an
