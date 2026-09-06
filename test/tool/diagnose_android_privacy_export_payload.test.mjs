@@ -6,8 +6,10 @@ import {
   privacyExportSinkManifest,
   privacyExportPasswordField,
   privacyExportPasswordDialogVisible,
+  privacyExportChooserOwned,
   parsePrivacyExportSinkReceipt,
   privacyExportShareRejected,
+  privacyExportSinkHandlerResolved,
   privacyExportSinkFileSize,
   validatePrivacyExportPayload,
   validatePrivacyExportSinkSources,
@@ -102,6 +104,24 @@ test('temporary Android sink has no network or external-storage capability', () 
   assert.equal(result.privateFileOnly, true);
   assert.doesNotMatch(privacyExportSinkManifest, /uses-permission/u);
   assert.doesNotMatch(privacyExportSinkJava, /https?:|Socket|URLConnection|HttpClient|WebView/u);
+});
+
+test('share-surface cleanup is bound only to the exact WP33 export', () => {
+  assert.equal(privacyExportChooserOwned(
+    `<hierarchy>${androidNode({ text: 'shareittoo-data-export.json' })}</hierarchy>`,
+  ), true);
+  assert.equal(privacyExportChooserOwned(
+    `<hierarchy>${androidNode({ text: 'unrelated-private-document.pdf' })}</hierarchy>`,
+  ), false);
+});
+
+test('installed sink resolution accepts only the exact JSON-share component', () => {
+  assert.equal(privacyExportSinkHandlerResolved(
+    '  com.shareittoo.dev.privacyexportsink/.ExportReceiverActivity\n',
+  ), true);
+  assert.equal(privacyExportSinkHandlerResolved(
+    'com.shareittoo.dev.privacyexportsink/.DifferentActivity\n',
+  ), false);
 });
 
 test('temporary sink requires an exact bounded file size before reading bytes', () => {

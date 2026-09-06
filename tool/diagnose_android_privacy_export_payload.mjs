@@ -691,6 +691,54 @@ function currentSinkReceipt(commandRunner, adbPath, device) {
   }
 }
 
+function foregroundPackage(commandRunner, adbPath, device) {
+  const windows = currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell', 'dumpsys', 'window',
+  ]);
+  return /mCurrentFocus=Window\{[^}]*\s([^/\s}]+)/u.exec(windows)?.[1] ?? null;
+}
+
+export function privacyExportChooserOwned(hierarchy) {
+  return currentHeadAndroidNamedNodes(hierarchy, exportFileName).length > 0;
+}
+
+async function dismissOwnedPrivacyExportChooser({
+  commandRunner, adbPath, device, wait,
+}) {
+  if (foregroundPackage(commandRunner, adbPath, device) !== 'com.android.intentresolver') {
+    return false;
+  }
+  const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+  if (!privacyExportChooserOwned(hierarchy)) {
+    fail('An unrelated Android share surface is foreground; it was not dismissed.');
+  }
+  currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell', 'input', 'keyevent', '4',
+  ]);
+  await wait(500);
+  if (foregroundPackage(commandRunner, adbPath, device) === 'com.android.intentresolver') {
+    fail('The exact privacy export share surface did not close.');
+  }
+  return true;
+}
+
+function preflightSinkShareContract({ commandRunner, adbPath, device }) {
+  const handlers = currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell', 'cmd', 'package', 'query-activities', '--brief',
+    '-a', 'android.intent.action.SEND',
+    '-c', 'android.intent.category.DEFAULT',
+    '-t', 'application/json',
+  ]);
+  if (!privacyExportSinkHandlerResolved(handlers)) {
+    fail('The temporary privacy export sink does not resolve the exact JSON share contract.');
+  }
+  return true;
+}
+
+export function privacyExportSinkHandlerResolved(value) {
+  return String(value).split(/\r?\n/u).map((line) => line.trim()).includes(sinkActivity);
+}
+
 async function selectSinkFromChooser({ commandRunner, adbPath, device, wait }) {
   let expanded = false;
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -702,7 +750,12 @@ async function selectSinkFromChooser({ commandRunner, adbPath, device, wait }) {
     if (privacyExportShareRejected(hierarchy)) {
       fail('The correct-password export was rejected before Android share handoff.');
     }
+    const ownedChooser = foregroundPackage(commandRunner, adbPath, device)
+      === 'com.android.intentresolver' && privacyExportChooserOwned(hierarchy);
     if (currentHeadAndroidNamedNodes(hierarchy, sinkLabel).length > 0) {
+      if (!ownedChooser) {
+        fail('The temporary export sink appeared outside the exact privacy export share surface.');
+      }
       tapNamed(commandRunner, adbPath, device, hierarchy, sinkLabel);
       return Object.freeze({ delivery: 'chooser-selected' });
     }
@@ -713,6 +766,10 @@ async function selectSinkFromChooser({ commandRunner, adbPath, device, wait }) {
     if (!expanded && more !== undefined) {
       tapNamed(commandRunner, adbPath, device, hierarchy, more);
       expanded = true;
+    } else if (ownedChooser && attempt % 2 === 1) {
+      currentHeadAndroidAdb(commandRunner, adbPath, device, [
+        'shell', 'input', 'swipe', '720', '2450', '720', '900', '350',
+      ]);
     }
   }
   fail('The sanitized Android privacy export chooser or direct receiver did not appear.');
@@ -812,12 +869,14 @@ export async function runAndroidPrivacyExportPayload({
   let installed = false;
   let ownerRestored = false;
   let cleanupError = null;
+  let primaryError = null;
   try {
     ownerSession = await stagingPrincipal(fetchImpl, owner);
     foreignSession = await stagingPrincipal(fetchImpl, foreign);
     sink = buildPrivacyExportSink({ sdkRoot, temporaryRoot: buildRoot });
     installSink(commandRunner, adbPath, device, sink.apkPath);
     installed = true;
+    preflightSinkShareContract({ commandRunner, adbPath, device });
     await bindExactRole({
       vault, role: 'owner', commandRunner, adbPath, device, wait,
     });
@@ -929,9 +988,12 @@ export async function runAndroidPrivacyExportPayload({
         pullRequestMerged: false,
       },
     });
+  } catch (error) {
+    primaryError = error;
+    throw error;
   } finally {
     try {
-      restoreCurrentHeadAndroidExplore(commandRunner, adbPath, device);
+      await dismissOwnedPrivacyExportChooser({ commandRunner, adbPath, device, wait });
     } catch (error) {
       cleanupError = error;
     }
@@ -941,6 +1003,11 @@ export async function runAndroidPrivacyExportPayload({
       } catch (error) {
         cleanupError ??= error;
       }
+    }
+    try {
+      restoreCurrentHeadAndroidExplore(commandRunner, adbPath, device);
+    } catch (error) {
+      cleanupError ??= error;
     }
     try {
       await bindExactRole({
@@ -965,7 +1032,15 @@ export async function runAndroidPrivacyExportPayload({
     if (!ownerRestored) {
       cleanupError ??= new Error('The exact protected owner session was not restored.');
     }
-    if (cleanupError !== null) throw cleanupError;
+    if (cleanupError !== null) {
+      if (primaryError !== null) {
+        throw new Error(
+          `${primaryError?.message ?? 'The privacy export diagnostic failed.'} `
+            + `Cleanup also failed: ${cleanupError?.message ?? 'unknown cleanup failure'}`,
+        );
+      }
+      throw cleanupError;
+    }
   }
 }
 
