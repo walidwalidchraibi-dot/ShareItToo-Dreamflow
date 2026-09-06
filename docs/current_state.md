@@ -1,5 +1,36 @@
 # ShareItToo Current State
 
+WP34 is **COMPLETE AS AN EVIDENCE CHECKPOINT; CURRENT-CANDIDATE ACCEPTANCE IS
+PARTIAL AND SUPPORT OPERATIONS ARE DEGRADED**. It binds all current evidence to
+signed Pixel candidate `1.0.0+2026090609` and conservatively keeps physical
+proof from predecessor candidates as `PARTIAL`, never promoting green CI into
+an unperformed exact-APK journey.
+
+Exact current-candidate provenance/install, complete regression/security,
+privacy-export isolation and safe mock-only Listing AI are `DONE`. Authentic
+predecessor-candidate evidence exists for e-mail and Google authentication,
+password/account security, SMS, listing/search/saved/cart/project/two-role
+product paths, attachments/appointments, FCM and bounded theme/offline/
+accessibility cells. Their consolidated `2026090609` replay remains open.
+Facebook/Apple, external runtime AI, positive address reveal, binding V5.2,
+money/refund/damage lifecycle, complete staff support transitions and OnePlus
+remain `OPEN`.
+
+A fresh read-only Staging check at `2026-09-06T23:53:29Z` again returned 503
+only for one ordinary overdue support next update. Database, mail,
+notifications, payment/provider hold, watchdog, P0 ownership, critical and
+privacy deadlines are healthy. The private Drive Support Packet still
+classifies this exact condition as `SUP-159` `PILOT_BLOCKER`. The specific case
+requires a legitimate stepped-up staff session; no credential was bypassed and
+no case was changed. See
+`docs/operations/SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-07.md`.
+
+The next autonomous package is a bounded exact-`2026090609` Pixel replay of
+already implemented non-binding journeys. It remains separate from the overdue
+support owner action and from all legal, payment/provider, Store/Production,
+Firebase Console, backend deployment, Cloud/VPS/DNS, OnePlus and PR-merge
+gates.
+
 WP33 is **COMPLETE ON THE PHYSICAL PIXEL, LOCALLY AND ON GITHUB**. Exact
 Internal Staging candidate `1.0.0+2026090609` remains bound to source HEAD
 `dbcb8c79739ca9441a5e13b7b999346665a5dc96`; installed APK bytes and canonical

@@ -1,4 +1,31 @@
-# Current Work Package: WP33 Pixel privacy-export payload
+# Current Work Package: WP34 Staging acceptance and operations checkpoint
+
+WP34 is **COMPLETE AS A CHECKPOINT**. It binds the portfolio to exact signed
+Pixel candidate `1.0.0+2026090609` and distinguishes current-APK proof from
+authentic physical results on signed predecessors. Exact current candidate
+provenance/install, complete local/GitHub regression and security, privacy
+export isolation and mock-only Listing AI are `DONE`; the broad consolidated
+Pixel journey remains `PARTIAL`.
+
+The fresh Staging readiness read is HTTP 503 only because one ordinary support
+case has an overdue next update. Database, mail, notification queues,
+payment/provider hold, watchdog execution, P0 ownership, critical deadlines
+and privacy deadlines are healthy. Drive read-only reconciliation confirms the
+Support Packet V1 classifies this as `SUP-159` `PILOT_BLOCKER`; no newer packet
+or professional V5.2 approval supersedes it. The exact case requires an
+authorized stepped-up staff session and was neither guessed nor mutated.
+
+Next package: bounded exact-`2026090609` Pixel acceptance replay of existing
+non-binding journeys, starting with low-mutation authentication and two-role
+product truth. Reuse the existing APK and fixtures; do not create a new build
+without a reproduced candidate defect. Keep OnePlus, binding V5.2, real money,
+external AI, Facebook/Apple, Store/Production, Firebase Console, backend
+deployment, Cloud/VPS/DNS and PR merge closed.
+
+See `docs/operations/SIT_STAGING_ACCEPTANCE_CHECKPOINT_2026-09-07.md` and
+`docs/evidence/release-readiness/wp34-staging-acceptance-operations-checkpoint-20260907.json`.
+
+# Previous Work Package: WP33 Pixel privacy-export payload
 
 WP33 is **COMPLETE ON THE PHYSICAL PIXEL, LOCALLY AND ON GITHUB**. Candidate
 `1.0.0+2026090609` at source
