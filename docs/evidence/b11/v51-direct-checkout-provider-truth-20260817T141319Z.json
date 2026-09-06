@@ -63,7 +63,7 @@
     "lib/screens/payment_checkout_screen.dart": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc",
     "test/payment_provider_truthfulness_test.dart": "4a34d22b010efdf13039d3f7a1ee222f2c16ca2072280b2f92f4fd22f83100e7",
     "test/tool/payment_provider_truthfulness_wiring.test.mjs": "e3576e208c521daf8883eb7d3691201ffbcf2554de787da0ad59f4f06dc691f1",
-    "store/privacy-disclosures.json": "4179c6da0539a9f8cdd827b1ad327240f8bd002cf0cc246a28945c07775d7fab",
+    "store/privacy-disclosures.json": "5e230f19693b39a436f3b29661d215fa0b9e85bbd3e144e27241ee7207a066ab",
     "store/retention-deletion-readiness.json": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1"
   }
 }

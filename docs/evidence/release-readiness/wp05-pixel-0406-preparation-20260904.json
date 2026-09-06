@@ -28,11 +28,11 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "d713c01057d18e22a33a2f1c1a05150bec84cdef1146328d9ec36e5d43c1c5c5"
+      "sha256": "040e0aa803e449e545982206ffffd4926484ffe842c50601011962525d4fd1a4"
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "9af1eb83f3c87db2ecf23fb53c0dff0a62ed2183b8f3f53cd924dc8788af5d49"
+      "sha256": "909a096e52bafe31d59fc3f22e8ba69265b21e4bce0825bcda14a11e5a4f2c3b"
     }
   ],
   "bindingInventory": [
@@ -110,7 +110,7 @@
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "4179c6da0539a9f8cdd827b1ad327240f8bd002cf0cc246a28945c07775d7fab"
+      "sha256": "5e230f19693b39a436f3b29661d215fa0b9e85bbd3e144e27241ee7207a066ab"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",

@@ -7,6 +7,7 @@ import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/local_principal_scope.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/private_pilot_owner_acceptance_dialog.dart';
@@ -35,6 +36,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   Timer? _acceptanceDeadlineTimer;
   // Track unread counts per category
   final Map<String, int> _unreadCounts = {};
+  int _loadRevision = 0;
+  bool _isLoading = true;
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -62,11 +66,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
     _acceptanceDeadlineTimer?.cancel();
     _tabController.dispose();
     super.dispose();
-  }
-
-  void _replaceEntries(List<_OwnerEntry> entries) {
-    setState(() => _entries = entries);
-    _scheduleAcceptanceDeadlineRefresh();
   }
 
   void _scheduleAcceptanceDeadlineRefresh() {
@@ -156,100 +155,194 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   }
 
   Future<void> _load() async {
-    final owner = await DataService.getCurrentUser();
-    if (owner == null) {
-      if (QaRuntimeService.isEnabled) {
-        final demo = await _buildDemoOwnerEntries();
-        if (!mounted) return;
-        _ownerId = demo.ownerId;
-        _unreadCounts
-          ..clear()
-          ..addAll(
-              {'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
-        _replaceEntries(demo.entries);
+    final revision = ++_loadRevision;
+    LocalPrincipalActionOwner? actionOwner;
+    var coreCommitted = false;
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _loadFailed = false;
+        _ownerId = null;
+        _entries = const [];
+        _unreadCounts.clear();
+      });
+    }
+    try {
+      actionOwner = await LocalPrincipalActionOwner.capture();
+      final owner = await DataService.getCurrentUser();
+      await actionOwner.assertCurrent();
+      if (!mounted || revision != _loadRevision) return;
+      if (owner == null) {
+        if (QaRuntimeService.isEnabled) {
+          final demo = await _buildDemoOwnerEntries();
+          await actionOwner.assertCurrent();
+          if (!mounted || revision != _loadRevision) return;
+          _ownerId = demo.ownerId;
+          _unreadCounts
+            ..clear()
+            ..addAll(
+                {'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
+          setState(() {
+            _entries = demo.entries;
+            _isLoading = false;
+          });
+          _scheduleAcceptanceDeadlineRefresh();
+          return;
+        }
+        _ownerId = null;
+        setState(() => _isLoading = false);
         return;
       }
-      if (!mounted) return;
-      _ownerId = null;
-      _unreadCounts.clear();
-      _replaceEntries(const []);
-      return;
-    }
-    _ownerId = owner.id;
-    final requests = await DataService.getRentalRequestsForOwner(owner.id);
-    if (requests.isEmpty) {
-      if (QaRuntimeService.isEnabled) {
-        final demo = await _buildDemoOwnerEntries(ownerId: owner.id);
-        if (!mounted) return;
-        _unreadCounts
-          ..clear()
-          ..addAll(
-              {'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
-        _replaceEntries(demo.entries);
+      _ownerId = owner.id;
+      final requests = await DataService.getRentalRequestsForOwner(owner.id);
+      await actionOwner.assertCurrent();
+      if (!mounted || revision != _loadRevision) return;
+      if (requests.isEmpty) {
+        if (QaRuntimeService.isEnabled) {
+          final demo = await _buildDemoOwnerEntries(ownerId: owner.id);
+          await actionOwner.assertCurrent();
+          if (!mounted || revision != _loadRevision) return;
+          _unreadCounts
+            ..clear()
+            ..addAll(
+                {'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
+          setState(() {
+            _entries = demo.entries;
+            _isLoading = false;
+          });
+          _scheduleAcceptanceDeadlineRefresh();
+          return;
+        }
+        setState(() => _isLoading = false);
         return;
       }
-      if (!mounted) return;
-      _unreadCounts.clear();
-      _replaceEntries(const []);
-      return;
-    }
-    // Load the catalog and local profile cache once. Calling getItemById for
-    // every booking would reload the complete remote catalog each time and can
-    // abort the screen before any request card is rendered. Only participants
-    // missing from the local cache need an individual public-profile lookup.
-    final items = await DataService.getItems();
-    final users = await DataService.getUsers();
-    final byItem = <String, Item?>{
-      for (final item in items) item.id: item,
-    };
-    final byUser = <String, model.User?>{
-      for (final user in users) user.id: user,
-    };
-    for (final request in requests) {
-      if (!byUser.containsKey(request.renterId)) {
-        byUser[request.renterId] =
-            await DataService.getUserById(request.renterId);
+      // Load the catalog and local profile cache once. Calling getItemById for
+      // every booking would reload the complete remote catalog each time and can
+      // abort the screen before any request card is rendered. Only participants
+      // missing from the local cache need an individual public-profile lookup.
+      final items = await DataService.getItems();
+      final users = await DataService.getUsers();
+      await actionOwner.assertCurrent();
+      if (!mounted || revision != _loadRevision) return;
+      final byItem = <String, Item?>{
+        for (final item in items) item.id: item,
+      };
+      final byUser = <String, model.User?>{
+        for (final user in users) user.id: user,
+      };
+      for (final request in requests) {
+        if (!byUser.containsKey(request.renterId)) {
+          byUser[request.renterId] =
+              await DataService.getUserById(request.renterId);
+          await actionOwner.assertCurrent();
+          if (!mounted || revision != _loadRevision) return;
+        }
       }
-    }
-    final list = <_OwnerEntry>[];
-    for (final r in requests) {
-      final it = byItem[r.itemId];
-      final renter = byUser[r.renterId];
-      if (it == null || renter == null) continue;
-      final flowState = await DataService.getHandoverReturnState(r.id);
-      final reviewed = await DataService.hasSubmittedReview(
-          requestId: r.id, reviewerId: owner.id);
-      list.add(_OwnerEntry(
+      // Render authoritative request/listing/participant truth before optional
+      // per-booking enrichment. Historic terminal requests must never make a
+      // current accepted request wait behind an unbounded serial network tail.
+      final base = <_OwnerEntry>[];
+      for (final r in requests) {
+        final it = byItem[r.itemId];
+        final renter = byUser[r.renterId];
+        if (it == null || renter == null) continue;
+        final reviewMayBeAvailable = r.status == 'completed' && !r.needsReview;
+        base.add(_OwnerEntry(
           r: r,
           item: it,
           renter: renter,
+          flowState: const {},
+          // Fail closed while review state is still unknown: never offer a
+          // duplicate review action during progressive hydration.
+          hasSubmittedReview: reviewMayBeAvailable,
+        ));
+      }
+
+      await actionOwner.assertCurrent();
+      if (!mounted || revision != _loadRevision) return;
+      setState(() {
+        _entries = base;
+        _isLoading = false;
+      });
+      _scheduleAcceptanceDeadlineRefresh();
+      coreCommitted = true;
+
+      // Calculate unread counts for each category
+      final categorized = {
+        'ongoing': <RentalRequest>[],
+        'upcoming': <RentalRequest>[],
+        'requests': <RentalRequest>[],
+        'completed': <RentalRequest>[],
+      };
+      for (final e in base) {
+        final cat = _effectiveCategory(e);
+        categorized[cat]?.add(e.r);
+      }
+
+      final unreadCounts = <String, int>{};
+      for (final cat in categorized.keys) {
+        final unreadCount = await DataService.getUnreadCountForCategory(
+          userId: owner.id,
+          category: cat,
+          requests: categorized[cat]!,
+        );
+        unreadCounts[cat] = unreadCount;
+      }
+
+      final enriched = <_OwnerEntry>[];
+      for (final entry in base) {
+        await actionOwner.assertCurrent();
+        if (!mounted || revision != _loadRevision) return;
+        final status = entry.r.status.toLowerCase().trim();
+        final flowState = status == 'accepted' || status == 'running'
+            ? await DataService.getHandoverReturnState(entry.r.id)
+            : const <String, dynamic>{};
+        final reviewed = status == 'completed' && !entry.r.needsReview
+            ? await DataService.hasSubmittedReview(
+                requestId: entry.r.id,
+                reviewerId: owner.id,
+              )
+            : false;
+        enriched.add(_OwnerEntry(
+          r: entry.r,
+          item: entry.item,
+          renter: entry.renter,
           flowState: flowState,
-          hasSubmittedReview: reviewed));
-    }
-
-    // Calculate unread counts for each category
-    final categorized = {
-      'ongoing': <RentalRequest>[],
-      'upcoming': <RentalRequest>[],
-      'requests': <RentalRequest>[],
-      'completed': <RentalRequest>[],
-    };
-    for (final e in list) {
-      final cat = _effectiveCategory(e);
-      categorized[cat]?.add(e.r);
-    }
-
-    for (final cat in categorized.keys) {
-      final unreadCount = await DataService.getUnreadCountForCategory(
-        userId: owner.id,
-        category: cat,
-        requests: categorized[cat]!,
+          hasSubmittedReview: reviewed,
+        ));
+      }
+      await actionOwner.assertCurrent();
+      if (!mounted || revision != _loadRevision) return;
+      setState(() {
+        _entries = enriched;
+        _unreadCounts
+          ..clear()
+          ..addAll(unreadCounts);
+      });
+      _scheduleAcceptanceDeadlineRefresh();
+    } catch (error) {
+      debugPrint(
+        '[OwnerRequests] load failed (${error.runtimeType})',
       );
-      _unreadCounts[cat] = unreadCount;
+      if (!mounted || revision != _loadRevision) return;
+      if (actionOwner != null && !await actionOwner.isCurrent()) {
+        if (!mounted || revision != _loadRevision) return;
+        unawaited(_load());
+        return;
+      }
+      if (coreCommitted) {
+        // The authoritative cards remain usable if optional flow/review
+        // presentation enrichment fails under the same principal.
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _loadFailed = true;
+        _entries = const [];
+        _unreadCounts.clear();
+      });
+      _scheduleAcceptanceDeadlineRefresh();
     }
-
-    if (!mounted) return;
-    _replaceEntries(list);
   }
 
   Future<({String ownerId, List<_OwnerEntry> entries})> _buildDemoOwnerEntries(
@@ -615,6 +708,39 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   }
 
   Widget _buildList(String target) {
+    if (_isLoading) {
+      return Center(
+        child: Semantics(
+          label: 'Mietanfragen werden geladen',
+          child: const CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_loadFailed) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 56),
+              const SizedBox(height: 14),
+              Text(
+                'Mietanfragen konnten nicht geladen werden.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Erneut versuchen'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final maps =
         _entries.where((e) => _effectiveCategory(e) == target).toList();
     if (maps.isEmpty) {
