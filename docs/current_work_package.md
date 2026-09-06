@@ -1,36 +1,49 @@
-# Current Work Package: WP20 Pixel rental-cart and project lifecycle
+# Current Work Package: WP21 Pixel messaging, media, time and location
 
-WP20 is **PHYSICALLY COMPLETE; FINAL CLOSURE-HEAD REGRESSION IS IN PROGRESS**.
-Runtime correction HEAD `36820880` gives each rental intent a
-stable deterministic identity, serializes authoritative reconciliation and
-prevents duplicate cart lines across repeated taps and uncertain transport
-outcomes. Diagnostic HEAD `572a7bc9` automates isolated listing setup, two-role
-cart/project persistence and isolation, exact cleanup and protected-owner
-restoration. Source-ratchet HEAD `e4850f6e25f051fd9d867202dc26c9d99fc9f31c`
-passes the full local technical regression with 2,296 tool tests plus Flutter,
-analyzer, Web/Wasm, loopback and Android.
-
-Signed Staging candidate `1.0.0+2026090507` at source HEAD
-`5b90da53b0bc1b18c073fe0d6e92b89b5a30fae2` passes private-archive validation,
+WP21 is **PHYSICALLY COMPLETE ON THE PIXEL AND DEPLOYED TO STAGING**. Signed
+candidate `1.0.0+2026090603` at source HEAD
+`68c97a437969dc98f17eb151da3e006259ffbafa` passes private-archive validation,
 canonical signing, privacy scan and a data-preserving Pixel update. The full
-physical lifecycle passes duplicate-intent idempotency, exact project
-create/assign server truth, restart persistence, A-to-B isolation, renter
-restore, removal and exact final cleanup. Diagnostic correction HEAD
-`142d1e553344513fd1608af6cc276f083949854b` binds every repeated action to the
-exact listing row and follows the server's first future eligible date. See
-`docs/operations/WP20_PIXEL_RENTAL_CART_PROJECT_LIFECYCLE_2026-09-06.md`.
+two-role journey passes exact-once image attachment, equal participant server
+projection, handover and return proposal plus counterparty confirmation,
+terminated-process persistence and a server-blocked pre-window location
+attempt with no location message. Cleanup removes the isolated booking,
+listing and device file and restores the protected owner.
 
-Next: run the one required full local regression and exact closure-head GitHub
-Regression/CodeQL, verify alerts zero, clean tree, remote divergence zero and
-PR #7 Draft/open/unmerged. No new functional package starts before that
-closure is recorded.
+Candidate HEAD `68c97a43` also replaces ephemeral blocked-location feedback
+with an awaited persistent dialog. Diagnostic HEAD `5b58c80c` covers Android's
+valid merged Flutter accessibility semantics without weakening the exact
+server no-location assertion. GitHub candidate Regression `34014883783`,
+CodeQL `34014883747` and publish-image Regression `34014899735` pass, including
+clean-checkout reproducibility. Exact Staging readback shows the same candidate
+commit, healthy zero-restart container, database/mail ready, empty queues,
+memory payment, Stripe live mode off and mock Listing AI budget zero. See
+`docs/operations/WP21_PIXEL_MESSAGING_MEDIA_TIME_LOCATION_2026-09-06.md`.
+
+Next: close the documentation/head gate with one complete local regression,
+exact GitHub Regression/CodeQL, alerts zero, clean tree, remote divergence zero
+and PR #7 Draft/open/unmerged. Then select the next distinct highest-value
+launch-readiness package without reopening WP21.
 
 The execution policy is
 `docs/operations/SIT_CODEX_CONTEXT_CREDIT_EFFICIENCY_RULES_V1.md`: one active
 state capsule, focused checks during changes, one full final gate, no unchanged
 duplicate CI/test runs and no quality or boundary reduction. No Production,
 Store, real-payment, external-provider, Cloud/VPS/DNS/Firebase-console,
-OnePlus or PR-merge action is part of WP20.
+OnePlus or PR-merge action is part of WP21.
+
+# Previous Work Package: WP20 Pixel rental-cart and project lifecycle
+
+WP20 is **COMPLETE ON THE PHYSICAL PIXEL AND GITHUB**. Runtime correction HEAD
+`36820880` supplies stable deterministic rental-intent identity and serialized
+authoritative reconciliation. Signed Staging candidate `1.0.0+2026090507` at
+source HEAD `5b90da53b0bc1b18c073fe0d6e92b89b5a30fae2` passes duplicate-intent
+idempotency, exact project create/assign server truth, restart persistence,
+Account-A-to-B isolation, renter restoration, exact removal and cleanup.
+Diagnostic HEAD `142d1e553344513fd1608af6cc276f083949854b` binds repeated
+actions to the exact listing row and follows the first future server-eligible
+date. See
+`docs/operations/WP20_PIXEL_RENTAL_CART_PROJECT_LIFECYCLE_2026-09-06.md`.
 
 # Previous Work Package: WP19 current-candidate Pixel search and saved-state lifecycle
 

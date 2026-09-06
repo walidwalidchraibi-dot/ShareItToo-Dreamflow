@@ -1,5 +1,34 @@
 # ShareItToo Current State
 
+WP21 closes physical Pixel messaging, media, time coordination and location
+privacy on signed Staging candidate `1.0.0+2026090603`, source HEAD
+`68c97a437969dc98f17eb151da3e006259ffbafa`. The exact two-role journey passes
+one server-confirmed synthetic image attachment, equal participant projection,
+handover and return proposal plus counterparty confirmation, persistence after
+terminated-process restart, and server-blocked location sharing before the
+reveal window with no location message. Candidate feedback for this security
+gate is persistent. Diagnostic HEAD
+`5b58c80c6b9dce0fac641d315d51b42516d342d0` covers valid merged Flutter
+accessibility semantics while retaining the independent server assertion.
+Cleanup cancels and ends the isolated data, removes the device file and
+restores the protected owner. Candidate Regression `34014883783`, CodeQL
+`34014883747` and publish-image Regression `34014899735` pass. Exact candidate
+commit is deployed to Staging with healthy zero-restart container,
+database/mail ready, empty queues, memory payment, Stripe live mode off and
+mock Listing AI budget zero. One noncritical support update remains overdue;
+critical and privacy overdue counts are zero. No OnePlus, Play, Production,
+public registration, real-money, external-provider or PR-merge boundary
+changed. See
+`docs/operations/WP21_PIXEL_MESSAGING_MEDIA_TIME_LOCATION_2026-09-06.md`.
+
+WP20 closes the physical Pixel rental-cart and project lifecycle on signed
+candidate `1.0.0+2026090507`, source HEAD
+`5b90da53b0bc1b18c073fe0d6e92b89b5a30fae2`. Duplicate non-reserving intent,
+stable server identity, exact project assignment, terminated-process
+persistence, Account-A-to-B isolation, renter restoration and exact cleanup
+pass without booking, reservation, contract or payment. See
+`docs/operations/WP20_PIXEL_RENTAL_CART_PROJECT_LIFECYCLE_2026-09-06.md`.
+
 WP19 closes the exact current signed Pixel Staging candidate's search and
 saved-state lifecycle. Candidate `1.0.0+2026090506`, runtime source HEAD
 `d350e3e26f03ec52eac1a86c1cf400148dfd50b1`, passes unique listing search,
