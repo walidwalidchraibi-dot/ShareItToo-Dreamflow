@@ -1,6 +1,7 @@
 # Current Work Package: WP27 safety/privacy principal ownership
 
-WP27 is **COMPLETE LOCALLY; EXACT-HEAD GITHUB PENDING**. Reachable user
+WP27 is **COMPLETE LOCALLY AND ON GITHUB** at implementation HEAD
+`6b39ebf898a979951c330f6fba58fdd0951ffe9f`. Reachable user
 report, evidence-upload, block and unblock actions now capture one immutable
 principal/session owner and one action epoch before the first await, retain it
 through remote and local writes, and recheck it before result UI or navigation.
@@ -15,7 +16,9 @@ delete calls retain the same auth owner through server mutation and refresh.
 Analyzer, 65 focused Flutter checks, 15 focused tool checks, all 2,333
 repository tool tests and the complete technical regression pass, including
 887 Flutter tests with 33 declared skips, Web/Wasm, loopback and Android.
-Exact-head GitHub Regression/CodeQL remain before closure. See
+Exact-head GitHub Regression `34032500401` and CodeQL `34032500382` pass;
+the independent clean checkout passes and open code-scanning alerts are zero.
+PR #7 remains Draft, open, mergeable and unmerged. See
 `docs/operations/WP27_SAFETY_PRIVACY_PRINCIPAL_OWNERSHIP_2026-09-06.md`.
 
 The booking return-case workflow in `report_issue_screen.dart` is explicitly

@@ -56,7 +56,14 @@ retain the captured auth owner through mutation and authoritative refresh.
 - Full technical regression: passed, including 887 Flutter tests with 33
   declared skips, analyzer, Web/Wasm, loopback smoke and the Android debug
   build with minSdk 24.
-- Exact-head GitHub Regression and CodeQL: pending the implementation push.
+- Exact implementation HEAD:
+  `6b39ebf898a979951c330f6fba58fdd0951ffe9f`.
+- Exact-head GitHub Regression `34032500401`: passed all four required jobs,
+  including the independent clean-checkout reproducibility proof.
+- Exact-head GitHub CodeQL `34032500382`: passed. Repository-wide open
+  code-scanning alerts: zero.
+- PR #7 remains Draft, open, mergeable and unmerged at the exact
+  implementation HEAD.
 
 The source ratchets changed because the protected runtime files, disclosure
 bindings and their dependent evidence hashes changed. The update is mechanical

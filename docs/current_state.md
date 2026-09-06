@@ -5746,7 +5746,8 @@ payment, provider, Cloud/VPS/DNS, OnePlus or PR-merge boundary changed. See
 
 ## WP27 safety/privacy principal ownership (2026-09-06)
 
-WP27 is complete locally with exact-head GitHub checks pending. User report,
+WP27 is complete locally and on GitHub at implementation HEAD
+`6b39ebf898a979951c330f6fba58fdd0951ffe9f`. User report,
 evidence-upload, block and unblock operations retain the principal, session
 epoch and explicit local principal captured before the first await. Remote
 credentials never fall back to a successor account; late A results cannot
@@ -5759,8 +5760,11 @@ The messages swipe menu captures ownership before showing its first sheet, and
 read/archive/delete calls retain that owner through remote refresh. Analyzer,
 65 focused Flutter checks, 15 focused tool checks, all 2,333 tool tests and the
 complete regression pass, including 887 Flutter tests with 33 declared skips,
-Web/Wasm, loopback and Android. Exact-head GitHub Regression/CodeQL remain.
-Dependent evidence/disclosure hashes were refreshed mechanically without
-changing historical status, legal/provider/billing truth or live gates. The
+Web/Wasm, loopback and Android. Exact-head GitHub Regression `34032500401` and
+CodeQL `34032500382` pass; independent clean checkout passes and open
+code-scanning alerts are zero. PR #7 remains Draft, open, mergeable and
+unmerged. Dependent evidence/disclosure hashes were refreshed mechanically
+without changing historical status, legal/provider/billing truth or live
+gates. The
 booking return-case `report_issue_screen.dart` workflow remains outside WP27
 for a distinct later package. No candidate or external/device state changed.
