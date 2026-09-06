@@ -121,7 +121,7 @@ test('duplicate scheduler evaluation records no duplicate alert', async () => {
 
 test('health fails closed for stale or unresolved operational conditions', async () => {
   const client = new ScriptedClient([{
-    match: /p0_without_owner/u,
+    match: /critical_next_update_overdue/u,
     result: {
       rowCount: 1,
       rows: [{
@@ -134,6 +134,7 @@ test('health fails closed for stale or unresolved operational conditions', async
         success_count: 5,
         p0_without_owner: 0,
         next_update_overdue: 1,
+        critical_next_update_overdue: 0,
         privacy_deadline_near: 0,
         privacy_deadline_overdue: 0,
       }],
@@ -143,6 +144,7 @@ test('health fails closed for stale or unresolved operational conditions', async
   assert.equal(health.status, 'degraded');
   assert.equal(health.stale, false);
   assert.equal(health.nextUpdateOverdue, 1);
+  assert.equal(health.criticalNextUpdateOverdue, 0);
   client.done();
 });
 

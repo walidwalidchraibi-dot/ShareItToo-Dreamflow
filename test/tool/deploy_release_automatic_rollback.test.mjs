@@ -7,6 +7,10 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 const sourceScript = new URL('../../backend/ops/deploy_release.sh', import.meta.url);
+const sourceStagingReadinessValidator = new URL(
+  '../../backend/ops/validate_staging_deployment_readiness.mjs',
+  import.meta.url,
+);
 
 async function executable(path, content) {
   await writeFile(path, content);
@@ -126,4 +130,107 @@ exit 1
   assert.equal(report.failedCommit, targetCommit);
   assert.equal(report.restoredCommit, previousCommit);
   assert.equal(report.restoredImageId, 'sha256:previous-image');
+});
+
+test('a Staging rollout records but does not hide a noncritical synthetic support backlog', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'sit-deploy-staging-readiness-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const backend = join(root, 'backend');
+  const ops = join(backend, 'ops');
+  const fakeBin = join(root, 'bin');
+  const releases = join(root, 'releases');
+  const deployedState = join(root, 'deployed-state');
+  await Promise.all([
+    mkdir(ops, { recursive: true }),
+    mkdir(fakeBin, { recursive: true }),
+    mkdir(releases, { recursive: true }),
+  ]);
+  await Promise.all([
+    cp(sourceScript, join(ops, 'deploy_release.sh')),
+    cp(sourceStagingReadinessValidator, join(
+      ops,
+      'validate_staging_deployment_readiness.mjs',
+    )),
+  ]);
+  await chmod(join(ops, 'deploy_release.sh'), 0o755);
+  await writeFile(join(backend, 'compose.staging.yml'), 'services:\n  api:\n    image: placeholder\n');
+  await writeFile(join(backend, '.env.staging'), 'POSTGRES_PASSWORD=test\nJWT_SECRET=test\n');
+  await executable(
+    join(ops, 'check_foreign_key_integrity.sh'),
+    '#!/usr/bin/env bash\nexit 0\n',
+  );
+
+  await executable(join(fakeBin, 'curl'), `#!/usr/bin/env bash
+url="\${*: -1}"
+if [[ "$url" == */version ]]; then
+  if [[ -f "\${DEPLOYED_STATE}" ]]; then
+    printf '{"commit":"%s"}\\n' "\${TARGET_COMMIT}"
+  else
+    printf '{"commit":"%s"}\\n' "\${PREVIOUS_COMMIT}"
+  fi
+  exit 0
+fi
+if [[ "$url" == */health/ready ]]; then
+  output=''
+  previous=''
+  for argument in "$@"; do
+    if [[ "$previous" == --output ]]; then output="$argument"; fi
+    previous="$argument"
+  done
+  printf '%s\\n' '{"status":"degraded","service":"shareittoo-api","checks":{"database":"ok","mail":"ok","notifications":{"pending":0,"dead":0},"payments":{"failedEvents":0,"unbalanced":0},"supportDeadlines":{"status":"degraded","stale":false,"lastErrorCode":null,"p0WithoutOwner":0,"nextUpdateOverdue":1,"criticalNextUpdateOverdue":0,"privacyDeadlineNear":0,"privacyDeadlineOverdue":0,"privacyIncidentDeadlineNear":0,"privacyIncidentDeadlineOverdue":0}}}' > "$output"
+  printf '503'
+  exit 0
+fi
+exit 1
+`);
+  await executable(join(fakeBin, 'docker'), `#!/usr/bin/env bash
+if [[ "$1" == image && "$2" == inspect ]]; then
+  case "$*" in
+    *revision*) printf '%s\\n' "\${TARGET_COMMIT}" ;;
+    *version*) printf '0.1.0-%s\\n' "\${TARGET_COMMIT:0:12}" ;;
+    *created*) printf '2026-09-06T00:00:00Z\\n' ;;
+  esac
+  exit 0
+fi
+if [[ "$1" == inspect ]]; then
+  printf 'sha256:previous-image\\n'
+  exit 0
+fi
+if [[ "$1" == compose ]]; then
+  : > "\${DEPLOYED_STATE}"
+  exit 0
+fi
+exit 1
+`);
+
+  const targetCommit = 'c'.repeat(40);
+  const previousCommit = 'd'.repeat(40);
+  const result = spawnSync(join(ops, 'deploy_release.sh'),
+    ['staging', targetCommit], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${fakeBin}:${process.env.PATH}`,
+        TARGET_COMMIT: targetCommit,
+        PREVIOUS_COMMIT: previousCommit,
+        IMAGE_REPOSITORY: 'registry.invalid/sit-api',
+        HEALTH_URL: 'https://example.invalid/api',
+        RELEASE_LOG_DIR: releases,
+        DEPLOYED_STATE: deployedState,
+      },
+    });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Deployment verified/u);
+  const reports = await readdir(releases);
+  assert.equal(reports.length, 1);
+  const report = JSON.parse(await readFile(join(releases, reports[0]), 'utf8'));
+  assert.equal(report.environment, 'staging');
+  assert.equal(report.commit, targetCommit);
+  assert.deepEqual(report.stagingReadiness, {
+    status: 'passed',
+    state: 'noncritical_support_deadline_overdue',
+    noncriticalNextUpdateOverdue: 1,
+  });
 });

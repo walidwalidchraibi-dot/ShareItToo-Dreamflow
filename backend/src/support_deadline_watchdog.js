@@ -219,6 +219,18 @@ export async function supportDeadlineHealth(client = pool, {
          WHERE operating_mode IN ('simulation', 'internal_testing')
            AND status NOT IN ('resolved', 'closed')
            AND next_update_at <= $1) AS next_update_overdue,
+       (SELECT count(*)::int FROM support_cases
+         WHERE operating_mode IN ('simulation', 'internal_testing')
+           AND status NOT IN ('resolved', 'closed')
+           AND next_update_at <= $1
+           AND (
+             priority IN ('p0', 'p1')
+             OR safety_flag
+             OR privacy_flag
+             OR authority_flag
+             OR money_flag
+             OR account_takeover_flag
+           )) AS critical_next_update_overdue,
        (SELECT count(*)::int
           FROM support_privacy_rights_requests AS privacy_request
           JOIN support_cases AS support_case ON support_case.id = privacy_request.case_id
@@ -261,6 +273,7 @@ export async function supportDeadlineHealth(client = pool, {
     || now.getTime() - lastSucceededAt.getTime() > maxStalenessMs;
   const p0WithoutOwner = Number(row.p0_without_owner ?? 0);
   const nextUpdateOverdue = Number(row.next_update_overdue ?? 0);
+  const criticalNextUpdateOverdue = Number(row.critical_next_update_overdue ?? 0);
   const privacyDeadlineNear = Number(row.privacy_deadline_near ?? 0);
   const privacyDeadlineOverdue = Number(row.privacy_deadline_overdue ?? 0);
   const privacyIncidentDeadlineNear = Number(row.privacy_incident_deadline_near ?? 0);
@@ -283,6 +296,7 @@ export async function supportDeadlineHealth(client = pool, {
     successCount: Number(row.success_count ?? 0),
     p0WithoutOwner,
     nextUpdateOverdue,
+    criticalNextUpdateOverdue,
     privacyDeadlineNear,
     privacyDeadlineOverdue,
     privacyIncidentDeadlineNear,

@@ -135,7 +135,10 @@ services:
       - shareittoo_staging_uploads:/data/uploads
       - ${FIREBASE_SERVICE_ACCOUNT_HOST_FILE:-/dev/null}:/run/secrets/firebase-service-account.json:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health/ready"]
+      # Container health is process liveness. The deployment script separately
+      # validates exact runtime readiness and keeps critical operational states
+      # fail-closed without turning a healthy process into a restart candidate.
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health/live"]
       interval: 10s
       timeout: 5s
       retries: 12

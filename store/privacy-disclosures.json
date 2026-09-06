@@ -184,7 +184,7 @@
     },
     {
       "path": "backend/src/support_deadline_watchdog.js",
-      "sha256": "99bfe2f20d49f928bf79e10f8d45b2f7ac235b3cfc95e79f5a18400cab4244f1"
+      "sha256": "d5039cc509ca004406e5bf83f48697afb5acc1e0b0d56fab351b36359d1b8813"
     },
     {
       "path": "backend/src/support_operational_metrics.js",

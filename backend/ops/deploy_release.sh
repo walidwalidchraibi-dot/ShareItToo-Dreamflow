@@ -16,6 +16,7 @@ task_previous_version='unknown'
 task_previous_build_time='unknown'
 task_rollback_override=''
 task_deployment_override=''
+task_ready_payload_file=''
 task_release_dir="${RELEASE_LOG_DIR:-/docker/shareittoo/releases}"
 task_staging_pilot_id="${SIT_STAGING_PILOT_ID:-}"
 task_pull_release_image="${PULL_RELEASE_IMAGE:-0}"
@@ -30,6 +31,9 @@ cleanup() {
   fi
   if [[ -n "$task_deployment_override" ]]; then
     rm -f -- "$task_deployment_override"
+  fi
+  if [[ -n "$task_ready_payload_file" ]]; then
+    rm -f -- "$task_ready_payload_file"
   fi
 }
 
@@ -329,7 +333,20 @@ if ! grep -q "\"commit\":\"$task_commit\"" <<<"$task_version_payload"; then
   echo "Deployment health endpoint does not expose the requested commit." >&2
   exit 1
 fi
-task_ready_payload="$(curl --fail --silent --show-error --max-time 20 "$task_health_url/health/ready")"
+if [[ "$task_environment" == staging ]]; then
+  task_ready_payload_file="$(mktemp)"
+  task_ready_http_status="$(curl --silent --show-error --max-time 20 \
+    --output "$task_ready_payload_file" --write-out '%{http_code}' \
+    "$task_health_url/health/ready")"
+  task_ready_payload="$(<"$task_ready_payload_file")"
+  task_staging_readiness="$(printf '%s' "$task_ready_payload" | \
+    "$task_node_binary" "$task_backend_root/ops/validate_staging_deployment_readiness.mjs" \
+      "--http-status=$task_ready_http_status")"
+else
+  task_ready_payload="$(curl --fail --silent --show-error --max-time 20 \
+    "$task_health_url/health/ready")"
+  task_staging_readiness='null'
+fi
 if [[ "$task_staging_listing_ai_enabled" == true ]] &&
    ! printf '%s' "$task_ready_payload" | "$task_node_binary" -e '
      const { readFileSync } = require("node:fs");
@@ -369,11 +386,11 @@ fi
 install -d -m 700 "$task_release_dir"
 task_timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 task_report="$task_release_dir/${task_environment}-${task_timestamp}-${task_commit:0:12}.json"
-printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingSmtp":%s,"stagingListingAi":%s,"stagingStripe":%s,"stagingPilotId":"%s"}\n' \
+printf '{"environment":"%s","commit":"%s","previousCommit":"%s","version":"%s","buildTime":"%s","deployedAt":"%s","stagingFcm":%s,"stagingSmtp":%s,"stagingListingAi":%s,"stagingStripe":%s,"stagingPilotId":"%s","stagingReadiness":%s}\n' \
   "$task_environment" "$task_commit" "$task_previous_commit" "$task_version" \
   "$task_build_time" "$task_timestamp" "$task_fcm_enabled" "$task_staging_smtp_enabled" \
   "$task_staging_listing_ai_enabled" "$task_staging_stripe_enabled" \
-  "$task_staging_pilot_id" > "$task_report"
+  "$task_staging_pilot_id" "$task_staging_readiness" > "$task_report"
 chmod 600 "$task_report"
 task_deployment_started=false
 

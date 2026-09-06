@@ -50,7 +50,7 @@
   },
   "sourceHashesSha256": {
     "lib/widgets/return_handover_stepper_sheet.dart": "dda249ca1521943790c13a39f2cabb6b14cb785c2d501fa1291cd9ceb7e3021e",
-    "store/privacy-disclosures.json": "9725e11bb3f8a4a6e13812b0e2ec81ee23394b583017b32b6371de7bdcfaed64",
+    "store/privacy-disclosures.json": "fe5fb1db724fbadedea4f22e8541340bd5854da32c108d6c04b1fa1054ec016f",
     "test/tool/v51_return_stepper_transport_removed_wiring.test.mjs": "37ba5ac195d8dafb9c2c5e7829b2dc44c9f0f10f0264cd61002a785108a8f14c"
   }
 }
