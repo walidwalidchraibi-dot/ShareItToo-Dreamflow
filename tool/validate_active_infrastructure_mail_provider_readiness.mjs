@@ -35,7 +35,7 @@ const repositorySources = Object.freeze([
   ]),
   Object.freeze([
     privacyPath,
-    'f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402',
+    '93cd4a6181259616b83895c650272af13574132908c0ef229281adbad2d602c0',
   ]),
   Object.freeze([
     retentionPath,

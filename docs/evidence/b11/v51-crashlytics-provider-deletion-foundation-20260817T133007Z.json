@@ -77,7 +77,7 @@
     "backend/sql/migrations/022_crashlytics_subject_deletion.up.sql": "2d018478ee2691a7900a2665c541acc522c634763505e12e65e997a1d1054f9a",
     "backend/test/crashlytics_cleanup.test.js": "b1dbdfc721d1ca1e53c3388d1b3f27599aa0fd7be5a1aa7fb5e510b27a57faa5",
     "test/tool/crashlytics_report_deletion_foundation_wiring.test.mjs": "d367e8a0624855db127d92603514e90824b6e3161fafe433277a6865adc4e10c",
-    "store/privacy-disclosures.json": "f3b96acb7cf34638d7cd05da49e5634522ab60c2044c162fd20155dc0c32c402",
+    "store/privacy-disclosures.json": "93cd4a6181259616b83895c650272af13574132908c0ef229281adbad2d602c0",
     "store/retention-deletion-readiness.json": "65112bdddc94cf0d1f0cb5b86e9b141ae470681bd6ded33ed0bdbf1fe53c72c1",
     "docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json": "7d09b3571b2b9e12b82895a8ca4ba16563b38c5a79a1ed75e5554d7e091f2246",
     "docs/evidence/b11/retention-deletion-decision-preparation-20260817.json": "a15a967e238557142da892668bbe1ce37da83a3515731c2ac7b1014751c61b12"
