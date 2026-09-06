@@ -7,6 +7,7 @@ import {
   privacyExportPasswordField,
   privacyExportPasswordDialogVisible,
   parsePrivacyExportSinkReceipt,
+  privacyExportShareRejected,
   privacyExportSinkFileSize,
   validatePrivacyExportPayload,
   validatePrivacyExportSinkSources,
@@ -142,6 +143,15 @@ test('temporary sink receipt is exact and bounded for chooser or direct delivery
   ]) {
     assert.throws(() => parsePrivacyExportSinkReceipt(invalid), /receipt is invalid/u);
   }
+});
+
+test('correct-password rejection is detected before waiting for an Android share surface', () => {
+  assert.equal(privacyExportShareRejected(
+    `<hierarchy>${androidNode({ text: 'Datenexport fehlgeschlagen' })}</hierarchy>`,
+  ), true);
+  assert.equal(privacyExportShareRejected(
+    `<hierarchy>${androidNode({ text: 'Datenexport erstellt' })}</hierarchy>`,
+  ), false);
 });
 
 test('accepts an exact owner-bound export with all six local sections', () => {

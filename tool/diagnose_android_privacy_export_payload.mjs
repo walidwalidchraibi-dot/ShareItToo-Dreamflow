@@ -699,6 +699,9 @@ async function selectSinkFromChooser({ commandRunner, adbPath, device, wait }) {
       return Object.freeze({ delivery: 'direct-single-handler' });
     }
     const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    if (privacyExportShareRejected(hierarchy)) {
+      fail('The correct-password export was rejected before Android share handoff.');
+    }
     if (currentHeadAndroidNamedNodes(hierarchy, sinkLabel).length > 0) {
       tapNamed(commandRunner, adbPath, device, hierarchy, sinkLabel);
       return Object.freeze({ delivery: 'chooser-selected' });
@@ -713,6 +716,10 @@ async function selectSinkFromChooser({ commandRunner, adbPath, device, wait }) {
     }
   }
   fail('The sanitized Android privacy export chooser or direct receiver did not appear.');
+}
+
+export function privacyExportShareRejected(hierarchy) {
+  return currentHeadAndroidNamedNodes(hierarchy, 'Datenexport fehlgeschlagen').length > 0;
 }
 
 async function stagingPrincipal(fetchImpl, account) {
