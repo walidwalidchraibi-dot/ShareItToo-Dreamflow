@@ -38,6 +38,14 @@ test('SUP-046 through SUP-048 use one server-authoritative audited reveal path',
   assert.match(messageThread, /Standortfreigabe noch gesperrt/u);
   assert.match(
     messageThread,
+    /if \(visibility\['result'\] != 'revealed'\)[\s\S]*await AppPopup\.info\([\s\S]*Standortfreigabe noch gesperrt/u,
+  );
+  assert.doesNotMatch(
+    messageThread,
+    /if \(visibility\['result'\] != 'revealed'\)[\s\S]{0,240}AppPopup\.toast/u,
+  );
+  assert.match(
+    messageThread,
     /final selection = await _showLocationFlowSheet<String>[\s\S]*pop\('share-only'\)[\s\S]*if \(!mounted \|\| selection == null\) return;[\s\S]*selection == 'share-only'[\s\S]*await _sharePreparedLocation\(data\)/u,
   );
   assert.doesNotMatch(

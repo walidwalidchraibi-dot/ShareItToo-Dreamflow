@@ -2760,9 +2760,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
     if (visibility['result'] != 'revealed') {
       if (!mounted) return;
-      AppPopup.toast(
+      await AppPopup.info(
         context,
-        icon: Icons.lock_outline,
         title: 'Standortfreigabe noch gesperrt',
         message:
             'Ein genauer Ort kann erst im serverseitig freigegebenen Zeitfenster nach beidseitiger Terminbestätigung geteilt werden.',

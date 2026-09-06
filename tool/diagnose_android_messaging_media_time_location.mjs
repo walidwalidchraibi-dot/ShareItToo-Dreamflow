@@ -748,8 +748,8 @@ async function verifyLocationFailClosed({
     device,
     wait,
     label: 'WP21 server-gated location result',
-    attempts: 18,
-    intervalMs: 180,
+    attempts: 70,
+    intervalMs: 250,
     predicate: (value) => currentHeadAndroidNamedNodes(
       value,
       'Standortfreigabe noch gesperrt',
