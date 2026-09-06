@@ -277,7 +277,7 @@
     },
     {
       "path": "backend/src/booking_flow_time.js",
-      "sha256": "48c8ebf79d41117c51e34abc1e6483c1321b44db38be93e35228eeb01eed2091"
+      "sha256": "b69b4fedb56572269490fdb2fedd34811d1633aaa7440d70cf86d6ee3fdd1dd9"
     },
     {
       "path": "backend/src/booking_address_reveal_domain.js",
