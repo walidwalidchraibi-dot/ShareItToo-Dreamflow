@@ -458,11 +458,14 @@ function tapNamed(commandRunner, adbPath, device, hierarchy, label, { last = fal
   ]);
 }
 
-function inputPrivateText(commandRunner, adbPath, device, hierarchy, label, value) {
+function inputPrivateText(commandRunner, adbPath, device, node, label, value) {
   if (!/^[A-Za-z0-9._+@-]{1,200}$/u.test(value)) {
     fail(`The private ${label} input is not safe for bounded Android entry.`);
   }
-  tapNamed(commandRunner, adbPath, device, hierarchy, label);
+  const point = nodeCenter(node, label);
+  currentHeadAndroidAdb(commandRunner, adbPath, device, [
+    'shell', 'input', 'tap', String(point.x), String(point.y),
+  ]);
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell', 'input', 'text', value,
   ]);
@@ -537,15 +540,33 @@ async function openExportPasswordDialog({ commandRunner, adbPath, device, wait }
 }
 
 export function privacyExportPasswordDialogVisible(hierarchy) {
-  return currentHeadAndroidNamedNodes(hierarchy, 'Datenexport bestätigen').length > 0
-    && currentHeadAndroidNamedNodes(hierarchy, 'Aktuelles Passwort').length > 0;
+  return privacyExportPasswordField(hierarchy) !== null;
+}
+
+export function privacyExportPasswordField(hierarchy) {
+  if (currentHeadAndroidNamedNodes(hierarchy, 'Datenexport bestätigen').length !== 1) {
+    return null;
+  }
+  const passwordFields = (String(hierarchy).match(/<node\b[^>]*>/gu) ?? [])
+    .filter((node) => (
+      currentHeadAndroidNodeAttribute(node, 'class') === 'android.widget.EditText'
+        && currentHeadAndroidNodeAttribute(node, 'enabled') === 'true'
+        && currentHeadAndroidNodeAttribute(node, 'clickable') === 'true'
+        && currentHeadAndroidNodeAttribute(node, 'focusable') === 'true'
+        && currentHeadAndroidNodeAttribute(node, 'password') === 'true'
+    ));
+  return passwordFields.length === 1 ? passwordFields[0] : null;
 }
 
 async function submitExportPassword({
   commandRunner, adbPath, device, wait, password,
 }) {
   let hierarchy = await openExportPasswordDialog({ commandRunner, adbPath, device, wait });
-  inputPrivateText(commandRunner, adbPath, device, hierarchy, 'Aktuelles Passwort', password);
+  const passwordField = privacyExportPasswordField(hierarchy);
+  if (passwordField === null) {
+    fail('The exact privacy export password field is unavailable.');
+  }
+  inputPrivateText(commandRunner, adbPath, device, passwordField, 'privacy export password', password);
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell', 'input', 'keyevent', '66',
   ]);

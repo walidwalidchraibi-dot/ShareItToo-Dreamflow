@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   privacyExportSinkJava,
   privacyExportSinkManifest,
+  privacyExportPasswordField,
   privacyExportPasswordDialogVisible,
   validatePrivacyExportPayload,
   validatePrivacyExportSinkSources,
@@ -34,17 +35,60 @@ const identities = Object.freeze({
   foreignEmail: 'renter@example.invalid',
 });
 
-function androidNode({ text = '', contentDescription = '' }) {
-  return `<node text="${text}" content-desc="${contentDescription}" />`;
+function androidNode({
+  text = '',
+  contentDescription = '',
+  className = 'android.view.View',
+  enabled = 'true',
+  clickable = 'false',
+  focusable = 'false',
+  password = 'false',
+  hint = '',
+  bounds = '[0,0][100,100]',
+} = {}) {
+  return `<node text="${text}" content-desc="${contentDescription}" class="${className}"`
+    + ` enabled="${enabled}" clickable="${clickable}" focusable="${focusable}"`
+    + ` password="${password}" hint="${hint}" bounds="${bounds}" />`;
 }
 
-test('password dialog recognition does not depend on a keyboard-obscured action button', () => {
+function passwordField(overrides = {}) {
+  return androidNode({
+    className: 'android.widget.EditText',
+    enabled: 'true',
+    clickable: 'true',
+    focusable: 'true',
+    password: 'true',
+    hint: 'Aktuelles Passwort',
+    bounds: '[190,1005][1250,1153]',
+    ...overrides,
+  });
+}
+
+test('password dialog recognition binds to exactly one protected editable field', () => {
+  const realPixelShape = `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}`
+    + `${passwordField()}</hierarchy>`;
+  assert.equal(privacyExportPasswordDialogVisible(realPixelShape), true);
+  assert.match(privacyExportPasswordField(realPixelShape), /android\.widget\.EditText/u);
+  assert.equal(privacyExportPasswordDialogVisible(
+    `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}</hierarchy>`,
+  ), false);
   assert.equal(privacyExportPasswordDialogVisible(
     `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}`
       + `${androidNode({ text: 'Aktuelles Passwort' })}</hierarchy>`,
-  ), true);
+  ), false);
+  for (const unsafeField of [
+    passwordField({ enabled: 'false' }),
+    passwordField({ clickable: 'false' }),
+    passwordField({ focusable: 'false' }),
+    passwordField({ password: 'false' }),
+  ]) {
+    assert.equal(privacyExportPasswordDialogVisible(
+      `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}${unsafeField}</hierarchy>`,
+    ), false);
+  }
   assert.equal(privacyExportPasswordDialogVisible(
-    `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}</hierarchy>`,
+    `<hierarchy>${androidNode({ text: 'Datenexport bestätigen' })}`
+      + `${passwordField()}${passwordField({ bounds: '[190,1200][1250,1348]' })}</hierarchy>`,
   ), false);
 });
 
