@@ -7,6 +7,12 @@ import { fileURLToPath } from 'node:url';
 
 const sourcePaths = [
   'lib/widgets/support_principal_controller.dart',
+  'lib/main.dart',
+  'lib/screens/privacy_info_screen.dart',
+  'lib/services/privacy_export_file_store.dart',
+  'lib/services/privacy_export_file_platform_io.dart',
+  'lib/services/privacy_export_file_platform_stub.dart',
+  'lib/widgets/privacy_export_cache_lifecycle_host.dart',
   'backend/src/app.js',
   'backend/src/rate_limit_policy.js',
   'backend/src/server.js',
@@ -191,7 +197,6 @@ const sourcePaths = [
   'lib/screens/stripe_payout_account_screen.dart',
   'lib/screens/payment_checkout_screen.dart',
   'lib/screens/legal_privacy_screen.dart',
-  'lib/screens/privacy_info_screen.dart',
   'store/g2-data-lifecycle.json',
 ];
 

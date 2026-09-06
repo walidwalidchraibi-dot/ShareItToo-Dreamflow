@@ -8,6 +8,30 @@
       "sha256": "d7b8be389b09ec64656bafe1fc9e54ddc5bdf58b8602b3e76db266a665544d33"
     },
     {
+      "path": "lib/main.dart",
+      "sha256": "d803c1e10f4600e5ffda883af02f03e354c9f3579964268434f7a8ebb7cbe472"
+    },
+    {
+      "path": "lib/screens/privacy_info_screen.dart",
+      "sha256": "b8322e4b53f08b8c644bee12d498bc713a0f28ef6f55a263f28f017fe9a24b61"
+    },
+    {
+      "path": "lib/services/privacy_export_file_store.dart",
+      "sha256": "5796e16786edb87a85c2bf5722f1ef3593667392a73625f379e900043225849d"
+    },
+    {
+      "path": "lib/services/privacy_export_file_platform_io.dart",
+      "sha256": "2ea2cc4c02a71a05d95a9fd12741a2e18f07ab7c1fe944885feb6e83eba7d97a"
+    },
+    {
+      "path": "lib/services/privacy_export_file_platform_stub.dart",
+      "sha256": "6a47cda99904c2093df368deff392bb12051c8b5faa07319bf8167f3810594b5"
+    },
+    {
+      "path": "lib/widgets/privacy_export_cache_lifecycle_host.dart",
+      "sha256": "c377b8ea822cd891ecccb29d99f3a638f2a72e32b8d6c875db99b4400d4ef476"
+    },
+    {
       "path": "backend/src/app.js",
       "sha256": "6a10db4bff5d044eb8cba11574806f195f01aade17ba193692c90ba5f7013850"
     },
@@ -742,10 +766,6 @@
     {
       "path": "lib/screens/legal_privacy_screen.dart",
       "sha256": "54d00bc3988330165f53c2c9f430460b074534308c94f41db6fe7db50d117bde"
-    },
-    {
-      "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "a338263a74a2875bac02b42e0a58c21a107f489f23417ae66adaa9f14819458c"
     },
     {
       "path": "store/g2-data-lifecycle.json",

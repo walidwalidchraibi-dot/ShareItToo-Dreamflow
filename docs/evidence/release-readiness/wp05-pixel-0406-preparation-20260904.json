@@ -106,15 +106,15 @@
     },
     {
       "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
-      "sha256": "d3c11c2822dc4bf336d2881ccc1eb76887a5fd01924e2d3778c27932ba07cd36"
+      "sha256": "7a3b801d905890c36ece483e3d72f589abe75f90ad356cc6aa5fe0997be99698"
     },
     {
       "path": "store/privacy-disclosures.json",
-      "sha256": "3369c588f3772e60e0d7866b88e868f1548add0ce8de9bec14d2d37a82cb66ac"
+      "sha256": "fd0add1578d087c2c9cf098387e69de44ae0195b2c3e75d6a01ebb2e26606391"
     },
     {
       "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
-      "sha256": "c8cd15141aa627bc68b5d688596c8651020c9be7bca780ed3ce111047c974cd5"
+      "sha256": "07e3ee49b86048903eb490895bf3ab3b2235d9c2a62de9d9add20d86377ba551"
     },
     {
       "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
@@ -126,11 +126,11 @@
     },
     {
       "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
-      "sha256": "600736a9776577234013e27615279b519993bf9c2f23786d76648dda4ecb5718"
+      "sha256": "dc46363fbf89dedb7124e6990b8e0ed1bf236e39f91f3d84c40b50305b1f908b"
     },
     {
       "path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs",
-      "sha256": "ccd5bebf55fe1c1a4846d449fdbc3254607e4e1db5d2701597df8364192955bb"
+      "sha256": "7423d09b0808e1b438f2efe46884dff3b2b078211a03c9329a56aaa2446870da"
     }
   ],
   "preparationChecks": {

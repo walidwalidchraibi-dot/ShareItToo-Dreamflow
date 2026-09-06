@@ -5,6 +5,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/privacy_export_service.dart';
+import 'package:lendify/services/privacy_export_file_store.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/tracked_dialog_route.dart';
@@ -13,11 +14,13 @@ import 'package:share_plus/share_plus.dart';
 class PrivacyInfoScreen extends StatefulWidget {
   final PrivacyExportService exportService;
   final Future<ShareResult> Function(Uint8List bytes)? shareExport;
+  final PrivacyExportFileStore exportFileStore;
 
   const PrivacyInfoScreen({
     super.key,
     this.exportService = const PrivacyExportService(),
     this.shareExport,
+    this.exportFileStore = const PrivacyExportFileStore(),
   });
 
   @override
@@ -215,15 +218,28 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
   }
 
   Future<ShareResult> _shareExport(Uint8List bytes) {
-    const filename = 'shareittoo-data-export.json';
-    return SharePlus.instance.share(ShareParams(
-      files: [
-        XFile.fromData(bytes, name: filename, mimeType: 'application/json')
-      ],
-      fileNameOverrides: const [filename],
-      subject: 'Dein ShareItToo-Datenexport',
-      downloadFallbackEnabled: true,
-    ));
+    return _shareControlledExport(bytes);
+  }
+
+  Future<ShareResult> _shareControlledExport(Uint8List bytes) async {
+    final prepared = await widget.exportFileStore.prepare(bytes);
+    try {
+      return await SharePlus.instance.share(ShareParams(
+        files: [prepared.file],
+        fileNameOverrides: const [privacyExportFilename],
+        subject: 'Dein ShareItToo-Datenexport',
+        downloadFallbackEnabled: true,
+      ));
+    } finally {
+      try {
+        // The native share layer has already copied this source into its own
+        // private cache. That copy is purged only after ShareItToo safely
+        // resumes, while this controlled source can be removed immediately.
+        await prepared.removeControlledSource();
+      } catch (_) {
+        debugPrint('[PrivacyExportCache] controlled-source cleanup failed');
+      }
+    }
   }
 
   Future<void> _showOutcome(

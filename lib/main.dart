@@ -18,6 +18,8 @@ import 'package:lendify/services/release_identity.dart';
 import 'package:lendify/services/firebase_runtime.dart';
 import 'package:lendify/screens/app_link_destination_screen.dart';
 import 'package:lendify/widgets/foreground_push_host.dart';
+import 'package:lendify/services/privacy_export_file_store.dart';
+import 'package:lendify/widgets/privacy_export_cache_lifecycle_host.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
@@ -27,6 +29,11 @@ Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
   WidgetsFlutterBinding.ensureInitialized();
   ReleaseIdentity.validateCurrentBuild();
+  try {
+    await const PrivacyExportFileStore().purgeRetainedCopies();
+  } catch (_) {
+    debugPrint('[PrivacyExportCache] startup cleanup failed');
+  }
   await FirebaseRuntime.initialize();
   // Firebase retains a cold notification intent while an existing backend
   // session refresh settles. App-link principal/epoch capture starts only
@@ -55,8 +62,7 @@ Future<void> main() async {
 
   DeveloperUserState? initialPreview;
   try {
-    initialPreview =
-        await QaBootstrapService.maybeBootstrap() ??
+    initialPreview = await QaBootstrapService.maybeBootstrap() ??
         await DeveloperPreviewController.readStateOnce();
   } catch (e) {
     debugPrint('[Main] bootstrap/readStateOnce failed: $e');
@@ -119,11 +125,13 @@ class MyApp extends StatelessWidget {
             theme: buildLightTheme(context),
             darkTheme: buildDarkTheme(context),
             themeMode: backgroundTheme.themeMode,
-            builder: (context, child) => ForegroundPushHost(
-              navigatorKey: rootNavigatorKey,
-              messengerKey: rootScaffoldMessengerKey,
-              child: AppGradientBackground(
-                child: child ?? const SizedBox.shrink(),
+            builder: (context, child) => PrivacyExportCacheLifecycleHost(
+              child: ForegroundPushHost(
+                navigatorKey: rootNavigatorKey,
+                messengerKey: rootScaffoldMessengerKey,
+                child: AppGradientBackground(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
             home: const AppLinkHost(child: AppRoot()),
