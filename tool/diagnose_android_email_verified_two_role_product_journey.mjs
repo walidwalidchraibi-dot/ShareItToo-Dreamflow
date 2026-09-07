@@ -184,6 +184,21 @@ export function renterBookingChatVisible(hierarchy, exactListingTitle) {
     && currentHeadAndroidNamedNodes(hierarchy, 'Bestätigt').length > 0;
 }
 
+export function renterBookingChatSurfaceClassification(hierarchy, exactListingTitle) {
+  const count = (label) => currentHeadAndroidNamedNodes(hierarchy, label).length;
+  return [
+    `settings-${count('Nachrichten-Einstellungen')}`,
+    `title-${count(`· ${exactListingTitle}`)}`,
+    `confirmed-${count('Bestätigt')}`,
+    `chat-${count('Chat')}`,
+    `completed-${count('Abgeschlossen')}`,
+    `load-failed-${count('Nachrichten konnten nicht sicher geladen werden.')}`,
+    `empty-${count('Noch keine Nachrichten')}`,
+    `active-tab-${count('Aktiv')}`,
+    `archived-tab-${count('Archiviert')}`,
+  ].join('_');
+}
+
 export async function openMainDestination({
   commandRunner,
   adbPath,
@@ -488,14 +503,30 @@ async function verifyRenterProductSurfaces({
     wait,
     label: 'Nachrichten',
   });
-  await waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-    label: 'renter booking chat',
-    predicate: (value) => renterBookingChatVisible(value, title),
-  });
+  try {
+    await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'renter booking chat',
+      predicate: (value) => renterBookingChatVisible(value, title),
+    });
+  } catch (error) {
+    try {
+      const observed = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+      fail(
+        `The sanitized renter booking chat failed with surface classification ${renterBookingChatSurfaceClassification(observed, title)}.`,
+      );
+    } catch (classificationError) {
+      if (classificationError?.message?.startsWith(
+        'The sanitized renter booking chat failed with surface classification ',
+      )) {
+        throw classificationError;
+      }
+      throw error;
+    }
+  }
   return Object.freeze({
     status: 'pixel-renter-product-surfaces-passed',
     exactRenterPrincipal: true,

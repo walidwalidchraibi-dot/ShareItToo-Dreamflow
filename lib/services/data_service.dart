@@ -894,7 +894,13 @@ class DataService {
         );
         final encoded = jsonEncode(remote);
         _decodeMessageThreadsStrict(encoded);
-        await _writePreferenceString(prefs, _messageThreadsKey, encoded);
+        await _persistMessageThreads(
+          prefs,
+          remote,
+          announceChange: shouldAnnounceMessageThreadCacheWrite(
+            readOnlyRemoteRefresh: true,
+          ),
+        );
         return encoded;
       } catch (error) {
         debugPrint('[DataService] remote message load failed: $error');

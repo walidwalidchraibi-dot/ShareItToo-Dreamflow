@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   ownerNonBindingDetailVisible,
+  renterBookingChatSurfaceClassification,
   renterBookingChatVisible,
   renterNonBindingDetailVisible,
   retryIdempotentPixelState,
@@ -94,6 +95,17 @@ test('matches the exact booking chat through the shipped middle-dot title prefix
   const hierarchy = `<hierarchy>${node('Nachrichten-Einstellungen')}${node(`· ${title}`)}${node('Bestätigt')}</hierarchy>`;
   assert.equal(renterBookingChatVisible(hierarchy, title), true);
   assert.equal(renterBookingChatVisible(hierarchy, 'SIT Rollenprüfung another'), false);
+});
+
+test('classifies a missing renter booking chat without exposing its title', () => {
+  const title = 'SIT Rollenprüfung n22-private-fixture';
+  const hierarchy = `<hierarchy>${node('Nachrichten-Einstellungen')}${node(`· ${title}`)}${node('Chat')}${node('Aktiv')}${node('Archiviert')}</hierarchy>`;
+  const classification = renterBookingChatSurfaceClassification(hierarchy, title);
+  assert.equal(
+    classification,
+    'settings-1_title-1_confirmed-0_chat-1_completed-0_load-failed-0_empty-0_active-tab-1_archived-tab-1',
+  );
+  assert.equal(classification.includes(title), false);
 });
 
 test('retries an idempotent Pixel state transition exactly once', async () => {
