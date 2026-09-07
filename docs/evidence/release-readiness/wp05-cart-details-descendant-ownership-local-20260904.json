@@ -1,0 +1,349 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-wp05-saved-detail-descendant-ownership",
+  "observedOn": "2026-09-04",
+  "status": "LOCAL_NORMAL_VERIFIED_EXACT_COMMITTED_CLEAN_PENDING",
+  "source": {
+    "baseHead": "59a8eb6ab1118b3fd17cdbb43d5142a94bceabd5",
+    "branch": "codex/master-workflow-20260808",
+    "implementation": "working-tree-preparation-to-be-frozen",
+    "cachedUpstreamOnly": {
+      "ahead": 30,
+      "behind": 0,
+      "liveGithubVerified": false
+    }
+  },
+  "previousExactCleanProof": {
+    "path": "docs/evidence/release-readiness/wp05-cart-surface-principal-clean-20260904.json",
+    "sha256": "20a33550931909be1d4d907281a6d5a7c88f0c32c785a5afff97f08ee2cf3d65",
+    "head": "59a8eb6ab1118b3fd17cdbb43d5142a94bceabd5",
+    "debugOnly": true,
+    "promotedToCurrentSource": false
+  },
+  "scope": [
+    "saved-origin detail page descendants",
+    "wishlist selection/create/read/write",
+    "owned overflow/gallery/notices and clipboard outcome",
+    "owner-bound saved-selection load/disposal cleanup"
+  ],
+  "sourceInventory": [
+    {
+      "path": "lib/services/data_service.dart",
+      "sha256": "f23002e697a484a16e392e8fcf5dd9de527ecc55eb791dde7fab98386e37375f"
+    },
+    {
+      "path": "lib/widgets/item_details_overlay.dart",
+      "sha256": "3541d27c2964795b925e30a2d990b81da759f3ef521b79e4fe4902be965c2141"
+    },
+    {
+      "path": "lib/widgets/image_gallery_overlay.dart",
+      "sha256": "4ea0f6f427081a09941f32a35db602111b1f6107d39efd3537371ca05dc124cd"
+    },
+    {
+      "path": "lib/widgets/sit_overflow_menu.dart",
+      "sha256": "18223d9a663ba5793e992e1439a0d070c2f999fa34858b13e0c24c27e252702d"
+    },
+    {
+      "path": "lib/widgets/saved_cart_action_scope.dart",
+      "sha256": "0d23bcbcf6c263cb60ae34c90d182c4847acd1dcd7a0a20f8f35051ed5d94cfe"
+    },
+    {
+      "path": "test/saved_cart_details_principal_test.dart",
+      "sha256": "2e555fe937609d797066c8d86bd3cf25b4b1a53a7a2931c7178854d6715e3699"
+    },
+    {
+      "path": "test/saved_cart_action_scope_test.dart",
+      "sha256": "b98aceaf880437f5a0128aed6b450f8a54461e0ffae2cb05fcc765980685d022"
+    },
+    {
+      "path": "test/tool/rental_cart_surface_principal_wiring.test.mjs",
+      "sha256": "399e38c53a9135f244f14920716a05d69e8125388c7a8d0ca1b08204fddf1ca9"
+    },
+    {
+      "path": "test/tool/item_details_secondary_async_context_wiring.test.mjs",
+      "sha256": "5fd817a9f9d64ad4d014f3f349f98cc2bad78665ae2c7bb084f1afb61939e2bb"
+    }
+  ],
+  "bindingInventory": [
+    {
+      "path": "docs/evidence/48h-remote/rw0-reduced-wave0-product-journey-20260825.json",
+      "sha256": "1e8abb03e3123f676c32dcfb506cc81d833411d3280428c73590b337738bb6f5"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
+      "sha256": "e168acf9898d8b3c3ef103cf7260919f7c0bfce3287360d618065a44fe529c9b"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw11-regression-completeness-stale-support-wiring-20260825.json",
+      "sha256": "bc256e3db92314c6b8bcee4fc017998cf4e2919b1b08d6ec147276448fe4b522"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
+      "sha256": "8ee9cbf14b39d6c986c265dd2d713d35fb43268493b41e531abc6336ffb60aef"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw13-security-logout-all-outcome-principal-epoch-20260825.json",
+      "sha256": "9a2d82db08944975a62947f184c8e10f68d8745087b9a8b29d55b904e377942c"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
+      "sha256": "e72ba8863ebd33f7e25ec70b1d666e9e510e2a7c4c78cbf1ea07c9796c9504b9"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json",
+      "sha256": "94cf9e9245e4cc145859cc3fee17d748147f1543f86e5c5ba7142430a065cae4"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
+      "sha256": "af09a86fcfcef2ecbf2d3bb346df4e20438aec7a8b3b047525ec72504967af75"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
+      "sha256": "ddd5f898cf22e1763feab8eb56e968a247b476b33550c296b31869854cf53307"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
+      "sha256": "13ca04350d1e979a2f347cdf66035fc01bb93643959b2d1a1f77db41afd19369"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
+      "sha256": "77d917e352bf677dcc278cf1bed04d484c47a63c4061c25768810f9e5f920e21"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw2-reduced-wave0-local-state-truth-recovery-20260825.json",
+      "sha256": "c5da74323814b4ff85c77c64fbc78eafca7ef02e46fe1f0952e0afa8c09ecd14"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw20-listing-mutation-principal-epoch-transaction-20260826.json",
+      "sha256": "03a7ee1e7cddb185364ed469b92f5bf39080807e6e6c5893c573d795dfbf723d"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw3-reduced-wave0-local-concurrency-consistency-20260825.json",
+      "sha256": "d708d60dbad3c9b416a20d6bfc5e82c8bf8b63f4432b59994c4a5894cb43bfb7"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw4-reduced-wave0-local-principal-isolation-20260825.json",
+      "sha256": "343fe0e59b3c3ca2ea4db0df1822b7bf48142e7c5361c0cac3dac7277564033e"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw5-local-safety-privacy-principal-isolation-20260825.json",
+      "sha256": "4a3258f38c5971f83ff5cbdcf2aedc5b8233ad8ae29ce9547d7473fd04d867a3"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw6-local-operational-record-authorization-truth-recovery-20260825.json",
+      "sha256": "575935fad3257aed2487cf1cbff6e36b5cecdb74adbafbc2c1b59d4029f83010"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw7-local-listing-catalog-authorization-durability-20260825.json",
+      "sha256": "9ffb962176a9820709b3e9b0fb937d097a91831b1bfba280249c6170459fd6d1"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw8-local-review-reputation-authorization-durability-20260825.json",
+      "sha256": "0b763ca20daaccbc9252c2aaff5c4983c6082f6ee1a3946572bde1ed4d01dccd"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw9-local-account-profile-authorization-durability-20260825.json",
+      "sha256": "4a1894adbd57b59587a98f3b81992eae8053654b64af1066584d51f930f5d6b1"
+    },
+    {
+      "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+      "sha256": "3139da065da706964a04074d08ebed1e0260319a52eba032f1c0ff50da8ac286"
+    },
+    {
+      "path": "store/privacy-disclosures.json",
+      "sha256": "2e8fa3713571239f7f285a8047e00c0a488dc661e12948458268b884e2cc1e8a"
+    },
+    {
+      "path": "store/retention-deletion-readiness.json",
+      "sha256": "d6fee9f41cf436030011e7fee20c26c294b307a2ce313a13ad89157e13f43a3b"
+    },
+    {
+      "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
+      "sha256": "63368b14392ba1055132a6d300c4a7be4918b68cca0e579a6c988713b61752bc"
+    },
+    {
+      "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
+      "sha256": "034923b2a7858ced557717b4e0fa3214c194f5194a61108bb900fa48ab1fcc74"
+    },
+    {
+      "path": "tool/validate_rw7_local_listing_catalog_authorization_durability.mjs",
+      "sha256": "5e9b50d9bbed99e3cebebfae146b56ee2db16260812153229f6530bd02c6d279"
+    },
+    {
+      "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
+      "sha256": "db0c5481fb5d9d3d305d7ea08e0daf441808f7183c20c522c73bc6c1c24c87e0"
+    },
+    {
+      "path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs",
+      "sha256": "fb9ad8a3fb00f8629a27679f2b28a892b5a9a56de8386690bef6175a9fd350aa"
+    }
+  ],
+  "hashPropagation": {
+    "changedJson": 23,
+    "changedValidatorConstants": 5,
+    "nonHashClaimsAndAssertionsUnchanged": true,
+    "finalConvergenceRounds": 0
+  },
+  "redEvidence": {
+    "baseEightRowProbe": {
+      "stablePassed": 4,
+      "ownershipFailed": 4
+    },
+    "expandedBaseProbe": {
+      "passed": 5,
+      "ownershipFailed": 5,
+      "fixtureFailures": 2,
+      "fixtureCause": "gallery-create tapped obscured underlying heart; not product-defect proof"
+    },
+    "intermediateDisposalProbe": {
+      "passed": 48,
+      "failed": 1,
+      "observation": "A details disposal cleared B saved date selection"
+    },
+    "realAccountOrBackendMutation": false
+  },
+  "tests": {
+    "focused": {
+      "status": "PASS",
+      "total": 97,
+      "details": 36,
+      "scope": 17,
+      "galleryLifecycle": 3,
+      "nested": 24,
+      "wishlist": 17
+    },
+    "wiring": {
+      "status": "PASS",
+      "tests": 18,
+      "missingShareChainNegativeMutations": 6
+    },
+    "analyzer": {
+      "status": "PASS",
+      "issues": 0
+    },
+    "fullNormal": {
+      "status": "PASS",
+      "processExitCode": 0,
+      "toolTests": 2235,
+      "defaultFlutter": 852,
+      "defaultProfileSpecificSkips": 33,
+      "flutterLaneCompletions": 34,
+      "web": "PASS",
+      "wasm": "DRY_RUN_PASS_NOT_STANDALONE_RUNTIME",
+      "loopback": "PASS",
+      "androidDebugBuildSeconds": 22,
+      "minSdk": 24,
+      "permissions": 14,
+      "exported": 8,
+      "capacity": {
+        "status": "passed",
+        "beforeFreeKiB": 7070388,
+        "afterFreeKiB": 7050060,
+        "beforeGeneratedKiB": 3400016,
+        "afterGeneratedKiB": 3400076,
+        "generatedGrowthKiB": 60,
+        "effectiveBudgetKiB": 5242880,
+        "maxGeneratedKiB": 5242880,
+        "minimumEndFreeKiB": 524288
+      }
+    },
+    "secretWorkingTree": "PASS",
+    "exactCurrentCommittedClean": "PENDING",
+    "github": "OWNER_DEFERRED_NOT_WAIVED"
+  },
+  "retainedFailures": [
+    "initial expanded gallery-create fixture could not dispatch",
+    "intermediate A-disposal privacy failure corrected",
+    "expanded service fixture Future<void>/Object compilation corrected",
+    "three brace analyzer infos corrected without suppression",
+    "first normal failed obsolete secondary-details extractor/inline-share assumption; changed to actual owner-checked helper chain with six negative mutations"
+  ],
+  "privateEvidence": {
+    "directory": "/Users/walidchraibi/Documents/Codex/2026-08-19/new-chat/SIT_WP05_0404_EVIDENCE.ZJuzfC",
+    "logs": [
+      {
+        "file": "cart-surface-59a8-r10.log",
+        "sha256": "183dc22bde65f705a05347bb192f61362618ed1a5dcdd76747bf21a4ac0f13b8"
+      },
+      {
+        "file": "cart-details-nested-red.log",
+        "sha256": "e9bb35452ae6d41389d5181796a0e67b5e35cb0ca8c77a2fb6f0678a598f808f"
+      },
+      {
+        "file": "cart-details-expanded-red.log",
+        "sha256": "888bd6dbb01b4d7ea2dd06e3bdd27dd832fabdd190e6baee0ee72d4b9d2a0849"
+      },
+      {
+        "file": "cart-details-focused-first.log",
+        "sha256": "9c23ca2c92d59bfc7914821ae4c2eb1fd7f4d2e3bcc26557600e513370c4f2f2"
+      },
+      {
+        "file": "cart-details-expanded-first.log",
+        "sha256": "680837ef9fc453d83487df3be82b1a699a11a6861b56053b418c55b07226da5d"
+      },
+      {
+        "file": "cart-details-expanded-second.log",
+        "sha256": "9c64376777e1806125b78838bb7deabdcbc44932cd790fffbe0a421e90f45ddc"
+      },
+      {
+        "file": "cart-details-focused-final.log",
+        "sha256": "a8470af04d52244ccb7d42b27d41ba5025bfa11ef9d221e057820e62ad8dab91"
+      },
+      {
+        "file": "cart-details-focused-final-second.log",
+        "sha256": "d81cf420790736f16b3e3bade8d4d331425c23ec548f1af5501047c578472d31"
+      },
+      {
+        "file": "cart-details-analyzer-first.log",
+        "sha256": "c4bb7b00c43447ca7afac85f409f50c3a80ee702c34d8ec99a96289ba7a2e951"
+      },
+      {
+        "file": "cart-details-analyzer-final.log",
+        "sha256": "9d0aba65f5058eb067af7a43dabb28509077d57d2d31d71d58eddc4ae0e26fdf"
+      },
+      {
+        "file": "cart-details-wiring-first.log",
+        "sha256": "f8ce0504f64de23cc07399d3770154d54d106c0ce9b40f2a087b33667f589671"
+      },
+      {
+        "file": "cart-details-wiring-final.log",
+        "sha256": "cc1b12db0d52cc91f3a0af8b74d7108d8ea778de39cdca62453b90ed0f848f27"
+      },
+      {
+        "file": "cart-details-normal-first.log",
+        "sha256": "3058437bd98bf4bbedb5312b9ca10a72923c7644076cdf274080867010435f30"
+      },
+      {
+        "file": "cart-details-normal-second.log",
+        "sha256": "cae968d311d9740280ddbf06edd49c3bc3bd536ef411bff94a679258ae5f5398"
+      },
+      {
+        "file": "cart-details-hash-refresh-final.json",
+        "sha256": "37599fbd5292484233d42da80d8ccc16ca1f368959774379c258e41f86fd5d98"
+      },
+      {
+        "file": "cart-details-secret-working-tree.log",
+        "sha256": "63434355d18862ad2a4847f199d4a2da30b437cc8fa5593517f8f1566a82a8be"
+      }
+    ]
+  },
+  "boundaries": {
+    "installed0404Unchanged": true,
+    "newCandidateSelected": false,
+    "signedSuccessorBuilt": false,
+    "deviceAction": false,
+    "onePlusTouched": false,
+    "realProviderTraffic": false,
+    "githubAccess": false,
+    "storeChanged": false,
+    "productionChanged": false,
+    "accountChanged": false,
+    "paymentChanged": false
+  },
+  "limitations": [
+    "Full encompassing Goal remains ACTIVE and incomplete.",
+    "No report/reservation/payment business-flow acceptance inferred.",
+    "Null-scope shared callers have stable controls, not a comprehensive account-race audit.",
+    "Exact clean proof and signed successor/device/CI acceptance remain open."
+  ]
+}

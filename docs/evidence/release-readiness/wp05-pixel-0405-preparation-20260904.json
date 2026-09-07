@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "kind": "sit-wp05-pixel-0405-preparation",
+  "observedOn": "2026-09-04",
+  "status": "PREPARED_CANDIDATE_BUILD_AND_ACCEPTANCE_OPEN",
+  "source": {
+    "preparationBase": "952a388eab9fa6f61a85d5537af04f55df94c3d6",
+    "branch": "codex/master-workflow-20260808",
+    "candidateCommit": "TO_BE_FROZEN"
+  },
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "versionCode": "2026090405",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "releaseChannel": "internal",
+    "localPixelOnly": true,
+    "apkSha256": null,
+    "aabSha256": null,
+    "canonicalCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+  },
+  "previousImplementationProof": {
+    "path": "docs/evidence/release-readiness/wp05-cart-details-descendant-clean-20260904.json",
+    "sha256": "16f7a269379f5cbc0733b9e9e6a582537b3b96eea38600704e8ca75e5fa04052",
+    "head": "952a388eab9fa6f61a85d5537af04f55df94c3d6",
+    "promotedTo0405": false
+  },
+  "sourceInventory": [
+    {
+      "path": "pubspec.yaml",
+      "sha256": "84b7ee0757defc3cdac0e250312d3e6203ea0402a0eaffcdf4253eeeee607c5f"
+    },
+    {
+      "path": "lib/config/private_pilot_config.dart",
+      "sha256": "5f041c77bdb426eea6982b915565ad8c108069d5a898f021f2b4c85108dec6d1"
+    }
+  ],
+  "bindingInventory": [
+    {
+      "path": "docs/evidence/48h-remote/rw0-reduced-wave0-product-journey-20260825.json",
+      "sha256": "1e8abb03e3123f676c32dcfb506cc81d833411d3280428c73590b337738bb6f5"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
+      "sha256": "e168acf9898d8b3c3ef103cf7260919f7c0bfce3287360d618065a44fe529c9b"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
+      "sha256": "8ee9cbf14b39d6c986c265dd2d713d35fb43268493b41e531abc6336ffb60aef"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw13-security-logout-all-outcome-principal-epoch-20260825.json",
+      "sha256": "9a2d82db08944975a62947f184c8e10f68d8745087b9a8b29d55b904e377942c"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
+      "sha256": "e72ba8863ebd33f7e25ec70b1d666e9e510e2a7c4c78cbf1ea07c9796c9504b9"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json",
+      "sha256": "94cf9e9245e4cc145859cc3fee17d748147f1543f86e5c5ba7142430a065cae4"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
+      "sha256": "af09a86fcfcef2ecbf2d3bb346df4e20438aec7a8b3b047525ec72504967af75"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
+      "sha256": "ddd5f898cf22e1763feab8eb56e968a247b476b33550c296b31869854cf53307"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
+      "sha256": "13ca04350d1e979a2f347cdf66035fc01bb93643959b2d1a1f77db41afd19369"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
+      "sha256": "77d917e352bf677dcc278cf1bed04d484c47a63c4061c25768810f9e5f920e21"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw20-listing-mutation-principal-epoch-transaction-20260826.json",
+      "sha256": "03a7ee1e7cddb185364ed469b92f5bf39080807e6e6c5893c573d795dfbf723d"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw4-reduced-wave0-local-principal-isolation-20260825.json",
+      "sha256": "343fe0e59b3c3ca2ea4db0df1822b7bf48142e7c5361c0cac3dac7277564033e"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw5-local-safety-privacy-principal-isolation-20260825.json",
+      "sha256": "4a3258f38c5971f83ff5cbdcf2aedc5b8233ad8ae29ce9547d7473fd04d867a3"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw6-local-operational-record-authorization-truth-recovery-20260825.json",
+      "sha256": "575935fad3257aed2487cf1cbff6e36b5cecdb74adbafbc2c1b59d4029f83010"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw7-local-listing-catalog-authorization-durability-20260825.json",
+      "sha256": "9ffb962176a9820709b3e9b0fb937d097a91831b1bfba280249c6170459fd6d1"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw8-local-review-reputation-authorization-durability-20260825.json",
+      "sha256": "0b763ca20daaccbc9252c2aaff5c4983c6082f6ee1a3946572bde1ed4d01dccd"
+    },
+    {
+      "path": "docs/evidence/48h-remote/rw9-local-account-profile-authorization-durability-20260825.json",
+      "sha256": "4a1894adbd57b59587a98f3b81992eae8053654b64af1066584d51f930f5d6b1"
+    },
+    {
+      "path": "store/privacy-disclosures.json",
+      "sha256": "2e8fa3713571239f7f285a8047e00c0a488dc661e12948458268b884e2cc1e8a"
+    },
+    {
+      "path": "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json",
+      "sha256": "3139da065da706964a04074d08ebed1e0260319a52eba032f1c0ff50da8ac286"
+    },
+    {
+      "path": "tool/validate_rw16_session_transition_principal_epoch.mjs",
+      "sha256": "034923b2a7858ced557717b4e0fa3214c194f5194a61108bb900fa48ab1fcc74"
+    },
+    {
+      "path": "tool/validate_rw7_local_listing_catalog_authorization_durability.mjs",
+      "sha256": "5e9b50d9bbed99e3cebebfae146b56ee2db16260812153229f6530bd02c6d279"
+    },
+    {
+      "path": "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
+      "sha256": "db0c5481fb5d9d3d305d7ea08e0daf441808f7183c20c522c73bc6c1c24c87e0"
+    },
+    {
+      "path": "tool/validate_rw9_local_account_profile_authorization_durability.mjs",
+      "sha256": "fb9ad8a3fb00f8629a27679f2b28a892b5a9a56de8386690bef6175a9fd350aa"
+    },
+    {
+      "path": "tool/validate_active_infrastructure_mail_provider_readiness.mjs",
+      "sha256": "63368b14392ba1055132a6d300c4a7be4918b68cca0e579a6c988713b61752bc"
+    }
+  ],
+  "preparationChecks": {
+    "focusedTests": 234,
+    "focusedStatus": "PASS",
+    "canonicalSigningConfiguration": "PASS",
+    "firebaseAndroidStagingConfig": "PASS",
+    "firebaseEnvironmentPrecedence": "existing-nonempty-values-retained-missing-values-derived-in-memory",
+    "secretWorkingTree": "PASS",
+    "localArchiveIdentities": {
+      "count": 16,
+      "maxVersionCode": 2026090404,
+      "allMatch": true
+    },
+    "versionUniqueness": {
+      "localArchiveAndVersionHistory": "PASS",
+      "googlePlay": "NOT_CHECKED_NO_CLAIM"
+    },
+    "hashOnlyPropagation": {
+      "base": "952a388eab9fa6f61a85d5537af04f55df94c3d6",
+      "rounds": 0,
+      "changedJson": [
+        "docs/evidence/48h-remote/rw0-reduced-wave0-product-journey-20260825.json",
+        "docs/evidence/48h-remote/rw10-local-security-control-truthfulness-20260825.json",
+        "docs/evidence/48h-remote/rw12-security-success-ui-principal-epoch-20260825.json",
+        "docs/evidence/48h-remote/rw13-security-logout-all-outcome-principal-epoch-20260825.json",
+        "docs/evidence/48h-remote/rw14-security-remote-device-revocation-outcome-principal-epoch-20260825.json",
+        "docs/evidence/48h-remote/rw15-security-interaction-owner-route-invariant-20260825.json",
+        "docs/evidence/48h-remote/rw16-session-transition-principal-epoch-20260826.json",
+        "docs/evidence/48h-remote/rw17-account-deletion-principal-epoch-transaction-20260826.json",
+        "docs/evidence/48h-remote/rw18-contact-verification-principal-epoch-transaction-20260826.json",
+        "docs/evidence/48h-remote/rw19-profile-location-mutation-principal-epoch-transaction-20260826.json",
+        "docs/evidence/48h-remote/rw20-listing-mutation-principal-epoch-transaction-20260826.json",
+        "docs/evidence/48h-remote/rw4-reduced-wave0-local-principal-isolation-20260825.json",
+        "docs/evidence/48h-remote/rw5-local-safety-privacy-principal-isolation-20260825.json",
+        "docs/evidence/48h-remote/rw6-local-operational-record-authorization-truth-recovery-20260825.json",
+        "docs/evidence/48h-remote/rw7-local-listing-catalog-authorization-durability-20260825.json",
+        "docs/evidence/48h-remote/rw8-local-review-reputation-authorization-durability-20260825.json",
+        "docs/evidence/48h-remote/rw9-local-account-profile-authorization-durability-20260825.json",
+        "store/privacy-disclosures.json",
+        "docs/evidence/external-gates/active-infrastructure-mail-provider-readiness.json"
+      ],
+      "changedValidators": [
+        "tool/validate_rw16_session_transition_principal_epoch.mjs",
+        "tool/validate_rw7_local_listing_catalog_authorization_durability.mjs",
+        "tool/validate_rw8_local_review_reputation_authorization_durability.mjs",
+        "tool/validate_rw9_local_account_profile_authorization_durability.mjs",
+        "tool/validate_active_infrastructure_mail_provider_readiness.mjs"
+      ],
+      "nonHashClaimsAndAssertionsUnchanged": true
+    }
+  },
+  "readOnlyContext": {
+    "backend": {
+      "observedAt": "2026-09-04T17:05:22.541Z",
+      "environment": "staging",
+      "commit": "5d88295fa7fe313b83936783a0582a505b2ba486",
+      "paymentTransport": "memory",
+      "livemode": false,
+      "providerDeliveryClaimed": false
+    },
+    "pixel": {
+      "observedAt": "2026-09-04T17:06:39.822Z",
+      "model": "Pixel 7 Pro",
+      "apiLevel": 37,
+      "installedVersion": "1.0.0+2026090404",
+      "launchedOrInstalled": false
+    }
+  },
+  "evidence": [
+    {
+      "path": "/Users/walidchraibi/Documents/Codex/2026-08-19/new-chat/SIT_WP05_0404_EVIDENCE.ZJuzfC/0405-candidate-focused.log",
+      "sha256": "0fdc35851000b0325135421b8416bbcdbba4b954136add6f9a13bc183dc08554"
+    },
+    {
+      "path": "/Users/walidchraibi/Documents/Codex/2026-08-19/new-chat/SIT_WP05_0405_EVIDENCE.8Lg9Vw/candidate-hash-refresh-final.json",
+      "sha256": "c5f2ef104c99b163086e4d5822da41342a8e6931312455b510c91a1d5a0c8483"
+    },
+    {
+      "path": "/Users/walidchraibi/Documents/Codex/2026-08-19/new-chat/SIT_WP05_0405_EVIDENCE.8Lg9Vw/candidate-secret-precommit.log",
+      "sha256": "63434355d18862ad2a4847f199d4a2da30b437cc8fa5593517f8f1566a82a8be"
+    },
+    {
+      "path": "/Users/walidchraibi/Documents/Codex/2026-08-19/new-chat/SIT_WP05_0404_EVIDENCE.ZJuzfC/cart-details-952a-r10.log",
+      "sha256": "a2e2936b16f33616a3a7731bb916eeec93fd840ba0c6fa231a78172fdee5beb6"
+    }
+  ],
+  "gates": {
+    "exactCandidateCleanR10": "OPEN",
+    "matchedConfiguredNormal": "OPEN",
+    "signedApkAndAab": "OPEN",
+    "independentArtifactVerification": "OPEN",
+    "pixelUpdateAndAcceptance": "OPEN",
+    "githubRegressionAndCodeql": "OWNER_DEFERRED_NOT_WAIVED",
+    "fullGoal": "OPEN",
+    "onePlus": "UNTOUCHED"
+  },
+  "boundaries": {
+    "publicStoreDistribution": false,
+    "productionChanged": false,
+    "backendDeployed": false,
+    "providerHoldChanged": false,
+    "credentialsPrintedOrCopied": false,
+    "accountMutation": false,
+    "realPayment": false,
+    "googleOnly": true,
+    "closedHeilbronnNonbinding": true,
+    "analyticsEnabled": false
+  }
+}

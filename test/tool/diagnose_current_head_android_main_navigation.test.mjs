@@ -1,0 +1,159 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import test from 'node:test';
+
+import {
+  diagnoseCurrentHeadAndroidMainNavigation,
+  parseMainNavigationArguments,
+} from '../../tool/diagnose_current_head_android_main_navigation.mjs';
+
+function digest(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+const installedApk = Buffer.from('exact current-head main navigation candidate');
+const candidate = {
+  applicationId: 'com.shareittoo.app',
+  bundleId: 'com.shareittoo.app',
+  versionName: '1.0.0',
+  buildNumber: '2026082301',
+  commit: 'a'.repeat(40),
+  releaseChannel: 'internal',
+  apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+  firebaseConfigured: true,
+  paymentMode: 'memory',
+  stripeLivemode: false,
+  android: { apkSha256: digest(installedApk) },
+};
+const deviceSummary = {
+  platform: 'android',
+  physical: true,
+  manufacturer: 'Google',
+  model: 'Pixel 7 Pro',
+  osVersion: '16',
+  apiLevel: 36,
+  securityPatch: '2026-04-05',
+  containsRawDeviceIdentifier: false,
+};
+
+const labels = ['Entdecken', 'Mietkorb', 'Buchungen', 'Nachrichten', 'Mein SIT'];
+
+function hierarchy(active, { omitMessagesSurface = false } = {}) {
+  const navigation = labels.map((label, index) => (
+    `<node text="" content-desc="${label}&#10;Tab ${index + 1} of 5" bounds="[${index * 200},2200][${(index + 1) * 200},2400]"/>`
+  )).join('');
+  const surface = {
+    Entdecken: '<node text="Jetzt suchen" bounds="[0,100][400,200]"/>',
+    Mietkorb: '<node text="" content-desc="Gemerkt. Unverbindlich gespeichert. Keine Reservierung." bounds="[0,100][200,200]"/><node text="Dein Mietkorb" bounds="[0,200][400,300]"/>',
+    Buchungen: '<node text="Meine Buchungen" bounds="[0,100][400,200]"/>',
+    Nachrichten: omitMessagesSurface
+      ? ''
+      : '<node content-desc="Nachrichten-Einstellungen" bounds="[800,100][900,200]"/><node text="Noch keine Nachrichten" bounds="[0,300][600,400]"/>',
+    'Mein SIT': '<node text="Meine Anzeigen" bounds="[0,300][400,400]"/><node text="Mietanfragen" bounds="[0,400][400,500]"/><node text="Abmelden" bounds="[0,500][400,600]"/>',
+  }[active];
+  return `<hierarchy>${navigation}${surface}</hierarchy>`;
+}
+
+function fakeRunner({
+  locked = false,
+  changedApk = false,
+  omitMessagesSurface = false,
+} = {}) {
+  let active = 'Entdecken';
+  return (_file, args, options = {}) => {
+    const command = args.slice(2);
+    const joined = command.join(' ');
+    if (joined === 'shell dumpsys window policy') {
+      return locked ? 'mIsShowing=true' : 'mIsShowing=false showing=false';
+    }
+    if (joined === 'shell pm path com.shareittoo.app') return 'package:/data/app/test/base.apk\n';
+    if (joined === 'exec-out cat /data/app/test/base.apk') {
+      return changedApk ? Buffer.from('changed') : installedApk;
+    }
+    if (joined === 'shell dumpsys package com.shareittoo.app') {
+      return '  versionCode=2026082301 minSdk=24 targetSdk=35\n  versionName=1.0.0\n';
+    }
+    if (joined === 'shell am force-stop com.shareittoo.app') return '';
+    if (command[0] === 'shell' && command[1] === 'monkey') {
+      active = 'Entdecken';
+      return 'Events injected: 1';
+    }
+    if (joined === 'shell uiautomator dump /sdcard/sit-main-navigation-diagnostic.xml') {
+      return 'UI hierarchy dumped';
+    }
+    if (joined === 'exec-out cat /sdcard/sit-main-navigation-diagnostic.xml') {
+      return hierarchy(active, { omitMessagesSurface });
+    }
+    if (joined === 'shell rm -f /sdcard/sit-main-navigation-diagnostic.xml') return '';
+    if (command[0] === 'shell' && command[1] === 'input' && command[2] === 'tap') {
+      const x = Number(command[3]);
+      active = labels[Math.min(labels.length - 1, Math.floor(x / 200))];
+      return '';
+    }
+    throw new Error(`Unexpected fake ADB command (${options.binary ? 'binary' : 'text'}): ${joined}`);
+  };
+}
+
+function diagnose(overrides = {}) {
+  return diagnoseCurrentHeadAndroidMainNavigation({
+    commandRunner: fakeRunner(),
+    device: { serial: 'PRIVATE-SERIAL', state: 'device', attributes: {} },
+    deviceSummary,
+    candidate,
+    capturedAt: '2026-08-23T12:00:00.000Z',
+    wait: async () => {},
+    ...overrides,
+  });
+}
+
+test('proves five authenticated read-only destinations and returns sanitized evidence', async () => {
+  const evidence = await diagnose();
+  assert.equal(evidence.status, 'passed-bounded-authenticated-main-navigation-diagnostic');
+  assert.deepEqual(Object.keys(evidence.tests), labels);
+  assert.deepEqual(
+    Object.values(evidence.tests).map((value) => value.status),
+    ['passed', 'passed', 'passed', 'passed', 'passed'],
+  );
+  assert.equal(evidence.installed.delivery, 'direct-apk');
+  assert.equal(evidence.boundaries.authenticatedMainNavigationPassed, true);
+  assert.equal(evidence.boundaries.bookingFlowPassed, false);
+  assert.equal(evidence.boundaries.accountMutationPerformed, false);
+  assert.equal(JSON.stringify(evidence).includes('PRIVATE-SERIAL'), false);
+});
+
+test('refuses a current Android lock state without entering a passcode', async () => {
+  await assert.rejects(
+    () => diagnose({ commandRunner: fakeRunner({ locked: true }) }),
+    /never enters a passcode/u,
+  );
+});
+
+test('rejects an installed APK that differs from the current-head candidate', async () => {
+  await assert.rejects(
+    () => diagnose({ commandRunner: fakeRunner({ changedApk: true }) }),
+    /does not match the current-head candidate/u,
+  );
+});
+
+test('fails closed when one authenticated destination surface is missing', async () => {
+  await assert.rejects(
+    () => diagnose({ commandRunner: fakeRunner({ omitMessagesSurface: true }) }),
+    /authenticated Nachrichten navigation surface did not appear/u,
+  );
+});
+
+test('requires the explicit current-head route and accepts only an ADB override', () => {
+  assert.deepEqual(parseMainNavigationArguments(['--current-head']), {
+    currentHead: true,
+    adbPath: 'adb',
+  });
+  assert.deepEqual(parseMainNavigationArguments(['--current-head', '--adb', '/safe/adb']), {
+    currentHead: true,
+    adbPath: '/safe/adb',
+  });
+  assert.throws(() => parseMainNavigationArguments([]), /requires --current-head/u);
+  assert.throws(
+    () => parseMainNavigationArguments(['--current-head', '--candidate-dir', 'x']),
+    /Unknown argument/u,
+  );
+});

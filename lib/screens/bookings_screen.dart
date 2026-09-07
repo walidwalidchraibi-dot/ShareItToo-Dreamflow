@@ -17,17 +17,20 @@ import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/utils/booking_status_copy.dart';
 
 class BookingsScreen extends StatefulWidget {
-  final int? initialTabIndex; // Neue Reihenfolge: 0: Laufend, 1: Kommend, 2: Ausstehend, 3: Abgeschlossen
+  final int?
+      initialTabIndex; // Neue Reihenfolge: 0: Laufend, 1: Kommend, 2: Ausstehend, 3: Abgeschlossen
   // When provided, the card with this requestId will pulse briefly to
   // indicate it was just created.
   final String? highlightRequestId;
-  const BookingsScreen({super.key, this.initialTabIndex, this.highlightRequestId});
+  const BookingsScreen(
+      {super.key, this.initialTabIndex, this.highlightRequestId});
 
   @override
   State<BookingsScreen> createState() => _BookingsScreenState();
 }
 
-class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProviderStateMixin {
+class _BookingsScreenState extends State<BookingsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _allBookings = const [];
   Timer? _ticker;
@@ -40,24 +43,11 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
       SharedPersistenceRefreshCoordinator();
 
-  String get _sectionTitle {
-    switch (_tabController.index) {
-      case 0:
-        return 'Laufende Buchungen';
-      case 1:
-        return 'Kommende Buchungen';
-      case 2:
-        return 'Ausstehende Buchungen';
-      case 3:
-      default:
-        return 'Abgeschlossene Buchungen';
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTabIndex ?? 0);
+    _tabController = TabController(
+        length: 4, vsync: this, initialIndex: widget.initialTabIndex ?? 0);
     _tabController.addListener(() {
       if (!mounted) return;
       // Rebuild AppBar title while swiping or tapping between tabs.
@@ -79,7 +69,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       setState(() {});
     });
     // Also check once shortly after open
-    Future.delayed(const Duration(seconds: 2), () => _maybeShowReviewReminder());
+    Future.delayed(
+        const Duration(seconds: 2), () => _maybeShowReviewReminder());
   }
 
   @override
@@ -91,22 +82,20 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  bool _canCancelUpcomingBooking(Map<String, dynamic> booking) {
-    final (start, end) = _parseDateRange((booking['dates'] as String?) ?? '');
-    final effective = _effectiveCategoryFor(booking, start, end);
-    final rawStatus = ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
-    final requestId = (booking['requestId'] as String?)?.trim() ?? '';
-    return requestId.isNotEmpty && effective == 'upcoming' && rawStatus == 'accepted';
-  }
-
   bool _canReviewCompletedBooking(Map<String, dynamic> booking) {
-    final rawStatus = ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
+    final rawStatus =
+        ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
     final requestId = (booking['requestId'] as String?)?.trim() ?? '';
     final itemId = (booking['itemId'] as String?)?.trim() ?? '';
     final listerId = (booking['listerId'] as String?)?.trim() ?? '';
     final needsReview = booking['needsReview'] == true;
     final alreadyReviewed = booking['hasSubmittedReview'] == true;
-    return rawStatus == 'completed' && !needsReview && !alreadyReviewed && requestId.isNotEmpty && itemId.isNotEmpty && listerId.isNotEmpty;
+    return rawStatus == 'completed' &&
+        !needsReview &&
+        !alreadyReviewed &&
+        requestId.isNotEmpty &&
+        itemId.isNotEmpty &&
+        listerId.isNotEmpty;
   }
 
   bool _showingReminder = false;
@@ -114,14 +103,17 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     if (_showingReminder) return;
     final current = await DataService.getCurrentUser();
     if (current == null) return;
-    final reminder = await DataService.takeDueReviewReminder(reviewerId: current.id);
+    final reminder =
+        await DataService.takeDueReviewReminder(reviewerId: current.id);
     if (!mounted || reminder == null) return;
     _showingReminder = true;
     try {
       final String requestId = (reminder['requestId'] ?? '').toString();
       final String itemId = (reminder['itemId'] ?? '').toString();
-      final String reviewedUserId = (reminder['reviewedUserId'] ?? '').toString();
-      final String direction = (reminder['direction'] ?? 'renter_to_owner').toString();
+      final String reviewedUserId =
+          (reminder['reviewedUserId'] ?? '').toString();
+      final String direction =
+          (reminder['direction'] ?? 'renter_to_owner').toString();
       await AppPopup.show(
         context,
         icon: Icons.star_rate_outlined,
@@ -133,7 +125,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           TextButton(
             onPressed: () async {
               Navigator.of(context, rootNavigator: true).maybePop();
-              await DataService.postponeReviewReminder(reminder: reminder, by: const Duration(minutes: 10));
+              await DataService.postponeReviewReminder(
+                  reminder: reminder, by: const Duration(minutes: 10));
               _showingReminder = false;
             },
             child: const Text('Später erinnern'),
@@ -150,7 +143,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 direction: direction,
               );
               if (ok == true && mounted) {
-                await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                await AppPopup.toast(context,
+                    icon: Icons.star_rate_outlined,
+                    title: 'Danke für deine Bewertung!');
                 final item = await DataService.getItemById(itemId);
                 if (item != null && mounted) {
                   await ItemDetailsOverlay.showFullPage(context, item: item);
@@ -167,50 +162,36 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     }
   }
 
-  Future<void> _openItemListing(String? itemId) async {
-    final targetId = itemId?.trim();
-    if (targetId == null || targetId.isEmpty || !mounted) return;
-    final item = await DataService.getItemById(targetId);
-    if (!mounted || item == null) return;
-    await ItemDetailsOverlay.showFullPage(context, item: item);
-  }
-
   Future<void> _load() async {
     final user = await DataService.getCurrentUser();
     if (user == null) {
-      final demo = await _buildDemoBookings(renterId: 'demo_renter');
       if (!mounted) return;
-      _unreadCounts
-        ..clear()
-        ..addAll({'ongoing': 1, 'upcoming': 1, 'pending': 1, 'completed': 3});
+      _unreadCounts.clear();
       setState(() {
-        _allBookings = demo;
-        _currentUserId = 'demo_renter';
+        _allBookings = const [];
+        _currentUserId = null;
       });
       return;
     }
     _currentUserId = user.id;
     final requests = await DataService.getRentalRequestsForRenter(user.id);
     if (requests.isEmpty) {
-      final demo = await _buildDemoBookings(renterId: user.id);
       if (!mounted) return;
-      _unreadCounts
-        ..clear()
-        ..addAll({'ongoing': 1, 'upcoming': 1, 'pending': 1, 'completed': 3});
-      setState(() => _allBookings = demo);
+      _unreadCounts.clear();
+      setState(() => _allBookings = const []);
       return;
     }
     // Load items and listers referenced by requests
     final Map<String, Item?> itemById = {};
     final Map<String, model.User?> userById = {};
-    final Map<String, Map<String, dynamic>?> deliveryByItemId = {};
     for (final r in requests) {
-      itemById[r.itemId] = itemById[r.itemId] ?? await DataService.getItemById(r.itemId);
+      itemById[r.itemId] =
+          itemById[r.itemId] ?? await DataService.getItemById(r.itemId);
     }
     for (final it in itemById.values) {
       if (it != null) {
-        userById[it.ownerId] = userById[it.ownerId] ?? await DataService.getUserById(it.ownerId);
-        deliveryByItemId[it.id] = await DataService.getSavedDeliverySelection(it.id);
+        userById[it.ownerId] =
+            userById[it.ownerId] ?? await DataService.getUserById(it.ownerId);
       }
     }
     List<Map<String, dynamic>> maps = [];
@@ -218,9 +199,11 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final it = itemById[r.itemId];
       if (it == null) continue; // skip dangling
       final owner = userById[it.ownerId];
-      maps.add(await _toBookingMap(r, it, owner, deliveryByItemId[it.id], reviewerId: user.id));
+      maps.add(
+        await _toBookingMap(r, it, owner, reviewerId: user.id),
+      );
     }
-    
+
     // Calculate unread counts for each category
     final categorized = {
       'ongoing': <RentalRequest>[],
@@ -239,7 +222,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final cat = _effectiveCategoryFor(bookingMap, start, end);
       categorized[cat]?.add(r);
     }
-    
+
     for (final cat in categorized.keys) {
       final unreadCount = await DataService.getUnreadCountForCategory(
         userId: user.id,
@@ -248,234 +231,161 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       );
       _unreadCounts[cat] = unreadCount;
     }
-    
+
     if (!mounted) return;
     setState(() => _allBookings = maps);
   }
 
-  Future<List<Map<String, dynamic>>> _buildDemoBookings({required String renterId}) async {
-    final now = DateTime.now();
-    final items = await DataService.getItems();
-    final users = await DataService.getUsers();
-    final itemPool = items.isNotEmpty
-        ? items
-        :
-        [
-            Item(
-              id: 'demo_fallback_item',
-              ownerId: 'demo_owner',
-              title: 'Demo Objekt',
-              description: 'Fallback Demo Item',
-              categoryId: 'electronics',
-              subcategory: 'demo',
-              tags: const [],
-              pricePerDay: 20,
-              currency: 'EUR',
-              photos: const ['https://picsum.photos/seed/demo_item/800/800'],
-              locationText: 'Berlin',
-              lat: 52.52,
-              lng: 13.405,
-              geohash: 'u33dc0',
-              condition: 'good',
-              createdAt: now.subtract(const Duration(days: 10)),
-              isActive: true,
-              verificationStatus: 'verified',
-              city: 'Berlin',
-              country: 'Deutschland',
-            ),
-          ];
-    Item pick(int index) => itemPool[index % itemPool.length];
-    final renter = users.firstWhere(
-      (u) => u.id == renterId,
-      orElse: () => model.User(
-        id: renterId,
-        displayName: 'Du',
-        email: 'demo@shareittoo.local',
-        preferredLanguage: 'de',
-        isVerified: true,
-        isBanned: false,
-        role: 'user',
-        avgRating: 4.8,
-        reviewCount: 42,
-        createdAt: now.subtract(const Duration(days: 120)),
-      ),
-    );
-
-    final List<RentalRequest> demoRequests = [
-      RentalRequest(
-        id: 'demo_req_pending',
-        itemId: pick(0).id,
-        ownerId: pick(0).ownerId,
-        renterId: renter.id,
-        start: now.add(const Duration(days: 3, hours: 2)),
-        end: now.add(const Duration(days: 5, hours: 2)),
-        status: 'pending',
-        expressRequested: true,
-        expressStatus: 'pending',
-        expressRequestedAt: now.subtract(const Duration(minutes: 8)),
-      ),
-      RentalRequest(
-        id: 'demo_req_upcoming',
-        itemId: pick(1).id,
-        ownerId: pick(1).ownerId,
-        renterId: renter.id,
-        start: now.add(const Duration(days: 2, hours: 1)),
-        end: now.add(const Duration(days: 4, hours: 1)),
-        status: 'accepted',
-        deliveryAddressLine: 'Sternschanze 12',
-        deliveryCity: 'Hamburg',
-        ownerDeliversAtDropoffChosen: true,
-      ),
-      RentalRequest(
-        id: 'demo_req_running',
-        itemId: pick(2).id,
-        ownerId: pick(2).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(hours: 6)),
-        end: now.add(const Duration(days: 1, hours: 5)),
-        status: 'running',
-        handoverConfirmation: {'by': 'owner'},
-      ),
-      RentalRequest(
-        id: 'demo_req_completed_review_needed',
-        itemId: pick(3).id,
-        ownerId: pick(3).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(days: 8)),
-        end: now.subtract(const Duration(days: 6)),
-        status: 'completed',
-        needsReview: true,
-        reviewReason: 'manual_hold',
-      ),
-      RentalRequest(
-        id: 'demo_req_completed_reviewable',
-        itemId: pick(4).id,
-        ownerId: pick(4).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(days: 12)),
-        end: now.subtract(const Duration(days: 10)),
-        status: 'completed',
-        needsReview: false,
-      ),
-      RentalRequest(
-        id: 'demo_req_completed_reviewed',
-        itemId: pick(5).id,
-        ownerId: pick(5).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(days: 20)),
-        end: now.subtract(const Duration(days: 18)),
-        status: 'completed',
-        needsReview: false,
-      ),
-    ];
-
-    final byUser = {for (final u in users) u.id: u};
-    final maps = <Map<String, dynamic>>[];
-    for (int i = 0; i < demoRequests.length; i++) {
-      final r = demoRequests[i];
-      final it = itemPool.firstWhere((item) => item.id == r.itemId, orElse: () => pick(i));
-      final owner = byUser[it.ownerId];
-      final map = await _toBookingMap(r, it, owner, null, reviewerId: renter.id);
-      // Override review state for the two completed cases
-      if (r.id == 'demo_req_completed_reviewed') {
-        map['hasSubmittedReview'] = true;
-      }
-      if (r.id == 'demo_req_running') {
-        map['handoverLocationLabel'] = 'Boxi, Berlin';
-        map['returnLocationLabel'] = 'Gleisdreieck';
-      }
-      maps.add(map);
-    }
-    return maps;
-  }
-
-  Future<Map<String, dynamic>> _toBookingMap(RentalRequest r, Item it, model.User? owner, Map<String, dynamic>? deliverySel, {required String reviewerId}) async {
+  Future<Map<String, dynamic>> _toBookingMap(
+    RentalRequest r,
+    Item it,
+    model.User? owner, {
+    required String reviewerId,
+  }) async {
     String fmt(DateTime d) {
-      const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mär',
+        'Apr',
+        'Mai',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Dez'
+      ];
       final mm = months[d.month - 1];
       final dd = d.day.toString().padLeft(2, '0');
       return '$dd. $mm';
     }
-    // Unified breakdown including delivery/pickup/express
-    final breakdown = DataService.priceBreakdownForRequest(item: it, req: r, deliverySel: deliverySel);
-    final priced = (breakdown.rentalSubtotal, breakdown.baseTotal, 0.0, breakdown.discountAmount);
+
+    final breakdown = DataService.priceBreakdownForRequest(item: it, req: r);
+    final priced = (
+      breakdown.rentalSubtotal,
+      breakdown.baseTotal,
+      0.0,
+      breakdown.discountAmount
+    );
     final int days = breakdown.days;
     final double total = (r.quotedTotalRenter ?? breakdown.totalRenter);
-    // Address privacy: hide exact house number until 6h before pickup
-    final now = DateTime.now();
-    final hideHouseNumber = now.isBefore(r.start.subtract(const Duration(hours: 6)));
-    final displayLocation = hideHouseNumber ? _approximateAddress(it.locationText, seed: r.id) : it.locationText;
+    final addressSegment = const {
+      'active',
+      'running',
+      'withdrawalReturnRequired',
+      'returned',
+    }.contains(r.workflowStatus ?? r.status)
+        ? 'return'
+        : 'pickup';
+    final addressVisibility = await DataService.getBookingAddressReveal(
+      request: r,
+      localExactAddress: it.locationText,
+      segment: addressSegment,
+    );
+    final exactAddressRevealed = addressVisibility['result'] == 'revealed' &&
+        addressVisibility['exactAddressReturned'] == true;
+    final revealedAddress =
+        (addressVisibility['exactAddress'] as String?)?.trim() ?? '';
+    final displayLocation = exactAddressRevealed && revealedAddress.isNotEmpty
+        ? revealedAddress
+        : _approximateAddress(it.locationText, seed: r.id);
 
-    // Delivery selection flags (persisted on request; fall back to transient selection if missing)
-    // Be robust: if legacy requests are missing the snapshot flags, infer from
-    // - transient selection
-    // - express (only available when delivery at dropoff is chosen)
-    // - presence of a delivery address snapshot
-    final bool inferredOwnerDeliversByTransient = (deliverySel?['hinweg'] == true);
-    final bool inferredOwnerDeliversByExpress = r.expressRequested || (r.expressStatus != null);
-    final bool inferredOwnerDeliversByAddress = ((r.deliveryAddressLine ?? '').toString().trim().isNotEmpty) || ((r.deliveryCity ?? '').toString().trim().isNotEmpty);
-    final bool ownerDeliversAtDropoff = r.ownerDeliversAtDropoffChosen || inferredOwnerDeliversByTransient || inferredOwnerDeliversByExpress || inferredOwnerDeliversByAddress;
-
-    final bool inferredOwnerPicksUpByTransient = (deliverySel?['rueckweg'] == true);
-    final bool ownerPicksUpAtReturn = r.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
     final flowState = await DataService.getHandoverReturnState(r.id);
-    final reviewSubmitted = await DataService.hasSubmittedReview(requestId: r.id, reviewerId: reviewerId);
+    final reviewSubmitted = await DataService.hasSubmittedReview(
+        requestId: r.id, reviewerId: reviewerId);
 
     return {
       'requestId': r.id,
       'itemId': it.id,
       'rawStatus': r.status,
       'cancelledBy': r.cancelledBy,
+      'cancellationOutcome': r.cancellationOutcome,
+      'workflowStatus': r.workflowStatus,
+      // Preserve the server-authoritative non-binding marker all the way to
+      // the renter card and detail screen. Dropping it here makes an accepted
+      // Stage-A simulation look like a real upcoming booking.
+      'simulationOnly': r.simulationOnly,
+      'platformWithdrawal': r.platformWithdrawal,
+      'platformContract': r.platformContract,
       'needsReview': r.needsReview,
+      'returnT0': r.returnT0?.toIso8601String(),
+      'returnReportDeadline': r.returnReportDeadline?.toIso8601String(),
+      'returnCaseOpenedAt': r.returnCaseOpenedAt?.toIso8601String(),
       'hasSubmittedReview': reviewSubmitted,
       'title': it.title,
       'dates': '${fmt(r.start)} – ${fmt(r.end)}',
       'location': displayLocation,
+      'exactAddressRevealed': exactAddressRevealed,
+      'addressVisibilitySegment': addressSegment,
+      'addressVisibilityReason': addressVisibility['reason'],
       'status': _statusLabel(r),
       'image': (it.photos.isNotEmpty ? it.photos.first : null),
       'images': it.photos,
       'listerId': it.ownerId,
       'listerName': owner?.displayName ?? 'Vermieter',
       'listerAvatar': owner?.photoURL,
-      'category': r.status == 'pending' ? 'pending' : null, // let UI compute otherwise
+      'category':
+          r.status == 'pending' ? 'pending' : null, // let UI compute otherwise
       'pricePaid': '${total.round()} €',
       // Persisted renter-facing constants for stable display across all states
       if (r.quotedTotalRenter != null) 'quotedTotalRenter': r.quotedTotalRenter,
       if (r.quotedSubtitle != null) 'quotedSubtitle': r.quotedSubtitle,
-      if (breakdown.discountAmount > 0) 'discounts': '-${breakdown.discountAmount.toStringAsFixed(0)} €',
+      if (r.quotedQuoteVersion != null)
+        'quotedQuoteVersion': r.quotedQuoteVersion,
+      if (r.quotedDays != null) 'quotedDays': r.quotedDays,
+      if (r.quotedPricePerDayMinor != null)
+        'quotedPricePerDayMinor': r.quotedPricePerDayMinor,
+      if (r.quotedBaseRentalMinor != null)
+        'quotedBaseRentalMinor': r.quotedBaseRentalMinor,
+      if (r.quotedDiscountPercent != null)
+        'quotedDiscountPercent': r.quotedDiscountPercent,
+      if (r.quotedDiscountId != null) 'quotedDiscountId': r.quotedDiscountId,
+      if (r.quotedDiscountLabel != null)
+        'quotedDiscountLabel': r.quotedDiscountLabel,
+      if (r.quotedDiscountFundingSource != null)
+        'quotedDiscountFundingSource': r.quotedDiscountFundingSource,
+      if (r.quotedDiscountThresholdDays != null)
+        'quotedDiscountThresholdDays': r.quotedDiscountThresholdDays,
+      if (r.quotedDiscountMinor != null)
+        'quotedDiscountMinor': r.quotedDiscountMinor,
+      if (r.quotedRentalSubtotalMinor != null)
+        'quotedRentalSubtotalMinor': r.quotedRentalSubtotalMinor,
+      if (r.quotedPlatformFeeMinor != null)
+        'quotedPlatformFeeMinor': r.quotedPlatformFeeMinor,
+      if (r.quotedTotalMinor != null) 'quotedTotalMinor': r.quotedTotalMinor,
+      if (r.quotedOwnerPayoutMinor != null)
+        'quotedOwnerPayoutMinor': r.quotedOwnerPayoutMinor,
+      if (r.quotedCurrency != null) 'quotedCurrency': r.quotedCurrency,
+      if (breakdown.discountAmount > 0)
+        'discounts': '-${breakdown.discountAmount.toStringAsFixed(0)} €',
       // add context so detail view can show breakdown precisely
       'days': days,
       'basePerDay': it.pricePerDay,
       // keep percent only when available from item discount tiers; use computeTotalWithDiscounts again
       if (DataService.computeTotalWithDiscounts(item: it, days: days).$3 > 0)
-        'discountPercentApplied': DataService.computeTotalWithDiscounts(item: it, days: days).$3,
-      // express fields for countdown in UI
-      'expressRequested': r.expressRequested,
-      'expressStatus': r.expressStatus,
-      'expressRequestedAt': r.expressRequestedAt?.toIso8601String(),
+        'discountPercentApplied':
+            DataService.computeTotalWithDiscounts(item: it, days: days).$3,
       'startIso': r.start.toIso8601String(),
       'endIso': r.end.toIso8601String(),
       'policy': it.cancellationPolicy,
       'requestCreatedAtIso': r.createdAt.toIso8601String(),
       // Email copy (for potential backend integration)
-      'mailSummary': 'Anzahl Tage: $days\nUrsprünglicher Preis: ${priced.$2.round()} €\nRabatt: ${priced.$3.toStringAsFixed(0)}% (−${priced.$4.toStringAsFixed(0)} €)\nEndpreis: ${total.round()} €',
-      // delivery/pickup capabilities for privacy hints
-      'offersDeliveryAtDropoff': it.offersDeliveryAtDropoff,
-      'offersPickupAtReturn': it.offersPickupAtReturn,
-      // chosen responsibilities (persisted per item for demo)
-      'ownerDeliversAtDropoffChosen': ownerDeliversAtDropoff,
-      'ownerPicksUpAtReturnChosen': ownerPicksUpAtReturn,
-      'deliveryAddressLine': r.deliveryAddressLine ?? (deliverySel?['addressLine'] as String?) ?? '',
-      'deliveryCity': r.deliveryCity ?? (deliverySel?['city'] as String?) ?? '',
-      'deliveryLat': r.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
-      'deliveryLng': r.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
-      'hasSubmittedReview': reviewSubmitted,
-      'handoverLocationLabel': (flowState['handoverLocationLabel'] as String?) ?? '',
-      'handoverLocationMapsUrl': (flowState['handoverLocationMapsUrl'] as String?) ?? '',
-      'handoverLocationSharedByName': (flowState['handoverLocationSharedByName'] as String?) ?? '',
-      'returnLocationLabel': (flowState['returnLocationLabel'] as String?) ?? '',
-      'returnLocationMapsUrl': (flowState['returnLocationMapsUrl'] as String?) ?? '',
-      'returnLocationSharedByName': (flowState['returnLocationSharedByName'] as String?) ?? '',
+      'mailSummary':
+          'Anzahl Tage: $days\nUrsprünglicher Preis: ${priced.$2.round()} €\nRabatt: ${priced.$3.toStringAsFixed(0)}% (−${priced.$4.toStringAsFixed(0)} €)\nEndpreis: ${total.round()} €',
+      'handoverLocationLabel':
+          (flowState['handoverLocationLabel'] as String?) ?? '',
+      'handoverLocationMapsUrl':
+          (flowState['handoverLocationMapsUrl'] as String?) ?? '',
+      'handoverLocationSharedByName':
+          (flowState['handoverLocationSharedByName'] as String?) ?? '',
+      'returnLocationLabel':
+          (flowState['returnLocationLabel'] as String?) ?? '',
+      'returnLocationMapsUrl':
+          (flowState['returnLocationMapsUrl'] as String?) ?? '',
+      'returnLocationSharedByName':
+          (flowState['returnLocationSharedByName'] as String?) ?? '',
     };
   }
 
@@ -490,7 +400,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final base = int.tryParse(numStr) ?? 0;
     // Deterministic pseudo-random +/- offset up to 15 based on seed
     int hash = 0;
-    for (int i = 0; i < seed.length; i++) { hash = 0x1fffffff & (hash + seed.codeUnitAt(i)); }
+    for (int i = 0; i < seed.length; i++) {
+      hash = 0x1fffffff & (hash + seed.codeUnitAt(i));
+    }
     final off = (hash % 31) - 15; // -15..15
     final low = (base + (off < 0 ? off : 0)).clamp(1, 9999);
     final high = (base + (off > 0 ? off : 0)).clamp(1, 9999);
@@ -518,7 +430,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final tabsStyle = Theme.of(context).textTheme.bodySmall;
-    
+
     // Get unread counts for each tab
     final ongoingUnread = _unreadCounts['ongoing'] ?? 0;
     final upcomingUnread = _unreadCounts['upcoming'] ?? 0;
@@ -528,9 +440,13 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
-          title: Text(_sectionTitle),
-          centerTitle: true,
+        leading: IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        title: const Text('Meine Buchungen'),
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -560,7 +476,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       ),
     );
   }
-  
+
   Widget _buildTabWithBadge(String text, int unreadCount) {
     if (unreadCount == 0) {
       return Tab(text: text);
@@ -607,10 +523,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 title,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.85),
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
+                      color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
               ),
             ],
           ),
@@ -625,15 +541,22 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         final booking = bookings[index];
         final (start, end) = _parseDateRange(booking['dates'] ?? '');
         final effectiveCategory = _effectiveCategoryFor(booking, start, end);
-        final chip = _buildStatusChipForCard(effectiveCategory, start, end, booking);
+        final chip =
+            _buildStatusChipForCard(effectiveCategory, start, end, booking);
         final raw = booking['rawStatus'] as String?;
-        final String? targetId = _highlightRequestId?.isNotEmpty == true ? _highlightRequestId : widget.highlightRequestId;
-        final bool highlight = (targetId != null && targetId.isNotEmpty &&
-            booking['requestId'] == targetId && (status == 'completed' || status == 'pending') && (raw == 'cancelled' || status == 'pending'));
+        final String? targetId = _highlightRequestId?.isNotEmpty == true
+            ? _highlightRequestId
+            : widget.highlightRequestId;
+        final bool highlight = (targetId != null &&
+            targetId.isNotEmpty &&
+            booking['requestId'] == targetId &&
+            (status == 'completed' || status == 'pending') &&
+            (raw == 'cancelled' || status == 'pending'));
 
         final bool isPending = (effectiveCategory == 'pending');
         // Build an optional small inline action to sit next to the chip
-        final Widget? inlineAction = _buildSmallInlineAction(effectiveCategory, booking, start, end);
+        final Widget? inlineAction =
+            _buildSmallInlineAction(effectiveCategory, booking, start, end);
         return _BlinkHighlight(
           enabled: highlight && (_highlightRequestId != null),
           onFinished: () {
@@ -644,7 +567,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           child: Card(
             margin: const EdgeInsets.only(bottom: 12),
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () async {
@@ -652,9 +576,11 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 if (_currentUserId != null) {
                   final requestId = booking['requestId'] as String?;
                   if (requestId != null) {
-                    await DataService.markRequestAsRead(userId: _currentUserId!, requestId: requestId);
+                    await DataService.markRequestAsRead(
+                        userId: _currentUserId!, requestId: requestId);
                   }
                 }
+                if (!context.mounted) return;
                 await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => BookingDetailScreen(booking: booking),
@@ -670,7 +596,11 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(width: 80, height: 80, child: _ThumbnailWithSkeleton(url: booking['image'] as String?)),
+                      child: SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: _ThumbnailWithSkeleton(
+                              url: booking['image'] as String?)),
                     ),
                     const SizedBox(width: 16),
                     // Right content column with fixed height to keep the whole card as high as the image
@@ -689,7 +619,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
@@ -716,7 +647,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                                       ),
                                       const SizedBox(height: 1),
                                       Text(
-                                        _confirmedPlaceLineForCard(booking) ?? (booking['location'] ?? ''),
+                                        _confirmedPlaceLineForCard(booking) ??
+                                            (booking['location'] ?? ''),
                                         style: TextStyle(
                                           color: Colors.grey.shade400,
                                           fontSize: isPending ? 12 : 13,
@@ -747,7 +679,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                                 chip,
                                 if (inlineAction != null) ...[
                                   const SizedBox(width: 8),
-                                  Flexible(child: Align(alignment: Alignment.centerLeft, child: inlineAction)),
+                                  Flexible(
+                                      child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: inlineAction)),
                                 ],
                               ],
                             ),
@@ -765,151 +700,49 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     );
   }
 
-  // Quick actions per state
-  Widget _buildQuickActionsRow(Map<String, dynamic> booking) {
-    final category = booking['category'] as String?;
-    switch (category) {
-      case 'pending':
-        // Entfernt: "Anfrage zurückziehen" gehört jetzt in die Detailseite ganz unten (Ausstehende Buchung)
-        return const SizedBox.shrink();
-      case 'completed':
-        final canReview = _canReviewCompletedBooking(booking);
-        return Wrap(spacing: 8, children: [
-          if (canReview)
-            TextButton.icon(
-              onPressed: () async {
-                final current = await DataService.getCurrentUser();
-                if (current == null) return;
-                final requestId = booking['requestId'] as String?;
-                final itemId = booking['itemId'] as String?;
-                final listerId = booking['listerId'] as String?;
-                if (requestId == null || itemId == null || listerId == null) return;
-                final ok = await ReviewPromptSheet.show(
-                  context,
-                  requestId: requestId,
-                  itemId: itemId,
-                  reviewerId: current.id,
-                  reviewedUserId: listerId,
-                  direction: 'renter_to_owner',
-                );
-                if (ok == true && context.mounted) {
-                  await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
-                  final item = await DataService.getItemById(itemId);
-                  if (item != null && context.mounted) {
-                    await ItemDetailsOverlay.showFullPage(context, item: item);
-                  }
-                  await _load();
-                } else if (ok == false && context.mounted) {
-                  await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
-                  await _load();
-                }
-              },
-              icon: const Icon(Icons.star_rate_outlined, color: Colors.white70, size: 18),
-              label: const Text('Bewerten', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-            ),
-          TextButton.icon(
-            onPressed: () => AppPopup.toast(context, icon: Icons.replay, title: 'Wieder mieten gestartet'),
-            icon: const Icon(Icons.refresh_outlined, color: Colors.white70, size: 18),
-            label: const Text('Wieder mieten', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-          ),
-        ]);
-      default:
-        // For upcoming confirmed bookings, add a "Stornieren" quick action
-        final (start, end) = _parseDateRange(booking['dates'] ?? '');
-        final effective = _effectiveCategoryFor(booking, start, end);
-        final rawStatus = booking['rawStatus'] as String?;
-        if (_canCancelUpcomingBooking(booking)) {
-          return Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () async {
-                if (!_canCancelUpcomingBooking(booking)) {
-                  AppPopup.toast(context, icon: Icons.info_outline, title: 'Stornierung ist gerade nicht verfügbar');
-                  return;
-                }
-                // Minimal confirmation text only
-                final policy = (booking['policy'] as String?) ?? 'flexible';
-                final policyName = DataService.policyName(policy);
-                await AppPopup.show(
-                  context,
-                  icon: Icons.help_outline,
-                  title: 'Buchung stornieren?',
-                  message: 'Bitte beachte die Stornierungsbedingungen ($policyName).',
-                  barrierDismissible: true,
-                  plainCloseIcon: true,
-                  leadingWidget: Builder(builder: (context) {
-                    final danger = Theme.of(context).colorScheme.error;
-                    return Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.transparent,
-                        border: Border.all(color: danger, width: 2),
-                      ),
-                      child: Icon(Icons.close, color: danger),
-                    );
-                  }),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(), child: const Text('Abbrechen')),
-                    FilledButton(
-                      onPressed: () async {
-                        Navigator.of(context, rootNavigator: true).maybePop();
-                        final id = booking['requestId'] as String?;
-                        if (id != null && _canCancelUpcomingBooking(booking)) {
-                          await DataService.updateRentalRequestStatusWithActor(requestId: id, status: 'cancelled', cancelledBy: 'renter');
-                          if (!mounted) return;
-                          await _load();
-                          await AppPopup.toast(context, icon: Icons.cancel_outlined, title: 'Buchung storniert');
-                          // Switch to Abgeschlossen and highlight the just-cancelled booking
-                          setState(() { _highlightRequestId = id; });
-                          _tabController.index = 3;
-                        }
-                      },
-                      child: const Text('Stornieren'),
-                    ),
-                  ],
-                );
-              },
-              icon: const Icon(Icons.cancel_outlined, color: Colors.white70, size: 18),
-              label: const Text('Stornieren', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-    }
-  }
-
   // Compute effective category for renter view strictly from status.
   // Business rules:
   // - pending → pending
   // - accepted → upcoming (never auto-advance by time)
   // - running → ongoing (only after confirmed Übergabe)
   // - completed/cancelled/declined → completed (never auto-complete by time)
-  String _effectiveCategoryFor(Map<String, dynamic> booking, DateTime? start, DateTime? end) {
+  String _effectiveCategoryFor(
+      Map<String, dynamic> booking, DateTime? start, DateTime? end) {
     final raw = (booking['category'] as String?)?.toLowerCase();
     final status = (booking['rawStatus'] as String?)?.toLowerCase();
     if (raw == 'pending' || status == 'pending') return 'pending';
     if (status == 'accepted') return 'upcoming';
     if (status == 'running') return 'ongoing';
-    if (status == 'completed' || status == 'cancelled' || status == 'declined') return 'completed';
+    if (status == 'completed' ||
+        status == 'cancelled' ||
+        status == 'declined') {
+      return 'completed';
+    }
     // Fallback for unknown/missing status: treat as upcoming
     return 'upcoming';
   }
 
   String? _confirmedPlaceLineForCard(Map<String, dynamic> booking) {
     final category = ((booking['category'] as String?) ?? '').toLowerCase();
-    final isOngoing = category == 'ongoing' || ((booking['rawStatus'] as String?) ?? '').toLowerCase() == 'running';
+    final isOngoing = category == 'ongoing' ||
+        ((booking['rawStatus'] as String?) ?? '').toLowerCase() == 'running';
     final prefix = isOngoing ? 'return' : 'handover';
     final label = ((booking['${prefix}LocationLabel'] as String?) ?? '').trim();
-    final sharedBy = ((booking['${prefix}LocationSharedByName'] as String?) ?? '').trim();
-    if (label.isNotEmpty) return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: $label';
-    if (sharedBy.isNotEmpty) return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: Standort von $sharedBy';
+    final sharedBy =
+        ((booking['${prefix}LocationSharedByName'] as String?) ?? '').trim();
+    if (label.isNotEmpty) {
+      return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: $label';
+    }
+    if (sharedBy.isNotEmpty) {
+      return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: Standort von $sharedBy';
+    }
     return null;
   }
 
   // Status chip with countdown for list card (German, renter view)
-  Widget _buildStatusChipForCard(String category, DateTime? start, DateTime? end, [Map<String, dynamic>? booking]) {
+  Widget _buildStatusChipForCard(
+      String category, DateTime? start, DateTime? end,
+      [Map<String, dynamic>? booking]) {
     final label = bookingCardStatusLabel(
       category: category,
       start: start,
@@ -930,8 +763,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         break;
       case 'completed':
         final rawStatus = booking?['rawStatus'] as String?;
-        final wasCancelled = rawStatus == 'cancelled' || (booking?['status'] == 'Storniert');
-        final wasDeclined = rawStatus == 'declined' || (booking?['status'] == 'Abgelehnt');
+        final wasCancelled =
+            rawStatus == 'cancelled' || (booking?['status'] == 'Storniert');
+        final wasDeclined =
+            rawStatus == 'declined' || (booking?['status'] == 'Abgelehnt');
         if (wasCancelled) {
           color = const Color(0xFFF43F5E);
         } else if (wasDeclined) {
@@ -955,39 +790,20 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700, height: 1.05),
+        style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            height: 1.05),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
     );
   }
 
-  // Tiny privacy hint line for cards (upcoming, ongoing) – only for the party who travels
-  Widget _privacyHintForCard(Map<String, dynamic> booking) {
-    final bool ownerDelivers = booking['ownerDeliversAtDropoffChosen'] == true;
-    final bool ownerPicksUp = booking['ownerPicksUpAtReturnChosen'] == true;
-    final bool renterTravels = (!ownerDelivers) || (!ownerPicksUp);
-    if (!renterTravels) return const SizedBox.shrink();
-    final String text = 'Adresse geschützt • Karte + Abhol-/Rückgabeort nur für dich sichtbar';
-    return Row(
-      children: [
-        Icon(Icons.privacy_tip_outlined, size: 14, color: Colors.white70),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.05),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
   // Build a tiny inline action button to live next to the chip, keeping the card compact
-  Widget? _buildSmallInlineAction(String effectiveCategory, Map<String, dynamic> booking, DateTime? start, DateTime? end) {
-    final rawStatus = booking['rawStatus'] as String?;
+  Widget? _buildSmallInlineAction(String effectiveCategory,
+      Map<String, dynamic> booking, DateTime? start, DateTime? end) {
     switch (effectiveCategory) {
       case 'pending':
         // Entfernt: kein Inline-Button mehr – nur noch in der Detailseite unten
@@ -1004,7 +820,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
             label: 'Bewerten',
             onPressed: () async {
               final current = await DataService.getCurrentUser();
-              if (current == null || !_canReviewCompletedBooking(booking)) return;
+              if (current == null || !_canReviewCompletedBooking(booking)) {
+                return;
+              }
+              if (!mounted) return;
               final requestId = booking['requestId'] as String;
               final itemId = booking['itemId'] as String;
               final listerId = booking['listerId'] as String;
@@ -1017,7 +836,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 direction: 'renter_to_owner',
               );
               if (ok == true && mounted) {
-                await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                await AppPopup.toast(context,
+                    icon: Icons.star_rate_outlined,
+                    title: 'Danke für deine Bewertung!');
                 final item = await DataService.getItemById(itemId);
                 if (item != null && mounted) {
                   await ItemDetailsOverlay.showFullPage(context, item: item);
@@ -1030,21 +851,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       default:
         return null; // completed/ongoing have no inline action for now
     }
-  }
-
-  // Format durations in days only
-  String _formatTwoUnitsCountdown(Duration d) {
-    final days = d.inDays;
-    if (days == 0) return '1 Tag';
-    if (days == 1) return '1 Tag';
-    return '$days Tage';
-  }
-
-  String _formatGermanDateTime(DateTime d) {
-    const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-    final mm = months[d.month - 1];
-    final dd = d.day.toString().padLeft(2, '0');
-    return '$dd. $mm';
   }
 
   (String, String) _splitDatesText(String raw) {
@@ -1081,7 +887,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final d = int.tryParse(m.group(1)!);
     final monStr = m.group(2)!;
     if (d == null) return null;
-    String key = monStr.substring(0, 1).toUpperCase() + monStr.substring(1, math.min(monStr.length, 3)).toLowerCase();
+    String key = monStr.substring(0, 1).toUpperCase() +
+        monStr.substring(1, math.min(monStr.length, 3)).toLowerCase();
     if (key == 'Mä' || key == 'Mär') key = 'Mär';
     final month = months[key];
     if (month == null) return null;
@@ -1100,25 +907,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     return (start, end);
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Akzeptiert':
-        return const Color(0xFF22C55E);
-      case 'Angefragt':
-        return const Color(0xFFFB923C);
-      case 'Bezahlt':
-        return const Color(0xFF3B82F6);
-      case 'Laufend':
-        return const Color(0xFF0EA5E9);
-      case 'Abgeschlossen':
-        return Colors.blueGrey; // different color for completed confirmation
-      case 'Storniert':
-        return const Color(0xFFF43F5E);
-      default:
-        return Colors.grey;
-    }
-  }
-
   List<Map<String, dynamic>> _getBookingsForStatus(String status) {
     return _allBookings.where((b) {
       final (start, end) = _parseDateRange(b['dates'] ?? '');
@@ -1131,16 +919,32 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   (IconData, String, bool) _emptyStateForCategory(String category) {
     switch (category) {
       case 'ongoing':
-        return (Icons.timelapse_outlined, 'Du hast keine laufenden Buchungen', false);
+        return (
+          Icons.timelapse_outlined,
+          'Du hast keine laufenden Buchungen',
+          false
+        );
       case 'upcoming':
-        return (Icons.event_available_outlined, 'Du hast keine kommenden Buchungen', false);
+        return (
+          Icons.event_available_outlined,
+          'Du hast keine kommenden Buchungen',
+          false
+        );
       case 'pending':
         // Pending bookings are booking requests waiting for confirmation.
         // Use a dedicated pending icon (instead of the Mietanfragen/BoxChat icon).
-        return (Icons.pending_actions_outlined, 'Du hast keine ausstehenden Buchungen', false);
+        return (
+          Icons.pending_actions_outlined,
+          'Du hast keine ausstehenden Buchungen',
+          false
+        );
       case 'completed':
       default:
-        return (Icons.task_alt_outlined, 'Du hast keine abgeschlossenen Buchungen', false);
+        return (
+          Icons.task_alt_outlined,
+          'Du hast keine abgeschlossenen Buchungen',
+          false
+        );
     }
   }
 }
@@ -1150,17 +954,19 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
 class _TinyTextButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color? color;
   final VoidCallback onPressed;
-  const _TinyTextButton({required this.icon, required this.label, required this.onPressed, this.color});
+  const _TinyTextButton(
+      {required this.icon, required this.label, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    final fg = color ?? Theme.of(context).colorScheme.primary;
+    final fg = Theme.of(context).colorScheme.primary;
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 16, color: fg),
-      label: Text(label, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: fg)),
+      label: Text(label,
+          style:
+              TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: fg)),
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1175,20 +981,20 @@ class _TinyTextButton extends StatelessWidget {
 class _BlinkHighlight extends StatefulWidget {
   final Widget child;
   final bool enabled;
-  final Duration totalDuration;
   final VoidCallback? onFinished;
+  static const totalDuration = Duration(milliseconds: 6500);
   // Default: 5 full pulses (0->1->0) at 650ms each direction => 6.5s
   const _BlinkHighlight({
     required this.child,
     required this.enabled,
-    this.totalDuration = const Duration(milliseconds: 6500),
     this.onFinished,
   });
   @override
   State<_BlinkHighlight> createState() => _BlinkHighlightState();
 }
 
-class _BlinkHighlightState extends State<_BlinkHighlight> with SingleTickerProviderStateMixin {
+class _BlinkHighlightState extends State<_BlinkHighlight>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   late final Animation<double> _t;
   Timer? _stopper;
@@ -1196,11 +1002,12 @@ class _BlinkHighlightState extends State<_BlinkHighlight> with SingleTickerProvi
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650));
     _t = CurvedAnimation(parent: _c, curve: Curves.easeInOut);
     if (widget.enabled) {
       _c.repeat(reverse: true);
-      _stopper = Timer(widget.totalDuration, () {
+      _stopper = Timer(_BlinkHighlight.totalDuration, () {
         if (!mounted) return;
         _c.stop();
         widget.onFinished?.call();
@@ -1215,7 +1022,7 @@ class _BlinkHighlightState extends State<_BlinkHighlight> with SingleTickerProvi
     if (widget.enabled && !_c.isAnimating) {
       _c.repeat(reverse: true);
       _stopper?.cancel();
-      _stopper = Timer(widget.totalDuration, () {
+      _stopper = Timer(_BlinkHighlight.totalDuration, () {
         if (!mounted) return;
         _c.stop();
         widget.onFinished?.call();
@@ -1315,14 +1122,16 @@ class _ThumbnailWithSkeleton extends StatefulWidget {
   State<_ThumbnailWithSkeleton> createState() => _ThumbnailWithSkeletonState();
 }
 
-class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with SingleTickerProviderStateMixin {
+class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  bool _loaded = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
   }
 
   @override
@@ -1340,17 +1149,10 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _showPreview(context, [url], 0),
-      child: Image.network(
-        url,
+      child: AppImage(
+        url: url,
         fit: BoxFit.cover,
-        loadingBuilder: (c, child, progress) {
-          if (progress == null) {
-            _loaded = true;
-            return child;
-          }
-          return _skeleton();
-        },
-        errorBuilder: (_, __, ___) => _skeleton(),
+        fallback: _skeleton(),
       ),
     );
   }
@@ -1376,7 +1178,8 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
     );
   }
 
-  Future<void> _showPreview(BuildContext context, List<String> urls, int initialIndex) async {
+  Future<void> _showPreview(
+      BuildContext context, List<String> urls, int initialIndex) async {
     if (urls.isEmpty) return;
     await showGeneralDialog(
       context: context,
@@ -1391,11 +1194,13 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
         var page = startIndex;
         final size = MediaQuery.of(ctx).size;
 
-        Future<void> _shift(int delta) async {
+        Future<void> shift(int delta) async {
           final target = (page + delta).clamp(0, images.length - 1);
           if (target != page) {
             page = target;
-            await controller.animateToPage(target, duration: const Duration(milliseconds: 160), curve: Curves.easeOutCubic);
+            await controller.animateToPage(target,
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic);
           }
         }
 
@@ -1408,7 +1213,8 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                 child: ClipRect(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 25.2, sigmaY: 25.2),
-                    child: Container(color: Colors.black.withValues(alpha: 0.05)),
+                    child:
+                        Container(color: Colors.black.withValues(alpha: 0.05)),
                   ),
                 ),
               ),
@@ -1418,7 +1224,9 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: size.width * 0.85, maxHeight: size.height * 0.75),
+                    constraints: BoxConstraints(
+                        maxWidth: size.width * 0.85,
+                        maxHeight: size.height * 0.75),
                     child: Material(
                       color: Colors.transparent,
                       child: ClipRRect(
@@ -1426,26 +1234,32 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                         child: Listener(
                           onPointerSignal: (signal) {
                             if (signal is PointerScrollEvent) {
-                              if (signal.scrollDelta.dy > 0 || signal.scrollDelta.dx > 0) {
-                                _shift(1);
-                              } else if (signal.scrollDelta.dy < 0 || signal.scrollDelta.dx < 0) {
-                                _shift(-1);
+                              if (signal.scrollDelta.dy > 0 ||
+                                  signal.scrollDelta.dx > 0) {
+                                shift(1);
+                              } else if (signal.scrollDelta.dy < 0 ||
+                                  signal.scrollDelta.dx < 0) {
+                                shift(-1);
                               }
                             }
                           },
                           child: Stack(children: [
                             ScrollConfiguration(
-                              behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                              behavior: const ScrollBehavior()
+                                  .copyWith(scrollbars: false),
                               child: PageView.builder(
                                 controller: controller,
                                 onPageChanged: (i) => setState(() => page = i),
                                 itemCount: images.length,
                                 itemBuilder: (_, i) => DecoratedBox(
-                                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.08)),
+                                  decoration: BoxDecoration(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.08)),
                                   child: Center(
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(16),
-                                      child: AppImage(url: images[i], fit: BoxFit.contain),
+                                      child: AppImage(
+                                          url: images[i], fit: BoxFit.contain),
                                     ),
                                   ),
                                 ),
@@ -1461,13 +1275,17 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                                   children: [
                                     for (int i = 0; i < images.length; i++)
                                       AnimatedContainer(
-                                        duration: const Duration(milliseconds: 160),
-                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        duration:
+                                            const Duration(milliseconds: 160),
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 4),
                                         width: i == page ? 10 : 8,
                                         height: i == page ? 10 : 8,
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: i == page ? 0.9 : 0.5),
-                                          borderRadius: BorderRadius.circular(999),
+                                          color: Colors.white.withValues(
+                                              alpha: i == page ? 0.9 : 0.5),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
                                         ),
                                       ),
                                   ],
@@ -1485,7 +1303,8 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
         });
       },
       transitionBuilder: (ctx, anim, secAnim, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        final curved =
+            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
         return FadeTransition(opacity: curved, child: child);
       },
       transitionDuration: const Duration(milliseconds: 160),
