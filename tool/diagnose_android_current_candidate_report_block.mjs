@@ -16,6 +16,7 @@ import {
   longPressExactListing,
 } from './diagnose_android_report_block_interactions.mjs';
 import {
+  normalizedAndroidLabelVisible,
   openExactSearch,
 } from './diagnose_android_search_saved_lifecycle.mjs';
 import {
@@ -72,13 +73,9 @@ export function exactMessageListingVisible(hierarchy, exactTitle) {
 }
 
 const exactSearchStages = new Set([
-  'preflight-target',
-  'preflight-companion',
-  'action-target',
-  'blocked-target',
-  'blocked-companion',
-  'restored-target',
-  'restored-companion',
+  'preflight-listings',
+  'blocked-owner-listings',
+  'restored-listings',
 ]);
 
 async function exactWp132Search({ stage, ...options }) {
@@ -99,6 +96,13 @@ async function exactWp132Search({ stage, ...options }) {
     const reason = safeInnerStages.has(inner) ? inner.replaceAll(' ', '-') : 'session-or-navigation';
     fail(`The WP132 ${stage} exact-title search failed at ${reason}.`);
   }
+}
+
+export function bothNormalizedExactListingsVisible(hierarchy, firstTitle, secondTitle) {
+  return typeof firstTitle === 'string' && typeof secondTitle === 'string'
+    && firstTitle !== secondTitle
+    && normalizedAndroidLabelVisible(hierarchy, firstTitle)
+    && normalizedAndroidLabelVisible(hierarchy, secondTitle);
 }
 
 async function settledMessages({
@@ -198,10 +202,9 @@ async function reportAndBlock({
     visible: true,
   });
   let { hierarchy } = await exactWp132Search({
-    stage: 'preflight-target',
+    stage: 'preflight-listings',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
-    searchTerm: journal.targetListing.title,
     expectedSaved: false,
     bindRole: false,
     commandRunner,
@@ -209,30 +212,11 @@ async function reportAndBlock({
     device,
     wait,
   });
-  await exactWp132Search({
-    stage: 'preflight-companion',
-    vaultFile: journal.journeyVaultFile,
-    exactTitle: journal.companionListing.title,
-    searchTerm: journal.companionListing.title,
-    expectedSaved: false,
-    bindRole: false,
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-  });
-  ({ hierarchy } = await exactWp132Search({
-    stage: 'action-target',
-    vaultFile: journal.journeyVaultFile,
-    exactTitle: journal.targetListing.title,
-    searchTerm: journal.targetListing.title,
-    expectedSaved: false,
-    bindRole: false,
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-  }));
+  if (!bothNormalizedExactListingsVisible(
+    hierarchy,
+    journal.targetListing.title,
+    journal.companionListing.title,
+  )) fail('Both exact same-owner listings are not visible in the unique preflight result.');
   longPressExactListing({
     commandRunner,
     adbPath,
@@ -312,22 +296,9 @@ async function verifyBlockedAndUnblock({
   tapLabel(commandRunner, adbPath, device, blockSurface, 'Zu Entdecken');
   const { journal } = readStagingReportBlockJournal(journalFile);
   let { hierarchy } = await exactWp132Search({
-    stage: 'blocked-target',
+    stage: 'blocked-owner-listings',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
-    searchTerm: journal.targetListing.title,
-    expectedVisible: false,
-    bindRole: false,
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-  });
-  await exactWp132Search({
-    stage: 'blocked-companion',
-    vaultFile: journal.journeyVaultFile,
-    exactTitle: journal.companionListing.title,
-    searchTerm: journal.companionListing.title,
     expectedVisible: false,
     bindRole: false,
     commandRunner,
@@ -363,10 +334,9 @@ async function verifyBlockedAndUnblock({
   });
   await inspectStagingReportBlockFixture({ journalFile, expectedPhase: 'unblocked' });
   hierarchy = (await exactWp132Search({
-    stage: 'restored-target',
+    stage: 'restored-listings',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
-    searchTerm: journal.targetListing.title,
     expectedSaved: false,
     bindRole: false,
     commandRunner,
@@ -374,18 +344,11 @@ async function verifyBlockedAndUnblock({
     device,
     wait,
   })).hierarchy;
-  await exactWp132Search({
-    stage: 'restored-companion',
-    vaultFile: journal.journeyVaultFile,
-    exactTitle: journal.companionListing.title,
-    searchTerm: journal.companionListing.title,
-    expectedSaved: false,
-    bindRole: false,
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-  });
+  if (!bothNormalizedExactListingsVisible(
+    hierarchy,
+    journal.targetListing.title,
+    journal.companionListing.title,
+  )) fail('Both exact same-owner listings are not visible after unblock.');
   return true;
 }
 

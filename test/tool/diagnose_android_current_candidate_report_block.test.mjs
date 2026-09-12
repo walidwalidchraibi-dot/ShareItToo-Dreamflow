@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  bothNormalizedExactListingsVisible,
   exactMessageListingVisible,
   runCurrentCandidateReportBlockLifecycle,
 } from '../../tool/diagnose_android_current_candidate_report_block.mjs';
@@ -39,6 +40,17 @@ test('recognizes the exact cancelled-booking chat semantics label', () => {
   assert.equal(exactMessageListingVisible(`<node content-desc="· ${title}"/>`, title), true);
   assert.equal(exactMessageListingVisible(`<node content-desc="${title}"/>`, title), true);
   assert.equal(exactMessageListingVisible('<node content-desc="Andere Anzeige"/>', title), false);
+});
+
+test('recognizes both exact listings when the companion semantics wrap', () => {
+  const target = 'SIT Meldung n22-safe-run';
+  const companion = 'SIT Sichtbarkeit n22-safe-run';
+  const hierarchy = [
+    `<node content-desc="${target}"/>`,
+    '<node content-desc="SIT Sichtbarkeit&#10;n22-safe-run"/>',
+  ].join('');
+  assert.equal(bothNormalizedExactListingsVisible(hierarchy, target, companion), true);
+  assert.equal(bothNormalizedExactListingsVisible(hierarchy, target, 'Andere Anzeige'), false);
 });
 
 test('closes exact-current report, block, unblock and reversible cleanup', async () => {
