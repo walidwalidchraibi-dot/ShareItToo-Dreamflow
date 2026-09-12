@@ -6,6 +6,7 @@ import {
   exactPrivateSearchClearAction,
   exactPrivateSearchInputActions,
   exactPrivateSearchQuery,
+  exactFilteredSearchResultVisible,
   exactSearchQueryValueVisible,
   exactSearchRoleProfileVisible,
   exactSearchListingDetailVisible,
@@ -161,6 +162,29 @@ test('binds listing detail proof to the wrapped exact title and fixture location
   );
   assert.equal(
     exactSearchListingDetailVisible(hierarchy, 'SIT Rollenprüfung n22-other'),
+    false,
+  );
+});
+
+test('accepts an exact filtered result whose long title semantics wrap on Pixel', () => {
+  const title = 'SIT Sichtbarkeit n22-safe-fixture';
+  const favorite = `Unter Gemerkt speichern: ${title}`;
+  const wrappedTitle = title.replace(' ', '&#10;');
+  const hierarchy = [
+    '<node content-desc="Suchergebnisse"/>',
+    `<node content-desc="${wrappedTitle}"/>`,
+    `<node content-desc="Anzeige öffnen: ${wrappedTitle}"/>`,
+    `<node content-desc="Unter Gemerkt speichern: ${wrappedTitle}"/>`,
+  ].join('');
+  assert.equal(
+    exactFilteredSearchResultVisible(hierarchy, { title, expectedFavoriteLabel: favorite }),
+    true,
+  );
+  assert.equal(
+    exactFilteredSearchResultVisible(
+      `${hierarchy}<node class="android.widget.ProgressBar"/>`,
+      { title, expectedFavoriteLabel: favorite },
+    ),
     false,
   );
 });

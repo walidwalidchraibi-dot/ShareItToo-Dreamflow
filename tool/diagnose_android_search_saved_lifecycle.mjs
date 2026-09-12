@@ -250,13 +250,24 @@ async function settledSearchResults({
     wait,
     attempts: 48,
     label: 'exact filtered search result',
-    predicate: (hierarchy) => (
-      containsAllLabels(hierarchy, ['Suchergebnisse', title, expectedFavoriteLabel])
-        && currentHeadAndroidNamedNodes(hierarchy, `Anzeige öffnen: ${title}`).length === 1
-        && !hierarchy.includes('class="android.widget.ProgressBar"')
-        && currentHeadAndroidNamedNodes(hierarchy, 'Suche nicht erreichbar').length === 0
+    predicate: (hierarchy) => exactFilteredSearchResultVisible(
+      hierarchy,
+      { title, expectedFavoriteLabel },
     ),
   });
+}
+
+export function exactFilteredSearchResultVisible(
+  hierarchy,
+  { title, expectedFavoriteLabel } = {},
+) {
+  if (typeof title !== 'string' || typeof expectedFavoriteLabel !== 'string') return false;
+  return normalizedAndroidLabelVisible(hierarchy, 'Suchergebnisse')
+    && normalizedAndroidLabelVisible(hierarchy, title)
+    && normalizedAndroidLabelVisible(hierarchy, expectedFavoriteLabel)
+    && normalizedAndroidLabelVisible(hierarchy, `Anzeige öffnen: ${title}`)
+    && !String(hierarchy).includes('class="android.widget.ProgressBar"')
+    && currentHeadAndroidNamedNodes(hierarchy, 'Suche nicht erreichbar').length === 0;
 }
 
 export async function openExactSearch({
