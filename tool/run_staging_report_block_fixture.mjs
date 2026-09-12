@@ -149,6 +149,7 @@ export function readStagingReportBlockJournal(journalFile) {
     'ready-for-pixel',
     'blocked-server-confirmed',
     'unblocked-server-confirmed',
+    'cleanup-server-confirmed-session-revocation-pending',
     'cleanup-server-confirmed-recovery-required',
     'complete-restored',
   ]);
@@ -493,6 +494,7 @@ export async function cleanupStagingReportBlockFixture({
     'ready-for-pixel',
     'blocked-server-confirmed',
     'unblocked-server-confirmed',
+    'cleanup-server-confirmed-session-revocation-pending',
     'cleanup-server-confirmed-recovery-required',
   ]);
   if (journal.status === 'cleanup-server-confirmed-recovery-required') {
@@ -506,75 +508,91 @@ export async function cleanupStagingReportBlockFixture({
   }
   const { vault } = readEmailVerifiedJourneyVault(journal.journeyVaultFile);
   const byRole = accounts(vault);
-  const [owner, renter] = await Promise.all([
-    login(fetchImpl, byRole.get('owner')),
-    login(fetchImpl, byRole.get('renter')),
-  ]);
-  if (owner.userId !== journal.ownerUserId || renter.userId !== journal.renterUserId) {
-    fail('The WP132 cleanup principals changed.');
-  }
-  const beforeBlocks = exactBlocks(
-    (await request(fetchImpl, '/user-blocks', { token: renter.token })).value,
-  );
-  const unrelatedBlocks = beforeBlocks.filter((entry) => entry?.userId !== owner.userId);
-  if (unrelatedBlocks.length !== 0) {
-    fail('The WP132 cleanup found an unrelated block and stopped without touching it.');
-  }
-  if (beforeBlocks.some((entry) => entry?.userId === owner.userId)) {
-    await request(fetchImpl, `/user-blocks/${encodeURIComponent(owner.userId)}`, {
-      method: 'DELETE', token: renter.token, expected: [204],
+  let owner = null;
+  let renter = null;
+  if (journal.status !== 'cleanup-server-confirmed-session-revocation-pending') {
+    [owner, renter] = await Promise.all([
+      login(fetchImpl, byRole.get('owner')),
+      login(fetchImpl, byRole.get('renter')),
+    ]);
+    if (owner.userId !== journal.ownerUserId || renter.userId !== journal.renterUserId) {
+      fail('The WP132 cleanup principals changed.');
+    }
+    const beforeBlocks = exactBlocks(
+      (await request(fetchImpl, '/user-blocks', { token: renter.token })).value,
+    );
+    const unrelatedBlocks = beforeBlocks.filter((entry) => entry?.userId !== owner.userId);
+    if (unrelatedBlocks.length !== 0) {
+      fail('The WP132 cleanup found an unrelated block and stopped without touching it.');
+    }
+    if (beforeBlocks.some((entry) => entry?.userId === owner.userId)) {
+      await request(fetchImpl, `/user-blocks/${encodeURIComponent(owner.userId)}`, {
+        method: 'DELETE', token: renter.token, expected: [204],
+      });
+    }
+    if (exactBlocks((await request(fetchImpl, '/user-blocks', { token: renter.token })).value).length !== 0) {
+      fail('The WP132 cleanup did not restore empty block truth.');
+    }
+    await endExactListing(fetchImpl, owner.token, journal.targetListing);
+    await endExactListing(fetchImpl, owner.token, journal.companionListing);
+    await retireStagingEmailVerifiedTwoRoleJourney({
+      vaultFile: journal.journeyVaultFile,
+      fetchImpl,
     });
-  }
-  if (exactBlocks((await request(fetchImpl, '/user-blocks', { token: renter.token })).value).length !== 0) {
-    fail('The WP132 cleanup did not restore empty block truth.');
-  }
-  await endExactListing(fetchImpl, owner.token, journal.targetListing);
-  await endExactListing(fetchImpl, owner.token, journal.companionListing);
-  await retireStagingEmailVerifiedTwoRoleJourney({
-    vaultFile: journal.journeyVaultFile,
-    fetchImpl,
-  });
 
-  const [catalogState, reportState] = await Promise.all([
-    request(fetchImpl, '/listings?sort=newest&limit=100'),
-    request(fetchImpl, '/reports/mine', { token: renter.token }),
-  ]);
-  const retiredIds = new Set([
-    journal.targetListing.id,
-    journal.companionListing.id,
-    journal.messageListingId,
-  ]);
-  if ((catalogState.value?.listings ?? []).some((entry) => retiredIds.has(entry?.id))) {
-    fail('A retired WP132 listing remains visible in the public catalog.');
+    const [catalogState, reportState] = await Promise.all([
+      request(fetchImpl, '/listings?sort=newest&limit=100'),
+      request(fetchImpl, '/reports/mine', { token: renter.token }),
+    ]);
+    const retiredIds = new Set([
+      journal.targetListing.id,
+      journal.companionListing.id,
+      journal.messageListingId,
+    ]);
+    if ((catalogState.value?.listings ?? []).some((entry) => retiredIds.has(entry?.id))) {
+      fail('A retired WP132 listing remains visible in the public catalog.');
+    }
+    const retainedReports = exactReports(reportState.value).filter((entry) => (
+      entry?.targetType === 'listing' && entry?.targetId === journal.targetListing.id
+    ));
+    if (retainedReports.length > 1) fail('The WP132 report audit count is ambiguous.');
+    journal.status = 'cleanup-server-confirmed-session-revocation-pending';
+    journal.cleanup = {
+      exactListingsEnded: 3,
+      exactListingsAbsentFromPublicCatalog: 3,
+      exactBlockCount: 0,
+      retainedModerationReportCount: retainedReports.length,
+      sessionRevocation: { owner: false, renter: false },
+      exactRoleSessionsRevoked: false,
+      protectedOwnerSessionRestored: false,
+      serverCleanupAt: new Date().toISOString(),
+    };
+    journal.recoveryRequired = true;
+    writePrivateJson(canonical, journal);
   }
-  const retainedReports = exactReports(reportState.value).filter((entry) => (
-    entry?.targetType === 'listing' && entry?.targetId === journal.targetListing.id
-  ));
-  if (retainedReports.length > 1) fail('The WP132 report audit count is ambiguous.');
 
-  await request(fetchImpl, '/auth/logout-all', {
-    method: 'POST', token: owner.token, expected: [204],
-  });
-  await request(fetchImpl, '/auth/logout-all', {
-    method: 'POST', token: renter.token, expected: [204],
-  });
+  for (const role of ['owner', 'renter']) {
+    if (journal.cleanup.sessionRevocation[role] === true) continue;
+    const expectedUserId = role === 'owner' ? journal.ownerUserId : journal.renterUserId;
+    let session = role === 'owner' ? owner : renter;
+    if (session === null) session = await login(fetchImpl, byRole.get(role));
+    if (session.userId !== expectedUserId) fail(`The WP132 ${role} cleanup principal changed.`);
+    await request(fetchImpl, '/auth/logout-all', {
+      method: 'POST', token: session.token, expected: [204],
+    });
+    journal.cleanup.sessionRevocation[role] = true;
+    writePrivateJson(canonical, journal);
+  }
   journal.status = 'cleanup-server-confirmed-recovery-required';
-  journal.cleanup = {
-    exactListingsEnded: 3,
-    exactListingsAbsentFromPublicCatalog: 3,
-    exactBlockCount: 0,
-    retainedModerationReportCount: retainedReports.length,
-    exactRoleSessionsRevoked: true,
-    protectedOwnerSessionRestored: false,
-    completedAt: new Date().toISOString(),
-  };
+  journal.cleanup.exactRoleSessionsRevoked = true;
+  journal.cleanup.completedAt = new Date().toISOString();
   journal.recoveryRequired = true;
   writePrivateJson(canonical, journal);
   return Object.freeze({
     status: journal.status,
     exactListingsEnded: 3,
     exactBlockCount: 0,
-    retainedModerationReportCount: retainedReports.length,
+    retainedModerationReportCount: journal.cleanup.retainedModerationReportCount,
     exactRoleSessionsRevoked: true,
     recoveryRequired: true,
     paymentEndpointCalled: false,

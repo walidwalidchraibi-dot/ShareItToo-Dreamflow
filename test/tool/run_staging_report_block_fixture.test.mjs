@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import test from 'node:test';
 
 import {
+  cleanupStagingReportBlockFixture,
   inspectStagingReportBlockFixture,
   markStagingReportBlockPixelRestored,
 } from '../../tool/run_staging_report_block_fixture.mjs';
@@ -71,9 +72,16 @@ function privateState(status = 'ready-for-pixel') {
     messageListingId: 'message-listing',
     messageThreadId: 'message-thread',
     recoveryRequired: true,
-    ...(status === 'cleanup-server-confirmed-recovery-required'
+    ...(['cleanup-server-confirmed-session-revocation-pending',
+      'cleanup-server-confirmed-recovery-required'].includes(status)
       ? {
           cleanup: {
+            exactListingsEnded: 3,
+            exactListingsAbsentFromPublicCatalog: 3,
+            exactBlockCount: 0,
+            retainedModerationReportCount: 1,
+            sessionRevocation: { owner: true, renter: false },
+            exactRoleSessionsRevoked: false,
             protectedOwnerSessionRestored: false,
           },
         }
@@ -175,4 +183,31 @@ test('marks terminal restoration only after server cleanup requires it', () => {
   const journal = JSON.parse(readFileSync(fixture.journalFile, 'utf8'));
   assert.equal(journal.cleanup.protectedOwnerSessionRestored, true);
   assert.equal(journal.recoveryRequired, false);
+});
+
+test('resumes only the unfinished role-session revocation after a rate limit', async () => {
+  const fixture = privateState('cleanup-server-confirmed-session-revocation-pending');
+  const loginEmails = [];
+  const result = await cleanupStagingReportBlockFixture({
+    journalFile: fixture.journalFile,
+    fetchImpl: async (url, options = {}) => {
+      const path = String(url).slice(apiBaseUrl.length);
+      if (path === '/auth/login') {
+        const body = JSON.parse(options.body);
+        loginEmails.push(body.email);
+        return response(200, {
+          accessToken: 'renter-access-token-value',
+          sessionId: 'renter-session',
+          user: { id: 'renter-user' },
+        });
+      }
+      if (path === '/auth/logout-all') return response(204);
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(result.status, 'cleanup-server-confirmed-recovery-required');
+  assert.equal(result.exactRoleSessionsRevoked, true);
+  assert.deepEqual(loginEmails, ['renter-wp132@example.test']);
+  const journal = JSON.parse(readFileSync(fixture.journalFile, 'utf8'));
+  assert.deepEqual(journal.cleanup.sessionRevocation, { owner: true, renter: true });
 });
