@@ -67,6 +67,11 @@ function exact(value, expected, label) {
   if (value !== expected) fail(`The ${label} result is incomplete or ambiguous.`);
 }
 
+export function exactMessageListingVisible(hierarchy, exactTitle) {
+  return currentHeadAndroidNamedNodes(hierarchy, exactTitle).length > 0
+    || currentHeadAndroidNamedNodes(hierarchy, `· ${exactTitle}`).length > 0;
+}
+
 async function settledMessages({
   commandRunner, adbPath, device, wait, exactTitle, visible,
 }) {
@@ -105,7 +110,7 @@ async function settledMessages({
           value,
           'Nachrichten konnten nicht sicher geladen werden.',
         ).length === 0
-        && (currentHeadAndroidNamedNodes(value, exactTitle).length > 0) === visible
+        && exactMessageListingVisible(value, exactTitle) === visible
     ),
   });
   return hierarchy;

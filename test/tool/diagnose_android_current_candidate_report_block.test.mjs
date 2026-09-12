@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  exactMessageListingVisible,
   runCurrentCandidateReportBlockLifecycle,
 } from '../../tool/diagnose_android_current_candidate_report_block.mjs';
 
@@ -32,6 +33,13 @@ function operations(calls) {
     markRestored: async () => { calls.push('mark-restored'); },
   };
 }
+
+test('recognizes the exact cancelled-booking chat semantics label', () => {
+  const title = 'SIT Rollenprüfung n22-safe-run';
+  assert.equal(exactMessageListingVisible(`<node content-desc="· ${title}"/>`, title), true);
+  assert.equal(exactMessageListingVisible(`<node content-desc="${title}"/>`, title), true);
+  assert.equal(exactMessageListingVisible('<node content-desc="Andere Anzeige"/>', title), false);
+});
 
 test('closes exact-current report, block, unblock and reversible cleanup', async () => {
   const calls = [];
