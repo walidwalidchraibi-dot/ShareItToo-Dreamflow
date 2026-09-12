@@ -72,6 +72,32 @@ export function exactMessageListingVisible(hierarchy, exactTitle) {
     || currentHeadAndroidNamedNodes(hierarchy, `· ${exactTitle}`).length > 0;
 }
 
+export async function findExactListingByScrolling({
+  hierarchy,
+  exactTitle,
+  commandRunner,
+  adbPath,
+  device,
+  wait,
+  attempts = 6,
+} = {}) {
+  if (typeof hierarchy !== 'string' || typeof exactTitle !== 'string'
+      || typeof commandRunner !== 'function' || typeof wait !== 'function'
+      || !Number.isInteger(attempts) || attempts < 1 || attempts > 8) {
+    fail('The bounded exact-listing scroll contract is invalid.');
+  }
+  let current = hierarchy;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (currentHeadAndroidNamedNodes(current, exactTitle).length > 0) return current;
+    currentHeadAndroidAdb(commandRunner, adbPath, device, [
+      'shell', 'input', 'swipe', '720', '2450', '720', '700', '450',
+    ]);
+    await wait(500);
+    current = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+  }
+  fail('The second exact same-owner listing is outside the bounded result inventory.');
+}
+
 async function settledMessages({
   commandRunner, adbPath, device, wait, exactTitle, visible,
 }) {
@@ -177,9 +203,23 @@ async function reportAndBlock({
     device,
     wait,
   });
-  if (currentHeadAndroidNamedNodes(hierarchy, journal.companionListing.title).length === 0) {
-    fail('Both same-owner WP132 listings are not physically visible before blocking.');
-  }
+  await findExactListingByScrolling({
+    hierarchy,
+    exactTitle: journal.companionListing.title,
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
+  ({ hierarchy } = await openExactSearch({
+    vaultFile: journal.journeyVaultFile,
+    exactTitle: journal.targetListing.title,
+    expectedSaved: false,
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  }));
   longPressExactListing({
     commandRunner,
     adbPath,
@@ -306,9 +346,14 @@ async function verifyBlockedAndUnblock({
     device,
     wait,
   })).hierarchy;
-  if (currentHeadAndroidNamedNodes(hierarchy, journal.companionListing.title).length === 0) {
-    fail('Both same-owner listings did not physically reappear after unblock.');
-  }
+  await findExactListingByScrolling({
+    hierarchy,
+    exactTitle: journal.companionListing.title,
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
   return true;
 }
 
