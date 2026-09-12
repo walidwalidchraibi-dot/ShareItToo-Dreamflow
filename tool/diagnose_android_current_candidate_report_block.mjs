@@ -24,6 +24,7 @@ import {
   currentHeadAndroidAdb,
   currentHeadAndroidNamedNodes,
   defaultCurrentHeadAndroidCommandRunner,
+  dumpCurrentHeadAndroidUi,
   verifyCurrentHeadAndroidInstalledCandidate,
 } from './diagnose_current_head_android_main_navigation.mjs';
 import {
@@ -98,19 +99,37 @@ async function exactWp132Search({ stage, ...options }) {
   }
 }
 
-export function bothExactSearchListingCardsVisible(hierarchy, firstTitle, secondTitle) {
-  return typeof firstTitle === 'string' && typeof secondTitle === 'string'
-    && firstTitle !== secondTitle
-    && exactSearchListingCardVisible(
-      hierarchy,
-      firstTitle,
-      `Unter Gemerkt speichern: ${firstTitle}`,
-    )
-    && exactSearchListingCardVisible(
-      hierarchy,
-      secondTitle,
-      `Unter Gemerkt speichern: ${secondTitle}`,
-    );
+export async function findExactSearchListingCardByScrolling({
+  hierarchy,
+  exactTitle,
+  direction,
+  commandRunner,
+  adbPath,
+  device,
+  wait,
+  attempts = 6,
+} = {}) {
+  if (typeof hierarchy !== 'string' || typeof exactTitle !== 'string'
+      || !['down', 'up'].includes(direction)
+      || typeof commandRunner !== 'function' || typeof wait !== 'function'
+      || !Number.isInteger(attempts) || attempts < 1 || attempts > 8) {
+    fail('The bounded exact search-card inventory contract is invalid.');
+  }
+  let current = hierarchy;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (exactSearchListingCardVisible(
+      current,
+      exactTitle,
+      `Unter Gemerkt speichern: ${exactTitle}`,
+    )) return current;
+    const [startY, endY] = direction === 'down' ? ['2450', '700'] : ['700', '2450'];
+    currentHeadAndroidAdb(commandRunner, adbPath, device, [
+      'shell', 'input', 'swipe', '720', startY, '720', endY, '450',
+    ]);
+    await wait(500);
+    current = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+  }
+  fail(`The exact search-card inventory did not expose the requested ${direction} result.`);
 }
 
 async function settledMessages({
@@ -220,11 +239,24 @@ async function reportAndBlock({
     device,
     wait,
   });
-  if (!bothExactSearchListingCardsVisible(
+  hierarchy = await findExactSearchListingCardByScrolling({
     hierarchy,
-    journal.targetListing.title,
-    journal.companionListing.title,
-  )) fail('Both exact same-owner listings are not visible in the unique preflight result.');
+    exactTitle: journal.companionListing.title,
+    direction: 'down',
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
+  hierarchy = await findExactSearchListingCardByScrolling({
+    hierarchy,
+    exactTitle: journal.targetListing.title,
+    direction: 'up',
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
   longPressExactListing({
     commandRunner,
     adbPath,
@@ -352,11 +384,15 @@ async function verifyBlockedAndUnblock({
     device,
     wait,
   })).hierarchy;
-  if (!bothExactSearchListingCardsVisible(
+  await findExactSearchListingCardByScrolling({
     hierarchy,
-    journal.targetListing.title,
-    journal.companionListing.title,
-  )) fail('Both exact same-owner listings are not visible after unblock.');
+    exactTitle: journal.companionListing.title,
+    direction: 'down',
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
   return true;
 }
 

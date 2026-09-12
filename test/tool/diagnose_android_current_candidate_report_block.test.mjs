@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  bothExactSearchListingCardsVisible,
   exactMessageListingVisible,
+  findExactSearchListingCardByScrolling,
   runCurrentCandidateReportBlockLifecycle,
 } from '../../tool/diagnose_android_current_candidate_report_block.mjs';
 
@@ -42,17 +42,41 @@ test('recognizes the exact cancelled-booking chat semantics label', () => {
   assert.equal(exactMessageListingVisible('<node content-desc="Andere Anzeige"/>', title), false);
 });
 
-test('recognizes both exact listings when the companion semantics wrap', () => {
-  const target = 'SIT Meldung n22-safe-run';
+test('finds a wrapped exact card through bounded down and up inventory scrolling', async () => {
   const companion = 'SIT Sichtbarkeit n22-safe-run';
-  const hierarchy = [
-    `<node content-desc="Anzeige öffnen: ${target}"/>`,
-    `<node content-desc="Unter Gemerkt speichern: ${target}"/>`,
+  const companionHierarchy = [
     '<node content-desc="Anzeige öffnen: SIT Sichtbarkeit&#10;n22-safe-run"/>',
     '<node content-desc="Unter Gemerkt speichern: SIT Sichtbarkeit&#10;n22-safe-run"/>',
   ].join('');
-  assert.equal(bothExactSearchListingCardsVisible(hierarchy, target, companion), true);
-  assert.equal(bothExactSearchListingCardsVisible(hierarchy, target, 'Andere Anzeige'), false);
+  const calls = [];
+  const down = await findExactSearchListingCardByScrolling({
+    hierarchy: '<hierarchy/>',
+    exactTitle: companion,
+    direction: 'down',
+    commandRunner: (_file, args) => {
+      calls.push(args);
+      return args.includes('cat') ? companionHierarchy : '';
+    },
+    adbPath: 'adb',
+    device: { serial: 'private-device' },
+    wait: async () => {},
+  });
+  assert.equal(down, companionHierarchy);
+  assert.equal(calls.find((args) => args.includes('swipe'))?.slice(-4, -1).join(' '), '2450 720 700');
+  calls.length = 0;
+  await findExactSearchListingCardByScrolling({
+    hierarchy: '<hierarchy/>',
+    exactTitle: companion,
+    direction: 'up',
+    commandRunner: (_file, args) => {
+      calls.push(args);
+      return args.includes('cat') ? companionHierarchy : '';
+    },
+    adbPath: 'adb',
+    device: { serial: 'private-device' },
+    wait: async () => {},
+  });
+  assert.equal(calls.find((args) => args.includes('swipe'))?.slice(-4, -1).join(' '), '700 720 2450');
 });
 
 test('closes exact-current report, block, unblock and reversible cleanup', async () => {
