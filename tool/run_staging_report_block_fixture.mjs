@@ -170,6 +170,17 @@ function exactThreads(value) {
   return value.threads;
 }
 
+export function exactPublicSearchListingVisible(value, expected) {
+  if (!Array.isArray(value?.listings)
+      || typeof expected?.id !== 'string'
+      || typeof expected?.title !== 'string') {
+    return false;
+  }
+  return value.listings.length === 1
+    && value.listings[0]?.id === expected.id
+    && value.listings[0]?.title === expected.title;
+}
+
 function listingBody(source, { id, title }) {
   return {
     id,
@@ -306,11 +317,20 @@ export async function prepareStagingReportBlockFixture({
     await createActiveListing(fetchImpl, owner.token, primary[0], targetListing, image);
     await createActiveListing(fetchImpl, owner.token, primary[0], companionListing, image);
 
-  const [blockState, reportState, threadState, catalogState] = await Promise.all([
+  const [
+    blockState,
+    reportState,
+    threadState,
+    catalogState,
+    targetSearchState,
+    companionSearchState,
+  ] = await Promise.all([
     request(fetchImpl, '/user-blocks', { token: renter.token }),
     request(fetchImpl, '/reports/mine', { token: renter.token }),
     request(fetchImpl, '/message-threads', { token: renter.token }),
     request(fetchImpl, '/listings?sort=newest&limit=100'),
+    request(fetchImpl, `/listings?q=${encodeURIComponent(targetListing.title)}&sort=newest&limit=100`),
+    request(fetchImpl, `/listings?q=${encodeURIComponent(companionListing.title)}&sort=newest&limit=100`),
   ]);
   if (exactBlocks(blockState.value).length !== 0) {
     fail('The WP132 renter has pre-existing blocks; no physical mutation is allowed.');
@@ -328,6 +348,10 @@ export async function prepareStagingReportBlockFixture({
   const publicIds = new Set((catalogState.value?.listings ?? []).map((entry) => entry?.id));
   if (!publicIds.has(targetListing.id) || !publicIds.has(companionListing.id)) {
     fail('Both active WP132 same-owner listings are not publicly visible.');
+  }
+  if (!exactPublicSearchListingVisible(targetSearchState.value, targetListing)
+      || !exactPublicSearchListingVisible(companionSearchState.value, companionListing)) {
+    fail('The WP132 exact-title Staging search is incomplete or ambiguous.');
   }
 
   writePrivateJson(journalFile, {
@@ -351,6 +375,7 @@ export async function prepareStagingReportBlockFixture({
       exactTargetReports: 0,
       exactThreadVisible: true,
       bothSameOwnerListingsPublic: true,
+      exactTitleSearches: 2,
       bookingStatus: 'cancelled',
       contractCreated: false,
       reservationCreated: false,
@@ -364,6 +389,7 @@ export async function prepareStagingReportBlockFixture({
       reporterBlocks: 0,
       exactThreadVisible: true,
       sameOwnerListingCount: 2,
+      exactTitleSearches: 2,
       bookingCancelled: true,
       paymentEndpointCalled: false,
       monetaryEffectMinor: 0,

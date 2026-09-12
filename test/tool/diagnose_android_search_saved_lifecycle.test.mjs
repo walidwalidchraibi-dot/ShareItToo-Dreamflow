@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   emptyExactSearchResultVisible,
+  exactPrivateSearchInputActions,
   exactPrivateSearchQuery,
   exactSearchListingDetailVisible,
   manualSearchFormVisible,
@@ -16,6 +17,14 @@ test('permits only the exact run id or exact run-bound title as a search query',
   const title = `SIT Meldung ${runId}`;
   assert.equal(exactPrivateSearchQuery({ runId, title }), runId);
   assert.equal(exactPrivateSearchQuery({ runId, title, searchTerm: title }), title);
+  assert.deepEqual(exactPrivateSearchInputActions(title), [
+    ['shell', 'input', 'text', 'SIT'],
+    ['shell', 'input', 'keyevent', '62'],
+    ['shell', 'input', 'text', 'Meldung'],
+    ['shell', 'input', 'keyevent', '62'],
+    ['shell', 'input', 'text', runId],
+  ]);
+  assert.equal(exactPrivateSearchInputActions(title).flat().includes('%s'), false);
   assert.throws(
     () => exactPrivateSearchQuery({ runId, title, searchTerm: 'SIT Meldung' }),
     /exact private search term/u,
@@ -23,6 +32,10 @@ test('permits only the exact run id or exact run-bound title as a search query',
   assert.throws(
     () => exactPrivateSearchQuery({ runId, title: 'fremde Anzeige', searchTerm: runId }),
     /exact private search expectation/u,
+  );
+  assert.throws(
+    () => exactPrivateSearchInputActions('SIT  Meldung n22-safe-fixture'),
+    /exact private search input/u,
   );
 });
 

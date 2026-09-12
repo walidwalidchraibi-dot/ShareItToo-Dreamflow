@@ -6,11 +6,23 @@ import test from 'node:test';
 
 import {
   cleanupStagingReportBlockFixture,
+  exactPublicSearchListingVisible,
   inspectStagingReportBlockFixture,
   markStagingReportBlockPixelRestored,
 } from '../../tool/run_staging_report_block_fixture.mjs';
 
 const apiBaseUrl = 'https://staging.shareittoo.com/api/v1';
+
+test('accepts only one exact id-and-title result for an exact-title search', () => {
+  const expected = { id: 'listing-1', title: 'SIT Meldung wp132-run' };
+  assert.equal(exactPublicSearchListingVisible({ listings: [expected] }, expected), true);
+  assert.equal(exactPublicSearchListingVisible({
+    listings: [expected, { id: 'listing-2', title: expected.title }],
+  }, expected), false);
+  assert.equal(exactPublicSearchListingVisible({
+    listings: [{ id: expected.id, title: 'SIT Sichtbarkeit wp132-run' }],
+  }, expected), false);
+});
 
 function response(status, value = null) {
   return { status, text: async () => (value === null ? '' : JSON.stringify(value)) };

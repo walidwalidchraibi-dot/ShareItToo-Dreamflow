@@ -166,10 +166,22 @@ export function exactPrivateSearchQuery({ runId, title, searchTerm } = {}) {
   }
   const query = searchTerm ?? runId;
   if (![runId, title].includes(query)
-      || !/^[A-Za-z0-9 -]{10,160}$/u.test(query)) {
+      || query.length < 10 || query.length > 160
+      || !/^[A-Za-z0-9-]+(?: [A-Za-z0-9-]+)*$/u.test(query)) {
     fail('The exact private search term is invalid.');
   }
   return query;
+}
+
+export function exactPrivateSearchInputActions(query) {
+  if (typeof query !== 'string' || query.length < 10 || query.length > 160
+      || !/^[A-Za-z0-9-]+(?: [A-Za-z0-9-]+)*$/u.test(query)) {
+    fail('The exact private search input is invalid.');
+  }
+  return query.split(' ').flatMap((word, index) => [
+    ...(index === 0 ? [] : [['shell', 'input', 'keyevent', '62']]),
+    ['shell', 'input', 'text', word],
+  ]);
 }
 
 async function settledSearchResults({
@@ -257,9 +269,9 @@ export async function openExactSearch({
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell', 'input', 'tap', String(queryPoint.x), String(queryPoint.y),
   ]);
-  currentHeadAndroidAdb(commandRunner, adbPath, device, [
-    'shell', 'input', 'text', query.replaceAll(' ', '%s'),
-  ]);
+  for (const action of exactPrivateSearchInputActions(query)) {
+    currentHeadAndroidAdb(commandRunner, adbPath, device, action);
+  }
   await wait(350);
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell', 'input', 'keyevent', '4',

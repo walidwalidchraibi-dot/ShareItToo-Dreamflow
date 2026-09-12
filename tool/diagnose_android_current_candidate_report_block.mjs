@@ -71,6 +71,25 @@ export function exactMessageListingVisible(hierarchy, exactTitle) {
     || currentHeadAndroidNamedNodes(hierarchy, `· ${exactTitle}`).length > 0;
 }
 
+const exactSearchStages = new Set([
+  'preflight-target',
+  'preflight-companion',
+  'action-target',
+  'blocked-target',
+  'blocked-companion',
+  'restored-target',
+  'restored-companion',
+]);
+
+async function exactWp132Search({ stage, ...options }) {
+  if (!exactSearchStages.has(stage)) fail('The WP132 exact-title search stage is invalid.');
+  try {
+    return await openExactSearch(options);
+  } catch {
+    fail(`The WP132 ${stage} exact-title search failed.`);
+  }
+}
+
 async function settledMessages({
   commandRunner, adbPath, device, wait, exactTitle, visible,
 }) {
@@ -167,7 +186,8 @@ async function reportAndBlock({
     exactTitle: vault.realTwoRoleJourney.title,
     visible: true,
   });
-  let { hierarchy } = await openExactSearch({
+  let { hierarchy } = await exactWp132Search({
+    stage: 'preflight-target',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
     searchTerm: journal.targetListing.title,
@@ -177,7 +197,8 @@ async function reportAndBlock({
     device,
     wait,
   });
-  await openExactSearch({
+  await exactWp132Search({
+    stage: 'preflight-companion',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.companionListing.title,
     searchTerm: journal.companionListing.title,
@@ -187,7 +208,8 @@ async function reportAndBlock({
     device,
     wait,
   });
-  ({ hierarchy } = await openExactSearch({
+  ({ hierarchy } = await exactWp132Search({
+    stage: 'action-target',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
     searchTerm: journal.targetListing.title,
@@ -275,7 +297,8 @@ async function verifyBlockedAndUnblock({
   await inspectStagingReportBlockFixture({ journalFile, expectedPhase: 'blocked' });
   tapLabel(commandRunner, adbPath, device, blockSurface, 'Zu Entdecken');
   const { journal } = readStagingReportBlockJournal(journalFile);
-  let { hierarchy } = await openExactSearch({
+  let { hierarchy } = await exactWp132Search({
+    stage: 'blocked-target',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
     searchTerm: journal.targetListing.title,
@@ -285,7 +308,8 @@ async function verifyBlockedAndUnblock({
     device,
     wait,
   });
-  await openExactSearch({
+  await exactWp132Search({
+    stage: 'blocked-companion',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.companionListing.title,
     searchTerm: journal.companionListing.title,
@@ -322,7 +346,8 @@ async function verifyBlockedAndUnblock({
     ).length === 1,
   });
   await inspectStagingReportBlockFixture({ journalFile, expectedPhase: 'unblocked' });
-  hierarchy = (await openExactSearch({
+  hierarchy = (await exactWp132Search({
+    stage: 'restored-target',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
     searchTerm: journal.targetListing.title,
@@ -332,7 +357,8 @@ async function verifyBlockedAndUnblock({
     device,
     wait,
   })).hierarchy;
-  await openExactSearch({
+  await exactWp132Search({
+    stage: 'restored-companion',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.companionListing.title,
     searchTerm: journal.companionListing.title,
