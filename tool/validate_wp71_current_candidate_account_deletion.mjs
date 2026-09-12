@@ -35,8 +35,19 @@ function validateSources(repositoryRoot, value) {
     fail('WP71 source inventory is incomplete or reordered.');
   }
   for (const entry of value.sourceInventory) {
+    let source;
+    try {
+      source = entry.path === 'tool/diagnose_android_account_deletion.mjs'
+        ? execFileSync('git', ['show', `${value.repository.diagnosticHead}:${entry.path}`], {
+            cwd: repositoryRoot,
+            stdio: ['ignore', 'pipe', 'ignore'],
+          })
+        : readFileSync(resolve(repositoryRoot, entry.path));
+    } catch {
+      fail(`WP71 source snapshot is unavailable: ${entry.path}`);
+    }
     if (!/^[a-f0-9]{64}$/u.test(entry.sha256 ?? '')
-        || sha256(readFileSync(resolve(repositoryRoot, entry.path))) !== entry.sha256) {
+        || sha256(source) !== entry.sha256) {
       fail(`WP71 source hash drift: ${entry.path}`);
     }
   }

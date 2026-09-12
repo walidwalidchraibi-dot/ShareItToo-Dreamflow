@@ -1,4 +1,17 @@
-# Current Work Package: WP129 Exact-Current E-Mail Registration/Recovery — COMPLETE
+# Current Work Package: WP130 Exact-Current Account Deletion — COMPLETE
+
+The WP129 disposable account now passes exact signed candidate
+`1.0.0+2026091201` deletion on the Pixel: protected preflight, safe
+wrong-password rejection, confirmed deletion, independent server rejection,
+Guest cold start, target-to-protected isolation and protected-owner restoration.
+The private target credential is scrubbed only after independent deletion
+truth. The portfolio is **15 PASS / 9 PARTIAL / 8 OPEN**. See
+`docs/operations/WP130_CURRENT_CANDIDATE_ACCOUNT_DELETION_2026-09-12.md`.
+
+No app/Backend runtime, Production, Store, Firebase, support, payment, money,
+OnePlus or PR-merge state changed.
+
+# Previous Work Package: WP129 Exact-Current E-Mail Registration/Recovery — COMPLETE
 
 Exact signed Internal/Staging `1.0.0+2026091201` now passes fresh physical
 Pixel registration with four consents, exact one-message delivery, single-use

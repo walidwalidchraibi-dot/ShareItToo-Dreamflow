@@ -1,5 +1,24 @@
 # ShareItToo Current State
 
+## WP130 exact-current account deletion — complete
+
+The private disposable account retained by WP129 now passes the complete
+physical Pixel deletion lifecycle on unchanged signed Internal/Staging
+`1.0.0+2026091201`: exact target/protected-owner/candidate binding, clear
+preflight, definite wrong-password rejection with account preservation,
+confirmed product-UI deletion, independent deleted-credential rejection,
+terminated-process Guest truth and protected-owner restoration. The private
+target credential is scrubbed and the owner-only recovery journal is terminal.
+
+The diagnostic now accepts the protected owner's valid retired non-binding
+simulation state, while still requiring live credential/principal truth and
+probe-session revocation before arming deletion. The portfolio is now
+**15 PASS, 9 PARTIAL and 8 OPEN**. See
+`docs/operations/WP130_CURRENT_CANDIDATE_ACCOUNT_DELETION_2026-09-12.md`.
+
+No app/Backend runtime, Production, Store, Firebase, support, payment, money,
+OnePlus or PR-merge state changed.
+
 ## WP129 exact-current E-mail registration and recovery — complete
 
 The signed Internal/Staging `1.0.0+2026091201` candidate now passes a fresh
