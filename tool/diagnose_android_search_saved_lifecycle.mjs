@@ -243,18 +243,19 @@ async function settledSearchResults({
   title,
   expectedFavoriteLabel,
 }) {
-  return waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-    attempts: 48,
-    label: 'exact filtered search result',
-    predicate: (hierarchy) => exactFilteredSearchResultVisible(
-      hierarchy,
+  let lastHierarchy = '';
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    await wait(650);
+    lastHierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    if (exactFilteredSearchResultVisible(
+      lastHierarchy,
       { title, expectedFavoriteLabel },
-    ),
-  });
+    )) return lastHierarchy;
+  }
+  fail(`The exact filtered search result did not settle (${classifyExactFilteredSearchResult(
+    lastHierarchy,
+    { title, expectedFavoriteLabel },
+  )}).`);
 }
 
 export function exactFilteredSearchResultVisible(
@@ -272,6 +273,31 @@ export function exactSearchListingCardVisible(hierarchy, title, expectedFavorite
   return typeof title === 'string' && typeof expectedFavoriteLabel === 'string'
     && normalizedAndroidLabelVisible(hierarchy, `Anzeige öffnen: ${title}`)
     && normalizedAndroidLabelVisible(hierarchy, expectedFavoriteLabel);
+}
+
+export function classifyExactFilteredSearchResult(
+  hierarchy,
+  { title, expectedFavoriteLabel } = {},
+) {
+  const nodes = String(hierarchy).match(/<node\b[^>]*>/gu) ?? [];
+  const anyOpenCards = nodes.filter((node) => (
+    currentHeadAndroidNodeAttribute(node, 'content-desc')?.startsWith('Anzeige öffnen: ') === true
+  )).length;
+  const flag = (value) => (value ? '1' : '0');
+  return [
+    `header${flag(normalizedAndroidLabelVisible(hierarchy, 'Suchergebnisse'))}`,
+    `open${flag(typeof title === 'string'
+      && normalizedAndroidLabelVisible(hierarchy, `Anzeige öffnen: ${title}`))}`,
+    `favorite${flag(typeof expectedFavoriteLabel === 'string'
+      && normalizedAndroidLabelVisible(hierarchy, expectedFavoriteLabel))}`,
+    `saved${flag(typeof title === 'string'
+      && normalizedAndroidLabelVisible(hierarchy, `Aus Gemerkt entfernen: ${title}`))}`,
+    `cards${Math.min(anyOpenCards, 9)}`,
+    `progress${flag(String(hierarchy).includes('class="android.widget.ProgressBar"'))}`,
+    `error${flag(currentHeadAndroidNamedNodes(hierarchy, 'Suche nicht erreichbar').length > 0)}`,
+    `empty${flag(String(hierarchy).includes('Es gibt noch keinen Artikel zu deiner Suche'))}`,
+    `savederror${flag(String(hierarchy).includes('Gemerkt-Status konnte nicht geladen werden'))}`,
+  ].join('-');
 }
 
 export async function openExactSearch({

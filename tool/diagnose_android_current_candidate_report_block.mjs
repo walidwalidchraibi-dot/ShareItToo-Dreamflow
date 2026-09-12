@@ -96,7 +96,11 @@ async function exactWp132Search({ stage, ...options }) {
     ]);
     const inner = /^The sanitized ([A-Za-z0-9 -]+) surface did not appear\.$/u
       .exec(String(error?.message ?? ''))?.[1] ?? null;
-    const reason = safeInnerStages.has(inner) ? inner.replaceAll(' ', '-') : 'session-or-navigation';
+    const resultState = /^The exact filtered search result did not settle \(([a-z0-9-]+)\)\.$/u
+      .exec(String(error?.message ?? ''))?.[1] ?? null;
+    const reason = resultState !== null
+      ? `exact-result-${resultState}`
+      : safeInnerStages.has(inner) ? inner.replaceAll(' ', '-') : 'session-or-navigation';
     fail(`The WP132 ${stage} exact-title search failed at ${reason}.`);
   }
 }

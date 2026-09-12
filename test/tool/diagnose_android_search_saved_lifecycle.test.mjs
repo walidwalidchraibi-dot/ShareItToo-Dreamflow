@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  classifyExactFilteredSearchResult,
   emptyExactSearchResultVisible,
   exactPrivateSearchClearAction,
   exactPrivateSearchInputActions,
@@ -191,6 +192,17 @@ test('accepts an exact filtered result whose long title semantics wrap on Pixel'
   assert.equal(
     exactSearchListingCardVisible(hierarchy, title, `Aus Gemerkt entfernen: ${title}`),
     false,
+  );
+  assert.equal(
+    classifyExactFilteredSearchResult(hierarchy, { title, expectedFavoriteLabel: favorite }),
+    'header1-open1-favorite1-saved0-cards1-progress0-error0-empty0-savederror0',
+  );
+  assert.equal(
+    classifyExactFilteredSearchResult(
+      '<node content-desc="Suchergebnisse"/><node content-desc="Es gibt noch keinen Artikel zu deiner Suche. Komm bald wieder!"/>',
+      { title, expectedFavoriteLabel: favorite },
+    ),
+    'header1-open0-favorite0-saved0-cards0-progress0-error0-empty1-savederror0',
   );
 });
 
