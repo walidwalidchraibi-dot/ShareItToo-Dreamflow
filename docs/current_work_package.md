@@ -1,4 +1,18 @@
-# Current Work Package: WP130 Exact-Current Account Deletion — COMPLETE
+# Current Work Package: WP131 Exact-Current Android Permission Lifecycle — COMPLETE
+
+The unchanged signed Internal/Staging `1.0.0+2026091201` candidate passes the
+complete physical Pixel deny/allow/restart/settings/restoration lifecycle for
+camera, coarse/fine location and notifications. Exact PackageManager and
+broadcast completion markers replace the insufficient short boundary; there is
+no sleep, retry or time-based success. The final authenticated restart passed,
+and the owner-only journal is terminal. Portfolio: **16 PASS / 8 PARTIAL / 8
+OPEN**. See
+`docs/operations/WP131_CURRENT_CANDIDATE_ANDROID_PERMISSION_LIFECYCLE_2026-09-12.md`.
+
+No app/Backend runtime, Production, Store, Firebase, payment, money, account
+data, OnePlus or PR-merge state changed.
+
+# Previous Work Package: WP130 Exact-Current Account Deletion — COMPLETE
 
 The WP129 disposable account now passes exact signed candidate
 `1.0.0+2026091201` deletion on the Pixel: protected preflight, safe

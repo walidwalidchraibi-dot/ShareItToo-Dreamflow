@@ -1,5 +1,22 @@
 # ShareItToo Current State
 
+## WP131 exact-current Android permission lifecycle — complete
+
+The unchanged signed Internal/Staging `1.0.0+2026091201` candidate now passes
+the complete physical Pixel permission lifecycle for camera, coarse/fine
+location and notifications: deny, allow, authenticated restarts, read-only
+Android settings, exact grant/flag/AppOps restoration, deterministic framework
+settlement and a stable final authenticated restart.
+
+The Android PackageManager and broadcast completion markers each receive a
+bounded 60-second signal window; no sleep, retry or elapsed-time success is
+accepted. The private journal is owner-only, terminal and needs no recovery.
+The portfolio is now **16 PASS, 8 PARTIAL and 8 OPEN**. See
+`docs/operations/WP131_CURRENT_CANDIDATE_ANDROID_PERMISSION_LIFECYCLE_2026-09-12.md`.
+
+No app/Backend runtime, account/business data, Production, Store, Firebase,
+payment, money, OnePlus or PR-merge state changed.
+
 ## WP130 exact-current account deletion — complete
 
 The private disposable account retained by WP129 now passes the complete
