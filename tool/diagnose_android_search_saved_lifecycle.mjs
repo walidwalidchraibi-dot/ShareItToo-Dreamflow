@@ -99,6 +99,16 @@ export function exactSearchListingDetailVisible(hierarchy, title) {
     && containsAllLabels(hierarchy, ['Heilbronn, Deutschland', 'Verfügbarkeit prüfen']);
 }
 
+export function emptyExactSearchResultVisible(hierarchy, title) {
+  return containsAllLabels(hierarchy, [
+    'Suchergebnisse',
+    'Es gibt noch keinen Artikel zu deiner Suche. Komm bald wieder!',
+  ])
+    && currentHeadAndroidNamedNodes(hierarchy, title).length === 0
+    && !hierarchy.includes('class="android.widget.ProgressBar"')
+    && currentHeadAndroidNamedNodes(hierarchy, 'Suche nicht erreichbar').length === 0;
+}
+
 function tapNormalizedLabel(commandRunner, adbPath, device, hierarchy, label) {
   const nodes = normalizedLabelNodes(hierarchy, label);
   if (nodes.length !== 1) fail('The sanitized normalized-label action is unavailable.');
@@ -174,17 +184,23 @@ async function settledSearchResults({
 export async function openExactSearch({
   vaultFile,
   expectedSaved,
+  exactTitle,
+  expectedVisible = true,
   commandRunner,
   adbPath,
   device,
   wait,
 }) {
   const { vault } = readEmailVerifiedJourneyVault(vaultFile);
-  const title = vault.realTwoRoleJourney?.title
+  const title = exactTitle ?? vault.realTwoRoleJourney?.title
     ?? fail('The private search title is unavailable.');
   const runId = vault.runId;
   if (!/^[a-z0-9-]{10,80}$/u.test(runId)) {
     fail('The private search term is not safely input-compatible.');
+  }
+  if (typeof title !== 'string' || !title.includes(runId)
+      || typeof expectedVisible !== 'boolean') {
+    fail('The exact private search expectation is invalid.');
   }
   await bindExactRole({
     vault,
@@ -278,6 +294,18 @@ export async function openExactSearch({
     predicate: (value) => containsAllLabels(value, [toolsCategory, 'Suchen']),
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Suchen');
+  if (!expectedVisible) {
+    hierarchy = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      attempts: 48,
+      label: 'empty exact filtered search result',
+      predicate: (value) => emptyExactSearchResultVisible(value, title),
+    });
+    return { hierarchy, title, favoriteLabel: null };
+  }
   const favoriteLabel = expectedSaved
     ? `Aus Gemerkt entfernen: ${title}`
     : `Unter Gemerkt speichern: ${title}`;

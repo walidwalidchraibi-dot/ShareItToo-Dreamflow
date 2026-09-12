@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  emptyExactSearchResultVisible,
   exactSearchListingDetailVisible,
   manualSearchFormVisible,
   manualSearchQueryUnfocused,
@@ -69,6 +70,18 @@ test('binds listing detail proof to the wrapped exact title and fixture location
     exactSearchListingDetailVisible(hierarchy, 'SIT Rollenprüfung n22-other'),
     false,
   );
+});
+
+test('accepts only a settled empty exact search result', () => {
+  const title = 'SIT Meldung n22-safe-fixture';
+  const empty = [
+    '<node content-desc="Suchergebnisse"/>',
+    '<node content-desc="Es gibt noch keinen Artikel zu deiner Suche. Komm bald wieder!"/>',
+  ].join('');
+  assert.equal(emptyExactSearchResultVisible(empty, title), true);
+  assert.equal(emptyExactSearchResultVisible(`${empty}<node content-desc="${title}"/>`, title), false);
+  assert.equal(emptyExactSearchResultVisible(`${empty}<node class="android.widget.ProgressBar"/>`, title), false);
+  assert.equal(emptyExactSearchResultVisible('<node content-desc="Suche nicht erreichbar"/>', title), false);
 });
 
 function passingOperations(calls) {
