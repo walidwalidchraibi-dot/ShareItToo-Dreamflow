@@ -16,7 +16,6 @@ import {
   longPressExactListing,
 } from './diagnose_android_report_block_interactions.mjs';
 import {
-  exactSearchListingCardVisible,
   openExactSearch,
 } from './diagnose_android_search_saved_lifecycle.mjs';
 import {
@@ -24,7 +23,6 @@ import {
   currentHeadAndroidAdb,
   currentHeadAndroidNamedNodes,
   defaultCurrentHeadAndroidCommandRunner,
-  dumpCurrentHeadAndroidUi,
   verifyCurrentHeadAndroidInstalledCandidate,
 } from './diagnose_current_head_android_main_navigation.mjs';
 import {
@@ -74,9 +72,13 @@ export function exactMessageListingVisible(hierarchy, exactTitle) {
 }
 
 const exactSearchStages = new Set([
-  'preflight-listings',
-  'blocked-owner-listings',
-  'restored-listings',
+  'preflight-target',
+  'preflight-companion',
+  'action-target',
+  'blocked-target',
+  'blocked-companion',
+  'restored-target',
+  'restored-companion',
 ]);
 
 async function exactWp132Search({ stage, ...options }) {
@@ -97,39 +99,6 @@ async function exactWp132Search({ stage, ...options }) {
     const reason = safeInnerStages.has(inner) ? inner.replaceAll(' ', '-') : 'session-or-navigation';
     fail(`The WP132 ${stage} exact-title search failed at ${reason}.`);
   }
-}
-
-export async function findExactSearchListingCardByScrolling({
-  hierarchy,
-  exactTitle,
-  direction,
-  commandRunner,
-  adbPath,
-  device,
-  wait,
-  attempts = 6,
-} = {}) {
-  if (typeof hierarchy !== 'string' || typeof exactTitle !== 'string'
-      || !['down', 'up'].includes(direction)
-      || typeof commandRunner !== 'function' || typeof wait !== 'function'
-      || !Number.isInteger(attempts) || attempts < 1 || attempts > 8) {
-    fail('The bounded exact search-card inventory contract is invalid.');
-  }
-  let current = hierarchy;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (exactSearchListingCardVisible(
-      current,
-      exactTitle,
-      `Unter Gemerkt speichern: ${exactTitle}`,
-    )) return current;
-    const [startY, endY] = direction === 'down' ? ['2450', '700'] : ['700', '2450'];
-    currentHeadAndroidAdb(commandRunner, adbPath, device, [
-      'shell', 'input', 'swipe', '720', startY, '720', endY, '450',
-    ]);
-    await wait(500);
-    current = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
-  }
-  fail(`The exact search-card inventory did not expose the requested ${direction} result.`);
 }
 
 async function settledMessages({
@@ -229,9 +198,10 @@ async function reportAndBlock({
     visible: true,
   });
   let { hierarchy } = await exactWp132Search({
-    stage: 'preflight-listings',
+    stage: 'preflight-target',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
+    searchTerm: journal.targetListing.title,
     expectedSaved: false,
     bindRole: false,
     commandRunner,
@@ -239,24 +209,30 @@ async function reportAndBlock({
     device,
     wait,
   });
-  hierarchy = await findExactSearchListingCardByScrolling({
-    hierarchy,
+  await exactWp132Search({
+    stage: 'preflight-companion',
+    vaultFile: journal.journeyVaultFile,
     exactTitle: journal.companionListing.title,
-    direction: 'down',
+    searchTerm: journal.companionListing.title,
+    expectedSaved: false,
+    bindRole: false,
     commandRunner,
     adbPath,
     device,
     wait,
   });
-  hierarchy = await findExactSearchListingCardByScrolling({
-    hierarchy,
+  ({ hierarchy } = await exactWp132Search({
+    stage: 'action-target',
+    vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
-    direction: 'up',
+    searchTerm: journal.targetListing.title,
+    expectedSaved: false,
+    bindRole: false,
     commandRunner,
     adbPath,
     device,
     wait,
-  });
+  }));
   longPressExactListing({
     commandRunner,
     adbPath,
@@ -336,9 +312,22 @@ async function verifyBlockedAndUnblock({
   tapLabel(commandRunner, adbPath, device, blockSurface, 'Zu Entdecken');
   const { journal } = readStagingReportBlockJournal(journalFile);
   let { hierarchy } = await exactWp132Search({
-    stage: 'blocked-owner-listings',
+    stage: 'blocked-target',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
+    searchTerm: journal.targetListing.title,
+    expectedVisible: false,
+    bindRole: false,
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
+  await exactWp132Search({
+    stage: 'blocked-companion',
+    vaultFile: journal.journeyVaultFile,
+    exactTitle: journal.companionListing.title,
+    searchTerm: journal.companionListing.title,
     expectedVisible: false,
     bindRole: false,
     commandRunner,
@@ -374,9 +363,10 @@ async function verifyBlockedAndUnblock({
   });
   await inspectStagingReportBlockFixture({ journalFile, expectedPhase: 'unblocked' });
   hierarchy = (await exactWp132Search({
-    stage: 'restored-listings',
+    stage: 'restored-target',
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
+    searchTerm: journal.targetListing.title,
     expectedSaved: false,
     bindRole: false,
     commandRunner,
@@ -384,10 +374,13 @@ async function verifyBlockedAndUnblock({
     device,
     wait,
   })).hierarchy;
-  await findExactSearchListingCardByScrolling({
-    hierarchy,
+  await exactWp132Search({
+    stage: 'restored-companion',
+    vaultFile: journal.journeyVaultFile,
     exactTitle: journal.companionListing.title,
-    direction: 'down',
+    searchTerm: journal.companionListing.title,
+    expectedSaved: false,
+    bindRole: false,
     commandRunner,
     adbPath,
     device,
