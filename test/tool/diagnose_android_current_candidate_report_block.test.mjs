@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   exactMessageListingVisible,
-  findExactListingByScrolling,
   runCurrentCandidateReportBlockLifecycle,
 } from '../../tool/diagnose_android_current_candidate_report_block.mjs';
 
@@ -40,26 +39,6 @@ test('recognizes the exact cancelled-booking chat semantics label', () => {
   assert.equal(exactMessageListingVisible(`<node content-desc="· ${title}"/>`, title), true);
   assert.equal(exactMessageListingVisible(`<node content-desc="${title}"/>`, title), true);
   assert.equal(exactMessageListingVisible('<node content-desc="Andere Anzeige"/>', title), false);
-});
-
-test('finds the second exact listing through a bounded deterministic scroll', async () => {
-  const title = 'SIT Sichtbarkeit n22-safe-run';
-  const calls = [];
-  const hierarchy = await findExactListingByScrolling({
-    hierarchy: '<hierarchy/>',
-    exactTitle: title,
-    commandRunner: (_file, args) => {
-      calls.push(args);
-      if (args.includes('cat')) return `<node content-desc="${title}"/>`;
-      return '';
-    },
-    adbPath: 'adb',
-    device: { serial: 'private-device' },
-    wait: async () => {},
-  });
-  assert.equal(exactMessageListingVisible(hierarchy, title), true);
-  assert.equal(calls.some((args) => args.includes('swipe')), true);
-  assert.equal(calls.some((args) => args.includes('uiautomator')), true);
 });
 
 test('closes exact-current report, block, unblock and reversible cleanup', async () => {

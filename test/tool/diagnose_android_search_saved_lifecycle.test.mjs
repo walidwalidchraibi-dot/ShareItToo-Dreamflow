@@ -3,12 +3,28 @@ import test from 'node:test';
 
 import {
   emptyExactSearchResultVisible,
+  exactPrivateSearchQuery,
   exactSearchListingDetailVisible,
   manualSearchFormVisible,
   manualSearchQueryUnfocused,
   normalizedAndroidLabelVisible,
   runAndroidSearchSavedLifecycle,
 } from '../../tool/diagnose_android_search_saved_lifecycle.mjs';
+
+test('permits only the exact run id or exact run-bound title as a search query', () => {
+  const runId = 'n22-safe-fixture';
+  const title = `SIT Meldung ${runId}`;
+  assert.equal(exactPrivateSearchQuery({ runId, title }), runId);
+  assert.equal(exactPrivateSearchQuery({ runId, title, searchTerm: title }), title);
+  assert.throws(
+    () => exactPrivateSearchQuery({ runId, title, searchTerm: 'SIT Meldung' }),
+    /exact private search term/u,
+  );
+  assert.throws(
+    () => exactPrivateSearchQuery({ runId, title: 'fremde Anzeige', searchTerm: runId }),
+    /exact private search expectation/u,
+  );
+});
 
 const candidate = Object.freeze({
   applicationId: 'com.shareittoo.app',

@@ -157,6 +157,21 @@ export function manualSearchQueryUnfocused(hierarchy) {
   }
 }
 
+export function exactPrivateSearchQuery({ runId, title, searchTerm } = {}) {
+  if (typeof runId !== 'string' || !/^[a-z0-9-]{10,80}$/u.test(runId)) {
+    fail('The private search term is not safely input-compatible.');
+  }
+  if (typeof title !== 'string' || !title.includes(runId)) {
+    fail('The exact private search expectation is invalid.');
+  }
+  const query = searchTerm ?? runId;
+  if (![runId, title].includes(query)
+      || !/^[A-Za-z0-9 -]{10,160}$/u.test(query)) {
+    fail('The exact private search term is invalid.');
+  }
+  return query;
+}
+
 async function settledSearchResults({
   commandRunner,
   adbPath,
@@ -185,6 +200,7 @@ export async function openExactSearch({
   vaultFile,
   expectedSaved,
   exactTitle,
+  searchTerm,
   expectedVisible = true,
   commandRunner,
   adbPath,
@@ -195,13 +211,11 @@ export async function openExactSearch({
   const title = exactTitle ?? vault.realTwoRoleJourney?.title
     ?? fail('The private search title is unavailable.');
   const runId = vault.runId;
-  if (!/^[a-z0-9-]{10,80}$/u.test(runId)) {
-    fail('The private search term is not safely input-compatible.');
-  }
   if (typeof title !== 'string' || !title.includes(runId)
       || typeof expectedVisible !== 'boolean') {
     fail('The exact private search expectation is invalid.');
   }
+  const query = exactPrivateSearchQuery({ runId, title, searchTerm });
   await bindExactRole({
     vault,
     role: 'renter',
@@ -244,7 +258,7 @@ export async function openExactSearch({
     'shell', 'input', 'tap', String(queryPoint.x), String(queryPoint.y),
   ]);
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
-    'shell', 'input', 'text', runId,
+    'shell', 'input', 'text', query.replaceAll(' ', '%s'),
   ]);
   await wait(350);
   currentHeadAndroidAdb(commandRunner, adbPath, device, [

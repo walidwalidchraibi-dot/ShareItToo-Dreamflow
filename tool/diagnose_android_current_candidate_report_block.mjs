@@ -23,7 +23,6 @@ import {
   currentHeadAndroidAdb,
   currentHeadAndroidNamedNodes,
   defaultCurrentHeadAndroidCommandRunner,
-  dumpCurrentHeadAndroidUi,
   verifyCurrentHeadAndroidInstalledCandidate,
 } from './diagnose_current_head_android_main_navigation.mjs';
 import {
@@ -70,32 +69,6 @@ function exact(value, expected, label) {
 export function exactMessageListingVisible(hierarchy, exactTitle) {
   return currentHeadAndroidNamedNodes(hierarchy, exactTitle).length > 0
     || currentHeadAndroidNamedNodes(hierarchy, `· ${exactTitle}`).length > 0;
-}
-
-export async function findExactListingByScrolling({
-  hierarchy,
-  exactTitle,
-  commandRunner,
-  adbPath,
-  device,
-  wait,
-  attempts = 6,
-} = {}) {
-  if (typeof hierarchy !== 'string' || typeof exactTitle !== 'string'
-      || typeof commandRunner !== 'function' || typeof wait !== 'function'
-      || !Number.isInteger(attempts) || attempts < 1 || attempts > 8) {
-    fail('The bounded exact-listing scroll contract is invalid.');
-  }
-  let current = hierarchy;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (currentHeadAndroidNamedNodes(current, exactTitle).length > 0) return current;
-    currentHeadAndroidAdb(commandRunner, adbPath, device, [
-      'shell', 'input', 'swipe', '720', '2450', '720', '700', '450',
-    ]);
-    await wait(500);
-    current = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
-  }
-  fail('The second exact same-owner listing is outside the bounded result inventory.');
 }
 
 async function settledMessages({
@@ -197,15 +170,18 @@ async function reportAndBlock({
   let { hierarchy } = await openExactSearch({
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
+    searchTerm: journal.targetListing.title,
     expectedSaved: false,
     commandRunner,
     adbPath,
     device,
     wait,
   });
-  await findExactListingByScrolling({
-    hierarchy,
+  await openExactSearch({
+    vaultFile: journal.journeyVaultFile,
     exactTitle: journal.companionListing.title,
+    searchTerm: journal.companionListing.title,
+    expectedSaved: false,
     commandRunner,
     adbPath,
     device,
@@ -214,6 +190,7 @@ async function reportAndBlock({
   ({ hierarchy } = await openExactSearch({
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
+    searchTerm: journal.targetListing.title,
     expectedSaved: false,
     commandRunner,
     adbPath,
@@ -301,15 +278,23 @@ async function verifyBlockedAndUnblock({
   let { hierarchy } = await openExactSearch({
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
+    searchTerm: journal.targetListing.title,
     expectedVisible: false,
     commandRunner,
     adbPath,
     device,
     wait,
   });
-  if (currentHeadAndroidNamedNodes(hierarchy, journal.companionListing.title).length > 0) {
-    fail('The companion same-owner listing remains physically visible while blocked.');
-  }
+  await openExactSearch({
+    vaultFile: journal.journeyVaultFile,
+    exactTitle: journal.companionListing.title,
+    searchTerm: journal.companionListing.title,
+    expectedVisible: false,
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+  });
   await settledMessages({
     commandRunner, adbPath, device, wait, exactTitle: messageTitle, visible: false,
   });
@@ -340,15 +325,18 @@ async function verifyBlockedAndUnblock({
   hierarchy = (await openExactSearch({
     vaultFile: journal.journeyVaultFile,
     exactTitle: journal.targetListing.title,
+    searchTerm: journal.targetListing.title,
     expectedSaved: false,
     commandRunner,
     adbPath,
     device,
     wait,
   })).hierarchy;
-  await findExactListingByScrolling({
-    hierarchy,
+  await openExactSearch({
+    vaultFile: journal.journeyVaultFile,
     exactTitle: journal.companionListing.title,
+    searchTerm: journal.companionListing.title,
+    expectedSaved: false,
     commandRunner,
     adbPath,
     device,
