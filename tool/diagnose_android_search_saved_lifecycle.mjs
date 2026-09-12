@@ -263,11 +263,15 @@ export function exactFilteredSearchResultVisible(
 ) {
   if (typeof title !== 'string' || typeof expectedFavoriteLabel !== 'string') return false;
   return normalizedAndroidLabelVisible(hierarchy, 'Suchergebnisse')
-    && normalizedAndroidLabelVisible(hierarchy, title)
-    && normalizedAndroidLabelVisible(hierarchy, expectedFavoriteLabel)
-    && normalizedAndroidLabelVisible(hierarchy, `Anzeige öffnen: ${title}`)
+    && exactSearchListingCardVisible(hierarchy, title, expectedFavoriteLabel)
     && !String(hierarchy).includes('class="android.widget.ProgressBar"')
     && currentHeadAndroidNamedNodes(hierarchy, 'Suche nicht erreichbar').length === 0;
+}
+
+export function exactSearchListingCardVisible(hierarchy, title, expectedFavoriteLabel) {
+  return typeof title === 'string' && typeof expectedFavoriteLabel === 'string'
+    && normalizedAndroidLabelVisible(hierarchy, `Anzeige öffnen: ${title}`)
+    && normalizedAndroidLabelVisible(hierarchy, expectedFavoriteLabel);
 }
 
 export async function openExactSearch({

@@ -16,7 +16,7 @@ import {
   longPressExactListing,
 } from './diagnose_android_report_block_interactions.mjs';
 import {
-  normalizedAndroidLabelVisible,
+  exactSearchListingCardVisible,
   openExactSearch,
 } from './diagnose_android_search_saved_lifecycle.mjs';
 import {
@@ -98,11 +98,19 @@ async function exactWp132Search({ stage, ...options }) {
   }
 }
 
-export function bothNormalizedExactListingsVisible(hierarchy, firstTitle, secondTitle) {
+export function bothExactSearchListingCardsVisible(hierarchy, firstTitle, secondTitle) {
   return typeof firstTitle === 'string' && typeof secondTitle === 'string'
     && firstTitle !== secondTitle
-    && normalizedAndroidLabelVisible(hierarchy, firstTitle)
-    && normalizedAndroidLabelVisible(hierarchy, secondTitle);
+    && exactSearchListingCardVisible(
+      hierarchy,
+      firstTitle,
+      `Unter Gemerkt speichern: ${firstTitle}`,
+    )
+    && exactSearchListingCardVisible(
+      hierarchy,
+      secondTitle,
+      `Unter Gemerkt speichern: ${secondTitle}`,
+    );
 }
 
 async function settledMessages({
@@ -212,7 +220,7 @@ async function reportAndBlock({
     device,
     wait,
   });
-  if (!bothNormalizedExactListingsVisible(
+  if (!bothExactSearchListingCardsVisible(
     hierarchy,
     journal.targetListing.title,
     journal.companionListing.title,
@@ -344,7 +352,7 @@ async function verifyBlockedAndUnblock({
     device,
     wait,
   })).hierarchy;
-  if (!bothNormalizedExactListingsVisible(
+  if (!bothExactSearchListingCardsVisible(
     hierarchy,
     journal.targetListing.title,
     journal.companionListing.title,

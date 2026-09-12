@@ -7,6 +7,7 @@ import {
   exactPrivateSearchInputActions,
   exactPrivateSearchQuery,
   exactFilteredSearchResultVisible,
+  exactSearchListingCardVisible,
   exactSearchQueryValueVisible,
   exactSearchRoleProfileVisible,
   exactSearchListingDetailVisible,
@@ -172,7 +173,6 @@ test('accepts an exact filtered result whose long title semantics wrap on Pixel'
   const wrappedTitle = title.replace(' ', '&#10;');
   const hierarchy = [
     '<node content-desc="Suchergebnisse"/>',
-    `<node content-desc="${wrappedTitle}"/>`,
     `<node content-desc="Anzeige öffnen: ${wrappedTitle}"/>`,
     `<node content-desc="Unter Gemerkt speichern: ${wrappedTitle}"/>`,
   ].join('');
@@ -185,6 +185,11 @@ test('accepts an exact filtered result whose long title semantics wrap on Pixel'
       `${hierarchy}<node class="android.widget.ProgressBar"/>`,
       { title, expectedFavoriteLabel: favorite },
     ),
+    false,
+  );
+  assert.equal(exactSearchListingCardVisible(hierarchy, title, favorite), true);
+  assert.equal(
+    exactSearchListingCardVisible(hierarchy, title, `Aus Gemerkt entfernen: ${title}`),
     false,
   );
 });

@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   cleanupStagingReportBlockFixture,
+  exactPublicRunSearchListingsVisible,
   exactPublicSearchListingVisible,
   inspectStagingReportBlockFixture,
   markStagingReportBlockPixelRestored,
@@ -21,6 +22,18 @@ test('accepts only one exact id-and-title result for an exact-title search', () 
   }, expected), false);
   assert.equal(exactPublicSearchListingVisible({
     listings: [{ id: expected.id, title: 'SIT Sichtbarkeit wp132-run' }],
+  }, expected), false);
+});
+
+test('accepts only the exact pair for the unique-run public search', () => {
+  const expected = [
+    { id: 'listing-1', title: 'SIT Meldung wp132-run' },
+    { id: 'listing-2', title: 'SIT Sichtbarkeit wp132-run' },
+  ];
+  assert.equal(exactPublicRunSearchListingsVisible({ listings: expected }, expected), true);
+  assert.equal(exactPublicRunSearchListingsVisible({ listings: [expected[0]] }, expected), false);
+  assert.equal(exactPublicRunSearchListingsVisible({
+    listings: [expected[0], { ...expected[1], title: 'Andere Anzeige' }],
   }, expected), false);
 });
 

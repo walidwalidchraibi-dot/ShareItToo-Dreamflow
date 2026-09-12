@@ -181,6 +181,15 @@ export function exactPublicSearchListingVisible(value, expected) {
     && value.listings[0]?.title === expected.title;
 }
 
+export function exactPublicRunSearchListingsVisible(value, expected) {
+  if (!Array.isArray(value?.listings) || !Array.isArray(expected) || expected.length !== 2) {
+    return false;
+  }
+  const actual = value.listings.map((entry) => `${entry?.id ?? ''}\u001f${entry?.title ?? ''}`).sort();
+  const required = expected.map((entry) => `${entry?.id ?? ''}\u001f${entry?.title ?? ''}`).sort();
+  return actual.length === 2 && actual.every((entry, index) => entry === required[index]);
+}
+
 function listingBody(source, { id, title }) {
   return {
     id,
@@ -324,6 +333,7 @@ export async function prepareStagingReportBlockFixture({
     catalogState,
     targetSearchState,
     companionSearchState,
+    runSearchState,
   ] = await Promise.all([
     request(fetchImpl, '/user-blocks', { token: renter.token }),
     request(fetchImpl, '/reports/mine', { token: renter.token }),
@@ -331,6 +341,7 @@ export async function prepareStagingReportBlockFixture({
     request(fetchImpl, '/listings?sort=newest&limit=100'),
     request(fetchImpl, `/listings?q=${encodeURIComponent(targetListing.title)}&sort=newest&limit=100`),
     request(fetchImpl, `/listings?q=${encodeURIComponent(companionListing.title)}&sort=newest&limit=100`),
+    request(fetchImpl, `/listings?q=${encodeURIComponent(vault.runId)}&sort=newest&limit=100`),
   ]);
   if (exactBlocks(blockState.value).length !== 0) {
     fail('The WP132 renter has pre-existing blocks; no physical mutation is allowed.');
@@ -353,6 +364,10 @@ export async function prepareStagingReportBlockFixture({
       || !exactPublicSearchListingVisible(companionSearchState.value, companionListing)) {
     fail('The WP132 exact-title Staging search is incomplete or ambiguous.');
   }
+  if (!exactPublicRunSearchListingsVisible(
+    runSearchState.value,
+    [targetListing, companionListing],
+  )) fail('The WP132 unique-run Staging search does not return exactly both listings.');
 
   writePrivateJson(journalFile, {
     schemaVersion: 1,
@@ -376,6 +391,7 @@ export async function prepareStagingReportBlockFixture({
       exactThreadVisible: true,
       bothSameOwnerListingsPublic: true,
       exactTitleSearches: 2,
+      uniqueRunSearchListingCount: 2,
       bookingStatus: 'cancelled',
       contractCreated: false,
       reservationCreated: false,
@@ -390,6 +406,7 @@ export async function prepareStagingReportBlockFixture({
       exactThreadVisible: true,
       sameOwnerListingCount: 2,
       exactTitleSearches: 2,
+      uniqueRunSearchListingCount: 2,
       bookingCancelled: true,
       paymentEndpointCalled: false,
       monetaryEffectMinor: 0,

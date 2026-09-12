@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  bothNormalizedExactListingsVisible,
+  bothExactSearchListingCardsVisible,
   exactMessageListingVisible,
   runCurrentCandidateReportBlockLifecycle,
 } from '../../tool/diagnose_android_current_candidate_report_block.mjs';
@@ -46,11 +46,13 @@ test('recognizes both exact listings when the companion semantics wrap', () => {
   const target = 'SIT Meldung n22-safe-run';
   const companion = 'SIT Sichtbarkeit n22-safe-run';
   const hierarchy = [
-    `<node content-desc="${target}"/>`,
-    '<node content-desc="SIT Sichtbarkeit&#10;n22-safe-run"/>',
+    `<node content-desc="Anzeige öffnen: ${target}"/>`,
+    `<node content-desc="Unter Gemerkt speichern: ${target}"/>`,
+    '<node content-desc="Anzeige öffnen: SIT Sichtbarkeit&#10;n22-safe-run"/>',
+    '<node content-desc="Unter Gemerkt speichern: SIT Sichtbarkeit&#10;n22-safe-run"/>',
   ].join('');
-  assert.equal(bothNormalizedExactListingsVisible(hierarchy, target, companion), true);
-  assert.equal(bothNormalizedExactListingsVisible(hierarchy, target, 'Andere Anzeige'), false);
+  assert.equal(bothExactSearchListingCardsVisible(hierarchy, target, companion), true);
+  assert.equal(bothExactSearchListingCardsVisible(hierarchy, target, 'Andere Anzeige'), false);
 });
 
 test('closes exact-current report, block, unblock and reversible cleanup', async () => {
