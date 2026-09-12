@@ -5,6 +5,7 @@ import {
   emptyExactSearchResultVisible,
   exactPrivateSearchInputActions,
   exactPrivateSearchQuery,
+  exactSearchRoleProfileVisible,
   exactSearchListingDetailVisible,
   manualSearchFormVisible,
   manualSearchQueryUnfocused,
@@ -36,6 +37,29 @@ test('permits only the exact run id or exact run-bound title as a search query',
   assert.throws(
     () => exactPrivateSearchInputActions('SIT  Meldung n22-safe-fixture'),
     /exact private search input/u,
+  );
+});
+
+test('accepts a preserved search session only for the exact renter principal', () => {
+  const hierarchy = [
+    '<node content-desc="WP132 Renter"/>',
+    '<node content-desc="Abmelden"/>',
+  ].join('');
+  assert.equal(
+    exactSearchRoleProfileVisible(hierarchy, 'WP132 Renter', 'WP132 Owner'),
+    true,
+  );
+  assert.equal(
+    exactSearchRoleProfileVisible(
+      `${hierarchy}<node content-desc="WP132 Owner"/>`,
+      'WP132 Renter',
+      'WP132 Owner',
+    ),
+    false,
+  );
+  assert.equal(
+    exactSearchRoleProfileVisible(hierarchy, 'WP132 Owner', 'WP132 Renter'),
+    false,
   );
 });
 

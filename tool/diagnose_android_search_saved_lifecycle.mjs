@@ -157,6 +157,14 @@ export function manualSearchQueryUnfocused(hierarchy) {
   }
 }
 
+export function exactSearchRoleProfileVisible(hierarchy, accountName, otherName) {
+  return typeof accountName === 'string' && typeof otherName === 'string'
+    && accountName.length > 0 && otherName.length > 0 && accountName !== otherName
+    && currentHeadAndroidNamedNodes(hierarchy, accountName).length === 1
+    && currentHeadAndroidNamedNodes(hierarchy, otherName).length === 0
+    && currentHeadAndroidNamedNodes(hierarchy, 'Abmelden').length > 0;
+}
+
 export function exactPrivateSearchQuery({ runId, title, searchTerm } = {}) {
   if (typeof runId !== 'string' || !/^[a-z0-9-]{10,80}$/u.test(runId)) {
     fail('The private search term is not safely input-compatible.');
@@ -214,6 +222,7 @@ export async function openExactSearch({
   exactTitle,
   searchTerm,
   expectedVisible = true,
+  bindRole = true,
   commandRunner,
   adbPath,
   device,
@@ -224,18 +233,44 @@ export async function openExactSearch({
     ?? fail('The private search title is unavailable.');
   const runId = vault.runId;
   if (typeof title !== 'string' || !title.includes(runId)
-      || typeof expectedVisible !== 'boolean') {
+      || typeof expectedVisible !== 'boolean' || typeof bindRole !== 'boolean') {
     fail('The exact private search expectation is invalid.');
   }
   const query = exactPrivateSearchQuery({ runId, title, searchTerm });
-  await bindExactRole({
-    vault,
-    role: 'renter',
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-  });
+  if (bindRole) {
+    await bindExactRole({
+      vault,
+      role: 'renter',
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+    });
+  } else {
+    const account = vault.accounts.find((entry) => entry.role === 'renter')
+      ?? fail('The exact search renter is unavailable.');
+    const other = vault.accounts.find((entry) => entry.role !== 'renter')
+      ?? fail('The opposite search principal is unavailable.');
+    const profile = await openMainDestination({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'Mein SIT',
+    });
+    await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'preserved exact search principal',
+      predicate: (value) => exactSearchRoleProfileVisible(
+        value,
+        account.displayName,
+        other.displayName,
+      ),
+    });
+  }
   let hierarchy = await openMainDestination({
     commandRunner,
     adbPath,
