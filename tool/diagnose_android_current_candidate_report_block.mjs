@@ -478,6 +478,8 @@ function argumentValue(args, flag) {
 
 async function main() {
   const args = process.argv.slice(2);
+  const phase = argumentValue(args, '--phase') ?? 'full';
+  if (!['full', 'restore-only'].includes(phase)) fail('Unknown WP132 Pixel phase.');
   const root = resolve(argumentValue(args, '--root') ?? process.cwd());
   const journalFile = resolve(
     argumentValue(args, '--journal-file') ?? fail('--journal-file is required.'),
@@ -501,6 +503,27 @@ async function main() {
   assertCurrentHeadAndroidDeviceAlreadyUnlocked(commandRunner, adbPath, device);
   verifyCurrentHeadAndroidInstalledCandidate(commandRunner, adbPath, device, candidate);
   const wait = (milliseconds) => new Promise((resolveWait) => setTimeout(resolveWait, milliseconds));
+  if (phase === 'restore-only') {
+    const { journal } = readStagingReportBlockJournal(journalFile);
+    const { vault } = readEmailVerifiedJourneyVault(journal.journeyVaultFile);
+    const bound = await bindExactRole({
+      vault, role: 'owner', commandRunner, adbPath, device, wait,
+    });
+    if (currentHeadAndroidNamedNodes(bound.hierarchy, bound.account.displayName).length !== 1
+        || currentHeadAndroidNamedNodes(bound.hierarchy, bound.other.displayName).length !== 0) {
+      fail('The protected WP132 owner restoration is ambiguous.');
+    }
+    markStagingReportBlockPixelRestored({ journalFile });
+    process.stdout.write(`${JSON.stringify({
+      status: 'complete-restored',
+      protectedOwnerSessionRestored: true,
+      recoveryRequired: false,
+      containsSecrets: false,
+      containsAccountIdentifiers: false,
+      containsFixtureIdentifiers: false,
+    })}\n`);
+    return;
+  }
   const operations = {
     exercise: async () => {
       const block = await reportAndBlock({
