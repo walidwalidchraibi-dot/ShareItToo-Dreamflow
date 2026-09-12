@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  classifyWp132ExactSearchFailure,
   exactMessageListingVisible,
   runCurrentCandidateReportBlockLifecycle,
 } from '../../tool/diagnose_android_current_candidate_report_block.mjs';
@@ -39,6 +40,31 @@ test('recognizes the exact cancelled-booking chat semantics label', () => {
   assert.equal(exactMessageListingVisible(`<node content-desc="· ${title}"/>`, title), true);
   assert.equal(exactMessageListingVisible(`<node content-desc="${title}"/>`, title), true);
   assert.equal(exactMessageListingVisible('<node content-desc="Andere Anzeige"/>', title), false);
+});
+
+test('classifies exact-search failures without retaining private details', () => {
+  assert.equal(
+    classifyWp132ExactSearchFailure(
+      new Error('The sanitized preserved exact search principal surface did not appear.'),
+    ),
+    'preserved-exact-search-principal',
+  );
+  assert.equal(
+    classifyWp132ExactSearchFailure(
+      new Error('The sanitized settled public catalog surface did not appear.'),
+    ),
+    'settled-public-catalog',
+  );
+  assert.equal(
+    classifyWp132ExactSearchFailure(
+      new Error('The exact filtered search result did not settle (header1-open0-favorite0-saved0-cards0-progress0-error0-empty1-savederror0).'),
+    ),
+    'exact-result-header1-open0-favorite0-saved0-cards0-progress0-error0-empty1-savederror0',
+  );
+  assert.equal(
+    classifyWp132ExactSearchFailure(new Error('private account detail@example.test')),
+    'session-or-navigation',
+  );
 });
 
 test('closes exact-current report, block, unblock and reversible cleanup', async () => {

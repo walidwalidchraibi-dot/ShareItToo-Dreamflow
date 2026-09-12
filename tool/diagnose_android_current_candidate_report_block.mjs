@@ -81,26 +81,45 @@ const exactSearchStages = new Set([
   'restored-companion',
 ]);
 
+export function classifyWp132ExactSearchFailure(error) {
+  const message = String(error?.message ?? '');
+  const resultState = /^The exact filtered search result did not settle \(([a-z0-9-]+)\)\.$/u
+    .exec(message)?.[1] ?? null;
+  if (resultState !== null) return `exact-result-${resultState}`;
+  if (message === 'The exact search principal became unauthenticated.') {
+    return 'principal-unauthenticated';
+  }
+  const safeSurfaceStages = new Set([
+    'exact search main navigation',
+    'preserved exact search principal',
+    'Entdecken destination',
+    'settled public catalog',
+    'manual search form',
+    'exact search query cleared',
+    'exact search query entered',
+    'search category selector',
+    'unfocused search query',
+    'search category choice',
+    'filtered search form',
+    'empty exact filtered search result',
+  ]);
+  const surface = /^The sanitized ([A-Za-z0-9 -]+) surface did not appear\.$/u
+    .exec(message)?.[1] ?? null;
+  if (safeSurfaceStages.has(surface)) return surface.replaceAll(' ', '-').toLowerCase();
+  const safeActionFailures = new Map([
+    ['The sanitized search-query anchor is unavailable.', 'search-query-anchor-unavailable'],
+    ['The sanitized search-query editor is unavailable.', 'search-query-editor-unavailable'],
+    ['The sanitized normalized-label action is unavailable.', 'normalized-label-action-unavailable'],
+  ]);
+  return safeActionFailures.get(message) ?? 'session-or-navigation';
+}
+
 async function exactWp132Search({ stage, ...options }) {
   if (!exactSearchStages.has(stage)) fail('The WP132 exact-title search stage is invalid.');
   try {
     return await openExactSearch(options);
   } catch (error) {
-    const safeInnerStages = new Set([
-      'exact search query cleared',
-      'exact search query entered',
-      'exact filtered search result',
-      'empty exact filtered search result',
-      'exact search main navigation',
-      'preserved exact search principal',
-    ]);
-    const inner = /^The sanitized ([A-Za-z0-9 -]+) surface did not appear\.$/u
-      .exec(String(error?.message ?? ''))?.[1] ?? null;
-    const resultState = /^The exact filtered search result did not settle \(([a-z0-9-]+)\)\.$/u
-      .exec(String(error?.message ?? ''))?.[1] ?? null;
-    const reason = resultState !== null
-      ? `exact-result-${resultState}`
-      : safeInnerStages.has(inner) ? inner.replaceAll(' ', '-') : 'session-or-navigation';
+    const reason = classifyWp132ExactSearchFailure(error);
     fail(`The WP132 ${stage} exact-title search failed at ${reason}.`);
   }
 }
