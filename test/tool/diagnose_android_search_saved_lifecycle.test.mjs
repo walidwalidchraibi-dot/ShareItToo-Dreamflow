@@ -190,8 +190,23 @@ test('accepts an exact filtered result whose long title semantics wrap on Pixel'
   );
   assert.equal(exactSearchListingCardVisible(hierarchy, title, favorite), true);
   assert.equal(
+    exactSearchListingCardVisible(
+      '<node content-desc="Anzeige öffnen: SIT Sichtbarkeit&#10;n22-safe-fixture"/>',
+      title,
+      null,
+    ),
+    true,
+  );
+  assert.equal(
     exactSearchListingCardVisible(hierarchy, title, `Aus Gemerkt entfernen: ${title}`),
     false,
+  );
+  assert.equal(
+    exactFilteredSearchResultVisible(
+      '<node content-desc="Suchergebnisse"/><node content-desc="Anzeige öffnen: SIT Sichtbarkeit&#10;n22-safe-fixture"/>',
+      { title, expectedFavoriteLabel: null },
+    ),
+    true,
   );
   assert.equal(
     classifyExactFilteredSearchResult(hierarchy, { title, expectedFavoriteLabel: favorite }),

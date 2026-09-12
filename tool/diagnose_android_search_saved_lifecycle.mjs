@@ -262,7 +262,8 @@ export function exactFilteredSearchResultVisible(
   hierarchy,
   { title, expectedFavoriteLabel } = {},
 ) {
-  if (typeof title !== 'string' || typeof expectedFavoriteLabel !== 'string') return false;
+  if (typeof title !== 'string'
+      || !(expectedFavoriteLabel === null || typeof expectedFavoriteLabel === 'string')) return false;
   return normalizedAndroidLabelVisible(hierarchy, 'Suchergebnisse')
     && exactSearchListingCardVisible(hierarchy, title, expectedFavoriteLabel)
     && !String(hierarchy).includes('class="android.widget.ProgressBar"')
@@ -270,9 +271,11 @@ export function exactFilteredSearchResultVisible(
 }
 
 export function exactSearchListingCardVisible(hierarchy, title, expectedFavoriteLabel) {
-  return typeof title === 'string' && typeof expectedFavoriteLabel === 'string'
+  return typeof title === 'string'
     && normalizedAndroidLabelVisible(hierarchy, `Anzeige öffnen: ${title}`)
-    && normalizedAndroidLabelVisible(hierarchy, expectedFavoriteLabel);
+    && (expectedFavoriteLabel === null
+      || (typeof expectedFavoriteLabel === 'string'
+        && normalizedAndroidLabelVisible(hierarchy, expectedFavoriteLabel)));
 }
 
 export function classifyExactFilteredSearchResult(
@@ -307,6 +310,7 @@ export async function openExactSearch({
   searchTerm,
   expectedVisible = true,
   bindRole = true,
+  requireFavoriteState = true,
   commandRunner,
   adbPath,
   device,
@@ -317,7 +321,8 @@ export async function openExactSearch({
     ?? fail('The private search title is unavailable.');
   const runId = vault.runId;
   if (typeof title !== 'string' || !title.includes(runId)
-      || typeof expectedVisible !== 'boolean' || typeof bindRole !== 'boolean') {
+      || typeof expectedVisible !== 'boolean' || typeof bindRole !== 'boolean'
+      || typeof requireFavoriteState !== 'boolean') {
     fail('The exact private search expectation is invalid.');
   }
   const query = exactPrivateSearchQuery({ runId, title, searchTerm });
@@ -479,9 +484,11 @@ export async function openExactSearch({
     });
     return { hierarchy, title, favoriteLabel: null };
   }
-  const favoriteLabel = expectedSaved
-    ? `Aus Gemerkt entfernen: ${title}`
-    : `Unter Gemerkt speichern: ${title}`;
+  const favoriteLabel = requireFavoriteState
+    ? expectedSaved
+      ? `Aus Gemerkt entfernen: ${title}`
+      : `Unter Gemerkt speichern: ${title}`
+    : null;
   hierarchy = await settledSearchResults({
     commandRunner,
     adbPath,
