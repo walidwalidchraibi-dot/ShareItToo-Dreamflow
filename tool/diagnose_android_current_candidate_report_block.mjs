@@ -91,6 +91,7 @@ async function exactWp132Search({ stage, ...options }) {
       'exact search query entered',
       'exact filtered search result',
       'empty exact filtered search result',
+      'exact search main navigation',
       'preserved exact search principal',
     ]);
     const inner = /^The sanitized ([A-Za-z0-9 -]+) surface did not appear\.$/u

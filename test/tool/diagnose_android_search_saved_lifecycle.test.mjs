@@ -13,6 +13,7 @@ import {
   manualSearchQueryUnfocused,
   normalizedAndroidLabelVisible,
   runAndroidSearchSavedLifecycle,
+  unwindExactSearchToMainNavigation,
 } from '../../tool/diagnose_android_search_saved_lifecycle.mjs';
 
 test('permits only the exact run id or exact run-bound title as a search query', () => {
@@ -57,6 +58,26 @@ test('recognizes only the exact current search-field value', () => {
   );
   assert.equal(exactSearchQueryValueVisible(hierarchy, ''), false);
   assert.equal(exactSearchQueryValueVisible('<hierarchy/>', ''), false);
+});
+
+test('unwinds bounded search routes to the real main navigation without relaunching', async () => {
+  const labels = ['Entdecken', 'Mietkorb', 'Buchungen', 'Nachrichten', 'Mein SIT'];
+  const root = `<hierarchy>${labels.map((label) => `<node content-desc="${label}"/>`).join('')}</hierarchy>`;
+  const dumps = ['<hierarchy><node content-desc="Suchergebnisse"/></hierarchy>', '<hierarchy><node content-desc="Was"/></hierarchy>', root];
+  const calls = [];
+  const hierarchy = await unwindExactSearchToMainNavigation({
+    commandRunner: (_file, args) => {
+      calls.push(args);
+      if (args.includes('cat')) return dumps.shift();
+      return '';
+    },
+    adbPath: 'adb',
+    device: { serial: 'private-device' },
+    wait: async (milliseconds) => assert.equal(milliseconds, 500),
+  });
+  assert.equal(hierarchy, root);
+  assert.equal(calls.filter((args) => args.includes('keyevent')).length, 2);
+  assert.equal(calls.some((args) => args.includes('force-stop')), false);
 });
 
 test('accepts a preserved search session only for the exact renter principal', () => {

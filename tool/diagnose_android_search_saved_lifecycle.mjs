@@ -12,6 +12,7 @@ import {
 } from './diagnose_android_email_verified_two_role_product_journey.mjs';
 import {
   assertCurrentHeadAndroidDeviceAlreadyUnlocked,
+  classifyCurrentHeadAndroidMainNavigationAbsence,
   currentHeadAndroidAdb,
   currentHeadAndroidNamedNodes,
   currentHeadAndroidNodeAttribute,
@@ -208,6 +209,32 @@ export function exactSearchQueryValueVisible(hierarchy, expected) {
   }
 }
 
+export async function unwindExactSearchToMainNavigation({
+  commandRunner,
+  adbPath,
+  device,
+  wait,
+  attempts = 6,
+} = {}) {
+  if (typeof commandRunner !== 'function' || typeof wait !== 'function'
+      || !Number.isInteger(attempts) || attempts < 1 || attempts > 8) {
+    fail('The exact search navigation-reset contract is invalid.');
+  }
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    const state = classifyCurrentHeadAndroidMainNavigationAbsence(hierarchy);
+    if (state === 'navigation-labels-present-surface-pending') return hierarchy;
+    if (state === 'unauthenticated-session') {
+      fail('The exact search principal became unauthenticated.');
+    }
+    currentHeadAndroidAdb(commandRunner, adbPath, device, [
+      'shell', 'input', 'keyevent', '4',
+    ]);
+    await wait(500);
+  }
+  fail('The sanitized exact search main navigation surface did not appear.');
+}
+
 async function settledSearchResults({
   commandRunner,
   adbPath,
@@ -253,6 +280,7 @@ export async function openExactSearch({
     fail('The exact private search expectation is invalid.');
   }
   const query = exactPrivateSearchQuery({ runId, title, searchTerm });
+  let hierarchy;
   if (bindRole) {
     await bindExactRole({
       vault,
@@ -262,19 +290,23 @@ export async function openExactSearch({
       device,
       wait,
     });
+    hierarchy = await openMainDestination({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'Entdecken',
+    });
   } else {
     const account = vault.accounts.find((entry) => entry.role === 'renter')
       ?? fail('The exact search renter is unavailable.');
     const other = vault.accounts.find((entry) => entry.role !== 'renter')
       ?? fail('The opposite search principal is unavailable.');
-    const profile = await openMainDestination({
-      commandRunner,
-      adbPath,
-      device,
-      wait,
-      label: 'Mein SIT',
+    const main = await unwindExactSearchToMainNavigation({
+      commandRunner, adbPath, device, wait,
     });
-    await waitForHierarchy({
+    tapLabel(commandRunner, adbPath, device, main, 'Mein SIT', { chooseBottom: true });
+    const profile = await waitForHierarchy({
       commandRunner,
       adbPath,
       device,
@@ -286,14 +318,16 @@ export async function openExactSearch({
         other.displayName,
       ),
     });
+    tapLabel(commandRunner, adbPath, device, profile, 'Entdecken', { chooseBottom: true });
+    hierarchy = await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      wait,
+      label: 'Entdecken destination',
+      predicate: (value) => currentHeadAndroidNamedNodes(value, 'Entdecken').length > 0,
+    });
   }
-  let hierarchy = await openMainDestination({
-    commandRunner,
-    adbPath,
-    device,
-    wait,
-    label: 'Entdecken',
-  });
   hierarchy = await waitForHierarchy({
     commandRunner,
     adbPath,
