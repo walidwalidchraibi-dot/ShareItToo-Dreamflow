@@ -26,7 +26,7 @@ function response(status, value) {
   return { status, text: async () => JSON.stringify(value) };
 }
 
-function privateFixture() {
+function privateFixture({ sourceStatus = 'email-link-verified-ready-for-login' } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'sit-n22-two-role-'));
   chmodSync(root, 0o700);
   const sourceDirectory = join(root, 'source');
@@ -61,15 +61,55 @@ function privateFixture() {
     schemaVersion: 1,
     kind: 'sit-staging-synthetic-account-vault',
     runId: 'email-linked-source',
-    status: 'email-link-verified-ready-for-login',
+    status: sourceStatus,
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
     verificationMethod: 'email-link',
     accounts,
+    ...(sourceStatus === 'non-binding-simulation-retired'
+      ? {
+          nonBindingSimulation: {
+            status: 'retired',
+            workflowStatus: 'cancelled',
+            listingStatus: 'paused',
+            paymentEndpointCalled: false,
+            stripeLivemode: false,
+          },
+        }
+      : {}),
   })}\n`, { mode: 0o600 });
   writeFileSync(imagePath, Buffer.alloc(512, 7), { mode: 0o600 });
   return { root, sourceVaultFile, journeyDirectory, imagePath, accounts };
 }
+
+test('accepts only a terminal retired simulation as a reusable verified source', async () => {
+  const fixture = privateFixture({ sourceStatus: 'non-binding-simulation-retired' });
+  const api = stagingApi(fixture.accounts);
+  const prepared = await prepareStagingEmailVerifiedTwoRoleJourney({
+    sourceVaultFile: fixture.sourceVaultFile,
+    vaultRoot: fixture.journeyDirectory,
+    imagePath: fixture.imagePath,
+    fetchImpl: api.fetchImpl,
+    now: new Date('2026-09-12T21:30:00.000Z'),
+    random: () => Buffer.from('12345678', 'hex'),
+  });
+  assert.equal(prepared.status, 'owner-draft-ready-for-pixel-publish');
+
+  const unsafe = JSON.parse(readFileSync(fixture.sourceVaultFile, 'utf8'));
+  unsafe.nonBindingSimulation.workflowStatus = 'accepted';
+  writeFileSync(fixture.sourceVaultFile, `${JSON.stringify(unsafe)}\n`, { mode: 0o600 });
+  await assert.rejects(
+    () => prepareStagingEmailVerifiedTwoRoleJourney({
+      sourceVaultFile: fixture.sourceVaultFile,
+      vaultRoot: fixture.journeyDirectory,
+      imagePath: fixture.imagePath,
+      fetchImpl: api.fetchImpl,
+      now: new Date('2026-09-12T21:31:00.000Z'),
+      random: () => Buffer.from('abcdef12', 'hex'),
+    }),
+    /not safely retired/u,
+  );
+});
 
 function safeBooking(state, workflowStatus) {
   return {

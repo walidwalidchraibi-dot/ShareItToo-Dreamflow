@@ -26,6 +26,11 @@ const repositoryRoot = realpathSync(resolve(fileURLToPath(new URL('..', import.m
 const stagingApiBaseUrl = 'https://staging.shareittoo.com/api/v1';
 const sourceReadyStatus = 'email-link-verified-ready-for-login';
 const journeyKind = 'sit-staging-email-verified-two-role-product-journey';
+const reusableSourceStates = new Set([
+  sourceReadyStatus,
+  'email-linked-product-journey-retired',
+  'non-binding-simulation-retired',
+]);
 
 function fail(message) {
   throw new Error(message);
@@ -96,10 +101,11 @@ function validAccount(account) {
 
 function validateEmailVerifiedVault(vault, { source = false } = {}) {
   const allowedStatuses = source
-    ? new Set([sourceReadyStatus])
+    ? reusableSourceStates
     : new Set([
         sourceReadyStatus,
         'non-binding-simulation-active',
+        'non-binding-simulation-retired',
         'email-linked-product-journey-retired',
       ]);
   if (vault?.schemaVersion !== 1
@@ -118,6 +124,20 @@ function validateEmailVerifiedVault(vault, { source = false } = {}) {
   }
   if (new Set(vault.accounts.map((account) => account.email.toLowerCase())).size !== 2) {
     fail('The product-journey roles are not distinct principals.');
+  }
+  if (vault.status === 'email-linked-product-journey-retired'
+      && (vault.realTwoRoleJourney?.status !== 'retired'
+        || vault.realTwoRoleJourney?.listingStatus !== 'ended'
+        || !['cancelled', 'not-created'].includes(vault.realTwoRoleJourney?.bookingStatus))) {
+    fail('The reusable product-journey source is not safely retired.');
+  }
+  if (vault.status === 'non-binding-simulation-retired'
+      && (vault.nonBindingSimulation?.status !== 'retired'
+        || vault.nonBindingSimulation?.workflowStatus !== 'cancelled'
+        || !['paused', 'ended'].includes(vault.nonBindingSimulation?.listingStatus)
+        || vault.nonBindingSimulation?.paymentEndpointCalled !== false
+        || vault.nonBindingSimulation?.stripeLivemode !== false)) {
+    fail('The reusable simulation source is not safely retired.');
   }
   return vault;
 }
