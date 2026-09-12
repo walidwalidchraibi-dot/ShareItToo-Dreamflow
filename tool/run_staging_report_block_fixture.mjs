@@ -89,15 +89,16 @@ async function request(fetchImpl, path, {
   if (typeof path !== 'string' || !path.startsWith('/') || path.includes('://')) {
     fail('A WP132 Staging API path is invalid.');
   }
+  const form = typeof FormData !== 'undefined' && body instanceof FormData;
   const response = await fetchImpl(`${stagingApiBaseUrl}${path}`, {
     method,
     headers: {
       accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(body === undefined || form ? {} : { 'Content-Type': 'application/json' }),
       'User-Agent': 'SIT-WP132-Report-Block/1',
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || form ? body : JSON.stringify(body),
     signal: AbortSignal.timeout(20_000),
   });
   const raw = await response.text();
@@ -198,9 +199,22 @@ function listingBody(source, { id, title }) {
   };
 }
 
-async function createActiveListing(fetchImpl, token, source, listing) {
+async function createActiveListing(fetchImpl, token, source, listing, image) {
+  const form = new FormData();
+  form.append('purpose', 'listing_image');
+  form.append('file', new Blob([image], { type: 'image/png' }), 'sit-wp132-report-block.png');
+  const upload = await request(fetchImpl, '/uploads', {
+    method: 'POST', token, body: form, expected: [201],
+  });
+  if (typeof upload.value?.url !== 'string'
+      || !upload.value.url.startsWith('https://staging.shareittoo.com/')) {
+    fail('A WP132 listing upload did not return an exact Staging URL.');
+  }
   const created = await request(fetchImpl, '/listings', {
-    method: 'POST', token, body: listingBody(source, listing), expected: [201],
+    method: 'POST',
+    token,
+    body: { ...listingBody(source, listing), photos: [upload.value.url] },
+    expected: [201],
   });
   if (created.value?.listing?.id !== listing.id
       || created.value.listing.status !== 'draft'
@@ -221,6 +235,7 @@ export async function prepareStagingReportBlockFixture({
   sourceVaultFile,
   journalFile,
   vaultRoot,
+  imagePath = resolve(repositoryRoot, 'assets/images/shareittoo_app_icon_master.png'),
   fetchImpl = globalThis.fetch,
   now = new Date(),
   random = randomBytes,
@@ -233,6 +248,7 @@ export async function prepareStagingReportBlockFixture({
   const prepared = await prepareStagingEmailVerifiedTwoRoleJourney({
     sourceVaultFile,
     ...(vaultRoot === undefined ? {} : { vaultRoot }),
+    imagePath,
     fetchImpl,
     now,
     random,
@@ -241,6 +257,8 @@ export async function prepareStagingReportBlockFixture({
   let targetListing = null;
   let companionListing = null;
   try {
+    const image = readFileSync(resolve(imagePath));
+    if (image.length < 100) fail('The WP132 listing image is invalid.');
     await activateStagingEmailVerifiedJourneyFixture({
       vaultFile: journeyVaultFile,
       fetchImpl,
@@ -284,8 +302,8 @@ export async function prepareStagingReportBlockFixture({
       id: `sit-${vault.runId}-${suffix}-visibility`,
       title: `SIT Sichtbarkeit ${vault.runId}`,
     };
-    await createActiveListing(fetchImpl, owner.token, primary[0], targetListing);
-    await createActiveListing(fetchImpl, owner.token, primary[0], companionListing);
+    await createActiveListing(fetchImpl, owner.token, primary[0], targetListing, image);
+    await createActiveListing(fetchImpl, owner.token, primary[0], companionListing, image);
 
   const [blockState, reportState, threadState, catalogState] = await Promise.all([
     request(fetchImpl, '/user-blocks', { token: renter.token }),
