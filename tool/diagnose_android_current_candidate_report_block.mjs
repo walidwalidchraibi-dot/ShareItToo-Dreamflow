@@ -85,8 +85,18 @@ async function exactWp132Search({ stage, ...options }) {
   if (!exactSearchStages.has(stage)) fail('The WP132 exact-title search stage is invalid.');
   try {
     return await openExactSearch(options);
-  } catch {
-    fail(`The WP132 ${stage} exact-title search failed.`);
+  } catch (error) {
+    const safeInnerStages = new Set([
+      'exact search query cleared',
+      'exact search query entered',
+      'exact filtered search result',
+      'empty exact filtered search result',
+      'preserved exact search principal',
+    ]);
+    const inner = /^The sanitized ([A-Za-z0-9 -]+) surface did not appear\.$/u
+      .exec(String(error?.message ?? ''))?.[1] ?? null;
+    const reason = safeInnerStages.has(inner) ? inner.replaceAll(' ', '-') : 'session-or-navigation';
+    fail(`The WP132 ${stage} exact-title search failed at ${reason}.`);
   }
 }
 

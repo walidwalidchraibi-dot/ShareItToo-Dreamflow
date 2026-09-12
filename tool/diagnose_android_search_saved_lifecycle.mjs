@@ -192,6 +192,22 @@ export function exactPrivateSearchInputActions(query) {
   ]);
 }
 
+export function exactPrivateSearchClearAction(maximumLength = 160) {
+  if (!Number.isInteger(maximumLength) || maximumLength < 10 || maximumLength > 160) {
+    fail('The exact private search clear bound is invalid.');
+  }
+  return ['shell', 'input', 'keyevent', '--delay', '0', '123', ...Array(maximumLength).fill('67')];
+}
+
+export function exactSearchQueryValueVisible(hierarchy, expected) {
+  if (typeof expected !== 'string') return false;
+  try {
+    return currentHeadAndroidNodeAttribute(queryEditorNode(hierarchy), 'text') === expected;
+  } catch {
+    return false;
+  }
+}
+
 async function settledSearchResults({
   commandRunner,
   adbPath,
@@ -304,10 +320,31 @@ export async function openExactSearch({
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell', 'input', 'tap', String(queryPoint.x), String(queryPoint.y),
   ]);
+  currentHeadAndroidAdb(
+    commandRunner,
+    adbPath,
+    device,
+    exactPrivateSearchClearAction(),
+  );
+  await waitForHierarchy({
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+    label: 'exact search query cleared',
+    predicate: (value) => exactSearchQueryValueVisible(value, ''),
+  });
   for (const action of exactPrivateSearchInputActions(query)) {
     currentHeadAndroidAdb(commandRunner, adbPath, device, action);
   }
-  await wait(350);
+  hierarchy = await waitForHierarchy({
+    commandRunner,
+    adbPath,
+    device,
+    wait,
+    label: 'exact search query entered',
+    predicate: (value) => exactSearchQueryValueVisible(value, query),
+  });
   currentHeadAndroidAdb(commandRunner, adbPath, device, [
     'shell', 'input', 'keyevent', '4',
   ]);

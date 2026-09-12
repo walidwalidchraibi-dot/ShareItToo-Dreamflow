@@ -3,8 +3,10 @@ import test from 'node:test';
 
 import {
   emptyExactSearchResultVisible,
+  exactPrivateSearchClearAction,
   exactPrivateSearchInputActions,
   exactPrivateSearchQuery,
+  exactSearchQueryValueVisible,
   exactSearchRoleProfileVisible,
   exactSearchListingDetailVisible,
   manualSearchFormVisible,
@@ -26,6 +28,9 @@ test('permits only the exact run id or exact run-bound title as a search query',
     ['shell', 'input', 'text', runId],
   ]);
   assert.equal(exactPrivateSearchInputActions(title).flat().includes('%s'), false);
+  const clearAction = exactPrivateSearchClearAction();
+  assert.deepEqual(clearAction.slice(0, 6), ['shell', 'input', 'keyevent', '--delay', '0', '123']);
+  assert.equal(clearAction.filter((value) => value === '67').length, 160);
   assert.throws(
     () => exactPrivateSearchQuery({ runId, title, searchTerm: 'SIT Meldung' }),
     /exact private search term/u,
@@ -38,6 +43,20 @@ test('permits only the exact run id or exact run-bound title as a search query',
     () => exactPrivateSearchInputActions('SIT  Meldung n22-safe-fixture'),
     /exact private search input/u,
   );
+});
+
+test('recognizes only the exact current search-field value', () => {
+  const hierarchy = [
+    '<node content-desc="Was" bounds="[10,100][100,160]"/>',
+    '<node class="android.widget.EditText" text="SIT Meldung n22-safe-fixture" ',
+    'bounds="[120,100][900,160]" enabled="true"/>',
+  ].join('');
+  assert.equal(
+    exactSearchQueryValueVisible(hierarchy, 'SIT Meldung n22-safe-fixture'),
+    true,
+  );
+  assert.equal(exactSearchQueryValueVisible(hierarchy, ''), false);
+  assert.equal(exactSearchQueryValueVisible('<hierarchy/>', ''), false);
 });
 
 test('accepts a preserved search session only for the exact renter principal', () => {
