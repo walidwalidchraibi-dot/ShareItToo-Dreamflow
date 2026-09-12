@@ -43,6 +43,8 @@ import {
 import { validatePrivateAndroidReleaseArchive } from './validate_current_head_android_release_archive.mjs';
 
 const applicationId = 'com.shareittoo.app';
+const permissionSettlementTimeoutMilliseconds = 60_000;
+const permissionSettlementShellTimeoutSeconds = 60;
 const mutablePermissionFlags = Object.freeze([
   'review-required',
   'revoked-compat',
@@ -628,14 +630,16 @@ export function settleAndroidPackageManagerPermissionChanges(
   // barriers are completion signals, not elapsed-time retries.
   for (const handler of ['wait-for-handler', 'wait-for-background-handler']) {
     const result = currentHeadAndroidAdb(commandRunner, adbPath, device, [
-      'shell', 'cmd', 'package', handler, '--timeout', '10000',
+      'shell', 'cmd', 'package', handler, '--timeout',
+      String(permissionSettlementTimeoutMilliseconds),
     ]);
     if (result !== 'Success') {
       fail('Android PackageManager did not confirm permission-change settlement.');
     }
   }
   const broadcastBarrier = currentHeadAndroidAdb(commandRunner, adbPath, device, [
-    'shell', 'timeout', '10', 'am', 'wait-for-broadcast-barrier',
+    'shell', 'timeout', String(permissionSettlementShellTimeoutSeconds),
+    'am', 'wait-for-broadcast-barrier',
   ]);
   if (!broadcastBarrier.split(/\r?\n/u).includes('Test barrier passed')) {
     fail('Android did not confirm the permission-change broadcast barrier.');

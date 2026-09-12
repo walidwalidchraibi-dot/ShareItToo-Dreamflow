@@ -395,19 +395,19 @@ test('accepts only fixed non-private lifecycle checkpoints', () => {
   );
 });
 
-test('waits for both Android PackageManager handlers before a restored restart', () => {
+test('waits for bounded Android completion signals before a restored restart', () => {
   const calls = [];
   settleAndroidPackageManagerPermissionChanges((_file, args) => {
     calls.push(args.slice(2).join(' '));
     return args.slice(2).join(' ') ===
-            'shell timeout 10 am wait-for-broadcast-barrier'
+            'shell timeout 60 am wait-for-broadcast-barrier'
         ? 'Waiting for queues\nTest barrier passed'
         : 'Success';
   }, 'adb', { serial: 'PRIVATE-SERIAL' });
   assert.deepEqual(calls, [
-    'shell cmd package wait-for-handler --timeout 10000',
-    'shell cmd package wait-for-background-handler --timeout 10000',
-    'shell timeout 10 am wait-for-broadcast-barrier',
+    'shell cmd package wait-for-handler --timeout 60000',
+    'shell cmd package wait-for-background-handler --timeout 60000',
+    'shell timeout 60 am wait-for-broadcast-barrier',
   ]);
   assert.throws(
     () => settleAndroidPackageManagerPermissionChanges(() => 'Timed out', 'adb', {

@@ -11,6 +11,7 @@ const evidencePath =
   'docs/evidence/release-readiness/wp128-current-candidate-pixel-visual-permission-20260912.json';
 const candidateHead = '1546812f625b4e8f1e700bf976410097cd45ac2f';
 const wp127BaseHead = '66df6b1f3501f3920192c6e73609d441070f65b0';
+const wp128ClosureHead = '41362146a2aa7bcbc39040608d1c7043a2ea9a94';
 const runtimeRoots = [
   'lib', 'android', 'assets', 'pubspec.yaml', 'pubspec.lock', 'backend/src', 'backend/sql',
 ];
@@ -72,7 +73,16 @@ function validateSourceInventory(repositoryRoot, inventory) {
       fail('WP128 source inventory is invalid.');
     }
     seen.add(item.path);
-    const actual = digest(readFileSync(resolve(repositoryRoot, item.path)));
+    let source;
+    try {
+      source = execFileSync('git', ['show', `${wp128ClosureHead}:${item.path}`], {
+        cwd: repositoryRoot,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+    } catch {
+      fail(`WP128 historical source is unavailable: ${item.path}.`);
+    }
+    const actual = digest(source);
     exact(actual, item.sha256, `source digest ${item.path}`);
   }
 }
@@ -227,6 +237,7 @@ export function validateWp128CurrentCandidatePixelVisualPermission({
   if (checkGitState) {
     assertAncestor(repositoryRoot, candidateHead);
     assertAncestor(repositoryRoot, wp127BaseHead);
+    assertAncestor(repositoryRoot, wp128ClosureHead);
     const drift = execFileSync('git', [
       'diff', '--name-only', candidateHead, '--', ...runtimeRoots,
     ], {
