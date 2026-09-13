@@ -427,9 +427,9 @@ export async function runCurrentCandidateReportBlockLifecycle({
 } = {}) {
   if (candidate?.applicationId !== 'com.shareittoo.app'
       || candidate?.versionName !== '1.0.0'
-      || candidate?.buildNumber !== '2026091201'
-      || candidate?.commit !== '1546812f625b4e8f1e700bf976410097cd45ac2f'
-      || candidate?.android?.apkSha256 !== 'a8bfda4c1a0e7302b2528db8edfbe1318e88322023f65588da032220a24badd4') {
+      || candidate?.buildNumber !== '2026091301'
+      || candidate?.commit !== 'adf9c3769ce07bc169b28e4b6b276d8fb248ec31'
+      || candidate?.android?.apkSha256 !== 'bd6e308fffdeee2214ca1a92f871b2de4f50f9ef2c7d3bfd2bfd015704d11582') {
     fail('The WP132 candidate binding is not exact.');
   }
   if (deviceSummary?.model !== 'Pixel 7 Pro' || deviceSummary?.physical !== true) {
