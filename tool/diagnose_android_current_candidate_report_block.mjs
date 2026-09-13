@@ -287,7 +287,7 @@ async function reportAndBlock({
   );
   hierarchy = await waitForHierarchy({
     commandRunner, adbPath, device, wait, label: 'listing options',
-    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Anzeigenoptionen').length === 1,
+    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Anzeigenoptionen').length >= 1,
   });
   hierarchy = await scrollToListingReportAction({
     commandRunner, adbPath, device, wait,

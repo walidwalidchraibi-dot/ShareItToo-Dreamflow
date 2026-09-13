@@ -32,7 +32,7 @@ test('keeps the report action reachable from an exact search result', () => {
   );
   assert.match(
     runner,
-    /currentHeadAndroidNamedNodes\(value, 'Anzeigenoptionen'\)\.length === 1/u,
+    /currentHeadAndroidNamedNodes\(value, 'Anzeigenoptionen'\)\.length >= 1/u,
   );
   assert.match(
     runner,
