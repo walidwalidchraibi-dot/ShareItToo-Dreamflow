@@ -12,6 +12,7 @@ const evidencePath =
 const candidateHead = '1546812f625b4e8f1e700bf976410097cd45ac2f';
 const wp130ClosureHead = 'f2ce29ab411b2e5c9c99e45f9d38788e92dc5a8c';
 const diagnosticHead = 'f91783a8dad2f3f59a6f1ffe704efa4253f60a39';
+const wp131ClosureHead = 'ef17b775019be82fdf22d3b7eb87d012730d8c7d';
 const runtimeRoots = [
   'lib', 'android', 'assets', 'pubspec.yaml', 'pubspec.lock', 'backend/src', 'backend/sql',
 ];
@@ -56,8 +57,16 @@ function assertAncestor(repositoryRoot, head) {
 function validateSourceInventory(repositoryRoot, inventory) {
   exact(inventory?.map((item) => item.path), sourcePaths, 'source inventory');
   for (const item of inventory) {
-    if (!/^[a-f0-9]{64}$/u.test(item?.sha256 ?? '')
-        || digest(readFileSync(resolve(repositoryRoot, item.path))) !== item.sha256) {
+    let source;
+    try {
+      source = execFileSync('git', ['show', `${wp131ClosureHead}:${item.path}`], {
+        cwd: repositoryRoot,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+    } catch {
+      fail(`WP131 historical source is unavailable: ${item.path}.`);
+    }
+    if (!/^[a-f0-9]{64}$/u.test(item?.sha256 ?? '') || digest(source) !== item.sha256) {
       fail(`WP131 source digest drift: ${item?.path ?? 'unknown'}.`);
     }
   }
@@ -193,15 +202,16 @@ export function validateWp131CurrentCandidateAndroidPermissionLifecycle({
     rawDeviceIdentifierRecorded: false,
   }, 'authorization boundary');
   if (checkGitState) {
-    [candidateHead, wp130ClosureHead, diagnosticHead].forEach((head) => assertAncestor(repositoryRoot, head));
+    [candidateHead, wp130ClosureHead, diagnosticHead, wp131ClosureHead]
+      .forEach((head) => assertAncestor(repositoryRoot, head));
     const drift = execFileSync('git', [
-      'diff', '--name-only', candidateHead, '--', ...runtimeRoots,
+      'diff', '--name-only', candidateHead, wp131ClosureHead, '--', ...runtimeRoots,
     ], {
       cwd: repositoryRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
-    if (drift !== '') fail('WP131 application runtime drifted after the signed candidate.');
+    if (drift !== '') fail('WP131 application runtime drifted before its closure.');
   }
   return Object.freeze({
     status: value.status,

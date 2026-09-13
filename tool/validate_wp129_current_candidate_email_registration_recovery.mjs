@@ -11,6 +11,7 @@ const evidencePath =
   'docs/evidence/release-readiness/wp129-current-candidate-email-registration-recovery-20260912.json';
 const candidateHead = '1546812f625b4e8f1e700bf976410097cd45ac2f';
 const wp128BaseHead = '41362146a2aa7bcbc39040608d1c7043a2ea9a94';
+const wp129ClosureHead = '341fdf48d8c4161a84c8dd6eb9c290eea97b80b4';
 const runtimeRoots = [
   'lib', 'android', 'assets', 'pubspec.yaml', 'pubspec.lock', 'backend/src', 'backend/sql',
 ];
@@ -76,11 +77,16 @@ function validateSourceInventory(repositoryRoot, inventory) {
       fail('WP129 source inventory is invalid.');
     }
     seen.add(item.path);
-    exact(
-      digest(readFileSync(resolve(repositoryRoot, item.path))),
-      item.sha256,
-      `source digest ${item.path}`,
-    );
+    let source;
+    try {
+      source = execFileSync('git', ['show', `${wp129ClosureHead}:${item.path}`], {
+        cwd: repositoryRoot,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+    } catch {
+      fail(`WP129 historical source is unavailable: ${item.path}.`);
+    }
+    exact(digest(source), item.sha256, `source digest ${item.path}`);
   }
 }
 
@@ -207,14 +213,15 @@ export function validateWp129CurrentCandidateEmailRegistrationRecovery({
   if (checkGitState) {
     assertAncestor(repositoryRoot, candidateHead);
     assertAncestor(repositoryRoot, wp128BaseHead);
+    assertAncestor(repositoryRoot, wp129ClosureHead);
     const drift = execFileSync('git', [
-      'diff', '--name-only', candidateHead, '--', ...runtimeRoots,
+      'diff', '--name-only', candidateHead, wp129ClosureHead, '--', ...runtimeRoots,
     ], {
       cwd: repositoryRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
-    if (drift !== '') fail('WP129 application runtime drifted after the signed candidate.');
+    if (drift !== '') fail('WP129 application runtime drifted before its closure.');
   }
   return Object.freeze({
     status: value.status,

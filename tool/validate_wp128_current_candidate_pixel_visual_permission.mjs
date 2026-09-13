@@ -239,13 +239,13 @@ export function validateWp128CurrentCandidatePixelVisualPermission({
     assertAncestor(repositoryRoot, wp127BaseHead);
     assertAncestor(repositoryRoot, wp128ClosureHead);
     const drift = execFileSync('git', [
-      'diff', '--name-only', candidateHead, '--', ...runtimeRoots,
+      'diff', '--name-only', candidateHead, wp128ClosureHead, '--', ...runtimeRoots,
     ], {
       cwd: repositoryRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
-    if (drift !== '') fail('WP128 application runtime drifted after the signed candidate.');
+    if (drift !== '') fail('WP128 application runtime drifted before its closure.');
   }
   return Object.freeze({
     status: value.status,

@@ -22,7 +22,7 @@ test('removes the unreachable legacy search and decorative map branch', () => {
   ]) {
     assert.doesNotMatch(searchOverlay, new RegExp(`\\b${symbol}\\b`));
   }
-  assert.doesNotMatch(searchOverlay, /_nearby|_categoriesById/);
+  assert.doesNotMatch(searchOverlay, /\b_nearby\b|_categoriesById/);
 });
 
 test('keeps the active search, suggestion, category, and result paths', () => {

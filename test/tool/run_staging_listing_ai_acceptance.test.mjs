@@ -111,6 +111,11 @@ async function privateVault(t) {
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
     verificationMethod: 'email-link',
+    realTwoRoleJourney: {
+      status: 'retired',
+      listingStatus: 'ended',
+      bookingStatus: 'cancelled',
+    },
     accounts: [
       {
         role: 'owner',
