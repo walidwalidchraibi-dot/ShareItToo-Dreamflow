@@ -143,6 +143,34 @@ async function scrollToListingReportAction({
   fail('The sanitized listing report action was not reachable after bounded scrolling.');
 }
 
+function exactPublicOwnerProfileVisible(hierarchy, ownerName) {
+  return currentHeadAndroidNamedNodes(hierarchy, ownerName).length > 0
+    && currentHeadAndroidNamedNodes(hierarchy, 'Mehr Optionen').length >= 1;
+}
+
+async function openExactPublicOwnerProfile({
+  commandRunner, adbPath, device, wait, ownerName,
+}) {
+  let hierarchy = await waitForHierarchy({
+    commandRunner, adbPath, device, wait, label: 'exact public owner profile outcome',
+    predicate: (value) => (
+      exactPublicOwnerProfileVisible(value, ownerName)
+        || value.includes('Profil konnte nicht geladen werden')
+    ),
+  });
+  if (exactPublicOwnerProfileVisible(hierarchy, ownerName)) return hierarchy;
+  if (currentHeadAndroidNamedNodes(hierarchy, 'Erneut laden').length !== 1) {
+    fail('The public owner profile failed without an exact retry action.');
+  }
+  tapLabel(commandRunner, adbPath, device, hierarchy, 'Erneut laden');
+  hierarchy = await waitForHierarchy({
+    commandRunner, adbPath, device, wait, attempts: 48,
+    label: 'exact public owner profile after bounded retry',
+    predicate: (value) => exactPublicOwnerProfileVisible(value, ownerName),
+  });
+  return hierarchy;
+}
+
 async function settledMessages({
   commandRunner, adbPath, device, wait, exactTitle, visible,
 }) {
@@ -324,12 +352,8 @@ async function reportAndBlock({
     predicate: (value) => currentHeadAndroidNamedNodes(value, 'Vermieterprofil ansehen').length === 1,
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Vermieterprofil ansehen');
-  hierarchy = await waitForHierarchy({
-    commandRunner, adbPath, device, wait, label: 'exact public owner profile',
-    predicate: (value) => (
-      currentHeadAndroidNamedNodes(value, ownerName).length > 0
-        && currentHeadAndroidNamedNodes(value, 'Mehr Optionen').length >= 1
-    ),
+  hierarchy = await openExactPublicOwnerProfile({
+    commandRunner, adbPath, device, wait, ownerName,
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Mehr Optionen');
   hierarchy = await waitForHierarchy({

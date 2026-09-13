@@ -44,7 +44,11 @@ test('keeps the report action reachable from an exact search result', () => {
   );
   assert.match(
     runner,
-    /currentHeadAndroidNamedNodes\(value, 'Mehr Optionen'\)\.length >= 1/u,
+    /currentHeadAndroidNamedNodes\((?:value|hierarchy), 'Mehr Optionen'\)\.length >= 1/u,
+  );
+  assert.match(
+    runner,
+    /value\.includes\('Profil konnte nicht geladen werden'\)[\s\S]*?tapLabel\(commandRunner, adbPath, device, hierarchy, 'Erneut laden'\)[\s\S]*?attempts: 48/u,
   );
   assert.equal(
     runner.match(/`Anzeigenoptionen: \$\{journal\.targetListing\.title\}`/gu)?.length,

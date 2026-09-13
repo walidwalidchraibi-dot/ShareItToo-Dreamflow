@@ -23,6 +23,7 @@ import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/rating_badge.dart';
+import 'package:lendify/widgets/local_state_error_panel.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
@@ -43,6 +44,8 @@ const IconData publicProfileBioSectionIcon = Icons.person_outline;
 const int publicProfileReviewPreviewMaxLines = 3;
 const String publicProfileReviewAuthorPrefix = 'Bewertung von';
 const String publicProfileReviewItemPrefix = 'zu';
+
+typedef PublicProfileUserLoader = Future<User?> Function(String userId);
 
 String buildPublicProfileReviewAuthorLine(String reviewerName) =>
     '$publicProfileReviewAuthorPrefix $reviewerName';
@@ -442,6 +445,7 @@ class PublicProfileScreen extends StatefulWidget {
   final bool isOwnPreview;
   final String appBarTitle;
   final SafetyActionService? safetyActionService;
+  final PublicProfileUserLoader? loadUser;
   const PublicProfileScreen({
     super.key,
     this.userId,
@@ -449,6 +453,7 @@ class PublicProfileScreen extends StatefulWidget {
     this.isOwnPreview = false,
     this.appBarTitle = 'Öffentliches Profil',
     this.safetyActionService,
+    this.loadUser,
   });
   @override
   State<PublicProfileScreen> createState() => _PublicProfileScreenState();
@@ -463,6 +468,8 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   int _loadRevision = 0;
   User? _user;
   List<Item> _items = [];
+  bool _loading = true;
+  String? _loadError;
   bool _redirectingBlockedProfile = false;
 
   @override
@@ -501,65 +508,93 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Future<void> _load() async {
     final revision = ++_loadRevision;
     _safetyActions.invalidate();
-    final actionContext = await _safetyService.loadCurrentContext();
-    if (!mounted || revision != _loadRevision) return;
-    final u = widget.previewUser ??
-        (widget.userId != null
-            ? await DataService.getUserById(widget.userId!)
-            : await DataService.getCurrentUser());
-    final items = await DataService.getItems();
-    final viewer = actionContext?.user ?? await DataService.getCurrentUser();
-    final profileGuard = await ProfileEcosystemService.canViewPublicProfile(
-      profileUserId: u?.id,
-      currentUserId: viewer?.id,
-    );
-    if (!mounted || revision != _loadRevision) return;
-    if (actionContext != null &&
-        !await _safetyService.isContextCurrent(actionContext)) {
-      return;
-    }
-    if (!mounted || revision != _loadRevision) return;
-    _safetyActions.replaceContext(actionContext);
-    if (!widget.isOwnPreview && !profileGuard.allowed) {
-      if (!_redirectingBlockedProfile) {
-        _redirectingBlockedProfile = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          if (!mounted) return;
-          await AppPopup.toast(
-            context,
-            icon: Icons.block,
-            title: 'Profil blockiert',
-            message: profileGuard.reason,
-          );
-          if (!mounted) return;
-          Navigator.of(context, rootNavigator: true)
-              .popUntil((route) => route.isFirst);
-        });
+    setState(() {
+      _loading = true;
+      _loadError = null;
+      _user = null;
+      _viewerId = null;
+      _items = const [];
+    });
+    try {
+      final actionContext = await _safetyService.loadCurrentContext();
+      if (!mounted || revision != _loadRevision) return;
+      final User? u;
+      if (widget.previewUser != null) {
+        u = widget.previewUser;
+      } else if (widget.userId != null) {
+        u = widget.loadUser != null
+            ? await widget.loadUser!(widget.userId!)
+            : await DataService.getUserById(widget.userId!);
+      } else {
+        u = await DataService.getCurrentUser();
       }
+      final profileUser = u ?? (throw StateError('public_profile_not_found'));
+      final items = await DataService.getItems();
+      final viewer = actionContext?.user ?? await DataService.getCurrentUser();
+      final profileGuard = await ProfileEcosystemService.canViewPublicProfile(
+        profileUserId: profileUser.id,
+        currentUserId: viewer?.id,
+      );
+      if (!mounted || revision != _loadRevision) return;
+      if (actionContext != null &&
+          !await _safetyService.isContextCurrent(actionContext)) {
+        return;
+      }
+      if (!mounted || revision != _loadRevision) return;
+      _safetyActions.replaceContext(actionContext);
+      if (!widget.isOwnPreview && !profileGuard.allowed) {
+        if (!_redirectingBlockedProfile) {
+          _redirectingBlockedProfile = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (!mounted || revision != _loadRevision) return;
+            await AppPopup.toast(
+              context,
+              icon: Icons.block,
+              title: 'Profil blockiert',
+              message: profileGuard.reason,
+            );
+            if (!mounted || revision != _loadRevision) return;
+            Navigator.of(context, rootNavigator: true)
+                .popUntil((route) => route.isFirst);
+          });
+        }
+        setState(() {
+          _loading = false;
+          _user = profileUser;
+          _viewerId = viewer?.id;
+          _items = const [];
+        });
+        return;
+      }
+      final ownerItems =
+          items.where((e) => e.ownerId == profileUser.id).toList();
+      final visibleItems = widget.isOwnPreview
+          ? ownerItems
+              .where(ProfileEcosystemService.isPubliclyVisibleItem)
+              .toList()
+          : await ProfileEcosystemService.filterVisiblePublicItems(ownerItems);
+      if (!mounted || revision != _loadRevision) return;
+      if (actionContext != null &&
+          !await _safetyService.isContextCurrent(actionContext)) {
+        return;
+      }
+      if (!mounted || revision != _loadRevision) return;
       setState(() {
-        _user = u;
+        _loading = false;
+        _user = profileUser;
         _viewerId = viewer?.id;
+        _items = visibleItems;
+      });
+    } catch (_) {
+      if (!mounted || revision != _loadRevision) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Profil konnte nicht geladen werden';
+        _user = null;
+        _viewerId = null;
         _items = const [];
       });
-      return;
     }
-    final ownerItems = items.where((e) => e.ownerId == u?.id).toList();
-    final visibleItems = widget.isOwnPreview
-        ? ownerItems
-            .where(ProfileEcosystemService.isPubliclyVisibleItem)
-            .toList()
-        : await ProfileEcosystemService.filterVisiblePublicItems(ownerItems);
-    if (!mounted || revision != _loadRevision) return;
-    if (actionContext != null &&
-        !await _safetyService.isContextCurrent(actionContext)) {
-      return;
-    }
-    if (!mounted || revision != _loadRevision) return;
-    setState(() {
-      _user = u;
-      _viewerId = viewer?.id;
-      _items = visibleItems;
-    });
   }
 
   Future<void> _openProfileSupportFlow(String issueType) async {
@@ -762,8 +797,23 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
         ],
       ),
       body: SafeArea(
-        child: u == null
-            ? const Center(child: CircularProgressIndicator())
+        child: _loadError != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LocalStateErrorPanel(
+                    title: _loadError!,
+                    message:
+                        'Es wird kein leeres oder erfolgreich geladenes Profil angezeigt. Bitte versuche es erneut.',
+                    semanticLabel:
+                        'Profil konnte nicht geladen werden. Erneut laden.',
+                    onRetry: _load,
+                    retrying: _loading,
+                  ),
+                ),
+              )
+            : _loading || u == null
+                ? const Center(child: CircularProgressIndicator())
             : ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
