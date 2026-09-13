@@ -24,17 +24,25 @@ void main() {
       contains('''final result = await OpenAIConfig.parseSearchQuery(prompt);
     if (!mounted) return;'''),
     );
+    expect(source, contains('final LatestSearchRecompute _nearbyRecompute'));
+    expect(
+      source,
+      contains(
+        '_nearbyRecompute.schedule(_recomputeNearbySuggestionsForGeneration)',
+      ),
+    );
+    expect(source, contains('_nearbyRecompute.dispose();'));
     expect(
       RegExp(
-        r'final items = await DataService\.getItems\(\);\s+if \(!mounted\) return;',
+        r'if \(!mounted \|\| !_nearbyRecompute\.isCurrent\(generation\)\) return;',
       ).allMatches(source).length,
       greaterThanOrEqualTo(2),
     );
     expect(
       source,
-      contains('''if (!mounted) return;
-      setState(() {
-        _displayNearby = available.take(16).toList();'''),
+      contains(
+        'if (mounted && _nearbyRecompute.isCurrent(generation))',
+      ),
     );
   });
 }
