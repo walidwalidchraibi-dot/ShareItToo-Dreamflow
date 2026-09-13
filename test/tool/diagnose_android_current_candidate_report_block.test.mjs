@@ -42,6 +42,10 @@ test('keeps the report action reachable from an exact search result', () => {
     runner,
     /tapLabel\(commandRunner, adbPath, device, hierarchy, 'Melden'\);/u,
   );
+  assert.equal(
+    runner.match(/exactListingLabel: `Anzeige öffnen: \$\{journal\.targetListing\.title\}`/gu)?.length,
+    2,
+  );
 });
 
 function operations(calls) {

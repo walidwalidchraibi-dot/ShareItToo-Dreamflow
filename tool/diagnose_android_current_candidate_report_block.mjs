@@ -284,7 +284,7 @@ async function reportAndBlock({
     adbPath,
     device,
     hierarchy,
-    exactListingLabel: journal.targetListing.title,
+    exactListingLabel: `Anzeige öffnen: ${journal.targetListing.title}`,
   });
   hierarchy = await waitForHierarchy({
     commandRunner, adbPath, device, wait, label: 'listing options',
@@ -318,7 +318,7 @@ async function reportAndBlock({
     adbPath,
     device,
     hierarchy,
-    exactListingLabel: journal.targetListing.title,
+    exactListingLabel: `Anzeige öffnen: ${journal.targetListing.title}`,
   });
   hierarchy = await waitForHierarchy({
     commandRunner, adbPath, device, wait, label: 'listing owner profile action',
