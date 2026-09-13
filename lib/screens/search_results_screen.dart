@@ -10,6 +10,7 @@ import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/widgets/local_state_error_panel.dart';
+import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 
@@ -503,6 +504,12 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
       child: GestureDetector(
         onTap: () => ItemDetailsOverlay.showFullPage(context,
             item: widget.item, fresh: true),
+        onLongPress: () => showListingOptionsDialog(
+          context,
+          item: widget.item,
+          contextType: ListingOptionsContext.explore,
+          onWishlistChanged: widget.onFavoriteToggle,
+        ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: Stack(children: [

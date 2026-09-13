@@ -18,13 +18,18 @@ const candidate = Object.freeze({
   },
 });
 
-test('uses the exact current listing-options report action label', () => {
+test('keeps the report action reachable from an exact search result', () => {
   const runner = readFileSync(
     'tool/diagnose_android_current_candidate_report_block.mjs',
     'utf8',
   );
   const options = readFileSync('lib/widgets/listing_options_dialog.dart', 'utf8');
+  const searchResults = readFileSync('lib/screens/search_results_screen.dart', 'utf8');
   assert.match(options, /label: 'Melden',\s*onTap: reportListing/u);
+  assert.match(
+    searchResults,
+    /class _SquareTitleOnlyCardState[\s\S]*?onLongPress: \(\) => showListingOptionsDialog\([\s\S]*?contextType: ListingOptionsContext\.explore/u,
+  );
   assert.match(
     runner,
     /currentHeadAndroidNamedNodes\(value, 'Melden'\)\.length === 1/u,
