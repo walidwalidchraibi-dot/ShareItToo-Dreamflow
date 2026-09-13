@@ -20,7 +20,7 @@
     },
     {
       "path": "pubspec.yaml",
-      "sha256": "df0b652434c398673554e23ca8cc098e10c1e82e16f7cc3e50ebb112c2583cd1"
+      "sha256": "365e09fc1efc96bd1cda8732825c06b0f4f147ab4cbf88a41ae44de4e64c6605"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -792,7 +792,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "8b4a7eba36e9fd520c27f929ad5506a9640a51fe321c79438ce76e4f16ca2b82"
+      "sha256": "2b508bc6c4a82e8b7f6c562e09723e3cb6749972ee0684095828f232827295c2"
     },
     {
       "path": "lib/config/supply_enrichment_technical_config.dart",
