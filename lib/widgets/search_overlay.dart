@@ -6,6 +6,7 @@ import 'package:lendify/models/category.dart' as app_category;
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as app_user;
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/latest_search_recompute.dart';
 import 'package:lendify/services/search_category_inference.dart';
 import 'package:lendify/widgets/modern_range_picker_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
@@ -70,6 +71,7 @@ class _SearchSheetState extends State<_SearchSheet> {
 
   Timer? _aiDebounce;
   Timer? _categoryDebounce;
+  final LatestSearchRecompute _nearbyRecompute = LatestSearchRecompute();
 
   Future<void> _openDateTimeFlow() async {
     // Use a simple calendar range picker for an easier flow (like availability check)
@@ -103,6 +105,8 @@ class _SearchSheetState extends State<_SearchSheet> {
 
   List<String> _suggestions = [];
   List<String> _locSuggestions = [];
+  Set<String> _searchSuggestionInventory = <String>{};
+  Set<String> _locationSuggestionInventory = <String>{};
   // Live-updated grid suggestions based on Was/Wo/Datum
   List<Item> _displayNearby = [];
   List<app_category.Category> _categories = [];
@@ -165,6 +169,16 @@ class _SearchSheetState extends State<_SearchSheet> {
         users.where((u) => u.isVerified).map((u) => u.id).toSet();
     final itemTitles =
         items.map((e) => e.title).where((e) => e.trim().isNotEmpty).toList();
+    final searchTerms = <String>{
+      ...itemTitles,
+      ...items.expand((item) => item.tags),
+    }.where((value) => value.trim().isNotEmpty).toSet();
+    final locationTerms = <String>{
+      ...DataService.getCities().keys,
+      ...items.map((item) => item.city),
+      ...items.map((item) => item.country),
+      ...items.map((item) => item.locationText),
+    }.where((value) => value.trim().isNotEmpty).toSet();
     setState(() {
       _usersById = byId;
       _verifiedOwnerIds = verifiedIds;
@@ -172,6 +186,8 @@ class _SearchSheetState extends State<_SearchSheet> {
       _categories = categories;
       _suggestions = itemTitles.take(12).toList();
       _recent = itemTitles.take(12).toList();
+      _searchSuggestionInventory = searchTerms;
+      _locationSuggestionInventory = locationTerms;
       _loading = false;
     });
     // Compute initial grid suggestions
@@ -184,6 +200,7 @@ class _SearchSheetState extends State<_SearchSheet> {
     _hideWhereOverlay();
     _aiDebounce?.cancel();
     _categoryDebounce?.cancel();
+    _nearbyRecompute.dispose();
     _aiCtrl.dispose();
     _aiFocus.dispose();
     _whatCtrl.dispose();
@@ -409,16 +426,12 @@ class _SearchSheetState extends State<_SearchSheet> {
     });
   }
 
-  void _onQueryChangedWhat(String v) async {
-    final items = await DataService.getItems();
+  void _onQueryChangedWhat(String v) {
     if (!mounted) return;
     final q = v.toLowerCase();
-    final titles =
-        items.map((e) => e.title).where((t) => t.trim().isNotEmpty).toSet();
-    final tags =
-        items.expand((e) => e.tags).where((t) => t.trim().isNotEmpty).toSet();
-    final all = <String>{...titles, ...tags};
-    final matches = all.where((t) => t.toLowerCase().contains(q)).toList()
+    final matches = _searchSuggestionInventory
+        .where((term) => term.toLowerCase().contains(q))
+        .toList()
       ..sort((a, b) =>
           a.toLowerCase().indexOf(q).compareTo(b.toLowerCase().indexOf(q)));
     setState(() => _suggestions = matches.take(10).toList());
@@ -435,28 +448,20 @@ class _SearchSheetState extends State<_SearchSheet> {
       _suggestCategoriesFromText(v);
     });
 
-    await _recomputeNearbySuggestions();
+    _scheduleNearbySuggestionsRecompute();
   }
 
-  void _onQueryChangedWhere(String v) async {
-    final q = v.toLowerCase();
-    final cities = DataService.getCities().keys;
-    final items = await DataService.getItems();
+  void _onQueryChangedWhere(String v) {
     if (!mounted) return;
-    final fromItems = <String>{
-      ...items.map((e) => e.city),
-      ...items.map((e) => e.country),
-      ...items.map((e) => e.locationText)
-    };
-    final all = <String>{...cities, ...fromItems}
-        .where((e) => e.trim().isNotEmpty)
-        .toSet();
-    final matches = all.where((t) => t.toLowerCase().contains(q)).toList()
+    final q = v.toLowerCase();
+    final matches = _locationSuggestionInventory
+        .where((term) => term.toLowerCase().contains(q))
+        .toList()
       ..sort((a, b) =>
           a.toLowerCase().indexOf(q).compareTo(b.toLowerCase().indexOf(q)));
     setState(() => _locSuggestions = matches.take(10).toList());
     _updateWhereOverlay();
-    await _recomputeNearbySuggestions();
+    _scheduleNearbySuggestionsRecompute();
   }
 
   void _addToRecentWhat(String term) {
@@ -473,8 +478,17 @@ class _SearchSheetState extends State<_SearchSheet> {
       : '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
 
   // Live compute suggestions grid near user's city or typed "Wo"
+  void _scheduleNearbySuggestionsRecompute() {
+    _nearbyRecompute.schedule(_recomputeNearbySuggestionsForGeneration);
+  }
+
   Future<void> _recomputeNearbySuggestions() async {
-    if (!mounted) return;
+    final generation = _nearbyRecompute.beginImmediate();
+    await _recomputeNearbySuggestionsForGeneration(generation);
+  }
+
+  Future<void> _recomputeNearbySuggestionsForGeneration(int generation) async {
+    if (!mounted || !_nearbyRecompute.isCurrent(generation)) return;
     try {
       setState(() => _recomputing = true);
       final whatRaw = _whatCtrl.text.trim();
@@ -550,14 +564,16 @@ class _SearchSheetState extends State<_SearchSheet> {
         ];
       }
 
-      if (!mounted) return;
+      if (!mounted || !_nearbyRecompute.isCurrent(generation)) return;
       setState(() {
         _displayNearby = available.take(16).toList();
       });
     } catch (e) {
       debugPrint('[_SearchSheet] recompute suggestions failed: $e');
     } finally {
-      if (mounted) setState(() => _recomputing = false);
+      if (mounted && _nearbyRecompute.isCurrent(generation)) {
+        setState(() => _recomputing = false);
+      }
     }
   }
 
