@@ -236,3 +236,39 @@ test('resumes only the unfinished role-session revocation after a rate limit', a
   const journal = JSON.parse(readFileSync(fixture.journalFile, 'utf8'));
   assert.deepEqual(journal.cleanup.sessionRevocation, { owner: true, renter: true });
 });
+
+test('re-authenticates and retries an uncertain idempotent session revocation', async () => {
+  const fixture = privateState('cleanup-server-confirmed-session-revocation-pending');
+  const loginEmails = [];
+  let revocationAttempts = 0;
+  const result = await cleanupStagingReportBlockFixture({
+    journalFile: fixture.journalFile,
+    wait: async () => {},
+    fetchImpl: async (url, options = {}) => {
+      const path = String(url).slice(apiBaseUrl.length);
+      if (path === '/auth/login') {
+        const body = JSON.parse(options.body);
+        loginEmails.push(body.email);
+        return response(200, {
+          accessToken: `renter-access-token-${loginEmails.length}`,
+          sessionId: `renter-session-${loginEmails.length}`,
+          user: { id: 'renter-user' },
+        });
+      }
+      if (path === '/auth/logout-all') {
+        revocationAttempts += 1;
+        if (revocationAttempts === 1) throw new Error('uncertain transport result');
+        return response(204);
+      }
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(result.status, 'cleanup-server-confirmed-recovery-required');
+  assert.equal(revocationAttempts, 2);
+  assert.deepEqual(loginEmails, [
+    'renter-wp132@example.test',
+    'renter-wp132@example.test',
+  ]);
+  const journal = JSON.parse(readFileSync(fixture.journalFile, 'utf8'));
+  assert.deepEqual(journal.cleanup.sessionRevocation, { owner: true, renter: true });
+});

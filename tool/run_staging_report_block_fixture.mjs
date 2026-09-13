@@ -532,7 +532,10 @@ async function endExactListing(fetchImpl, ownerToken, expected) {
 export async function cleanupStagingReportBlockFixture({
   journalFile,
   fetchImpl = globalThis.fetch,
+  wait = (milliseconds) => new Promise((resolveWait) =>
+    setTimeout(resolveWait, milliseconds)),
 } = {}) {
+  if (typeof wait !== 'function') fail('A cleanup retry wait function is required.');
   const { canonical, journal } = exactJournal(journalFile, [
     'ready-for-pixel',
     'blocked-server-confirmed',
@@ -618,11 +621,25 @@ export async function cleanupStagingReportBlockFixture({
     if (journal.cleanup.sessionRevocation[role] === true) continue;
     const expectedUserId = role === 'owner' ? journal.ownerUserId : journal.renterUserId;
     let session = role === 'owner' ? owner : renter;
-    if (session === null) session = await login(fetchImpl, byRole.get(role));
-    if (session.userId !== expectedUserId) fail(`The WP132 ${role} cleanup principal changed.`);
-    await request(fetchImpl, '/auth/logout-all', {
-      method: 'POST', token: session.token, expected: [204],
-    });
+    let revoked = false;
+    let lastFailure = null;
+    for (let attempt = 0; attempt < 3 && !revoked; attempt += 1) {
+      if (session === null) session = await login(fetchImpl, byRole.get(role));
+      if (session.userId !== expectedUserId) {
+        fail(`The WP132 ${role} cleanup principal changed.`);
+      }
+      try {
+        await request(fetchImpl, '/auth/logout-all', {
+          method: 'POST', token: session.token, expected: [204],
+        });
+        revoked = true;
+      } catch (error) {
+        lastFailure = error;
+        session = null;
+        if (attempt < 2) await wait(400 * (attempt + 1));
+      }
+    }
+    if (!revoked) throw lastFailure;
     journal.cleanup.sessionRevocation[role] = true;
     writePrivateJson(canonical, journal);
   }
