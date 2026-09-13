@@ -42,6 +42,10 @@ test('keeps the report action reachable from an exact search result', () => {
     runner,
     /tapLabel\(commandRunner, adbPath, device, hierarchy, 'Melden'\);/u,
   );
+  assert.match(
+    runner,
+    /currentHeadAndroidNamedNodes\(value, 'Mehr Optionen'\)\.length >= 1/u,
+  );
   assert.equal(
     runner.match(/`Anzeigenoptionen: \$\{journal\.targetListing\.title\}`/gu)?.length,
     2,

@@ -328,7 +328,7 @@ async function reportAndBlock({
     commandRunner, adbPath, device, wait, label: 'exact public owner profile',
     predicate: (value) => (
       currentHeadAndroidNamedNodes(value, ownerName).length > 0
-        && currentHeadAndroidNamedNodes(value, 'Mehr Optionen').length === 1
+        && currentHeadAndroidNamedNodes(value, 'Mehr Optionen').length >= 1
     ),
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Mehr Optionen');
