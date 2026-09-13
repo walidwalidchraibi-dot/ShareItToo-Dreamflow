@@ -28,7 +28,7 @@ test('keeps the report action reachable from an exact search result', () => {
   assert.match(options, /label: 'Melden',\s*onTap: reportListing/u);
   assert.match(
     searchResults,
-    /class _SquareTitleOnlyCardState[\s\S]*?onLongPress: \(\) => showListingOptionsDialog\([\s\S]*?contextType: ListingOptionsContext\.explore/u,
+    /class _SquareTitleOnlyCardState[\s\S]*?Future<void> _showOptions\(\) => showListingOptionsDialog\([\s\S]*?contextType: ListingOptionsContext\.explore[\s\S]*?final optionsLabel = 'Anzeigenoptionen: \$\{widget\.item\.title\}'/u,
   );
   assert.match(
     runner,
@@ -43,7 +43,7 @@ test('keeps the report action reachable from an exact search result', () => {
     /tapLabel\(commandRunner, adbPath, device, hierarchy, 'Melden'\);/u,
   );
   assert.equal(
-    runner.match(/exactListingLabel: `Anzeige öffnen: \$\{journal\.targetListing\.title\}`/gu)?.length,
+    runner.match(/`Anzeigenoptionen: \$\{journal\.targetListing\.title\}`/gu)?.length,
     2,
   );
 });

@@ -251,8 +251,6 @@ Future<List<_ListingOption>> _buildOptions(
   VoidCallback? onWishlistChanged,
   VoidCallback? onVisibilityChanged,
 }) async {
-  final currentWishlistId = await DataService.getWishlistForItem(item.id);
-
   Future<void> openListing() async {
     if (!context.mounted) return;
     ItemDetailsOverlay.showFullPage(context, item: item, fresh: true);
@@ -287,6 +285,7 @@ Future<List<_ListingOption>> _buildOptions(
 
   Future<void> addToWishlist() async {
     try {
+      final currentWishlistId = await DataService.getWishlistForItem(item.id);
       String? selected;
       if (currentWishlistId == null) {
         if (!context.mounted) return;
@@ -338,8 +337,7 @@ Future<List<_ListingOption>> _buildOptions(
 
   Future<void> moveToAnotherWishlist() async {
     try {
-      final current =
-          currentWishlistId ?? await DataService.getWishlistForItem(item.id);
+      final current = await DataService.getWishlistForItem(item.id);
       if (!context.mounted) return;
       if (current == null || current.isEmpty) {
         await addToWishlist();

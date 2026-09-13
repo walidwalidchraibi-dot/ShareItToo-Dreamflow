@@ -13,7 +13,6 @@ import {
 } from './diagnose_android_email_verified_two_role_product_journey.mjs';
 import {
   hasExactOwnerBlockConfirmation,
-  longPressExactListing,
 } from './diagnose_android_report_block_interactions.mjs';
 import {
   openExactSearch,
@@ -279,13 +278,13 @@ async function reportAndBlock({
     device,
     wait,
   }));
-  longPressExactListing({
+  tapLabel(
     commandRunner,
     adbPath,
     device,
     hierarchy,
-    exactListingLabel: `Anzeige öffnen: ${journal.targetListing.title}`,
-  });
+    `Anzeigenoptionen: ${journal.targetListing.title}`,
+  );
   hierarchy = await waitForHierarchy({
     commandRunner, adbPath, device, wait, label: 'listing options',
     predicate: (value) => currentHeadAndroidNamedNodes(value, 'Anzeigenoptionen').length === 1,
@@ -313,13 +312,13 @@ async function reportAndBlock({
     commandRunner, adbPath, device, wait, label: 'search result after report',
     predicate: (value) => currentHeadAndroidNamedNodes(value, journal.targetListing.title).length > 0,
   });
-  longPressExactListing({
+  tapLabel(
     commandRunner,
     adbPath,
     device,
     hierarchy,
-    exactListingLabel: `Anzeige öffnen: ${journal.targetListing.title}`,
-  });
+    `Anzeigenoptionen: ${journal.targetListing.title}`,
+  );
   hierarchy = await waitForHierarchy({
     commandRunner, adbPath, device, wait, label: 'listing owner profile action',
     predicate: (value) => currentHeadAndroidNamedNodes(value, 'Vermieterprofil ansehen').length === 1,

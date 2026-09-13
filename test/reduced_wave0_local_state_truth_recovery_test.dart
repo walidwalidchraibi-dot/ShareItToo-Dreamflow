@@ -354,6 +354,15 @@ void main() {
       ),
       findsOneWidget,
     );
+    final options = find.bySemanticsLabel(
+      'Anzeigenoptionen: ${item.title}',
+    );
+    expect(options, findsOneWidget);
+    await tester.tap(options);
+    await tester.pumpAndSettle();
+    expect(find.text('Anzeigenoptionen'), findsOneWidget);
+    await tester.tap(find.byTooltip('Schließen'));
+    await tester.pumpAndSettle();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('wishlist_assign_v1', '{}');

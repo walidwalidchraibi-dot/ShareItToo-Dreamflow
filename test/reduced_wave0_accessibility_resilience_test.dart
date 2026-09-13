@@ -173,6 +173,14 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
+        final options = find.bySemanticsLabel(
+          'Anzeigenoptionen: ${item.title}',
+        );
+        expect(options, findsOneWidget);
+        expect(
+          tester.getSemantics(options).rect.height,
+          greaterThanOrEqualTo(kMinInteractiveDimension),
+        );
         final save = find.bySemanticsLabel(
           'Unter Gemerkt speichern: ${item.title}',
         );

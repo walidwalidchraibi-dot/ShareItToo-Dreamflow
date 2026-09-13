@@ -169,6 +169,15 @@ void main() {
         ));
         await tester.pumpAndSettle();
         expect(find.text(searchItem.title), findsOneWidget);
+        final optionsAction = find.bySemanticsLabel(
+          'Anzeigenoptionen: ${searchItem.title}',
+        );
+        expect(optionsAction, findsOneWidget);
+        await tester.tap(optionsAction);
+        await tester.pumpAndSettle();
+        expect(find.text('Anzeigenoptionen'), findsOneWidget);
+        await tester.tap(find.byTooltip('Schließen'));
+        await tester.pumpAndSettle();
         final saveAction = find.bySemanticsLabel(
           RegExp(
             RegExp.escape('Unter Gemerkt speichern: ${searchItem.title}'),

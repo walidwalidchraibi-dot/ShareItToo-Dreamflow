@@ -490,9 +490,17 @@ class _SquareTitleOnlyCard extends StatefulWidget {
 }
 
 class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
+  Future<void> _showOptions() => showListingOptionsDialog(
+        context,
+        item: widget.item,
+        contextType: ListingOptionsContext.explore,
+        onWishlistChanged: widget.onFavoriteToggle,
+      );
+
   @override
   Widget build(BuildContext context) {
     final openLabel = 'Anzeige öffnen: ${widget.item.title}';
+    final optionsLabel = 'Anzeigenoptionen: ${widget.item.title}';
     final favoriteLabel = widget.isFavorite
         ? 'Aus Gemerkt entfernen: ${widget.item.title}'
         : 'Unter Gemerkt speichern: ${widget.item.title}';
@@ -504,12 +512,7 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
       child: GestureDetector(
         onTap: () => ItemDetailsOverlay.showFullPage(context,
             item: widget.item, fresh: true),
-        onLongPress: () => showListingOptionsDialog(
-          context,
-          item: widget.item,
-          contextType: ListingOptionsContext.explore,
-          onWishlistChanged: widget.onFavoriteToggle,
-        ),
+        onLongPress: _showOptions,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18),
           child: Stack(children: [
@@ -547,6 +550,36 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 64,
+              child: Semantics(
+                button: true,
+                label: optionsLabel,
+                onTap: () {
+                  _showOptions();
+                },
+                child: ExcludeSemantics(
+                  child: Tooltip(
+                    message: 'Anzeigenoptionen',
+                    child: SizedBox(
+                      width: kMinInteractiveDimension,
+                      height: kMinInteractiveDimension,
+                      child: IconButton(
+                        onPressed: _showOptions,
+                        icon: const Icon(Icons.more_horiz),
+                        iconSize: 18,
+                        color: Colors.black54,
+                        style: IconButton.styleFrom(
+                          backgroundColor:
+                              Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
             if (widget.onFavoriteToggle != null)
