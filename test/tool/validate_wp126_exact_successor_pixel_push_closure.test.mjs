@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -12,9 +13,11 @@ const evidencePath = resolve(
   root,
   'docs/evidence/release-readiness/wp126-exact-successor-pixel-push-closure-20260912.json',
 );
-const rolloverPath = resolve(root, 'store/google-play/current-rollover-candidate.json');
 const readEvidence = () => JSON.parse(readFileSync(evidencePath, 'utf8'));
-const readRollover = () => JSON.parse(readFileSync(rolloverPath, 'utf8'));
+const readRollover = () => JSON.parse(execFileSync('git', [
+  'show',
+  'd68770b95554183e531b46b93d55eccb723d1844:store/google-play/current-rollover-candidate.json',
+], { cwd: root, encoding: 'utf8' }));
 
 test('accepts the exact successor Pixel push closure', () => {
   const result = validateWp126ExactSuccessorPixelPushClosure({ repositoryRoot: root });

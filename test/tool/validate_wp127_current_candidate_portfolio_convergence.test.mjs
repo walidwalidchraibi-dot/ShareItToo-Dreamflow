@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -12,9 +13,11 @@ const evidencePath = resolve(
   root,
   'docs/evidence/release-readiness/wp127-current-candidate-portfolio-convergence-20260912.json',
 );
-const rolloverPath = resolve(root, 'store/google-play/current-rollover-candidate.json');
 const readEvidence = () => JSON.parse(readFileSync(evidencePath, 'utf8'));
-const readRollover = () => JSON.parse(readFileSync(rolloverPath, 'utf8'));
+const readRollover = () => JSON.parse(execFileSync('git', [
+  'show',
+  '66df6b1f3501f3920192c6e73609d441070f65b0:store/google-play/current-rollover-candidate.json',
+], { cwd: root, encoding: 'utf8' }));
 
 function validate(evidence = readEvidence(), rollover = readRollover()) {
   return validateWp127CurrentCandidatePortfolioConvergence({

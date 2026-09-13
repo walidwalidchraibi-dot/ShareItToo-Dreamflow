@@ -10,6 +10,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const evidencePath =
   'docs/evidence/release-readiness/wp126-exact-successor-pixel-push-closure-20260912.json';
 const rolloverPath = 'store/google-play/current-rollover-candidate.json';
+const wp126ClosureHead = 'd68770b95554183e531b46b93d55eccb723d1844';
 const toolPath = 'tool/run_isolated_android_device_message_diagnostic.mjs';
 const toolTestPath = 'test/tool/run_isolated_android_device_message_diagnostic.test.mjs';
 
@@ -239,7 +240,9 @@ export function validateWp126ExactSuccessorPixelPushClosure({
   checkGitState = true,
 } = {}) {
   const value = evidence ?? JSON.parse(readFileSync(resolve(repositoryRoot, evidencePath), 'utf8'));
-  const pointer = rollover ?? JSON.parse(readFileSync(resolve(repositoryRoot, rolloverPath), 'utf8'));
+  const pointer = rollover ?? JSON.parse(
+    sourceAtHead(repositoryRoot, wp126ClosureHead, rolloverPath).toString('utf8'),
+  );
   if (value?.schemaVersion !== 1
       || value.kind !== 'sit-wp126-exact-successor-pixel-push-closure'
       || value.status !== 'exact-successor-pixel-push-closure-passed'

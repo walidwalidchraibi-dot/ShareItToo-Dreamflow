@@ -15,6 +15,7 @@ const candidateHead = '1546812f625b4e8f1e700bf976410097cd45ac2f';
 const candidateFreezeHead = 'f9c4c9523eb0f4dfcdb03d34516795a91e0bcbdd';
 const portfolioBaseHead = 'd68770b95554183e531b46b93d55eccb723d1844';
 const stagingRuntimeHead = 'df39a14b7a19afe467842461a28f1e77fec8445e';
+const wp127ClosureHead = '66df6b1f3501f3920192c6e73609d441070f65b0';
 const runtimeRoots = [
   'lib',
   'android',
@@ -102,6 +103,14 @@ function gitOutput(repositoryRoot, args, encoding = 'utf8') {
     encoding,
     stdio: ['ignore', 'pipe', 'ignore'],
   });
+}
+
+function sourceAtHead(repositoryRoot, head, path, encoding = 'buffer') {
+  try {
+    return gitOutput(repositoryRoot, ['show', `${head}:${path}`], encoding);
+  } catch {
+    fail(`WP127 historical source is unavailable: ${path}`);
+  }
 }
 
 function validateRepository(repositoryRoot, value, checkGitState) {
@@ -282,7 +291,7 @@ function validateSourcesAndBoundaries(repositoryRoot, value) {
     if (!/^[a-f0-9]{64}$/u.test(entry?.sha256 ?? '')) {
       fail('WP127 source digest is invalid.');
     }
-    exact(sha256(readFileSync(resolve(repositoryRoot, entry.path))), entry.sha256,
+    exact(sha256(sourceAtHead(repositoryRoot, wp127ClosureHead, entry.path)), entry.sha256,
       `source digest ${entry.path}`);
   }
   const expectedNext = [
@@ -313,7 +322,9 @@ export function validateWp127CurrentCandidatePortfolioConvergence({
   checkGitState = true,
 } = {}) {
   const value = evidence ?? JSON.parse(readFileSync(resolve(repositoryRoot, evidencePath), 'utf8'));
-  const pointer = rollover ?? JSON.parse(readFileSync(resolve(repositoryRoot, rolloverPath), 'utf8'));
+  const pointer = rollover ?? JSON.parse(
+    sourceAtHead(repositoryRoot, wp127ClosureHead, rolloverPath, 'utf8'),
+  );
   if (value?.schemaVersion !== 1
       || value.kind !== 'sit-wp127-current-candidate-portfolio-convergence'
       || value.status !== 'partial-current-candidate-acceptance-external-gates-open'
