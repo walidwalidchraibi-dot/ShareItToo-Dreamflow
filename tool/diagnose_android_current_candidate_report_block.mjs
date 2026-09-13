@@ -152,7 +152,8 @@ async function openExactPublicOwnerProfile({
   commandRunner, adbPath, device, wait, ownerName,
 }) {
   let hierarchy = await waitForHierarchy({
-    commandRunner, adbPath, device, wait, label: 'exact public owner profile outcome',
+    commandRunner, adbPath, device, wait, attempts: 48,
+    label: 'exact public owner profile outcome',
     predicate: (value) => (
       exactPublicOwnerProfileVisible(value, ownerName)
         || value.includes('Profil konnte nicht geladen werden')

@@ -516,20 +516,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       _items = const [];
     });
     try {
-      final actionContext = await _safetyService.loadCurrentContext();
-      if (!mounted || revision != _loadRevision) return;
-      final User? u;
+      final actionContextFuture = _safetyService.loadCurrentContext();
+      final publicItemsFuture = DataService.getPublicItems();
+      final Future<User?> profileFuture;
       if (widget.previewUser != null) {
-        u = widget.previewUser;
+        profileFuture = Future<User?>.value(widget.previewUser);
       } else if (widget.userId != null) {
-        u = widget.loadUser != null
-            ? await widget.loadUser!(widget.userId!)
-            : await DataService.getUserById(widget.userId!);
+        profileFuture = widget.loadUser != null
+            ? widget.loadUser!(widget.userId!)
+            : DataService.getUserById(widget.userId!);
       } else {
-        u = await DataService.getCurrentUser();
+        profileFuture = DataService.getCurrentUser();
       }
-      final profileUser = u ?? (throw StateError('public_profile_not_found'));
-      final items = await DataService.getItems();
+      final actionContext = await actionContextFuture;
+      final profileUser = await profileFuture ??
+          (throw StateError('public_profile_not_found'));
+      final items = await publicItemsFuture;
       final viewer = actionContext?.user ?? await DataService.getCurrentUser();
       final profileGuard = await ProfileEcosystemService.canViewPublicProfile(
         profileUserId: profileUser.id,

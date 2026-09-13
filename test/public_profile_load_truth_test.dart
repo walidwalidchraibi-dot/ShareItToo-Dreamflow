@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +15,29 @@ import 'support/test_builders.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('public profile starts independent public reads before awaiting them',
+      () async {
+    final source =
+        await File('lib/screens/public_profile_screen.dart').readAsString();
+    final loadStart = source.indexOf('Future<void> _load() async');
+    final supportStart = source.indexOf(
+      'Future<void> _openProfileSupportFlow',
+      loadStart,
+    );
+    final load = source.substring(loadStart, supportStart);
+    final contextStart = load.indexOf(
+      'final actionContextFuture = _safetyService.loadCurrentContext()',
+    );
+    final catalogStart =
+        load.indexOf('final publicItemsFuture = DataService.getPublicItems()');
+    final firstAwait = load.indexOf('final actionContext = await');
+
+    expect(contextStart, greaterThanOrEqualTo(0));
+    expect(catalogStart, greaterThan(contextStart));
+    expect(firstAwait, greaterThan(catalogStart));
+    expect(load, isNot(contains('final items = await DataService.getItems()')));
+  });
 
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{
         'items': '[]',
