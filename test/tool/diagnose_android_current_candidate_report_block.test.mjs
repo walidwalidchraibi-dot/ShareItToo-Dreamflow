@@ -32,7 +32,11 @@ test('keeps the report action reachable from an exact search result', () => {
   );
   assert.match(
     runner,
-    /currentHeadAndroidNamedNodes\(value, 'Melden'\)\.length === 1/u,
+    /currentHeadAndroidNamedNodes\(value, 'Anzeigenoptionen'\)\.length === 1/u,
+  );
+  assert.match(
+    runner,
+    /async function scrollToListingReportAction[\s\S]*?currentHeadAndroidNamedNodes\(hierarchy, 'Melden'\)\.length === 1[\s\S]*?'shell', 'input', 'swipe'/u,
   );
   assert.match(
     runner,

@@ -23,6 +23,7 @@ import {
   currentHeadAndroidAdb,
   currentHeadAndroidNamedNodes,
   defaultCurrentHeadAndroidCommandRunner,
+  dumpCurrentHeadAndroidUi,
   verifyCurrentHeadAndroidInstalledCandidate,
 } from './diagnose_current_head_android_main_navigation.mjs';
 import {
@@ -122,6 +123,25 @@ async function exactWp132Search({ stage, ...options }) {
     const reason = classifyWp132ExactSearchFailure(error);
     fail(`The WP132 ${stage} exact-title search failed at ${reason}.`);
   }
+}
+
+async function scrollToListingReportAction({
+  commandRunner, adbPath, device, wait,
+}) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const hierarchy = dumpCurrentHeadAndroidUi(commandRunner, adbPath, device);
+    if (currentHeadAndroidNamedNodes(hierarchy, 'Melden').length === 1) {
+      return hierarchy;
+    }
+    if (currentHeadAndroidNamedNodes(hierarchy, 'Anzeigenoptionen').length === 0) {
+      fail('The sanitized listing options surface closed before the report action was reachable.');
+    }
+    currentHeadAndroidAdb(commandRunner, adbPath, device, [
+      'shell', 'input', 'swipe', '540', '1800', '540', '700', '320',
+    ]);
+    await wait(400);
+  }
+  fail('The sanitized listing report action was not reachable after bounded scrolling.');
 }
 
 async function settledMessages({
@@ -267,8 +287,11 @@ async function reportAndBlock({
     exactListingLabel: journal.targetListing.title,
   });
   hierarchy = await waitForHierarchy({
-    commandRunner, adbPath, device, wait, label: 'listing report action',
-    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Melden').length === 1,
+    commandRunner, adbPath, device, wait, label: 'listing options',
+    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Anzeigenoptionen').length === 1,
+  });
+  hierarchy = await scrollToListingReportAction({
+    commandRunner, adbPath, device, wait,
   });
   tapLabel(commandRunner, adbPath, device, hierarchy, 'Melden');
   hierarchy = await waitForHierarchy({
