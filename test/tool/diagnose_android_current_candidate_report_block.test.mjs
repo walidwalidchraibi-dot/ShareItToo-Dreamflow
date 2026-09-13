@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -15,6 +16,23 @@ const candidate = Object.freeze({
   android: {
     apkSha256: 'bd6e308fffdeee2214ca1a92f871b2de4f50f9ef2c7d3bfd2bfd015704d11582',
   },
+});
+
+test('uses the exact current listing-options report action label', () => {
+  const runner = readFileSync(
+    'tool/diagnose_android_current_candidate_report_block.mjs',
+    'utf8',
+  );
+  const options = readFileSync('lib/widgets/listing_options_dialog.dart', 'utf8');
+  assert.match(options, /label: 'Melden',\s*onTap: reportListing/u);
+  assert.match(
+    runner,
+    /currentHeadAndroidNamedNodes\(value, 'Melden'\)\.length === 1/u,
+  );
+  assert.match(
+    runner,
+    /tapLabel\(commandRunner, adbPath, device, hierarchy, 'Melden'\);/u,
+  );
 });
 
 function operations(calls) {

@@ -268,9 +268,9 @@ async function reportAndBlock({
   });
   hierarchy = await waitForHierarchy({
     commandRunner, adbPath, device, wait, label: 'listing report action',
-    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Anzeige melden').length === 1,
+    predicate: (value) => currentHeadAndroidNamedNodes(value, 'Melden').length === 1,
   });
-  tapLabel(commandRunner, adbPath, device, hierarchy, 'Anzeige melden');
+  tapLabel(commandRunner, adbPath, device, hierarchy, 'Melden');
   hierarchy = await waitForHierarchy({
     commandRunner, adbPath, device, wait, label: 'listing report form',
     predicate: (value) => containsAllLabels(value, ['Anzeige melden', 'Betrug / Täuschung']),
